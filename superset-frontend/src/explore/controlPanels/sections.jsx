@@ -17,8 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/translation';
-import { formatSelectOptions } from '../../modules/utils';
+import { t } from '@superset-ui/core';
+import { formatSelectOptions } from 'src/modules/utils';
 
 export const druidTimeSeries = {
   label: t('Time'),
@@ -28,7 +28,7 @@ export const druidTimeSeries = {
 };
 
 export const datasourceAndVizType = {
-  label: t('Datasource & Chart Type'),
+  label: t('Dataset & Chart Type'),
   expanded: true,
   controlSetRows: [
     ['datasource'],
@@ -213,12 +213,14 @@ export const NVD3TimeSeries = [
               '30 days',
               '52 weeks',
               '1 year',
+              '104 weeks',
+              '2 years',
             ]),
             description: t(
               'Overlay one or more timeseries from a ' +
                 'relative time period. Expects relative time deltas ' +
                 'in natural language (example:  24 hours, 7 days, ' +
-                '56 weeks, 365 days)',
+                '52 weeks, 365 days). Free text is supported.',
             ),
           },
         },

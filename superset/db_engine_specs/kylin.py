@@ -33,11 +33,9 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "PT1M": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO MINUTE) AS TIMESTAMP)",
         "PT1H": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO HOUR) AS TIMESTAMP)",
         "P1D": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO DAY) AS DATE)",
-        "P1W": "CAST(TIMESTAMPADD(WEEK, WEEK(CAST({col} AS DATE)) - 1, \
-               FLOOR(CAST({col} AS TIMESTAMP) TO YEAR)) AS DATE)",
+        "P1W": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO WEEK) AS DATE)",
         "P1M": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO MONTH) AS DATE)",
-        "P0.25Y": "CAST(TIMESTAMPADD(QUARTER, QUARTER(CAST({col} AS DATE)) - 1, \
-                  FLOOR(CAST({col} AS TIMESTAMP) TO YEAR)) AS DATE)",
+        "P0.25Y": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO QUARTER) AS DATE)",
         "P1Y": "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO YEAR) AS DATE)",
     }
 
@@ -47,5 +45,6 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         if tt == utils.TemporalType.DATE:
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
         if tt == utils.TemporalType.TIMESTAMP:
-            return f"""CAST('{dttm.isoformat(sep=" ", timespec="seconds")}' AS TIMESTAMP)"""  # pylint: disable=line-too-long
+            datetime_fomatted = dttm.isoformat(sep=" ", timespec="seconds")
+            return f"""CAST('{datetime_fomatted}' AS TIMESTAMP)"""
         return None

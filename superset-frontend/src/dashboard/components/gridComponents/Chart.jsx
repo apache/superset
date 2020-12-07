@@ -18,7 +18,6 @@
  */
 import cx from 'classnames';
 import React from 'react';
-import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { exploreChart, exportChart } from '../../../explore/exploreUtils';
 import SliceHeader from '../SliceHeader';
@@ -42,8 +41,6 @@ const propTypes = {
   height: PropTypes.number.isRequired,
   updateSliceName: PropTypes.func.isRequired,
   isComponentVisible: PropTypes.bool,
-  // last switched tab
-  mountedParent: PropTypes.string,
   handleToggleFullSize: PropTypes.func.isRequired,
 
   // from redux
@@ -73,7 +70,6 @@ const propTypes = {
 const defaultProps = {
   isCached: false,
   isComponentVisible: true,
-  mountedParent: 'ROOT',
 };
 
 // we use state + shouldComponentUpdate() logic to prevent perf-wrecking
@@ -85,7 +81,7 @@ const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
 const OVERFLOWABLE_VIZ_TYPES = new Set(['filter_box']);
 const DEFAULT_HEADER_HEIGHT = 22;
 
-class Chart extends React.Component {
+export default class Chart extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -118,9 +114,6 @@ class Chart extends React.Component {
     // allow chart update/re-render only if visible:
     // under selected tab or no tab layout
     if (nextProps.isComponentVisible) {
-      if (nextProps.mountedParent === null) {
-        return false;
-      }
       if (nextProps.chart.triggerQuery) {
         return true;
       }
@@ -196,8 +189,8 @@ class Chart extends React.Component {
     this.props.setFocusedFilterField(chartId, column);
   }
 
-  handleFilterMenuClose() {
-    this.props.unsetFocusedFilterField();
+  handleFilterMenuClose(chartId, column) {
+    this.props.unsetFocusedFilterField(chartId, column);
   }
 
   exploreChart() {
@@ -276,7 +269,7 @@ class Chart extends React.Component {
       : {};
 
     return (
-      <div>
+      <div className="chart-slice">
         <SliceHeader
           innerRef={this.setHeaderRef}
           slice={slice}
@@ -301,6 +294,7 @@ class Chart extends React.Component {
           addDangerToast={addDangerToast}
           handleToggleFullSize={handleToggleFullSize}
           isFullSize={isFullSize}
+          chartStatus={chart.chartStatus}
         />
 
         {/*
@@ -353,21 +347,3 @@ class Chart extends React.Component {
 
 Chart.propTypes = propTypes;
 Chart.defaultProps = defaultProps;
-
-function mapStateToProps({ dashboardState }) {
-  return {
-    // needed to prevent chart from rendering while tab switch animation in progress
-    // when undefined, default to have mounted the root tab
-    mountedParent: dashboardState?.mountedTab,
-  };
-}
-
-/**
- * The original Chart component not connected to state.
- */
-export const ChartUnconnected = Chart;
-
-/**
- * Redux connected Chart component.
- */
-export default connect(mapStateToProps, null)(Chart);

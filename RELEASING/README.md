@@ -65,27 +65,35 @@ the wrong files/using wrong names. There's a script to help you set correctly al
 necessary environment variables. Change your current directory to `superset/RELEASING`
 and execute the `set_release_env.sh` script with the relevant parameters:
 
+Usage (BASH):
 ```bash
-    # usage (BASH): . set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
-    # usage (ZSH): source set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
-    #
-    # example: source set_release_env.sh 0.37.0rc1 myid@apache.org
+    . set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
 ```
 
-The script will output the exported variables. Here's example for 0.37.0rc1:
+Usage (ZSH):
+```bash
+    source set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
+```
+
+Example:
+```bash
+    source set_release_env.sh 0.38.0rc1 myid@apache.org
+```
+
+The script will output the exported variables. Here's example for 0.38.0rc1:
 
 ```
     Set Release env variables
-    SUPERSET_VERSION=0.37.0
+    SUPERSET_VERSION=0.38.0
     SUPERSET_RC=1
-    SUPERSET_GITHUB_BRANCH=0.37
+    SUPERSET_GITHUB_BRANCH=0.38
     SUPERSET_PGP_FULLNAME=myid@apache.org
-    SUPERSET_VERSION_RC=0.37.0rc1
-    SUPERSET_RELEASE=apache-superset-incubating-0.37.0
-    SUPERSET_RELEASE_RC=apache-superset-incubating-0.37.0rc1
-    SUPERSET_RELEASE_TARBALL=apache-superset-incubating-0.37.0-source.tar.gz
-    SUPERSET_RELEASE_RC_TARBALL=apache-superset-incubating-0.37.0rc1-source.tar.gz
-    SUPERSET_TMP_ASF_SITE_PATH=/tmp/incubator-superset-site-0.37.0
+    SUPERSET_VERSION_RC=0.38.0rc1
+    SUPERSET_RELEASE=apache-superset-incubating-0.38.0
+    SUPERSET_RELEASE_RC=apache-superset-incubating-0.38.0rc1
+    SUPERSET_RELEASE_TARBALL=apache-superset-incubating-0.38.0-source.tar.gz
+    SUPERSET_RELEASE_RC_TARBALL=apache-superset-incubating-0.38.0rc1-source.tar.gz
+    SUPERSET_TMP_ASF_SITE_PATH=/tmp/incubator-superset-site-0.38.0
 ```
 
 ## Crafting a source release
@@ -105,13 +113,14 @@ git push upstream $SUPERSET_GITHUB_BRANCH
 
 Next, update the `CHANGELOG.md` with all the changes that are included in the release.
 Make sure the branch has been pushed to `upstream` to ensure the changelog generator
-can pick up changes since the previous release (otherwise `github-changes` will raise
-an `Error: Not Found` exception).
+can pick up changes since the previous release.
 
+Example:
 ```bash
-# will overwrites the local CHANGELOG.md, somehow you need to merge it in
-github-changes -o apache -r incubator-superset --token $GITHUB_TOKEN -b $SUPERSET_GITHUB_BRANCH
+python changelog.py --previous_version 0.37 --current_version 0.38 changelog
 ```
+
+The script will checkout both branches and compare all the PR's, copy the output and paste it on the `CHANGELOG.md`
 
 Then, in `UPDATING.md`, a file that contains a list of notifications around
 deprecations and upgrading-related topics,
@@ -121,7 +130,7 @@ section for the new release.
 Finally bump the version number on `superset-frontend/package.json` (replace with whichever version is being released excluding the RC version):
 
 ```json
-    "version": "0.36.0"
+    "version": "0.38.0"
 ```
 
 Commit the change with the version number, then git tag the version with the release candidate and push to the branch:
@@ -320,23 +329,3 @@ Finally, so the Github UI reflects the latest release, you should create a relea
 tag corresponding with the new version. Go to https://github.com/apache/incubator-superset/tags,
 click the 3-dot icon and select `Create Release`, paste the content of the ANNOUNCE thread in the
 release notes, and publish the new release.
-
-## Post release
-
-#### Refresh documentation website
-
-Every once in a while we want to compile the documentation and publish it.
-Here's how to do it.
-
-```bash
-./make_docs.sh
-```
-
-Superset documentation site is ready at http://localhost:5002
-
-```
-$ cd /tmp/incubator-superset-site-${SUPERSET_VERSION}
-$ git add .
-$ git commit -a -m "New doc version ${SUPERSET_VERSION}"
-$ git push origin asf-site
-```

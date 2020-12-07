@@ -19,10 +19,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import { SupersetClient } from '@superset-ui/connection';
-import { DropdownButton, MenuItem } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
+import { styled, SupersetClient, t } from '@superset-ui/core';
 
+import { Menu, NoAnimationDropdown } from 'src/common/components';
 import Icon from 'src/components/Icon';
 
 import CssEditor from './CssEditor';
@@ -62,6 +61,7 @@ const propTypes = {
   showPropertiesModal: PropTypes.func.isRequired,
   refreshLimit: PropTypes.number,
   refreshWarning: PropTypes.string,
+  lastModifiedTime: PropTypes.number.isRequired,
 };
 
 const defaultProps = {
@@ -70,6 +70,24 @@ const defaultProps = {
   refreshLimit: 0,
   refreshWarning: null,
 };
+
+const MENU_KEYS = {
+  SAVE_MODAL: 'save-modal',
+  SHARE_DASHBOARD: 'share-dashboard',
+  REFRESH_DASHBOARD: 'refresh-dashboard',
+  AUTOREFRESH_MODAL: 'autorefresh-modal',
+  SET_FILTER_MAPPING: 'set-filter-mapping',
+  EDIT_PROPERTIES: 'edit-properties',
+  EDIT_CSS: 'edit-css',
+  DOWNLOAD_AS_IMAGE: 'download-as-image',
+  TOGGLE_FULLSCREEN: 'toggle-fullscreen',
+};
+
+const DropdownButton = styled.div`
+  margin-left: ${({ theme }) => theme.gridUnit * 2.5}px;
+`;
+
+const SCREENSHOT_NODE_SELECTOR = '.dashboard';
 
 class HeaderActionsDropdown extends React.PureComponent {
   static discardChanges() {
@@ -85,6 +103,7 @@ class HeaderActionsDropdown extends React.PureComponent {
 
     this.changeCss = this.changeCss.bind(this);
     this.changeRefreshInterval = this.changeRefreshInterval.bind(this);
+    this.handleMenuClick = this.handleMenuClick.bind(this);
   }
 
   UNSAFE_componentWillMount() {
@@ -119,12 +138,52 @@ class HeaderActionsDropdown extends React.PureComponent {
     this.props.startPeriodicRender(refreshInterval * 1000);
   }
 
+  handleMenuClick({ key, domEvent }) {
+    switch (key) {
+      case MENU_KEYS.REFRESH_DASHBOARD:
+        this.props.forceRefreshAllCharts();
+        break;
+      case MENU_KEYS.EDIT_PROPERTIES:
+        this.props.showPropertiesModal();
+        break;
+      case MENU_KEYS.DOWNLOAD_AS_IMAGE: {
+        // menu closes with a delay, we need to hide it manually,
+        // so that we don't capture it on the screenshot
+        const menu = document.querySelector(
+          '.ant-dropdown:not(.ant-dropdown-hidden)',
+        );
+        menu.style.visibility = 'hidden';
+        downloadAsImage(
+          SCREENSHOT_NODE_SELECTOR,
+          this.props.dashboardTitle,
+        )(domEvent).then(() => {
+          menu.style.visibility = 'visible';
+        });
+        break;
+      }
+      case MENU_KEYS.TOGGLE_FULLSCREEN: {
+        const hasStandalone = window.location.search.includes(
+          'standalone=true',
+        );
+        const url = getDashboardUrl(
+          window.location.pathname,
+          getActiveFilters(),
+          window.location.hash,
+          !hasStandalone,
+        );
+        window.location.replace(url);
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
   render() {
     const {
       dashboardTitle,
       dashboardId,
       dashboardInfo,
-      forceRefreshAllCharts,
       refreshFrequency,
       shouldPersistRefreshFrequency,
       editMode,
@@ -139,23 +198,21 @@ class HeaderActionsDropdown extends React.PureComponent {
       isLoading,
       refreshLimit,
       refreshWarning,
+      lastModifiedTime,
     } = this.props;
 
     const emailTitle = t('Superset Dashboard');
     const emailSubject = `${emailTitle} ${dashboardTitle}`;
     const emailBody = t('Check out this dashboard: ');
 
-    return (
-      <DropdownButton
-        title={<Icon name="more" />}
-        noCaret
-        id="save-dash-split-button"
-        bsSize="small"
-        style={{ border: 'none', padding: 0, marginLeft: '4px' }}
-        pullRight
+    const menu = (
+      <Menu
+        onClick={this.handleMenuClick}
+        selectable={false}
+        data-test="header-actions-menu"
       >
         {userCanSave && (
-          <>
+          <Menu.Item key={MENU_KEYS.SAVE_MODAL}>
             <SaveModal
               addSuccessToast={this.props.addSuccessToast}
               addDangerToast={this.props.addDangerToast}
@@ -167,67 +224,101 @@ class HeaderActionsDropdown extends React.PureComponent {
               expandedSlices={expandedSlices}
               refreshFrequency={refreshFrequency}
               shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
+              lastModifiedTime={lastModifiedTime}
               customCss={customCss}
               colorNamespace={colorNamespace}
               colorScheme={colorScheme}
               onSave={onSave}
-              isMenuItem
-              triggerNode={<span>{t('Save as')}</span>}
+              triggerNode={
+                <span data-test="save-as-menu-item">{t('Save as')}</span>
+              }
               canOverwrite={userCanEdit}
             />
-          </>
+          </Menu.Item>
         )}
-        <URLShortLinkModal
-          url={getDashboardUrl(
-            window.location.pathname,
-            getActiveFilters(),
-            window.location.hash,
-          )}
-          emailSubject={emailSubject}
-          emailContent={emailBody}
-          addDangerToast={this.props.addDangerToast}
-          isMenuItem
-          triggerNode={<span>{t('Share dashboard')}</span>}
-        />
-        <MenuItem onClick={forceRefreshAllCharts} disabled={isLoading}>
+        <Menu.Item key={MENU_KEYS.SHARE_DASHBOARD}>
+          <URLShortLinkModal
+            url={getDashboardUrl(
+              window.location.pathname,
+              getActiveFilters(),
+              window.location.hash,
+            )}
+            emailSubject={emailSubject}
+            emailContent={emailBody}
+            addDangerToast={this.props.addDangerToast}
+            triggerNode={<span>{t('Share dashboard')}</span>}
+          />
+        </Menu.Item>
+        <Menu.Item
+          key={MENU_KEYS.REFRESH_DASHBOARD}
+          data-test="refresh-dashboard-menu-item"
+          disabled={isLoading}
+        >
           {t('Refresh dashboard')}
-        </MenuItem>
-        <MenuItem divider />
-        <RefreshIntervalModal
-          refreshFrequency={refreshFrequency}
-          refreshLimit={refreshLimit}
-          refreshWarning={refreshWarning}
-          onChange={this.changeRefreshInterval}
-          editMode={editMode}
-          triggerNode={<span>{t('Set auto-refresh interval')}</span>}
-        />
+        </Menu.Item>
+        <Menu.Divider />
+        <Menu.Item key={MENU_KEYS.AUTOREFRESH_MODAL}>
+          <RefreshIntervalModal
+            refreshFrequency={refreshFrequency}
+            refreshLimit={refreshLimit}
+            refreshWarning={refreshWarning}
+            onChange={this.changeRefreshInterval}
+            editMode={editMode}
+            triggerNode={<span>{t('Set auto-refresh interval')}</span>}
+          />
+        </Menu.Item>
 
         {editMode && (
-          <>
+          <Menu.Item key={MENU_KEYS.SET_FILTER_MAPPING}>
             <FilterScopeModal
               className="m-r-5"
-              triggerNode={
-                <MenuItem bsSize="small">{t('Set filter mapping')}</MenuItem>
-              }
+              triggerNode={t('Set filter mapping')}
             />
-            <MenuItem onClick={this.props.showPropertiesModal}>
-              {t('Edit dashboard properties')}
-            </MenuItem>
+          </Menu.Item>
+        )}
+
+        {editMode && (
+          <Menu.Item key={MENU_KEYS.EDIT_PROPERTIES}>
+            {t('Edit dashboard properties')}
+          </Menu.Item>
+        )}
+
+        {editMode && (
+          <Menu.Item key={MENU_KEYS.EDIT_CSS}>
             <CssEditor
               triggerNode={<span>{t('Edit CSS')}</span>}
               initialCss={this.state.css}
               templates={this.state.cssTemplates}
               onChange={this.changeCss}
             />
-          </>
+          </Menu.Item>
         )}
 
         {!editMode && (
-          <MenuItem onClick={downloadAsImage('.dashboard', dashboardTitle)}>
+          <Menu.Item key={MENU_KEYS.DOWNLOAD_AS_IMAGE}>
             {t('Download as image')}
-          </MenuItem>
+          </Menu.Item>
         )}
-      </DropdownButton>
+
+        {!editMode && (
+          <Menu.Item key={MENU_KEYS.TOGGLE_FULLSCREEN}>
+            {t('Toggle FullScreen')}
+          </Menu.Item>
+        )}
+      </Menu>
+    );
+    return (
+      <NoAnimationDropdown
+        overlay={menu}
+        trigger={['click']}
+        getPopupContainer={triggerNode =>
+          triggerNode.closest(SCREENSHOT_NODE_SELECTOR)
+        }
+      >
+        <DropdownButton id="save-dash-split-button" role="button">
+          <Icon name="more-horiz" />
+        </DropdownButton>
+      </NoAnimationDropdown>
     );
   }
 }

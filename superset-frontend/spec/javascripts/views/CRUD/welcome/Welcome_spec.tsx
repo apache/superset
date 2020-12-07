@@ -17,10 +17,45 @@
  * under the License.
  */
 import React from 'react';
-import { Panel, Row, Tab } from 'react-bootstrap';
-import { shallow } from 'enzyme';
-
+import { styledMount as mount } from 'spec/helpers/theming';
+import thunk from 'redux-thunk';
+import fetchMock from 'fetch-mock';
+import configureStore from 'redux-mock-store';
 import Welcome from 'src/views/CRUD/welcome/Welcome';
+
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
+
+const chartsEndpoint = 'glob:*/api/v1/chart/?*';
+const dashboardEndpoint = 'glob:*/api/v1/dashboard/?*';
+const savedQueryEndpoint = 'glob:*/api/v1/saved_query/?*';
+
+fetchMock.get(chartsEndpoint, {
+  result: [
+    {
+      slice_name: 'ChartyChart',
+      changed_on_utc: '24 Feb 2014 10:13:14',
+      url: '/fakeUrl/explore',
+      id: '4',
+      table: {},
+    },
+  ],
+});
+
+fetchMock.get(dashboardEndpoint, {
+  result: [
+    {
+      dashboard_title: 'Dashboard_Test',
+      changed_on_utc: '24 Feb 2014 10:13:14',
+      url: '/fakeUrl/dashboard',
+      id: '3',
+    },
+  ],
+});
+
+fetchMock.get(savedQueryEndpoint, {
+  result: [],
+});
 
 describe('Welcome', () => {
   const mockedProps = {
@@ -34,13 +69,22 @@ describe('Welcome', () => {
       isActive: true,
     },
   };
-  it('is valid', () => {
-    expect(React.isValidElement(<Welcome {...mockedProps} />)).toBe(true);
+  const wrapper = mount(<Welcome {...mockedProps} />, {
+    context: { store },
   });
-  it('renders 3 Tab, Panel, and Row components', () => {
-    const wrapper = shallow(<Welcome {...mockedProps} />);
-    expect(wrapper.find(Tab)).toHaveLength(3);
-    expect(wrapper.find(Panel)).toHaveLength(3);
-    expect(wrapper.find(Row)).toHaveLength(3);
+
+  it('renders', () => {
+    expect(wrapper).toExist();
+  });
+
+  it('renders all panels on the page on page load', () => {
+    expect(wrapper.find('CollapsePanel')).toHaveLength(8);
+  });
+
+  it('calls batch method on page load', () => {
+    const chartCall = fetchMock.calls(/chart\/\?q/);
+    const dashboardCall = fetchMock.calls(/dashboard\/\?q/);
+    expect(chartCall).toHaveLength(2);
+    expect(dashboardCall).toHaveLength(2);
   });
 });

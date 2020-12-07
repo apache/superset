@@ -26,6 +26,7 @@ describe('ExploreActionButtons', () => {
     canDownload: 'True',
     latestQueryFormData: {},
     queryEndpoint: 'localhost',
+    chartHeight: '30px',
   };
 
   it('renders', () => {

@@ -18,7 +18,7 @@
  */
 import React, { useEffect, useState, useRef } from 'react';
 import cx from 'classnames';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import TooltipWrapper from './TooltipWrapper';
 
 interface EditableTitleProps {
@@ -56,7 +56,7 @@ export default function EditableTitle({
   const contentRef = useRef<any | HTMLInputElement | HTMLTextAreaElement>();
 
   useEffect(() => {
-    if (currentTitle !== lastTitle) {
+    if (title !== currentTitle) {
       setLastTitle(currentTitle);
       setCurrentTitle(title);
     }
@@ -142,9 +142,10 @@ export default function EditableTitle({
 
   // Create a textarea when we're editing a multi-line value, otherwise create an input (which may
   // be text or a button).
-  let input =
+  let titleComponent =
     multiLine && isEditing ? (
       <textarea
+        data-test="editable-title-input"
         ref={contentRef}
         required
         value={value}
@@ -158,6 +159,7 @@ export default function EditableTitle({
       />
     ) : (
       <input
+        data-test="editable-title-input"
         ref={contentRef}
         required
         type={isEditing ? 'text' : 'button'}
@@ -171,7 +173,7 @@ export default function EditableTitle({
       />
     );
   if (showTooltip && !isEditing) {
-    input = (
+    titleComponent = (
       <TooltipWrapper
         label="title"
         tooltip={
@@ -181,12 +183,21 @@ export default function EditableTitle({
               t("You don't have the rights to alter this title.")
         }
       >
-        {input}
+        {titleComponent}
       </TooltipWrapper>
+    );
+  }
+  if (!canEdit) {
+    // don't actually want an input in this case
+    titleComponent = (
+      <span data-test="editable-title-input" title={value}>
+        {value}
+      </span>
     );
   }
   return (
     <span
+      data-test="editable-title"
       className={cx(
         'editable-title',
         extraClasses,
@@ -195,7 +206,7 @@ export default function EditableTitle({
       )}
       style={style}
     >
-      {input}
+      {titleComponent}
     </span>
   );
 }

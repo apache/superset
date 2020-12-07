@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import CopyToClipboard from './CopyToClipboard';
 import { getShortUrl } from '../utils/common';
 import withToasts from '../messageToasts/enhancers/withToasts';
@@ -29,7 +29,6 @@ const propTypes = {
   emailSubject: PropTypes.string,
   emailContent: PropTypes.string,
   addDangerToast: PropTypes.func.isRequired,
-  isMenuItem: PropTypes.bool,
   title: PropTypes.string,
   triggerNode: PropTypes.node.isRequired,
 };
@@ -65,7 +64,6 @@ class URLShortLinkModal extends React.Component {
     return (
       <ModalTrigger
         ref={this.setModalRef}
-        isMenuItem={this.props.isMenuItem}
         triggerNode={this.props.triggerNode}
         beforeOpen={this.getCopyUrl}
         modalTitle={this.props.title || t('Share Dashboard')}

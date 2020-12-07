@@ -17,12 +17,16 @@
 from typing import Any, Dict
 
 from flask_appbuilder import CompactCRUDMixin
+from flask_appbuilder.api import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
 from wtforms.validators import StopValidation
 
+from superset import is_feature_enabled
 from superset.constants import RouteMethod
 from superset.models.annotations import Annotation, AnnotationLayer
+from superset.typing import FlaskResponse
 from superset.views.base import SupersetModelView
 
 
@@ -48,7 +52,7 @@ class AnnotationModelView(
     SupersetModelView, CompactCRUDMixin
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Annotation)
-    include_route_methods = RouteMethod.CRUD_SET
+    include_route_methods = RouteMethod.CRUD_SET | {"annotation"}
 
     list_title = _("Annotations")
     show_title = _("Show Annotation")
@@ -92,6 +96,14 @@ class AnnotationModelView(
     def pre_update(self, item: "AnnotationModelView") -> None:
         self.pre_add(item)
 
+    @expose("/<pk>/annotation/", methods=["GET"])
+    @has_access
+    def annotation(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
+        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
+            return super().list()
+
+        return super().render_app_template()
+
 
 class AnnotationLayerModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(AnnotationLayer)
@@ -107,3 +119,11 @@ class AnnotationLayerModelView(SupersetModelView):  # pylint: disable=too-many-a
     add_columns = edit_columns
 
     label_columns = {"name": _("Name"), "descr": _("Description")}
+
+    @expose("/list/")
+    @has_access
+    def list(self) -> FlaskResponse:
+        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
+            return super().list()
+
+        return super().render_app_template()

@@ -37,3 +37,11 @@ export default interface Chart {
   owners?: Owner[];
   datasource_name_text?: string;
 }
+
+export type Slice = {
+  id?: number;
+  slice_id: number;
+  slice_name: string;
+  description: string | null;
+  cache_timeout: number | null;
+};

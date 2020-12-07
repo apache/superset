@@ -18,12 +18,46 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { ClassNames } from '@emotion/core';
+import { styled, useTheme } from '@superset-ui/core';
 
-import { OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { Tooltip } from 'src/common/components/Tooltip';
 
 const propTypes = {
   column: PropTypes.object.isRequired,
 };
+
+const StyledTooltip = (props: any) => {
+  const theme = useTheme();
+  return (
+    <ClassNames>
+      {({ css }) => (
+        <Tooltip
+          overlayClassName={css`
+            .ant-tooltip-inner {
+              max-width: ${theme.gridUnit * 125}px;
+              word-wrap: break-word;
+              text-align: center;
+
+              pre {
+                background: transparent;
+                border: none;
+                text-align: left;
+                color: ${theme.colors.grayscale.light5};
+                font-size: ${theme.typography.sizes.xs}px;
+              }
+            }
+          `}
+          {...props}
+        />
+      )}
+    </ClassNames>
+  );
+};
+
+const Hr = styled.hr`
+  margin-top: ${({ theme }) => theme.gridUnit * 1.5}px;
+`;
 
 const iconMap = {
   pk: 'fa-key',
@@ -47,33 +81,33 @@ interface ColumnElementProps {
 }
 
 export default function ColumnElement({ column }: ColumnElementProps) {
-  let name: React.ReactNode = column.name;
+  let columnName: React.ReactNode = column.name;
   let icons;
   if (column.keys && column.keys.length > 0) {
-    name = <strong>{column.name}</strong>;
+    columnName = <strong>{column.name}</strong>;
     icons = column.keys.map((key, i) => (
       <span key={i} className="ColumnElement">
-        <OverlayTrigger
+        <StyledTooltip
           placement="right"
-          overlay={
-            <Tooltip id="idx-json" bsSize="lg">
+          title={
+            <>
               <strong>{tooltipTitleMap[key.type]}</strong>
-              <hr />
+              <Hr />
               <pre className="text-small">
                 {JSON.stringify(key, null, '  ')}
               </pre>
-            </Tooltip>
+            </>
           }
         >
           <i className={`fa text-muted m-l-2 ${iconMap[key.type]}`} />
-        </OverlayTrigger>
+        </StyledTooltip>
       </span>
     ));
   }
   return (
     <div className="clearfix table-column">
       <div className="pull-left m-l-10 col-name">
-        {name}
+        {columnName}
         {icons}
       </div>
       <div className="pull-right text-muted">

@@ -29,6 +29,7 @@ describe('QuerySearch', () => {
   const mockedProps = {
     actions: {},
     height: 0,
+    displayLimit: 50,
   };
   it('is valid', () => {
     expect(React.isValidElement(<QuerySearch {...mockedProps} />)).toBe(true);
@@ -69,7 +70,7 @@ describe('QuerySearch', () => {
   });
 
   it('refreshes queries when enter (only) is pressed on the input', () => {
-    const callCount = search.callCount;
+    const { callCount } = search;
     wrapper.find('input').simulate('keyDown', { keyCode: 'a'.charCodeAt(0) });
     expect(search.callCount).toBe(callCount);
     wrapper.find('input').simulate('keyDown', { keyCode: '\r'.charCodeAt(0) });
@@ -81,7 +82,7 @@ describe('QuerySearch', () => {
   });
 
   it('refreshes queries when clicked', () => {
-    const callCount = search.callCount;
+    const { callCount } = search;
     wrapper.find(Button).simulate('click');
     expect(search.callCount).toBe(callCount + 1);
   });

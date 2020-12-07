@@ -53,7 +53,7 @@ from flask_babel import lazy_gettext as _
 from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
-from superset import app, cache, db, security_manager
+from superset import app, db, is_feature_enabled
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -61,6 +61,7 @@ from superset.exceptions import (
     QueryObjectValidationError,
     SpatialException,
 )
+from superset.extensions import cache_manager, security_manager
 from superset.models.cache import CacheKey
 from superset.models.helpers import QueryResult
 from superset.typing import QueryObjectDict, VizData, VizPayload
@@ -103,11 +104,14 @@ def set_and_log_cache(
     cached_dttm: str,
     cache_timeout: int,
     datasource_uid: Optional[str],
+    annotation_data: Optional[Dict[str, Any]] = None,
 ) -> None:
     try:
-        cache_value = dict(dttm=cached_dttm, df=df, query=query)
+        cache_value = dict(
+            dttm=cached_dttm, df=df, query=query, annotation_data=annotation_data or {}
+        )
         stats_logger.incr("set_cache_key")
-        cache.set(cache_key, cache_value, timeout=cache_timeout)
+        cache_manager.data_cache.set(cache_key, cache_value, timeout=cache_timeout)
 
         if datasource_uid:
             ck = CacheKey(
@@ -121,7 +125,7 @@ def set_and_log_cache(
         # the key is too large or whatever other reasons
         logger.warning("Could not cache key {}".format(cache_key))
         logger.exception(ex)
-        cache.delete(cache_key)
+        cache_manager.data_cache.delete(cache_key)
 
 
 class BaseViz:
@@ -142,7 +146,7 @@ class BaseViz:
         force: bool = False,
     ) -> None:
         if not datasource:
-            raise Exception(_("Viz is missing a datasource"))
+            raise QueryObjectValidationError(_("Viz is missing a datasource"))
 
         self.datasource = datasource
         self.request = request
@@ -172,6 +176,9 @@ class BaseViz:
         self._extra_chart_data: List[Tuple[str, pd.DataFrame]] = []
 
         self.process_metrics()
+
+        self.applied_filters: List[Dict[str, str]] = []
+        self.rejected_filters: List[Dict[str, str]] = []
 
     def process_metrics(self) -> None:
         # metrics in TableViz is order sensitive, so metric_dict should be
@@ -427,6 +434,8 @@ class BaseViz:
             and self.datasource.database.cache_timeout
         ) is not None:
             return self.datasource.database.cache_timeout
+        if config["DATA_CACHE_CONFIG"].get("CACHE_DEFAULT_TIMEOUT") is not None:
+            return config["DATA_CACHE_CONFIG"]["CACHE_DEFAULT_TIMEOUT"]
         return config["CACHE_DEFAULT_TIMEOUT"]
 
     def get_json(self) -> str:
@@ -459,7 +468,8 @@ class BaseViz:
         cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
         cache_dict["rls"] = (
             security_manager.get_rls_ids(self.datasource)
-            if config["ENABLE_ROW_LEVEL_SECURITY"] and self.datasource.is_rls_supported
+            if is_feature_enabled("ROW_LEVEL_SECURITY")
+            and self.datasource.is_rls_supported
             else []
         )
         cache_dict["changed_on"] = self.datasource.changed_on
@@ -468,14 +478,33 @@ class BaseViz:
 
     def get_payload(self, query_obj: Optional[QueryObjectDict] = None) -> VizPayload:
         """Returns a payload of metadata and data"""
+
         self.run_extra_queries()
         payload = self.get_df_payload(query_obj)
 
         df = payload.get("df")
+
         if self.status != utils.QueryStatus.FAILED:
             payload["data"] = self.get_data(df)
         if "df" in payload:
             del payload["df"]
+
+        filters = self.form_data.get("filters", [])
+        filter_columns = [flt.get("col") for flt in filters]
+        columns = set(self.datasource.column_names)
+        applied_time_extras = self.form_data.get("applied_time_extras", {})
+        applied_time_columns, rejected_time_columns = utils.get_time_filter_status(
+            self.datasource, applied_time_extras
+        )
+        payload["applied_filters"] = [
+            {"column": col} for col in filter_columns if col in columns
+        ] + applied_time_columns
+        payload["rejected_filters"] = [
+            {"reason": "not_in_datasource", "column": col}
+            for col in filter_columns
+            if col not in columns
+        ] + rejected_time_columns
+
         return payload
 
     def get_df_payload(
@@ -490,8 +519,8 @@ class BaseViz:
         stacktrace = None
         df = None
         cached_dttm = datetime.utcnow().isoformat().split(".")[0]
-        if cache_key and cache and not self.force:
-            cache_value = cache.get(cache_key)
+        if cache_key and cache_manager.data_cache and not self.force:
+            cache_value = cache_manager.data_cache.get(cache_key)
             if cache_value:
                 stats_logger.incr("loading_from_cache")
                 try:
@@ -559,19 +588,14 @@ class BaseViz:
                 self.status = utils.QueryStatus.FAILED
                 stacktrace = utils.get_stacktrace()
 
-            if (
-                is_loaded
-                and cache_key
-                and cache
-                and self.status != utils.QueryStatus.FAILED
-            ):
+            if is_loaded and cache_key and self.status != utils.QueryStatus.FAILED:
                 set_and_log_cache(
-                    cache_key,
-                    df,
-                    self.query,
-                    cached_dttm,
-                    self.cache_timeout,
-                    self.datasource.uid,
+                    cache_key=cache_key,
+                    df=df,
+                    query=self.query,
+                    cached_dttm=cached_dttm,
+                    cache_timeout=self.cache_timeout,
+                    datasource_uid=self.datasource.uid,
                 )
         return {
             "cache_key": self._any_cache_key,
@@ -724,6 +748,10 @@ class TableViz(BaseViz):
                 if sort_by_label not in d["metrics"]:
                     d["metrics"].append(sort_by)
                 d["orderby"] = [(sort_by, not fd.get("order_desc", True))]
+            elif d["metrics"]:
+                # Legacy behavior of sorting by first metric by default
+                first_metric = d["metrics"][0]
+                d["orderby"] = [(first_metric, not fd.get("order_desc", True))]
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -1043,94 +1071,6 @@ class NVD3Viz(BaseViz):
     is_timeseries = False
 
 
-class BoxPlotViz(NVD3Viz):
-
-    """Box plot viz from ND3"""
-
-    viz_type = "box_plot"
-    verbose_name = _("Box Plot")
-    sort_series = False
-    is_timeseries = True
-
-    def to_series(
-        self, df: pd.DataFrame, classed: str = "", title_suffix: str = ""
-    ) -> List[Dict[str, Any]]:
-        label_sep = " - "
-        chart_data = []
-        for index_value, row in zip(df.index, df.to_dict(orient="records")):
-            if isinstance(index_value, tuple):
-                index_value = label_sep.join(index_value)
-            boxes: Dict[str, Dict[str, Any]] = defaultdict(dict)
-            for (label, key), value in row.items():
-                if key == "nanmedian":
-                    key = "Q2"
-                boxes[label][key] = value
-            for label, box in boxes.items():
-                if len(self.form_data["metrics"]) > 1:
-                    # need to render data labels with metrics
-                    chart_label = label_sep.join([index_value, label])
-                else:
-                    chart_label = index_value
-                chart_data.append({"label": chart_label, "values": box})
-        return chart_data
-
-    def get_data(self, df: pd.DataFrame) -> VizData:
-        if df.empty:
-            return None
-
-        form_data = self.form_data
-
-        # conform to NVD3 names
-        def Q1(series: pd.Series) -> float:
-            # need to be named functions - can't use lambdas
-            return np.nanpercentile(series, 25)
-
-        def Q3(series: pd.Series) -> float:
-            return np.nanpercentile(series, 75)
-
-        whisker_type = form_data.get("whisker_options")
-        if whisker_type == "Tukey":
-
-            def whisker_high(series: pd.Series) -> float:
-                upper_outer_lim = Q3(series) + 1.5 * (Q3(series) - Q1(series))
-                return series[series <= upper_outer_lim].max()
-
-            def whisker_low(series: pd.Series) -> float:
-                lower_outer_lim = Q1(series) - 1.5 * (Q3(series) - Q1(series))
-                return series[series >= lower_outer_lim].min()
-
-        elif whisker_type == "Min/max (no outliers)":
-
-            def whisker_high(series: pd.Series) -> float:
-                return series.max()
-
-            def whisker_low(series: pd.Series) -> float:
-                return series.min()
-
-        elif " percentiles" in whisker_type:  # type: ignore
-            low, high = cast(str, whisker_type).replace(" percentiles", "").split("/")
-
-            def whisker_high(series: pd.Series) -> float:
-                return np.nanpercentile(series, int(high))
-
-            def whisker_low(series: pd.Series) -> float:
-                return np.nanpercentile(series, int(low))
-
-        else:
-            raise ValueError("Unknown whisker type: {}".format(whisker_type))
-
-        def outliers(series: pd.Series) -> Set[float]:
-            above = series[series > whisker_high(series)]
-            below = series[series < whisker_low(series)]
-            # pandas sometimes doesn't like getting lists back here
-            return set(above.tolist() + below.tolist())
-
-        aggregate = [Q1, np.nanmedian, Q3, whisker_high, whisker_low, outliers]
-        df = df.groupby(form_data.get("groupby")).agg(aggregate)
-        chart_data = self.to_series(df)
-        return chart_data
-
-
 class BubbleViz(NVD3Viz):
 
     """Based on the NVD3 bubble chart"""
@@ -1401,8 +1341,8 @@ class NVD3TimeSeriesViz(NVD3Viz):
             if not query_object["from_dttm"] or not query_object["to_dttm"]:
                 raise QueryObjectValidationError(
                     _(
-                        "`Since` and `Until` time bounds should be specified "
-                        "when using the `Time Shift` feature."
+                        "An enclosed time range (both start and end) must be specified "
+                        "when using a Time Comparison."
                     )
                 )
             query_object["from_dttm"] -= delta
@@ -1644,57 +1584,6 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
     pivot_fill_value = 0
 
 
-class DistributionPieViz(NVD3Viz):
-
-    """Annoy visualization snobs with this controversial pie chart"""
-
-    viz_type = "pie"
-    verbose_name = _("Distribution - NVD3 - Pie Chart")
-    is_timeseries = False
-
-    def get_data(self, df: pd.DataFrame) -> VizData:
-        def _label_aggfunc(labels: pd.Series) -> str:
-            """
-            Convert a single or multi column label into a single label, replacing
-            null values with `NULL_STRING` and joining multiple columns together
-            with a comma. Examples:
-
-            >>> _label_aggfunc(pd.Series(["abc"]))
-            'abc'
-            >>> _label_aggfunc(pd.Series([1]))
-            '1'
-            >>> _label_aggfunc(pd.Series(["abc", "def"]))
-            'abc, def'
-            >>> # note: integer floats are stripped of decimal digits
-            >>> _label_aggfunc(pd.Series([0.1, 2.0, 0.3]))
-            '0.1, 2, 0.3'
-            >>> _label_aggfunc(pd.Series([1, None, "abc", 0.8], dtype="object"))
-            '1, <NULL>, abc, 0.8'
-            """
-            label_list: List[str] = []
-            for label in labels:
-                if isinstance(label, str):
-                    label_recast = label
-                elif label is None or isinstance(label, float) and math.isnan(label):
-                    label_recast = NULL_STRING
-                elif isinstance(label, float) and label.is_integer():
-                    label_recast = str(int(label))
-                else:
-                    label_recast = str(label)
-                label_list.append(label_recast)
-
-            return ", ".join(label_list)
-
-        if df.empty:
-            return None
-        metric = self.metric_labels[0]
-        df = pd.DataFrame(
-            {"x": df[self.groupby].agg(func=_label_aggfunc, axis=1), "y": df[metric]}
-        )
-        df.sort_values(by="y", ascending=False, inplace=True)
-        return df.to_dict(orient="records")
-
-
 class HistogramViz(BaseViz):
 
     """Histogram"""
@@ -1751,7 +1640,7 @@ class HistogramViz(BaseViz):
         return chart_data
 
 
-class DistributionBarViz(DistributionPieViz):
+class DistributionBarViz(BaseViz):
 
     """A good old bar chart"""
 
@@ -1785,6 +1674,7 @@ class DistributionBarViz(DistributionPieViz):
         # pandas will throw away nulls when grouping/pivoting,
         # so we substitute NULL_STRING for any nulls in the necessary columns
         filled_cols = self.groupby + columns
+        df = df.copy()
         df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
         row = df.groupby(self.groupby).sum()[metrics[0]].copy()
@@ -1878,6 +1768,8 @@ class SankeyViz(BaseViz):
                 _("Pick exactly 2 columns as [Source / Target]")
             )
         qry["metrics"] = [self.form_data["metric"]]
+        if self.form_data.get("sort_by_metric", False):
+            qry["orderby"] = [(qry["metrics"][0], False)]
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -2416,7 +2308,7 @@ class BaseDeckGLViz(BaseViz):
             return None
         try:
             p = Point(s)
-            return (p.latitude, p.longitude)  # pylint: disable=no-member
+            return (p.latitude, p.longitude)
         except Exception:
             raise SpatialException(_("Invalid spatial point encountered: %s" % s))
 
@@ -3014,23 +2906,25 @@ class PartitionViz(NVD3TimeSeriesViz):
                 for m in levels[0].index
             ]
         if level == 1:
+            metric_level = levels[1][metric]
             return [
                 {
                     "name": i,
-                    "val": levels[1][metric][i],
+                    "val": metric_level[i],
                     "children": self.nest_values(levels, 2, metric, [i]),
                 }
-                for i in levels[1][metric].index
+                for i in metric_level.index
             ]
         if level >= len(levels):
             return []
+        dim_level = levels[level][metric][[dims[0]]]
         return [
             {
                 "name": i,
-                "val": levels[level][metric][dims][i],
+                "val": dim_level[i],
                 "children": self.nest_values(levels, level + 1, metric, dims + [i]),
             }
-            for i in levels[level][metric][dims].index
+            for i in dim_level.index
         ]
 
     def nest_procs(

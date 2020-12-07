@@ -31,6 +31,7 @@ import traceback
 import uuid
 import zlib
 from datetime import date, datetime, time, timedelta
+from distutils.util import strtobool
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
@@ -310,8 +311,9 @@ class DashboardEncoder(json.JSONEncoder):
         super().__init__(*args, **kwargs)
         self.sort_keys = True
 
-    # pylint: disable=E0202
-    def default(self, o: Any) -> Dict[Any, Any]:
+    def default(self, o: Any) -> Union[Dict[Any, Any], str]:
+        if isinstance(o, uuid.UUID):
+            return str(o)
         try:
             vals = {k: v for k, v in o.__dict__.items() if k != "_sa_instance_state"}
             return {"__{}__".format(o.__class__.__name__): vals}
@@ -908,6 +910,8 @@ def merge_extra_filters(  # pylint: disable=too-many-branches
     # that are external to the slice definition. We use those for dynamic
     # interactive filters like the ones emitted by the "Filter Box" visualization.
     # Note extra_filters only support simple filters.
+    applied_time_extras: Dict[str, str] = {}
+    form_data["applied_time_extras"] = applied_time_extras
     if "extra_filters" in form_data:
         # __form and __to are special extra_filters that target time
         # boundaries. The rest of extra_filters are simple
@@ -946,9 +950,13 @@ def merge_extra_filters(  # pylint: disable=too-many-branches
         ]:
             filtr["isExtra"] = True
             # Pull out time filters/options and merge into form data
-            if date_options.get(filtr["col"]):
-                if filtr.get("val"):
-                    form_data[date_options[filtr["col"]]] = filtr["val"]
+            filter_column = filtr["col"]
+            time_extra = date_options.get(filter_column)
+            if time_extra:
+                time_extra_value = filtr.get("val")
+                if time_extra_value:
+                    form_data[time_extra] = time_extra_value
+                    applied_time_extras[filter_column] = time_extra_value
             elif filtr["val"]:
                 # Merge column filters
                 filter_key = get_filter_key(filtr)
@@ -1040,24 +1048,7 @@ def backend() -> str:
 
 
 def is_adhoc_metric(metric: Metric) -> bool:
-    if not isinstance(metric, dict):
-        return False
-    metric = cast(Dict[str, Any], metric)
-    return bool(
-        (
-            (
-                metric.get("expressionType") == AdhocMetricExpressionType.SIMPLE
-                and metric.get("column")
-                and cast(Dict[str, Any], metric["column"]).get("column_name")
-                and metric.get("aggregate")
-            )
-            or (
-                metric.get("expressionType") == AdhocMetricExpressionType.SQL
-                and metric.get("sqlExpression")
-            )
-        )
-        and metric.get("label")
-    )
+    return isinstance(metric, dict)
 
 
 def get_metric_name(metric: Metric) -> str:
@@ -1434,6 +1425,17 @@ def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
     return columns
 
 
+def indexed(
+    items: List[Any], key: Union[str, Callable[[Any], Any]]
+) -> Dict[Any, List[Any]]:
+    """Build an index for a list of objects"""
+    idx: Dict[Any, Any] = {}
+    for item in items:
+        key_ = getattr(item, key) if isinstance(key, str) else key(item)
+        idx.setdefault(key_, []).append(item)
+    return idx
+
+
 class LenientEnum(Enum):
     """Enums that do not raise ValueError when value is invalid"""
 
@@ -1561,6 +1563,107 @@ class PostProcessingContributionOrientation(str, Enum):
     COLUMN = "column"
 
 
+class PostProcessingBoxplotWhiskerType(str, Enum):
+    """
+    Calculate cell contibution to row/column total
+    """
+
+    TUKEY = "tukey"
+    MINMAX = "min/max"
+    PERCENTILE = "percentile"
+
+
 class AdhocMetricExpressionType(str, Enum):
     SIMPLE = "SIMPLE"
     SQL = "SQL"
+
+
+class RowLevelSecurityFilterType(str, Enum):
+    REGULAR = "Regular"
+    BASE = "Base"
+
+
+class ExtraFiltersTimeColumnType(str, Enum):
+    GRANULARITY = "__granularity"
+    TIME_COL = "__time_col"
+    TIME_GRAIN = "__time_grain"
+    TIME_ORIGIN = "__time_origin"
+    TIME_RANGE = "__time_range"
+
+
+class AnnotationType(str, Enum):
+    FORMULA = "FORMULA"
+    INTERVAL = "INTERVAL"
+    EVENT = "EVENT"
+    TIME_SERIES = "TIME_SERIES"
+
+
+def is_test() -> bool:
+    return strtobool(os.environ.get("SUPERSET_TESTENV", "false"))
+
+
+def get_time_filter_status(  # pylint: disable=too-many-branches
+    datasource: "BaseDatasource", applied_time_extras: Dict[str, str],
+) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
+    temporal_columns = {col.column_name for col in datasource.columns if col.is_dttm}
+    applied: List[Dict[str, str]] = []
+    rejected: List[Dict[str, str]] = []
+    time_column = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL)
+    if time_column:
+        if time_column in temporal_columns:
+            applied.append({"column": ExtraFiltersTimeColumnType.TIME_COL})
+        else:
+            rejected.append(
+                {
+                    "reason": "not_in_datasource",
+                    "column": ExtraFiltersTimeColumnType.TIME_COL,
+                }
+            )
+
+    if ExtraFiltersTimeColumnType.TIME_GRAIN in applied_time_extras:
+        # are there any temporal columns to assign the time grain to?
+        if temporal_columns:
+            applied.append({"column": ExtraFiltersTimeColumnType.TIME_GRAIN})
+        else:
+            rejected.append(
+                {
+                    "reason": "no_temporal_column",
+                    "column": ExtraFiltersTimeColumnType.TIME_GRAIN,
+                }
+            )
+
+    if ExtraFiltersTimeColumnType.TIME_RANGE in applied_time_extras:
+        # are there any temporal columns to assign the time grain to?
+        if temporal_columns:
+            applied.append({"column": ExtraFiltersTimeColumnType.TIME_RANGE})
+        else:
+            rejected.append(
+                {
+                    "reason": "no_temporal_column",
+                    "column": ExtraFiltersTimeColumnType.TIME_RANGE,
+                }
+            )
+
+    if ExtraFiltersTimeColumnType.TIME_ORIGIN in applied_time_extras:
+        if datasource.type == "druid":
+            applied.append({"column": ExtraFiltersTimeColumnType.TIME_ORIGIN})
+        else:
+            rejected.append(
+                {
+                    "reason": "not_druid_datasource",
+                    "column": ExtraFiltersTimeColumnType.TIME_ORIGIN,
+                }
+            )
+
+    if ExtraFiltersTimeColumnType.GRANULARITY in applied_time_extras:
+        if datasource.type == "druid":
+            applied.append({"column": ExtraFiltersTimeColumnType.GRANULARITY})
+        else:
+            rejected.append(
+                {
+                    "reason": "not_druid_datasource",
+                    "column": ExtraFiltersTimeColumnType.GRANULARITY,
+                }
+            )
+
+    return applied, rejected

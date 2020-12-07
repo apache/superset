@@ -47,7 +47,8 @@ class AthenaEngineSpec(BaseEngineSpec):
         if tt == utils.TemporalType.DATE:
             return f"from_iso8601_date('{dttm.date().isoformat()}')"
         if tt == utils.TemporalType.TIMESTAMP:
-            return f"""from_iso8601_timestamp('{dttm.isoformat(timespec="microseconds")}')"""  # pylint: disable=line-too-long
+            datetime_formatted = dttm.isoformat(timespec="microseconds")
+            return f"""from_iso8601_timestamp('{datetime_formatted}')"""
         return None
 
     @classmethod

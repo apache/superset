@@ -25,8 +25,8 @@ import Field from './Field';
 
 const propTypes = {
   children: PropTypes.node.isRequired,
-  onChange: PropTypes.func.isRequired,
-  item: PropTypes.object.isRequired,
+  onChange: PropTypes.func,
+  item: PropTypes.object,
   title: PropTypes.node,
   compact: PropTypes.bool,
 };
@@ -40,12 +40,14 @@ export default class Fieldset extends React.PureComponent {
     super(props);
     this.onChange = this.onChange.bind(this);
   }
+
   onChange(fieldKey, val) {
     return this.props.onChange({
       ...this.props.item,
       [fieldKey]: val,
     });
   }
+
   render() {
     const { title } = this.props;
     const propExtender = field => ({

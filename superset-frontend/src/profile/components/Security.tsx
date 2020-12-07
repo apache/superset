@@ -17,8 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { Badge } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
+import Badge from 'src/common/components/Badge';
+import { t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
 import { UserWithPermissionsAndRoles } from '../../types/bootstrapTypes';
@@ -32,7 +32,7 @@ export default function Security({ user }: SecurityProps) {
     <div>
       <div className="roles">
         <h4>
-          {t('Roles')} <Badge>{Object.keys(user.roles).length}</Badge>
+          {t('Roles')} <Badge count={Object.keys(user.roles).length} showZero />
         </h4>
         {Object.keys(user.roles).map(role => (
           <Label key={role}>{role}</Label>
@@ -44,7 +44,7 @@ export default function Security({ user }: SecurityProps) {
           <div>
             <h4>
               {t('Databases')}{' '}
-              <Badge>{user.permissions.database_access.length}</Badge>
+              <Badge count={user.permissions.database_access.length} showZero />
             </h4>
             {user.permissions.database_access.map(role => (
               <Label key={role}>{role}</Label>
@@ -57,8 +57,11 @@ export default function Security({ user }: SecurityProps) {
         {user.permissions.datasource_access && (
           <div>
             <h4>
-              {t('Datasources')}{' '}
-              <Badge>{user.permissions.datasource_access.length}</Badge>
+              {t('Datasets')}{' '}
+              <Badge
+                count={user.permissions.datasource_access.length}
+                showZero
+              />
             </h4>
             {user.permissions.datasource_access.map(role => (
               <Label key={role}>{role}</Label>

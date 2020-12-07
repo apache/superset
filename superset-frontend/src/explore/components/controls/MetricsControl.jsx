@@ -18,11 +18,10 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 
-import OnPasteSelect from 'src/components/Select/OnPasteSelect';
-
+import Select from 'src/components/Select';
 import ControlHeader from '../ControlHeader';
 import MetricDefinitionOption from '../MetricDefinitionOption';
 import MetricDefinitionValue from '../MetricDefinitionValue';
@@ -46,6 +45,7 @@ const propTypes = {
   ]),
   columns: PropTypes.arrayOf(columnType),
   savedMetrics: PropTypes.arrayOf(savedMetricType),
+  isLoading: PropTypes.bool,
   multi: PropTypes.bool,
   clearable: PropTypes.bool,
   datasourceType: PropTypes.string,
@@ -104,29 +104,35 @@ function coerceAdhocMetrics(value) {
 }
 
 function getDefaultAggregateForColumn(column) {
-  const type = column.type;
+  const { type } = column;
   if (typeof type !== 'string') {
     return AGGREGATES.COUNT;
-  } else if (type === '' || type === 'expression') {
+  }
+  if (type === '' || type === 'expression') {
     return AGGREGATES.SUM;
-  } else if (
+  }
+  if (
     type.match(/.*char.*/i) ||
     type.match(/string.*/i) ||
     type.match(/.*text.*/i)
   ) {
     return AGGREGATES.COUNT_DISTINCT;
-  } else if (
+  }
+  if (
     type.match(/.*int.*/i) ||
     type === 'LONG' ||
     type === 'DOUBLE' ||
     type === 'FLOAT'
   ) {
     return AGGREGATES.SUM;
-  } else if (type.match(/.*bool.*/i)) {
+  }
+  if (type.match(/.*bool.*/i)) {
     return AGGREGATES.MAX;
-  } else if (type.match(/.*time.*/i)) {
+  }
+  if (type.match(/.*time.*/i)) {
     return AGGREGATES.COUNT;
-  } else if (type.match(/unknown/i)) {
+  }
+  if (type.match(/unknown/i)) {
     return AGGREGATES.COUNT;
   }
   return null;
@@ -136,6 +142,7 @@ export default class MetricsControl extends React.PureComponent {
   constructor(props) {
     super(props);
     this.onChange = this.onChange.bind(this);
+    this.onPaste = this.onPaste.bind(this);
     this.onMetricEdit = this.onMetricEdit.bind(this);
     this.checkIfAggregateInInput = this.checkIfAggregateInInput.bind(this);
     this.optionsForSelect = this.optionsForSelect.bind(this);
@@ -251,6 +258,14 @@ export default class MetricsControl extends React.PureComponent {
     this.props.onChange(this.props.multi ? optionValues : optionValues[0]);
   }
 
+  onPaste(evt) {
+    const clipboard = evt.clipboardData.getData('Text');
+    if (!clipboard) {
+      return;
+    }
+    this.checkIfAggregateInInput(clipboard);
+  }
+
   checkIfAggregateInInput(input) {
     const lowercaseInput = input.toLowerCase();
     const aggregateInInput =
@@ -328,14 +343,20 @@ export default class MetricsControl extends React.PureComponent {
     return (
       <div className="metrics-select">
         <ControlHeader {...this.props} />
-        <OnPasteSelect
+        <Select
+          isLoading={this.props.isLoading}
           isMulti={this.props.multi}
           name={`select-${this.props.name}`}
-          placeholder={t('choose a column or aggregate function')}
+          placeholder={
+            this.props.multi
+              ? t('choose one or more columns or aggregate functions')
+              : t('choose a column or aggregate function')
+          }
           options={this.state.options}
           value={this.state.value}
           labelKey="label"
           valueKey="optionName"
+          onPaste={this.onPaste}
           clearable={this.props.clearable}
           closeOnSelect
           onChange={this.onChange}

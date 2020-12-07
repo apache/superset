@@ -48,6 +48,7 @@ class FlashProvider extends React.PureComponent<Props> {
       }
     });
   }
+
   render() {
     return this.props.children;
   }

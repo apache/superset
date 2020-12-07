@@ -132,7 +132,7 @@ class DashboardGrid extends React.PureComponent {
 
     return width < 100 ? null : (
       <div className="dashboard-grid" ref={this.setGridRef}>
-        <div className="grid-content">
+        <div className="grid-content" data-test="grid-content">
           {/* make the area above components droppable */}
           {editMode && (
             <DragDroppable
@@ -171,7 +171,7 @@ class DashboardGrid extends React.PureComponent {
           ))}
 
           {/* make the area below components droppable */}
-          {editMode && (
+          {editMode && gridComponent.children.length > 0 && (
             <DragDroppable
               component={gridComponent}
               depth={depth}

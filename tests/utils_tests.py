@@ -27,7 +27,6 @@ from unittest.mock import Mock, patch
 
 import numpy
 from flask import Flask, g
-from flask_caching import Cache
 import marshmallow
 from sqlalchemy.exc import ArgumentError
 
@@ -37,7 +36,6 @@ from superset.exceptions import CertificateException, SupersetException
 from superset.models.core import Database, Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.cache_manager import CacheManager
 from superset.utils.core import (
     base_json_conv,
     cast_to_num,
@@ -176,12 +174,18 @@ class TestUtils(SupersetTestCase):
     def test_merge_extra_filters(self):
         # does nothing if no extra filters
         form_data = {"A": 1, "B": 2, "c": "test"}
-        expected = {"A": 1, "B": 2, "c": "test"}
+        expected = {**form_data, "applied_time_extras": {}}
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
         # empty extra_filters
         form_data = {"A": 1, "B": 2, "c": "test", "extra_filters": []}
-        expected = {"A": 1, "B": 2, "c": "test", "adhoc_filters": []}
+        expected = {
+            "A": 1,
+            "B": 2,
+            "c": "test",
+            "adhoc_filters": [],
+            "applied_time_extras": {},
+        }
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
         # copy over extra filters into empty filters
@@ -207,7 +211,8 @@ class TestUtils(SupersetTestCase):
                     "operator": "==",
                     "subject": "B",
                 },
-            ]
+            ],
+            "applied_time_extras": {},
         }
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
@@ -250,7 +255,8 @@ class TestUtils(SupersetTestCase):
                     "operator": "==",
                     "subject": "B",
                 },
-            ]
+            ],
+            "applied_time_extras": {},
         }
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
@@ -280,6 +286,13 @@ class TestUtils(SupersetTestCase):
             "time_grain_sqla": "years",
             "granularity": "90 seconds",
             "druid_time_origin": "now",
+            "applied_time_extras": {
+                "__time_range": "1 year ago :",
+                "__time_col": "birth_year",
+                "__time_grain": "years",
+                "__time_origin": "now",
+                "__granularity": "90 seconds",
+            },
         }
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
@@ -292,7 +305,7 @@ class TestUtils(SupersetTestCase):
                 {"col": "B", "op": "==", "val": []},
             ]
         }
-        expected = {"adhoc_filters": []}
+        expected = {"adhoc_filters": [], "applied_time_extras": {}}
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
 
@@ -319,7 +332,8 @@ class TestUtils(SupersetTestCase):
                     "operator": "in",
                     "subject": None,
                 }
-            ]
+            ],
+            "applied_time_extras": {},
         }
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
@@ -379,7 +393,8 @@ class TestUtils(SupersetTestCase):
                     "operator": "in",
                     "subject": "c",
                 },
-            ]
+            ],
+            "applied_time_extras": {},
         }
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
@@ -431,7 +446,8 @@ class TestUtils(SupersetTestCase):
                     "operator": "in",
                     "subject": "a",
                 },
-            ]
+            ],
+            "applied_time_extras": {},
         }
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
@@ -480,7 +496,8 @@ class TestUtils(SupersetTestCase):
                     "operator": "in",
                     "subject": "a",
                 },
-            ]
+            ],
+            "applied_time_extras": {},
         }
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
@@ -539,7 +556,8 @@ class TestUtils(SupersetTestCase):
                     "operator": "==",
                     "subject": "B",
                 },
-            ]
+            ],
+            "applied_time_extras": {},
         }
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
@@ -833,32 +851,6 @@ class TestUtils(SupersetTestCase):
     def test_parse_js_uri_path_items_item_optional(self):
         self.assertIsNone(parse_js_uri_path_item(None))
         self.assertIsNotNone(parse_js_uri_path_item("item"))
-
-    def test_setup_cache_null_config(self):
-        app = Flask(__name__)
-        cache_config = {"CACHE_TYPE": "null"}
-        assert isinstance(CacheManager._setup_cache(app, cache_config), Cache)
-
-    def test_setup_cache_standard_config(self):
-        app = Flask(__name__)
-        cache_config = {
-            "CACHE_TYPE": "redis",
-            "CACHE_DEFAULT_TIMEOUT": 60,
-            "CACHE_KEY_PREFIX": "superset_results",
-            "CACHE_REDIS_URL": "redis://localhost:6379/0",
-        }
-        assert isinstance(CacheManager._setup_cache(app, cache_config), Cache) is True
-
-    def test_setup_cache_custom_function(self):
-        app = Flask(__name__)
-        CustomCache = type("CustomCache", (object,), {"__init__": lambda *args: None})
-
-        def init_cache(app):
-            return CustomCache(app, {})
-
-        assert (
-            isinstance(CacheManager._setup_cache(app, init_cache), CustomCache) is True
-        )
 
     def test_get_stacktrace(self):
         with app.app_context():

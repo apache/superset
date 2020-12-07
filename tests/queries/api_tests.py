@@ -16,21 +16,24 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+from datetime import datetime, timedelta
 import json
 import random
 import string
-from typing import Dict, Any
 
+import pytest
 import prison
 from sqlalchemy.sql import func
 
 import tests.test_app
 from superset import db, security_manager
 from superset.models.core import Database
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_database, get_main_database, QueryStatus
 from superset.models.sql_lab import Query
 
 from tests.base_tests import SupersetTestCase
+
+QUERIES_FIXTURE_COUNT = 10
 
 
 class TestQueryApi(SupersetTestCase):
@@ -62,10 +65,50 @@ class TestQueryApi(SupersetTestCase):
             rows=rows,
             tab_name=tab_name,
             status=status,
+            changed_on=datetime(2020, 1, 1),
         )
         db.session.add(query)
         db.session.commit()
         return query
+
+    @pytest.fixture()
+    def create_queries(self):
+        with self.create_app().app_context():
+            queries = []
+            admin_id = self.get_user("admin").id
+            alpha_id = self.get_user("alpha").id
+            example_database_id = get_example_database().id
+            main_database_id = get_main_database().id
+            for cx in range(QUERIES_FIXTURE_COUNT - 1):
+                queries.append(
+                    self.insert_query(
+                        example_database_id,
+                        admin_id,
+                        self.get_random_string(),
+                        sql=f"SELECT col1, col2 from table{cx}",
+                        rows=cx,
+                        status=QueryStatus.SUCCESS
+                        if (cx % 2) == 0
+                        else QueryStatus.RUNNING,
+                    )
+                )
+            queries.append(
+                self.insert_query(
+                    main_database_id,
+                    alpha_id,
+                    self.get_random_string(),
+                    sql=f"SELECT col1, col2 from table{QUERIES_FIXTURE_COUNT}",
+                    rows=QUERIES_FIXTURE_COUNT,
+                    status=QueryStatus.SUCCESS,
+                )
+            )
+
+            yield queries
+
+            # rollback changes
+            for query in queries:
+                db.session.delete(query)
+            db.session.commit()
 
     @staticmethod
     def get_random_string(length: int = 10):
@@ -74,7 +117,7 @@ class TestQueryApi(SupersetTestCase):
 
     def test_get_query(self):
         """
-            Query API: Test get query
+        Query API: Test get query
         """
         admin = self.get_user("admin")
         client_id = self.get_random_string()
@@ -123,6 +166,7 @@ class TestQueryApi(SupersetTestCase):
                 "end_time",
                 "start_running_time",
                 "start_time",
+                "id",
             ):
                 self.assertEqual(value, expected_result[key])
         # rollback changes
@@ -131,7 +175,7 @@ class TestQueryApi(SupersetTestCase):
 
     def test_get_query_not_found(self):
         """
-            Query API: Test get query not found
+        Query API: Test get query not found
         """
         admin = self.get_user("admin")
         client_id = self.get_random_string()
@@ -144,7 +188,7 @@ class TestQueryApi(SupersetTestCase):
 
     def test_get_query_no_data_access(self):
         """
-            Query API: Test get dashboard without data access
+        Query API: Test get query without data access
         """
         gamma1 = self.create_user(
             "gamma_1", "password", "Gamma", email="gamma1@superset.org"
@@ -198,34 +242,131 @@ class TestQueryApi(SupersetTestCase):
         db.session.delete(gamma2)
         db.session.commit()
 
-    def test_get_query_filter(self):
+    @pytest.mark.usefixtures("create_queries")
+    def test_get_list_query(self):
         """
-            Query API: Test get queries filter
+        Query API: Test get list query
         """
-        admin = self.get_user("admin")
-        client_id = self.get_random_string()
-        query = self.insert_query(
-            get_example_database().id,
-            admin.id,
-            client_id,
-            sql="SELECT col1, col2 from table1",
-        )
-
         self.login(username="admin")
-        arguments = {"filters": [{"col": "sql", "opr": "sw", "value": "SELECT col1"}]}
-        uri = f"api/v1/query/?q={prison.dumps(arguments)}"
+        uri = "api/v1/query/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 1)
+        assert data["count"] == QUERIES_FIXTURE_COUNT
+        # check expected columns
+        assert sorted(list(data["result"][0].keys())) == [
+            "changed_on",
+            "database",
+            "end_time",
+            "executed_sql",
+            "id",
+            "rows",
+            "schema",
+            "sql",
+            "sql_tables",
+            "start_time",
+            "status",
+            "tab_name",
+            "tmp_table_name",
+            "tracking_url",
+            "user",
+        ]
+        assert sorted(list(data["result"][0]["user"].keys())) == [
+            "first_name",
+            "id",
+            "last_name",
+            "username",
+        ]
+        assert list(data["result"][0]["database"].keys()) == [
+            "database_name",
+        ]
 
-        # rollback changes
-        db.session.delete(query)
-        db.session.commit()
-
-    def test_get_queries_no_data_access(self):
+    @pytest.mark.usefixtures("create_queries")
+    def test_get_list_query_filter_sql(self):
         """
-            Query API: Test get queries no data access
+        Query API: Test get list query filter
+        """
+        self.login(username="admin")
+        arguments = {"filters": [{"col": "sql", "opr": "ct", "value": "table2"}]}
+        uri = f"api/v1/query/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == 1
+
+    @pytest.mark.usefixtures("create_queries")
+    def test_get_list_query_filter_database(self):
+        """
+        Query API: Test get list query filter database
+        """
+        self.login(username="admin")
+        database_id = get_main_database().id
+        arguments = {
+            "filters": [{"col": "database", "opr": "rel_o_m", "value": database_id}]
+        }
+        uri = f"api/v1/query/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == 1
+
+    @pytest.mark.usefixtures("create_queries")
+    def test_get_list_query_filter_user(self):
+        """
+        Query API: Test get list query filter user
+        """
+        self.login(username="admin")
+        alpha_id = self.get_user("alpha").id
+        arguments = {"filters": [{"col": "user", "opr": "rel_o_m", "value": alpha_id}]}
+        uri = f"api/v1/query/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == 1
+
+    @pytest.mark.usefixtures("create_queries")
+    def test_get_list_query_filter_changed_on(self):
+        """
+        Query API: Test get list query filter changed_on
+        """
+        self.login(username="admin")
+        arguments = {
+            "filters": [
+                {"col": "changed_on", "opr": "lt", "value": "2020-02-01T00:00:00Z"},
+                {"col": "changed_on", "opr": "gt", "value": "2019-12-30T00:00:00Z"},
+            ]
+        }
+        uri = f"api/v1/query/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["count"] == QUERIES_FIXTURE_COUNT
+
+    @pytest.mark.usefixtures("create_queries")
+    def test_get_list_query_order(self):
+        """
+        Query API: Test get list query filter changed_on
+        """
+        self.login(username="admin")
+        order_columns = [
+            "changed_on",
+            "database.database_name",
+            "rows",
+            "schema",
+            "sql",
+            "tab_name",
+            "user.first_name",
+        ]
+
+        for order_column in order_columns:
+            arguments = {"order_column": order_column, "order_direction": "asc"}
+            uri = f"api/v1/query/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
+
+    def test_get_list_query_no_data_access(self):
+        """
+        Query API: Test get queries no data access
         """
         admin = self.get_user("admin")
         client_id = self.get_random_string()
@@ -240,9 +381,9 @@ class TestQueryApi(SupersetTestCase):
         arguments = {"filters": [{"col": "sql", "opr": "sw", "value": "SELECT col1"}]}
         uri = f"api/v1/query/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 0)
+        assert data["count"] == 0
 
         # rollback changes
         db.session.delete(query)

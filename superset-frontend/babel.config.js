@@ -69,5 +69,15 @@ module.exports = {
     instrumented: {
       plugins: ['istanbul'],
     },
+    production: {
+      plugins: [
+        [
+          'babel-plugin-jsx-remove-data-test-id',
+          {
+            attributes: 'data-test',
+          },
+        ],
+      ],
+    },
   },
 };

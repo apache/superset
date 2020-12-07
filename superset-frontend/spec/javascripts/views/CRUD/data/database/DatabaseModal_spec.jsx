@@ -23,13 +23,32 @@ import { styledMount as mount } from 'spec/helpers/theming';
 
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
 import Modal from 'src/common/components/Modal';
+import Tabs from 'src/common/components/Tabs';
 
 // store needed for withToasts(DatabaseModal)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
+const mockedProps = {
+  show: true,
+};
+
+const dbProps = {
+  show: true,
+  database: {
+    id: 10,
+    database_name: 'test',
+    sqlalchemy_uri: 'sqllite:///user:pw/test',
+  },
+};
+
 describe('DatabaseModal', () => {
-  const wrapper = mount(<DatabaseModal />, { context: { store } });
+  const wrapper = mount(<DatabaseModal {...mockedProps} />, {
+    context: { store },
+  });
+  const editWrapper = mount(<DatabaseModal {...dbProps} />, {
+    context: { store },
+  });
 
   it('renders', () => {
     expect(wrapper.find(DatabaseModal)).toExist();
@@ -37,5 +56,27 @@ describe('DatabaseModal', () => {
 
   it('renders a Modal', () => {
     expect(wrapper.find(Modal)).toExist();
+  });
+
+  it('renders "Add Database" header when no database is included', () => {
+    expect(wrapper.find('h4').text()).toEqual('Add Database');
+  });
+
+  it('renders "Edit Database" header when database prop is included', () => {
+    expect(editWrapper.find('h4').text()).toEqual('Edit Database');
+  });
+
+  it('renders a Tabs menu', () => {
+    expect(wrapper.find(Tabs)).toExist();
+  });
+
+  it('renders five TabPanes', () => {
+    expect(wrapper.find(Tabs.TabPane)).toExist();
+    expect(wrapper.find(Tabs.TabPane)).toHaveLength(5);
+  });
+
+  it('renders input elements for Connection section', () => {
+    expect(wrapper.find('input[name="database_name"]')).toExist();
+    expect(wrapper.find('input[name="sqlalchemy_uri"]')).toExist();
   });
 });

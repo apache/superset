@@ -42,16 +42,23 @@ export default class ControlPanelSection extends React.Component {
     this.state = { expanded: this.props.startExpanded };
     this.toggleExpand = this.toggleExpand.bind(this);
   }
+
   toggleExpand() {
-    this.setState({ expanded: !this.state.expanded });
+    this.setState(prevState => ({ expanded: !prevState.expanded }));
   }
+
   renderHeader() {
     const { label, description, hasErrors } = this.props;
     return (
       label && (
         <div>
           <span>
-            <span role="button" tabIndex={0} onClick={this.toggleExpand}>
+            <span
+              data-test="clickable-control-panel-section-title"
+              role="button"
+              tabIndex={0}
+              onClick={this.toggleExpand}
+            >
               {label}
             </span>{' '}
             {description && (
@@ -67,6 +74,7 @@ export default class ControlPanelSection extends React.Component {
           </span>
           <i
             role="button"
+            aria-label="Toggle expand"
             tabIndex={0}
             className={`float-right fa-lg text-primary expander fa fa-angle-${
               this.state.expanded ? 'up' : 'down'

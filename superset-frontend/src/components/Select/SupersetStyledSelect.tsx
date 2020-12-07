@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { SyntheticEvent, MutableRefObject } from 'react';
+import React, { SyntheticEvent, MutableRefObject, ComponentType } from 'react';
 import { merge } from 'lodash';
 import BasicSelect, {
   OptionTypeBase,
@@ -39,6 +39,7 @@ import {
   SortableContainerProps,
 } from 'react-sortable-hoc';
 import arrayMove from 'array-move';
+import { Props as SelectProps } from 'react-select/src/Select';
 import {
   WindowedSelectComponentType,
   WindowedSelectProps,
@@ -56,6 +57,8 @@ import {
   VALUE_LABELED_STYLES,
   PartialThemeConfig,
   PartialStylesConfig,
+  SelectComponentsType,
+  InputProps,
 } from './styles';
 import { findValue } from './utils';
 
@@ -93,9 +96,11 @@ export type SupersetStyledSelectProps<
 
 function styled<
   OptionType extends OptionTypeBase,
-  SelectComponentType extends WindowedSelectComponentType<
+  SelectComponentType extends
+    | WindowedSelectComponentType<OptionType>
+    | ComponentType<SelectProps<OptionType>> = WindowedSelectComponentType<
     OptionType
-  > = WindowedSelectComponentType<OptionType>
+  >
 >(SelectComponent: SelectComponentType) {
   type SelectProps = SupersetStyledSelectProps<OptionType>;
   type Components = SelectComponents<OptionType>;
@@ -220,9 +225,12 @@ function styled<
 
     // Handle onPaste event
     if (onPaste) {
-      const Input = components.Input || defaultComponents.Input;
-      // @ts-ignore (needed for passing `onPaste`)
-      components.Input = props => <Input {...props} onPaste={onPaste} />;
+      const Input =
+        (components.Input as SelectComponentsType['Input']) ||
+        (defaultComponents.Input as SelectComponentsType['Input']);
+      components.Input = (props: InputProps) => (
+        <Input {...props} onPaste={onPaste} />
+      );
     }
     // for CreaTable
     if (SelectComponent === WindowedCreatableSelect) {
@@ -248,7 +256,6 @@ function styled<
         selectRef.current = stateManager;
       }
     };
-
     return (
       <MaybeSortableSelect
         ref={setRef}
@@ -287,7 +294,9 @@ export const Select = styled(WindowedSelect);
 export const AsyncSelect = styled(WindowedAsyncSelect);
 export const CreatableSelect = styled(WindowedCreatableSelect);
 export const AsyncCreatableSelect = styled(WindowedAsyncCreatableSelect);
-// Wrap with async pagination (infinite scroll). Cannot use windowed since options are appended dynamically which causes focus jumping
-// @ts-ignore
-export const PaginatedSelect = withAsyncPaginate(styled(BasicSelect));
+export const PaginatedSelect = withAsyncPaginate(
+  styled<OptionTypeBase, ComponentType<SelectProps<OptionTypeBase>>>(
+    BasicSelect,
+  ),
+);
 export default Select;

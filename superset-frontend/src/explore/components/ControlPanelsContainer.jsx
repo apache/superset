@@ -21,15 +21,16 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Alert, Tab, Tabs } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
-import styled from '@superset-ui/style';
+import { Alert } from 'react-bootstrap';
+import { css } from '@emotion/core';
+import { t, styled } from '@superset-ui/core';
 
+import Tabs from 'src/common/components/Tabs';
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { sectionsToRender } from '../controlUtils';
-import * as exploreActions from '../actions/exploreActions';
+import { exploreActions } from '../actions/exploreActions';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -44,8 +45,9 @@ const propTypes = {
 const Styles = styled.div`
   height: 100%;
   max-height: 100%;
+  overflow: auto;
   .remove-alert {
-    cursor: 'pointer';
+    cursor: pointer;
   }
   #controlSections {
     display: flex;
@@ -60,6 +62,15 @@ const Styles = styled.div`
     overflow: auto;
     flex: 1 1 100%;
   }
+`;
+
+const ControlPanelsTabs = styled(Tabs)`
+  ${({ fullWidth }) =>
+    css`
+      .ant-tabs-nav-list {
+        width: ${fullWidth ? '100%' : '50%'};
+      }
+    `}
 `;
 
 class ControlPanelsContainer extends React.Component {
@@ -107,8 +118,8 @@ class ControlPanelsContainer extends React.Component {
 
     return (
       <Control
-        name={name}
         key={`control-${name}`}
+        name={name}
         validationErrors={validationErrors}
         actions={actions}
         formData={provideFormDataToProps ? formData : null}
@@ -143,10 +154,12 @@ class ControlPanelsContainer extends React.Component {
               if (!controlItem) {
                 // When the item is invalid
                 return null;
-              } else if (React.isValidElement(controlItem)) {
+              }
+              if (React.isValidElement(controlItem)) {
                 // When the item is a React element
                 return controlItem;
-              } else if (controlItem.name && controlItem.config) {
+              }
+              if (controlItem.name && controlItem.config) {
                 return this.renderControl(controlItem);
               }
               return null;
@@ -192,6 +205,7 @@ class ControlPanelsContainer extends React.Component {
       }
     });
 
+    const showCustomizeTab = displaySectionsToRender.length > 0;
     return (
       <Styles>
         {this.props.alert && (
@@ -199,6 +213,7 @@ class ControlPanelsContainer extends React.Component {
             {this.props.alert}
             <i
               role="button"
+              aria-label="Remove alert"
               tabIndex={0}
               className="fa fa-close pull-right"
               onClick={this.removeAlert}
@@ -206,16 +221,20 @@ class ControlPanelsContainer extends React.Component {
             />
           </Alert>
         )}
-        <Tabs id="controlSections">
-          <Tab eventKey="query" title={t('Data')}>
+        <ControlPanelsTabs
+          id="controlSections"
+          data-test="control-tabs"
+          fullWidth={showCustomizeTab}
+        >
+          <Tabs.TabPane key="query" tab={t('Data')}>
             {querySectionsToRender.map(this.renderControlPanelSection)}
-          </Tab>
-          {displaySectionsToRender.length > 0 && (
-            <Tab eventKey="display" title={t('Customize')}>
+          </Tabs.TabPane>
+          {showCustomizeTab && (
+            <Tabs.TabPane key="display" tab={t('Customize')}>
               {displaySectionsToRender.map(this.renderControlPanelSection)}
-            </Tab>
+            </Tabs.TabPane>
           )}
-        </Tabs>
+        </ControlPanelsTabs>
       </Styles>
     );
   }

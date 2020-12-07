@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import { BACKGROUND_TRANSPARENT, BACKGROUND_WHITE } from './constants';
 
 export default [

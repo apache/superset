@@ -20,7 +20,7 @@ import React from 'react';
 import { Panel } from 'react-bootstrap';
 import Button from 'src/components/Button';
 import Select from 'src/components/Select';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import VizTypeControl from '../explore/components/controls/VizTypeControl';
 
@@ -40,7 +40,7 @@ export type AddSliceContainerState = {
   visType: string;
 };
 
-const styleSelectWidth = { width: 600 };
+const styleSelectContainer = { width: 600, marginBottom: '10px' };
 
 export default class AddSliceContainer extends React.PureComponent<
   AddSliceContainerProps,
@@ -75,7 +75,6 @@ export default class AddSliceContainer extends React.PureComponent<
     this.setState({
       datasourceValue: option.value,
       datasourceId: option.value.split('__')[0],
-      datasourceType: option.value.split('__')[1],
     });
   }
 
@@ -96,34 +95,31 @@ export default class AddSliceContainer extends React.PureComponent<
           </Panel.Heading>
           <Panel.Body>
             <div>
-              <p>{t('Choose a datasource')}</p>
-              <p>
-                <div style={styleSelectWidth}>
-                  <Select
-                    clearable={false}
-                    ignoreAccents={false}
-                    name="select-datasource"
-                    onChange={this.changeDatasource}
-                    options={this.props.datasources}
-                    placeholder={t('Choose a datasource')}
-                    style={styleSelectWidth}
-                    value={
-                      this.state.datasourceValue
-                        ? {
-                            value: this.state.datasourceValue,
-                          }
-                        : undefined
-                    }
-                    width={600}
-                  />
-                </div>
-              </p>
+              <p>{t('Choose a dataset')}</p>
+              <div style={styleSelectContainer}>
+                <Select
+                  clearable={false}
+                  ignoreAccents={false}
+                  name="select-datasource"
+                  onChange={this.changeDatasource}
+                  options={this.props.datasources}
+                  placeholder={t('Choose a dataset')}
+                  value={
+                    this.state.datasourceValue
+                      ? {
+                          value: this.state.datasourceValue,
+                        }
+                      : undefined
+                  }
+                  width={600}
+                />
+              </div>
               <span className="text-muted">
                 {t(
-                  'If the datasource you are looking for is not available in the list, follow the instructions on how to add it in the Superset tutorial.',
+                  'If the dataset you are looking for is not available in the list, follow the instructions on how to add it in the Superset tutorial.',
                 )}{' '}
                 <a
-                  href="https://superset.apache.org/tutorial.html#adding-a-new-table"
+                  href="https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#adding-a-new-table"
                   rel="noopener noreferrer"
                   target="_blank"
                 >
@@ -138,6 +134,7 @@ export default class AddSliceContainer extends React.PureComponent<
                 name="select-vis-type"
                 onChange={this.changeVisType}
                 value={this.state.visType}
+                labelBsStyle="primary"
               />
             </div>
             <br />

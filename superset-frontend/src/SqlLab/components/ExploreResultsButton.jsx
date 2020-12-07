@@ -22,11 +22,11 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert } from 'react-bootstrap';
-import Dialog from 'react-bootstrap-dialog';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import shortid from 'shortid';
 
+import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 import { exploreChart } from '../../explore/exploreUtils';
 import * as actions from '../actions/sqlLab';
@@ -52,41 +52,29 @@ class ExploreResultsButton extends React.PureComponent {
       this,
     );
   }
+
   onClick() {
-    const timeout = this.props.timeout;
+    const { timeout } = this.props;
     const msg = this.renderInvalidColumnMessage();
     if (Math.round(this.getQueryDuration()) > timeout) {
-      this.dialog.show({
+      Modal.confirm({
         title: t('Explore'),
-        body: this.renderTimeoutWarning(),
-        actions: [
-          Dialog.CancelAction(),
-          Dialog.OKAction(() => {
-            this.visualize();
-          }),
-        ],
-        bsSize: 'large',
-        onHide: dialog => {
-          dialog.hide();
-        },
+        content: this.renderTimeoutWarning(),
+        onOk: this.visualize,
+        icon: null,
       });
     } else if (msg) {
-      this.dialog.show({
+      Modal.warning({
         title: t('Explore'),
-        body: msg,
-        actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-primary')],
-        bsSize: 'large',
-        bsStyle: 'warning',
-        onHide: dialog => {
-          dialog.hide();
-        },
+        content: msg,
       });
     } else {
       this.visualize();
     }
   }
+
   getColumns() {
-    const props = this.props;
+    const { props } = this;
     if (
       props.query &&
       props.query.results &&
@@ -96,20 +84,22 @@ class ExploreResultsButton extends React.PureComponent {
     }
     return [];
   }
+
   getQueryDuration() {
     return moment
       .duration(this.props.query.endDttm - this.props.query.startDttm)
       .asSeconds();
   }
+
   getInvalidColumns() {
-    const re1 = /^[A-Za-z_]\w*$/; // starts with char or _, then only alphanum
-    const re2 = /__\d+$/; // does not finish with __ and then a number which screams dup col name
-    const re3 = /^__timestamp/i; // is not a reserved temporal column alias
+    const re1 = /__\d+$/; // duplicate column name pattern
+    const re2 = /^__timestamp/i; // reserved temporal column alias
 
     return this.props.query.results.selected_columns
       .map(col => col.name)
-      .filter(col => !re1.test(col) || re2.test(col) || re3.test(col));
+      .filter(col => re1.test(col) || re2.test(col));
   }
+
   datasourceName() {
     const { query } = this.props;
     const uniqueId = shortid.generate();
@@ -120,6 +110,7 @@ class ExploreResultsButton extends React.PureComponent {
     }
     return datasourceName;
   }
+
   buildVizOptions() {
     const { schema, sql, dbId, templateParams } = this.props.query;
     return {
@@ -131,6 +122,7 @@ class ExploreResultsButton extends React.PureComponent {
       columns: this.getColumns(),
     };
   }
+
   visualize() {
     this.props.actions
       .createDatasource(this.buildVizOptions())
@@ -159,6 +151,7 @@ class ExploreResultsButton extends React.PureComponent {
         );
       });
   }
+
   renderTimeoutWarning() {
     return (
       <Alert bsStyle="warning">
@@ -182,6 +175,7 @@ class ExploreResultsButton extends React.PureComponent {
       </Alert>
     );
   }
+
   renderInvalidColumnMessage() {
     const invalidColumns = this.getInvalidColumns();
     if (invalidColumns.length === 0) {
@@ -193,20 +187,15 @@ class ExploreResultsButton extends React.PureComponent {
         <code>
           <strong>{invalidColumns.join(', ')} </strong>
         </code>
-        {t('cannot be used as a column name. Please use aliases (as in ')}
-        <code>
-          SELECT count(*)&nbsp;
-          <strong>AS my_alias</strong>
-        </code>
-        ){' '}
-        {t(`limited to alphanumeric characters and underscores. The alias "__timestamp"
-          used as for the temporal expression and column aliases ending with
-          double underscores followed by a numeric value are not allowed for reasons
-          discussed in Github issue #5739.
-          `)}
+        {t(`cannot be used as a column name. The column name/alias "__timestamp"
+          is reserved for the main temporal expression, and column aliases ending with
+          double underscores followed by a numeric value (e.g. "my_col__1") are reserved
+          for deduplicating duplicate column names. Please use aliases to rename the
+          invalid column names.`)}
       </div>
     );
   }
+
   render() {
     const allowsSubquery =
       this.props.database && this.props.database.allows_subquery;
@@ -225,11 +214,6 @@ class ExploreResultsButton extends React.PureComponent {
           />{' '}
           {t('Explore')}
         </Button>
-        <Dialog
-          ref={el => {
-            this.dialog = el;
-          }}
-        />
       </>
     );
   }
@@ -250,7 +234,6 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export { ExploreResultsButton };
 export default connect(
   mapStateToProps,
   mapDispatchToProps,

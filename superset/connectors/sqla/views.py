@@ -18,9 +18,9 @@
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Union
+from typing import Any, cast, Dict, List, Union
 
-from flask import flash, Markup, redirect
+from flask import current_app, flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.fieldwidgets import Select2Widget
@@ -30,7 +30,7 @@ from flask_babel import gettext as __, lazy_gettext as _
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import Regexp
 
-from superset import app, db
+from superset import app, db, is_feature_enabled
 from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.sqla import models
 from superset.constants import RouteMethod
@@ -41,6 +41,7 @@ from superset.views.base import (
     DatasourceFilter,
     DeleteMixin,
     ListWidgetWithCheckboxes,
+    SupersetListWidget,
     SupersetModelView,
     validate_sqlatable,
     YamlExportMixin,
@@ -160,7 +161,7 @@ class TableColumnInlineView(  # pylint: disable=too-many-ancestors
     add_form_extra_fields = {
         "table": QuerySelectField(
             "Table",
-            query_factory=lambda: db.session().query(models.SqlaTable),
+            query_factory=lambda: db.session.query(models.SqlaTable),
             allow_blank=True,
             widget=Select2Widget(extra_classes="readonly"),
         )
@@ -209,7 +210,7 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
         "extra": utils.markdown(
             "Extra data to specify metric metadata. Currently supports "
             'certification data of the format: `{ "certification": "certified_by": '
-            '"Taylor Swift", "details": "This metric is the source of truth." '
+            '"Data Platform Team", "details": "This metric is the source of truth." '
             "} }`. This should be modified from the edit datasource model in "
             "Explore to ensure correct formatting.",
             True,
@@ -232,7 +233,7 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
     add_form_extra_fields = {
         "table": QuerySelectField(
             "Table",
-            query_factory=lambda: db.session().query(models.SqlaTable),
+            query_factory=lambda: db.session.query(models.SqlaTable),
             allow_blank=True,
             widget=Select2Widget(extra_classes="readonly"),
         )
@@ -241,30 +242,73 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
     edit_form_extra_fields = add_form_extra_fields
 
 
+class RowLevelSecurityListWidget(
+    SupersetListWidget
+):  # pylint: disable=too-few-public-methods
+    template = "superset/models/rls/list.html"
+
+    def __init__(self, **kwargs: Any):
+        kwargs["appbuilder"] = current_app.appbuilder
+        super().__init__(**kwargs)
+
+
 class RowLevelSecurityFiltersModelView(  # pylint: disable=too-many-ancestors
     SupersetModelView, DeleteMixin
 ):
     datamodel = SQLAInterface(models.RowLevelSecurityFilter)
+
+    list_widget = cast(SupersetListWidget, RowLevelSecurityListWidget)
 
     list_title = _("Row level security filter")
     show_title = _("Show Row level security filter")
     add_title = _("Add Row level security filter")
     edit_title = _("Edit Row level security filter")
 
-    list_columns = ["tables", "roles", "clause", "creator", "modified"]
-    order_columns = ["tables", "clause", "modified"]
-    edit_columns = ["tables", "roles", "clause"]
+    list_columns = [
+        "filter_type",
+        "tables",
+        "roles",
+        "group_key",
+        "clause",
+        "creator",
+        "modified",
+    ]
+    order_columns = ["filter_type", "group_key", "clause", "modified"]
+    edit_columns = ["filter_type", "tables", "roles", "group_key", "clause"]
     show_columns = edit_columns
-    search_columns = ("tables", "roles", "clause")
+    search_columns = ("filter_type", "tables", "roles", "group_key", "clause")
     add_columns = edit_columns
     base_order = ("changed_on", "desc")
     description_columns = {
+        "filter_type": _(
+            "Regular filters add where clauses to queries if a user belongs to a "
+            "role referenced in the filter. Base filters apply filters to all queries "
+            "except the roles defined in the filter, and can be used to define what "
+            "users can see if no RLS filters within a filter group apply to them."
+        ),
         "tables": _("These are the tables this filter will be applied to."),
-        "roles": _("These are the roles this filter will be applied to."),
+        "roles": _(
+            "For regular filters, these are the roles this filter will be "
+            "applied to. For base filters, these are the roles that the "
+            "filter DOES NOT apply to, e.g. Admin if admin should see all "
+            "data."
+        ),
+        "group_key": _(
+            "Filters with the same group key will be ORed together within the group, "
+            "while different filter groups will be ANDed together. Undefined group "
+            "keys are treated as unique groups, i.e. are not grouped together. "
+            "For example, if a table has three filters, of which two are for "
+            "departments Finance and Marketing (group key = 'department'), and one "
+            "refers to the region Europe (group key = 'region'), the filter clause "
+            "would apply the filter (department = 'Finance' OR department = "
+            "'Marketing') AND (region = 'Europe')."
+        ),
         "clause": _(
             "This is the condition that will be added to the WHERE clause. "
             "For example, to only return rows for a particular client, "
-            "you might put in: client_id = 9"
+            "you might define a regular filter with the clause `client_id = 9`. To "
+            "display no rows unless a user belongs to a RLS filter role, a base "
+            "filter can be created with the clause `1 = 0` (always false)."
         ),
     }
     label_columns = {
@@ -308,13 +352,13 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         "cache_timeout",
         "is_sqllab_view",
         "template_params",
+        "extra",
     ]
     base_filters = [["id", DatasourceFilter, lambda: []]]
     show_columns = edit_columns + ["perm", "slices"]
     related_views = [
         TableColumnInlineView,
         SqlMetricInlineView,
-        RowLevelSecurityFiltersModelView,
     ]
     base_order = ("changed_on", "desc")
     search_columns = ("database", "schema", "table_name", "owners", "is_sqllab_view")
@@ -368,6 +412,13 @@ class TableModelView(  # pylint: disable=too-many-ancestors
             "A timeout of 0 indicates that the cache never expires. "
             "Note this defaults to the database timeout if undefined."
         ),
+        "extra": utils.markdown(
+            "Extra data to specify table metadata. Currently supports "
+            'certification data of the format: `{ "certification": { "certified_by": '
+            '"Data Platform Team", "details": "This table is the source of truth." '
+            "} }`.",
+            True,
+        ),
     }
     label_columns = {
         "slices": _("Associated Charts"),
@@ -388,12 +439,13 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         "description": _("Description"),
         "is_sqllab_view": _("SQL Lab View"),
         "template_params": _("Template parameters"),
+        "extra": _("Extra"),
         "modified": _("Modified"),
     }
     edit_form_extra_fields = {
         "database": QuerySelectField(
             "Database",
-            query_factory=lambda: db.session().query(models.Database),
+            query_factory=lambda: db.session.query(models.Database),
             widget=Select2Widget(extra_classes="readonly"),
         )
     }
@@ -402,9 +454,13 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         validate_sqlatable(item)
 
     def post_add(  # pylint: disable=arguments-differ
-        self, item: "TableModelView", flash_message: bool = True
+        self,
+        item: "TableModelView",
+        flash_message: bool = True,
+        fetch_metadata: bool = True,
     ) -> None:
-        item.fetch_metadata()
+        if fetch_metadata:
+            item.fetch_metadata()
         create_table_permissions(item)
         if flash_message:
             flash(
@@ -418,16 +474,16 @@ class TableModelView(  # pylint: disable=too-many-ancestors
             )
 
     def post_update(self, item: "TableModelView") -> None:
-        self.post_add(item, flash_message=False)
+        self.post_add(item, flash_message=False, fetch_metadata=False)
 
     def _delete(self, pk: int) -> None:
         DeleteMixin._delete(self, pk)
 
     @expose("/edit/<pk>", methods=["GET", "POST"])
     @has_access
-    def edit(self, pk: int) -> FlaskResponse:
+    def edit(self, pk: str) -> FlaskResponse:
         """Simple hack to redirect to explore view after saving"""
-        resp = super(TableModelView, self).edit(pk)
+        resp = super().edit(pk)
         if isinstance(resp, str):
             return resp
         return redirect("/superset/explore/table/{}/".format(pk))
@@ -515,7 +571,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
-        if not app.config["ENABLE_REACT_CRUD_VIEWS"]:
+        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
             return super().list()
 
         return super().render_app_template()

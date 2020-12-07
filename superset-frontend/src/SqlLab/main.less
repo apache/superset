@@ -46,12 +46,12 @@ body {
   height: 100%;
 }
 
-.tab-content {
+.ant-tabs-content {
   height: 100%;
   position: relative;
   background-color: @lightest;
 
-  > .tab-pane {
+  > .ant-tabs-tabpane {
     position: absolute;
     top: 0;
     right: 0;
@@ -134,7 +134,7 @@ div.Workspace {
 
 .sql-toolbar {
   padding: 10px 10px 5px 10px;
-  background-color: @gray-bg;
+  background-color: @lightest;
   display: flex;
   justify-content: space-between;
   border: 1px solid @gray-light;
@@ -239,10 +239,6 @@ div.Workspace {
   .SouthPane {
     height: 100%;
   }
-
-  .scrollbar-container {
-    overflow: auto;
-  }
 }
 
 .SqlEditorTabs li {
@@ -322,6 +318,7 @@ div.Workspace {
   .queryPane {
     flex: 1 1 auto;
     padding-left: 10px;
+    overflow: auto;
   }
 
   .schemaPane-enter-done,
@@ -370,11 +367,6 @@ div.Workspace {
     border-bottom: 1px solid @gray-bg;
     margin: 15px 0;
   }
-
-  .scrollbar-container {
-    flex: 1 1 auto;
-    overflow: auto;
-  }
 }
 
 .popover {
@@ -417,13 +409,16 @@ div.tablePopover {
   margin-top: 48px;
 }
 
-.ace_editor {
+.ace_editor.ace_editor {
+  //double class is better than !important
   border: 1px solid @gray-light;
   font-feature-settings: @font-feature-settings;
   font-family: @font-family-monospace;
 
   &.ace_autocomplete {
-    width: 520px;
+    // Use !important because Ace Editor applies extra CSS at the last second
+    // when opening the autocomplete.
+    width: 520px !important;
   }
 }
 
@@ -463,11 +458,11 @@ div.tablePopover {
   display: inline-block;
 }
 
-.ResultsModal .modal-body {
-  min-height: 600px;
+.ResultsModal .ant-modal-body {
+  min-height: 560px;
 }
 
-.modal-body {
+.ant-modal-body {
   overflow: auto;
 }
 
@@ -480,19 +475,6 @@ a.Link {
   margin: 3px 5px;
 }
 
-.tooltip pre {
-  background: transparent;
-  border: none;
-  text-align: left;
-  color: @lightest;
-  font-size: @font-size-xs;
-}
-
-.tooltip-inner {
-  max-width: 500px;
-  word-wrap: break-word;
-}
-
 .SouthPane {
   width: 100%;
 
@@ -502,7 +484,7 @@ a.Link {
     flex-direction: column;
   }
 
-  .tab-pane {
+  .ant-tabs-tabpane {
     overflow-y: auto; // scroll the query history pane
   }
 }

@@ -57,14 +57,34 @@ body {
 }
 
 .dashboard .chart-header {
-  position: relative;
   font-size: @font-size-l;
   font-weight: @font-weight-bold;
   margin-bottom: 4px;
+  display: flex;
+  max-width: 100%;
+  align-items: flex-start;
+
+  & > .header-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    flex-grow: 1;
+  }
+
+  & > .header-controls {
+    display: flex;
+
+    & > * {
+      margin-left: 8px;
+    }
+  }
 
   .dropdown.btn-group {
-    position: absolute;
-    right: 0;
+    pointer-events: none;
+    vertical-align: top;
+    & > * {
+      pointer-events: auto;
+    }
   }
 
   .dropdown-toggle.btn.btn-default {
@@ -89,85 +109,14 @@ body {
   }
 }
 
-.dashboard .dashboard-header {
-  #save-dash-split-button {
-    border-radius: 0;
-    margin-left: -9px;
-    height: 30px;
-    width: 30px;
-
-    &.btn.btn-primary {
-      border-left-color: @lightest;
-    }
-
-    & + .dropdown-menu.dropdown-menu-right {
-      min-width: unset;
-    }
-
-    .caret {
-      display: inline-block;
-      width: 100%;
-      height: 100%;
-    }
-  }
-
-  .button-container {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-  }
-}
-
 .dashboard .chart-header,
 .dashboard .dashboard-header {
   .dropdown-menu {
     padding: 9px 0;
   }
 
-  .dropdown-menu li a {
-    padding: 3px 16px;
-    color: @almost-black;
-    font-size: @font-size-m;
-
-    &:hover,
-    &:focus {
-      background: @menu-hover;
-      color: @almost-black;
-    }
-  }
-}
-
-.modal {
-  .modal-body {
-    padding: 24px 24px 29px 24px;
-  }
-
-  .modal-dialog.filter-scope-modal {
-    width: 80%;
-  }
-
-  .refresh-warning-container {
-    margin-top: 24px;
-  }
-
-  .dashboard-modal-actions-container {
-    margin-top: 24px;
-    text-align: right;
-
-    .btn {
-      margin-right: 16px;
-
-      &:last-child {
-        margin-right: 0;
-      }
-    }
-  }
-
-  .dashboard-modal.delete {
-    .btn.btn-primary {
-      background: @danger;
-      border-color: @danger;
-    }
+  .dropdown-menu li {
+    font-weight: @font-weight-normal;
   }
 }
 
@@ -197,6 +146,10 @@ body {
   display: flex;
   flex-direction: row;
   align-items: center;
+
+  .editable-title {
+    margin-right: 8px;
+  }
 
   .favstar {
     font-size: @font-size-xl;

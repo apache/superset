@@ -41,12 +41,12 @@
           uri: $.trim($("#sqlalchemy_uri").val()),
           name: $('#database_name').val(),
           impersonate_user: $('#impersonate_user').is(':checked'),
-          extras: extra ? JSON.parse(extra) : {},
+          extra: extra ? JSON.parse(extra) : {},
           encrypted_extra: encryptedExtra ? JSON.parse(encryptedExtra) : {},
           server_cert: $("#server_cert").val(),
         })
       } catch(parse_error){
-        alert("Malformed JSON in the extras field: " + parse_error);
+        alert("Malformed JSON in the extra fields: " + parse_error);
         return false
       }
 

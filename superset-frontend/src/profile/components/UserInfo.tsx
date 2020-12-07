@@ -20,7 +20,7 @@ import React from 'react';
 import Gravatar from 'react-gravatar';
 import moment from 'moment';
 import { Panel } from 'react-bootstrap';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import { UserWithPermissionsAndRoles } from '../../types/bootstrapTypes';
 
 interface UserInfoProps {

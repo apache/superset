@@ -33,8 +33,8 @@ import {
   UPDATE_CSS,
   SET_REFRESH_FREQUENCY,
   SET_DIRECT_PATH,
-  SET_MOUNTED_TAB,
   SET_FOCUSED_FILTER_FIELD,
+  UNSET_FOCUSED_FILTER_FIELD,
 } from '../actions/dashboardState';
 
 export default function dashboardStateReducer(state = {}, action) {
@@ -51,7 +51,7 @@ export default function dashboardStateReducer(state = {}, action) {
       };
     },
     [REMOVE_SLICE]() {
-      const sliceId = action.sliceId;
+      const { sliceId } = action;
       const updatedSliceIds = new Set(state.sliceIds);
       updatedSliceIds.delete(sliceId);
 
@@ -88,7 +88,7 @@ export default function dashboardStateReducer(state = {}, action) {
     },
     [TOGGLE_EXPAND_SLICE]() {
       const updatedExpandedSlices = { ...state.expandedSlices };
-      const sliceId = action.sliceId;
+      const { sliceId } = action;
       if (updatedExpandedSlices[sliceId]) {
         delete updatedExpandedSlices[sliceId];
       } else {
@@ -106,6 +106,8 @@ export default function dashboardStateReducer(state = {}, action) {
         maxUndoHistoryExceeded: false,
         editMode: false,
         updatedColorScheme: false,
+        // server-side returns last_modified_time for latest change
+        lastModifiedTime: action.lastModifiedTime,
       };
     },
     [SET_UNSAVED_CHANGES]() {
@@ -123,32 +125,33 @@ export default function dashboardStateReducer(state = {}, action) {
     [SET_DIRECT_PATH]() {
       return {
         ...state,
-        // change of direct path (tabs) will reset current mounted tab
-        mountedTab: null,
         directPathToChild: action.path,
         directPathLastUpdated: Date.now(),
       };
     },
-    [SET_MOUNTED_TAB]() {
-      // set current mounted tab after tab is really mounted to DOM
+    [SET_FOCUSED_FILTER_FIELD]() {
       return {
         ...state,
-        mountedTab: action.mountedTab,
-      };
-    },
-    [SET_FOCUSED_FILTER_FIELD]() {
-      const { focusedFilterField } = state;
-      if (action.chartId && action.column) {
-        focusedFilterField.push({
+        focusedFilterField: {
           chartId: action.chartId,
           column: action.column,
-        });
-      } else {
-        focusedFilterField.shift();
+        },
+      };
+    },
+    [UNSET_FOCUSED_FILTER_FIELD]() {
+      // dashboard only has 1 focused filter field at a time,
+      // but when user switch different filter boxes,
+      // browser didn't always fire onBlur and onFocus events in order.
+      if (
+        !state.focusedFilterField ||
+        action.chartId !== state.focusedFilterField.chartId ||
+        action.column !== state.focusedFilterField.column
+      ) {
+        return state;
       }
       return {
         ...state,
-        focusedFilterField,
+        focusedFilterField: null,
       };
     },
   };

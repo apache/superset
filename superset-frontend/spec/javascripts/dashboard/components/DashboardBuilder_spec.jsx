@@ -22,7 +22,7 @@ import { shallow, mount } from 'enzyme';
 import sinon from 'sinon';
 
 import { ParentSize } from '@vx/responsive';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Sticky, StickyContainer } from 'react-sticky';
 import { TabContainer, TabContent, TabPane } from 'react-bootstrap';
 
@@ -33,13 +33,13 @@ import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import * as dashboardStateActions from 'src/dashboard/actions/dashboardState';
 
-import WithDragDropContext from '../helpers/WithDragDropContext';
 import {
   dashboardLayout as undoableDashboardLayout,
   dashboardLayoutWithTabs as undoableDashboardLayoutWithTabs,
-} from '../fixtures/mockDashboardLayout';
+} from 'spec/fixtures/mockDashboardLayout';
 
-import { mockStore, mockStoreWithTabs } from '../fixtures/mockStore';
+import { mockStore, mockStoreWithTabs } from 'spec/fixtures/mockStore';
+import WithDragDropContext from 'spec/helpers/WithDragDropContext';
 
 const dashboardLayout = undoableDashboardLayout.present;
 const layoutWithTabs = undoableDashboardLayoutWithTabs.present;
@@ -178,7 +178,7 @@ describe('DashboardBuilder', () => {
     expect(wrapper.find(TabContainer).prop('activeKey')).toBe(0);
 
     wrapper
-      .find('.dashboard-component-tabs .nav-tabs a')
+      .find('.dashboard-component-tabs .ant-tabs .ant-tabs-tab')
       .at(1)
       .simulate('click');
 

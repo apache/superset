@@ -25,6 +25,8 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         ...action.newInfo,
+        // server-side compare last_modified_time in second level
+        lastModifiedTime: Math.round(new Date().getTime() / 1000),
       };
     default:
       return state;

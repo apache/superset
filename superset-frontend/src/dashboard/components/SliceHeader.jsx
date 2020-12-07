@@ -19,10 +19,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import EditableTitle from '../../components/EditableTitle';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import SliceHeaderControls from './SliceHeaderControls';
+import FiltersBadge from '../containers/FiltersBadge';
 
 const propTypes = {
   innerRef: PropTypes.func,
@@ -48,12 +49,12 @@ const propTypes = {
   filters: PropTypes.object.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   handleToggleFullSize: PropTypes.func.isRequired,
+  chartStatus: PropTypes.string.isRequired,
 };
 
 const defaultProps = {
   innerRef: null,
   forceRefresh: () => ({}),
-  removeSlice: () => ({}),
   updateSliceName: () => ({}),
   toggleExpandSlice: () => ({}),
   exploreChart: () => ({}),
@@ -100,11 +101,12 @@ class SliceHeader extends React.PureComponent {
       addDangerToast,
       handleToggleFullSize,
       isFullSize,
+      chartStatus,
     } = this.props;
 
     return (
       <div className="chart-header" ref={innerRef}>
-        <div className="header">
+        <div className="header-title">
           <EditableTitle
             title={
               sliceName ||
@@ -135,26 +137,32 @@ class SliceHeader extends React.PureComponent {
               <i className="fa fa-exclamation-circle danger" />
             </TooltipWrapper>
           )}
+        </div>
+        <div className="header-controls">
           {!editMode && (
-            <SliceHeaderControls
-              slice={slice}
-              isCached={isCached}
-              isExpanded={isExpanded}
-              cachedDttm={cachedDttm}
-              updatedDttm={updatedDttm}
-              toggleExpandSlice={toggleExpandSlice}
-              forceRefresh={forceRefresh}
-              exploreChart={exploreChart}
-              exportCSV={exportCSV}
-              supersetCanExplore={supersetCanExplore}
-              supersetCanCSV={supersetCanCSV}
-              sliceCanEdit={sliceCanEdit}
-              componentId={componentId}
-              dashboardId={dashboardId}
-              addDangerToast={addDangerToast}
-              handleToggleFullSize={handleToggleFullSize}
-              isFullSize={isFullSize}
-            />
+            <>
+              <FiltersBadge chartId={slice.slice_id} />
+              <SliceHeaderControls
+                slice={slice}
+                isCached={isCached}
+                isExpanded={isExpanded}
+                cachedDttm={cachedDttm}
+                updatedDttm={updatedDttm}
+                toggleExpandSlice={toggleExpandSlice}
+                forceRefresh={forceRefresh}
+                exploreChart={exploreChart}
+                exportCSV={exportCSV}
+                supersetCanExplore={supersetCanExplore}
+                supersetCanCSV={supersetCanCSV}
+                sliceCanEdit={sliceCanEdit}
+                componentId={componentId}
+                dashboardId={dashboardId}
+                addDangerToast={addDangerToast}
+                handleToggleFullSize={handleToggleFullSize}
+                isFullSize={isFullSize}
+                chartStatus={chartStatus}
+              />
+            </>
           )}
         </div>
       </div>

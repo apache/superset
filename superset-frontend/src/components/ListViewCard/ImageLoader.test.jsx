@@ -34,7 +34,7 @@ fetchMock.get(
   },
 );
 
-describe('ListViewCard', () => {
+describe('ImageLoader', () => {
   const defaultProps = {
     src: '/thumbnail',
     fallback: '/fallback',
@@ -55,19 +55,19 @@ describe('ListViewCard', () => {
 
   it('fetches loads the image in the background', async () => {
     const wrapper = factory();
-    expect(wrapper.find('img').props().src).toBe('/fallback');
+    expect(wrapper.find('div').props().src).toBe('/fallback');
     await waitForComponentToPaint(wrapper);
     expect(fetchMock.calls(/thumbnail/)).toHaveLength(1);
     expect(global.URL.createObjectURL).toHaveBeenCalled();
-    expect(wrapper.find('img').props().src).toBe('/local_url');
+    expect(wrapper.find('div').props().src).toBe('/local_url');
   });
 
   it('displays fallback image when response is not an image', async () => {
     fetchMock.once('/thumbnail2', {});
     const wrapper = factory({ src: '/thumbnail2' });
-    expect(wrapper.find('img').props().src).toBe('/fallback');
+    expect(wrapper.find('div').props().src).toBe('/fallback');
     await waitForComponentToPaint(wrapper);
     expect(fetchMock.calls(/thumbnail2/)).toHaveLength(1);
-    expect(wrapper.find('img').props().src).toBe('/fallback');
+    expect(wrapper.find('div').props().src).toBe('/fallback');
   });
 });

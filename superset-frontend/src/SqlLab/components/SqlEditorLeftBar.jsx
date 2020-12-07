@@ -19,13 +19,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Button from 'src/components/Button';
-import { t } from '@superset-ui/translation';
+import { t, styled } from '@superset-ui/core';
 import TableElement from './TableElement';
 import TableSelector from '../../components/TableSelector';
 
 const propTypes = {
   queryEditor: PropTypes.object.isRequired,
-  height: PropTypes.number.isRequired,
+  height: PropTypes.number,
   tables: PropTypes.array,
   actions: PropTypes.object,
   database: PropTypes.object,
@@ -39,6 +39,15 @@ const defaultProps = {
   tables: [],
 };
 
+const StyledScrollbarContainer = styled.div`
+  flex: 1 1 auto;
+  overflow: auto;
+`;
+
+const StyledScrollbarContent = styled.div`
+  height: ${props => props.contentHeight}px;
+`;
+
 export default class SqlEditorLeftBar extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -50,27 +59,33 @@ export default class SqlEditorLeftBar extends React.PureComponent {
     this.getDbList = this.getDbList.bind(this);
     this.onTableChange = this.onTableChange.bind(this);
   }
+
   onSchemaChange(schema) {
     this.props.actions.queryEditorSetSchema(this.props.queryEditor, schema);
   }
+
   onSchemasLoad(schemas) {
     this.props.actions.queryEditorSetSchemaOptions(
       this.props.queryEditor,
       schemas,
     );
   }
+
   onTablesLoad(tables) {
     this.props.actions.queryEditorSetTableOptions(
       this.props.queryEditor,
       tables,
     );
   }
+
   onDbChange(db) {
     this.props.actions.queryEditorSetDb(this.props.queryEditor, db.id);
   }
+
   onTableChange(tableName, schemaName) {
     this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
   }
+
   getDbList(dbs) {
     this.props.actions.setDatabases(dbs);
   }
@@ -92,6 +107,7 @@ export default class SqlEditorLeftBar extends React.PureComponent {
   resetState() {
     this.props.actions.resetState();
   }
+
   changeTable(tableOpt) {
     if (!tableOpt) {
       return;
@@ -102,9 +118,6 @@ export default class SqlEditorLeftBar extends React.PureComponent {
     this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
   }
 
-  closePopover(ref) {
-    this.refs[ref].hide();
-  }
   render() {
     const shouldShowReset = window.location.search === '?reset=1';
     const tableMetaDataHeight = this.props.height - 130; // 130 is the height of the selects above
@@ -112,24 +125,22 @@ export default class SqlEditorLeftBar extends React.PureComponent {
     return (
       <div className="SqlEditorLeftBar">
         <TableSelector
+          database={this.props.database}
           dbId={qe.dbId}
-          schema={qe.schema}
+          getDbList={this.getDbList}
+          handleError={this.props.actions.addDangerToast}
           onDbChange={this.onDbChange}
           onSchemaChange={this.onSchemaChange}
           onSchemasLoad={this.onSchemasLoad}
-          onTablesLoad={this.onTablesLoad}
-          getDbList={this.getDbList}
           onTableChange={this.onTableChange}
+          onTablesLoad={this.onTablesLoad}
+          schema={qe.schema}
+          sqlLabMode
           tableNameSticky={false}
-          database={this.props.database}
-          handleError={this.props.actions.addDangerToast}
         />
         <div className="divider" />
-        <div className="scrollbar-container">
-          <div
-            className="scrollbar-content"
-            style={{ height: tableMetaDataHeight }}
-          >
+        <StyledScrollbarContainer>
+          <StyledScrollbarContent contentHeight={tableMetaDataHeight}>
             {this.props.tables.map(table => (
               <TableElement
                 table={table}
@@ -137,8 +148,8 @@ export default class SqlEditorLeftBar extends React.PureComponent {
                 actions={this.props.actions}
               />
             ))}
-          </div>
-        </div>
+          </StyledScrollbarContent>
+        </StyledScrollbarContainer>
         {shouldShowReset && (
           <Button
             buttonSize="small"

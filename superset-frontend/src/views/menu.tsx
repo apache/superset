@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import Menu from 'src/components/Menu/Menu';
 
 const container = document.getElementById('app');

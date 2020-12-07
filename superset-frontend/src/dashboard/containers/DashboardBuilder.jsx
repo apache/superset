@@ -24,7 +24,6 @@ import {
   setColorSchemeAndUnsavedChanges,
   showBuilderPane,
   setDirectPathToChild,
-  setMountedTab,
 } from '../actions/dashboardState';
 import {
   deleteTopLevelTabs,
@@ -38,6 +37,7 @@ function mapStateToProps({ dashboardLayout: undoableLayout, dashboardState }) {
     showBuilderPane: dashboardState.showBuilderPane,
     directPathToChild: dashboardState.directPathToChild,
     colorScheme: dashboardState.colorScheme,
+    focusedFilterField: dashboardState.focusedFilterField,
   };
 }
 
@@ -49,7 +49,6 @@ function mapDispatchToProps(dispatch) {
       showBuilderPane,
       setColorSchemeAndUnsavedChanges,
       setDirectPathToChild,
-      setMountedTab,
     },
     dispatch,
   );

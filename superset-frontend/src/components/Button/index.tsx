@@ -16,17 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { CSSProperties } from 'react';
 import { kebabCase } from 'lodash';
 import { mix } from 'polished';
 import cx from 'classnames';
-import {
-  Button as BootstrapButton,
-  Tooltip,
-  OverlayTrigger,
-  MenuItem,
-} from 'react-bootstrap';
-import styled from '@superset-ui/style';
+import { Button as BootstrapButton } from 'react-bootstrap';
+import { styled } from '@superset-ui/core';
+import { Tooltip } from 'src/common/components/Tooltip';
+import { Menu } from 'src/common/components';
 
 export type OnClickHandler = React.MouseEventHandler<BootstrapButton>;
 
@@ -39,7 +36,19 @@ export interface DropdownItemProps {
 export interface ButtonProps {
   className?: string;
   tooltip?: string;
-  placement?: string;
+  placement?:
+    | 'bottom'
+    | 'left'
+    | 'right'
+    | 'top'
+    | 'topLeft'
+    | 'topRight'
+    | 'bottomLeft'
+    | 'bottomRight'
+    | 'leftTop'
+    | 'leftBottom'
+    | 'rightTop'
+    | 'rightBottom';
   onClick?: OnClickHandler;
   disabled?: boolean;
   buttonStyle?: string;
@@ -221,7 +230,7 @@ const SupersetButton = styled(BootstrapButton)`
     &[disabled],
     &[disabled]:hover {
       background-color: ${({ theme }) => theme.colors.grayscale.light2};
-      color: ${({ theme }) => theme.colors.grayscale.light1};
+      color: ${({ theme }) => theme.colors.grayscale.base};
     }
   }
 
@@ -233,23 +242,23 @@ const SupersetButton = styled(BootstrapButton)`
   }
 `;
 
-export default function Button(props: ButtonProps) {
-  const buttonProps = {
-    ...props,
-    bsSize: props.buttonSize,
-    placement: props.placement || 'top',
-  };
-  const tooltip = props.tooltip;
-  const placement = props.placement;
-  const dropdownItems = props.dropdownItems;
-  delete buttonProps.tooltip;
-  delete buttonProps.placement;
-
-  if (tooltip && props.disabled) {
-    // Working around the fact that tooltips don't get triggered when buttons are disabled
-    // https://github.com/react-bootstrap/react-bootstrap/issues/1588
-    buttonProps.style = { pointerEvents: 'none' };
-  }
+export default function Button({
+  tooltip,
+  placement,
+  dropdownItems,
+  disabled = false,
+  buttonSize: bsSize,
+  buttonStyle: bsStyle,
+  className,
+  style: style_,
+  cta,
+  children,
+  ...restProps
+}: ButtonProps) {
+  // Working around the fact that tooltips don't get triggered when buttons are disabled
+  // https://github.com/react-bootstrap/react-bootstrap/issues/1588
+  const style: CSSProperties | undefined =
+    tooltip && disabled ? { ...style_, pointerEvents: 'none' } : style_;
 
   const officialBootstrapStyles = [
     'success',
@@ -261,39 +270,40 @@ export default function Button(props: ButtonProps) {
   ];
 
   const transformedProps = {
-    ...buttonProps,
-    bsStyle: officialBootstrapStyles.includes(props.buttonStyle || '')
-      ? props.buttonStyle
+    ...restProps,
+    disabled,
+    bsSize,
+    bsStyle: officialBootstrapStyles.includes(bsStyle || '')
+      ? bsStyle
       : 'default',
-    className: cx(props.className, {
-      cta: !!buttonProps.cta,
-      [`btn-${props.buttonStyle}`]: !officialBootstrapStyles.includes(
-        props.buttonStyle || '',
-      ),
+    className: cx(className, {
+      cta: !!cta,
+      [`btn-${bsStyle}`]: !officialBootstrapStyles.includes(bsStyle || ''),
     }),
+    style,
   };
-  delete transformedProps.dropdownItems;
-  delete transformedProps.buttonSize;
-  delete transformedProps.buttonStyle;
-  delete transformedProps.cta;
 
   let button = (
-    <SupersetButton {...transformedProps}>{props.children}</SupersetButton>
+    <SupersetButton {...transformedProps}>{children}</SupersetButton>
   );
 
   if (dropdownItems) {
     button = (
       <div style={BUTTON_WRAPPER_STYLE}>
         <SupersetButton {...transformedProps} data-toggle="dropdown">
-          {props.children}
+          {children}
         </SupersetButton>
         <ul className="dropdown-menu">
-          {dropdownItems.map((dropdownItem: DropdownItemProps) => (
-            <MenuItem key={`${dropdownItem.label}`} href={dropdownItem.url}>
-              <i className={`fa ${dropdownItem.icon}`} />
-              &nbsp; {dropdownItem.label}
-            </MenuItem>
-          ))}
+          <Menu>
+            {dropdownItems.map((dropdownItem: DropdownItemProps) => (
+              <Menu.Item key={`${dropdownItem.label}`}>
+                <a href={dropdownItem.url}>
+                  <i className={`fa ${dropdownItem.icon}`} />
+                  &nbsp; {dropdownItem.label}
+                </a>
+              </Menu.Item>
+            ))}
+          </Menu>
         </ul>
       </div>
     );
@@ -301,14 +311,13 @@ export default function Button(props: ButtonProps) {
 
   if (tooltip) {
     return (
-      <OverlayTrigger
+      <Tooltip
         placement={placement}
-        overlay={
-          <Tooltip id={`${kebabCase(tooltip)}-tooltip`}>{tooltip}</Tooltip>
-        }
+        id={`${kebabCase(tooltip)}-tooltip`}
+        title={tooltip}
       >
         {button}
-      </OverlayTrigger>
+      </Tooltip>
     );
   }
 

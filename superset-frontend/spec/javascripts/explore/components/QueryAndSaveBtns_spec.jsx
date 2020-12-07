@@ -25,7 +25,7 @@ import Button from 'src/components/Button';
 
 describe('QueryAndSaveButtons', () => {
   const defaultProps = {
-    canAdd: 'True',
+    canAdd: true,
     onQuery: sinon.spy(),
   };
 
@@ -50,7 +50,7 @@ describe('QueryAndSaveButtons', () => {
 
     it('renders buttons with correct text', () => {
       expect(wrapper.find(Button).contains('Run')).toBe(true);
-      expect(wrapper.find(Button).contains(' Save')).toBe(true);
+      expect(wrapper.find(Button).contains('Save')).toBe(true);
     });
 
     it('calls onQuery when query button is clicked', () => {

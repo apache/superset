@@ -18,9 +18,22 @@
  */
 import React from 'react';
 import { action } from '@storybook/addon-actions';
-import { withKnobs, boolean } from '@storybook/addon-knobs';
+import { withKnobs, boolean, select } from '@storybook/addon-knobs';
+import Button from 'src/components/Button';
 import Modal from './Modal';
-import Tabs from './Tabs';
+import Tabs, { EditableTabs } from './Tabs';
+import AntdPopover from './Popover';
+import { Tooltip as AntdTooltip } from './Tooltip';
+import { Menu } from '.';
+import { Switch as AntdSwitch } from './Switch';
+import { Dropdown } from './Dropdown';
+import InfoTooltip from './InfoTooltip';
+import {
+  DatePicker as AntdDatePicker,
+  RangePicker as AntdRangePicker,
+} from './DatePicker';
+import Badge from './Badge';
+import ProgressBar from './ProgressBar';
 
 export default {
   title: 'Common Components',
@@ -42,7 +55,11 @@ export const StyledModal = () => (
 );
 
 export const StyledTabs = () => (
-  <Tabs defaultActiveKey="1" centered={boolean('Center tabs', false)}>
+  <Tabs
+    defaultActiveKey="1"
+    centered={boolean('Center tabs', false)}
+    fullWidth={boolean('Full width', true)}
+  >
     <Tabs.TabPane
       tab="Tab 1"
       key="1"
@@ -59,3 +76,188 @@ export const StyledTabs = () => (
     </Tabs.TabPane>
   </Tabs>
 );
+
+export const StyledEditableTabs = () => (
+  <EditableTabs
+    defaultActiveKey="1"
+    centered={boolean('Center tabs', false)}
+    fullWidth={boolean('Full width', true)}
+  >
+    <Tabs.TabPane
+      tab="Tab 1"
+      key="1"
+      disabled={boolean('Tab 1 Disabled', false)}
+    >
+      Tab 1 Content!
+    </Tabs.TabPane>
+    <Tabs.TabPane
+      tab="Tab 2"
+      key="2"
+      disabled={boolean('Tab 2 Disabled', false)}
+    >
+      Tab 2 Content!
+    </Tabs.TabPane>
+  </EditableTabs>
+);
+
+export const TabsWithDropdownMenu = () => (
+  <EditableTabs
+    defaultActiveKey="1"
+    centered={boolean('Center tabs', false)}
+    fullWidth={boolean('Full width', true)}
+  >
+    <Tabs.TabPane
+      tab={
+        <>
+          <Dropdown
+            overlay={
+              <Menu>
+                <Menu.Item key="1">Item 1</Menu.Item>
+                <Menu.Item key="2">Item 2</Menu.Item>
+              </Menu>
+            }
+          />
+          Tab with dropdown menu
+        </>
+      }
+      key="1"
+      disabled={boolean('Tab 1 Disabled', false)}
+    >
+      Tab 1 Content!
+    </Tabs.TabPane>
+  </EditableTabs>
+);
+
+export const Popover = () => (
+  <AntdPopover
+    trigger={select('Trigger', ['click', 'hover', 'focus'], 'click')}
+    placement={select(
+      'Placement',
+      [
+        'topLeft',
+        'top',
+        'topRight',
+        'leftTop',
+        'left',
+        'leftBottom',
+        'rightTop',
+        'right',
+        'rightBottom',
+        'bottomLeft',
+        'bottom',
+        'bottomRight',
+      ],
+      'topLeft',
+    )}
+    arrowPointAtCenter={boolean('Arrow point at center', false)}
+    content={<div>CONTENT</div>}
+  >
+    <Button>TRIGGER</Button>
+  </AntdPopover>
+);
+
+export const Tooltip = () => (
+  <AntdTooltip
+    title="This is a Tooltip"
+    trigger={select('Trigger', ['click', 'hover', 'focus'], 'click')}
+    placement={select(
+      'Placement',
+      [
+        'topLeft',
+        'top',
+        'topRight',
+        'leftTop',
+        'left',
+        'leftBottom',
+        'rightTop',
+        'right',
+        'rightBottom',
+        'bottomLeft',
+        'bottom',
+        'bottomRight',
+      ],
+      'topLeft',
+    )}
+    arrowPointAtCenter={boolean('Arrow point at center', false)}
+  >
+    <Button>A button with tooltip</Button>
+  </AntdTooltip>
+);
+
+export const StyledInfoTooltip = (args: any) => {
+  const styles = {
+    padding: '100px 0 0 200px',
+  };
+
+  return (
+    <div style={styles}>
+      <InfoTooltip tooltip="This is the text that will display!" {...args} />
+    </div>
+  );
+};
+
+StyledInfoTooltip.args = {
+  placement: 'right',
+  trigger: 'hover',
+};
+
+StyledInfoTooltip.argTypes = {
+  placement: {
+    name: 'Placement',
+    control: {
+      type: 'select',
+      options: [
+        'bottom',
+        'left',
+        'right',
+        'top',
+        'topLeft',
+        'topRight',
+        'bottomLeft',
+        'bottomRight',
+        'leftTop',
+        'leftBottom',
+        'rightTop',
+        'rightBottom',
+      ],
+    },
+  },
+
+  trigger: {
+    name: 'Trigger',
+    control: {
+      type: 'select',
+      options: ['hover', 'click'],
+    },
+  },
+};
+
+export const DatePicker = () => <AntdDatePicker showTime />;
+export const DateRangePicker = () => (
+  <AntdRangePicker
+    format="YYYY-MM-DD hh:mm a"
+    showTime={{ format: 'hh:mm a' }}
+    use12Hours
+  />
+);
+
+export const Progress = () => <ProgressBar percent={90} />;
+export const ProgressStriped = () => <ProgressBar percent={90} striped />;
+export const ProgressSuccess = () => <ProgressBar percent={100} />;
+
+export const Switch = () => (
+  <>
+    <AntdSwitch defaultChecked />
+    <br />
+    <AntdSwitch size="small" defaultChecked />
+  </>
+);
+
+export const BadgeDefault = () => <Badge count={100} />;
+export const BadgeColored = () => <Badge color="blue" text="Blue" />;
+export const BadgeTextColored = () => (
+  <Badge textColor="yellow" color="red" text="yellow" />
+);
+export const BadgeSuccess = () => <Badge status="success" text="Success" />;
+export const BadgeError = () => <Badge status="error" text="Error" />;
+export const BadgeSmall = () => <Badge count={100} size="small" />;

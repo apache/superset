@@ -3,8 +3,7 @@ name: Frontend
 on: [push, pull_request]
 
 jobs:
-  frontend-build:
-    name: build
+  build:
     runs-on: ubuntu-18.04
     steps:
     - name: Checkout code

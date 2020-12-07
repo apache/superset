@@ -22,6 +22,7 @@ import textwrap
 from contextlib import closing
 from copy import deepcopy
 from datetime import datetime
+from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
 
 import numpy
@@ -45,6 +46,7 @@ from sqlalchemy import (
 from sqlalchemy.engine import Dialect, Engine, url
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.exc import ArgumentError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
@@ -52,11 +54,11 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 from sqlalchemy_utils import EncryptedType
 
-from superset import app, db_engine_specs, is_feature_enabled, security_manager
+from superset import app, db_engine_specs, is_feature_enabled
 from superset.db_engine_specs.base import TimeGrain
-from superset.models.dashboard import Dashboard
-from superset.models.helpers import AuditMixinNullable, ImportMixin
-from superset.models.tags import DashboardUpdater, FavStarUpdater
+from superset.extensions import cache_manager, security_manager
+from superset.models.helpers import AuditMixinNullable, ImportExportMixin
+from superset.models.tags import FavStarUpdater
 from superset.result_set import SupersetResultSet
 from superset.utils import cache as cache_util, core as utils
 
@@ -99,7 +101,7 @@ class CssTemplate(Model, AuditMixinNullable):
 
 
 class Database(
-    Model, AuditMixinNullable, ImportMixin
+    Model, AuditMixinNullable, ImportExportMixin
 ):  # pylint: disable=too-many-public-methods
 
     """An ORM object that stores Database related information"""
@@ -262,10 +264,8 @@ class Database(
         return cls.get_password_masked_url(sqlalchemy_url)
 
     @classmethod
-    def get_password_masked_url(
-        cls, url: URL  # pylint: disable=redefined-outer-name
-    ) -> URL:
-        url_copy = deepcopy(url)
+    def get_password_masked_url(cls, masked_url: URL) -> URL:
+        url_copy = deepcopy(masked_url)
         if url_copy.password is not None:
             url_copy.password = PASSWORD_MASK
         return url_copy
@@ -279,19 +279,17 @@ class Database(
         self.sqlalchemy_uri = str(conn)  # hides the password
 
     def get_effective_user(
-        self,
-        url: URL,  # pylint: disable=redefined-outer-name
-        user_name: Optional[str] = None,
+        self, object_url: URL, user_name: Optional[str] = None,
     ) -> Optional[str]:
         """
         Get the effective user, especially during impersonation.
-        :param url: SQL Alchemy URL object
+        :param object_url: SQL Alchemy URL object
         :param user_name: Default username
         :return: The effective username
         """
         effective_username = None
         if self.impersonate_user:
-            effective_username = url.username
+            effective_username = object_url.username
             if user_name:
                 effective_username = user_name
             elif (
@@ -455,8 +453,8 @@ class Database(
         return sqla.inspect(engine)
 
     @cache_util.memoized_func(
-        key=lambda *args, **kwargs: "db:{}:schema:None:table_list",
-        attribute_in_key="id",
+        key=lambda self, *args, **kwargs: f"db:{self.id}:schema:None:table_list",
+        cache=cache_manager.data_cache,
     )
     def get_all_table_names_in_database(
         self,
@@ -470,7 +468,8 @@ class Database(
         return self.db_engine_spec.get_all_datasource_names(self, "table")
 
     @cache_util.memoized_func(
-        key=lambda *args, **kwargs: "db:{}:schema:None:view_list", attribute_in_key="id"
+        key=lambda self, *args, **kwargs: f"db:{self.id}:schema:None:view_list",
+        cache=cache_manager.data_cache,
     )
     def get_all_view_names_in_database(
         self,
@@ -484,8 +483,8 @@ class Database(
         return self.db_engine_spec.get_all_datasource_names(self, "view")
 
     @cache_util.memoized_func(
-        key=lambda *args, **kwargs: f"db:{{}}:schema:{kwargs.get('schema')}:table_list",  # type: ignore
-        attribute_in_key="id",
+        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:table_list",  # type: ignore
+        cache=cache_manager.data_cache,
     )
     def get_all_table_names_in_schema(
         self,
@@ -513,11 +512,11 @@ class Database(
                 utils.DatasourceName(table=table, schema=schema) for table in tables
             ]
         except Exception as ex:  # pylint: disable=broad-except
-            logger.exception(ex)
+            logger.warning(ex)
 
     @cache_util.memoized_func(
-        key=lambda *args, **kwargs: f"db:{{}}:schema:{kwargs.get('schema')}:view_list",  # type: ignore
-        attribute_in_key="id",
+        key=lambda self, schema, *args, **kwargs: f"db:{self.id}:schema:{schema}:view_list",  # type: ignore
+        cache=cache_manager.data_cache,
     )
     def get_all_view_names_in_schema(
         self,
@@ -543,10 +542,11 @@ class Database(
             )
             return [utils.DatasourceName(table=view, schema=schema) for view in views]
         except Exception as ex:  # pylint: disable=broad-except
-            logger.exception(ex)
+            logger.warning(ex)
 
     @cache_util.memoized_func(
-        key=lambda *args, **kwargs: "db:{}:schema_list", attribute_in_key="id"
+        key=lambda self, *args, **kwargs: f"db:{self.id}:schema_list",
+        cache=cache_manager.data_cache,
     )
     def get_all_schema_names(
         self,
@@ -611,6 +611,11 @@ class Database(
             autoload_with=self.get_sqla_engine(),
         )
 
+    def get_table_comment(
+        self, table_name: str, schema: Optional[str] = None
+    ) -> Optional[str]:
+        return self.db_engine_spec.get_table_comment(self.inspector, table_name, schema)
+
     def get_columns(
         self, table_name: str, schema: Optional[str] = None
     ) -> List[Dict[str, Any]]:
@@ -619,7 +624,8 @@ class Database(
     def get_indexes(
         self, table_name: str, schema: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        return self.inspector.get_indexes(table_name, schema)
+        indexes = self.inspector.get_indexes(table_name, schema)
+        return self.db_engine_spec.normalize_indexes(indexes)
 
     def get_pk_constraint(
         self, table_name: str, schema: Optional[str] = None
@@ -644,7 +650,12 @@ class Database(
 
     @property
     def sqlalchemy_uri_decrypted(self) -> str:
-        conn = sqla.engine.url.make_url(self.sqlalchemy_uri)
+        try:
+            conn = sqla.engine.url.make_url(self.sqlalchemy_uri)
+        except (ArgumentError, ValueError):
+            # if the URI is invalid, ignore and return a placeholder url
+            # (so users see 500 less often)
+            return "dialect://invalid_uri"
         if custom_password_store:
             conn.password = custom_password_store(conn)
         else:
@@ -706,6 +717,11 @@ class Log(Model):  # pylint: disable=too-few-public-methods
     referrer = Column(String(1024))
 
 
+class FavStarClassName(str, Enum):
+    CHART = "slice"
+    DASHBOARD = "Dashboard"
+
+
 class FavStar(Model):  # pylint: disable=too-few-public-methods
     __tablename__ = "favstar"
 
@@ -718,8 +734,5 @@ class FavStar(Model):  # pylint: disable=too-few-public-methods
 
 # events for updating tags
 if is_feature_enabled("TAGGING_SYSTEM"):
-    sqla.event.listen(Dashboard, "after_insert", DashboardUpdater.after_insert)
-    sqla.event.listen(Dashboard, "after_update", DashboardUpdater.after_update)
-    sqla.event.listen(Dashboard, "after_delete", DashboardUpdater.after_delete)
     sqla.event.listen(FavStar, "after_insert", FavStarUpdater.after_insert)
     sqla.event.listen(FavStar, "after_delete", FavStarUpdater.after_delete)

@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import { shallow, mount } from 'enzyme';
-import { OverlayTrigger } from 'react-bootstrap';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import Popover from 'src/common/components/Popover';
 import sinon from 'sinon';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
@@ -43,26 +44,31 @@ describe('EmbedCodeButton', () => {
 
   it('renders overlay trigger', () => {
     const wrapper = shallow(<EmbedCodeButton {...defaultProps} />);
-    expect(wrapper.find(OverlayTrigger)).toExist();
+    expect(wrapper.find(Popover)).toExist();
   });
 
   it('should create a short, standalone, explore url', () => {
     const spy1 = sinon.spy(exploreUtils, 'getExploreLongUrl');
     const spy2 = sinon.spy(common, 'getShortUrl');
 
-    const wrapper = mount(<EmbedCodeButton {...defaultProps} />, {
-      wrappingComponent: Provider,
-      wrappingComponentProps: {
-        store,
+    const wrapper = mount(
+      <ThemeProvider theme={supersetTheme}>
+        <EmbedCodeButton {...defaultProps} />
+      </ThemeProvider>,
+      {
+        wrappingComponent: Provider,
+        wrappingComponentProps: {
+          store,
+        },
       },
-    });
+    ).find(EmbedCodeButton);
     wrapper.setState({
       height: '1000',
       width: '2000',
       shortUrlId: 100,
     });
 
-    const trigger = wrapper.find(OverlayTrigger);
+    const trigger = wrapper.find(Popover);
     trigger.simulate('click');
     expect(spy1.callCount).toBe(1);
     expect(spy2.callCount).toBe(1);

@@ -18,8 +18,10 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import cx from 'classnames';
+import { useTheme } from '@superset-ui/core';
 
-import FilterIndicators from '../../containers/FilterIndicators';
+import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import Chart from '../../containers/Chart';
 import AnchorLink from '../../../components/AnchorLink';
 import DeleteComponentButton from '../DeleteComponentButton';
@@ -50,6 +52,7 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
   directPathLastUpdated: PropTypes.number,
+  focusedFilterScope: PropTypes.object,
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
@@ -68,6 +71,53 @@ const defaultProps = {
   directPathToChild: [],
   directPathLastUpdated: 0,
 };
+
+/**
+ * Renders any styles necessary to highlight the chart's relationship to the focused filter.
+ *
+ * If there is no focused filter scope (i.e. most of the time), this will be just a pass-through.
+ *
+ * If the chart is outside the scope of the focused filter, dims the chart.
+ *
+ * If the chart is in the scope of the focused filter,
+ * renders a highlight around the chart.
+ *
+ * If ChartHolder were a function component, this could be implemented as a hook instead.
+ */
+const FilterFocusHighlight = React.forwardRef(
+  ({ chartId, focusedFilterScope, ...otherProps }, ref) => {
+    const theme = useTheme();
+    if (!focusedFilterScope) return <div ref={ref} {...otherProps} />;
+
+    // we use local styles here instead of a conditionally-applied class,
+    // because adding any conditional class to this container
+    // causes performance issues in Chrome.
+
+    // default to the "de-emphasized" state
+    let styles = { opacity: 0.3, pointerEvents: 'none' };
+
+    if (
+      chartId === focusedFilterScope.chartId ||
+      getChartIdsInFilterScope({
+        filterScope: focusedFilterScope.scope,
+      }).includes(chartId)
+    ) {
+      // apply the "highlighted" state if this chart
+      // contains a filter being focused, or is in scope of a focused filter.
+      styles = {
+        borderColor: theme.colors.primary.light2,
+        opacity: 1,
+        boxShadow: `0px 0px ${({ theme }) => theme.gridUnit * 2}px ${
+          theme.colors.primary.light2
+        }`,
+        pointerEvents: 'auto',
+      };
+    }
+
+    // inline styles are used here due to a performance issue when adding/changing a class, which causes a reflow
+    return <div ref={ref} style={styles} {...otherProps} />;
+  },
+);
 
 class ChartHolder extends React.Component {
   static renderInFocusCSS(columnName) {
@@ -163,7 +213,7 @@ class ChartHolder extends React.Component {
   }
 
   handleToggleFullSize() {
-    this.setState(() => ({ isFullSize: !this.state.isFullSize }));
+    this.setState(prevState => ({ isFullSize: !prevState.isFullSize }));
   }
 
   render() {
@@ -182,6 +232,7 @@ class ChartHolder extends React.Component {
       editMode,
       isComponentVisible,
       dashboardId,
+      focusedFilterScope,
     } = this.props;
 
     // inherit the size of parent columns
@@ -206,6 +257,8 @@ class ChartHolder extends React.Component {
         component.meta.height * GRID_BASE_UNIT - CHART_MARGIN,
       );
     }
+
+    const { chartId } = component.meta;
 
     return (
       <DragDroppable
@@ -235,11 +288,17 @@ class ChartHolder extends React.Component {
             onResizeStop={onResizeStop}
             editMode={editMode}
           >
-            <div
+            <FilterFocusHighlight
+              chartId={chartId}
+              focusedFilterScope={focusedFilterScope}
               ref={dragSourceRef}
-              className={`dashboard-component dashboard-component-chart-holder ${
-                this.state.outlinedComponentId ? 'fade-in' : 'fade-out'
-              } ${this.state.isFullSize ? 'full-size' : ''}`}
+              data-test="dashboard-component-chart-holder"
+              className={cx(
+                'dashboard-component',
+                'dashboard-component-chart-holder',
+                this.state.outlinedComponentId ? 'fade-in' : 'fade-out',
+                this.state.isFullSize && 'full-size',
+              )}
             >
               {!editMode && (
                 <AnchorLink
@@ -265,17 +324,16 @@ class ChartHolder extends React.Component {
                 handleToggleFullSize={this.handleToggleFullSize}
                 isFullSize={this.state.isFullSize}
               />
-              {!editMode && (
-                <FilterIndicators chartId={component.meta.chartId} />
-              )}
               {editMode && (
                 <HoverMenu position="top">
-                  <DeleteComponentButton
-                    onDelete={this.handleDeleteComponent}
-                  />
+                  <div data-test="dashboard-delete-component-button">
+                    <DeleteComponentButton
+                      onDelete={this.handleDeleteComponent}
+                    />
+                  </div>
                 </HoverMenu>
               )}
-            </div>
+            </FilterFocusHighlight>
 
             {dropIndicatorProps && <div {...dropIndicatorProps} />}
           </ResizableContainer>

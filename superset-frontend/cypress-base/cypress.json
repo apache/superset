@@ -1,7 +1,8 @@
 {
-  "baseUrl": "http://localhost:8081",
+  "baseUrl": "http://localhost:8088",
   "chromeWebSecurity": false,
   "defaultCommandTimeout": 5000,
+  "numTestsKeptInMemory": 0,
   "experimentalFetchPolyfill": true,
   "requestTimeout": 10000,
   "ignoreTestFiles": [
@@ -11,5 +12,9 @@
   "videoUploadOnPasses": false,
   "viewportWidth": 1280,
   "viewportHeight": 1024,
-  "projectId": "ukwxzo"
+  "projectId": "ukwxzo",
+  "retries": {
+    "runMode": 1,
+    "openMode": 0
+  }
 }

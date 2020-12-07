@@ -20,9 +20,9 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import { Popover, Tab, Tabs } from 'react-bootstrap';
 import Button from 'src/components/Button';
 
+import Tabs from 'src/common/components/Tabs';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
@@ -81,9 +81,8 @@ function setup(overrides) {
 describe('AdhocFilterEditPopover', () => {
   it('renders simple tab content by default', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Popover)).toExist();
     expect(wrapper.find(Tabs)).toExist();
-    expect(wrapper.find(Tab)).toHaveLength(2);
+    expect(wrapper.find(Tabs.TabPane)).toHaveLength(2);
     expect(wrapper.find(Button)).toHaveLength(2);
     expect(wrapper.find(AdhocFilterEditPopoverSimpleTabContent)).toHaveLength(
       1,
@@ -92,9 +91,8 @@ describe('AdhocFilterEditPopover', () => {
 
   it('renders sql tab content when the adhoc filter expressionType is sql', () => {
     const { wrapper } = setup({ adhocFilter: sqlAdhocFilter });
-    expect(wrapper.find(Popover)).toExist();
     expect(wrapper.find(Tabs)).toExist();
-    expect(wrapper.find(Tab)).toHaveLength(2);
+    expect(wrapper.find(Tabs.TabPane)).toHaveLength(2);
     expect(wrapper.find(Button)).toHaveLength(2);
     expect(wrapper.find(AdhocFilterEditPopoverSqlTabContent)).toExist();
   });
@@ -128,9 +126,9 @@ describe('AdhocFilterEditPopover', () => {
     wrapper.instance().onDragDown = sinon.spy();
     wrapper.instance().forceUpdate();
 
-    expect(wrapper.find('i.fa-expand')).toExist();
+    expect(wrapper.find('.fa-expand')).toExist();
     expect(wrapper.instance().onDragDown.calledOnce).toBe(false);
-    wrapper.find('i.fa-expand').simulate('mouseDown', {});
+    wrapper.find('.fa-expand').simulate('mouseDown', {});
     expect(wrapper.instance().onDragDown.calledOnce).toBe(true);
   });
 });

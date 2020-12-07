@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { TableInstance, Row } from 'react-table';
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 
 interface CardCollectionProps {
@@ -31,11 +31,8 @@ interface CardCollectionProps {
 
 const CardContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(459px, max-content));
+  grid-template-columns: repeat(auto-fit, minmax(459px, 1fr));
   grid-gap: ${({ theme }) => theme.gridUnit * 8}px;
-  justify-content: center;
-  padding: ${({ theme }) => theme.gridUnit * 2}px
-    ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
 const CardWrapper = styled.div`

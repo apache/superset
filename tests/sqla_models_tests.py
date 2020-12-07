@@ -15,11 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-from typing import Any, Dict, NamedTuple, List, Tuple, Union
+import re
+from typing import Any, Dict, NamedTuple, List, Pattern, Tuple, Union
 from unittest.mock import patch
 import pytest
 
 import tests.test_app
+from superset import db
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.exceptions import QueryObjectValidationError
@@ -27,6 +29,23 @@ from superset.models.core import Database
 from superset.utils.core import DbColumnType, get_example_database, FilterOperator
 
 from .base_tests import SupersetTestCase
+
+
+VIRTUAL_TABLE_INT_TYPES: Dict[str, Pattern[str]] = {
+    "hive": re.compile(r"^INT_TYPE$"),
+    "mysql": re.compile("^LONGLONG$"),
+    "postgresql": re.compile(r"^INT$"),
+    "presto": re.compile(r"^INTEGER$"),
+    "sqlite": re.compile(r"^INT$"),
+}
+
+VIRTUAL_TABLE_STRING_TYPES: Dict[str, Pattern[str]] = {
+    "hive": re.compile(r"^STRING_TYPE$"),
+    "mysql": re.compile(r"^VAR_STRING$"),
+    "postgresql": re.compile(r"^STRING$"),
+    "presto": re.compile(r"^VARCHAR*"),
+    "sqlite": re.compile(r"^STRING$"),
+}
 
 
 class TestDatabaseModel(SupersetTestCase):
@@ -42,6 +61,18 @@ class TestDatabaseModel(SupersetTestCase):
 
         col = TableColumn(column_name="__not_time", type="INTEGER", table=tbl)
         self.assertEqual(col.is_temporal, False)
+
+    def test_temporal_varchar(self):
+        """Ensure a column with is_dttm set to true evaluates to is_temporal == True"""
+
+        database = get_example_database()
+        tbl = SqlaTable(table_name="test_tbl", database=database)
+        col = TableColumn(column_name="ds", type="VARCHAR", table=tbl)
+        # by default, VARCHAR should not be assumed to be temporal
+        assert col.is_temporal is False
+        # changing to `is_dttm = True`, calling `is_temporal` should return True
+        col.is_dttm = True
+        assert col.is_temporal is True
 
     def test_db_column_types(self):
         test_cases: Dict[str, DbColumnType] = {
@@ -86,48 +117,53 @@ class TestDatabaseModel(SupersetTestCase):
         }
 
         # Table with Jinja callable.
-        table = SqlaTable(
+        table1 = SqlaTable(
             table_name="test_has_extra_cache_keys_table",
             sql="SELECT '{{ current_username() }}' as user",
             database=get_example_database(),
         )
 
         query_obj = dict(**base_query_obj, extras={})
-        extra_cache_keys = table.get_extra_cache_keys(query_obj)
-        self.assertTrue(table.has_extra_cache_key_calls(query_obj))
+        extra_cache_keys = table1.get_extra_cache_keys(query_obj)
+        self.assertTrue(table1.has_extra_cache_key_calls(query_obj))
         assert extra_cache_keys == ["abc"]
 
         # Table with Jinja callable disabled.
-        table = SqlaTable(
+        table2 = SqlaTable(
             table_name="test_has_extra_cache_keys_disabled_table",
             sql="SELECT '{{ current_username(False) }}' as user",
             database=get_example_database(),
         )
         query_obj = dict(**base_query_obj, extras={})
-        extra_cache_keys = table.get_extra_cache_keys(query_obj)
-        self.assertTrue(table.has_extra_cache_key_calls(query_obj))
+        extra_cache_keys = table2.get_extra_cache_keys(query_obj)
+        self.assertTrue(table2.has_extra_cache_key_calls(query_obj))
         self.assertListEqual(extra_cache_keys, [])
 
         # Table with no Jinja callable.
         query = "SELECT 'abc' as user"
-        table = SqlaTable(
+        table3 = SqlaTable(
             table_name="test_has_no_extra_cache_keys_table",
             sql=query,
             database=get_example_database(),
         )
 
         query_obj = dict(**base_query_obj, extras={"where": "(user != 'abc')"})
-        extra_cache_keys = table.get_extra_cache_keys(query_obj)
-        self.assertFalse(table.has_extra_cache_key_calls(query_obj))
+        extra_cache_keys = table3.get_extra_cache_keys(query_obj)
+        self.assertFalse(table3.has_extra_cache_key_calls(query_obj))
         self.assertListEqual(extra_cache_keys, [])
 
         # With Jinja callable in SQL expression.
         query_obj = dict(
             **base_query_obj, extras={"where": "(user != '{{ current_username() }}')"}
         )
-        extra_cache_keys = table.get_extra_cache_keys(query_obj)
-        self.assertTrue(table.has_extra_cache_key_calls(query_obj))
+        extra_cache_keys = table3.get_extra_cache_keys(query_obj)
+        self.assertTrue(table3.has_extra_cache_key_calls(query_obj))
         assert extra_cache_keys == ["abc"]
+
+        # Cleanup
+        for table in [table1, table2, table3]:
+            db.session.delete(table)
+        db.session.commit()
 
     def test_where_operators(self):
         class FilterTestCase(NamedTuple):
@@ -187,3 +223,86 @@ class TestDatabaseModel(SupersetTestCase):
         if get_example_database().backend != "presto":
             with pytest.raises(QueryObjectValidationError):
                 table.get_sqla_query(**query_obj)
+
+    def test_multiple_sql_statements_raises_exception(self):
+        base_query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "groupby": ["grp"],
+            "metrics": [],
+            "is_timeseries": False,
+            "filter": [],
+        }
+
+        table = SqlaTable(
+            table_name="test_has_extra_cache_keys_table",
+            sql="SELECT 'foo' as grp, 1 as num; SELECT 'bar' as grp, 2 as num",
+            database=get_example_database(),
+        )
+
+        query_obj = dict(**base_query_obj, extras={})
+        with pytest.raises(QueryObjectValidationError):
+            table.get_sqla_query(**query_obj)
+
+    def test_dml_statement_raises_exception(self):
+        base_query_obj = {
+            "granularity": None,
+            "from_dttm": None,
+            "to_dttm": None,
+            "groupby": ["grp"],
+            "metrics": [],
+            "is_timeseries": False,
+            "filter": [],
+        }
+
+        table = SqlaTable(
+            table_name="test_has_extra_cache_keys_table",
+            sql="DELETE FROM foo",
+            database=get_example_database(),
+        )
+
+        query_obj = dict(**base_query_obj, extras={})
+        with pytest.raises(QueryObjectValidationError):
+            table.get_sqla_query(**query_obj)
+
+    def test_fetch_metadata_for_updated_virtual_table(self):
+        table = SqlaTable(
+            table_name="updated_sql_table",
+            database=get_example_database(),
+            sql="select 123 as intcol, 'abc' as strcol, 'abc' as mycase",
+        )
+        TableColumn(column_name="intcol", type="FLOAT", table=table)
+        TableColumn(column_name="oldcol", type="INT", table=table)
+        TableColumn(
+            column_name="expr",
+            expression="case when 1 then 1 else 0 end",
+            type="INT",
+            table=table,
+        )
+        TableColumn(
+            column_name="mycase",
+            expression="case when 1 then 1 else 0 end",
+            type="INT",
+            table=table,
+        )
+
+        # make sure the columns have been mapped properly
+        assert len(table.columns) == 4
+        table.fetch_metadata()
+        # assert that the removed column has been dropped and
+        # the physical and calculated columns are present
+        assert {col.column_name for col in table.columns} == {
+            "intcol",
+            "strcol",
+            "mycase",
+            "expr",
+        }
+        cols: Dict[str, TableColumn] = {col.column_name: col for col in table.columns}
+        # assert that the type for intcol has been updated (asserting CI types)
+        backend = get_example_database().backend
+        assert VIRTUAL_TABLE_INT_TYPES[backend].match(cols["intcol"].type)
+        # assert that the expression has been replaced with the new physical column
+        assert cols["mycase"].expression == ""
+        assert VIRTUAL_TABLE_STRING_TYPES[backend].match(cols["mycase"].type)
+        assert cols["expr"].expression == "case when 1 then 1 else 0 end"

@@ -18,15 +18,23 @@
  */
 import React from 'react';
 import { shallow, mount } from 'enzyme';
-import { Nav, MenuItem } from 'react-bootstrap';
+import { Nav } from 'react-bootstrap';
+import { Menu as DropdownMenu } from 'src/common/components';
 import NavDropdown from 'src/components/NavDropdown';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import { Menu } from 'src/components/Menu/Menu';
+import MenuObject from 'src/components/Menu/MenuObject';
 
 const defaultProps = {
   data: {
     menu: [
+      {
+        name: 'Home',
+        icon: '',
+        label: 'Home',
+        url: '/superset/welcome',
+      },
       {
         name: 'Sources',
         icon: 'fa-table',
@@ -129,6 +137,10 @@ describe('Menu', () => {
     expect(wrapper.find(Nav)).toHaveLength(2);
   });
 
+  it('renders 4 elements in main Menu Nav for every user', () => {
+    expect(wrapper.find(MenuObject)).toHaveLength(4);
+  });
+
   it('renders a logged out view', () => {
     const loggedOutWrapper = getWrapper({
       data: {
@@ -165,7 +177,7 @@ describe('Menu', () => {
       wrappingComponentProps: { theme: supersetTheme },
     });
 
-    expect(versionedWrapper.find('.version-info div')).toHaveLength(2);
+    expect(versionedWrapper.find('.version-info span')).toHaveLength(2);
   });
 
   it('renders a NavDropdown (settings)', () => {
@@ -173,6 +185,6 @@ describe('Menu', () => {
   });
 
   it('renders MenuItems in NavDropdown (settings)', () => {
-    expect(wrapper.find(NavDropdown).find(MenuItem)).toHaveLength(2);
+    expect(wrapper.find(NavDropdown).find(DropdownMenu.Item)).toHaveLength(3);
   });
 });

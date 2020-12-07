@@ -20,8 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Button from 'src/components/Button';
 import Select from 'src/components/Select';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
+import { styled, t, SupersetClient } from '@superset-ui/core';
 
 import Loading from '../../components/Loading';
 import QueryTable from './QueryTable';
@@ -36,16 +35,37 @@ import AsyncSelect from '../../components/AsyncSelect';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
-  height: PropTypes.string.isRequired,
+  height: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   displayLimit: PropTypes.number.isRequired,
 };
+
+const TableWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+`;
+
+const TableStyles = styled.div`
+  table {
+    background-color: ${({ theme }) => theme.colors.grayscale.light4};
+  }
+
+  .table > thead > tr > th {
+    border-bottom: ${({ theme }) => theme.gridUnit / 2}px solid
+      ${({ theme }) => theme.colors.grayscale.light2};
+    background: ${({ theme }) => theme.colors.grayscale.light4};
+  }
+`;
+
+const StyledTableStylesContainer = styled.div`
+  overflow: auto;
+`;
 
 class QuerySearch extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      userLoading: false,
-      userOptions: [],
       databaseId: null,
       userId: null,
       searchText: null,
@@ -156,14 +176,10 @@ class QuerySearch extends React.PureComponent {
   }
 
   userMutator(data) {
-    const options = [];
-    for (let i = 0; i < data.pks.length; i++) {
-      options.push({
-        value: data.pks[i],
-        label: this.userLabel(data.result[i]),
-      });
-    }
-    return options;
+    return data.result.map(({ value, text }) => ({
+      label: text,
+      value,
+    }));
   }
 
   dbMutator(data) {
@@ -208,11 +224,11 @@ class QuerySearch extends React.PureComponent {
 
   render() {
     return (
-      <div>
+      <TableWrapper>
         <div id="search-header" className="row space-1">
           <div className="col-sm-2">
             <AsyncSelect
-              dataEndpoint="/users/api/read"
+              dataEndpoint="api/v1/query/related/user"
               mutator={this.userMutator}
               value={this.state.userId}
               onChange={this.changeUser}
@@ -281,14 +297,11 @@ class QuerySearch extends React.PureComponent {
             </Button>
           </div>
         </div>
-        <div className="scrollbar-container">
+        <StyledTableStylesContainer>
           {this.state.queriesLoading ? (
             <Loading />
           ) : (
-            <div
-              className="scrollbar-content"
-              style={{ height: this.props.height }}
-            >
+            <TableStyles>
               <QueryTable
                 columns={[
                   'state',
@@ -306,10 +319,10 @@ class QuerySearch extends React.PureComponent {
                 actions={this.props.actions}
                 displayLimit={this.props.displayLimit}
               />
-            </div>
+            </TableStyles>
           )}
-        </div>
-      </div>
+        </StyledTableStylesContainer>
+      </TableWrapper>
     );
   }
 }

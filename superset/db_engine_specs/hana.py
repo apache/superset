@@ -48,5 +48,6 @@ class HanaEngineSpec(PostgresBaseEngineSpec):
         if tt == utils.TemporalType.DATE:
             return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
         if tt == utils.TemporalType.TIMESTAMP:
-            return f"""TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""  # pylint: disable=line-too-long
+            return f"""TO_TIMESTAMP('{dttm
+                .isoformat(timespec="microseconds")}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         return None

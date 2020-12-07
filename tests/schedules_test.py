@@ -171,7 +171,7 @@ class TestSchedules(SupersetTestCase):
         mock_driver_class.return_value = mock_driver
         mock_driver.find_elements_by_id.side_effect = [True, False]
 
-        create_webdriver()
+        create_webdriver(db.session)
         mock_driver.add_cookie.assert_called_once()
 
     @patch("superset.tasks.schedules.firefox.webdriver.WebDriver")
@@ -366,6 +366,7 @@ class TestSchedules(SupersetTestCase):
             schedule.delivery_type,
             schedule.email_format,
             schedule.deliver_as_group,
+            db.session,
         )
         mtime.sleep.assert_called_once()
         driver.screenshot.assert_not_called()
@@ -418,6 +419,7 @@ class TestSchedules(SupersetTestCase):
             schedule.delivery_type,
             schedule.email_format,
             schedule.deliver_as_group,
+            db.session,
         )
 
         mtime.sleep.assert_called_once()
@@ -466,6 +468,7 @@ class TestSchedules(SupersetTestCase):
             schedule.delivery_type,
             schedule.email_format,
             schedule.deliver_as_group,
+            db.session,
         )
 
         send_email_smtp.assert_called_once()
@@ -510,6 +513,7 @@ class TestSchedules(SupersetTestCase):
             schedule.delivery_type,
             schedule.email_format,
             schedule.deliver_as_group,
+            db.session,
         )
 
         send_email_smtp.assert_called_once()

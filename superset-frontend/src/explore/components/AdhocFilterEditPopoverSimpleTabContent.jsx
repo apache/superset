@@ -20,8 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
 import { Select } from 'src/components/Select';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
+import { t, SupersetClient } from '@superset-ui/core';
 
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
 import adhocMetricType from '../propTypes/adhocMetricType';
@@ -52,6 +51,7 @@ const propTypes = {
   onHeightChange: PropTypes.func.isRequired,
   datasource: PropTypes.object,
   partitionColumn: PropTypes.string,
+  popoverRef: PropTypes.object,
 };
 
 const defaultProps = {
@@ -61,17 +61,18 @@ const defaultProps = {
 function translateOperator(operator) {
   if (operator === OPERATORS['==']) {
     return 'equals';
-  } else if (operator === OPERATORS['!=']) {
+  }
+  if (operator === OPERATORS['!=']) {
     return 'not equal to';
-  } else if (operator === OPERATORS.LIKE) {
+  }
+  if (operator === OPERATORS.LIKE) {
     return 'like';
-  } else if (operator === OPERATORS['LATEST PARTITION']) {
+  }
+  if (operator === OPERATORS['LATEST PARTITION']) {
     return 'use latest_partition template';
   }
   return operator;
 }
-
-const SINGLE_LINE_SELECT_CONTROL_HEIGHT = 30;
 
 export default class AdhocFilterEditPopoverSimpleTabContent extends React.Component {
   constructor(props) {
@@ -84,11 +85,9 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     this.refreshComparatorSuggestions = this.refreshComparatorSuggestions.bind(
       this,
     );
-    this.multiComparatorRef = this.multiComparatorRef.bind(this);
 
     this.state = {
       suggestions: [],
-      multiComparatorHeight: SINGLE_LINE_SELECT_CONTROL_HEIGHT,
       abortActiveRequest: null,
     };
 
@@ -99,21 +98,22 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       autosize: false,
       clearable: false,
     };
+
+    this.menuPortalProps = {
+      menuPortalTarget: props.popoverRef,
+      menuPosition: 'fixed',
+      menuPlacement: 'bottom',
+    };
   }
 
   UNSAFE_componentWillMount() {
     this.refreshComparatorSuggestions();
   }
 
-  componentDidMount() {
-    this.handleMultiComparatorInputHeightChange();
-  }
-
   componentDidUpdate(prevProps) {
     if (prevProps.adhocFilter.subject !== this.props.adhocFilter.subject) {
       this.refreshComparatorSuggestions();
     }
-    this.handleMultiComparatorInputHeightChange();
   }
 
   onSubjectChange(option) {
@@ -190,29 +190,8 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     );
   }
 
-  handleMultiComparatorInputHeightChange() {
-    if (this.multiComparatorComponent) {
-      const multiComparatorDOMNode = this.multiComparatorComponent?.select
-        ?.select.controlRef;
-      if (multiComparatorDOMNode) {
-        if (
-          multiComparatorDOMNode.clientHeight !==
-          this.state.multiComparatorHeight
-        ) {
-          this.props.onHeightChange(
-            multiComparatorDOMNode.clientHeight -
-              this.state.multiComparatorHeight,
-          );
-          this.setState({
-            multiComparatorHeight: multiComparatorDOMNode.clientHeight,
-          });
-        }
-      }
-    }
-  }
-
   refreshComparatorSuggestions() {
-    const datasource = this.props.datasource;
+    const { datasource } = this.props;
     const col = this.props.adhocFilter.subject;
     const having = this.props.adhocFilter.clause === CLAUSES.HAVING;
 
@@ -268,12 +247,6 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     }
   }
 
-  multiComparatorRef(ref) {
-    if (ref) {
-      this.multiComparatorComponent = ref;
-    }
-  }
-
   renderSubjectOptionLabel(option) {
     return <FilterDefinitionOption option={option} />;
   }
@@ -326,10 +299,11 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     };
 
     return (
-      <span>
+      <>
         <FormGroup className="adhoc-filter-simple-column-dropdown">
           <Select
             {...this.selectProps}
+            {...this.menuPortalProps}
             {...subjectSelectProps}
             name="filter-column"
           />
@@ -337,6 +311,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         <FormGroup>
           <Select
             {...this.selectProps}
+            {...this.menuPortalProps}
             {...operatorSelectProps}
             name="filter-operator"
           />
@@ -345,6 +320,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
           {MULTI_OPERATORS.has(operator) ||
           this.state.suggestions.length > 0 ? (
             <SelectControl
+              {...this.menuPortalProps}
               name="filter-value"
               autoFocus
               freeForm
@@ -355,7 +331,6 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
               onChange={this.onComparatorChange}
               showHeader={false}
               noResultsText={t('type a value here')}
-              selectRef={this.multiComparatorRef}
               disabled={DISABLE_INPUT_OPERATORS.includes(operator)}
             />
           ) : (
@@ -366,12 +341,12 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
               onChange={this.onInputComparatorChange}
               value={comparator}
               className="form-control input-sm"
-              placeholder={t('Filter value')}
+              placeholder={t('Filter value (case sensitive)')}
               disabled={DISABLE_INPUT_OPERATORS.includes(operator)}
             />
           )}
         </FormGroup>
-      </span>
+      </>
     );
   }
 }

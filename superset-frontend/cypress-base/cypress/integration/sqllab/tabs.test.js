@@ -24,33 +24,43 @@ describe('SqlLab query tabs', () => {
   });
 
   it('allows you to create a tab', () => {
-    cy.get('.SqlEditorTabs > ul > li').then(tabList => {
+    cy.get('[data-test="sql-editor-tabs"]').then(tabList => {
       const initialTabCount = tabList.length;
       // add tab
-      cy.get('.SqlEditorTabs > ul > li').last().click();
+      cy.get('[data-test="add-tab-icon"]').first().click();
       // wait until we find the new tab
-      cy.get(`.SqlEditorTabs > ul > li:eq(${initialTabCount - 1})`).contains(
-        'Untitled Query',
-      );
+      cy.get('[data-test="sql-editor-tabs"]')
+        .children()
+        .eq(0)
+        .contains(`Untitled Query ${initialTabCount + 1}`);
+      cy.get('[data-test="sql-editor-tabs"]')
+        .children()
+        .eq(0)
+        .contains(`Untitled Query ${initialTabCount + 2}`);
     });
   });
 
   it('allows you to close a tab', () => {
-    cy.get('.SqlEditorTabs > ul > li').then(tabListA => {
-      const initialTabCount = tabListA.length;
+    cy.get('[data-test="sql-editor-tabs"]')
+      .children()
+      .then(tabListA => {
+        const initialTabCount = tabListA.length;
 
-      // open the tab dropdown to remove
-      cy.get('.SqlEditorTabs > ul > li .dropdown-toggle').click({
-        force: true,
+        // open the tab dropdown to remove
+        cy.get('[data-test="dropdown-toggle-button"]')
+          .children()
+          .first()
+          .click({
+            force: true,
+          });
+
+        // first item is close
+        cy.get('[data-test="close-tab-menu-option"]').click();
+
+        cy.get('[data-test="sql-editor-tabs"]').should(
+          'have.length',
+          initialTabCount - 1,
+        );
       });
-
-      // first item is close
-      cy.get('.SqlEditorTabs .ddbtn-tab svg').first().click();
-
-      cy.get('.SqlEditorTabs > ul > li').should(
-        'have.length',
-        initialTabCount - 1,
-      );
-    });
   });
 });

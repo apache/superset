@@ -31,5 +31,15 @@ describe('getChartIdsFromLayout', () => {
     expect(url).toBe(
       'path?preselect_filters=%7B%2235%22%3A%7B%22key%22%3A%5B%22value%22%5D%7D%7D',
     );
+
+    const urlWithHash = getDashboardUrl('path', filters, 'iamhashtag');
+    expect(urlWithHash).toBe(
+      'path?preselect_filters=%7B%2235%22%3A%7B%22key%22%3A%5B%22value%22%5D%7D%7D#iamhashtag',
+    );
+
+    const urlWithStandalone = getDashboardUrl('path', filters, '', true);
+    expect(urlWithStandalone).toBe(
+      'path?preselect_filters=%7B%2235%22%3A%7B%22key%22%3A%5B%22value%22%5D%7D%7D&standalone=true',
+    );
   });
 });

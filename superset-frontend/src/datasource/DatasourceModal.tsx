@@ -17,16 +17,39 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useRef } from 'react';
-import { Alert, Modal } from 'react-bootstrap';
+import { Alert } from 'react-bootstrap';
 import Button from 'src/components/Button';
-// @ts-ignore
-import Dialog from 'react-bootstrap-dialog';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
+import { styled, t, SupersetClient } from '@superset-ui/core';
 
-import getClientErrorObject from '../utils/getClientErrorObject';
-import DatasourceEditor from './DatasourceEditor';
-import withToasts from '../messageToasts/enhancers/withToasts';
+import Modal from 'src/common/components/Modal';
+import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+
+import getClientErrorObject from 'src/utils/getClientErrorObject';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
+
+const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
+
+const StyledDatasourceModal = styled(Modal)`
+  .modal-content {
+    height: 900px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modal-header {
+    flex: 0 1 auto;
+  }
+  .modal-body {
+    flex: 1 1 auto;
+    overflow: auto;
+  }
+
+  .modal-footer {
+    flex: 0 1 auto;
+  }
+`;
 
 interface DatasourceModalProps {
   addSuccessToast: (msg: string) => void;
@@ -58,16 +81,25 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
 }) => {
   const [currentDatasource, setCurrentDatasource] = useState(datasource);
   const [errors, setErrors] = useState<any[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
   const dialog = useRef<any>(null);
+  const [modal, contextHolder] = Modal.useModal();
 
   const onConfirmSave = () => {
     // Pull out extra fields into the extra object
+    const schema =
+      currentDatasource.schema ||
+      currentDatasource.databaseSelector?.schema ||
+      currentDatasource.tableSelector?.schema;
+
+    setIsSaving(true);
 
     SupersetClient.post({
       endpoint: '/datasource/save/',
       postPayload: {
         data: {
           ...currentDatasource,
+          schema,
           metrics: currentDatasource?.metrics?.map(
             (metric: Record<string, unknown>) => ({
               ...metric,
@@ -79,21 +111,20 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       },
     })
       .then(({ json }) => {
-        addSuccessToast(t('The datasource has been saved'));
+        addSuccessToast(t('The dataset has been saved'));
         onDatasourceSave(json);
         onHide();
       })
-      .catch(response =>
+      .catch(response => {
+        setIsSaving(false);
         getClientErrorObject(response).then(({ error }) => {
-          dialog.current.show({
+          modal.error({
             title: 'Error',
-            bsSize: 'medium',
-            bsStyle: 'danger',
-            actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
-            body: error || t('An error has occurred'),
+            content: error || t('An error has occurred'),
+            okButtonProps: { danger: true, className: 'btn-danger' },
           });
-        }),
-      );
+        });
+      });
   };
 
   const onDatasourceChange = (data: Record<string, any>, err: Array<any>) => {
@@ -107,13 +138,13 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     setErrors(err);
   };
 
+  const closeDialog = () => {
+    dialog.current?.destroy();
+  };
+
   const renderSaveDialog = () => (
     <div>
-      <Alert
-        bsStyle="warning"
-        className="pointer"
-        onClick={dialog.current.hideAlert}
-      >
+      <Alert bsStyle="warning" className="pointer" onClick={closeDialog}>
         <div>
           <i className="fa fa-exclamation-triangle" />{' '}
           {t(`The dataset configuration exposed here
@@ -128,64 +159,69 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   );
 
   const onClickSave = () => {
-    dialog.current.show({
+    dialog.current = modal.confirm({
       title: t('Confirm save'),
-      bsSize: 'medium',
-      actions: [Dialog.CancelAction(), Dialog.OKAction(onConfirmSave)],
-      body: renderSaveDialog(),
+      content: renderSaveDialog(),
+      onOk: onConfirmSave,
+      icon: null,
     });
   };
 
   return (
-    <Modal show={show} onHide={onHide} bsSize="large">
-      <Modal.Header closeButton>
-        <Modal.Title>
-          <div>
-            <span className="float-left">
-              {t('Edit Dataset ')}
-              <strong>{currentDatasource.table_name}</strong>
-            </span>
-          </div>
-        </Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        {show && (
-          <DatasourceEditor
-            datasource={currentDatasource}
-            onChange={onDatasourceChange}
-          />
-        )}
-      </Modal.Body>
-      <Modal.Footer>
-        <span className="float-left">
-          <Button
-            buttonSize="sm"
-            buttonStyle="default"
-            target="_blank"
-            href={currentDatasource.edit_url || currentDatasource.url}
-          >
-            {t('Use Legacy Datasource Editor')}
-          </Button>
+    <StyledDatasourceModal
+      show={show}
+      onHide={onHide}
+      title={
+        <span>
+          {t('Edit Dataset ')}
+          <strong>{currentDatasource.table_name}</strong>
         </span>
-
-        <span className="float-right">
+      }
+      footer={
+        <>
+          {isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS) && (
+            <Button
+              buttonSize="sm"
+              buttonStyle="default"
+              data-test="datasource-modal-legacy-edit"
+              className="m-r-5"
+              onClick={() => {
+                window.location.href =
+                  currentDatasource.edit_url || currentDatasource.url;
+              }}
+            >
+              {t('Use Legacy Datasource Editor')}
+            </Button>
+          )}
           <Button
             buttonSize="sm"
             buttonStyle="primary"
             className="m-r-5"
             data-test="datasource-modal-save"
             onClick={onClickSave}
-            disabled={errors.length > 0}
+            disabled={isSaving || errors.length > 0}
           >
             {t('Save')}
           </Button>
-          <Button buttonSize="sm" onClick={onHide}>
+          <Button
+            data-test="datasource-modal-cancel"
+            buttonSize="sm"
+            onClick={onHide}
+          >
             {t('Cancel')}
           </Button>
-          <Dialog ref={dialog} />
-        </span>
-      </Modal.Footer>
-    </Modal>
+        </>
+      }
+      responsive
+    >
+      <DatasourceEditor
+        showLoadingForImport
+        height={500}
+        datasource={currentDatasource}
+        onChange={onDatasourceChange}
+      />
+      {contextHolder}
+    </StyledDatasourceModal>
   );
 };
 

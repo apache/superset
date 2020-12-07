@@ -30,7 +30,7 @@ declare namespace Cypress {
      */
     login(): void;
 
-    visitChartByParams(params: string | object): cy;
+    visitChartByParams(params: string | Record<string, unknown>): cy;
     visitChartByName(name: string): cy;
     visitChartById(id: number): cy;
 

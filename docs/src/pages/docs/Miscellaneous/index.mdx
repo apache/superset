@@ -1,0 +1,94 @@
+---
+name: Country Map Tools
+menu: Miscellaneous
+route: /docs/miscellaneous/country-map-tools
+index: 1
+version: 1
+---
+
+## Country Map Tools
+
+This tool is used in slices for visualization number or string by region, province or department of
+your countries. So, if you want to use tools, you need ISO 3166-2 code of region, province or
+department.
+
+ISO 3166-2 is part of the ISO 3166 standard published by the International Organization for
+Standardization (ISO), and defines codes for identifying the principal subdivisions (e.g., provinces
+or states) of all countries coded in ISO 3166-1
+
+The purpose of ISO 3166-2 is to establish an international standard of short and unique alphanumeric
+codes to represent the relevant administrative divisions and dependent territories of all countries
+in a more convenient and less ambiguous form than their full names. Each complete ISO 3166-2 code
+consists of two parts, separated by a hyphen:
+
+The first part is the ISO 3166-1 alpha-2 code of the country; The second part is a string of up to
+three alphanumeric characters, which is usually obtained from national sources and stems from coding
+systems already in use in the country concerned, but may also be developed by the ISO itself.
+
+We can apply these concepts to specify the state of Texas in the country of United States:
+
+```
+US-TX
+```
+
+### Included Codes
+
+The ISO codes for the following countries are included in Superset:
+
+- Belgium
+- China
+- Egypt
+- France
+- Germany
+- Japan
+- Liechtenstein
+- Morocco
+- Russia
+- Singapore
+- Spain
+- Switzerland
+- United Kingdom
+- Ukraine
+- USA
+
+### Adding New Countries
+
+To add a new country in country map tools, you need to follow the following steps:
+
+- You need shapefiles which contain data of your map. You can get this file on this site:
+  https://www.diva-gis.org/gdata
+- You need to add ISO 3166-2 with column name ISO for all record in your file. It’s important
+  because it’s a norm for mapping your data with geojson file
+- You need to convert shapefile to geojson file. This action can make with ogr2ogr tools:
+  https://www.gdal.org/ogr2ogr.html
+- Put your geojson file in next folder : superset-frontend/src/visualizations/CountryMap/countries
+  with the next name : nameofyourcountries.geojson
+- You can to reduce size of geojson file on this site: https://mapshaper.org/
+- Go in file `superset-frontend/src/explore/controls.jsx`
+- Add your country in component ‘select_country’. Here's an example:
+
+```
+    type: 'SelectControl',
+    label: 'Country Name Type',
+    default: 'France',
+    choices: [
+    'Belgium',
+    'Brazil',
+    'China',
+    'Egypt',
+    'France',
+    'Germany',
+    'Italy',
+    'Japan',
+    'Korea',
+    'Morocco',
+    'Netherlands',
+    'Russia',
+    'Singapore',
+    'Spain',
+    'Uk',
+    'Usa',
+    ].map(s => [s, s]),
+    description: 'The name of country that Superset should display',
+},
+```

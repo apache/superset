@@ -28,7 +28,7 @@ import tests.test_app
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs import BaseEngineSpec
-from superset.models.sql_lab import Query
+from superset.models.sql_lab import Query, SavedQuery
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import CtasMethod
 from superset.utils.core import (
@@ -70,6 +70,36 @@ class TestSqlLab(SupersetTestCase):
 
         data = self.run_sql("SELECT * FROM unexistant_table", "2")
         self.assertLess(0, len(data["error"]))
+
+    def test_sql_json_to_saved_query_info(self):
+        """
+        SQLLab: Test SQLLab query execution info propagation to saved queries
+        """
+        from freezegun import freeze_time
+
+        self.login("admin")
+
+        sql_statement = "SELECT * FROM birth_names LIMIT 10"
+        examples_db_id = get_example_database().id
+        saved_query = SavedQuery(db_id=examples_db_id, sql=sql_statement)
+        db.session.add(saved_query)
+        db.session.commit()
+
+        with freeze_time("2020-01-01T00:00:00Z"):
+            self.run_sql(sql_statement, "1")
+            saved_query_ = (
+                db.session.query(SavedQuery)
+                .filter(
+                    SavedQuery.db_id == examples_db_id, SavedQuery.sql == sql_statement
+                )
+                .one_or_none()
+            )
+            assert saved_query_.rows is not None
+            assert saved_query_.last_run == datetime.now()
+
+            # Rollback changes
+            db.session.delete(saved_query_)
+            db.session.commit()
 
     @parameterized.expand([CtasMethod.TABLE, CtasMethod.VIEW])
     def test_sql_json_cta_dynamic_db(self, ctas_method):
@@ -381,6 +411,31 @@ class TestSqlLab(SupersetTestCase):
         table_id = resp["table_id"]
         table = db.session.query(SqlaTable).filter_by(id=table_id).one()
         self.assertEqual([owner.username for owner in table.owners], ["admin"])
+        view_menu = security_manager.find_view_menu(table.get_perm())
+        assert view_menu is not None
+
+        # Cleanup
+        db.session.delete(table)
+        db.session.commit()
+
+    def test_sqllab_viz_bad_payload(self):
+        self.login("admin")
+        payload = {
+            "chartType": "dist_bar",
+            "schema": "superset",
+            "columns": [
+                {"is_date": False, "type": "STRING", "name": f"viz_type_{random()}"},
+                {"is_date": False, "type": "OBJECT", "name": f"ccount_{random()}"},
+            ],
+            "sql": """\
+                SELECT *
+                FROM birth_names
+                LIMIT 10""",
+        }
+        data = {"data": json.dumps(payload)}
+        url = "/superset/sqllab_viz/"
+        response = self.client.post(url, data=data, follow_redirects=True)
+        assert response.status_code == 400
 
     def test_sqllab_table_viz(self):
         self.login("admin")

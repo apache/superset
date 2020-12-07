@@ -17,10 +17,11 @@
  * under the License.
  */
 import React from 'react';
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 import { Card, Skeleton, ThinSkeleton } from 'src/common/components';
-import ImageLoader from './ImageLoader';
+import { Tooltip } from 'src/common/components/Tooltip';
+import ImageLoader, { BackgroundPosition } from './ImageLoader';
 
 const MenuIcon = styled(Icon)`
   width: ${({ theme }) => theme.gridUnit * 4}px;
@@ -36,7 +37,9 @@ const ActionsWrapper = styled.div`
 `;
 
 const StyledCard = styled(Card)`
-  width: 459px;
+  border: 1px solid #d9dbe4;
+  border-radius: ${({ theme }) => theme.gridUnit}px;
+  overflow: hidden;
 
   .ant-card-body {
     padding: ${({ theme }) => theme.gridUnit * 4}px
@@ -45,49 +48,48 @@ const StyledCard = styled(Card)`
   .ant-card-meta-detail > div:not(:last-child) {
     margin-bottom: 0;
   }
-`;
-
-const Cover = styled.div`
-  height: 264px;
-  overflow: hidden;
-
-  .cover-footer {
-    transform: translateY(${({ theme }) => theme.gridUnit * 9}px);
-    transition: ${({ theme }) => theme.transitionTiming}s ease-out;
+  .gradient-container {
+    position: relative;
+    height: 100%;
   }
-
   &:hover {
+    box-shadow: 8px 8px 28px 0px rgba(0, 0, 0, 0.24);
+    transition: box-shadow ${({ theme }) => theme.transitionTiming}s ease-in-out;
+
+    .gradient-container:after {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      display: inline-block;
+      background: linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0) 47.83%,
+        rgba(0, 0, 0, 0.219135) 79.64%,
+        rgba(0, 0, 0, 0.5) 100%
+      );
+
+      transition: background ${({ theme }) => theme.transitionTiming}s
+        ease-in-out;
+    }
+
     .cover-footer {
       transform: translateY(0);
     }
   }
 `;
 
-const GradientContainer = styled.div`
-  position: relative;
-  display: inline-block;
-
-  &:after {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    display: inline-block;
-    background: linear-gradient(
-      180deg,
-      rgba(0, 0, 0, 0) 47.83%,
-      rgba(0, 0, 0, 0.219135) 79.64%,
-      rgba(0, 0, 0, 0.5) 100%
-    );
-  }
-`;
-const CardCoverImg = styled(ImageLoader)`
-  display: block;
-  object-fit: cover;
-  width: 459px;
+const Cover = styled.div`
   height: 264px;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  overflow: hidden;
+
+  .cover-footer {
+    transform: translateY(${({ theme }) => theme.gridUnit * 9}px);
+    transition: ${({ theme }) => theme.transitionTiming}s ease-out;
+  }
 `;
 
 const TitleContainer = styled.div`
@@ -143,16 +145,20 @@ const SkeletonActions = styled(Skeleton.Button)`
 
 const paragraphConfig = { rows: 1, width: 150 };
 interface CardProps {
-  title: React.ReactNode;
+  title?: React.ReactNode;
   url?: string;
-  imgURL: string;
-  imgFallbackURL: string;
+  imgURL?: string;
+  imgFallbackURL?: string;
+  imgPosition?: BackgroundPosition;
   description: string;
-  loading: boolean;
+  loading?: boolean;
   titleRight?: React.ReactNode;
   coverLeft?: React.ReactNode;
   coverRight?: React.ReactNode;
-  actions: React.ReactNode;
+  actions?: React.ReactNode | null;
+  rows?: number | string;
+  avatar?: string;
+  cover?: React.ReactNode | null;
 }
 
 function ListViewCard({
@@ -165,30 +171,37 @@ function ListViewCard({
   coverLeft,
   coverRight,
   actions,
+  avatar,
   loading,
+  imgPosition = 'top',
+  cover,
 }: CardProps) {
   return (
     <StyledCard
+      data-test="styled-card"
       cover={
-        <Cover>
-          <a href={url}>
-            <GradientContainer>
-              <CardCoverImg
-                src={imgURL}
-                fallback={imgFallbackURL}
-                isLoading={loading}
-              />
-            </GradientContainer>
-          </a>
-          <CoverFooter className="cover-footer">
-            {!loading && coverLeft && (
-              <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
-            )}
-            {!loading && coverRight && (
-              <CoverFooterRight>{coverRight}</CoverFooterRight>
-            )}
-          </CoverFooter>
-        </Cover>
+        cover || (
+          <Cover>
+            <a href={url}>
+              <div className="gradient-container">
+                <ImageLoader
+                  src={imgURL || ''}
+                  fallback={imgFallbackURL || ''}
+                  isLoading={loading}
+                  position={imgPosition}
+                />
+              </div>
+            </a>
+            <CoverFooter className="cover-footer">
+              {!loading && coverLeft && (
+                <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
+              )}
+              {!loading && coverRight && (
+                <CoverFooterRight>{coverRight}</CoverFooterRight>
+              )}
+            </CoverFooter>
+          </Cover>
+        )
       }
     >
       {loading && (
@@ -217,15 +230,19 @@ function ListViewCard({
       {!loading && (
         <Card.Meta
           title={
-            <>
-              <TitleContainer>
+            <TitleContainer>
+              <Tooltip title={title}>
                 <TitleLink href={url}>{title}</TitleLink>
-                {titleRight && <div className="title-right"> {titleRight}</div>}
-                <div className="card-actions">{actions}</div>
-              </TitleContainer>
-            </>
+              </Tooltip>
+              {titleRight && <div className="title-right"> {titleRight}</div>}
+              <div className="card-actions" data-test="card-actions">
+                {actions}
+              </div>
+            </TitleContainer>
           }
           description={description}
+          // @ts-ignore
+          avatar={avatar ? <Icon name={avatar} /> : null}
         />
       )}
     </StyledCard>

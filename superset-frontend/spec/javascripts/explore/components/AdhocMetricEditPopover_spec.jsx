@@ -20,7 +20,7 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import { FormGroup, Popover } from 'react-bootstrap';
+import { FormGroup } from 'react-bootstrap';
 import Button from 'src/components/Button';
 
 import AdhocMetric, { EXPRESSION_TYPES } from 'src/explore/AdhocMetric';
@@ -51,6 +51,7 @@ function setup(overrides) {
     adhocMetric: sumValueAdhocMetric,
     onChange,
     onClose,
+    onResize: () => {},
     columns,
     ...overrides,
   };
@@ -61,7 +62,6 @@ function setup(overrides) {
 describe('AdhocMetricEditPopover', () => {
   it('renders a popover with edit metric form contents', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Popover)).toExist();
     expect(wrapper.find(FormGroup)).toHaveLength(3);
     expect(wrapper.find(Button)).toHaveLength(2);
   });
@@ -90,21 +90,6 @@ describe('AdhocMetricEditPopover', () => {
     );
   });
 
-  it('overwrites the adhocMetric in state with onLabelChange', () => {
-    const { wrapper } = setup();
-    wrapper.instance().onLabelChange({ target: { value: 'new label' } });
-    expect(wrapper.state('adhocMetric').label).toBe('new label');
-    expect(wrapper.state('adhocMetric').hasCustomLabel).toBe(true);
-  });
-
-  it('returns to default labels when the custom label is cleared', () => {
-    const { wrapper } = setup();
-    wrapper.instance().onLabelChange({ target: { value: 'new label' } });
-    wrapper.instance().onLabelChange({ target: { value: '' } });
-    expect(wrapper.state('adhocMetric').label).toBe('SUM(value)');
-    expect(wrapper.state('adhocMetric').hasCustomLabel).toBe(false);
-  });
-
   it('prevents saving if no column or aggregate is chosen', () => {
     const { wrapper } = setup();
     expect(wrapper.find(Button).find({ disabled: true })).not.toExist();
@@ -128,9 +113,9 @@ describe('AdhocMetricEditPopover', () => {
     wrapper.instance().onDragDown = sinon.spy();
     wrapper.instance().forceUpdate();
 
-    expect(wrapper.find('i.fa-expand')).toExist();
+    expect(wrapper.find('.fa-expand')).toExist();
     expect(wrapper.instance().onDragDown.calledOnce).toBe(false);
-    wrapper.find('i.fa-expand').simulate('mouseDown');
+    wrapper.find('.fa-expand').simulate('mouseDown');
     expect(wrapper.instance().onDragDown.calledOnce).toBe(true);
   });
 });

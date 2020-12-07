@@ -19,11 +19,11 @@
 /* eslint-env browser */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { Tabs, Tab } from 'react-bootstrap';
+import Tabs from 'src/common/components/Tabs';
 import { StickyContainer, Sticky } from 'react-sticky';
 import { ParentSize } from '@vx/responsive';
 
-import { t } from '@superset-ui/translation';
+import { t, styled } from '@superset-ui/core';
 
 import NewColumn from './gridComponents/new/NewColumn';
 import NewDivider from './gridComponents/new/NewDivider';
@@ -43,27 +43,37 @@ const defaultProps = {
 
 const SUPERSET_HEADER_HEIGHT = 59;
 
+const BuilderComponentPaneTabs = styled(Tabs)`
+  line-height: inherit;
+  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
 class BuilderComponentPane extends React.PureComponent {
   renderTabs(height) {
     const { isSticky } = this.props;
     return (
-      <Tabs className="m-t-10 tabs-components">
-        <Tab eventKey={1} title={t('Components')}>
+      <BuilderComponentPaneTabs
+        id="tabs"
+        className="tabs-components"
+        data-test="dashboard-builder-component-pane-tabs-navigation"
+      >
+        <Tabs.TabPane key={1} tab={t('Components')}>
           <NewTabs />
           <NewRow />
           <NewColumn />
           <NewHeader />
           <NewMarkdown />
           <NewDivider />
-        </Tab>
-        <Tab eventKey={2} title={t('Charts')} className="tab-charts">
+        </Tabs.TabPane>
+        <Tabs.TabPane key={2} tab={t('Charts')} className="tab-charts">
           <SliceAdder
             height={height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)}
           />
-        </Tab>
-      </Tabs>
+        </Tabs.TabPane>
+      </BuilderComponentPaneTabs>
     );
   }
+
   render() {
     const { topOffset } = this.props;
     return (

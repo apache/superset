@@ -19,7 +19,7 @@
 import { hot } from 'react-hot-loader/root';
 import React from 'react';
 import { Provider } from 'react-redux';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';

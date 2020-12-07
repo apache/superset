@@ -18,7 +18,7 @@
  */
 /* eslint global-require: 0 */
 import $ from 'jquery';
-import { SupersetClient } from '@superset-ui/connection';
+import { SupersetClient } from '@superset-ui/core';
 import getClientErrorObject, {
   ClientErrorObject,
 } from '../utils/getClientErrorObject';
@@ -75,16 +75,14 @@ export default function setupApp() {
         url: ev.currentTarget.href,
         parseMethod: null,
       }).then(() => {
-        location.reload();
+        window.location.reload();
       });
     });
   });
 
   // A set of hacks to allow apps to run within a FAB template
   // this allows for the server side generated menus to function
-  // @ts-ignore
   window.$ = $;
-  // @ts-ignore
   window.jQuery = $;
   require('bootstrap');
 

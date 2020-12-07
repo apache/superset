@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
-import { validateNonEmpty } from '@superset-ui/validator';
-import { formatSelectOptions } from '../../modules/utils';
+import { t, validateNonEmpty } from '@superset-ui/core';
+import { formatSelectOptions } from 'src/modules/utils';
 
 export default {
   controlPanelSections: [

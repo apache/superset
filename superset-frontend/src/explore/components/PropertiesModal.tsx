@@ -16,39 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Modal,
   Row,
   Col,
   FormControl,
   FormGroup,
-  // @ts-ignore
+  FormControlProps,
 } from 'react-bootstrap';
+import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
-// @ts-ignore
-import Dialog from 'react-bootstrap-dialog';
 import { OptionsType } from 'react-select/src/types';
 import { AsyncSelect } from 'src/components/Select';
 import rison from 'rison';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
-import Chart from 'src/types/Chart';
+import { t, SupersetClient } from '@superset-ui/core';
+import Chart, { Slice } from 'src/types/Chart';
 import FormLabel from 'src/components/FormLabel';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 
-export type Slice = {
-  id?: number;
-  slice_id: number;
-  slice_name: string;
-  description: string | null;
-  cache_timeout: number | null;
-};
-
-type InternalProps = {
+type PropertiesModalProps = {
   slice: Slice;
   onHide: () => void;
   onSave: (chart: Chart) => void;
+  show: boolean;
 };
 
 type OwnerOption = {
@@ -56,29 +46,13 @@ type OwnerOption = {
   value: number;
 };
 
-export type WrapperProps = InternalProps & {
-  show: boolean;
-  animation?: boolean; // for the modal
-};
-
-export default function PropertiesModalWrapper({
-  show,
-  onHide,
-  animation,
+export default function PropertiesModal({
   slice,
+  onHide,
   onSave,
-}: WrapperProps) {
-  // The wrapper is a separate component so that hooks only run when the modal opens
-  return (
-    <Modal show={show} onHide={onHide} animation={animation} bsSize="large">
-      <PropertiesModal slice={slice} onHide={onHide} onSave={onSave} />
-    </Modal>
-  );
-}
-
-function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
+  show,
+}: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
-  const errorDialog = useRef<any>(null);
 
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
@@ -88,38 +62,43 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
   );
   const [owners, setOwners] = useState<OptionsType<OwnerOption> | null>(null);
 
-  function showError({ error, statusText }: any) {
-    errorDialog.current.show({
+  function showError({ error, statusText, message }: any) {
+    let errorText = error || statusText || t('An error has occurred');
+    if (message === 'Forbidden') {
+      errorText = t('You do not have permission to edit this chart');
+    }
+    Modal.error({
       title: 'Error',
-      bsSize: 'medium',
-      bsStyle: 'danger',
-      actions: [Dialog.DefaultAction('Ok', () => {}, 'btn-danger')],
-      body: error || statusText || t('An error has occurred'),
+      content: errorText,
+      okButtonProps: { danger: true, className: 'btn-danger' },
     });
   }
 
-  async function fetchChartData() {
-    try {
-      const response = await SupersetClient.get({
-        endpoint: `/api/v1/chart/${slice.slice_id}`,
-      });
-      const chart = response.json.result;
-      setOwners(
-        chart.owners.map((owner: any) => ({
-          value: owner.id,
-          label: `${owner.first_name} ${owner.last_name}`,
-        })),
-      );
-    } catch (response) {
-      const clientError = await getClientErrorObject(response);
-      showError(clientError);
-    }
-  }
+  const fetchChartData = useCallback(
+    async function fetchChartData() {
+      try {
+        const response = await SupersetClient.get({
+          endpoint: `/api/v1/chart/${slice.slice_id}`,
+        });
+        const chart = response.json.result;
+        setOwners(
+          chart.owners.map((owner: any) => ({
+            value: owner.id,
+            label: `${owner.first_name} ${owner.last_name}`,
+          })),
+        );
+      } catch (response) {
+        const clientError = await getClientErrorObject(response);
+        showError(clientError);
+      }
+    },
+    [slice.slice_id],
+  );
 
   // get the owners of this slice
   useEffect(() => {
     fetchChartData();
-  }, []);
+  }, [fetchChartData]);
 
   const loadOptions = (input = '') => {
     const query = rison.encode({
@@ -175,11 +154,39 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
   };
 
   return (
-    <form onSubmit={onSubmit}>
-      <Modal.Header closeButton>
-        <Modal.Title>Edit Chart Properties</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
+    <Modal
+      show={show}
+      onHide={onHide}
+      title="Edit Chart Properties"
+      footer={
+        <>
+          <Button
+            data-test="properties-modal-cancel-button"
+            type="button"
+            buttonSize="sm"
+            onClick={onHide}
+            cta
+          >
+            {t('Cancel')}
+          </Button>
+          <Button
+            data-test="properties-modal-save-button"
+            type="button"
+            buttonSize="sm"
+            buttonStyle="primary"
+            // @ts-ignore
+            onClick={onSubmit}
+            disabled={!owners || submitting || !name}
+            cta
+          >
+            {t('Save')}
+          </Button>
+        </>
+      }
+      responsive
+      wrapProps={{ 'data-test': 'properties-edit-modal' }}
+    >
+      <form onSubmit={onSubmit}>
         <Row>
           <Col md={6}>
             <h3>{t('Basic Information')}</h3>
@@ -189,13 +196,13 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
               </FormLabel>
               <FormControl
                 name="name"
+                data-test="properties-modal-name-input"
                 type="text"
                 bsSize="sm"
                 value={name}
-                // @ts-ignore
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setName(event.target.value)
-                }
+                onChange={(
+                  event: React.FormEvent<FormControl & FormControlProps>,
+                ) => setName((event.currentTarget?.value as string) ?? '')}
               />
             </FormGroup>
             <FormGroup>
@@ -206,9 +213,10 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 componentClass="textarea"
                 bsSize="sm"
                 value={description}
-                // @ts-ignore
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setDescription(event.target.value)
+                onChange={(
+                  event: React.FormEvent<FormControl & FormControlProps>,
+                ) =>
+                  setDescription((event.currentTarget?.value as string) ?? '')
                 }
                 style={{ maxWidth: '100%' }}
               />
@@ -228,14 +236,17 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
                 type="text"
                 bsSize="sm"
                 value={cacheTimeout}
-                // @ts-ignore
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setCacheTimeout(event.target.value.replace(/[^0-9]/, ''))
-                }
+                onChange={(
+                  event: React.FormEvent<FormControl & FormControlProps>,
+                ) => {
+                  const targetValue =
+                    (event.currentTarget?.value as string) ?? '';
+                  setCacheTimeout(targetValue.replace(/[^0-9]/, ''));
+                }}
               />
               <p className="help-block">
                 {t(
-                  'Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.',
+                  "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the dataset's timeout if undefined.",
                 )}
               </p>
             </FormGroup>
@@ -261,22 +272,7 @@ function PropertiesModal({ slice, onHide, onSave }: InternalProps) {
             </FormGroup>
           </Col>
         </Row>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button type="button" buttonSize="sm" onClick={onHide} cta>
-          {t('Cancel')}
-        </Button>
-        <Button
-          type="submit"
-          buttonSize="sm"
-          buttonStyle="primary"
-          disabled={!owners || submitting || !name}
-          cta
-        >
-          {t('Save')}
-        </Button>
-        <Dialog ref={errorDialog} />
-      </Modal.Footer>
-    </form>
+      </form>
+    </Modal>
   );
 }

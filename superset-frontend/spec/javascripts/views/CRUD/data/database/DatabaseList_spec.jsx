@@ -24,6 +24,7 @@ import { styledMount as mount } from 'spec/helpers/theming';
 
 import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
+import DeleteModal from 'src/components/DeleteModal';
 import SubMenu from 'src/components/Menu/SubMenu';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
@@ -37,6 +38,7 @@ const store = mockStore({});
 const databasesInfoEndpoint = 'glob:*/api/v1/database/_info*';
 const databasesEndpoint = 'glob:*/api/v1/database/?*';
 const databaseEndpoint = 'glob:*/api/v1/database/*';
+const databaseRelatedEndpoint = 'glob:*/api/v1/database/*/related_objects*';
 
 const mockdatabases = [...new Array(3)].map((_, i) => ({
   changed_by: {
@@ -54,6 +56,10 @@ const mockdatabases = [...new Array(3)].map((_, i) => ({
   id: i,
 }));
 
+const mockUser = {
+  userId: 1,
+};
+
 fetchMock.get(databasesInfoEndpoint, {
   permissions: ['can_delete'],
 });
@@ -63,9 +69,21 @@ fetchMock.get(databasesEndpoint, {
 });
 
 fetchMock.delete(databaseEndpoint, {});
+fetchMock.get(databaseRelatedEndpoint, {
+  charts: {
+    count: 0,
+    result: [],
+  },
+  dashboards: {
+    count: 0,
+    result: [],
+  },
+});
 
 describe('DatabaseList', () => {
-  const wrapper = mount(<DatabaseList />, { context: { store } });
+  const wrapper = mount(<DatabaseList user={mockUser} />, {
+    context: { store },
+  });
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
@@ -101,6 +119,10 @@ describe('DatabaseList', () => {
     });
     await waitForComponentToPaint(wrapper);
 
+    expect(wrapper.find(DeleteModal).props().description).toMatchInlineSnapshot(
+      `"The database db 0 is linked to 0 charts that appear on 0 dashboards. Are you sure you want to continue? Deleting the database will break those objects."`,
+    );
+
     act(() => {
       wrapper
         .find('#delete')
@@ -115,6 +137,9 @@ describe('DatabaseList', () => {
 
     await waitForComponentToPaint(wrapper);
 
+    expect(fetchMock.calls(/database\/0\/related_objects/, 'GET')).toHaveLength(
+      1,
+    );
     expect(fetchMock.calls(/database\/0/, 'DELETE')).toHaveLength(1);
   });
 

@@ -22,26 +22,21 @@ import { debounce } from 'lodash';
 import { max as d3Max } from 'd3-array';
 import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
 import Button from 'src/components/Button';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
-import styled from '@superset-ui/style';
+import { t, styled, SupersetClient } from '@superset-ui/core';
 
 import FormLabel from 'src/components/FormLabel';
 
-import DateFilterControl from '../../explore/components/controls/DateFilterControl';
-import ControlRow from '../../explore/components/ControlRow';
-import Control from '../../explore/components/Control';
-import controls from '../../explore/controls';
-import { getExploreUrl } from '../../explore/exploreUtils';
-import OnPasteSelect from '../../components/Select/OnPasteSelect';
-import { getDashboardFilterKey } from '../../dashboard/util/getDashboardFilterKey';
-import { getFilterColorMap } from '../../dashboard/util/dashboardFiltersColorMap';
+import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
+import ControlRow from 'src/explore/components/ControlRow';
+import Control from 'src/explore/components/Control';
+import { controls } from 'src/explore/controls';
+import { getExploreUrl } from 'src/explore/exploreUtils';
+import OnPasteSelect from 'src/components/Select/OnPasteSelect';
 import {
   FILTER_CONFIG_ATTRIBUTES,
   FILTER_OPTIONS_LIMIT,
   TIME_FILTER_LABELS,
-} from '../../explore/constants';
-import FilterBadgeIcon from '../../components/FilterBadgeIcon';
+} from 'src/explore/constants';
 
 import './FilterBox.less';
 
@@ -127,13 +122,17 @@ class FilterBox extends React.Component {
     return this.props.onFilterMenuOpen(this.props.chartId, column);
   }
 
+  onFilterMenuClose(column) {
+    return this.props.onFilterMenuClose(this.props.chartId, column);
+  }
+
   onOpenDateFilterControl() {
     return this.onFilterMenuOpen(TIME_RANGE);
   }
 
-  onFilterMenuClose() {
-    return this.props.onFilterMenuClose(this.props.chartId);
-  }
+  onCloseDateFilterControl = () => {
+    return this.onFilterMenuClose(TIME_RANGE);
+  };
 
   getControlData(controlName) {
     const { selectedValues } = this.state;
@@ -165,6 +164,7 @@ class FilterBox extends React.Component {
       this.props.onChange(selectedValues, false);
     });
   }
+
   changeFilter(filter, options) {
     const fltr = TIME_FILTER_MAP[filter] || filter;
     let vals = null;
@@ -177,16 +177,21 @@ class FilterBox extends React.Component {
         vals = options;
       }
     }
-    const selectedValues = {
-      ...this.state.selectedValues,
-      [fltr]: vals,
-    };
 
-    this.setState({ selectedValues, hasChanged: true }, () => {
-      if (this.props.instantFiltering) {
-        this.props.onChange({ [fltr]: vals }, false);
-      }
-    });
+    this.setState(
+      prevState => ({
+        selectedValues: {
+          ...prevState.selectedValues,
+          [fltr]: vals,
+        },
+        hasChanged: true,
+      }),
+      () => {
+        if (this.props.instantFiltering) {
+          this.props.onChange({ [fltr]: vals }, false);
+        }
+      },
+    );
   }
 
   /**
@@ -259,13 +264,15 @@ class FilterBox extends React.Component {
   }
 
   renderDateFilter() {
-    const { showDateFilter, chartId } = this.props;
+    const { showDateFilter } = this.props;
     const label = TIME_FILTER_LABELS.time_range;
     if (showDateFilter) {
       return (
         <div className="row space-1">
-          <div className="col-lg-12 col-xs-12 filter-container">
-            {this.renderFilterBadge(chartId, TIME_RANGE, label)}
+          <div
+            className="col-lg-12 col-xs-12 filter-container"
+            data-test="date-filter-container"
+          >
             <DateFilterControl
               name={TIME_RANGE}
               label={label}
@@ -274,7 +281,7 @@ class FilterBox extends React.Component {
                 this.changeFilter(TIME_RANGE, newValue);
               }}
               onOpenDateFilterControl={this.onOpenDateFilterControl}
-              onCloseDateFilterControl={this.onFilterMenuClose}
+              onCloseDateFilterControl={this.onCloseDateFilterControl}
               value={this.state.selectedValues[TIME_RANGE] || 'No filter'}
             />
           </div>
@@ -322,6 +329,7 @@ class FilterBox extends React.Component {
     }
     return datasourceFilters;
   }
+
   renderSelect(filterConfig) {
     const { filtersChoices } = this.props;
     const { selectedValues } = this.state;
@@ -385,10 +393,11 @@ class FilterBox extends React.Component {
             this.changeFilter(key, newValue);
           }
         }}
-        onFocus={() => this.onFilterMenuOpen(key)}
+        // TODO try putting this back once react-select is upgraded
+        // onFocus={() => this.onFilterMenuOpen(key)}
         onMenuOpen={() => this.onFilterMenuOpen(key)}
-        onBlur={this.onFilterMenuClose}
-        onMenuClose={this.onFilterMenuClose}
+        onBlur={() => this.onFilterMenuClose(key)}
+        onMenuClose={() => this.onFilterMenuClose(key)}
         selectWrap={
           filterConfig[FILTER_CONFIG_ATTRIBUTES.SEARCH_ALL_OPTIONS] &&
           data.length >= FILTER_OPTIONS_LIMIT
@@ -401,31 +410,16 @@ class FilterBox extends React.Component {
   }
 
   renderFilters() {
-    const { filtersFields, chartId } = this.props;
+    const { filtersFields = [] } = this.props;
     return filtersFields.map(filterConfig => {
       const { label, key } = filterConfig;
       return (
         <div key={key} className="m-b-5 filter-container">
-          {this.renderFilterBadge(chartId, key, label)}
-          <div>
-            <FormLabel htmlFor={`LABEL-${key}`}>{label}</FormLabel>
-            {this.renderSelect(filterConfig)}
-          </div>
+          <FormLabel htmlFor={`LABEL-${key}`}>{label}</FormLabel>
+          {this.renderSelect(filterConfig)}
         </div>
       );
     });
-  }
-
-  renderFilterBadge(chartId, column) {
-    const colorKey = getDashboardFilterKey({ chartId, column });
-    const filterColorMap = getFilterColorMap();
-    const colorCode = filterColorMap[colorKey];
-
-    return (
-      <div className="filter-badge-container">
-        <FilterBadgeIcon colorCode={colorCode} />
-      </div>
-    );
   }
 
   render() {

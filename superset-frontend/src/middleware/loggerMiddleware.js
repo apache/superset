@@ -19,7 +19,7 @@
 /* eslint-disable camelcase */
 /* eslint prefer-const: 2 */
 import shortid from 'shortid';
-import { SupersetClient } from '@superset-ui/connection';
+import { SupersetClient } from '@superset-ui/core';
 
 import { safeStringify } from '../utils/safeStringify';
 import { LOG_EVENT } from '../logger/actions';
@@ -117,7 +117,7 @@ const loggerMiddleware = store => next => action => {
   }
 
   if (eventData.target_id && dashboardLayout.present) {
-    const meta = dashboardLayout.present[eventData.target_id].meta;
+    const { meta } = dashboardLayout.present[eventData.target_id];
     // chart name or tab/header text
     eventData.target_name = meta.chartId ? meta.sliceName : meta.text;
   }

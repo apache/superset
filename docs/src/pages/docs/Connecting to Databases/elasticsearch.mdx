@@ -1,0 +1,50 @@
+---
+name: Elasticsearch
+menu: Connecting to Databases
+route: /docs/databases/elasticsearch
+index: 15
+version: 1
+---
+
+## Elasticsearch
+
+The recommended connector library for Elasticsearch is
+[elasticsearch-dbapi](https://github.com/preset-io/elasticsearch-dbapi).
+
+The connection string for Elasticsearch looks like this:
+
+```
+elasticsearch+http://{user}:{password}@{host}:9200/
+```
+
+**Using HTTPS**
+
+```
+elasticsearch+https://{user}:{password}@{host}:9200/
+```
+
+Elasticsearch as a default limit of 10000 rows, so you can increase this limit on your cluster or
+set Superset’s row limit on config
+
+```
+ROW_LIMIT = 10000
+```
+
+You can query multiple indices on SQL Lab for example
+
+```
+SELECT timestamp, agent FROM "logstash"
+```
+
+But, to use visualizations for multiple indices you need to create an alias index on your cluster
+
+```
+POST /_aliases
+{
+    "actions" : [
+        { "add" : { "index" : "logstash-**", "alias" : "logstash_all" } }
+    ]
+}
+```
+
+Then register your table with the alias name logstasg_all

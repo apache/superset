@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/connection';
-import styled from '@superset-ui/style';
-import { t } from '@superset-ui/translation';
+import { SupersetClient, t, styled } from '@superset-ui/core';
 import React, { useState, useMemo } from 'react';
+import rison from 'rison';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import DeleteModal from 'src/components/DeleteModal';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import ListView, { Filters } from 'src/components/ListView';
@@ -34,6 +34,10 @@ import { DatabaseObject } from './types';
 
 const PAGE_SIZE = 25;
 
+interface DatabaseDeleteObject extends DatabaseObject {
+  chart_count: number;
+  dashboard_count: number;
+}
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -43,7 +47,7 @@ const IconBlack = styled(Icon)`
   color: ${({ theme }) => theme.colors.grayscale.dark1};
 `;
 
-function BooleanDisplay(value: any) {
+function BooleanDisplay({ value }: { value: Boolean }) {
   return value ? <IconBlack name="check" /> : <IconBlack name="cancel-x" />;
 }
 
@@ -63,9 +67,33 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     addDangerToast,
   );
   const [databaseModalOpen, setDatabaseModalOpen] = useState<boolean>(false);
+  const [
+    databaseCurrentlyDeleting,
+    setDatabaseCurrentlyDeleting,
+  ] = useState<DatabaseDeleteObject | null>(null);
   const [currentDatabase, setCurrentDatabase] = useState<DatabaseObject | null>(
     null,
   );
+
+  const openDatabaseDeleteModal = (database: DatabaseObject) =>
+    SupersetClient.get({
+      endpoint: `/api/v1/database/${database.id}/related_objects/`,
+    })
+      .then(({ json = {} }) => {
+        setDatabaseCurrentlyDeleting({
+          ...database,
+          chart_count: json.charts.count,
+          dashboard_count: json.dashboards.count,
+        });
+      })
+      .catch(
+        createErrorHandler(errMsg =>
+          t(
+            'An error occurred while fetching database related data: %s',
+            errMsg,
+          ),
+        ),
+      );
 
   function handleDatabaseDelete({ id, database_name: dbName }: DatabaseObject) {
     SupersetClient.delete({
@@ -74,6 +102,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       () => {
         refreshData();
         addSuccessToast(t('Deleted: %s', dbName));
+
+        // Close delete modal
+        setDatabaseCurrentlyDeleting(null);
       },
       createErrorHandler(errMsg =>
         addDangerToast(t('There was an issue deleting %s: %s', dbName, errMsg)),
@@ -81,8 +112,17 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     );
   }
 
+  function handleDatabaseEdit(database: DatabaseObject) {
+    // Set database and open modal
+    setCurrentDatabase(database);
+    setDatabaseModalOpen(true);
+  }
+
   const canCreate = hasPerm('can_add');
+  const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
+  const canExport =
+    hasPerm('can_mulexport') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
 
   const menuData: SubMenuProps = {
     activeChild: 'Databases',
@@ -90,19 +130,28 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   };
 
   if (canCreate) {
-    menuData.primaryButton = {
-      name: (
-        <>
-          {' '}
-          <i className="fa fa-plus" /> {t('Database')}{' '}
-        </>
-      ),
-      onClick: () => {
-        // Ensure modal will be opened in add mode
-        setCurrentDatabase(null);
-        setDatabaseModalOpen(true);
+    menuData.buttons = [
+      {
+        'data-test': 'btn-create-database',
+        name: (
+          <>
+            <i className="fa fa-plus" /> {t('Database')}{' '}
+          </>
+        ),
+        buttonStyle: 'primary',
+        onClick: () => {
+          // Ensure modal will be opened in add mode
+          setCurrentDatabase(null);
+          setDatabaseModalOpen(true);
+        },
       },
-    };
+    ];
+  }
+
+  function handleDatabaseExport(database: DatabaseObject) {
+    return window.location.assign(
+      `/api/v1/database/export/?q=${rison.encode([database.id])}`,
+    );
   }
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
@@ -141,7 +190,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         Header: (
           <TooltipWrapper
             label="allow-dml-header"
-            tooltip={t('Allow Data Danipulation Language')}
+            tooltip={t('Allow Data Manipulation Language')}
             placement="top"
           >
             <span>{t('DML')}</span>
@@ -198,51 +247,74 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const handleDelete = () => handleDatabaseDelete(original);
-          if (!canDelete) {
+          const handleEdit = () => handleDatabaseEdit(original);
+          const handleDelete = () => openDatabaseDeleteModal(original);
+          const handleExport = () => handleDatabaseExport(original);
+          if (!canEdit && !canDelete && !canExport) {
             return null;
           }
           return (
             <span className="actions">
               {canDelete && (
-                <ConfirmStatusChange
-                  title={t('Please Confirm')}
-                  description={
-                    <>
-                      {t('Are you sure you want to delete')}{' '}
-                      <b>{original.database_name}</b>?
-                    </>
-                  }
-                  onConfirm={handleDelete}
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  data-test="database-delete"
+                  onClick={handleDelete}
                 >
-                  {confirmDelete => (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      className="action-button"
-                      data-test="database-delete"
-                      onClick={confirmDelete}
-                    >
-                      <TooltipWrapper
-                        label="delete-action"
-                        tooltip={t('Delete database')}
-                        placement="bottom"
-                      >
-                        <Icon name="trash" />
-                      </TooltipWrapper>
-                    </span>
-                  )}
-                </ConfirmStatusChange>
+                  <TooltipWrapper
+                    label="delete-action"
+                    tooltip={t('Delete database')}
+                    placement="bottom"
+                  >
+                    <Icon name="trash" />
+                  </TooltipWrapper>
+                </span>
+              )}
+              {canExport && (
+                <TooltipWrapper
+                  label="export-action"
+                  tooltip={t('Export')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleExport}
+                  >
+                    <Icon name="share" />
+                  </span>
+                </TooltipWrapper>
+              )}
+              {canEdit && (
+                <TooltipWrapper
+                  label="edit-action"
+                  tooltip={t('Edit')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    data-test="database-edit"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleEdit}
+                  >
+                    <Icon name="edit-alt" />
+                  </span>
+                </TooltipWrapper>
               )}
             </span>
           );
         },
         Header: t('Actions'),
         id: 'actions',
+        hidden: !canEdit && !canDelete,
         disableSortBy: true,
       },
     ],
-    [canDelete, canCreate],
+    [canDelete, canEdit, canExport],
   );
 
   const filters: Filters = useMemo(
@@ -295,9 +367,27 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         show={databaseModalOpen}
         onHide={() => setDatabaseModalOpen(false)}
         onDatabaseAdd={() => {
-          /* TODO: add database logic here */
+          refreshData();
         }}
       />
+      {databaseCurrentlyDeleting && (
+        <DeleteModal
+          description={t(
+            'The database %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the database will break those objects.',
+            databaseCurrentlyDeleting.database_name,
+            databaseCurrentlyDeleting.chart_count,
+            databaseCurrentlyDeleting.dashboard_count,
+          )}
+          onConfirm={() => {
+            if (databaseCurrentlyDeleting) {
+              handleDatabaseDelete(databaseCurrentlyDeleting);
+            }
+          }}
+          onHide={() => setDatabaseCurrentlyDeleting(null)}
+          open
+          title={t('Delete Database?')}
+        />
+      )}
 
       <ListView<DatabaseObject>
         className="database-list-view"

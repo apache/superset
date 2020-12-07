@@ -17,9 +17,9 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { getChartControlPanelRegistry } from '@superset-ui/chart';
+import { getChartControlPanelRegistry } from '@superset-ui/core';
 import { getAllControlsState, getFormDataFromControls } from './controlUtils';
-import controls from './controls';
+import { controls } from './controls';
 
 function handleDeprecatedControls(formData) {
   // Reacffectation / handling of deprecated controls

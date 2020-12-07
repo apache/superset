@@ -57,18 +57,15 @@
  * each and every visualization type.
  */
 import React from 'react';
-import { t } from '@superset-ui/translation';
 import {
+  t,
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
-} from '@superset-ui/color';
-import {
   legacyValidateInteger,
   validateNonEmpty,
-} from '@superset-ui/validator';
-
+} from '@superset-ui/core';
 import { ColumnOption } from '@superset-ui/chart-controls';
-import { formatSelectOptions, mainMetric } from '../modules/utils';
+import { formatSelectOptions, mainMetric } from 'src/modules/utils';
 import { TIME_FILTER_LABELS } from './constants';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
@@ -162,7 +159,7 @@ const metrics = {
     return metric ? [metric] : null;
   },
   mapStateToProps: state => {
-    const datasource = state.datasource;
+    const { datasource } = state;
     return {
       columns: datasource ? datasource.columns : [],
       savedMetrics: datasource ? datasource.metrics : [],
@@ -319,12 +316,12 @@ export const controls = {
     mapStateToProps: state => {
       const props = {};
       if (state.datasource) {
-        props.options = state.datasource.columns.filter(c => c.is_dttm);
+        props.choices = state.datasource.granularity_sqla;
         props.default = null;
         if (state.datasource.main_dttm_col) {
           props.default = state.datasource.main_dttm_col;
-        } else if (props.options && props.options.length > 0) {
-          props.default = props.options[0].column_name;
+        } else if (props.choices && props.choices.length > 0) {
+          props.default = props.choices[0].column_name;
         }
       }
       return props;
@@ -503,4 +500,3 @@ export const controls = {
     }),
   },
 };
-export default controls;

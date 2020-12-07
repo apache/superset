@@ -28,11 +28,10 @@ from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
 import superset.models.core as models
-from superset import app, db
+from superset import app, db, is_feature_enabled
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import RouteMethod
 from superset.exceptions import CertificateException
-from superset.extensions import feature_flag_manager
 from superset.sql_parse import Table
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
@@ -51,7 +50,7 @@ stats_logger = config["STATS_LOGGER"]
 
 def sqlalchemy_uri_form_validator(_: _, field: StringField) -> None:
     """
-        Check if user has submitted a valid SQLAlchemy URI
+    Check if user has submitted a valid SQLAlchemy URI
     """
 
     sqlalchemy_uri_validator(field.data, exception=ValidationError)
@@ -59,7 +58,7 @@ def sqlalchemy_uri_form_validator(_: _, field: StringField) -> None:
 
 def certificate_form_validator(_: _, field: StringField) -> None:
     """
-        Check if user has submitted a valid SSL certificate
+    Check if user has submitted a valid SSL certificate
     """
     if field.data:
         try:
@@ -99,10 +98,7 @@ class DatabaseView(
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
-        if not (
-            app.config["ENABLE_REACT_CRUD_VIEWS"]
-            and feature_flag_manager.is_feature_enabled("SIP_34_DATABASE_UI")
-        ):
+        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
             return super().list()
 
         return super().render_app_template()

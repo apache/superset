@@ -17,12 +17,12 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
+import { t, SupersetClient } from '@superset-ui/core';
+import rison from 'rison';
 
-import { addDangerToast } from '../../messageToasts/actions';
-import { getDatasourceParameter } from '../../modules/utils';
-import getClientErrorObject from '../../utils/getClientErrorObject';
+import { addDangerToast } from 'src/messageToasts/actions';
+import { getDatasourceParameter } from 'src/modules/utils';
+import getClientErrorObject from 'src/utils/getClientErrorObject';
 
 export const SET_ALL_SLICES = 'SET_ALL_SLICES';
 export function setAllSlices(slices) {
@@ -39,6 +39,7 @@ export function fetchAllSlicesFailed(error) {
   return { type: FETCH_ALL_SLICES_FAILED, payload: { error } };
 }
 
+const FETCH_SLICES_PAGE_SIZE = 200;
 export function fetchAllSlices(userId) {
   return (dispatch, getState) => {
     const { sliceEntities } = getState();
@@ -46,13 +47,34 @@ export function fetchAllSlices(userId) {
       dispatch(fetchAllSlicesStarted());
 
       return SupersetClient.get({
-        endpoint: `/sliceasync/api/read?_flt_0_created_by=${userId}`,
+        endpoint: `/api/v1/chart/?q=${rison.encode({
+          columns: [
+            'changed_on_delta_humanized',
+            'changed_on_utc',
+            'datasource_id',
+            'datasource_type',
+            'datasource_url',
+            'datasource_name_text',
+            'description_markeddown',
+            'description',
+            'edit_url',
+            'id',
+            'params',
+            'slice_name',
+            'url',
+            'viz_type',
+          ],
+          filters: [{ col: 'owners', opr: 'rel_m_m', value: userId }],
+          page_size: FETCH_SLICES_PAGE_SIZE,
+          order_column: 'changed_on_delta_humanized',
+          order_direction: 'desc',
+        })}`,
       })
         .then(({ json }) => {
           const slices = {};
           json.result.forEach(slice => {
             let form_data = JSON.parse(slice.params);
-            let datasource = form_data.datasource;
+            let { datasource } = form_data;
             if (!datasource) {
               datasource = getDatasourceParameter(
                 slice.datasource_id,
@@ -63,40 +85,40 @@ export function fetchAllSlices(userId) {
                 datasource,
               };
             }
-            if (['markup', 'separator'].indexOf(slice.viz_type) === -1) {
-              slices[slice.id] = {
-                slice_id: slice.id,
-                slice_url: slice.slice_url,
-                slice_name: slice.slice_name,
-                edit_url: slice.edit_url,
-                form_data,
-                datasource_name: slice.datasource_name_text,
-                datasource_link: slice.datasource_link,
-                changed_on: new Date(slice.changed_on).getTime(),
-                description: slice.description,
-                description_markdown: slice.description_markeddown,
-                viz_type: slice.viz_type,
-                modified: slice.modified,
-                changed_on_humanized: slice.changed_on_humanized,
-              };
-            }
+            slices[slice.id] = {
+              slice_id: slice.id,
+              slice_url: slice.url,
+              slice_name: slice.slice_name,
+              edit_url: slice.edit_url,
+              form_data,
+              datasource_name: slice.datasource_name_text,
+              datasource_url: slice.datasource_url,
+              changed_on: new Date(slice.changed_on_utc).getTime(),
+              description: slice.description,
+              description_markdown: slice.description_markeddown,
+              viz_type: slice.viz_type,
+              modified: slice.changed_on_delta_humanized,
+              changed_on_humanized: slice.changed_on_delta_humanized,
+            };
           });
 
           return dispatch(setAllSlices(slices));
         })
-        .catch(errorResponse =>
-          getClientErrorObject(errorResponse).then(({ error }) => {
-            dispatch(
-              fetchAllSlicesFailed(
-                error || t('Could not fetch all saved charts'),
-              ),
-            );
-            dispatch(
-              addDangerToast(
-                t('Sorry there was an error fetching saved charts: ') + error,
-              ),
-            );
-          }),
+        .catch(
+          errorResponse =>
+            console.log(errorResponse) ||
+            getClientErrorObject(errorResponse).then(({ error }) => {
+              dispatch(
+                fetchAllSlicesFailed(
+                  error || t('Could not fetch all saved charts'),
+                ),
+              );
+              dispatch(
+                addDangerToast(
+                  t('Sorry there was an error fetching saved charts: ') + error,
+                ),
+              );
+            }),
         );
     }
 

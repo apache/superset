@@ -17,6 +17,12 @@
  * under the License.
  */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
+import {
+  getChartAliases,
+  DASHBOARD_CHART_ALIAS_PREFIX,
+  isLegacyResponse,
+} from '../../utils/vizPlugins';
+import readResponseBlob from '../../utils/readResponseBlob';
 
 interface Slice {
   slice_id: number;
@@ -35,7 +41,7 @@ describe('Dashboard filter', () => {
   let aliases: string[];
 
   const getAlias = (id: number) => {
-    return `@slice_${id}`;
+    return `@${DASHBOARD_CHART_ALIAS_PREFIX}${id}`;
   };
 
   beforeEach(() => {
@@ -47,72 +53,67 @@ describe('Dashboard filter', () => {
     cy.get('#app').then(app => {
       const bootstrapData = app.data('bootstrap');
       const dashboard = bootstrapData.dashboard_data as DashboardData;
-      const sliceIds = dashboard.slices.map(slice => slice.slice_id);
+      const { slices } = dashboard;
       filterId =
         dashboard.slices.find(
           slice => slice.form_data.viz_type === 'filter_box',
         )?.slice_id || 0;
-      aliases = sliceIds.map(id => {
-        const alias = getAlias(id);
-        const url = `/superset/explore_json/?*{"slice_id":${id}}*`;
-        cy.route('POST', url).as(alias.slice(1));
-        return alias;
-      });
+
+      aliases = getChartAliases(slices);
 
       // wait the initial page load requests
       cy.wait(aliases);
     });
   });
-  // TODO fix and reactivate this flaky test
   xit('should apply filter', () => {
-    cy.get('.Select__control input[type=text]').first().focus();
+    cy.get('.Select__control input[type=text]')
+      .first()
+      .should('be.visible')
+      .focus();
 
     // should open the filter indicator
-    cy.get('.filter-indicator.active')
-      .should('be.visible')
+    cy.get('[data-test="filter"]')
+      .should('be.visible', { timeout: 10000 })
       .should(nodes => {
-        expect(nodes).to.have.length(9);
+        expect(nodes).to.have.length(9); // this part was not working, xit-ed
       });
+
+    cy.get('[data-test="chart-container"]').find('svg').should('be.visible');
 
     cy.get('.Select__control input[type=text]').first().focus().blur();
 
-    // should hide the filter indicator
-    cy.get('.filter-indicator')
-      .not('.active')
-      .should(nodes => {
-        expect(nodes).to.have.length(18);
-      });
-
     cy.get('.Select__control input[type=text]')
       .first()
       .focus()
-      .type('So', { force: true });
+      .type('So', { force: true, delay: 100 });
 
-    cy.get('.Select__menu').first().contains('Create "So"');
+    cy.get('.Select__menu').first().contains('South Asia').click();
 
-    // Somehow Input loses focus after typing "So" while in Cypress, so
-    // we refocus the input again here. The is not happening in real life.
-    cy.get('.Select__control input[type=text]')
-      .first()
-      .focus()
-      .type('uth Asia{enter}', { force: true });
-
-    // by default, need to click Apply button to apply filter
     cy.get('.filter_box button').click({ force: true });
-
-    // wait again after applied filters
     cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests => {
-      requests.forEach(xhr => {
-        const requestFormData = xhr.request.body as FormData;
-        const requestParams = JSON.parse(
-          requestFormData.get('form_data') as string,
-        );
-        expect(requestParams.extra_filters[0]).deep.eq({
-          col: 'region',
-          op: 'in',
-          val: ['South Asia'],
-        });
-      });
+      return Promise.all(
+        requests.map(async xhr => {
+          expect(xhr.status).to.eq(200);
+          const responseBody = await readResponseBlob(xhr.response.body);
+          let requestFilter;
+          if (isLegacyResponse(responseBody)) {
+            const requestFormData = xhr.request.body as FormData;
+            const requestParams = JSON.parse(
+              requestFormData.get('form_data') as string,
+            );
+            requestFilter = requestParams.extra_filters[0];
+          } else {
+            requestFilter = xhr.request.body.queries[0].filters[0];
+          }
+          expect(requestFilter).deep.eq({
+            col: 'region',
+            op: '==',
+            val: 'South Asia',
+          });
+        }),
+      );
     });
+
+    // TODO add test with South Asia{enter} type action to select filter
   });
 });

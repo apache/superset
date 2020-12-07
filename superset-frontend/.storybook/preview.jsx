@@ -22,7 +22,7 @@ import { jsxDecorator } from 'storybook-addon-jsx';
 import { addParameters } from '@storybook/react';
 import { withPaddings } from 'storybook-addon-paddings';
 
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import '../src/theme.ts';
 import './storybook.css';

@@ -18,18 +18,19 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { MenuItem, DropdownButton, Tab, Tabs } from 'react-bootstrap';
+import { EditableTabs } from 'src/common/components/Tabs';
+import { Dropdown } from 'src/common/components/Dropdown';
+import { Menu } from 'src/common/components';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import URI from 'urijs';
-import { t } from '@superset-ui/translation';
+import { styled, t } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
+import { areArraysShallowEqual } from 'src/reduxUtils';
 import * as Actions from '../actions/sqlLab';
 import SqlEditor from './SqlEditor';
-import { areArraysShallowEqual } from '../../reduxUtils';
 import TabStatusIcon from './TabStatusIcon';
-import Icon from '../../components/Icon';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -57,6 +58,15 @@ const defaultProps = {
 
 let queryCount = 1;
 
+const TabTitleWrapper = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+const TabTitle = styled.span`
+  margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
 class TabbedSqlEditors extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -74,7 +84,10 @@ class TabbedSqlEditors extends React.PureComponent {
       this,
     );
     this.duplicateQueryEditor = this.duplicateQueryEditor.bind(this);
+    this.handleSelect = this.handleSelect.bind(this);
+    this.handleEdit = this.handleEdit.bind(this);
   }
+
   componentDidMount() {
     // migrate query editor and associated tables state to server
     if (isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)) {
@@ -129,7 +142,7 @@ class TabbedSqlEditors extends React.PureComponent {
         if (dbId) {
           dbId = parseInt(dbId, 10);
         } else {
-          const databases = this.props.databases;
+          const { databases } = this.props;
           const dbName = query.dbname;
           if (dbName) {
             Object.keys(databases).forEach(db => {
@@ -149,8 +162,12 @@ class TabbedSqlEditors extends React.PureComponent {
         this.props.actions.addQueryEditor(newQueryEditor);
       }
       this.popNewTab();
-    } else if (this.props.queryEditors.length === 0) {
+    } else if (query.new || this.props.queryEditors.length === 0) {
       this.newQueryEditor();
+
+      if (query.new) {
+        window.history.replaceState({}, document.title, this.state.sqlLabUrl);
+      }
     } else {
       const qe = this.activeQueryEditor();
       const latestQuery = this.props.queries[qe.latestQueryId];
@@ -168,15 +185,13 @@ class TabbedSqlEditors extends React.PureComponent {
       }
     }
   }
+
   UNSAFE_componentWillReceiveProps(nextProps) {
     const nextActiveQeId =
       nextProps.tabHistory[nextProps.tabHistory.length - 1];
-    const queriesArray = [];
-    for (const id in nextProps.queries) {
-      if (nextProps.queries[id].sqlEditorId === nextActiveQeId) {
-        queriesArray.push(nextProps.queries[id]);
-      }
-    }
+    const queriesArray = Object.values(nextProps.queries).filter(
+      query => query.sqlEditorId === nextActiveQeId,
+    );
     if (!areArraysShallowEqual(queriesArray, this.state.queriesArray)) {
       this.setState({ queriesArray });
     }
@@ -201,11 +216,13 @@ class TabbedSqlEditors extends React.PureComponent {
       this.setState({ dataPreviewQueries });
     }
   }
+
   popNewTab() {
-    queryCount++;
+    queryCount += 1;
     // Clean the url in browser history
     window.history.replaceState({}, document.title, this.state.sqlLabUrl);
   }
+
   renameTab(qe) {
     /* eslint no-alert: 0 */
     const newTitle = prompt(t('Enter a new title for the tab'));
@@ -213,6 +230,7 @@ class TabbedSqlEditors extends React.PureComponent {
       this.props.actions.queryEditorSetTitle(qe, newTitle);
     }
   }
+
   activeQueryEditor() {
     if (this.props.tabHistory.length === 0) {
       return this.props.queryEditors[0];
@@ -220,8 +238,9 @@ class TabbedSqlEditors extends React.PureComponent {
     const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
     return this.props.queryEditors.find(qe => qe.id === qeid) || null;
   }
+
   newQueryEditor() {
-    queryCount++;
+    queryCount += 1;
     const activeQueryEditor = this.activeQueryEditor();
     const firstDbId = Math.min(
       ...Object.values(this.props.databases).map(database => database.id),
@@ -244,39 +263,48 @@ class TabbedSqlEditors extends React.PureComponent {
     };
     this.props.actions.addQueryEditor(qe);
   }
+
   handleSelect(key) {
-    if (key === 'add_tab') {
-      this.newQueryEditor();
-    } else {
-      const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
-      if (key !== qeid) {
-        const queryEditor = this.props.queryEditors.find(qe => qe.id === key);
-        this.props.actions.switchQueryEditor(
-          queryEditor,
-          this.props.displayLimit,
-        );
-      }
+    const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
+    if (key !== qeid) {
+      const queryEditor = this.props.queryEditors.find(qe => qe.id === key);
+      this.props.actions.switchQueryEditor(
+        queryEditor,
+        this.props.displayLimit,
+      );
     }
   }
+
+  handleEdit(key, action) {
+    if (action === 'remove') {
+      const qe = this.props.queryEditors.find(qe => qe.id === key);
+      this.removeQueryEditor(qe);
+    }
+    if (action === 'add') {
+      this.newQueryEditor();
+    }
+  }
+
   removeQueryEditor(qe) {
     this.props.actions.removeQueryEditor(qe);
   }
+
   removeAllOtherQueryEditors(cqe) {
     this.props.queryEditors.forEach(
       qe => qe !== cqe && this.removeQueryEditor(qe),
     );
   }
+
   duplicateQueryEditor(qe) {
     this.props.actions.cloneQueryToNewTab(qe, false);
   }
-  toggleLeftBar() {
-    this.setState({ hideLeftBar: !this.state.hideLeftBar });
-  }
-  render() {
-    const editors = this.props.queryEditors.map((qe, i) => {
-      const isSelected =
-        this.activeQueryEditor() && this.activeQueryEditor().id === qe.id;
 
+  toggleLeftBar() {
+    this.setState(prevState => ({ hideLeftBar: !prevState.hideLeftBar }));
+  }
+
+  render() {
+    const editors = this.props.queryEditors.map(qe => {
       let latestQuery;
       if (qe.latestQueryId) {
         latestQuery = this.props.queries[qe.latestQueryId];
@@ -287,120 +315,97 @@ class TabbedSqlEditors extends React.PureComponent {
       }
       const state = latestQuery ? latestQuery.state : '';
 
-      const title = (
-        <>
-          {qe.title} <TabStatusIcon tabState={state} />{' '}
-          <Icon
-            role="button"
-            tabIndex={0}
-            cursor="pointer"
-            name="cancel-x"
+      const menu = (
+        <Menu>
+          <Menu.Item
+            className="close-btn"
+            key="1"
             onClick={() => this.removeQueryEditor(qe)}
-          />
-        </>
+            data-test="close-tab-menu-option"
+          >
+            <div className="icon-container">
+              <i className="fa fa-close" />
+            </div>
+            {t('Close tab')}
+          </Menu.Item>
+          <Menu.Item key="2" onClick={() => this.renameTab(qe)}>
+            <div className="icon-container">
+              <i className="fa fa-i-cursor" />
+            </div>
+            {t('Rename tab')}
+          </Menu.Item>
+          <Menu.Item key="3" onClick={this.toggleLeftBar}>
+            <div className="icon-container">
+              <i className="fa fa-cogs" />
+            </div>
+            {this.state.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
+          </Menu.Item>
+          <Menu.Item
+            key="4"
+            onClick={() => this.removeAllOtherQueryEditors(qe)}
+          >
+            <div className="icon-container">
+              <i className="fa fa-times-circle-o" />
+            </div>
+            {t('Close all other tabs')}
+          </Menu.Item>
+          <Menu.Item key="5" onClick={() => this.duplicateQueryEditor(qe)}>
+            <div className="icon-container">
+              <i className="fa fa-files-o" />
+            </div>
+            {t('Duplicate tab')}
+          </Menu.Item>
+        </Menu>
       );
-      const tabTitle = (
-        <>
-          {isSelected && (
-            <DropdownButton
-              bsSize="small"
-              id={`ddbtn-tab-${i}`}
-              title={' '}
-              noCaret
-            >
-              <MenuItem
-                className="close-btn"
-                eventKey="1"
-                onClick={() => this.removeQueryEditor(qe)}
-              >
-                <div className="icon-container">
-                  <i className="fa fa-close" />
-                </div>
-                {t('Close tab')}
-              </MenuItem>
-              <MenuItem eventKey="2" onClick={() => this.renameTab(qe)}>
-                <div className="icon-container">
-                  <i className="fa fa-i-cursor" />
-                </div>
-                {t('Rename tab')}
-              </MenuItem>
-              <MenuItem eventKey="3" onClick={this.toggleLeftBar}>
-                <div className="icon-container">
-                  <i className="fa fa-cogs" />
-                </div>
-                {this.state.hideLeftBar
-                  ? t('Expand tool bar')
-                  : t('Hide tool bar')}
-              </MenuItem>
-              <MenuItem
-                eventKey="4"
-                onClick={() => this.removeAllOtherQueryEditors(qe)}
-              >
-                <div className="icon-container">
-                  <i className="fa fa-times-circle-o" />
-                </div>
-                {t('Close all other tabs')}
-              </MenuItem>
-              <MenuItem
-                eventKey="5"
-                onClick={() => this.duplicateQueryEditor(qe)}
-              >
-                <div className="icon-container">
-                  <i className="fa fa-files-o" />
-                </div>
-                {t('Duplicate tab')}
-              </MenuItem>
-            </DropdownButton>
-          )}
-          <span className="ddbtn-tab">{title}</span>
-        </>
+
+      const tabHeader = (
+        <TabTitleWrapper>
+          <div data-test="dropdown-toggle-button">
+            <Dropdown overlay={menu} trigger={['click']} />
+          </div>
+          <TabTitle>{qe.title}</TabTitle> <TabStatusIcon tabState={state} />{' '}
+        </TabTitleWrapper>
       );
       return (
-        <Tab key={qe.id} title={tabTitle} eventKey={qe.id}>
-          {isSelected && (
-            <SqlEditor
-              tables={this.props.tables.filter(
-                xt => xt.queryEditorId === qe.id,
-              )}
-              queryEditor={qe}
-              editorQueries={this.state.queriesArray}
-              dataPreviewQueries={this.state.dataPreviewQueries}
-              latestQuery={latestQuery}
-              database={database}
-              actions={this.props.actions}
-              hideLeftBar={this.state.hideLeftBar}
-              defaultQueryLimit={this.props.defaultQueryLimit}
-              maxRow={this.props.maxRow}
-              displayLimit={this.props.displayLimit}
-              saveQueryWarning={this.props.saveQueryWarning}
-              scheduleQueryWarning={this.props.scheduleQueryWarning}
-            />
-          )}
-        </Tab>
+        <EditableTabs.TabPane
+          key={qe.id}
+          tab={tabHeader}
+          // for tests - key prop isn't handled by enzyme well bcs it's a react keyword
+          data-key={qe.id}
+        >
+          <SqlEditor
+            tables={this.props.tables.filter(xt => xt.queryEditorId === qe.id)}
+            queryEditor={qe}
+            editorQueries={this.state.queriesArray}
+            dataPreviewQueries={this.state.dataPreviewQueries}
+            latestQuery={latestQuery}
+            database={database}
+            actions={this.props.actions}
+            hideLeftBar={this.state.hideLeftBar}
+            defaultQueryLimit={this.props.defaultQueryLimit}
+            maxRow={this.props.maxRow}
+            displayLimit={this.props.displayLimit}
+            saveQueryWarning={this.props.saveQueryWarning}
+            scheduleQueryWarning={this.props.scheduleQueryWarning}
+          />
+        </EditableTabs.TabPane>
       );
     });
+
     return (
-      <Tabs
-        bsStyle="tabs"
-        animation={false}
+      <EditableTabs
         activeKey={this.props.tabHistory[this.props.tabHistory.length - 1]}
-        onSelect={this.handleSelect.bind(this)}
         id="a11y-query-editor-tabs"
         className="SqlEditorTabs"
+        data-test="sql-editor-tabs"
+        onChange={this.handleSelect}
+        fullWidth={false}
+        hideAdd={this.props.offline}
+        onEdit={this.handleEdit}
+        addIcon={<i data-test="add-tab-icon" className="fa fa-plus-circle" />}
       >
         {editors}
-        <Tab
-          title={
-            <div>
-              <i className="fa fa-plus-circle" />
-              &nbsp;
-            </div>
-          }
-          className="addEditorTab"
-          eventKey="add_tab"
-          disabled={this.props.offline}
-        />
-      </Tabs>
+      </EditableTabs>
     );
   }
 }
@@ -429,7 +434,5 @@ function mapDispatchToProps(dispatch) {
     actions: bindActionCreators(Actions, dispatch),
   };
 }
-
-export { TabbedSqlEditors };
 
 export default connect(mapStateToProps, mapDispatchToProps)(TabbedSqlEditors);

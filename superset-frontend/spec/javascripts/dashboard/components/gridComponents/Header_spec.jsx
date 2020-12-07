@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { Provider } from 'react-redux';
-import { mount } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import sinon from 'sinon';
 
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
@@ -33,8 +33,8 @@ import {
   DASHBOARD_GRID_TYPE,
 } from 'src/dashboard/util/componentTypes';
 
-import WithDragDropContext from '../../helpers/WithDragDropContext';
-import { mockStoreWithTabs } from '../../fixtures/mockStore';
+import WithDragDropContext from 'spec/helpers/WithDragDropContext';
+import { mockStoreWithTabs } from 'spec/fixtures/mockStore';
 
 describe('Header', () => {
   const props = {
@@ -86,7 +86,9 @@ describe('Header', () => {
   it('should render an EditableTitle with meta.text', () => {
     const wrapper = setup();
     expect(wrapper.find(EditableTitle)).toExist();
-    expect(wrapper.find('input').prop('value')).toBe(props.component.meta.text);
+    expect(wrapper.find('.editable-title')).toHaveText(
+      props.component.meta.text,
+    );
   });
 
   it('should call updateComponents when EditableTitle changes', () => {

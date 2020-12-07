@@ -53,10 +53,9 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         sql = parsed_query.stripped()
 
         # Hook to allow environment-specific mutation (usually comments) to the SQL
-        # pylint: disable=invalid-name
-        SQL_QUERY_MUTATOR = config["SQL_QUERY_MUTATOR"]
-        if SQL_QUERY_MUTATOR:
-            sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
+        sql_query_mutator = config["SQL_QUERY_MUTATOR"]
+        if sql_query_mutator:
+            sql = sql_query_mutator(sql, user_name, security_manager, database)
 
         # Transform the final statement to an explain call before sending it on
         # to presto to validate

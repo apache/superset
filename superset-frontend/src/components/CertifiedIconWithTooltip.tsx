@@ -17,19 +17,20 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/translation';
-import { supersetTheme } from '@superset-ui/style';
+import { t, supersetTheme } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 
 interface CertifiedIconWithTooltipProps {
   certifiedBy?: string;
   details?: string;
+  size?: number;
 }
 
 function CertifiedIconWithTooltip({
   certifiedBy,
   details,
+  size = 24,
 }: CertifiedIconWithTooltipProps) {
   return (
     <TooltipWrapper
@@ -41,7 +42,12 @@ function CertifiedIconWithTooltip({
         </>
       }
     >
-      <Icon color={supersetTheme.colors.primary.base} name="certified" />
+      <Icon
+        color={supersetTheme.colors.primary.base}
+        height={size}
+        width={size}
+        name="certified"
+      />
     </TooltipWrapper>
   );
 }

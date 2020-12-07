@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import Button, { ButtonProps } from 'src/components/Button';
 
@@ -59,7 +59,8 @@ const RunQueryActionButton = ({
         <i className="fa fa-stop" /> {t('Stop')}
       </Button>
     );
-  } else if (allowAsync) {
+  }
+  if (allowAsync) {
     return (
       <Button
         {...commonBtnProps}

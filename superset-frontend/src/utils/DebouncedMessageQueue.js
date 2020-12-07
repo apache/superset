@@ -31,10 +31,12 @@ class DebouncedMessageQueue {
     this.trigger = debounce(this.trigger.bind(this), this.delayThrehold);
     this.callback = callback;
   }
+
   append(eventData) {
     this.queue.push(eventData);
     this.trigger();
   }
+
   trigger() {
     if (this.queue.length > 0) {
       const events = this.queue.splice(0, this.sizeThreshold);

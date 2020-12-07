@@ -17,10 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { mount, shallow } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import { act } from 'react-dom/test-utils';
 import { QueryParamProvider } from 'use-query-params';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import { Empty } from 'src/common/components';
@@ -29,9 +29,9 @@ import { CardSortSelect } from 'src/components/ListView/CardSortSelect';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import ListView from 'src/components/ListView/ListView';
 import ListViewFilters from 'src/components/ListView/Filters';
-import ListViewPagination from 'src/components/ListView/Pagination';
+import ListViewPagination from 'src/components/dataViewCommon/Pagination';
+import TableCollection from 'src/components/dataViewCommon/TableCollection';
 import Pagination from 'src/components/Pagination';
-import TableCollection from 'src/components/ListView/TableCollection';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 
@@ -62,6 +62,10 @@ const mockedProps = {
       accessor: 'name',
       Header: 'Name',
     },
+    {
+      accessor: 'time',
+      Header: 'Time',
+    },
   ],
   filters: [
     {
@@ -85,10 +89,16 @@ const mockedProps = {
       paginate: true,
       operator: 'eq',
     },
+    {
+      Header: 'Time',
+      id: 'time',
+      input: 'datetime_range',
+      operator: 'between',
+    },
   ],
   data: [
-    { id: 1, name: 'data 1' },
-    { id: 2, name: 'data 2' },
+    { id: 1, name: 'data 1', age: 10, time: '2020-11-18T07:53:45.354Z' },
+    { id: 2, name: 'data 2', age: 1, time: '2020-11-18T07:53:45.354Z' },
   ],
   count: 2,
   pageSize: 1,
@@ -221,15 +231,17 @@ describe('ListView', () => {
 
     expect(mockedProps.bulkActions[0].onSelect.mock.calls[0])
       .toMatchInlineSnapshot(`
-                                    Array [
-                                      Array [
-                                        Object {
-                                          "id": 1,
-                                          "name": "data 1",
-                                        },
-                                      ],
-                                    ]
-                        `);
+      Array [
+        Array [
+          Object {
+            "age": 10,
+            "id": 1,
+            "name": "data 1",
+            "time": "2020-11-18T07:53:45.354Z",
+          },
+        ],
+      ]
+    `);
   });
 
   it('handles bulk actions on all rows', () => {
@@ -250,19 +262,23 @@ describe('ListView', () => {
 
     expect(mockedProps.bulkActions[0].onSelect.mock.calls[0])
       .toMatchInlineSnapshot(`
-                        Array [
-                          Array [
-                            Object {
-                              "id": 1,
-                              "name": "data 1",
-                            },
-                            Object {
-                              "id": 2,
-                              "name": "data 2",
-                            },
-                          ],
-                        ]
-                `);
+      Array [
+        Array [
+          Object {
+            "age": 10,
+            "id": 1,
+            "name": "data 1",
+            "time": "2020-11-18T07:53:45.354Z",
+          },
+          Object {
+            "age": 1,
+            "id": 2,
+            "name": "data 2",
+            "time": "2020-11-18T07:53:45.354Z",
+          },
+        ],
+      ]
+    `);
   });
 
   it('allows deselecting all', async () => {
@@ -338,7 +354,7 @@ describe('ListView', () => {
       filters: [...mockedProps.filters, { id: 'some_column' }],
     };
     expect(() => {
-      shallow(<ListView {...props} />, {
+      mount(<ListView {...props} />, {
         wrappingComponent: ThemeProvider,
         wrappingComponentProps: { theme: supersetTheme },
       });

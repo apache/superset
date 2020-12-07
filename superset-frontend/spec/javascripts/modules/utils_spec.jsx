@@ -16,25 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { formatSelectOptionsForRange, mainMetric } from 'src/modules/utils';
+import { mainMetric } from 'src/modules/utils';
 
 describe('utils', () => {
-  describe('formatSelectOptionsForRange', () => {
-    it('returns an array of arrays for the range specified (inclusive)', () => {
-      expect(formatSelectOptionsForRange(0, 4)).toEqual([
-        [0, '0'],
-        [1, '1'],
-        [2, '2'],
-        [3, '3'],
-        [4, '4'],
-      ]);
-      expect(formatSelectOptionsForRange(1, 2)).toEqual([
-        [1, '1'],
-        [2, '2'],
-      ]);
-    });
-  });
-
   describe('mainMetric', () => {
     it('is null when no options', () => {
       expect(mainMetric([])).toBeUndefined();

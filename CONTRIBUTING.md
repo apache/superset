@@ -47,7 +47,6 @@ little bit helps, and credit will always be given.
   - [Setup Local Environment for Development](#setup-local-environment-for-development)
     - [Documentation](#documentation)
       - [Images](#images)
-      - [API documentation](#api-documentation)
     - [Flask server](#flask-server)
       - [OS Dependencies](#os-dependencies)
       - [Logging to the browser console](#logging-to-the-browser-console)
@@ -70,6 +69,7 @@ little bit helps, and credit will always be given.
     - [Python Testing](#python-testing)
     - [Frontend Testing](#frontend-testing)
     - [Integration Testing](#integration-testing)
+    - [Storybook](#storybook)
   - [Translating](#translating)
     - [Enabling language selection](#enabling-language-selection)
     - [Extracting new strings for translation](#extracting-new-strings-for-translation)
@@ -77,6 +77,7 @@ little bit helps, and credit will always be given.
   - [Tips](#tips)
     - [Adding a new datasource](#adding-a-new-datasource)
     - [Improving visualizations](#improving-visualizations)
+    - [Visualization Plugins](#visualization-plugins)
     - [Adding a DB migration](#adding-a-db-migration)
     - [Merging DB migrations](#merging-db-migrations)
     - [SQL Lab Async](#sql-lab-async)
@@ -88,7 +89,6 @@ little bit helps, and credit will always be given.
     - [Y Axis 1](#y-axis-1)
     - [Y Axis 2](#y-axis-2)
     - [Query](#query)
-    - [Filters Configuration](#filters-configuration)
     - [Chart Options](#chart-options)
     - [Y Axis](#y-axis)
     - [Other](#other)
@@ -197,6 +197,23 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 #### Authoring
 
 - Fill in all sections of the PR template.
+- Title the PR with one of the following semantic prefixes (inspired by [Karma](http://karma-runner.github.io/0.10/dev/git-commit-msg.html])):
+  - `feat` (new feature)
+  - `fix` (bug fix)
+  - `docs` (changes to the documentation)
+  - `style` (formatting, missing semi colons, etc; no application logic change)
+  - `refactor` (refactoring code)
+  - `test` (adding missing tests, refactoring tests; no application logic change)
+  - `chore` (updating tasks etc; no application logic change)
+  - `perf` (performance-related change)
+  - `build` (build tooling, Docker configuration change)
+  - `ci` (test runner, Github Actions workflow changes)
+  - `other` (changes that don't correspond to the above -- should be rare!)
+  - Examples:
+    - `feat: export charts as ZIP files`
+    - `perf(api): improve API info performance`
+    - `fix(chart-api): cached-indicator always shows value is cached`
+
 - Add prefix `[WIP]` to title if not ready for review (WIP = work-in-progress). We recommend creating a PR with `[WIP]` first and remove it once you have passed CI test and read through your code changes at least once.
 - **Screenshots/GIFs:** Changes to user interface require before/after screenshots, or GIF for interactions
   - Recommended capture tools ([Kap](https://getkap.co/), [LICEcap](https://www.cockos.com/licecap/), [Skitch](https://download.cnet.com/Skitch/3000-13455_4-189876.html))
@@ -205,7 +222,7 @@ Finally, never submit a PR that will put master branch in broken state. If the P
   - For Python, include it in `setup.py` denoting any specific restrictions and in `requirements.txt` pinned to a specific version which ensures that the application build is deterministic.
   - For TypeScript/JavaScript, include new libraries in `package.json`
 - **Tests:** The pull request should include tests, either as doctests, unit tests, or both. Make sure to resolve all errors and test failures. See [Testing](#testing) for how to run tests.
-- **Documentation:** If the pull request adds functionality, the docs should be updated as part of the same PR. Doc string are often sufficient, make sure to follow the sphinx compatible standards.
+- **Documentation:** If the pull request adds functionality, the docs should be updated as part of the same PR.
 - **CI:** Reviewers will not review the code until all CI tests are passed. Sometimes there can be flaky tests. You can close and open PR to re-run CI test. Please report if the issue persists. After the CI fix has been deployed to `master`, please rebase your PR.
 - **Code coverage:** Please ensure that code coverage does not decrease.
 - Remove `[WIP]` when ready for review. Please note that it may be merged soon after approved so please make sure the PR is ready to merge and do not expect more time for post-approval edits.
@@ -299,68 +316,10 @@ cd incubator-superset
 
 ### Documentation
 
-The latest documentation and tutorial are available at https://superset.incubator.apache.org/.
+The latest documentation and tutorial are available at https://superset.apache.org/.
 
-Contributing to the official documentation is relatively easy, once you've setup
-your environment and done an edit end-to-end. The docs can be found in the
-`docs/` subdirectory of the repository, and are written in the
-[reStructuredText format](https://en.wikipedia.org/wiki/ReStructuredText) (.rst).
-If you've written Markdown before, you'll find the reStructuredText format familiar.
-
-Superset uses [Sphinx](http://www.sphinx-doc.org/en/1.5.1/) to convert the rst files
-in `docs/` to the final HTML output users see.
-
-Finally, to make changes to the rst files and build the docs using Sphinx,
-you'll need to install a handful of dependencies from the repo you cloned:
-
-```bash
-pip install -r requirements/documentation.txt
-```
-
-To get the feel for how to edit and build the docs, let's edit a file, build
-the docs and see our changes in action. First, you'll want to
-[create a new branch](https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging)
-to work on your changes:
-
-```bash
-git checkout -b changes-to-docs
-```
-
-Now, go ahead and edit one of the files under `docs/`, say `docs/tutorial.rst` - change
-it however you want. Check out the
-[ReStructuredText Primer](http://docutils.sourceforge.net/docs/user/rst/quickstart.html)
-for a reference on the formatting of the rst files.
-
-Once you've made your changes, run this command to convert the docs into HTML:
-
-```bash
-make html
-```
-
-You'll see a lot of output as Sphinx handles the conversion. After it's done, the
-HTML Sphinx generated should be in `docs/_build/html`. Navigate there
-and start a simple web server so we can check out the docs in a browser:
-
-```bash
-cd docs/_build/html
-python -m http.server # Python2 users should use SimpleHTTPServer
-
-```
-
-This will start a small Python web server listening on port 8000. Point your
-browser to http://localhost:8000, find the file
-you edited earlier, and check out your changes!
-
-If you've made a change you'd like to contribute to the actual docs, just commit
-your code, push your new branch to Github:
-
-```bash
-git add docs/tutorial.rst
-git commit -m 'Awesome new change to tutorial'
-git push origin changes-to-docs
-```
-
-Then, [open a pull request](https://help.github.com/articles/about-pull-requests/).
+The site is written using the Gatsby framework and docz for the
+documentation subsection. Find out more about it in `docs/README.md`
 
 #### Images
 
@@ -377,32 +336,17 @@ in the docs.
 
 For example, the image referenced above actually lives in `superset-frontend/images/tutorial`. Since the image is moved during the documentation build process, the docs reference the image in `_static/images/tutorial` instead.
 
-#### API documentation
-
-Generate the API documentation with:
-
-```bash
-pip install -r requirements/documentation.txt
-python setup.py build_sphinx
-```
-
 ### Flask server
 
 #### OS Dependencies
 
 Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps.
 
-Developers should use a virtualenv.
-
-```bash
-pip install virtualenv
-```
-
-Then proceed with:
+Ensure Python versions >3.7, Then proceed with:
 
 ```bash
 # Create a virtual environemnt and activate it (recommended)
-virtualenv -p python3 venv # setup a python3.6 virtualenv
+python3 -m venv venv # setup a python3 virtualenv
 source venv/bin/activate
 
 # Install external dependencies
@@ -466,12 +410,17 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 
 #### nvm and node
 
-First, be sure you are using recent versions of NodeJS and npm. Using [nvm](https://github.com/creationix/nvm) to manage them is recommended. Check the docs at the link to be sure, but at the time of writing the following would install nvm and node:
+First, be sure you are using recent versions of NodeJS and npm. We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
 
 ```bash
-curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.34.0/install.sh | bash
-nvm install node
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash
+
+cd superset-frontend
+nvm install
+nvm use
 ```
+
+For those interested, you may also try out [avn](https://github.com/nvm-sh/nvm#deeper-shell-integration) to automatically switch to the node version that is required to run Superset frontend.
 
 #### Prerequisite
 
@@ -604,7 +553,7 @@ or similar as the later will cause typing issues. The former is of type `List[Ca
 
 To ensure clarity, consistency, all readability, _all_ new functions should use
 [type hints](https://docs.python.org/3/library/typing.html) and include a
-docstring using Sphinx documentation.
+docstring.
 
 Note per [PEP-484](https://www.python.org/dev/peps/pep-0484/#exceptions) no
 syntax for listing explicitly raised exceptions is proposed and thus the
@@ -658,7 +607,7 @@ tox -e <environment> -- tests/test_file.py
 or for a specific test via,
 
 ```bash
-tox -e <environment> -- tests/test_file.py:TestClassName.test_method_name
+tox -e <environment> -- tests/test_file.py::TestClassName::test_method_name
 ```
 
 Note that the test environment uses a temporary directory for defining the
@@ -680,10 +629,13 @@ We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be ru
 
 ```bash
 export SUPERSET_CONFIG=tests.superset_test_config
+export SUPERSET_TESTENV=true
+export ENABLE_REACT_CRUD_VIEWS=true
+export CYPRESS_BASE_URL="http://localhost:8081"
 superset db upgrade
-superset init
 superset load_test_users
-superset load_examples
+superset load_examples --load-test-data
+superset init
 superset run --port 8081
 ```
 
@@ -691,20 +643,26 @@ Run Cypress tests:
 
 ```bash
 cd superset-frontend
-npm run build
+npm run build-instrumented
 
 cd cypress-base
 npm install
-npm run cypress run
+
+# run tests via headless Chrome browser (requires Chrome 64+)
+npm run cypress-run-chrome
 
 # run tests from a specific file
-npm run cypress run -- --spec cypress/integration/explore/link.test.js
+npm run cypress-run-chrome -- --spec cypress/integration/explore/link.test.js
 
 # run specific file with video capture
-npm run cypress run -- --spec cypress/integration/dashboard/index.test.js --config video=true
+npm run cypress-run-chrome -- --spec cypress/integration/dashboard/index.test.js --config video=true
 
 # to open the cypress ui
-npm run cypress open
+npm run cypress-debug
+
+# to point cypress to a url other than the default (http://localhost:8088) set the environment variable before running the script
+# e.g., CYPRESS_BASE_URL="http://localhost:9000"
+CYPRESS_BASE_URL=<your url> npm run cypress open
 ```
 
 See [`superset-frontend/cypress_build.sh`](https://github.com/apache/incubator-superset/blob/master/superset-frontend/cypress_build.sh).
@@ -715,7 +673,7 @@ Superset includes a [Storybook](https://storybook.js.org/) to preview the layout
 
 ```bash
 cd superset-frontend
-npm run storybool
+npm run storybook
 ```
 
 When contributing new React components to Superset, please try to add a Story alongside the component's `jsx/tsx` file.

@@ -135,6 +135,7 @@ export class UnwrappedDragDroppable extends React.Component {
       <div
         style={style}
         ref={this.setRef}
+        data-test="dragdroppable-object"
         className={cx(
           'dragdroppable',
           orientation === 'row' && 'dragdroppable-row',

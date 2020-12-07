@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import Resizable from 're-resizable';
+import { Resizable } from 're-resizable';
 import cx from 'classnames';
 
 import ResizableHandle from './ResizableHandle';
@@ -201,13 +201,19 @@ class ResizableContainer extends React.PureComponent {
           adjustableWidth
             ? Math.max(
                 size.width,
-                maxWidthMultiple * (widthStep + gutterWidth) - gutterWidth,
+                Math.min(
+                  proxyToInfinity,
+                  maxWidthMultiple * (widthStep + gutterWidth) - gutterWidth,
+                ),
               )
             : undefined
         }
         maxHeight={
           adjustableHeight
-            ? Math.max(size.height, maxHeightMultiple * heightStep)
+            ? Math.max(
+                size.height,
+                Math.min(proxyToInfinity, maxHeightMultiple * heightStep),
+              )
             : undefined
         }
         size={size}

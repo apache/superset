@@ -20,6 +20,7 @@ import { Provider } from 'react-redux';
 import React from 'react';
 import { mount } from 'enzyme';
 import sinon from 'sinon';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
 import Column from 'src/dashboard/components/gridComponents/Column';
@@ -31,9 +32,9 @@ import IconButton from 'src/dashboard/components/IconButton';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 
-import { mockStore } from '../../fixtures/mockStore';
-import { dashboardLayout as mockLayout } from '../../fixtures/mockDashboardLayout';
-import WithDragDropContext from '../../helpers/WithDragDropContext';
+import WithDragDropContext from 'spec/helpers/WithDragDropContext';
+import { mockStore } from 'spec/fixtures/mockStore';
+import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 
 describe('Column', () => {
   const columnWithoutChildren = {
@@ -69,6 +70,10 @@ describe('Column', () => {
           <Column {...props} {...overrideProps} />
         </WithDragDropContext>
       </Provider>,
+      {
+        wrappingComponent: ThemeProvider,
+        wrappingComponentProps: { theme: supersetTheme },
+      },
     );
     return wrapper;
   }

@@ -21,12 +21,10 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import styled from '@superset-ui/style';
-import { t } from '@superset-ui/translation';
-import { logging } from '@superset-ui/core';
+import { styled, logging, t } from '@superset-ui/core';
 
 import ExploreChartPanel from './ExploreChartPanel';
-import ControlPanelsContainer from './ControlPanelsContainer';
+import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
 import { getExploreLongUrl } from '../exploreUtils';
@@ -37,7 +35,7 @@ import * as exploreActions from '../actions/exploreActions';
 import * as saveModalActions from '../actions/saveModalActions';
 import * as chartActions from '../../chart/chartAction';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
-import * as logActions from '../../logger/actions/';
+import * as logActions from '../../logger/actions';
 import {
   LOG_ACTIONS_MOUNT_EXPLORER,
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
@@ -61,7 +59,6 @@ const propTypes = {
 const Styles = styled.div`
   height: ${({ height }) => height};
   min-height: ${({ height }) => height};
-  overflow: hidden;
   text-align: left;
   position: relative;
   width: 100%;
@@ -243,9 +240,9 @@ class ExploreViewContainer extends React.Component {
     const longUrl = getExploreLongUrl(this.props.form_data, null, false);
     try {
       if (isReplace) {
-        history.replaceState(payload, title, longUrl);
+        window.history.replaceState(payload, title, longUrl);
       } else {
-        history.pushState(payload, title, longUrl);
+        window.history.pushState(payload, title, longUrl);
       }
     } catch (e) {
       logging.warn(
@@ -270,7 +267,7 @@ class ExploreViewContainer extends React.Component {
   }
 
   handlePopstate() {
-    const formData = history.state;
+    const formData = window.history.state;
     if (formData && Object.keys(formData).length) {
       this.props.actions.setExploreControls(formData);
       this.props.actions.postChartFormData(
@@ -283,36 +280,37 @@ class ExploreViewContainer extends React.Component {
   }
 
   toggleModal() {
-    this.setState({ showModal: !this.state.showModal });
+    this.setState(prevState => ({ showModal: !prevState.showModal }));
   }
+
   hasErrors() {
     const ctrls = this.props.controls;
     return Object.keys(ctrls).some(
       k => ctrls[k].validationErrors && ctrls[k].validationErrors.length > 0,
     );
   }
+
   renderErrorMessage() {
     // Returns an error message as a node if any errors are in the store
-    const errors = [];
-    const ctrls = this.props.controls;
-    for (const controlName in this.props.controls) {
-      const control = this.props.controls[controlName];
-      if (control.validationErrors && control.validationErrors.length > 0) {
-        errors.push(
-          <div key={controlName}>
-            {t('Control labeled ')}
-            <strong>{` "${control.label}" `}</strong>
-            {control.validationErrors.join('. ')}
-          </div>,
-        );
-      }
-    }
+    const errors = Object.entries(this.props.controls)
+      .filter(
+        ([, control]) =>
+          control.validationErrors && control.validationErrors.length > 0,
+      )
+      .map(([key, control]) => (
+        <div key={key}>
+          {t('Control labeled ')}
+          <strong>{` "${control.label}" `}</strong>
+          {control.validationErrors.join('. ')}
+        </div>
+      ));
     let errorMessage;
     if (errors.length > 0) {
       errorMessage = <div style={{ textAlign: 'left' }}>{errors}</div>;
     }
     return errorMessage;
   }
+
   renderChartContainer() {
     return (
       <ExploreChartPanel
@@ -353,7 +351,7 @@ class ExploreViewContainer extends React.Component {
             errorMessage={this.renderErrorMessage()}
             datasourceType={this.props.datasource_type}
           />
-          <ControlPanelsContainer
+          <ConnectedControlPanelsContainer
             actions={this.props.actions}
             form_data={this.props.form_data}
             controls={this.props.controls}
@@ -416,8 +414,6 @@ function mapDispatchToProps(dispatch) {
     actions: bindActionCreators(actions, dispatch),
   };
 }
-
-export { ExploreViewContainer };
 
 export default connect(
   mapStateToProps,

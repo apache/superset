@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import moment from 'moment';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import TableLoader from '../../components/TableLoader';
 import { Slice } from '../types';
@@ -39,7 +39,7 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
     return (
       <TableLoader
         dataEndpoint={`/superset/created_slices/${this.props.user.userId}/`}
-        className="table table-condensed"
+        className="table-condensed"
         columns={['slice', 'favorited']}
         mutator={mutator}
         noDataText={t('No charts')}
@@ -47,6 +47,7 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
       />
     );
   }
+
   renderDashboardTable() {
     const mutator = (data: Dashboard[]) =>
       data.map(dash => ({
@@ -56,7 +57,7 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
       }));
     return (
       <TableLoader
-        className="table table-condensed"
+        className="table-condensed"
         mutator={mutator}
         dataEndpoint={`/superset/created_dashboards/${this.props.user.userId}/`}
         noDataText={t('No dashboards')}
@@ -65,6 +66,7 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
       />
     );
   }
+
   render() {
     return (
       <div>

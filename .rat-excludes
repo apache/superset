@@ -1,5 +1,6 @@
 # Note: these patterns are applied to single files or directories, not full paths
 .gitignore
+docs/README.md
 .gitattributes
 .gitkeep
 .coverage
@@ -8,6 +9,7 @@
 .eslintrc
 .eslintignore
 .flake8
+.nvmrc
 .prettierrc
 .rat-excludes
 .*log
@@ -33,9 +35,8 @@ apache_superset.egg-info
 .*csv
 # Generated doc files
 env/*
-docs/_build/*
-docs/_modules/*
-docs/_static/*
+docs/README.md
+docs/.htaccess*
 _build/*
 _static/*
 .buildinfo
@@ -46,3 +47,4 @@ requirements/*
 vendor/*
 # github configuration
 .github/*
+.*mdx

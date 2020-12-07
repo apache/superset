@@ -18,8 +18,8 @@
  */
 import React from 'react';
 import { withKnobs, select } from '@storybook/addon-knobs';
-import { styled, supersetTheme } from '@superset-ui/style';
-import Icon, { iconsRegistry } from './';
+import { styled, supersetTheme } from '@superset-ui/core';
+import Icon, { iconsRegistry } from '.';
 
 export default {
   title: 'Icon',
@@ -67,7 +67,7 @@ export const SupersetIcon = () => {
       {Object.keys(iconsRegistry)
         .sort()
         .map(iconName => (
-          <IconBlock>
+          <IconBlock key={iconName}>
             <Icon
               name={iconName}
               key={iconName}

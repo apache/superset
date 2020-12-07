@@ -29,7 +29,6 @@ from superset.utils.urls import headless_url
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    # pylint: disable=unused-import
     from flask_appbuilder.security.sqla.models import User
 
 

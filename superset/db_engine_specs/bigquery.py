@@ -27,7 +27,6 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
-    # pylint: disable=unused-import
     from superset.models.core import Database  # pragma: no cover
 
 
@@ -39,6 +38,10 @@ class BigQueryEngineSpec(BaseEngineSpec):
     engine = "bigquery"
     engine_name = "Google BigQuery"
     max_column_name_length = 128
+
+    # BigQuery doesn't maintain context when running multiple statements in the
+    # same cursor, so we need to run all statements at once
+    run_multiple_statements_as_one = True
 
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
@@ -129,6 +132,25 @@ class BigQueryEngineSpec(BaseEngineSpec):
         :return: truncated label
         """
         return "_" + hashlib.md5(label.encode("utf-8")).hexdigest()
+
+    @classmethod
+    def normalize_indexes(cls, indexes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Normalizes indexes for more consistency across db engines
+
+        :param indexes: Raw indexes as returned by SQLAlchemy
+        :return: cleaner, more aligned index definition
+        """
+        normalized_idxs = []
+        # Fixing a bug/behavior observed in pybigquery==0.4.15 where
+        # the index's `column_names` == [None]
+        # Here we're returning only non-None indexes
+        for ix in indexes:
+            column_names = ix.get("column_names") or []
+            ix["column_names"] = [col for col in column_names if col is not None]
+            if ix["column_names"]:
+                normalized_idxs.append(ix)
+        return normalized_idxs
 
     @classmethod
     def extra_table_metadata(

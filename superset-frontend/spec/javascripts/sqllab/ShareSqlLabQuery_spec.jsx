@@ -19,7 +19,7 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { OverlayTrigger } from 'react-bootstrap';
+import Popover from 'src/common/components/Popover';
 import fetchMock from 'fetch-mock';
 import * as featureFlags from 'src/featureFlags';
 import { shallow } from 'enzyme';
@@ -88,7 +88,7 @@ describe('ShareSqlLabQuery via /kv/store', () => {
 
     it('renders an OverlayTrigger with Button', () => {
       const wrapper = setup();
-      const trigger = wrapper.find(OverlayTrigger);
+      const trigger = wrapper.find(Popover);
       const button = trigger.find(Button);
 
       expect(trigger).toHaveLength(1);
@@ -154,7 +154,7 @@ describe('ShareSqlLabQuery via /kv/store', () => {
 
     it('renders an OverlayTrigger with Button', () => {
       const wrapper = setup();
-      const trigger = wrapper.find(OverlayTrigger);
+      const trigger = wrapper.find(Popover);
       const button = trigger.find(Button);
 
       expect(trigger).toHaveLength(1);

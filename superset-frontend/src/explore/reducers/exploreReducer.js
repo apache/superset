@@ -72,19 +72,6 @@ export default function exploreReducer(state = {}, action) {
         isDatasourcesLoading: true,
       };
     },
-    [actions.FETCH_DATASOURCES_SUCCEEDED]() {
-      return {
-        ...state,
-        isDatasourcesLoading: false,
-      };
-    },
-    [actions.FETCH_DATASOURCES_FAILED]() {
-      return {
-        ...state,
-        isDatasourcesLoading: false,
-        controlPanelAlert: action.error,
-      };
-    },
     [actions.SET_DATASOURCES]() {
       return {
         ...state,

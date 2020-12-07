@@ -36,7 +36,7 @@ from flask_appbuilder.security.views import (
     ViewMenuModelView,
 )
 from flask_appbuilder.widgets import ListWidget
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
@@ -46,7 +46,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
-from superset.utils.core import DatasourceName
+from superset.utils.core import DatasourceName, RowLevelSecurityFilterType
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -62,7 +62,7 @@ logger = logging.getLogger(__name__)
 
 class SupersetSecurityListWidget(ListWidget):
     """
-        Redeclaring to avoid circular imports
+    Redeclaring to avoid circular imports
     """
 
     template = "superset/fab_overrides/list.html"
@@ -70,8 +70,8 @@ class SupersetSecurityListWidget(ListWidget):
 
 class SupersetRoleListWidget(ListWidget):
     """
-        Role model view from FAB already uses a custom list widget override
-        So we override the override
+    Role model view from FAB already uses a custom list widget override
+    So we override the override
     """
 
     template = "superset/fab_overrides/list_role.html"
@@ -135,6 +135,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "RoleModelView",
         "LogModelView",
         "Security",
+        "Row Level Security",
+        "Row Level Security Filters",
         "RowLevelSecurityFiltersModelView",
     } | USER_MODEL_VIEWS
 
@@ -551,7 +553,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Creates missing FAB permissions for datasources, schemas and metrics.
         """
 
-        from superset.connectors.base.models import BaseMetric
         from superset.models import core as models
 
         logger.info("Fetching a set of all perms to lookup which ones are missing")
@@ -575,11 +576,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         databases = self.get_session.query(models.Database).all()
         for database in databases:
             merge_pv("database_access", database.perm)
-
-        logger.info("Creating missing metrics permissions")
-        metrics: List[BaseMetric] = []
-        for datasource_class in ConnectorRegistry.sources.values():
-            metrics += list(self.get_session.query(datasource_class.metric_class).all())
 
     def clean_perms(self) -> None:
         """
@@ -990,9 +986,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     self.get_datasource_access_error_object(datasource)
                 )
 
-    def get_rls_filters(  # pylint: disable=no-self-use
-        self, table: "BaseDatasource"
-    ) -> List[SqlaQuery]:
+    def get_rls_filters(self, table: "BaseDatasource") -> List[SqlaQuery]:
         """
         Retrieves the appropriate row level security filters for the current user and
         the passed table.
@@ -1012,8 +1006,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .filter(assoc_user_role.c.user_id == g.user.id)
                 .subquery()
             )
-            filter_roles = (
+            regular_filter_roles = (
                 self.get_session.query(RLSFilterRoles.c.rls_filter_id)
+                .join(RowLevelSecurityFilter)
+                .filter(
+                    RowLevelSecurityFilter.filter_type
+                    == RowLevelSecurityFilterType.REGULAR
+                )
+                .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+                .subquery()
+            )
+            base_filter_roles = (
+                self.get_session.query(RLSFilterRoles.c.rls_filter_id)
+                .join(RowLevelSecurityFilter)
+                .filter(
+                    RowLevelSecurityFilter.filter_type
+                    == RowLevelSecurityFilterType.BASE
+                )
                 .filter(RLSFilterRoles.c.role_id.in_(user_roles))
                 .subquery()
             )
@@ -1024,10 +1033,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
             query = (
                 self.get_session.query(
-                    RowLevelSecurityFilter.id, RowLevelSecurityFilter.clause
+                    RowLevelSecurityFilter.id,
+                    RowLevelSecurityFilter.group_key,
+                    RowLevelSecurityFilter.clause,
                 )
                 .filter(RowLevelSecurityFilter.id.in_(filter_tables))
-                .filter(RowLevelSecurityFilter.id.in_(filter_roles))
+                .filter(
+                    or_(
+                        and_(
+                            RowLevelSecurityFilter.filter_type
+                            == RowLevelSecurityFilterType.REGULAR,
+                            RowLevelSecurityFilter.id.in_(regular_filter_roles),
+                        ),
+                        and_(
+                            RowLevelSecurityFilter.filter_type
+                            == RowLevelSecurityFilterType.BASE,
+                            RowLevelSecurityFilter.id.notin_(base_filter_roles),
+                        ),
+                    )
+                )
             )
             return query.all()
         return []

@@ -18,267 +18,274 @@
  */
 import React from 'react';
 import configureStore from 'redux-mock-store';
-import { shallow } from 'enzyme';
+import { mount } from 'enzyme';
+import { act } from 'react-dom/test-utils';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+
+import DatabaseSelector from 'src/components/DatabaseSelector';
 import TableSelector from 'src/components/TableSelector';
 import { initialState, tables } from '../sqllab/fixtures';
 
+const mockStore = configureStore([thunk]);
+const store = mockStore(initialState);
+
+const FETCH_SCHEMAS_ENDPOINT = 'glob:*/api/v1/database/*/schemas/*';
+const GET_TABLE_ENDPOINT = 'glob:*/superset/tables/1/*/*';
+const GET_TABLE_NAMES_ENDPOINT = 'glob:*/superset/tables/1/main/*';
+
+const mockedProps = {
+  clearable: false,
+  database: { id: 1, database_name: 'main' },
+  dbId: 1,
+  formMode: false,
+  getDbList: sinon.stub(),
+  handleError: sinon.stub(),
+  horizontal: false,
+  onChange: sinon.stub(),
+  onDbChange: sinon.stub(),
+  onSchemaChange: sinon.stub(),
+  onTableChange: sinon.stub(),
+  sqlLabMode: true,
+  tableName: '',
+  tableNameSticky: true,
+};
+
+const schemaOptions = {
+  result: ['main', 'erf', 'superset'],
+};
+const selectedSchema = { label: 'main', title: 'main', value: 'main' };
+const selectedTable = {
+  extra: null,
+  label: 'birth_names',
+  schema: 'main',
+  title: 'birth_names',
+  type: undefined,
+  value: 'birth_names',
+};
+
+async function mountAndWait(props = mockedProps) {
+  const mounted = mount(<TableSelector {...props} />, {
+    context: { store },
+    wrappingComponent: ThemeProvider,
+    wrappingComponentProps: { theme: supersetTheme },
+  });
+  await waitForComponentToPaint(mounted);
+
+  return mounted;
+}
+
 describe('TableSelector', () => {
-  let mockedProps;
-  const middlewares = [thunk];
-  const mockStore = configureStore(middlewares);
-  const store = mockStore(initialState);
   let wrapper;
-  let inst;
 
-  beforeEach(() => {
-    mockedProps = {
-      dbId: 1,
-      schema: 'main',
-      onSchemaChange: sinon.stub(),
-      onDbChange: sinon.stub(),
-      getDbList: sinon.stub(),
-      onTableChange: sinon.stub(),
-      onChange: sinon.stub(),
-      tableNameSticky: true,
-      tableName: '',
-      database: { id: 1, database_name: 'main' },
-      horizontal: false,
-      sqlLabMode: true,
-      clearable: false,
-      handleError: sinon.stub(),
-    };
-    wrapper = shallow(<TableSelector {...mockedProps} />, {
-      context: { store },
-    });
-    inst = wrapper.instance();
+  beforeEach(async () => {
+    fetchMock.reset();
+    wrapper = await mountAndWait();
   });
 
-  it('is valid', () => {
-    expect(React.isValidElement(<TableSelector {...mockedProps} />)).toBe(true);
+  it('renders', () => {
+    expect(wrapper.find(TableSelector)).toExist();
+    expect(wrapper.find(DatabaseSelector)).toExist();
   });
 
-  describe('onDatabaseChange', () => {
-    it('should fetch schemas', () => {
-      sinon.stub(inst, 'fetchSchemas');
-      inst.onDatabaseChange({ id: 1 });
-      expect(inst.fetchSchemas.getCall(0).args[0]).toBe(1);
-      inst.fetchSchemas.restore();
+  describe('change database', () => {
+    afterEach(fetchMock.resetHistory);
+    afterAll(fetchMock.reset);
+
+    it('should fetch schemas', async () => {
+      fetchMock.get(FETCH_SCHEMAS_ENDPOINT, { overwriteRoutes: true });
+      act(() => {
+        wrapper.find('[data-test="select-database"]').first().props().onChange({
+          id: 1,
+          database_name: 'main',
+        });
+      });
+      await waitForComponentToPaint(wrapper);
+      expect(fetchMock.calls(FETCH_SCHEMAS_ENDPOINT)).toHaveLength(1);
     });
-    it('should clear tableOptions', () => {
-      inst.onDatabaseChange();
-      expect(wrapper.state().tableOptions).toEqual([]);
+
+    it('should fetch schema options', async () => {
+      fetchMock.get(FETCH_SCHEMAS_ENDPOINT, schemaOptions, {
+        overwriteRoutes: true,
+      });
+      act(() => {
+        wrapper.find('[data-test="select-database"]').first().props().onChange({
+          id: 1,
+          database_name: 'main',
+        });
+      });
+      await waitForComponentToPaint(wrapper);
+      wrapper.update();
+      expect(fetchMock.calls(FETCH_SCHEMAS_ENDPOINT)).toHaveLength(1);
+
+      expect(
+        wrapper.find('[name="select-schema"]').first().props().options,
+      ).toEqual([
+        { value: 'main', label: 'main', title: 'main' },
+        { value: 'erf', label: 'erf', title: 'erf' },
+        { value: 'superset', label: 'superset', title: 'superset' },
+      ]);
+    });
+
+    it('should clear table options', async () => {
+      act(() => {
+        wrapper.find('[data-test="select-database"]').first().props().onChange({
+          id: 1,
+          database_name: 'main',
+        });
+      });
+      await waitForComponentToPaint(wrapper);
+      const props = wrapper.find('[name="async-select-table"]').first().props();
+      expect(props.isDisabled).toBe(true);
+      expect(props.value).toEqual(undefined);
+    });
+  });
+
+  describe('change schema', () => {
+    beforeEach(async () => {
+      fetchMock.get(FETCH_SCHEMAS_ENDPOINT, schemaOptions, {
+        overwriteRoutes: true,
+      });
+    });
+
+    afterEach(fetchMock.resetHistory);
+    afterAll(fetchMock.reset);
+
+    it('should fetch table', async () => {
+      fetchMock.get(GET_TABLE_NAMES_ENDPOINT, { overwriteRoutes: true });
+      act(() => {
+        wrapper.find('[data-test="select-database"]').first().props().onChange({
+          id: 1,
+          database_name: 'main',
+        });
+      });
+      await waitForComponentToPaint(wrapper);
+      act(() => {
+        wrapper
+          .find('[name="select-schema"]')
+          .first()
+          .props()
+          .onChange(selectedSchema);
+      });
+      await waitForComponentToPaint(wrapper);
+      expect(fetchMock.calls(GET_TABLE_NAMES_ENDPOINT)).toHaveLength(1);
+    });
+
+    it('should fetch table options', async () => {
+      fetchMock.get(GET_TABLE_NAMES_ENDPOINT, tables, {
+        overwriteRoutes: true,
+      });
+      act(() => {
+        wrapper.find('[data-test="select-database"]').first().props().onChange({
+          id: 1,
+          database_name: 'main',
+        });
+      });
+      await waitForComponentToPaint(wrapper);
+      act(() => {
+        wrapper
+          .find('[name="select-schema"]')
+          .first()
+          .props()
+          .onChange(selectedSchema);
+      });
+      await waitForComponentToPaint(wrapper);
+      expect(
+        wrapper.find('[name="select-schema"]').first().props().value[0],
+      ).toEqual(selectedSchema);
+      expect(fetchMock.calls(GET_TABLE_NAMES_ENDPOINT)).toHaveLength(1);
+      const { options } = wrapper.find('[name="select-table"]').first().props();
+      expect({ options }).toEqual(tables);
+    });
+  });
+
+  describe('change table', () => {
+    beforeEach(async () => {
+      fetchMock.get(GET_TABLE_NAMES_ENDPOINT, tables, {
+        overwriteRoutes: true,
+      });
+    });
+
+    it('should change table value', async () => {
+      act(() => {
+        wrapper
+          .find('[name="select-schema"]')
+          .first()
+          .props()
+          .onChange(selectedSchema);
+      });
+      await waitForComponentToPaint(wrapper);
+      act(() => {
+        wrapper
+          .find('[name="select-table"]')
+          .first()
+          .props()
+          .onChange(selectedTable);
+      });
+      await waitForComponentToPaint(wrapper);
+      expect(
+        wrapper.find('[name="select-table"]').first().props().value,
+      ).toEqual('birth_names');
+    });
+
+    it('should call onTableChange with schema from table object', async () => {
+      act(() => {
+        wrapper
+          .find('[name="select-schema"]')
+          .first()
+          .props()
+          .onChange(selectedSchema);
+      });
+      await waitForComponentToPaint(wrapper);
+      act(() => {
+        wrapper
+          .find('[name="select-table"]')
+          .first()
+          .props()
+          .onChange(selectedTable);
+      });
+      await waitForComponentToPaint(wrapper);
+      expect(mockedProps.onTableChange.getCall(0).args[0]).toBe('birth_names');
+      expect(mockedProps.onTableChange.getCall(0).args[1]).toBe('main');
     });
   });
 
   describe('getTableNamesBySubStr', () => {
-    const GET_TABLE_NAMES_GLOB = 'glob:*/superset/tables/1/main/*';
-
     afterEach(fetchMock.resetHistory);
     afterAll(fetchMock.reset);
 
-    it('should handle empty', () =>
-      inst.getTableNamesBySubStr('').then(data => {
-        expect(data).toEqual({ options: [] });
-        return Promise.resolve();
-      }));
-
-    it('should handle table name', () => {
-      fetchMock.get(GET_TABLE_NAMES_GLOB, tables, { overwriteRoutes: true });
-
-      return wrapper
-        .instance()
-        .getTableNamesBySubStr('my table')
-        .then(data => {
-          expect(fetchMock.calls(GET_TABLE_NAMES_GLOB)).toHaveLength(1);
-          expect(data).toEqual({
-            options: [
-              {
-                value: 'birth_names',
-                schema: 'main',
-                label: 'birth_names',
-                title: 'birth_names',
-              },
-              {
-                value: 'energy_usage',
-                schema: 'main',
-                label: 'energy_usage',
-                title: 'energy_usage',
-              },
-              {
-                value: 'wb_health_population',
-                schema: 'main',
-                label: 'wb_health_population',
-                title: 'wb_health_population',
-              },
-            ],
-          });
-          return Promise.resolve();
-        });
-    });
-
-    it('should escape schema and table names', () => {
-      const GET_TABLE_GLOB = 'glob:*/superset/tables/1/*/*';
-      wrapper.setProps({ schema: 'slashed/schema' });
-      fetchMock.get(GET_TABLE_GLOB, tables, { overwriteRoutes: true });
-
-      return wrapper
-        .instance()
-        .getTableNamesBySubStr('slashed/table')
-        .then(() => {
-          expect(fetchMock.lastUrl(GET_TABLE_GLOB)).toContain(
-            '/slashed%252Fschema/slashed%252Ftable',
-          );
-          return Promise.resolve();
-        });
-    });
-  });
-
-  describe('fetchTables', () => {
-    const FETCH_TABLES_GLOB = 'glob:*/superset/tables/1/main/*/*/';
-    afterEach(fetchMock.resetHistory);
-    afterAll(fetchMock.reset);
-
-    it('should clear table options', () => {
-      inst.fetchTables(true);
-      expect(wrapper.state().tableOptions).toEqual([]);
-    });
-
-    it('should fetch table options', () => {
-      fetchMock.get(FETCH_TABLES_GLOB, tables, { overwriteRoutes: true });
-      return inst.fetchTables(true, 'birth_names').then(() => {
-        expect(wrapper.state().tableOptions).toHaveLength(3);
-        expect(wrapper.state().tableOptions).toEqual([
-          {
-            value: 'birth_names',
-            schema: 'main',
-            label: 'birth_names',
-            title: 'birth_names',
-          },
-          {
-            value: 'energy_usage',
-            schema: 'main',
-            label: 'energy_usage',
-            title: 'energy_usage',
-          },
-          {
-            value: 'wb_health_population',
-            schema: 'main',
-            label: 'wb_health_population',
-            title: 'wb_health_population',
-          },
-        ]);
-        return Promise.resolve();
+    it('should handle empty', async () => {
+      act(() => {
+        wrapper
+          .find('[name="async-select-table"]')
+          .first()
+          .props()
+          .loadOptions();
       });
+      await waitForComponentToPaint(wrapper);
+      const props = wrapper.find('[name="async-select-table"]').first().props();
+      expect(props.isDisabled).toBe(true);
+      expect(props.value).toEqual('');
     });
 
-    // Test needs to be fixed: Github issue #7768
-    it.skip('should dispatch a danger toast on error', () => {
-      fetchMock.get(
-        FETCH_TABLES_GLOB,
-        { throws: 'error' },
-        { overwriteRoutes: true },
-      );
-
-      wrapper
-        .instance()
-        .fetchTables(true, 'birth_names')
-        .then(() => {
-          expect(wrapper.state().tableOptions).toEqual([]);
-          expect(wrapper.state().tableOptions).toHaveLength(0);
-          expect(mockedProps.handleError.callCount).toBe(1);
-          return Promise.resolve();
-        });
-    });
-  });
-
-  describe('fetchSchemas', () => {
-    const FETCH_SCHEMAS_GLOB = 'glob:*/api/v1/database/*/schemas/?q=(force:!*)';
-    afterEach(fetchMock.resetHistory);
-    afterAll(fetchMock.reset);
-
-    it('should fetch schema options', () => {
-      const schemaOptions = {
-        result: ['main', 'erf', 'superset'],
-      };
-      fetchMock.get(FETCH_SCHEMAS_GLOB, schemaOptions, {
+    it('should handle table name', async () => {
+      wrapper.setProps({ schema: 'main' });
+      fetchMock.get(GET_TABLE_ENDPOINT, tables, {
         overwriteRoutes: true,
       });
-
-      return wrapper
-        .instance()
-        .fetchSchemas(1)
-        .then(() => {
-          expect(fetchMock.calls(FETCH_SCHEMAS_GLOB)).toHaveLength(1);
-          expect(wrapper.state().schemaOptions).toHaveLength(3);
-        });
-    });
-
-    // Test needs to be fixed: Github issue #7768
-    it.skip('should dispatch a danger toast on error', () => {
-      const handleErrors = sinon.stub();
-      expect(handleErrors.callCount).toBe(0);
-      wrapper.setProps({ handleErrors });
-      fetchMock.get(
-        FETCH_SCHEMAS_GLOB,
-        { throws: new Error('Bad kitty') },
-        { overwriteRoutes: true },
-      );
-      wrapper
-        .instance()
-        .fetchSchemas(123)
-        .then(() => {
-          expect(wrapper.state().schemaOptions).toEqual([]);
-          expect(handleErrors.callCount).toBe(1);
-        });
-    });
-  });
-
-  describe('changeTable', () => {
-    beforeEach(() => {
-      sinon.stub(wrapper.instance(), 'fetchTables');
-    });
-
-    afterEach(() => {
-      wrapper.instance().fetchTables.restore();
-    });
-
-    it('test 1', () => {
-      wrapper.instance().changeTable({
-        value: 'birth_names',
-        schema: 'main',
-        label: 'birth_names',
-        title: 'birth_names',
+      act(() => {
+        wrapper
+          .find('[name="async-select-table"]')
+          .first()
+          .props()
+          .loadOptions();
       });
-      expect(wrapper.state().tableName).toBe('birth_names');
+      await waitForComponentToPaint(wrapper);
+      expect(fetchMock.calls(GET_TABLE_ENDPOINT)).toHaveLength(1);
     });
-
-    it('should call onTableChange with schema from table object', () => {
-      wrapper.setProps({ schema: null });
-      wrapper.instance().changeTable({
-        value: 'my_table',
-        schema: 'other_schema',
-        label: 'other_schema.my_table',
-        title: 'other_schema.my_table',
-      });
-      expect(mockedProps.onTableChange.getCall(0).args[0]).toBe('my_table');
-      expect(mockedProps.onTableChange.getCall(0).args[1]).toBe('other_schema');
-    });
-  });
-
-  it('changeSchema', () => {
-    sinon.stub(wrapper.instance(), 'fetchTables');
-
-    wrapper.instance().changeSchema({ label: 'main', value: 'main' });
-    expect(wrapper.instance().fetchTables.callCount).toBe(1);
-    expect(mockedProps.onChange.callCount).toBe(1);
-    wrapper.instance().changeSchema();
-    expect(wrapper.instance().fetchTables.callCount).toBe(2);
-    expect(mockedProps.onChange.callCount).toBe(2);
-
-    wrapper.instance().fetchTables.restore();
   });
 });

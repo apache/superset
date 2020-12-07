@@ -19,25 +19,26 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
-import cx from 'classnames';
-import AceEditor from 'react-ace';
-import 'brace/mode/markdown';
-import 'brace/theme/textmate';
-import { t } from '@superset-ui/translation';
+import htmlParser from 'react-markdown/plugins/html-parser';
 
-import DeleteComponentButton from '../DeleteComponentButton';
-import DragDroppable from '../dnd/DragDroppable';
-import ResizableContainer from '../resizable/ResizableContainer';
-import MarkdownModeDropdown from '../menu/MarkdownModeDropdown';
-import WithPopoverMenu from '../menu/WithPopoverMenu';
-import { componentShape } from '../../util/propShapes';
-import { ROW_TYPE, COLUMN_TYPE } from '../../util/componentTypes';
+import cx from 'classnames';
+import { t } from '@superset-ui/core';
+import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
+import { MarkdownEditor } from 'src/components/AsyncAceEditor';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+
+import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
+import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
+import MarkdownModeDropdown from 'src/dashboard/components/menu/MarkdownModeDropdown';
+import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
+import { componentShape } from 'src/dashboard/util/propShapes';
+import { ROW_TYPE, COLUMN_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   GRID_MIN_COLUMN_COUNT,
   GRID_MIN_ROW_UNITS,
   GRID_BASE_UNIT,
-} from '../../util/constants';
-import { Logger, LOG_ACTIONS_RENDER_CHART } from '../../../logger/LogUtils';
+} from 'src/dashboard/util/constants';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -86,6 +87,7 @@ function isSafeMarkup(node) {
 
   return true;
 }
+
 class Markdown extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -103,6 +105,7 @@ class Markdown extends React.PureComponent {
     this.handleChangeEditorMode = this.handleChangeEditorMode.bind(this);
     this.handleMarkdownChange = this.handleMarkdownChange.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
+    this.handleResizeStart = this.handleResizeStart.bind(this);
     this.setEditor = this.setEditor.bind(this);
   }
 
@@ -137,7 +140,8 @@ class Markdown extends React.PureComponent {
         markdownSource: nextComponent.meta.code,
         hasError: false,
       };
-    } else if (
+    }
+    if (
       !hasError &&
       editorMode === 'preview' &&
       nextComponent.meta.code !== markdownSource
@@ -164,6 +168,10 @@ class Markdown extends React.PureComponent {
         prevProps.columnWidth !== this.props.columnWidth)
     ) {
       this.state.editor.resize(true);
+    }
+    // pre-load AceEditor when entering edit mode
+    if (this.props.editMode) {
+      MarkdownEditor.preload();
     }
   }
 
@@ -196,24 +204,27 @@ class Markdown extends React.PureComponent {
       ...this.state,
       editorMode: mode,
     };
-
     if (mode === 'preview') {
-      const { updateComponents, component } = this.props;
-      if (component.meta.code !== this.state.markdownSource) {
-        updateComponents({
-          [component.id]: {
-            ...component,
-            meta: {
-              ...component.meta,
-              code: this.state.markdownSource,
-            },
-          },
-        });
-      }
+      this.updateMarkdownContent();
       nextState.hasError = false;
     }
 
     this.setState(nextState);
+  }
+
+  updateMarkdownContent() {
+    const { updateComponents, component } = this.props;
+    if (component.meta.code !== this.state.markdownSource) {
+      updateComponents({
+        [component.id]: {
+          ...component,
+          meta: {
+            ...component.meta,
+            code: this.state.markdownSource,
+          },
+        },
+      });
+    }
   }
 
   handleMarkdownChange(nextValue) {
@@ -227,11 +238,19 @@ class Markdown extends React.PureComponent {
     deleteComponent(id, parentId);
   }
 
+  handleResizeStart(e) {
+    const { editorMode } = this.state;
+    const { editMode, onResizeStart } = this.props;
+    const isEditing = editorMode === 'edit';
+    onResizeStart(e);
+    if (editMode && isEditing) {
+      this.updateMarkdownContent();
+    }
+  }
+
   renderEditMode() {
     return (
-      <AceEditor
-        mode="markdown"
-        theme="textmate"
+      <MarkdownEditor
         onChange={this.handleMarkdownChange}
         width="100%"
         height="100%"
@@ -245,6 +264,7 @@ class Markdown extends React.PureComponent {
         }
         readOnly={false}
         onLoad={this.setEditor}
+        data-test="editor"
       />
     );
   }
@@ -258,8 +278,14 @@ class Markdown extends React.PureComponent {
             ? MARKDOWN_ERROR_MESSAGE
             : this.state.markdownSource || MARKDOWN_PLACE_HOLDER
         }
-        escapeHtml={false}
+        escapeHtml={isFeatureEnabled(FeatureFlag.ESCAPE_MARKDOWN_HTML)}
+        skipHtml={!isFeatureEnabled(FeatureFlag.DISPLAY_MARKDOWN_HTML)}
         allowNode={isSafeMarkup}
+        astPlugins={[
+          htmlParser({
+            isValidNode: node => node.type !== 'script',
+          }),
+        ]}
       />
     );
   }
@@ -274,7 +300,6 @@ class Markdown extends React.PureComponent {
       depth,
       availableColumnCount,
       columnWidth,
-      onResizeStart,
       onResize,
       onResizeStop,
       handleComponentDrop,
@@ -314,6 +339,7 @@ class Markdown extends React.PureComponent {
             editMode={editMode}
           >
             <div
+              data-test="dashboard-markdown-editor"
               className={cx(
                 'dashboard-markdown',
                 isEditing && 'dashboard-markdown--editing',
@@ -330,16 +356,15 @@ class Markdown extends React.PureComponent {
                 minWidthMultiple={GRID_MIN_COLUMN_COUNT}
                 minHeightMultiple={GRID_MIN_ROW_UNITS}
                 maxWidthMultiple={availableColumnCount + widthMultiple}
-                onResizeStart={onResizeStart}
+                onResizeStart={this.handleResizeStart}
                 onResize={onResize}
                 onResizeStop={onResizeStop}
-                // disable resize when editing because if state is not synced
-                // with props it will reset the editor text to whatever props is
                 editMode={isFocused ? false : editMode}
               >
                 <div
                   ref={dragSourceRef}
                   className="dashboard-component dashboard-component-chart-holder"
+                  data-test="dashboard-component-chart-holder"
                 >
                   {editMode && isEditing
                     ? this.renderEditMode()

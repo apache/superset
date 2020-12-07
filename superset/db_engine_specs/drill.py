@@ -59,7 +59,8 @@ class DrillEngineSpec(BaseEngineSpec):
         if tt == utils.TemporalType.DATE:
             return f"TO_DATE('{dttm.date().isoformat()}', 'yyyy-MM-dd')"
         if tt == utils.TemporalType.TIMESTAMP:
-            return f"""TO_TIMESTAMP('{dttm.isoformat(sep=" ", timespec="seconds")}', 'yyyy-MM-dd HH:mm:ss')"""  # pylint: disable=line-too-long
+            datetime_formatted = dttm.isoformat(sep=" ", timespec="seconds")
+            return f"""TO_TIMESTAMP('{datetime_formatted}', 'yyyy-MM-dd HH:mm:ss')"""
         return None
 
     @classmethod

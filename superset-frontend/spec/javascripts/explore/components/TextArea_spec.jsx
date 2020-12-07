@@ -21,7 +21,7 @@ import React from 'react';
 import { FormControl } from 'react-bootstrap';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import AceEditor from 'react-ace';
+import { TextAreaEditor } from 'src/components/AsyncAceEditor';
 
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 
@@ -52,6 +52,6 @@ describe('SelectControl', () => {
     props.language = 'markdown';
     wrapper = shallow(<TextAreaControl {...props} />);
     expect(wrapper.find(FormControl)).not.toExist();
-    expect(wrapper.find(AceEditor)).toExist();
+    expect(wrapper.find(TextAreaEditor)).toExist();
   });
 });

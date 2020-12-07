@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 import { NavDropdown as ReactBootstrapNavDropdown } from 'react-bootstrap';
 
 const NavDropdown = styled(ReactBootstrapNavDropdown)`
@@ -33,16 +33,16 @@ const NavDropdown = styled(ReactBootstrapNavDropdown)`
 
   :after {
     content: '';
-    height: ${({ theme }) => theme.gridUnit}px;
-    width: ${({ theme }) => theme.gridUnit * 2}px;
-    background: url('/static/assets/images/icons/dropdown-arrow.svg');
+    height: ${({ theme }) => theme.gridUnit * 6}px;
+    width: ${({ theme }) => theme.gridUnit * 6}px;
+    background: url('/static/assets/images/icons/triangle_down.svg');
     background-size: contain;
     background-position: center center;
     background-repeat: no-repeat;
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    right: ${({ theme }) => theme.gridUnit * 2}px;
+    right: ${({ theme }) => theme.gridUnit}px;
     transition: opacity ${({ theme }) => theme.transitionTiming}s;
     opacity: ${({ theme }) => theme.opacity.mediumLight};
     pointer-events: none;
@@ -57,15 +57,6 @@ const NavDropdown = styled(ReactBootstrapNavDropdown)`
     padding: ${({ theme }) => theme.gridUnit}px 0;
     top: 100%;
     border: none;
-    & li a {
-      padding: ${({ theme }) => theme.gridUnit}px
-        ${({ theme }) => theme.gridUnit * 4}px;
-      transition: all ${({ theme }) => theme.transitionTiming}s;
-      &:hover {
-        background: ${({ theme }) => theme.colors.primary.light4};
-        color: ${({ theme }) => theme.colors.grayscale.dark1};
-      }
-    }
   }
 `;
 

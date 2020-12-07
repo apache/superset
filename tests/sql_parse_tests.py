@@ -376,14 +376,43 @@ class TestSupersetSqlParse(unittest.TestCase):
     def test_update_not_select(self):
         sql = ParsedQuery("UPDATE t1 SET col1 = NULL")
         self.assertEqual(False, sql.is_select())
-        self.assertEqual(False, sql.is_readonly())
+
+    def test_set(self):
+        sql = ParsedQuery(
+            """
+            -- comment
+            SET hivevar:desc='Legislators';
+        """
+        )
+
+        self.assertEqual(True, sql.is_set())
+        self.assertEqual(False, sql.is_select())
+
+        self.assertEqual(True, ParsedQuery("set hivevar:desc='bla'").is_set())
+        self.assertEqual(False, ParsedQuery("SELECT 1").is_set())
+
+    def test_show(self):
+        sql = ParsedQuery(
+            """
+            -- comment
+            SHOW LOCKS test EXTENDED;
+            -- comment
+        """
+        )
+
+        self.assertEqual(True, sql.is_show())
+        self.assertEqual(False, sql.is_select())
+
+        self.assertEqual(True, ParsedQuery("SHOW TABLES").is_show())
+        self.assertEqual(True, ParsedQuery("shOw TABLES").is_show())
+        self.assertEqual(True, ParsedQuery("show TABLES").is_show())
+        self.assertEqual(False, ParsedQuery("SELECT 1").is_show())
 
     def test_explain(self):
         sql = ParsedQuery("EXPLAIN SELECT 1")
 
         self.assertEqual(True, sql.is_explain())
         self.assertEqual(False, sql.is_select())
-        self.assertEqual(True, sql.is_readonly())
 
     def test_complex_extract_tables(self):
         query = """SELECT sum(m_examples) AS "sum__m_example"
@@ -579,3 +608,51 @@ class TestSupersetSqlParse(unittest.TestCase):
                 reindent=True,
             ),
         )
+
+    def test_is_explain(self):
+        query = """
+            -- comment
+            EXPLAIN select * from table
+            -- comment 2
+        """
+        parsed = ParsedQuery(query)
+        self.assertEqual(parsed.is_explain(), True)
+
+        query = """
+            -- comment
+            EXPLAIN select * from table
+            where col1 = 'something'
+            -- comment 2
+
+            -- comment 3
+            EXPLAIN select * from table
+            where col1 = 'something'
+            -- comment 4
+        """
+        parsed = ParsedQuery(query)
+        self.assertEqual(parsed.is_explain(), True)
+
+        query = """
+            -- This is a comment
+                -- this is another comment but with a space in the front
+            EXPLAIN SELECT * FROM TABLE
+        """
+        parsed = ParsedQuery(query)
+        self.assertEqual(parsed.is_explain(), True)
+
+        query = """
+            /* This is a comment
+                 with stars instead */
+            EXPLAIN SELECT * FROM TABLE
+        """
+        parsed = ParsedQuery(query)
+        self.assertEqual(parsed.is_explain(), True)
+
+        query = """
+            -- comment
+            select * from table
+            where col1 = 'something'
+            -- comment 2
+        """
+        parsed = ParsedQuery(query)
+        self.assertEqual(parsed.is_explain(), False)

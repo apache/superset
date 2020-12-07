@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import moment from 'moment';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import TableLoader from '../../components/TableLoader';
 import { Slice } from '../types';
@@ -40,7 +40,7 @@ export default class Favorites extends React.PureComponent<FavoritesProps> {
     return (
       <TableLoader
         dataEndpoint={`/superset/fave_slices/${this.props.user.userId}/`}
-        className="table table-condensed"
+        className="table-condensed"
         columns={['slice', 'creator', 'favorited']}
         mutator={mutator}
         noDataText={t('No favorite charts yet, go click on stars!')}
@@ -48,6 +48,7 @@ export default class Favorites extends React.PureComponent<FavoritesProps> {
       />
     );
   }
+
   renderDashboardTable() {
     const mutator = (data: Dashboard[]) =>
       data.map(dash => ({
@@ -57,7 +58,7 @@ export default class Favorites extends React.PureComponent<FavoritesProps> {
       }));
     return (
       <TableLoader
-        className="table table-condensed"
+        className="table-condensed"
         mutator={mutator}
         dataEndpoint={`/superset/fave_dashboards/${this.props.user.userId}/`}
         noDataText={t('No favorite dashboards yet, go click on stars!')}
@@ -66,6 +67,7 @@ export default class Favorites extends React.PureComponent<FavoritesProps> {
       />
     );
   }
+
   render() {
     return (
       <div>

@@ -18,7 +18,7 @@
  */
 import React, { PureComponent } from 'react';
 import cx from 'classnames';
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 
 interface PaginationButton {
   disabled?: boolean;
@@ -124,9 +124,13 @@ const PaginationList = styled.ul`
 
 export default class Pagination extends PureComponent<PaginationProps> {
   static Next = Next;
+
   static Prev = Prev;
+
   static Item = Item;
+
   static Ellipsis = Ellipsis;
+
   render() {
     return <PaginationList> {this.props.children}</PaginationList>;
   }

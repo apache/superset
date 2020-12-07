@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import getToastsFromPyFlashMessages from '../../messageToasts/utils/getToastsFromPyFlashMessages';
 
 export default function getInitialState({
@@ -144,7 +144,7 @@ export default function getInitialState({
     localStorage.getItem('redux') &&
     JSON.parse(localStorage.getItem('redux')).sqlLab
   ) {
-    const sqlLab = JSON.parse(localStorage.getItem('redux')).sqlLab;
+    const { sqlLab } = JSON.parse(localStorage.getItem('redux'));
 
     if (sqlLab.queryEditors.length === 0) {
       // migration was successful

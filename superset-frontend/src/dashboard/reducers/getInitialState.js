@@ -19,17 +19,17 @@
 /* eslint-disable camelcase */
 import { isString } from 'lodash';
 import shortid from 'shortid';
-import { CategoricalColorNamespace } from '@superset-ui/color';
+import { CategoricalColorNamespace } from '@superset-ui/core';
 
-import { chart } from '../../chart/chartReducer';
+import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
+import { getParam } from 'src/modules/utils';
+import { applyDefaultFormData } from 'src/explore/store';
+import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
   dashboardFilter,
 } from './dashboardFilters';
-import { initSliceEntities } from './sliceEntities';
-import { getParam } from '../../modules/utils';
-import { applyDefaultFormData } from '../../explore/store';
-import { buildActiveFilters } from '../util/activeDashboardFilters';
+import { chart } from '../../chart/chartReducer';
 import {
   DASHBOARD_HEADER_ID,
   GRID_DEFAULT_CHART_WIDTH,
@@ -40,7 +40,6 @@ import {
   CHART_TYPE,
   ROW_TYPE,
 } from '../util/componentTypes';
-import { buildFilterColorMap } from '../util/dashboardFiltersColorMap';
 import findFirstParentContainerId from '../util/findFirstParentContainer';
 import getEmptyLayout from '../util/getEmptyLayout';
 import getFilterConfigsFromFormdata from '../util/getFilterConfigsFromFormdata';
@@ -48,7 +47,7 @@ import getLocationHash from '../util/getLocationHash';
 import newComponentFactory from '../util/newComponentFactory';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 
-export default function (bootstrapData) {
+export default function getInitialState(bootstrapData) {
   const { user_id, datasources, common, editMode, urlParams } = bootstrapData;
 
   const dashboard = { ...bootstrapData.dashboard_data };
@@ -171,8 +170,8 @@ export default function (bootstrapData) {
     // build DashboardFilters for interactive filter features
     if (slice.form_data.viz_type === 'filter_box') {
       const configs = getFilterConfigsFromFormdata(slice.form_data);
-      let columns = configs.columns;
-      const labels = configs.labels;
+      let { columns } = configs;
+      const { labels } = configs;
       if (preselectFilters[key]) {
         Object.keys(columns).forEach(col => {
           if (preselectFilters[key][col]) {
@@ -232,7 +231,6 @@ export default function (bootstrapData) {
     dashboardFilters,
     components: layout,
   });
-  buildFilterColorMap(dashboardFilters, layout);
 
   // store the header as a layout component so we can undo/redo changes
   layout[DASHBOARD_HEADER_ID] = {
@@ -276,18 +274,14 @@ export default function (bootstrapData) {
         flash_messages: common.flash_messages,
         conf: common.conf,
       },
+      lastModifiedTime: dashboard.last_modified_time,
     },
     dashboardFilters,
     dashboardState: {
       sliceIds: Array.from(sliceIds),
       directPathToChild,
       directPathLastUpdated: Date.now(),
-      // dashboard only has 1 focused filter field at a time,
-      // but when user switch different filter boxes,
-      // browser didn't always fire onBlur and onFocus events in order.
-      // so in redux state focusedFilterField prop is a queue,
-      // but component use focusedFilterField prop as single object.
-      focusedFilterField: [],
+      focusedFilterField: null,
       expandedSlices: dashboard.metadata.expanded_slices || {},
       refreshFrequency: dashboard.metadata.refresh_frequency || 0,
       // dashboard viewers can set refresh frequency for the current visit,
@@ -300,6 +294,7 @@ export default function (bootstrapData) {
       isPublished: dashboard.published,
       hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,
+      lastModifiedTime: dashboard.last_modified_time,
     },
     dashboardLayout,
     messageToasts: [],

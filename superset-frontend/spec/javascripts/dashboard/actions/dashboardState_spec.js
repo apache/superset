@@ -17,7 +17,7 @@
  * under the License.
  */
 import sinon from 'sinon';
-import { SupersetClient } from '@superset-ui/connection';
+import { SupersetClient } from '@superset-ui/core';
 
 import {
   removeSliceFromDashboard,
@@ -29,9 +29,9 @@ import { DASHBOARD_GRID_ID } from 'src/dashboard/util/constants';
 import {
   filterId,
   sliceEntitiesForDashboard as sliceEntities,
-} from '../fixtures/mockSliceEntities';
-import { emptyFilters } from '../fixtures/mockDashboardFilters';
-import mockDashboardData from '../fixtures/mockDashboardData';
+} from 'spec/fixtures/mockSliceEntities';
+import { emptyFilters } from 'spec/fixtures/mockDashboardFilters';
+import mockDashboardData from 'spec/fixtures/mockDashboardData';
 
 describe('dashboardState actions', () => {
   const mockState = {
@@ -103,7 +103,7 @@ describe('dashboardState actions', () => {
       const thunk = saveDashboardRequest(newDashboardData, 1, 'save_dash');
       thunk(dispatch, getState);
       expect(postStub.callCount).toBe(1);
-      const postPayload = postStub.getCall(0).args[0].postPayload;
+      const { postPayload } = postStub.getCall(0).args[0];
       expect(postPayload.data.positions[DASHBOARD_GRID_ID].parents).toBe(
         mockParentsList,
       );

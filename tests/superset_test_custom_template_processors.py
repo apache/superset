@@ -42,7 +42,7 @@ class CustomPrestoTemplateProcessor(PrestoTemplateProcessor):
         # Add custom macros functions.
         macros = {"DATE": partial(DATE, datetime.utcnow())}  # type: Dict[str, Any]
         # Update with macros defined in context and kwargs.
-        macros.update(self.context)
+        macros.update(self._context)
         macros.update(kwargs)
 
         def replacer(match):

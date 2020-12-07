@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId';
@@ -145,7 +145,7 @@ class Dashboard extends React.PureComponent {
   componentDidUpdate() {
     const { hasUnsavedChanges, editMode } = this.props.dashboardState;
 
-    const appliedFilters = this.appliedFilters;
+    const { appliedFilters } = this;
     const { activeFilters } = this.props;
     // do not apply filter when dashboard in edit mode
     if (!editMode && !areObjectsEqual(appliedFilters, activeFilters)) {
@@ -186,7 +186,7 @@ class Dashboard extends React.PureComponent {
   }
 
   applyFilters() {
-    const appliedFilters = this.appliedFilters;
+    const { appliedFilters } = this;
     const { activeFilters } = this.props;
 
     // refresh charts if a filter was removed, added, or changed

@@ -1,0 +1,89 @@
+---
+name: Installing Locally Using Docker Compose
+menu: Installation and Configuration
+route: /docs/installation/installing-superset-using-docker-compose
+index: 1
+version: 1
+---
+
+## Installing Superset Locally Using Docker Compose
+
+The fastest way to try Superset locally is using Docker and Docker Compose on a Linux or Mac OSX
+computer. Superset does not have official support for Windows, so we have provided a VM workaround
+below.
+
+### 1. Install a Docker Engine and Docker Compose
+
+**Mac OSX**
+
+[Install Docker for Mac](https://docs.docker.com/docker-for-mac/install/), which includes the Docker
+engine and a recent version of `docker-compose` out of the box.
+
+Once you have Docker for Mac installed, open up the preferences pane for Docker, go to the
+"Resources" section and increase the allocated memory to 6GB. With only the 2GB of RAM allocated by
+default, Superset will fail to start.
+
+**Linux**
+
+[Install Docker on Linux](https://docs.docker.com/engine/install/) by following Docker’s
+instructions for whichever flavor of Linux suits you. Because `docker-compose` is not installed as
+part of the base Docker installation on Linux, once you have a working engine, follow the
+[docker-compose installation instructions](https://docs.docker.com/compose/install/) for Linux.
+
+**Windows**
+
+Superset is not officially supported on Windows unfortunately. The best option for Windows users to
+try out Superset locally is to install an Ubuntu Desktop VM via
+[VirtualBox](https://www.virtualbox.org/) and proceed with the Docker on Linux instructions inside
+of that VM. We recommend assigning at least 8GB of RAM to the virtual machine as well as
+provisioning a hard drive of at least 40GB, so that there will be enough space for both the OS and
+all of the required dependencies.
+
+### 2. Clone Superset's Github repository
+
+[Clone Superset's repo](https://github.com/apache/incubator-superset) in your terminal with the
+following command:
+
+```bash
+$ git clone https://github.com/apache/incubator-superset.git
+```
+
+Once that command completes successfully, you should see a new `incubator-superset` folder in your
+current directory.
+
+### 3. Launch Superset Through Docker Compose
+
+Navigate to the folder you created in step 1:
+
+```bash
+$ cd incubator-superset
+```
+
+Then, run the following command:
+
+```bash
+$ docker-compose up
+```
+
+You should see a wall of logging output from the containers being launched on your machine. Once
+this output slows, you should have a running instance of Superset on your local machine!
+
+### 4. Login to Superset
+
+Your local Superset instance also includes a Postgres server to store your data and is already
+pre-loaded with some example datasets that ship with Superset. You can access Superset now via your
+web browser by visiting `http://localhost:8088`. Note that many browsers now default to `https` - if
+yours is one of them, please make sure it uses `http`.
+
+Log in with the default username and password:
+
+```bash
+username: admin
+```
+
+```bash
+password: admin
+```
+
+Congrats! You have successfully installed Superset! Click 'Next' to learn how to connect a database
+driver.

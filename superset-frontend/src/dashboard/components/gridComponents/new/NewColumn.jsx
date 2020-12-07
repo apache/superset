@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 
 import { COLUMN_TYPE } from '../../../util/componentTypes';
 import { NEW_COLUMN_ID } from '../../../util/constants';

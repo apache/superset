@@ -19,12 +19,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
-import { logging } from '@superset-ui/core';
+import { t, logging, SupersetClient } from '@superset-ui/core';
 
-import OnPasteSelect from 'src/components/Select/OnPasteSelect';
-
+import Select from 'src/components/Select';
 import ControlHeader from '../ControlHeader';
 import adhocFilterType from '../../propTypes/adhocFilterType';
 import adhocMetricType from '../../propTypes/adhocMetricType';
@@ -49,6 +46,7 @@ const propTypes = {
       PropTypes.oneOfType([PropTypes.string, adhocMetricType]),
     ),
   }),
+  isLoading: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -106,7 +104,7 @@ export default class AdhocFilterControl extends React.Component {
         })
           .then(({ json }) => {
             if (json && json.partitions) {
-              const partitions = json.partitions;
+              const { partitions } = json;
               // for now only show latest_partition option
               // when table datasource has only 1 partition key.
               if (
@@ -182,9 +180,10 @@ export default class AdhocFilterControl extends React.Component {
             operator: OPERATORS['>'],
             comparator: 0,
             clause: CLAUSES.HAVING,
+            isNew: true,
           });
         }
-        // has a custom label
+        // has a custom label, meaning it's custom column
         if (option.label) {
           return new AdhocFilter({
             expressionType:
@@ -198,6 +197,7 @@ export default class AdhocFilterControl extends React.Component {
             operator: OPERATORS['>'],
             comparator: 0,
             clause: CLAUSES.HAVING,
+            isNew: true,
           });
         }
         // add a new filter item
@@ -264,12 +264,13 @@ export default class AdhocFilterControl extends React.Component {
 
   render() {
     return (
-      <div className="metrics-select">
+      <div className="metrics-select" data-test="adhoc-filter-control">
         <ControlHeader {...this.props} />
-        <OnPasteSelect
+        <Select
           isMulti
+          isLoading={this.props.isLoading}
           name={`select-${this.props.name}`}
-          placeholder={t('choose a column or metric')}
+          placeholder={t('choose one or more columns or metrics')}
           options={this.state.options}
           value={this.state.values}
           labelKey="label"

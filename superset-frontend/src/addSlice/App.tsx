@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { hot } from 'react-hot-loader/root';
-import { supersetTheme, ThemeProvider } from '@superset-ui/style';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
 import AddSliceContainer from './AddSliceContainer';

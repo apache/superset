@@ -38,7 +38,7 @@ class CommandInvalidError(CommandException):
 
     def __init__(self, message: str = "") -> None:
         self._invalid_exceptions: List[ValidationError] = []
-        super().__init__(self.message)
+        super().__init__(message)
 
     def add(self, exception: ValidationError) -> None:
         self._invalid_exceptions.append(exception)
@@ -71,6 +71,11 @@ class DeleteFailedError(CommandException):
 class ForbiddenError(CommandException):
     status = 500
     message = "Action is forbidden"
+
+
+class ImportFailedError(CommandException):
+    status = 500
+    message = "Import failed for an unknown reason"
 
 
 class OwnersNotFoundValidationError(ValidationError):

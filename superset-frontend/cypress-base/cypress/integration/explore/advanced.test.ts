@@ -74,7 +74,7 @@ describe('Annotations', () => {
       cy.get('button').click();
     });
 
-    cy.get('.popover-content').within(() => {
+    cy.get('[data-test="popover-content"]').within(() => {
       cy.get('[data-test=annotation-layer-name-header]')
         .siblings()
         .first()
@@ -87,7 +87,7 @@ describe('Annotations', () => {
         .within(() => {
           cy.get('input').type('y=1400000');
         });
-      cy.get('button').contains('OK').click();
+      cy.get('button').contains('OK').click({ force: true });
     });
 
     cy.get('button[data-test="run-query-button"]').click();

@@ -18,19 +18,13 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Badge } from 'react-bootstrap';
-import AceEditor from 'react-ace';
-import 'brace/mode/sql';
-import 'brace/mode/json';
-import 'brace/mode/html';
-import 'brace/mode/markdown';
-import 'brace/theme/textmate';
-
-import { t } from '@superset-ui/translation';
+import Badge from 'src/common/components/Badge';
+import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 import Button from 'src/components/Button';
-import ModalTrigger from '../../components/ModalTrigger';
+import ModalTrigger from 'src/components/ModalTrigger';
+import { ConfigEditor } from 'src/components/AsyncAceEditor';
 
 const propTypes = {
   onChange: PropTypes.func,
@@ -39,11 +33,15 @@ const propTypes = {
 };
 
 const defaultProps = {
-  label: null,
-  description: null,
   onChange: () => {},
   code: '{}',
 };
+
+const StyledConfigEditor = styled(ConfigEditor)`
+  &.ace_editor {
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  }
+`;
 
 export default class TemplateParamsEditor extends React.Component {
   constructor(props) {
@@ -56,9 +54,11 @@ export default class TemplateParamsEditor extends React.Component {
     };
     this.onChange = this.onChange.bind(this);
   }
+
   componentDidMount() {
     this.onChange(this.state.codeText);
   }
+
   onChange(value) {
     const codeText = value;
     let isValid;
@@ -75,6 +75,7 @@ export default class TemplateParamsEditor extends React.Component {
       this.props.onChange(newValue);
     }
   }
+
   renderDoc() {
     return (
       <p>
@@ -96,14 +97,14 @@ export default class TemplateParamsEditor extends React.Component {
       </p>
     );
   }
+
   renderModalBody() {
     return (
       <div>
         {this.renderDoc()}
-        <AceEditor
+        <StyledConfigEditor
+          keywords={[]}
           mode={this.props.language}
-          theme="textmate"
-          style={{ border: '1px solid #CCC' }}
           minLines={25}
           maxLines={50}
           onChange={this.onChange}
@@ -115,6 +116,7 @@ export default class TemplateParamsEditor extends React.Component {
       </div>
     );
   }
+
   render() {
     const paramCount = this.state.parsedJSON
       ? Object.keys(this.state.parsedJSON).length
@@ -123,9 +125,9 @@ export default class TemplateParamsEditor extends React.Component {
       <ModalTrigger
         modalTitle={t('Template Parameters')}
         triggerNode={
-          <Button tooltip={t('Edit template parameters')}>
+          <Button tooltip={t('Edit template parameters')} buttonSize="small">
             {`${t('parameters')} `}
-            {paramCount > 0 && <Badge>{paramCount}</Badge>}
+            <Badge count={paramCount} />
             {!this.state.isValid && (
               <InfoTooltipWithTrigger
                 icon="exclamation-triangle"

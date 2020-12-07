@@ -44,7 +44,7 @@ class BaseStatsLogger:
     def timing(self, key: str, value: float) -> None:
         raise NotImplementedError()
 
-    def gauge(self, key: str) -> None:
+    def gauge(self, key: str, value: float) -> None:
         """Setup a gauge"""
         raise NotImplementedError()
 
@@ -61,9 +61,15 @@ class DummyStatsLogger(BaseStatsLogger):
             (Fore.CYAN + f"[stats_logger] (timing) {key} | {value} " + Style.RESET_ALL)
         )
 
-    def gauge(self, key: str) -> None:
+    def gauge(self, key: str, value: float) -> None:
         logger.debug(
-            (Fore.CYAN + "[stats_logger] (gauge) " + f"{key}" + Style.RESET_ALL)
+            (
+                Fore.CYAN
+                + "[stats_logger] (gauge) "
+                + f"{key}"
+                + f"{value}"
+                + Style.RESET_ALL
+            )
         )
 
 
@@ -98,9 +104,8 @@ try:
         def timing(self, key: str, value: float) -> None:
             self.client.timing(key, value)
 
-        def gauge(self, key: str) -> None:
-            # pylint: disable=no-value-for-parameter
-            self.client.gauge(key)
+        def gauge(self, key: str, value: float) -> None:
+            self.client.gauge(key, value)
 
 
 except Exception:  # pylint: disable=broad-except

@@ -30,4 +30,4 @@ echo "----------------------"
 echo "Creating distribution "
 echo "----------------------"
 python setup.py sdist
-echo "RUN: twine upload dist/apache-superset-{SUPERSET_VERSION}.tar.gz"
+echo "RUN: twine upload dist/apache-superset-${SUPERSET_VERSION}.tar.gz"

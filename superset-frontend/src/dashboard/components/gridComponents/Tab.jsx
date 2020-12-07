@@ -23,8 +23,6 @@ import DashboardComponent from '../../containers/DashboardComponent';
 import DragDroppable from '../dnd/DragDroppable';
 import EditableTitle from '../../../components/EditableTitle';
 import AnchorLink from '../../../components/AnchorLink';
-import DeleteComponentModal from '../DeleteComponentModal';
-import WithPopoverMenu from '../menu/WithPopoverMenu';
 import { componentShape } from '../../util/propShapes';
 
 export const RENDER_TAB = 'RENDER_TAB';
@@ -39,7 +37,6 @@ const propTypes = {
   depth: PropTypes.number.isRequired,
   renderType: PropTypes.oneOf([RENDER_TAB, RENDER_TAB_CONTENT]).isRequired,
   onDropOnTab: PropTypes.func,
-  onDeleteTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
   filters: PropTypes.object.isRequired,
 
@@ -52,7 +49,6 @@ const propTypes = {
 
   // redux
   handleComponentDrop: PropTypes.func.isRequired,
-  deleteComponent: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
   setDirectPathToChild: PropTypes.func.isRequired,
 };
@@ -61,7 +57,6 @@ const defaultProps = {
   availableColumnCount: 0,
   columnWidth: 0,
   onDropOnTab() {},
-  onDeleteTab() {},
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},
@@ -70,19 +65,10 @@ const defaultProps = {
 export default class Tab extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = {
-      isFocused: false,
-    };
-    this.handleChangeFocus = this.handleChangeFocus.bind(this);
     this.handleChangeText = this.handleChangeText.bind(this);
-    this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleDrop = this.handleDrop.bind(this);
     this.handleTopDropTargetDrop = this.handleTopDropTargetDrop.bind(this);
     this.handleChangeTab = this.handleChangeTab.bind(this);
-  }
-
-  handleChangeFocus(nextFocus) {
-    this.setState(() => ({ isFocused: nextFocus }));
   }
 
   handleChangeTab({ pathToTabIndex }) {
@@ -102,12 +88,6 @@ export default class Tab extends React.PureComponent {
         },
       });
     }
-  }
-
-  handleDeleteComponent() {
-    const { index, id, parentId } = this.props;
-    this.props.deleteComponent(id, parentId);
-    this.props.onDeleteTab(index);
   }
 
   handleDrop(dropResult) {
@@ -204,7 +184,6 @@ export default class Tab extends React.PureComponent {
   }
 
   renderTab() {
-    const { isFocused } = this.state;
     const {
       component,
       parentComponent,
@@ -212,12 +191,8 @@ export default class Tab extends React.PureComponent {
       depth,
       editMode,
       filters,
+      isFocused,
     } = this.props;
-    const deleteTabIcon = (
-      <div className="icon-button">
-        <span className="fa fa-trash" />
-      </div>
-    );
 
     return (
       <DragDroppable
@@ -229,22 +204,9 @@ export default class Tab extends React.PureComponent {
         onDrop={this.handleDrop}
         editMode={editMode}
       >
-        {({ dropIndicatorProps, dragSourceRef }) => (
-          <div className="dragdroppable-tab" ref={dragSourceRef}>
-            <WithPopoverMenu
-              onChangeFocus={this.handleChangeFocus}
-              menuItems={
-                parentComponent.children.length <= 1
-                  ? []
-                  : [
-                      <DeleteComponentModal
-                        triggerNode={deleteTabIcon}
-                        onDelete={this.handleDeleteComponent}
-                      />,
-                    ]
-              }
-              editMode={editMode}
-            >
+        {({ dropIndicatorProps, dragSourceRef }) => {
+          return (
+            <div className="dragdroppable-tab" ref={dragSourceRef}>
               <EditableTitle
                 title={component.meta.text}
                 canEdit={editMode && isFocused}
@@ -259,11 +221,11 @@ export default class Tab extends React.PureComponent {
                   placement={index >= 5 ? 'left' : 'right'}
                 />
               )}
-            </WithPopoverMenu>
 
-            {dropIndicatorProps && <div {...dropIndicatorProps} />}
-          </div>
-        )}
+              {dropIndicatorProps && <div {...dropIndicatorProps} />}
+            </div>
+          );
+        }}
       </DragDroppable>
     );
   }

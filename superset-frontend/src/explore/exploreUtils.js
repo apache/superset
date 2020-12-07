@@ -18,18 +18,18 @@
  */
 /* eslint camelcase: 0 */
 import URI from 'urijs';
-import { buildQueryContext } from '@superset-ui/query';
-import { availableDomains } from 'src/utils/hostNamesConfig';
-import { safeStringify } from 'src/utils/safeStringify';
 import {
+  buildQueryContext,
   getChartBuildQueryRegistry,
   getChartMetadataRegistry,
-} from '@superset-ui/chart';
+} from '@superset-ui/core';
+import { availableDomains } from 'src/utils/hostNamesConfig';
+import { safeStringify } from 'src/utils/safeStringify';
 
 const MAX_URL_LENGTH = 8000;
 
 export function getChartKey(explore) {
-  const slice = explore.slice;
+  const { slice } = explore;
   return slice ? slice.slice_id : 0;
 }
 
@@ -117,9 +117,9 @@ export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
   // but can be specified with curUrl (used for unit tests to spoof
   // the window.location).
   let uri = new URI({
-    protocol: location.protocol.slice(0, -1),
+    protocol: window.location.protocol.slice(0, -1),
     hostname: getHostName(allowDomainSharding),
-    port: location.port ? location.port : '',
+    port: window.location.port ? window.location.port : '',
     path,
   });
   if (qs) {

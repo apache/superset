@@ -14,12 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type
 
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from superset.dao.exceptions import (
     DAOConfigError,
@@ -35,24 +36,25 @@ class BaseDAO:
     Base DAO, implement base CRUD sqlalchemy operations
     """
 
-    model_cls: Optional[Model] = None
+    model_cls: Optional[Type[Model]] = None
     """
     Child classes need to state the Model class so they don't need to implement basic
     create, update and delete methods
-    """  # pylint: disable=pointless-string-statement
+    """
     base_filter: Optional[BaseFilter] = None
     """
     Child classes can register base filtering to be aplied to all filter methods
-    """  # pylint: disable=pointless-string-statement
+    """
 
     @classmethod
-    def find_by_id(cls, model_id: int) -> Model:
+    def find_by_id(cls, model_id: int, session: Session = None) -> Model:
         """
         Find a model by id, if defined applies `base_filter`
         """
-        query = db.session.query(cls.model_cls)
+        session = session or db.session
+        query = session.query(cls.model_cls)
         if cls.base_filter:
-            data_model = SQLAInterface(cls.model_cls, db.session)
+            data_model = SQLAInterface(cls.model_cls, session)
             query = cls.base_filter(  # pylint: disable=not-callable
                 "id", data_model
             ).apply(query, None)

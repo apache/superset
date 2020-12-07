@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import styled from '@superset-ui/style';
+import { styled } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 
 interface IndeterminateCheckboxProps {
@@ -31,6 +31,10 @@ interface IndeterminateCheckboxProps {
 const CheckboxLabel = styled.label`
   cursor: pointer;
   margin-bottom: 0;
+`;
+
+const IconWithColor = styled(Icon)`
+  color: ${({ theme }) => theme.colors.primary.dark1};
 `;
 
 const HiddenInput = styled.input`
@@ -57,8 +61,8 @@ const IndeterminateCheckbox = React.forwardRef(
 
     return (
       <CheckboxLabel title={title}>
-        {indeterminate && <Icon name="checkbox-half" />}
-        {!indeterminate && checked && <Icon name="checkbox-on" />}
+        {indeterminate && <IconWithColor name="checkbox-half" />}
+        {!indeterminate && checked && <IconWithColor name="checkbox-on" />}
         {!indeterminate && !checked && <Icon name="checkbox-off" />}
         <HiddenInput
           className="hidden"

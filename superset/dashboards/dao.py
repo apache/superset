@@ -23,6 +23,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.dao.base import BaseDAO
 from superset.dashboards.filters import DashboardFilter
 from superset.extensions import db
+from superset.models.core import FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
@@ -81,7 +82,7 @@ class DashboardDAO(BaseDAO):
             raise ex
 
     @staticmethod
-    def set_dash_metadata(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    def set_dash_metadata(
         dashboard: Dashboard,
         data: Dict[Any, Any],
         old_to_new_slice_ids: Optional[Dict[int, int]] = None,
@@ -98,6 +99,17 @@ class DashboardDAO(BaseDAO):
         current_slices = session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
 
         dashboard.slices = current_slices
+
+        # add UUID to positions
+        uuid_map = {slice.id: str(slice.uuid) for slice in current_slices}
+        for obj in positions.values():
+            if (
+                isinstance(obj, dict)
+                and obj["type"] == "CHART"
+                and obj["meta"]["chartId"]
+            ):
+                chart_id = obj["meta"]["chartId"]
+                obj["meta"]["uuid"] = uuid_map.get(chart_id)
 
         # remove leading and trailing white spaces in the dumped json
         dashboard.position_json = json.dumps(
@@ -143,3 +155,19 @@ class DashboardDAO(BaseDAO):
         if data.get("label_colors"):
             md["label_colors"] = data.get("label_colors")
         dashboard.json_metadata = json.dumps(md)
+
+    @staticmethod
+    def favorited_ids(
+        dashboards: List[Dashboard], current_user_id: int
+    ) -> List[FavStar]:
+        ids = [dash.id for dash in dashboards]
+        return [
+            star.obj_id
+            for star in db.session.query(FavStar.obj_id)
+            .filter(
+                FavStar.class_name == FavStarClassName.DASHBOARD,
+                FavStar.obj_id.in_(ids),
+                FavStar.user_id == current_user_id,
+            )
+            .all()
+        ]

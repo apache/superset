@@ -19,15 +19,25 @@ from datetime import datetime
 import math
 from typing import Any, List, Optional
 
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, Timestamp
 import pytest
 
 from superset.exceptions import QueryObjectValidationError
 from superset.utils import pandas_postprocessing as proc
-from superset.utils.core import DTTM_ALIAS, PostProcessingContributionOrientation
+from superset.utils.core import (
+    DTTM_ALIAS,
+    PostProcessingContributionOrientation,
+    PostProcessingBoxplotWhiskerType,
+)
 
 from .base_tests import SupersetTestCase
-from .fixtures.dataframes import categories_df, lonlat_df, timeseries_df, prophet_df
+from .fixtures.dataframes import (
+    categories_df,
+    lonlat_df,
+    names_df,
+    timeseries_df,
+    prophet_df,
+)
 
 AGGREGATES_SINGLE = {"idx_nulls": {"operator": "sum"}}
 AGGREGATES_MULTIPLE = {
@@ -79,15 +89,33 @@ class TestPostProcessing(SupersetTestCase):
         )
         self.assertEqual(
             proc._flatten_column_after_pivot(
+                aggregates=AGGREGATES_SINGLE, column=1234,
+            ),
+            "1234",
+        )
+        self.assertEqual(
+            proc._flatten_column_after_pivot(
+                aggregates=AGGREGATES_SINGLE, column=Timestamp("2020-09-29T00:00:00"),
+            ),
+            "2020-09-29 00:00:00",
+        )
+        self.assertEqual(
+            proc._flatten_column_after_pivot(
+                aggregates=AGGREGATES_SINGLE, column="idx_nulls",
+            ),
+            "idx_nulls",
+        )
+        self.assertEqual(
+            proc._flatten_column_after_pivot(
                 aggregates=AGGREGATES_SINGLE, column=("idx_nulls", "col1"),
             ),
             "col1",
         )
         self.assertEqual(
             proc._flatten_column_after_pivot(
-                aggregates=AGGREGATES_SINGLE, column=("idx_nulls", "col1", "col2"),
+                aggregates=AGGREGATES_SINGLE, column=("idx_nulls", "col1", 1234),
             ),
-            "col1, col2",
+            "col1, 1234",
         )
 
         # Multiple aggregate cases
@@ -100,9 +128,9 @@ class TestPostProcessing(SupersetTestCase):
         self.assertEqual(
             proc._flatten_column_after_pivot(
                 aggregates=AGGREGATES_MULTIPLE,
-                column=("idx_nulls", "asc_idx", "col1", "col2"),
+                column=("idx_nulls", "asc_idx", "col1", 1234),
             ),
-            "idx_nulls, asc_idx, col1, col2",
+            "idx_nulls, asc_idx, col1, 1234",
         )
 
     def test_pivot_without_columns(self):
@@ -589,3 +617,103 @@ class TestPostProcessing(SupersetTestCase):
             periods=10,
             confidence_interval=0.8,
         )
+
+    def test_boxplot_tukey(self):
+        df = proc.boxplot(
+            df=names_df,
+            groupby=["region"],
+            whisker_type=PostProcessingBoxplotWhiskerType.TUKEY,
+            metrics=["cars"],
+        )
+        columns = {column for column in df.columns}
+        assert columns == {
+            "cars__mean",
+            "cars__median",
+            "cars__q1",
+            "cars__q3",
+            "cars__max",
+            "cars__min",
+            "cars__count",
+            "cars__outliers",
+            "region",
+        }
+        assert len(df) == 4
+
+    def test_boxplot_min_max(self):
+        df = proc.boxplot(
+            df=names_df,
+            groupby=["region"],
+            whisker_type=PostProcessingBoxplotWhiskerType.MINMAX,
+            metrics=["cars"],
+        )
+        columns = {column for column in df.columns}
+        assert columns == {
+            "cars__mean",
+            "cars__median",
+            "cars__q1",
+            "cars__q3",
+            "cars__max",
+            "cars__min",
+            "cars__count",
+            "cars__outliers",
+            "region",
+        }
+        assert len(df) == 4
+
+    def test_boxplot_percentile(self):
+        df = proc.boxplot(
+            df=names_df,
+            groupby=["region"],
+            whisker_type=PostProcessingBoxplotWhiskerType.PERCENTILE,
+            metrics=["cars"],
+            percentiles=[1, 99],
+        )
+        columns = {column for column in df.columns}
+        assert columns == {
+            "cars__mean",
+            "cars__median",
+            "cars__q1",
+            "cars__q3",
+            "cars__max",
+            "cars__min",
+            "cars__count",
+            "cars__outliers",
+            "region",
+        }
+        assert len(df) == 4
+
+    def test_boxplot_percentile_incorrect_params(self):
+        with pytest.raises(QueryObjectValidationError):
+            proc.boxplot(
+                df=names_df,
+                groupby=["region"],
+                whisker_type=PostProcessingBoxplotWhiskerType.PERCENTILE,
+                metrics=["cars"],
+            )
+
+        with pytest.raises(QueryObjectValidationError):
+            proc.boxplot(
+                df=names_df,
+                groupby=["region"],
+                whisker_type=PostProcessingBoxplotWhiskerType.PERCENTILE,
+                metrics=["cars"],
+                percentiles=[10],
+            )
+
+        with pytest.raises(QueryObjectValidationError):
+            proc.boxplot(
+                df=names_df,
+                groupby=["region"],
+                whisker_type=PostProcessingBoxplotWhiskerType.PERCENTILE,
+                metrics=["cars"],
+                percentiles=[90, 10],
+            )
+
+        with pytest.raises(QueryObjectValidationError):
+            proc.boxplot(
+                df=names_df,
+                groupby=["region"],
+                whisker_type=PostProcessingBoxplotWhiskerType.PERCENTILE,
+                metrics=["cars"],
+                percentiles=[10, 90, 10],
+            )

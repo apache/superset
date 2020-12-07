@@ -54,7 +54,8 @@ let cachedIdsLookup = {};
 export default function findNonTabChildChartIdsWithCache({ id, layout }) {
   if (cachedLayout === layout && cachedIdsLookup[id]) {
     return cachedIdsLookup[id];
-  } else if (layout !== cachedLayout) {
+  }
+  if (layout !== cachedLayout) {
     cachedLayout = layout;
     cachedIdsLookup = {};
   }

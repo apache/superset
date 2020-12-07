@@ -45,8 +45,8 @@ describe('Test explore links', () => {
     cy.wait('@postJson').then(() => {
       cy.get('code');
     });
-    cy.get('.modal-header').within(() => {
-      cy.get('button.close').first().click({ force: true });
+    cy.get('.ant-modal-content').within(() => {
+      cy.get('button.ant-modal-close').first().click({ force: true });
     });
   });
 
@@ -91,21 +91,17 @@ describe('Test explore links', () => {
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
     cy.url().then(() => {
-      cy.get('button[data-target="#save_modal"]').click();
-      cy.get('.modal-content').within(() => {
-        cy.get('#saveas-radio').check();
-        cy.get('input[name=new_slice_name]').type(newChartName);
-        cy.get('button#btn_modal_save').click();
-      });
+      cy.get('[data-test="query-save-button"]').click();
+      cy.get('[data-test="saveas-radio"]').check();
+      cy.get('[data-test="new-chart-name"]').type(newChartName);
+      cy.get('[data-test="btn-modal-save"]').click();
       cy.verifySliceSuccess({ waitAlias: '@postJson' });
       cy.visitChartByName(newChartName);
 
       // Overwriting!
-      cy.get('button[data-target="#save_modal"]').click();
-      cy.get('.modal-content').within(() => {
-        cy.get('#overwrite-radio').check();
-        cy.get('button#btn_modal_save').click();
-      });
+      cy.get('[data-test="query-save-button"]').click();
+      cy.get('[data-test="save-overwrite-radio"]').check();
+      cy.get('[data-test="btn-modal-save"]').click();
       cy.verifySliceSuccess({ waitAlias: '@postJson' });
       const query = {
         filters: [
@@ -131,16 +127,15 @@ describe('Test explore links', () => {
     cy.visitChartByName(chartName);
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
-    cy.get('button[data-target="#save_modal"]').click();
-    cy.get('.modal-content').within(() => {
-      cy.get('#saveas-radio').check();
-      cy.get('input[name=new_slice_name]').click().clear().type(newChartName);
-      // Add a new option using the "CreatableSelect" feature
-      cy.get('#dashboard-creatable-select').type(
-        `${dashboardTitle}{enter}{enter}`,
-      );
-      cy.get('button#btn_modal_save').click();
-    });
+    cy.get('[data-test="query-save-button"]').click();
+    cy.get('[data-test="saveas-radio"]').check();
+    cy.get('[data-test="new-chart-name"]').click().clear().type(newChartName);
+    // Add a new option using the "CreatableSelect" feature
+    cy.get('[data-test="save-chart-modal-select-dashboard-form"]')
+      .find('#dashboard-creatable-select')
+      .type(`${dashboardTitle}{enter}{enter}`);
+
+    cy.get('[data-test="btn-modal-save"]').click();
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
     let query = {
       filters: [
@@ -158,17 +153,16 @@ describe('Test explore links', () => {
     cy.visitChartByName(newChartName);
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
-    cy.get('button[data-target="#save_modal"]').click();
-    cy.get('.modal-content').within(() => {
-      cy.get('#overwrite-radio').check();
-      cy.get('input[name=new_slice_name]').click().clear().type(newChartName);
-      // This time around, typing the same dashboard name
-      // will select the existing one
-      cy.get('#dashboard-creatable-select').type(
-        `${dashboardTitle}{enter}{enter}`,
-      );
-      cy.get('button#btn_modal_save').click();
-    });
+    cy.get('[data-test="query-save-button"]').click();
+    cy.get('[data-test="save-overwrite-radio"]').check();
+    cy.get('[data-test="new-chart-name"]').click().clear().type(newChartName);
+    // This time around, typing the same dashboard name
+    // will select the existing one
+    cy.get('[data-test="save-chart-modal-select-dashboard-form"]')
+      .find('#dashboard-creatable-select')
+      .type(`${dashboardTitle}{enter}{enter}`);
+
+    cy.get('[data-test="btn-modal-save"]').click();
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
     query = {
       filters: [

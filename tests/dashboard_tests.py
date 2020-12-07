@@ -16,14 +16,17 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+from datetime import datetime
 import json
 import unittest
 from random import random
 
+import pytest
 from flask import escape, url_for
 from sqlalchemy import func
 
-import tests.test_app
+from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_position
+from tests.test_app import app
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
@@ -34,6 +37,64 @@ from .base_tests import SupersetTestCase
 
 
 class TestDashboard(SupersetTestCase):
+    @pytest.fixture
+    def cleanup_copied_dash(self):
+        with app.app_context():
+            original_dashboard = (
+                db.session.query(Dashboard).filter_by(slug="births").first()
+            )
+            original_dashboard_id = original_dashboard.id
+            yield
+            copied_dashboard = (
+                db.session.query(Dashboard)
+                .filter(
+                    Dashboard.dashboard_title == "Copy Of Births",
+                    Dashboard.id != original_dashboard_id,
+                )
+                .first()
+            )
+
+            db.session.merge(original_dashboard)
+            if copied_dashboard:
+                db.session.delete(copied_dashboard)
+            db.session.commit()
+
+    @pytest.fixture
+    def load_dashboard(self):
+        with app.app_context():
+            table = (
+                db.session.query(SqlaTable).filter_by(table_name="energy_usage").one()
+            )
+            # get a slice from the allowed table
+            slice = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+
+            self.grant_public_access_to_table(table)
+
+            pytest.hidden_dash_slug = f"hidden_dash_{random()}"
+            pytest.published_dash_slug = f"published_dash_{random()}"
+
+            # Create a published and hidden dashboard and add them to the database
+            published_dash = Dashboard()
+            published_dash.dashboard_title = "Published Dashboard"
+            published_dash.slug = pytest.published_dash_slug
+            published_dash.slices = [slice]
+            published_dash.published = True
+
+            hidden_dash = Dashboard()
+            hidden_dash.dashboard_title = "Hidden Dashboard"
+            hidden_dash.slug = pytest.hidden_dash_slug
+            hidden_dash.slices = [slice]
+            hidden_dash.published = False
+
+            db.session.merge(published_dash)
+            db.session.merge(hidden_dash)
+            yield db.session.commit()
+
+            self.revoke_public_access_to_table(table)
+            db.session.delete(published_dash)
+            db.session.delete(hidden_dash)
+            db.session.commit()
+
     def get_mock_positions(self, dash):
         positions = {"DASHBOARD_VERSION_KEY": "v2"}
         for i, slc in enumerate(dash.slices):
@@ -89,6 +150,8 @@ class TestDashboard(SupersetTestCase):
             "expanded_slices": {},
             "positions": positions,
             "dashboard_title": dash.dashboard_title,
+            # set a further modified_time for unit test
+            "last_modified_time": datetime.now().timestamp() + 1000,
         }
         url = "/superset/save_dash/{}/".format(dash.id)
         resp = self.get_resp(url, data=dict(data=json.dumps(data)))
@@ -107,6 +170,8 @@ class TestDashboard(SupersetTestCase):
             "positions": positions,
             "dashboard_title": dash.dashboard_title,
             "default_filters": default_filters,
+            # set a further modified_time for unit test
+            "last_modified_time": datetime.now().timestamp() + 1000,
         }
 
         url = "/superset/save_dash/{}/".format(dash.id)
@@ -115,7 +180,8 @@ class TestDashboard(SupersetTestCase):
 
         updatedDash = db.session.query(Dashboard).filter_by(slug="world_health").first()
         new_url = updatedDash.url
-        self.assertIn("region", new_url)
+        self.assertIn("world_health", new_url)
+        self.assertNotIn("preselect_filters", new_url)
 
         resp = self.get_resp(new_url)
         self.assertIn("North America", resp)
@@ -134,6 +200,8 @@ class TestDashboard(SupersetTestCase):
             "positions": positions,
             "dashboard_title": dash.dashboard_title,
             "default_filters": default_filters,
+            # set a further modified_time for unit test
+            "last_modified_time": datetime.now().timestamp() + 1000,
         }
 
         url = "/superset/save_dash/{}/".format(dash.id)
@@ -154,6 +222,8 @@ class TestDashboard(SupersetTestCase):
             "expanded_slices": {},
             "positions": positions,
             "dashboard_title": "new title",
+            # set a further modified_time for unit test
+            "last_modified_time": datetime.now().timestamp() + 1000,
         }
         url = "/superset/save_dash/{}/".format(dash.id)
         self.get_resp(url, data=dict(data=json.dumps(data)))
@@ -176,6 +246,8 @@ class TestDashboard(SupersetTestCase):
             "color_namespace": "Color Namespace Test",
             "color_scheme": "Color Scheme Test",
             "label_colors": new_label_colors,
+            # set a further modified_time for unit test
+            "last_modified_time": datetime.now().timestamp() + 1000,
         }
         url = "/superset/save_dash/{}/".format(dash.id)
         self.get_resp(url, data=dict(data=json.dumps(data)))
@@ -189,6 +261,9 @@ class TestDashboard(SupersetTestCase):
         del data["label_colors"]
         self.get_resp(url, data=dict(data=json.dumps(data)))
 
+    @pytest.mark.usefixtures(
+        "cleanup_copied_dash", "load_unicode_dashboard_with_position"
+    )
     def test_copy_dash(self, username="admin"):
         self.login(username=username)
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
@@ -203,6 +278,8 @@ class TestDashboard(SupersetTestCase):
             "color_namespace": "Color Namespace Test",
             "color_scheme": "Color Scheme Test",
             "label_colors": new_label_colors,
+            # set a further modified_time for unit test
+            "last_modified_time": datetime.now().timestamp() + 1000,
         }
 
         # Save changes to Births dashboard and retrieve updated dash
@@ -271,6 +348,8 @@ class TestDashboard(SupersetTestCase):
             "expanded_slices": {},
             "positions": positions,
             "dashboard_title": dash.dashboard_title,
+            # set a further modified_time for unit test
+            "last_modified_time": datetime.now().timestamp() + 1000,
         }
 
         # save dash
@@ -374,39 +453,11 @@ class TestDashboard(SupersetTestCase):
         resp = self.get_resp("/api/v1/dashboard/")
         self.assertNotIn("/superset/dashboard/empty_dashboard/", resp)
 
+    @pytest.mark.usefixtures("load_dashboard")
     def test_users_can_view_published_dashboard(self):
-        table = db.session.query(SqlaTable).filter_by(table_name="energy_usage").one()
-        # get a slice from the allowed table
-        slice = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
-
-        self.grant_public_access_to_table(table)
-
-        hidden_dash_slug = f"hidden_dash_{random()}"
-        published_dash_slug = f"published_dash_{random()}"
-
-        # Create a published and hidden dashboard and add them to the database
-        published_dash = Dashboard()
-        published_dash.dashboard_title = "Published Dashboard"
-        published_dash.slug = published_dash_slug
-        published_dash.slices = [slice]
-        published_dash.published = True
-
-        hidden_dash = Dashboard()
-        hidden_dash.dashboard_title = "Hidden Dashboard"
-        hidden_dash.slug = hidden_dash_slug
-        hidden_dash.slices = [slice]
-        hidden_dash.published = False
-
-        db.session.merge(published_dash)
-        db.session.merge(hidden_dash)
-        db.session.commit()
-
         resp = self.get_resp("/api/v1/dashboard/")
-        self.assertNotIn(f"/superset/dashboard/{hidden_dash_slug}/", resp)
-        self.assertIn(f"/superset/dashboard/{published_dash_slug}/", resp)
-
-        # Cleanup
-        self.revoke_public_access_to_table(table)
+        self.assertNotIn(f"/superset/dashboard/{pytest.hidden_dash_slug}/", resp)
+        self.assertIn(f"/superset/dashboard/{pytest.published_dash_slug}/", resp)
 
     def test_users_can_view_own_dashboard(self):
         user = security_manager.find_user("gamma")

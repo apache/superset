@@ -26,9 +26,7 @@ from superset.models.helpers import AuditMixinNullable
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import (  # pylint: disable=unused-import
-        BaseDatasource,
-    )
+    from superset.connectors.base.models import BaseDatasource
 
 config = app.config
 
@@ -74,7 +72,6 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
         for role in pv.role:
             if role.name in self.ROLES_DENYLIST:
                 continue
-            # pylint: disable=no-member
             href = (
                 f"/superset/approve?datasource_type={self.datasource_type}&"
                 f"datasource_id={self.datasource_id}&"
@@ -87,8 +84,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     @property
     def user_roles(self) -> str:
         action_list = ""
-        for role in self.created_by.roles:  # pylint: disable=no-member
-            # pylint: disable=no-member
+        for role in self.created_by.roles:
             href = (
                 f"/superset/approve?datasource_type={self.datasource_type}&"
                 f"datasource_id={self.datasource_id}&"

@@ -35,13 +35,36 @@
   margin-bottom: 5px;
 }
 
+.input-inline {
+  float: left;
+  padding-right: 3px;
+
+  .dropdown {
+    display: flex;
+    button {
+      padding-right: 20px;
+      .caret {
+        width: auto;
+        position: absolute;
+        right: 5px;
+        top: 6px;
+      }
+    }
+  }
+}
+
 .filter-container {
   display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 
   label {
     display: flex;
     font-weight: @font-weight-bold;
-    margin: 0 0 8px 8px;
   }
 
   .filter-badge-container {

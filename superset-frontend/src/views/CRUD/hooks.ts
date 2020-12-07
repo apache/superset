@@ -17,12 +17,14 @@
  * under the License.
  */
 import rison from 'rison';
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { SupersetClient } from '@superset-ui/connection';
-import { t } from '@superset-ui/translation';
+import { useState, useEffect, useCallback } from 'react';
+import { makeApi, SupersetClient, t } from '@superset-ui/core';
 
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';
+import { FilterValue } from 'src/components/ListView/types';
+import Chart, { Slice } from 'src/types/Chart';
+import copyTextToClipboard from 'src/utils/copy';
 import { FavoriteStatus } from './types';
 
 interface ListViewResourceState<D extends object = any> {
@@ -38,10 +40,13 @@ export function useListViewResource<D extends object = any>(
   resource: string,
   resourceLabel: string, // resourceLabel for translations
   handleErrorMsg: (errorMsg: string) => void,
+  infoEnable = true,
+  defaultCollectionValue: D[] = [],
+  baseFilters: FilterValue[] = [], // must be memoized
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,
-    collection: [],
+    collection: defaultCollectionValue,
     loading: true,
     lastFetchDataConfig: null,
     permissions: [],
@@ -57,8 +62,11 @@ export function useListViewResource<D extends object = any>(
   }
 
   useEffect(() => {
+    if (!infoEnable) return;
     SupersetClient.get({
-      endpoint: `/api/v1/${resource}/_info`,
+      endpoint: `/api/v1/${resource}/_info?q=${rison.encode({
+        keys: ['permissions'],
+      })}`,
     }).then(
       ({ json: infoJson = {} }) => {
         updateState({
@@ -68,7 +76,7 @@ export function useListViewResource<D extends object = any>(
       createErrorHandler(errMsg =>
         handleErrorMsg(
           t(
-            'An error occurred while fetching %ss info: %s',
+            'An error occurred while fetching %s info: %s',
             resourceLabel,
             errMsg,
           ),
@@ -103,13 +111,13 @@ export function useListViewResource<D extends object = any>(
         loading: true,
       });
 
-      const filterExps = filterValues.map(
-        ({ id: col, operator: opr, value }) => ({
+      const filterExps = baseFilters
+        .concat(filterValues)
+        .map(({ id: col, operator: opr, value }) => ({
           col,
           opr,
           value,
-        }),
-      );
+        }));
 
       const queryParams = rison.encode({
         order_column: sortBy[0].id,
@@ -143,7 +151,7 @@ export function useListViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [],
+    [baseFilters.length ? baseFilters : null],
   );
 
   return {
@@ -160,40 +168,196 @@ export function useListViewResource<D extends object = any>(
     hasPerm,
     fetchData,
     toggleBulkSelect,
-    refreshData: () => {
+    refreshData: (provideConfig?: FetchDataConfig) => {
       if (state.lastFetchDataConfig) {
-        fetchData(state.lastFetchDataConfig);
+        return fetchData(state.lastFetchDataConfig);
       }
+      if (provideConfig) {
+        return fetchData(provideConfig);
+      }
+      return null;
     },
   };
 }
 
-// the hooks api has some known limitations around stale state in closures.
-// See https://github.com/reactjs/rfcs/blob/master/text/0068-react-hooks.md#drawbacks
-// the useRef hook is a way of getting around these limitations by having a consistent ref
-// that points to the most recent value.
+// In the same vein as above, a hook for viewing a single instance of a resource (given id)
+interface SingleViewResourceState<D extends object = any> {
+  loading: boolean;
+  resource: D | null;
+}
+
+export function useSingleViewResource<D extends object = any>(
+  resourceName: string,
+  resourceLabel: string, // resourceLabel for translations
+  handleErrorMsg: (errorMsg: string) => void,
+) {
+  const [state, setState] = useState<SingleViewResourceState<D>>({
+    loading: false,
+    resource: null,
+  });
+
+  function updateState(update: Partial<SingleViewResourceState<D>>) {
+    setState(currentState => ({ ...currentState, ...update }));
+  }
+
+  const fetchResource = useCallback((resourceID: number) => {
+    // Set loading state
+    updateState({
+      loading: true,
+    });
+
+    return SupersetClient.get({
+      endpoint: `/api/v1/${resourceName}/${resourceID}`,
+    })
+      .then(
+        ({ json = {} }) => {
+          updateState({
+            resource: json.result,
+          });
+          return json.result;
+        },
+        createErrorHandler(errMsg =>
+          handleErrorMsg(
+            t(
+              'An error occurred while fetching %ss: %s',
+              resourceLabel,
+              JSON.stringify(errMsg),
+            ),
+          ),
+        ),
+      )
+      .finally(() => {
+        updateState({ loading: false });
+      });
+  }, []);
+
+  const createResource = useCallback((resource: D) => {
+    // Set loading state
+    updateState({
+      loading: true,
+    });
+
+    return SupersetClient.post({
+      endpoint: `/api/v1/${resourceName}/`,
+      body: JSON.stringify(resource),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(
+        ({ json = {} }) => {
+          updateState({
+            resource: json.result,
+          });
+          return json.id;
+        },
+        createErrorHandler(errMsg =>
+          handleErrorMsg(
+            t(
+              'An error occurred while creating %ss: %s',
+              resourceLabel,
+              JSON.stringify(errMsg),
+            ),
+          ),
+        ),
+      )
+      .finally(() => {
+        updateState({ loading: false });
+      });
+  }, []);
+
+  const updateResource = useCallback((resourceID: number, resource: D) => {
+    // Set loading state
+    updateState({
+      loading: true,
+    });
+
+    return SupersetClient.put({
+      endpoint: `/api/v1/${resourceName}/${resourceID}`,
+      body: JSON.stringify(resource),
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(
+        ({ json = {} }) => {
+          updateState({
+            resource: json.result,
+          });
+          return json.result;
+        },
+        createErrorHandler(errMsg =>
+          handleErrorMsg(
+            t(
+              'An error occurred while fetching %ss: %s',
+              resourceLabel,
+              JSON.stringify(errMsg),
+            ),
+          ),
+        ),
+      )
+      .finally(() => {
+        updateState({ loading: false });
+      });
+  }, []);
+
+  return {
+    state: {
+      loading: state.loading,
+      resource: state.resource,
+    },
+    setResource: (update: D) =>
+      updateState({
+        resource: update,
+      }),
+    fetchResource,
+    createResource,
+    updateResource,
+  };
+}
+
+enum FavStarClassName {
+  CHART = 'slice',
+  DASHBOARD = 'Dashboard',
+}
+
+type FavoriteStatusResponse = {
+  result: Array<{
+    id: string;
+    value: boolean;
+  }>;
+};
+
+const favoriteApis = {
+  chart: makeApi<string, FavoriteStatusResponse>({
+    requestType: 'search',
+    method: 'GET',
+    endpoint: '/api/v1/chart/favorite_status',
+  }),
+  dashboard: makeApi<string, FavoriteStatusResponse>({
+    requestType: 'search',
+    method: 'GET',
+    endpoint: '/api/v1/dashboard/favorite_status',
+  }),
+};
+
 export function useFavoriteStatus(
-  initialState: FavoriteStatus,
-  baseURL: string,
+  type: 'chart' | 'dashboard',
+  ids: Array<string | number>,
   handleErrorMsg: (message: string) => void,
 ) {
-  const [favoriteStatus, setFavoriteStatus] = useState<FavoriteStatus>(
-    initialState,
-  );
-  const favoriteStatusRef = useRef<FavoriteStatus>(favoriteStatus);
-  useEffect(() => {
-    favoriteStatusRef.current = favoriteStatus;
-  });
+  const [favoriteStatus, setFavoriteStatus] = useState<FavoriteStatus>({});
 
   const updateFavoriteStatus = (update: FavoriteStatus) =>
     setFavoriteStatus(currentState => ({ ...currentState, ...update }));
 
-  const fetchFaveStar = (id: number) => {
-    SupersetClient.get({
-      endpoint: `${baseURL}/${id}/count/`,
-    }).then(
-      ({ json }) => {
-        updateFavoriteStatus({ [id]: json.count > 0 });
+  useEffect(() => {
+    if (!ids.length) {
+      return;
+    }
+    favoriteApis[type](`q=${rison.encode(ids)}`).then(
+      ({ result }) => {
+        const update = result.reduce((acc, element) => {
+          acc[element.id] = element.value;
+          return acc;
+        }, {});
+        updateFavoriteStatus(update);
       },
       createErrorHandler(errMsg =>
         handleErrorMsg(
@@ -201,24 +365,84 @@ export function useFavoriteStatus(
         ),
       ),
     );
-  };
+  }, [ids]);
 
-  const saveFaveStar = (id: number, isStarred: boolean) => {
-    const urlSuffix = isStarred ? 'unselect' : 'select';
-
-    SupersetClient.get({
-      endpoint: `${baseURL}/${id}/${urlSuffix}/`,
-    }).then(
-      () => {
-        updateFavoriteStatus({ [id]: !isStarred });
-      },
-      createErrorHandler(errMsg =>
-        handleErrorMsg(
-          t('There was an error saving the favorite status: %s', errMsg),
+  const saveFaveStar = useCallback(
+    (id: number, isStarred: boolean) => {
+      const urlSuffix = isStarred ? 'unselect' : 'select';
+      SupersetClient.get({
+        endpoint: `/superset/favstar/${
+          type === 'chart' ? FavStarClassName.CHART : FavStarClassName.DASHBOARD
+        }/${id}/${urlSuffix}/`,
+      }).then(
+        ({ json }) => {
+          updateFavoriteStatus({
+            [id]: (json as { count: number })?.count > 0,
+          });
+        },
+        createErrorHandler(errMsg =>
+          handleErrorMsg(
+            t('There was an error saving the favorite status: %s', errMsg),
+          ),
         ),
-      ),
-    );
-  };
+      );
+    },
+    [type],
+  );
 
-  return [favoriteStatusRef, fetchFaveStar, saveFaveStar] as const;
+  return [saveFaveStar, favoriteStatus] as const;
 }
+
+export const useChartEditModal = (
+  setCharts: (charts: Array<Chart>) => void,
+  charts: Array<Chart>,
+) => {
+  const [
+    sliceCurrentlyEditing,
+    setSliceCurrentlyEditing,
+  ] = useState<Slice | null>(null);
+
+  function openChartEditModal(chart: Chart) {
+    setSliceCurrentlyEditing({
+      slice_id: chart.id,
+      slice_name: chart.slice_name,
+      description: chart.description,
+      cache_timeout: chart.cache_timeout,
+    });
+  }
+
+  function closeChartEditModal() {
+    setSliceCurrentlyEditing(null);
+  }
+
+  function handleChartUpdated(edits: Chart) {
+    // update the chart in our state with the edited info
+    const newCharts = charts.map((chart: Chart) =>
+      chart.id === edits.id ? { ...chart, ...edits } : chart,
+    );
+    setCharts(newCharts);
+  }
+
+  return {
+    sliceCurrentlyEditing,
+    handleChartUpdated,
+    openChartEditModal,
+    closeChartEditModal,
+  };
+};
+
+export const copyQueryLink = (
+  id: number,
+  addDangerToast: (arg0: string) => void,
+  addSuccessToast: (arg0: string) => void,
+) => {
+  copyTextToClipboard(
+    `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+  )
+    .then(() => {
+      addSuccessToast(t('Link Copied!'));
+    })
+    .catch(() => {
+      addDangerToast(t('Sorry, your browser does not support copying.'));
+    });
+};

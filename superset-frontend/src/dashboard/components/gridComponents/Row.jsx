@@ -56,10 +56,6 @@ const propTypes = {
   updateComponents: PropTypes.func.isRequired,
 };
 
-const defaultProps = {
-  rowHeight: null,
-};
-
 class Row extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -163,6 +159,7 @@ class Row extends React.PureComponent {
                 rowItems.length === 0 && 'grid-row--empty',
                 backgroundStyle.className,
               )}
+              data-test={`grid-row-${backgroundStyle.className}`}
             >
               {rowItems.map((componentId, itemIndex) => (
                 <DashboardComponent
@@ -192,6 +189,5 @@ class Row extends React.PureComponent {
 }
 
 Row.propTypes = propTypes;
-Row.defaultProps = defaultProps;
 
 export default Row;

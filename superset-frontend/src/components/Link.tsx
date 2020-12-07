@@ -17,15 +17,26 @@
  * under the License.
  */
 import React, { ReactNode } from 'react';
-// @ts-ignore
-import { OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { Tooltip } from 'src/common/components/Tooltip';
 
 interface Props {
   children?: ReactNode;
   className?: string;
   href?: string;
   onClick?: () => void;
-  placement?: string;
+  placement?:
+    | 'bottom'
+    | 'left'
+    | 'right'
+    | 'top'
+    | 'topLeft'
+    | 'topRight'
+    | 'bottomLeft'
+    | 'bottomRight'
+    | 'leftTop'
+    | 'leftBottom'
+    | 'rightTop'
+    | 'rightBottom';
   style?: object;
   tooltip?: string | null;
 }
@@ -51,14 +62,15 @@ const Link = ({
   );
   if (tooltip) {
     return (
-      <OverlayTrigger
-        overlay={<Tooltip id="tooltip">{tooltip}</Tooltip>}
+      <Tooltip
+        id="tooltip"
+        title={tooltip}
         placement={placement}
-        delayShow={300}
-        delayHide={150}
+        mouseEnterDelay={0.3}
+        mouseLeaveDelay={0.15}
       >
         {link}
-      </OverlayTrigger>
+      </Tooltip>
     );
   }
   return link;

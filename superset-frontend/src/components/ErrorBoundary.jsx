@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from './ErrorMessage/ErrorMessageWithStackTrace';
 
 const propTypes = {
@@ -55,7 +55,8 @@ export default class ErrorBoundary extends React.Component {
       if (this.props.showMessage) {
         return (
           <ErrorMessageWithStackTrace
-            message={message}
+            subtitle={message}
+            copyText={message}
             stackTrace={info ? info.componentStack : null}
           />
         );

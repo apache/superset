@@ -23,6 +23,11 @@
   background-color: @lightest;
   position: relative;
   padding: 16px;
+  overflow-y: auto;
+
+  // transitionable traits for when a filter is being actively focused
+  transition: opacity 0.2s, border-color 0.2s, box-shadow 0.2s;
+  border: 2px solid transparent;
 
   .missing-chart-container {
     display: flex;
@@ -108,15 +113,8 @@
   }
 }
 
-.slice-header-controls-trigger {
-  padding: 0 16px;
-  position: absolute;
-  top: 0;
-  right: -16px; //increase the click-able area for the button
-
-  &:hover {
-    cursor: pointer;
-  }
+.chart-slice {
+  height: calc(100% - 32px);
 }
 
 .dot {
@@ -129,10 +127,6 @@
 
   background-color: @gray;
   display: inline-block;
-
-  .vertical-dots-container & {
-    display: block;
-  }
 
   a[role='menuitem'] & {
     width: 8px;

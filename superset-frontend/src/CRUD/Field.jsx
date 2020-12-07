@@ -18,19 +18,14 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import {
-  FormGroup,
-  HelpBlock,
-  FormControl,
-  OverlayTrigger,
-  Tooltip,
-} from 'react-bootstrap';
+import { FormGroup, HelpBlock, FormControl } from 'react-bootstrap';
 
+import { Tooltip } from 'src/common/components/Tooltip';
 import FormLabel from 'src/components/FormLabel';
 import './crud.less';
 
 const propTypes = {
-  value: PropTypes.any.isRequired,
+  value: PropTypes.any,
   label: PropTypes.string.isRequired,
   description: PropTypes.node,
   fieldKey: PropTypes.string.isRequired,
@@ -39,10 +34,9 @@ const propTypes = {
   compact: PropTypes.bool,
 };
 const defaultProps = {
-  controlProps: {},
   onChange: () => {},
   compact: false,
-  desc: null,
+  description: null,
 };
 
 export default class Field extends React.PureComponent {
@@ -50,9 +44,11 @@ export default class Field extends React.PureComponent {
     super(props);
     this.onChange = this.onChange.bind(this);
   }
+
   onChange(newValue) {
     this.props.onChange(this.props.fieldKey, newValue);
   }
+
   render() {
     const {
       compact,
@@ -71,18 +67,11 @@ export default class Field extends React.PureComponent {
         <FormLabel className="m-r-5">
           {label || fieldKey}
           {compact && description && (
-            <OverlayTrigger
-              placement="right"
-              overlay={
-                <Tooltip id="field-descr" bsSize="lg">
-                  {description}
-                </Tooltip>
-              }
-            >
+            <Tooltip id="field-descr" placement="right" title={description}>
               <i className="fa fa-info-circle m-l-5" />
-            </OverlayTrigger>
+            </Tooltip>
           )}
-        </FormLabel>
+        </FormLabel>{' '}
         {hookedControl}
         <FormControl.Feedback />
         {!compact && description && <HelpBlock>{description}</HelpBlock>}

@@ -26,12 +26,11 @@ from superset.utils.webdriver import WebDriverProxy, WindowSize
 logger = logging.getLogger(__name__)
 
 try:
-    from PIL import Image  # pylint: disable=import-error
+    from PIL import Image
 except ModuleNotFoundError:
     logger.info("No PIL installation found")
 
 if TYPE_CHECKING:
-    # pylint: disable=unused-import
     from flask_appbuilder.security.sqla.models import User
     from flask_caching import Cache
 
@@ -161,7 +160,7 @@ class BaseScreenshot:
                 logger.error("Failed at resizing thumbnail %s", ex)
                 payload = None
 
-        if payload and cache:
+        if payload:
             logger.info("Caching thumbnail: %s", cache_key)
             cache.set(cache_key, payload)
             logger.info("Done caching thumbnail")
@@ -204,4 +203,4 @@ class DashboardScreenshot(BaseScreenshot):
     thumbnail_type: str = "dashboard"
     element: str = "grid-container"
     window_size: WindowSize = (1600, int(1600 * 0.75))
-    thumb_size: WindowSize = (400, int(400 * 0.75))
+    thumb_size: WindowSize = (800, int(800 * 0.75))

@@ -83,6 +83,10 @@ function mapStateToProps({
     isLoading: isDashboardLoading(charts),
     hasUnsavedChanges: !!dashboardState.hasUnsavedChanges,
     maxUndoHistoryExceeded: !!dashboardState.maxUndoHistoryExceeded,
+    lastModifiedTime: Math.max(
+      dashboardState.lastModifiedTime,
+      dashboardInfo.lastModifiedTime,
+    ),
     editMode: !!dashboardState.editMode,
     slug: dashboardInfo.slug,
     metadata: dashboardInfo.metadata,

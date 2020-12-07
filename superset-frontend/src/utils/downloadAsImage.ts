@@ -19,7 +19,7 @@
 import { SyntheticEvent } from 'react';
 import domToImage, { Options } from 'dom-to-image';
 import kebabCase from 'lodash/kebabCase';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import { addWarningToast } from 'src/messageToasts/actions';
 
 /**
@@ -57,10 +57,11 @@ export default function downloadAsImage(
   return (event: SyntheticEvent) => {
     const elementToPrint = event.currentTarget.closest(selector);
 
-    if (!elementToPrint)
+    if (!elementToPrint) {
       return addWarningToast(
         t('Image download failed, please refresh and try again.'),
       );
+    }
 
     return domToImage
       .toJpeg(elementToPrint, {

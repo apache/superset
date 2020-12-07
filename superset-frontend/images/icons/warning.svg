@@ -1,22 +1,21 @@
 <!--
-  Licensed to the Apache Software Foundation (ASF) under one
-  or more contributor license agreements.  See the NOTICE file
-  distributed with this work for additional information
-  regarding copyright ownership.  The ASF licenses this file
-  to you under the Apache License, Version 2.0 (the
-  "License"); you may not use this file except in compliance
-  with the License.  You may obtain a copy of the License at
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+  http://www.apache.org/licenses/LICENSE-2.0
 
-  Unless required by applicable law or agreed to in writing,
-  software distributed under the License is distributed on an
-  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-  KIND, either express or implied.  See the License for the
-  specific language governing permissions and limitations
-  under the License.
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
 -->
 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 9.34784 20.9464 6.8043 19.0711 4.92893C17.1957 3.05357 14.6522 2 12 2Z" fill="currentColor"/>
-<path fill-rule="evenodd" clip-rule="evenodd" d="M11.0003 8C11.0003 7.44772 11.448 7 12.0003 7C12.5526 7 13.0003 7.44772 13.0003 8V12C13.0003 12.5523 12.5526 13 12.0003 13C11.448 13 11.0003 12.5523 11.0003 12V8ZM11.2903 15.29C11.3854 15.199 11.4975 15.1276 11.6203 15.08C11.8637 14.98 12.1368 14.98 12.3803 15.08C12.503 15.1276 12.6152 15.199 12.7103 15.29C12.893 15.4816 12.9966 15.7352 13.0003 16C12.9986 16.3326 12.8317 16.6426 12.555 16.8271C12.2783 17.0116 11.9279 17.0464 11.6203 16.92C11.4991 16.8694 11.3875 16.7983 11.2903 16.71C11.1031 16.5213 10.9987 16.2658 11.0003 16C10.9969 15.8688 11.0243 15.7387 11.0803 15.62C11.1309 15.4988 11.2019 15.3872 11.2903 15.29Z" fill="white"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M12 7C11.4477 7 11 7.44772 11 8V12C11 12.5523 11.4477 13 12 13C12.5523 13 13 12.5523 13 12V8C13 7.44772 12.5523 7 12 7ZM12.38 15.08C12.1365 14.98 11.8635 14.98 11.62 15.08C11.4972 15.1276 11.3851 15.199 11.29 15.29C11.2017 15.3872 11.1306 15.4988 11.08 15.62C11.024 15.7387 10.9966 15.8688 11 16C10.9985 16.2658 11.1028 16.5213 11.29 16.71C11.3872 16.7983 11.4988 16.8694 11.62 16.92C11.9276 17.0464 12.278 17.0116 12.5547 16.8271C12.8314 16.6426 12.9983 16.3326 13 16C12.9963 15.7352 12.8927 15.4816 12.71 15.29C12.6149 15.199 12.5028 15.1276 12.38 15.08ZM12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 9.34784 20.9464 6.8043 19.0711 4.92893C17.1957 3.05357 14.6522 2 12 2ZM12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4C16.4183 4 20 7.58172 20 12C20 14.1217 19.1571 16.1566 17.6569 17.6569C16.1566 19.1571 14.1217 20 12 20Z" fill="currentColor"/>
 </svg>

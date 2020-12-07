@@ -20,6 +20,7 @@ import { Provider } from 'react-redux';
 import React from 'react';
 import { mount } from 'enzyme';
 import sinon from 'sinon';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import Chart from 'src/dashboard/containers/Chart';
 import ChartHolder from 'src/dashboard/components/gridComponents/ChartHolder';
@@ -28,10 +29,10 @@ import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 
-import { mockStore } from '../../fixtures/mockStore';
-import { sliceId } from '../../fixtures/mockSliceEntities';
-import { dashboardLayout as mockLayout } from '../../fixtures/mockDashboardLayout';
-import WithDragDropContext from '../../helpers/WithDragDropContext';
+import { mockStore } from 'spec/fixtures/mockStore';
+import { sliceId } from 'spec/fixtures/mockChartQueries';
+import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
+import WithDragDropContext from 'spec/helpers/WithDragDropContext';
 
 describe('ChartHolder', () => {
   const props = {
@@ -61,6 +62,10 @@ describe('ChartHolder', () => {
           <ChartHolder {...props} {...overrideProps} />
         </WithDragDropContext>
       </Provider>,
+      {
+        wrappingComponent: ThemeProvider,
+        wrappingComponentProps: { theme: supersetTheme },
+      },
     );
     return wrapper;
   }

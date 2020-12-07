@@ -17,8 +17,10 @@
  * under the License.
  */
 import { isEqual } from 'lodash';
-import { CategoricalColorNamespace } from '@superset-ui/color';
-import { DataRecordFilters } from '@superset-ui/chart';
+import {
+  CategoricalColorNamespace,
+  DataRecordFilters,
+} from '@superset-ui/core';
 import { ChartQueryPayload } from 'src/dashboard/types';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 

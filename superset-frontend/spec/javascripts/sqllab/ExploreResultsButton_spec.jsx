@@ -94,13 +94,7 @@ describe('ExploreResultsButton', () => {
     });
 
     const badCols = wrapper.instance().getInvalidColumns();
-    expect(badCols).toEqual([
-      'COUNT(*)',
-      '1',
-      '123',
-      'CASE WHEN 1=1 THEN 1 ELSE 0 END',
-      '__TIMESTAMP',
-    ]);
+    expect(badCols).toEqual(['my_dupe_col__2', '__timestamp', '__TIMESTAMP']);
 
     const msgWrapper = shallow(wrapper.instance().renderInvalidColumnMessage());
     expect(msgWrapper.find('div')).toHaveLength(1);

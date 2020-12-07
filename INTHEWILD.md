@@ -38,6 +38,7 @@ Join our growing community!
 - [American Express](https://www.americanexpress.com) [@TheLastSultan]
 - [Capital Service S.A.](http://capitalservice.pl) [@pkonarzewski]
 - [Clark.de](http://clark.de/)
+- [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
 
 ### Gaming
 - [Digit Game Studios](https://www.digitgaming.com/)
@@ -57,12 +58,14 @@ Join our growing community!
 - [Shopkick](https://www.shopkick.com) [@LAlbertalli]
 - [Tails.com](https://tails.com) [@alanmcruickshank]
 - [THE ICONIC](http://theiconic.com.au/) [@ksaagariconic]
+- [Utair](https://www.utair.ru) [@utair-digital]
 - [Zalando](https://www.zalando.com) [@dmigo]
 - [Zalora](https://www.zalora.com) [@ksaagariconic]
 
 ### Enterprise Technology
 - [Apollo GraphQL](https://www.apollographql.com/) [@evans]
 - [Astronomer](https://www.astronomer.io) [@ryw]
+- [Avesta Technologies](https://avestatechnologies.com/) [@TheRum]
 - [Cloudsmith](https://cloudsmith.io) [@alancarson]
 - [CnOvit](http://www.cnovit.com/) [@xieshaohu]
 - [Deepomatic](https://deepomatic.com/) [@Zanoellia]
@@ -95,6 +98,8 @@ Join our growing community!
 - [Tooploox](https://www.tooploox.com/) [@jakubczaplicki]
 - [Whale](http://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
+- [Zeta](https://www.zeta.tech/) [@shaikidris]
+
 
 ### Entertainment
 - [6play](https://www.6play.fr) [@CoryChaplin]
@@ -103,6 +108,7 @@ Join our growing community!
 - [Kuaishou](https://www.kuaishou.com/) [@zhaoyu89730105]
 - [Netflix](https://www.netflix.com/)
 - [TME QQMUSIC/WESING](https://www.tencentmusic.com/)
+- [Xite](https://xite.com/) [@shashankkoppar]
 - [Zaihang](http://www.zaih.com/)
 
 ### Education
@@ -129,4 +135,5 @@ Join our growing community!
  - [komoot](https://www.komoot.com/) [@christophlingg]
  - [Let's Roam](https://www.letsroam.com/)
  - [Twitter](https://twitter.com/)
+ - [VLMedia](https://www.vlmedia.com.tr/) [@ibotheperfect]
  - [Yahoo!](https://yahoo.com/)

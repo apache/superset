@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { INFO_TOAST, DANGER_TOAST } from 'src/messageToasts/constants';
+import { ToastType } from 'src/messageToasts/constants';
 
 export default [
-  { id: 'info_id', toastType: INFO_TOAST, text: 'info toast' },
-  { id: 'danger_id', toastType: DANGER_TOAST, text: 'danger toast' },
+  { id: 'info_id', toastType: ToastType.INFO, text: 'info toast' },
+  { id: 'danger_id', toastType: ToastType.DANGER, text: 'danger toast' },
 ];

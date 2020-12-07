@@ -21,6 +21,7 @@ import React, {
   useEffect,
   Component,
   FunctionComponent,
+  ReactElement,
   RefObject,
 } from 'react';
 import {
@@ -53,10 +54,15 @@ export type WindowedMenuListProps = {
  * If may also be `Component<GroupProps<OptionType>>[]` but we are not supporting
  * grouped options just yet.
  */
+
+type MenuListPropsChildren<OptionType> =
+  | Component<OptionProps<OptionType>>[]
+  | ReactElement[];
+
 export type MenuListProps<
   OptionType extends OptionTypeBase
 > = MenuListComponentProps<OptionType> & {
-  children: Component<OptionProps<OptionType>>[];
+  children: MenuListPropsChildren<OptionType>;
   // theme is not present with built-in @types/react-select, but is actually
   // available via CommonProps.
   theme?: ThemeConfig;
@@ -68,7 +74,7 @@ const DEFAULT_OPTION_HEIGHT = 30;
 /**
  * Get the index of the last selected option.
  */
-function getLastSelected(children: Component<any>[]) {
+function getLastSelected(children: MenuListPropsChildren<any>) {
   return Array.isArray(children)
     ? children.findIndex(
         ({ props: { isFocused = false } = {} }) => isFocused,
@@ -100,19 +106,20 @@ export default function WindowedMenuList<OptionType extends OptionTypeBase>({
   } = props;
   const {
     // Expose react-window VariableSizeList instance and HTML elements
-    windowListRef = useRef(null),
+    windowListRef: windowListRef_,
     windowListInnerRef,
   } = selectProps;
+  const defaultWindowListRef = useRef<WindowedList>(null);
+  const windowListRef = windowListRef_ || defaultWindowListRef;
 
   // try get default option height from theme configs
-  let optionHeight = selectProps.optionHeight;
+  let { optionHeight } = selectProps;
   if (!optionHeight) {
     optionHeight = theme ? detectHeight(theme) : DEFAULT_OPTION_HEIGHT;
   }
 
   const itemCount = children.length;
   const totalHeight = optionHeight * itemCount;
-  const listRef: RefObject<WindowedList> = windowListRef || useRef(null);
 
   const Row: FunctionComponent<ListChildComponentProps> = ({
     data,
@@ -124,15 +131,14 @@ export default function WindowedMenuList<OptionType extends OptionTypeBase>({
 
   useEffect(() => {
     const lastSelected = getLastSelected(children);
-    if (listRef.current && lastSelected) {
-      listRef.current.scrollToItem(lastSelected);
+    if (windowListRef.current && lastSelected) {
+      windowListRef.current.scrollToItem(lastSelected);
     }
-  }, [children]);
+  }, [children, windowListRef]);
 
   return (
     <WindowedList
       css={getStyles('menuList', props)}
-      // @ts-ignore
       className={cx(
         {
           'menu-list': true,
@@ -140,7 +146,7 @@ export default function WindowedMenuList<OptionType extends OptionTypeBase>({
         },
         className,
       )}
-      ref={listRef}
+      ref={windowListRef}
       outerRef={innerRef}
       innerRef={windowListInnerRef}
       height={Math.min(totalHeight, maxHeight)}

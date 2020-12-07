@@ -44,6 +44,14 @@ export const bsStyleKnob = {
 
 export const LabelGallery = () => (
   <>
+    <h4>Non-interactive</h4>
+    {Object.values(bsStyleKnob.options).map(opt => (
+      <Label key={opt} bsStyle={opt}>
+        {`style: "${opt}"`}
+      </Label>
+    ))}
+    <br />
+    <h4>Interactive</h4>
     {Object.values(bsStyleKnob.options).map(opt => (
       <Label key={opt} bsStyle={opt} onClick={action('clicked')}>
         {`style: "${opt}"`}

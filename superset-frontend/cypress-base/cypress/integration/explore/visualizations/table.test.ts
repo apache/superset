@@ -66,7 +66,7 @@ describe('Visualization > Table', () => {
     cy.get('.chart-container td:nth-child(1)').contains('2008 Q1');
     // other column with timestamp use raw timestamp
     cy.get('.chart-container td:nth-child(3)').contains('2008-01-01T00:00:00');
-    cy.get('.chart-container td:nth-child(4)').contains('other');
+    cy.get('.chart-container td:nth-child(4)').contains('TX');
   });
 
   it('Format with table_timestamp_format', () => {
@@ -87,7 +87,7 @@ describe('Visualization > Table', () => {
     // time column should not use time granularity when timestamp format is set
     cy.get('.chart-container td').contains('2008 Q1').should('not.exist');
     // other num numeric metric column should stay as string
-    cy.get('.chart-container td').contains('other');
+    cy.get('.chart-container td').contains('TX');
   });
 
   it('Test table with groupby', () => {

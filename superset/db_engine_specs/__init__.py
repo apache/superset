@@ -49,3 +49,7 @@ for (_, name, _) in pkgutil.iter_modules([Path(__file__).parent]):  # type: igno
             and attribute.engine != ""
         ):
             engines[attribute.engine] = attribute
+
+            # populate engine alias name to engine dictionary
+            for engine_alias in attribute.engine_aliases or []:
+                engines[engine_alias] = attribute

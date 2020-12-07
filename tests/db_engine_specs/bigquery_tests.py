@@ -122,6 +122,27 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         )
         self.assertEqual(result, expected_result)
 
+    def test_normalize_indexes(self):
+        """
+        DB Eng Specs (bigquery): Test extra table metadata
+        """
+        indexes = [{"name": "partition", "column_names": [None], "unique": False}]
+        normalized_idx = BigQueryEngineSpec.normalize_indexes(indexes)
+        self.assertEqual(normalized_idx, [])
+
+        indexes = [{"name": "partition", "column_names": ["dttm"], "unique": False}]
+        normalized_idx = BigQueryEngineSpec.normalize_indexes(indexes)
+        self.assertEqual(normalized_idx, indexes)
+
+        indexes = [
+            {"name": "partition", "column_names": ["dttm", None], "unique": False}
+        ]
+        normalized_idx = BigQueryEngineSpec.normalize_indexes(indexes)
+        self.assertEqual(
+            normalized_idx,
+            [{"name": "partition", "column_names": ["dttm"], "unique": False}],
+        )
+
     def test_df_to_sql(self):
         """
         DB Eng Specs (bigquery): Test DataFrame to SQL contract

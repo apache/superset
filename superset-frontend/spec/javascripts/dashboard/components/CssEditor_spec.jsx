@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { mount } from 'enzyme';
-
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import CssEditor from 'src/dashboard/components/CssEditor';
 
 describe('CssEditor', () => {
@@ -29,7 +29,12 @@ describe('CssEditor', () => {
     expect(React.isValidElement(<CssEditor {...mockedProps} />)).toBe(true);
   });
   it('renders the trigger node', () => {
-    const wrapper = mount(<CssEditor {...mockedProps} />);
+    const wrapper = mount(<CssEditor {...mockedProps} />, {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: {
+        theme: supersetTheme,
+      },
+    });
     expect(wrapper.find('.fa-edit')).toExist();
   });
 });

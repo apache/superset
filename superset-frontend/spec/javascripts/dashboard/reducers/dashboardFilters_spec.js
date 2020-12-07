@@ -30,16 +30,16 @@ import * as activeDashboardFilters from 'src/dashboard/util/activeDashboardFilte
 import {
   emptyFilters,
   dashboardFilters,
-} from '../fixtures/mockDashboardFilters';
+} from 'spec/fixtures/mockDashboardFilters';
 import {
   sliceEntitiesForDashboard,
   filterId,
   column,
-} from '../fixtures/mockSliceEntities';
-import { filterComponent } from '../fixtures/mockDashboardLayout';
+} from 'spec/fixtures/mockSliceEntities';
+import { filterComponent } from 'spec/fixtures/mockDashboardLayout';
 
 describe('dashboardFilters reducer', () => {
-  const form_data = sliceEntitiesForDashboard.slices[filterId].form_data;
+  const { form_data } = sliceEntitiesForDashboard.slices[filterId];
   const component = filterComponent;
   const directPathToFilter = (component.parents || []).slice();
   directPathToFilter.push(component.id);

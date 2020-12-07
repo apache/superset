@@ -19,8 +19,7 @@
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import moment from 'moment';
-import { t } from '@superset-ui/translation';
-import { SupersetClient } from '@superset-ui/connection';
+import { t, SupersetClient } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from '../featureFlags';
 import {
   getAnnotationJsonUrl,
@@ -153,9 +152,14 @@ const v1ChartDataRequest = async (
   });
 
   // The dashboard id is added to query params for tracking purposes
-  const qs = requestParams.dashboard_id
-    ? { dashboard_id: requestParams.dashboard_id }
-    : {};
+  const { slice_id: sliceId } = formData;
+  const { dashboard_id: dashboardId } = requestParams;
+
+  const qs = {};
+  if (sliceId !== undefined) qs.form_data = `{"slice_id":${sliceId}}`;
+  if (dashboardId !== undefined) qs.dashboard_id = dashboardId;
+  if (force !== false) qs.force = force;
+
   const allowDomainSharding =
     // eslint-disable-next-line camelcase
     domainShardingEnabled && requestParams?.dashboard_id;
@@ -357,9 +361,11 @@ export function exploreJSON(
         // How to make the entire app compatible with multiple results?
         // For now just use the first result.
         const result = response.result[0];
+
         dispatch(
           logEvent(LOG_ACTIONS_LOAD_CHART, {
             slice_id: key,
+            applied_filters: result.applied_filters,
             is_cached: result.is_cached,
             force_refresh: force,
             row_count: result.rowcount,
@@ -406,7 +412,10 @@ export function exploreJSON(
         });
       });
 
-    const annotationLayers = formData.annotation_layers || [];
+    // only retrieve annotations when calling the legacy API
+    const annotationLayers = shouldUseLegacyApi(formData)
+      ? formData.annotation_layers || []
+      : [];
     const isDashboardRequest = dashboardId > 0;
 
     return Promise.all([

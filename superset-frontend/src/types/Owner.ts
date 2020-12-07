@@ -23,7 +23,7 @@
 
 export default interface Owner {
   first_name: string;
-  id: string;
+  id: number;
   last_name: string;
   username: string;
 }

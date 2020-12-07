@@ -19,10 +19,11 @@
 set -e
 
 export SUPERSET_CONFIG=${SUPERSET_CONFIG:-tests.superset_test_config}
+export SUPERSET_TESTENV=true
 echo "Superset config module: $SUPERSET_CONFIG"
 
 superset db upgrade
 superset init
 
 echo "Running tests"
-pytest --maxfail=1 --cov=superset
+pytest --maxfail=1 --cov=superset $@

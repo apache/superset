@@ -24,7 +24,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from superset import db
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.models.core import Database
+from superset.exceptions import SupersetException
 from superset.typing import FlaskResponse
 
 from .base import api, BaseSupersetView, handle_api_exception, json_error_response
@@ -100,21 +100,11 @@ class Datasource(BaseSupersetView):
         self, datasource_type: str, datasource_id: int
     ) -> FlaskResponse:
         """Gets column info from the source system"""
-        if datasource_type == "druid":
+        try:
             datasource = ConnectorRegistry.get_datasource(
                 datasource_type, datasource_id, db.session
             )
-        elif datasource_type == "table":
-            database = (
-                db.session.query(Database).filter_by(id=request.args.get("db_id")).one()
-            )
-            table_class = ConnectorRegistry.sources["table"]
-            datasource = table_class(
-                database=database,
-                table_name=request.args.get("table_name"),
-                schema=request.args.get("schema") or None,
-            )
-        else:
-            raise Exception(f"Unsupported datasource_type: {datasource_type}")
-        external_metadata = datasource.external_metadata()
-        return self.json_response(external_metadata)
+            external_metadata = datasource.external_metadata()
+            return self.json_response(external_metadata)
+        except SupersetException as ex:
+            return json_error_response(str(ex), status=400)

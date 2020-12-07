@@ -19,13 +19,12 @@
 /* eslint-env browser */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { getCategoricalSchemeRegistry } from '@superset-ui/color';
-import { t } from '@superset-ui/translation';
+import { getCategoricalSchemeRegistry, t } from '@superset-ui/core';
 
 import ColorSchemeControl from 'src/explore/components/controls/ColorSchemeControl';
 
 const propTypes = {
-  onChange: PropTypes.func.isRequired,
+  onChange: PropTypes.func,
   colorScheme: PropTypes.string,
 };
 
@@ -42,6 +41,7 @@ class ColorSchemeControlWrapper extends React.PureComponent {
     this.choices = this.categoricalSchemeRegistry.keys().map(s => [s, s]);
     this.schemes = this.categoricalSchemeRegistry.getMap();
   }
+
   setHover(hovered) {
     this.setState({ hovered });
   }

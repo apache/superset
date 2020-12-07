@@ -33,6 +33,14 @@ describe('Visualization > Line', () => {
     cy.get('.alert-warning').contains(`"Metrics" cannot be empty`);
   });
 
+  it('should preload mathjs', () => {
+    cy.get('script[src*="mathjs"]').should('have.length', 1);
+    cy.contains('Add Annotation Layer').scrollIntoView().click();
+    // should not load additional mathjs
+    cy.get('script[src*="mathjs"]').should('have.length', 1);
+    cy.contains('Layer Configuration');
+  });
+
   it('should not show validator error when metric added', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [] };
     cy.visitChartByParams(JSON.stringify(formData));
@@ -46,16 +54,29 @@ describe('Visualization > Line', () => {
   });
 
   it('should allow negative values in Y bounds', () => {
-    cy.get('#controlSections-tab-display').click().wait(1000);
+    cy.get('#controlSections-tab-display').click();
     cy.get('span').contains('Y Axis Bounds').scrollIntoView();
-    cy.get('input[placeholder="Min"]').type('-0.1', { delay: 100 }).wait(1000);
+    cy.get('input[placeholder="Min"]').type('-0.1', { delay: 100 });
     cy.get('.alert-warning').should('not.exist');
+  });
+
+  it('should allow type to search color schemes', () => {
+    cy.get('#controlSections-tab-display').click();
+    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="color_scheme"] input[type="text"]')
+      .focus()
+      .type('air{enter}');
+    cy.get('input[name="select-color_scheme"]').should(
+      'have.value',
+      'bnbColors',
+    );
   });
 
   it('should work with adhoc metric', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [NUM_METRIC] };
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    cy.get('script[src*="mathjs"]').should('have.length', 1);
   });
 
   it('should work with groupby', () => {

@@ -1,0 +1,49 @@
+---
+name: Introduction
+route: /docs/intro
+---
+
+## What is Apache Superset?
+
+Apache Superset (Incubating) is a modern, enterprise-ready business intelligence web application. It
+is fast, lightweight, intuitive, and loaded with options that make it easy for users of all skill
+sets to explore and visualize their data, from simple pie charts to highly detailed deck.gl
+geospatial charts.
+
+Here's an overview of the key features of Superset:
+
+- A rich set of data visualizations out of the box
+- An easy-to-use interface for exploring and visualizing data
+- Create and share dashboards
+- Enterprise-ready authentication with integration with major authentication providers (database,
+  OpenID, LDAP, OAuth & REMOTE_USER through Flask AppBuilder)
+- An extensible, high-granularity security/permission model allowing intricate rules on who can
+  access individual features and the dataset
+- A simple semantic layer, allowing users to control how data sources are displayed in the UI by
+  defining which fields should show up in which drop-down and which aggregation and function metrics
+  are made available to the user
+- Integration with most SQL-speaking RDBMS through SQLAlchemy
+- Deep integration with Druid.io
+
+Superset is cloud-native and designed to be highly available. It was designed to scale out to large,
+distributed environments and works very well inside containers. While you can easily test drive
+Superset on a modest setup or simply on your laptop, there’s virtually no limit around scaling out
+the platform.
+
+Superset is also cloud-native in the sense that it is flexible and lets you choose the:
+
+- web server (Gunicorn, Nginx, Apache),
+- metadata database engine (MySQL, Postgres, MariaDB, etc),
+- message queue (Redis, RabbitMQ, SQS, etc),
+- results backend (S3, Redis, Memcached, etc),
+- caching layer (Memcached, Redis, etc),
+
+Superset also works well with services like NewRelic, StatsD and DataDog, and has the ability to run
+analytic workloads against most popular database technologies.
+
+Superset is currently run at scale at many companies. For example, Superset is run in Airbnb’s
+production environment inside Kubernetes and serves 600+ daily active users viewing over 100K charts
+a day.
+
+You can find a partial list of industries and companies embracing Superset
+[on this page in GitHub](https://github.com/apache/incubator-superset/blob/master/INTHEWILD.md).

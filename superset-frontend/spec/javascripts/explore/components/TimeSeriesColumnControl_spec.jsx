@@ -18,10 +18,10 @@
  */
 /* eslint-disable no-unused-expressions */
 import React from 'react';
-import { FormControl, OverlayTrigger } from 'react-bootstrap';
+import { FormControl } from 'react-bootstrap';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-
+import Popover from 'src/common/components/Popover';
 import TimeSeriesColumnControl from 'src/explore/components/controls/TimeSeriesColumnControl';
 
 const defaultProps = {
@@ -39,7 +39,7 @@ describe('SelectControl', () => {
   });
 
   it('renders an OverlayTrigger', () => {
-    expect(wrapper.find(OverlayTrigger)).toExist();
+    expect(wrapper.find(Popover)).toExist();
   });
 
   it('renders an Popover', () => {

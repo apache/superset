@@ -19,10 +19,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import shortid from 'shortid';
-import { Alert, Tab, Tabs } from 'react-bootstrap';
+import { Alert } from 'react-bootstrap';
+import Tabs from 'src/common/components/Tabs';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { t } from '@superset-ui/translation';
+import { t } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import Label from 'src/components/Label';
@@ -68,19 +69,23 @@ export class SouthPane extends React.PureComponent {
     this.getSouthPaneHeight = this.getSouthPaneHeight.bind(this);
     this.switchTab = this.switchTab.bind(this);
   }
+
   UNSAFE_componentWillReceiveProps() {
     // south pane expands the entire height of the tab content on mount
     this.setState({ height: this.getSouthPaneHeight() });
   }
+
   // One layer of abstraction for easy spying in unit tests
   getSouthPaneHeight() {
     return this.southPaneRef.current
       ? this.southPaneRef.current.clientHeight
       : 0;
   }
+
   switchTab(id) {
     this.props.actions.setActiveSouthPaneTab(id);
   }
+
   render() {
     if (this.props.offline) {
       return (
@@ -94,7 +99,7 @@ export class SouthPane extends React.PureComponent {
     }
     const innerTabContentHeight = this.state.height - TAB_HEIGHT;
     let latestQuery;
-    const props = this.props;
+    const { props } = this;
     if (props.editorQueries.length > 0) {
       // get the latest query
       latestQuery = props.editorQueries.find(
@@ -136,9 +141,8 @@ export class SouthPane extends React.PureComponent {
       );
     }
     const dataPreviewTabs = props.dataPreviewQueries.map(query => (
-      <Tab
-        title={t('Preview: `%s`', decodeURIComponent(query.tableName))}
-        eventKey={query.id}
+      <Tabs.TabPane
+        tab={t('Preview: `%s`', decodeURIComponent(query.tableName))}
         key={query.id}
       >
         <ResultSet
@@ -150,29 +154,28 @@ export class SouthPane extends React.PureComponent {
           height={innerTabContentHeight}
           displayLimit={this.props.displayLimit}
         />
-      </Tab>
+      </Tabs.TabPane>
     ));
 
     return (
       <div className="SouthPane" ref={this.southPaneRef}>
         <Tabs
-          bsStyle="tabs"
-          animation={false}
-          className="SouthPaneTabs"
-          id={shortid.generate()}
           activeKey={this.props.activeSouthPaneTab}
-          onSelect={this.switchTab}
+          className="SouthPaneTabs"
+          onChange={this.switchTab}
+          id={shortid.generate()}
+          fullWidth={false}
         >
-          <Tab title={t('Results')} eventKey="Results">
+          <Tabs.TabPane tab={t('Results')} key="Results">
             {results}
-          </Tab>
-          <Tab title={t('Query History')} eventKey="History">
+          </Tabs.TabPane>
+          <Tabs.TabPane tab={t('Query History')} key="History">
             <QueryHistory
               queries={props.editorQueries}
               actions={props.actions}
               displayLimit={props.displayLimit}
             />
-          </Tab>
+          </Tabs.TabPane>
           {dataPreviewTabs}
         </Tabs>
       </div>

@@ -20,15 +20,22 @@ from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type, 
 
 from apispec import APISpec
 from apispec.exceptions import DuplicateComponentNameError
-from flask import Blueprint, Response
-from flask_appbuilder import AppBuilder, ModelRestApi
+from flask import Blueprint, g, Response
+from flask_appbuilder import AppBuilder, Model, ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_babel import lazy_gettext as _
 from marshmallow import fields, Schema
-from sqlalchemy import distinct, func
+from sqlalchemy import and_, distinct, func
+from sqlalchemy.orm.query import Query
 
+from superset.extensions import db, event_logger, security_manager
+from superset.models.core import FavStar
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.sql_lab import Query as SqllabQuery
 from superset.stats_logger import BaseStatsLogger
 from superset.typing import FlaskResponse
 from superset.utils.core import time_function
@@ -42,6 +49,7 @@ get_related_schema = {
         "filter": {"type": "string"},
     },
 }
+log_context = event_logger.log_context
 
 
 class RelatedResultResponseSchema(Schema):
@@ -84,6 +92,31 @@ class RelatedFieldFilter:
         self.filter_class = filter_class
 
 
+class BaseFavoriteFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Base Custom filter for the GET list that filters all dashboards, slices
+    that a user has favored or not
+    """
+
+    name = _("Is favorite")
+    arg_name = ""
+    class_name = ""
+    """ The FavStar class_name to user """
+    model: Type[Union[Dashboard, Slice, SqllabQuery]] = Dashboard
+    """ The SQLAlchemy model """
+
+    def apply(self, query: Query, value: Any) -> Query:
+        # If anonymous user filter nothing
+        if security_manager.current_user is None:
+            return query
+        users_favorite_query = db.session.query(FavStar.obj_id).filter(
+            and_(FavStar.user_id == g.user.id, FavStar.class_name == self.class_name)
+        )
+        if value:
+            return query.filter(and_(self.model.id.in_(users_favorite_query)))
+        return query.filter(and_(~self.model.id.in_(users_favorite_query)))
+
+
 class BaseSupersetModelRestApi(ModelRestApi):
     """
     Extends FAB's ModelResApi to implement specific superset generic functionality
@@ -91,24 +124,26 @@ class BaseSupersetModelRestApi(ModelRestApi):
 
     csrf_exempt = False
     method_permission_name = {
-        "get_list": "list",
-        "get": "show",
+        "bulk_delete": "delete",
+        "data": "list",
+        "delete": "delete",
+        "distinct": "list",
         "export": "mulexport",
+        "import_": "add",
+        "get": "show",
+        "get_list": "list",
+        "info": "list",
         "post": "add",
         "put": "edit",
-        "delete": "delete",
-        "bulk_delete": "delete",
-        "info": "list",
-        "related": "list",
-        "distinct": "list",
-        "thumbnail": "list",
         "refresh": "edit",
-        "data": "list",
-        "viz_types": "list",
+        "related": "list",
         "related_objects": "list",
-        "table_metadata": "list",
-        "select_star": "list",
         "schemas": "list",
+        "select_star": "list",
+        "table_metadata": "list",
+        "test_connection": "post",
+        "thumbnail": "list",
+        "viz_types": "list",
     }
 
     order_rel_fields: Dict[str, Tuple[str, str]] = {}
@@ -137,6 +172,18 @@ class BaseSupersetModelRestApi(ModelRestApi):
         }
     """  # pylint: disable=pointless-string-statement
     allowed_rel_fields: Set[str] = set()
+    """
+    Declare a set of allowed related fields that the `related` endpoint supports
+    """  # pylint: disable=pointless-string-statement
+
+    text_field_rel_fields: Dict[str, str] = {}
+    """
+    Declare an alternative for the human readable representation of the Model object::
+
+        text_field_rel_fields = {
+            "<RELATED_FIELD>": "<RELATED_OBJECT_FIELD>"
+        }
+    """  # pylint: disable=pointless-string-statement
 
     allowed_distinct_fields: Set[str] = set()
 
@@ -266,25 +313,61 @@ class BaseSupersetModelRestApi(ModelRestApi):
         """
         Add statsd metrics to builtin FAB _info endpoint
         """
-        duration, response = time_function(super().info_headless, **kwargs)
-        self.send_stats_metrics(response, self.info.__name__, duration)
-        return response
+        ref = f"{self.__class__.__name__}.info"
+        with log_context(ref, ref, log_to_statsd=False):
+            duration, response = time_function(super().info_headless, **kwargs)
+            self.send_stats_metrics(response, self.info.__name__, duration)
+            return response
 
     def get_headless(self, pk: int, **kwargs: Any) -> Response:
         """
         Add statsd metrics to builtin FAB GET endpoint
         """
-        duration, response = time_function(super().get_headless, pk, **kwargs)
-        self.send_stats_metrics(response, self.get.__name__, duration)
-        return response
+        ref = f"{self.__class__.__name__}.get"
+        with log_context(ref, ref, log_to_statsd=False):
+            duration, response = time_function(super().get_headless, pk, **kwargs)
+            self.send_stats_metrics(response, self.get.__name__, duration)
+            return response
 
     def get_list_headless(self, **kwargs: Any) -> Response:
         """
         Add statsd metrics to builtin FAB GET list endpoint
         """
-        duration, response = time_function(super().get_list_headless, **kwargs)
-        self.send_stats_metrics(response, self.get_list.__name__, duration)
-        return response
+        ref = f"{self.__class__.__name__}.get_list"
+        with log_context(ref, ref, log_to_statsd=False):
+            duration, response = time_function(super().get_list_headless, **kwargs)
+            self.send_stats_metrics(response, self.get_list.__name__, duration)
+            return response
+
+    def post_headless(self) -> Response:
+        """
+        Add statsd metrics to builtin FAB POST endpoint
+        """
+        ref = f"{self.__class__.__name__}.post"
+        with log_context(ref, ref, log_to_statsd=False):
+            duration, response = time_function(super().post_headless)
+            self.send_stats_metrics(response, self.post.__name__, duration)
+            return response
+
+    def put_headless(self, pk: int) -> Response:
+        """
+        Add statsd metrics to builtin FAB PUT endpoint
+        """
+        ref = f"{self.__class__.__name__}.put"
+        with log_context(ref, ref, log_to_statsd=False):
+            duration, response = time_function(super().put_headless, pk)
+            self.send_stats_metrics(response, self.put.__name__, duration)
+            return response
+
+    def delete_headless(self, pk: int) -> Response:
+        """
+        Add statsd metrics to builtin FAB DELETE endpoint
+        """
+        ref = f"{self.__class__.__name__}.delete"
+        with log_context(ref, ref, log_to_statsd=False):
+            duration, response = time_function(super().delete_headless, pk)
+            self.send_stats_metrics(response, self.delete.__name__, duration)
+            return response
 
     @expose("/related/<column_name>", methods=["GET"])
     @protect()
@@ -323,6 +406,14 @@ class BaseSupersetModelRestApi(ModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+
+        def get_text_for_model(model: Model) -> str:
+            if column_name in self.text_field_rel_fields:
+                model_column_name = self.text_field_rel_fields.get(column_name)
+                if model_column_name:
+                    return getattr(model, model_column_name)
+            return str(model)
+
         if column_name not in self.allowed_rel_fields:
             self.incr_stats("error", self.related.__name__)
             return self.response_404()
@@ -348,7 +439,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         )
         # produce response
         result = [
-            {"value": datamodel.get_pk_value(value), "text": str(value)}
+            {"value": datamodel.get_pk_value(value), "text": get_text_for_model(value)}
             for value in values
         ]
         return self.response(200, count=count, result=result)

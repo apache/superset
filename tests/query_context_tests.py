@@ -181,7 +181,7 @@ class TestQueryContext(SupersetTestCase):
         self.assertEqual(len(data.split("\n")), 12)
 
         ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
-        assert ck.datasource_uid == "3__table"
+        assert ck.datasource_uid == f"{table.id}__table"
 
     def test_sql_injection_via_groupby(self):
         """
@@ -207,23 +207,6 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["groupby"] = []
         payload["queries"][0]["metrics"] = []
         payload["queries"][0]["columns"] = ["*, 'extra'"]
-        query_context = ChartDataQueryContextSchema().load(payload)
-        query_payload = query_context.get_payload()
-        assert query_payload[0].get("error") is not None
-
-    def test_sql_injection_via_filters(self):
-        """
-        Ensure that calling invalid columns names in filters are caught
-        """
-        self.login(username="admin")
-        table_name = "birth_names"
-        table = self.get_table_by_name(table_name)
-        payload = get_query_context(table.name, table.id, table.type)
-        payload["queries"][0]["groupby"] = ["name"]
-        payload["queries"][0]["metrics"] = []
-        payload["queries"][0]["filters"] = [
-            {"col": "*", "op": FilterOperator.EQUALS.value, "val": ";"}
-        ]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_payload = query_context.get_payload()
         assert query_payload[0].get("error") is not None

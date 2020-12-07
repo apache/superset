@@ -20,19 +20,25 @@
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
-import styled from '@superset-ui/style';
+import { styled, CategoricalColorNamespace, t } from '@superset-ui/core';
 import { ButtonGroup } from 'react-bootstrap';
-import { CategoricalColorNamespace } from '@superset-ui/color';
-import { t } from '@superset-ui/translation';
+
+import {
+  LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
+  LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
+  LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
+} from 'src/logger/LogUtils';
 
 import Icon from 'src/components/Icon';
 import Button from 'src/components/Button';
+import EditableTitle from 'src/components/EditableTitle';
+import FaveStar from 'src/components/FaveStar';
+import { safeStringify } from 'src/utils/safeStringify';
 
 import HeaderActionsDropdown from './HeaderActionsDropdown';
-import EditableTitle from '../../components/EditableTitle';
-import FaveStar from '../../components/FaveStar';
 import PublishedStatus from './PublishedStatus';
 import UndoRedoKeylisteners from './UndoRedoKeylisteners';
+import PropertiesModal from './PropertiesModal';
 
 import { chartPropShape } from '../util/propShapes';
 import {
@@ -40,14 +46,6 @@ import {
   SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
 } from '../util/constants';
-import { safeStringify } from '../../utils/safeStringify';
-
-import {
-  LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
-  LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
-  LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
-} from '../../logger/LogUtils';
-import PropertiesModal from './PropertiesModal';
 import setPeriodicRunner from '../util/setPeriodicRunner';
 import { options as PeriodicRefreshOptions } from './RefreshIntervalModal';
 
@@ -81,6 +79,7 @@ const propTypes = {
   logEvent: PropTypes.func.isRequired,
   hasUnsavedChanges: PropTypes.bool.isRequired,
   maxUndoHistoryExceeded: PropTypes.bool.isRequired,
+  lastModifiedTime: PropTypes.number.isRequired,
 
   // redux
   onUndo: PropTypes.func.isRequired,
@@ -105,7 +104,15 @@ const defaultProps = {
 const StyledDashboardHeader = styled.div`
   button,
   .fave-unfave-icon {
-    margin-left: 8px;
+    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+  .button-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    .action-button {
+      font-size: ${({ theme }) => theme.typography.sizes.xl}px;
+    }
   }
 `;
 
@@ -134,7 +141,7 @@ class Header extends React.PureComponent {
   }
 
   componentDidMount() {
-    const refreshFrequency = this.props.refreshFrequency;
+    const { refreshFrequency } = this.props;
     this.startPeriodicRender(refreshFrequency * 1000);
   }
 
@@ -271,17 +278,27 @@ class Header extends React.PureComponent {
       dashboardInfo,
       refreshFrequency: currentRefreshFrequency,
       shouldPersistRefreshFrequency,
+      lastModifiedTime,
     } = this.props;
 
     const scale = CategoricalColorNamespace.getScale(
       colorScheme,
       colorNamespace,
     );
-    const labelColors = colorScheme ? scale.getColorMap() : {};
+
+    // use the colorScheme for default labels
+    let labelColors = colorScheme ? scale.getColorMap() : {};
+    // but allow metadata to overwrite if it exists
+    // eslint-disable-next-line camelcase
+    const metadataLabelColors = dashboardInfo.metadata?.label_colors;
+    if (metadataLabelColors) {
+      labelColors = { ...labelColors, ...metadataLabelColors };
+    }
+
     // check refresh frequency is for current session or persist
     const refreshFrequency = shouldPersistRefreshFrequency
       ? currentRefreshFrequency
-      : dashboardInfo.metadata.refresh_frequency; // eslint-disable camelcase
+      : dashboardInfo.metadata?.refresh_frequency; // eslint-disable-line camelcase
 
     const data = {
       positions,
@@ -292,6 +309,7 @@ class Header extends React.PureComponent {
       label_colors: labelColors,
       dashboard_title: dashboardTitle,
       refresh_frequency: refreshFrequency,
+      last_modified_time: lastModifiedTime,
     };
 
     // make sure positions data less than DB storage limitation:
@@ -346,6 +364,7 @@ class Header extends React.PureComponent {
       refreshFrequency,
       shouldPersistRefreshFrequency,
       setRefreshFrequency,
+      lastModifiedTime,
     } = this.props;
 
     const userCanEdit = dashboardInfo.dash_edit_perm;
@@ -357,7 +376,10 @@ class Header extends React.PureComponent {
         .SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE;
 
     return (
-      <StyledDashboardHeader className="dashboard-header">
+      <StyledDashboardHeader
+        className="dashboard-header"
+        data-test="dashboard-header"
+      >
         <div className="dashboard-component-header header-large">
           <EditableTitle
             title={dashboardTitle}
@@ -385,7 +407,10 @@ class Header extends React.PureComponent {
 
         <div className="button-container">
           {userCanSaveAs && (
-            <div className="button-container">
+            <div
+              className="button-container"
+              data-test="dashboard-edit-actions"
+            >
               {editMode && (
                 <>
                   <ButtonGroup className="m-r-5">
@@ -397,7 +422,11 @@ class Header extends React.PureComponent {
                         this.state.emphasizeUndo ? 'primary' : undefined
                       }
                     >
-                      <i title="Undo" className="undo-action fa fa-reply" />
+                      <i
+                        title="Undo"
+                        className="undo-action fa fa-reply"
+                        data-test="undo-action"
+                      />
                       &nbsp;
                     </Button>
                     <Button
@@ -417,6 +446,7 @@ class Header extends React.PureComponent {
                     className="m-r-5"
                     onClick={this.constructor.discardChanges}
                     buttonStyle="default"
+                    data-test="discard-changes-button"
                   >
                     {t('Discard Changes')}
                   </Button>
@@ -425,6 +455,7 @@ class Header extends React.PureComponent {
                     disabled={!hasUnsavedChanges}
                     buttonStyle="primary"
                     onClick={this.overwriteDashboard}
+                    data-test="header-save-button"
                   >
                     {t('Save')}
                   </Button>
@@ -439,14 +470,14 @@ class Header extends React.PureComponent {
             />
           )}
 
-          {!editMode && (
+          {!editMode && userCanEdit && (
             <span
               role="button"
               tabIndex={0}
               className="action-button"
               onClick={this.toggleEditMode}
             >
-              <Icon name="pencil" />
+              <Icon name="edit-alt" />
             </span>
           )}
 
@@ -468,7 +499,7 @@ class Header extends React.PureComponent {
                 setColorSchemeAndUnsavedChanges(updates.colorScheme);
                 dashboardTitleChanged(updates.title);
                 if (updates.slug) {
-                  history.pushState(
+                  window.history.pushState(
                     { event: 'dashboard_properties_changed' },
                     '',
                     `/superset/dashboard/${updates.slug}/`,
@@ -505,6 +536,7 @@ class Header extends React.PureComponent {
             showPropertiesModal={this.showPropertiesModal}
             refreshLimit={refreshLimit}
             refreshWarning={refreshWarning}
+            lastModifiedTime={lastModifiedTime}
           />
         </div>
       </StyledDashboardHeader>

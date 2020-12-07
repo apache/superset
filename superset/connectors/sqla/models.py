@@ -16,7 +16,8 @@
 # under the License.
 import json
 import logging
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
+from contextlib import closing
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Union
@@ -35,6 +36,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     desc,
+    Enum,
     ForeignKey,
     Integer,
     or_,
@@ -43,18 +45,19 @@ from sqlalchemy import (
     Table,
     Text,
 )
-from sqlalchemy.exc import CompileError, SQLAlchemyError
+from sqlalchemy.exc import CompileError
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
-from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
+from sqlalchemy.types import TypeEngine
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.constants import NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
-from superset.exceptions import DatabaseNotFound, QueryObjectValidationError
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -63,8 +66,10 @@ from superset.jinja_context import (
 from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, QueryResult
+from superset.result_set import SupersetResultSet
+from superset.sql_parse import ParsedQuery
 from superset.typing import Metric, QueryObjectDict
-from superset.utils import core as utils, import_datasource
+from superset.utils import core as utils
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -92,8 +97,8 @@ class MetadataResult:
 
 
 class AnnotationDatasource(BaseDatasource):
-    """ Dummy object so we can query annotations using 'Viz' objects just like
-        regular datasources.
+    """Dummy object so we can query annotations using 'Viz' objects just like
+    regular datasources.
     """
 
     cache_timeout = 0
@@ -179,6 +184,9 @@ class TableColumn(Model, BaseColumn):
 
     @property
     def is_numeric(self) -> bool:
+        """
+        Check if the column has a numeric datatype.
+        """
         db_engine_spec = self.table.database.db_engine_spec
         return db_engine_spec.is_db_column_type_match(
             self.type, utils.DbColumnType.NUMERIC
@@ -186,6 +194,9 @@ class TableColumn(Model, BaseColumn):
 
     @property
     def is_string(self) -> bool:
+        """
+        Check if the column has a string datatype.
+        """
         db_engine_spec = self.table.database.db_engine_spec
         return db_engine_spec.is_db_column_type_match(
             self.type, utils.DbColumnType.STRING
@@ -193,6 +204,14 @@ class TableColumn(Model, BaseColumn):
 
     @property
     def is_temporal(self) -> bool:
+        """
+        Check if the column has a temporal datatype. If column has been set as
+        temporal/non-temporal (`is_dttm` is True or False respectively), return that
+        value. This usually happens during initial metadata fetching or when a column
+        is manually set as temporal (for this `python_date_format` needs to be set).
+        """
+        if self.is_dttm is not None:
+            return self.is_dttm
         db_engine_spec = self.table.database.db_engine_spec
         return db_engine_spec.is_db_column_type_match(
             self.type, utils.DbColumnType.TEMPORAL
@@ -265,20 +284,6 @@ class TableColumn(Model, BaseColumn):
             col, pdf, time_grain, self.type
         )
         return self.table.make_sqla_column_compatible(time_expr, label)
-
-    @classmethod
-    def import_obj(cls, i_column: "TableColumn") -> "TableColumn":
-        def lookup_obj(lookup_column: TableColumn) -> TableColumn:
-            return (
-                db.session.query(TableColumn)
-                .filter(
-                    TableColumn.table_id == lookup_column.table_id,
-                    TableColumn.column_name == lookup_column.column_name,
-                )
-                .first()
-            )
-
-        return import_datasource.import_simple_obj(db.session, i_column, lookup_obj)
 
     def dttm_sql_literal(
         self,
@@ -388,20 +393,6 @@ class SqlMetric(Model, BaseMetric):
     def get_perm(self) -> Optional[str]:
         return self.perm
 
-    @classmethod
-    def import_obj(cls, i_metric: "SqlMetric") -> "SqlMetric":
-        def lookup_obj(lookup_metric: SqlMetric) -> SqlMetric:
-            return (
-                db.session.query(SqlMetric)
-                .filter(
-                    SqlMetric.table_id == lookup_metric.table_id,
-                    SqlMetric.metric_name == lookup_metric.metric_name,
-                )
-                .first()
-            )
-
-        return import_datasource.import_simple_obj(db.session, i_metric, lookup_obj)
-
     def get_extra_dict(self) -> Dict[str, Any]:
         try:
             return json.loads(self.extra)
@@ -447,6 +438,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     type = "table"
     query_language = "sql"
     is_rls_supported = True
+    columns: List[TableColumn] = []
+    metrics: List[SqlMetric] = []
     metric_class = SqlMetric
     column_class = TableColumn
     owner_class = security_manager.user_model
@@ -468,6 +461,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     sql = Column(Text)
     is_sqllab_view = Column(Boolean, default=False)
     template_params = Column(Text)
+    extra = Column(Text)
 
     baselink = "tablemodelview"
 
@@ -485,10 +479,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         "template_params",
         "filter_select_enabled",
         "fetch_values_predicate",
+        "extra",
     ]
-    update_from_object_fields = [
-        f for f in export_fields if f not in ("table_name", "database_id")
-    ]
+    update_from_object_fields = [f for f in export_fields if not f == "database_id"]
     export_parent = "database"
     export_children = ["metrics", "columns"]
 
@@ -629,12 +622,52 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
     def external_metadata(self) -> List[Dict[str, str]]:
-        cols = self.database.get_columns(self.table_name, schema=self.schema)
-        for col in cols:
-            try:
-                col["type"] = str(col["type"])
-            except CompileError:
-                col["type"] = "UNKNOWN"
+        db_engine_spec = self.database.db_engine_spec
+        if self.sql:
+            engine = self.database.get_sqla_engine(schema=self.schema)
+            sql = self.get_template_processor().process_template(self.sql)
+            parsed_query = ParsedQuery(sql)
+            if not db_engine_spec.is_readonly_query(parsed_query):
+                raise SupersetSecurityException(
+                    SupersetError(
+                        error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                        message=_("Only `SELECT` statements are allowed"),
+                        level=ErrorLevel.ERROR,
+                    )
+                )
+            statements = parsed_query.get_statements()
+            if len(statements) > 1:
+                raise SupersetSecurityException(
+                    SupersetError(
+                        error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                        message=_("Only single queries supported"),
+                        level=ErrorLevel.ERROR,
+                    )
+                )
+            # TODO(villebro): refactor to use same code that's used by
+            #  sql_lab.py:execute_sql_statements
+            with closing(engine.raw_connection()) as conn:
+                with closing(conn.cursor()) as cursor:
+                    query = self.database.apply_limit_to_sql(statements[0])
+                    db_engine_spec.execute(cursor, query)
+                    result = db_engine_spec.fetch_data(cursor, limit=1)
+                    result_set = SupersetResultSet(
+                        result, cursor.description, db_engine_spec
+                    )
+                    cols = result_set.columns
+        else:
+            db_dialect = self.database.get_dialect()
+            cols = self.database.get_columns(
+                self.table_name, schema=self.schema or None
+            )
+            for col in cols:
+                try:
+                    if isinstance(col["type"], TypeEngine):
+                        col["type"] = db_engine_spec.column_datatype_to_string(
+                            col["type"], db_dialect
+                        )
+                except CompileError:
+                    col["type"] = "UNKNOWN"
         return cols
 
     @property
@@ -666,6 +699,13 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             data_["template_params"] = self.template_params
             data_["is_sqllab_view"] = self.is_sqllab_view
         return data_
+
+    @property
+    def extra_dict(self) -> Dict[str, Any]:
+        try:
+            return json.loads(self.extra)
+        except (TypeError, json.JSONDecodeError):
+            return {}
 
     def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
         """Runs query against sqla to retrieve some
@@ -754,6 +794,19 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     )
 
             from_sql = sqlparse.format(from_sql, strip_comments=True)
+            if len(sqlparse.split(from_sql)) > 1:
+                raise QueryObjectValidationError(
+                    _("Virtual dataset query cannot consist of multiple statements")
+                )
+            parsed_query = ParsedQuery(from_sql)
+            db_engine_spec = self.database.db_engine_spec
+            if not (
+                parsed_query.is_unknown()
+                or db_engine_spec.is_readonly_query(parsed_query)
+            ):
+                raise QueryObjectValidationError(
+                    _("Virtual dataset query must be read-only")
+                )
             return TextAsFrom(sa.text(from_sql), []).alias("expr_qry")
         return self.get_sqla_table()
 
@@ -798,11 +851,14 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         :returns: A list of SQL clauses to be ANDed together.
         :rtype: List[str]
         """
+        filters_grouped: Dict[Union[int, str], List[str]] = defaultdict(list)
         try:
-            return [
-                text("({})".format(template_processor.process_template(f.clause)))
-                for f in security_manager.get_rls_filters(self)
-            ]
+            for filter_ in security_manager.get_rls_filters(self):
+                clause = text(
+                    f"({template_processor.process_template(filter_.clause)})"
+                )
+                filters_grouped[filter_.group_key or filter_.id].append(clause)
+            return [or_(*clauses) for clauses in filters_grouped.values()]
         except TemplateError as ex:
             raise QueryObjectValidationError(
                 _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
@@ -818,7 +874,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         groupby: Optional[List[str]] = None,
         filter: Optional[  # pylint: disable=redefined-builtin
             List[Dict[str, Any]]
-        ] = None,  # pylint: disable=bad-whitespace
+        ] = None,
         is_timeseries: bool = True,
         timeseries_limit: int = 15,
         timeseries_limit_metric: Optional[Metric] = None,
@@ -832,14 +888,14 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         template_kwargs = {
-            "from_dttm": from_dttm,
+            "from_dttm": from_dttm.isoformat() if from_dttm else None,
             "groupby": groupby,
             "metrics": metrics,
             "row_limit": row_limit,
             "row_offset": row_offset,
-            "to_dttm": to_dttm,
+            "to_dttm": to_dttm.isoformat() if to_dttm else None,
             "filter": filter,
-            "columns": {col.column_name: col for col in self.columns},
+            "columns": [col.column_name for col in self.columns],
         }
         is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
         template_kwargs.update(self.template_params_dict)
@@ -1036,7 +1092,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
                         )
-        if config["ENABLE_ROW_LEVEL_SECURITY"]:
+        if is_feature_enabled("ROW_LEVEL_SECURITY"):
             where_clause_and += self._get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")
@@ -1068,9 +1124,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         else:
             qry = qry.where(and_(*where_clause_and))
         qry = qry.having(and_(*having_clause_and))
-
-        if not orderby and ((is_sip_38 and metrics) or (not is_sip_38 and not columns)):
-            orderby = [(main_metric_expr, not order_desc)]
 
         # To ensure correct handling of the ORDER BY labeling we need to reference the
         # metric instance if defined in the SELECT clause.
@@ -1287,61 +1340,48 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         :param commit: should the changes be committed or not.
         :return: Tuple with lists of added, removed and modified column names.
         """
-        try:
-            new_table = self.get_sqla_table_object()
-        except SQLAlchemyError:
-            raise QueryObjectValidationError(
-                _(
-                    "Table %(table)s doesn't seem to exist in the specified database, "
-                    "couldn't fetch column information",
-                    table=self.table_name,
-                )
-            )
-
+        new_columns = self.external_metadata()
         metrics = []
         any_date_col = None
         db_engine_spec = self.database.db_engine_spec
-        db_dialect = self.database.get_dialect()
         old_columns = db.session.query(TableColumn).filter(TableColumn.table == self)
 
-        old_columns_by_name = {col.column_name: col for col in old_columns}
+        old_columns_by_name: Dict[str, TableColumn] = {
+            col.column_name: col for col in old_columns
+        }
         results = MetadataResult(
             removed=[
                 col
                 for col in old_columns_by_name
-                if col not in {col.name for col in new_table.columns}
+                if col not in {col["name"] for col in new_columns}
             ]
         )
 
         # clear old columns before adding modified columns back
         self.columns = []
-        for col in new_table.columns:
-            try:
-                datatype = db_engine_spec.column_datatype_to_string(
-                    col.type, db_dialect
-                )
-            except Exception as ex:  # pylint: disable=broad-except
-                datatype = "UNKNOWN"
-                logger.error("Unrecognized data type in %s.%s", new_table, col.name)
-                logger.exception(ex)
-            old_column = old_columns_by_name.get(col.name, None)
+        for col in new_columns:
+            old_column = old_columns_by_name.pop(col["name"], None)
             if not old_column:
-                results.added.append(col.name)
+                results.added.append(col["name"])
                 new_column = TableColumn(
-                    column_name=col.name, type=datatype, table=self
+                    column_name=col["name"], type=col["type"], table=self
                 )
                 new_column.is_dttm = new_column.is_temporal
                 db_engine_spec.alter_new_orm_column(new_column)
             else:
                 new_column = old_column
-                if new_column.type != datatype:
-                    results.modified.append(col.name)
-                new_column.type = datatype
+                if new_column.type != col["type"]:
+                    results.modified.append(col["name"])
+                new_column.type = col["type"]
+                new_column.expression = ""
             new_column.groupby = True
             new_column.filterable = True
             self.columns.append(new_column)
             if not any_date_col and new_column.is_temporal:
-                any_date_col = col.name
+                any_date_col = col["name"]
+        self.columns.extend(
+            [col for col in old_columns_by_name.values() if col.expression]
+        )
         metrics.append(
             SqlMetric(
                 metric_name="count",
@@ -1361,56 +1401,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         if commit:
             db.session.commit()
         return results
-
-    @classmethod
-    def import_obj(
-        cls,
-        i_datasource: "SqlaTable",
-        database_id: Optional[int] = None,
-        import_time: Optional[int] = None,
-    ) -> int:
-        """Imports the datasource from the object to the database.
-
-         Metrics and columns and datasource will be overrided if exists.
-         This function can be used to import/export dashboards between multiple
-         superset instances. Audit metadata isn't copies over.
-        """
-
-        def lookup_sqlatable(table_: "SqlaTable") -> "SqlaTable":
-            return (
-                db.session.query(SqlaTable)
-                .join(Database)
-                .filter(
-                    SqlaTable.table_name == table_.table_name,
-                    SqlaTable.schema == table_.schema,
-                    Database.id == table_.database_id,
-                )
-                .first()
-            )
-
-        def lookup_database(table_: SqlaTable) -> Database:
-            try:
-                return (
-                    db.session.query(Database)
-                    .filter_by(database_name=table_.params_dict["database_name"])
-                    .one()
-                )
-            except NoResultFound:
-                raise DatabaseNotFound(
-                    _(
-                        "Database '%(name)s' is not found",
-                        name=table_.params_dict["database_name"],
-                    )
-                )
-
-        return import_datasource.import_datasource(
-            db.session,
-            i_datasource,
-            lookup_database,
-            lookup_sqlatable,
-            import_time,
-            database_id,
-        )
 
     @classmethod
     def query_datasources_by_name(
@@ -1454,7 +1444,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             templatable_statements.append(extras["where"])
         if "having" in extras:
             templatable_statements.append(extras["having"])
-        if config["ENABLE_ROW_LEVEL_SECURITY"] and self.is_rls_supported:
+        if is_feature_enabled("ROW_LEVEL_SECURITY") and self.is_rls_supported:
             templatable_statements += [
                 f.clause for f in security_manager.get_rls_filters(self)
             ]
@@ -1506,6 +1496,10 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
 
     __tablename__ = "row_level_security_filters"
     id = Column(Integer, primary_key=True)
+    filter_type = Column(
+        Enum(*[filter_type.value for filter_type in utils.RowLevelSecurityFilterType])
+    )
+    group_key = Column(String(255), nullable=True)
     roles = relationship(
         security_manager.role_model,
         secondary=RLSFilterRoles,

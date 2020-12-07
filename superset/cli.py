@@ -19,7 +19,7 @@ import logging
 from datetime import datetime, timedelta
 from subprocess import Popen
 from sys import stdout
-from typing import Any, Dict, Type, Union
+from typing import Any, Dict, List, Type, Union
 
 import click
 import yaml
@@ -34,6 +34,7 @@ from superset import app, appbuilder, security_manager
 from superset.app import create_app
 from superset.extensions import celery_app, db
 from superset.utils import core as utils
+from superset.utils.celery import session_scope
 from superset.utils.urls import get_url_path
 
 logger = logging.getLogger(__name__)
@@ -234,10 +235,12 @@ def refresh_druid(datasource: str, merge: bool) -> None:
 )
 def import_dashboards(path: str, recursive: bool, username: str) -> None:
     """Import dashboards from JSON"""
-    from superset.utils import dashboard_import_export
+    from superset.dashboards.commands.importers.dispatcher import (
+        ImportDashboardsCommand,
+    )
 
     path_object = Path(path)
-    files = []
+    files: List[Path] = []
     if path_object.is_file():
         files.append(path_object)
     elif path_object.exists() and not recursive:
@@ -246,14 +249,11 @@ def import_dashboards(path: str, recursive: bool, username: str) -> None:
         files.extend(path_object.rglob("*.json"))
     if username is not None:
         g.user = security_manager.find_user(username=username)
-    for file_ in files:
-        logger.info("Importing dashboard from file %s", file_)
-        try:
-            with file_.open() as data_stream:
-                dashboard_import_export.import_dashboards(db.session, data_stream)
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Error when importing dashboard from file %s", file_)
-            logger.error(ex)
+    contents = {path.name: open(path).read() for path in files}
+    try:
+        ImportDashboardsCommand(contents).run()
+    except Exception:  # pylint: disable=broad-except
+        logger.exception("Error when importing dashboard")
 
 
 @superset.command()
@@ -303,11 +303,14 @@ def export_dashboards(dashboard_file: str, print_stdout: bool) -> None:
 )
 def import_datasources(path: str, sync: str, recursive: bool) -> None:
     """Import datasources from YAML"""
-    from superset.utils import dict_import_export
+    from superset.datasets.commands.importers.dispatcher import ImportDatasetsCommand
 
     sync_array = sync.split(",")
+    sync_columns = "columns" in sync_array
+    sync_metrics = "metrics" in sync_array
+
     path_object = Path(path)
-    files = []
+    files: List[Path] = []
     if path_object.is_file():
         files.append(path_object)
     elif path_object.exists() and not recursive:
@@ -316,16 +319,11 @@ def import_datasources(path: str, sync: str, recursive: bool) -> None:
     elif path_object.exists() and recursive:
         files.extend(path_object.rglob("*.yaml"))
         files.extend(path_object.rglob("*.yml"))
-    for file_ in files:
-        logger.info("Importing datasources from file %s", file_)
-        try:
-            with file_.open() as data_stream:
-                dict_import_export.import_from_dict(
-                    db.session, yaml.safe_load(data_stream), sync=sync_array
-                )
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Error when importing datasources from file %s", file_)
-            logger.error(ex)
+    contents = {path.name: open(path).read() for path in files}
+    try:
+        ImportDatasetsCommand(contents, sync_columns, sync_metrics).run()
+    except Exception:  # pylint: disable=broad-except
+        logger.exception("Error when importing dataset")
 
 
 @superset.command()
@@ -619,6 +617,11 @@ def alert() -> None:
     from superset.tasks.schedules import schedule_window
 
     click.secho("Processing one alert loop", fg="green")
-    schedule_window(
-        ScheduleType.alert, datetime.now() - timedelta(1000), datetime.now(), 6000
-    )
+    with session_scope(nullpool=True) as session:
+        schedule_window(
+            report_type=ScheduleType.alert,
+            start_at=datetime.now() - timedelta(1000),
+            stop_at=datetime.now(),
+            resolution=6000,
+            session=session,
+        )

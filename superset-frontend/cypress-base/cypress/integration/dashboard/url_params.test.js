@@ -17,11 +17,12 @@
  * under the License.
  */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
+import { isLegacyResponse, getChartAliases } from '../../utils/vizPlugins';
+import readResponseBlob from '../../utils/readResponseBlob';
 
 describe('Dashboard form data', () => {
   const urlParams = { param1: '123', param2: 'abc' };
-  let sliceIds = [];
-  let dashboardId;
+  let dashboard;
 
   beforeEach(() => {
     cy.server();
@@ -31,30 +32,31 @@ describe('Dashboard form data', () => {
 
     cy.get('#app').then(data => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
-      const dashboard = bootstrapData.dashboard_data;
-      dashboardId = dashboard.id;
-      sliceIds = dashboard.slices.map(slice => slice.slice_id);
+      dashboard = bootstrapData.dashboard_data;
     });
   });
 
   it('should apply url params and queryFields to slice requests', () => {
-    const aliases = [];
-    sliceIds.forEach(id => {
-      const alias = `getJson_${id}`;
-      aliases.push(`@${alias}`);
-      cy.route(
-        'POST',
-        `/superset/explore_json/?form_data={"slice_id":${id}}&dashboard_id=${dashboardId}`,
-      ).as(alias);
-    });
-
+    const aliases = getChartAliases(dashboard.slices);
+    // wait and verify one-by-one
     cy.wait(aliases).then(requests => {
-      requests.forEach(xhr => {
-        const requestFormData = xhr.request.body;
-        const requestParams = JSON.parse(requestFormData.get('form_data'));
-        expect(requestParams).to.have.property('queryFields');
-        expect(requestParams.url_params).deep.eq(urlParams);
-      });
+      return Promise.all(
+        requests.map(async xhr => {
+          expect(xhr.status).to.eq(200);
+          const responseBody = await readResponseBlob(xhr.response.body);
+
+          if (isLegacyResponse(responseBody)) {
+            const requestFormData = xhr.request.body;
+            const requestParams = JSON.parse(requestFormData.get('form_data'));
+            expect(requestParams).to.have.property('queryFields');
+            expect(requestParams.url_params).deep.eq(urlParams);
+          } else {
+            xhr.request.body.queries.forEach(query => {
+              expect(query.url_params).deep.eq(urlParams);
+            });
+          }
+        }),
+      );
     });
   });
 });

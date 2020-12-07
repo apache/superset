@@ -19,7 +19,7 @@
 ---
 github:
   description: "Apache Superset is a Data Visualization and Data Exploration Platform"
-  homepage: https://superset.apache.org/
+  homepage: https://superset.incubator.apache.org/
   labels:
     - superset
     - apache

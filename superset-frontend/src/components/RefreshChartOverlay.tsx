@@ -17,8 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/translation';
-import styled from '@superset-ui/style';
+import { t, styled } from '@superset-ui/core';
 import Button from 'src/components/Button';
 
 type Callback = (...args: any[]) => void;
@@ -38,11 +37,6 @@ const RefreshOverlayWrapper = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
-
-  .refresh-btn {
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
-  }
 `;
 
 class RefreshChartOverlay extends React.PureComponent<Props> {
@@ -50,11 +44,7 @@ class RefreshChartOverlay extends React.PureComponent<Props> {
     return (
       <RefreshOverlayWrapper>
         <div>
-          <Button
-            className="refresh-btn"
-            onClick={this.props.onQuery}
-            buttonStyle="primary"
-          >
+          <Button onClick={this.props.onQuery} buttonStyle="primary">
             {t('Run Query')}
           </Button>
         </div>

@@ -26,12 +26,18 @@ import simplejson as json
 from flask import g, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
+from flask_babel import gettext as __
+from sqlalchemy.orm.exc import NoResultFound
 
 import superset.models.core as models
 from superset import app, dataframe, db, is_feature_enabled, result_set
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.exceptions import (
+    SerializationError,
+    SupersetException,
+    SupersetSecurityException,
+)
 from superset.legacy import update_time_range
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -349,11 +355,11 @@ def build_extra_filters(  # pylint: disable=too-many-locals,too-many-nested-bloc
     for filter_id, columns in default_filters.items():
         filter_slice = db.session.query(Slice).filter_by(id=filter_id).one_or_none()
 
-        filter_configs = (
-            json.loads(filter_slice.params or "{}").get("filter_configs") or []
-            if filter_slice
-            else []
-        )
+        filter_configs: List[Dict[str, Any]] = []
+        if filter_slice:
+            filter_configs = (
+                json.loads(filter_slice.params or "{}").get("filter_configs") or []
+            )
 
         scopes_by_filter_field = filter_scopes.get(filter_id, {})
         for col, val in columns.items():
@@ -452,16 +458,25 @@ def check_datasource_perms(
             SupersetError(
                 error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
                 level=ErrorLevel.ERROR,
-                message="Could not determine datasource type",
+                message=__("Could not determine datasource type"),
             )
         )
 
-    viz_obj = get_viz(
-        datasource_type=datasource_type,
-        datasource_id=datasource_id,
-        form_data=form_data,
-        force=False,
-    )
+    try:
+        viz_obj = get_viz(
+            datasource_type=datasource_type,
+            datasource_id=datasource_id,
+            form_data=form_data,
+            force=False,
+        )
+    except NoResultFound:
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
+                level=ErrorLevel.ERROR,
+                message=__("Could not find viz object"),
+            )
+        )
 
     viz_obj.raise_for_access()
 
@@ -480,12 +495,21 @@ def check_slice_perms(_self: Any, slice_id: int) -> None:
     form_data, slc = get_form_data(slice_id, use_slice_data=True)
 
     if slc:
-        viz_obj = get_viz(
-            datasource_type=slc.datasource.type,
-            datasource_id=slc.datasource.id,
-            form_data=form_data,
-            force=False,
-        )
+        try:
+            viz_obj = get_viz(
+                datasource_type=slc.datasource.type,
+                datasource_id=slc.datasource.id,
+                form_data=form_data,
+                force=False,
+            )
+        except NoResultFound:
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
+                    level=ErrorLevel.ERROR,
+                    message="Could not find viz object",
+                )
+            )
 
         viz_obj.raise_for_access()
 
@@ -501,7 +525,10 @@ def _deserialize_results_payload(
             ds_payload = msgpack.loads(payload, raw=False)
 
         with stats_timing("sqllab.query.results_backend_pa_deserialize", stats_logger):
-            pa_table = pa.deserialize(ds_payload["data"])
+            try:
+                pa_table = pa.deserialize(ds_payload["data"])
+            except pa.ArrowSerializationError:
+                raise SerializationError("Unable to deserialize table")
 
         df = result_set.SupersetResultSet.convert_table_to_df(pa_table)
         ds_payload["data"] = dataframe.df_to_records(df) or []

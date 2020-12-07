@@ -18,11 +18,15 @@
  */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 import readResponseBlob from '../../utils/readResponseBlob';
+import {
+  getChartAliases,
+  isLegacyResponse,
+  DASHBOARD_CHART_ALIAS_PREFIX,
+} from '../../utils/vizPlugins';
 
 describe('Dashboard top-level controls', () => {
-  const sliceRequests = [];
-  const forceRefreshRequests = [];
   let mapId;
+  let aliases;
 
   beforeEach(() => {
     cy.server();
@@ -35,88 +39,62 @@ describe('Dashboard top-level controls', () => {
       mapId = dashboard.slices.find(
         slice => slice.form_data.viz_type === 'world_map',
       ).slice_id;
-
-      dashboard.slices.forEach(slice => {
-        const sliceRequest = `getJson_${slice.slice_id}`;
-        sliceRequests.push(`@${sliceRequest}`);
-        const formData = `{"slice_id":${slice.slice_id}}`;
-        cy.route('POST', `/superset/explore_json/?form_data=${formData}`).as(
-          sliceRequest,
-        );
-
-        const forceRefresh = `postJson_${slice.slice_id}_force`;
-        forceRefreshRequests.push(`@${forceRefresh}`);
-        cy.route(
-          'POST',
-          `/superset/explore_json/?form_data={"slice_id":${slice.slice_id}}&force=true`,
-        ).as(forceRefresh);
-      });
+      aliases = getChartAliases(dashboard.slices);
     });
   });
-  afterEach(() => {
-    sliceRequests.length = 0;
-    forceRefreshRequests.length = 0;
-  });
 
-  it.skip('should allow chart level refresh', () => {
-    cy.wait(sliceRequests);
-    cy.get('.grid-container .world_map').should('be.exist');
+  it('should allow chart level refresh', () => {
+    cy.wait(aliases);
+    cy.get('[data-test="grid-container"]').find('.world_map').should('exist');
     cy.get(`#slice_${mapId}-controls`).click();
-    cy.get(`#slice_${mapId}-controls`)
-      .next()
-      .find('.refresh-tooltip')
-      .trigger('click', { force: true });
+    cy.get(`[data-test="slice_${mapId}-menu"]`)
+      .find('[data-test="refresh-chart-menu-item"]')
+      .click({ force: true })
+      .then($el => {
+        cy.get($el).should('have.class', 'ant-dropdown-menu-item-disabled');
+      });
 
-    // not allow dashboard level force refresh when any chart is loading
-    cy.get('#save-dash-split-button').trigger('click', { force: true });
-    cy.contains('Force refresh dashboard')
-      .parent()
-      .should('have.class', 'disabled');
-    // not allow chart level force refresh when it is loading
-    cy.get(`#slice_${mapId}-controls`)
-      .next()
-      .find('.refresh-tooltip')
-      .parent()
-      .parent()
-      .should('have.class', 'disabled');
-
-    cy.wait(`@postJson_${mapId}_force`);
-    cy.get('#save-dash-split-button').trigger('click');
-    cy.contains('Force refresh dashboard')
-      .parent()
-      .not('have.class', 'disabled');
+    cy.wait(`@${DASHBOARD_CHART_ALIAS_PREFIX}${mapId}`);
+    cy.get('[data-test="refresh-chart-menu-item"]').should(
+      'not.have.class',
+      'ant-dropdown-menu-item-disabled',
+    );
   });
 
-  it.skip('should allow dashboard level force refresh', () => {
+  it('should allow dashboard level force refresh', () => {
+    // wait the all dash finish loading.
+    cy.wait(aliases);
     // when charts are not start loading, for example, under a secondary tab,
     // should allow force refresh
-    cy.get('#save-dash-split-button').trigger('click');
-    cy.contains('Force refresh dashboard')
-      .parent()
-      .not('have.class', 'disabled');
+    cy.get('[data-test="more-horiz"]').click();
+    cy.get('[data-test="refresh-dashboard-menu-item"]').should(
+      'not.have.class',
+      'ant-dropdown-menu-item-disabled',
+    );
 
-    // wait the all dash finish loading.
-    cy.wait(sliceRequests);
-    cy.get('#save-dash-split-button').trigger('click');
-    cy.contains('Force refresh dashboard').trigger('click', { force: true });
-    cy.get('#save-dash-split-button').trigger('click');
-    cy.contains('Force refresh dashboard')
-      .parent()
-      .should('have.class', 'disabled');
+    cy.get('[data-test="refresh-dashboard-menu-item"]').click({ force: true });
+    cy.get('[data-test="refresh-dashboard-menu-item"]').should(
+      'have.class',
+      'ant-dropdown-menu-item-disabled',
+    );
 
     // wait all charts force refreshed
-    cy.wait(forceRefreshRequests).then(xhrs => {
-      // is_cached in response should be false
-      xhrs.forEach(xhr => {
-        readResponseBlob(xhr.response.body).then(responseBody => {
-          expect(responseBody.is_cached).to.equal(false);
-        });
+    cy.wait(aliases, { responseTimeout: 15000 }).then(xhrs => {
+      xhrs.forEach(async xhr => {
+        const responseBody = await readResponseBlob(xhr.response.body);
+        const isCached = isLegacyResponse(responseBody)
+          ? responseBody.is_cached
+          : responseBody.result[0].is_cached;
+        // request url should indicate force-refresh operation
+        expect(xhr.url).to.have.string('force=true');
+        // is_cached in response should be false
+        expect(isCached).to.equal(false);
       });
     });
-
-    cy.get('#save-dash-split-button').trigger('click');
-    cy.contains('Force refresh dashboard')
-      .parent()
-      .not('have.class', 'disabled');
+    cy.get('[data-test="more-horiz"]').click();
+    cy.get('[data-test="refresh-dashboard-menu-item"]').and(
+      'not.have.class',
+      'ant-dropdown-menu-item-disabled',
+    );
   });
 });

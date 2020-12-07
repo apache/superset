@@ -23,6 +23,7 @@ names_df = DataFrame(
         {
             "dt": date(2020, 1, 2),
             "name": "John",
+            "region": "EU",
             "country": "United Kingdom",
             "cars": 3,
             "bikes": 1,
@@ -31,6 +32,7 @@ names_df = DataFrame(
         {
             "dt": date(2020, 1, 2),
             "name": "Peter",
+            "region": "EU",
             "country": "Sweden",
             "cars": 4,
             "bikes": 2,
@@ -39,6 +41,7 @@ names_df = DataFrame(
         {
             "dt": date(2020, 1, 3),
             "name": "Mary",
+            "region": "EU",
             "country": "Finland",
             "cars": 5,
             "bikes": 3,
@@ -47,6 +50,7 @@ names_df = DataFrame(
         {
             "dt": date(2020, 1, 3),
             "name": "Peter",
+            "region": "Asia",
             "country": "India",
             "cars": 6,
             "bikes": 4,
@@ -55,6 +59,7 @@ names_df = DataFrame(
         {
             "dt": date(2020, 1, 4),
             "name": "John",
+            "region": "EU",
             "country": "Portugal",
             "cars": 7,
             "bikes": None,
@@ -63,6 +68,7 @@ names_df = DataFrame(
         {
             "dt": date(2020, 1, 4),
             "name": "Peter",
+            "region": "EU",
             "country": "Italy",
             "cars": None,
             "bikes": 5,
@@ -71,6 +77,7 @@ names_df = DataFrame(
         {
             "dt": date(2020, 1, 4),
             "name": "Mary",
+            "region": None,
             "country": None,
             "cars": 9,
             "bikes": 6,
@@ -79,6 +86,7 @@ names_df = DataFrame(
         {
             "dt": date(2020, 1, 4),
             "name": None,
+            "region": "Oceania",
             "country": "Australia",
             "cars": 10,
             "bikes": 7,
@@ -87,6 +95,7 @@ names_df = DataFrame(
         {
             "dt": date(2020, 1, 1),
             "name": "John",
+            "region": "North America",
             "country": "USA",
             "cars": 1,
             "bikes": 8,
@@ -95,6 +104,7 @@ names_df = DataFrame(
         {
             "dt": date(2020, 1, 1),
             "name": "Mary",
+            "region": "Oceania",
             "country": "Fiji",
             "cars": 2,
             "bikes": 9,

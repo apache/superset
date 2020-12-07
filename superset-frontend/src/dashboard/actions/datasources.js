@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/connection';
+import { SupersetClient } from '@superset-ui/core';
 import getClientErrorObject from '../../utils/getClientErrorObject';
 
 export const SET_DATASOURCE = 'SET_DATASOURCE';

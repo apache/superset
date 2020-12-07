@@ -18,11 +18,15 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { FormControl, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import AdhocMetric from '../AdhocMetric';
+import { FormControl } from 'react-bootstrap';
+import { Tooltip } from 'src/common/components/Tooltip';
 
 const propTypes = {
-  adhocMetric: PropTypes.instanceOf(AdhocMetric),
+  title: PropTypes.shape({
+    label: PropTypes.string,
+    hasCustomLabel: PropTypes.bool,
+  }),
+  defaultLabel: PropTypes.string,
   onChange: PropTypes.func.isRequired,
 };
 
@@ -33,6 +37,7 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
     this.onMouseOut = this.onMouseOut.bind(this);
     this.onClick = this.onClick.bind(this);
     this.onBlur = this.onBlur.bind(this);
+    this.onInputBlur = this.onInputBlur.bind(this);
     this.state = {
       isHovered: false,
       isEditable: false,
@@ -55,45 +60,48 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
     this.setState({ isEditable: false });
   }
 
-  render() {
-    const { adhocMetric, onChange } = this.props;
+  onInputBlur(e) {
+    if (e.target.value === '') {
+      e.target.value = this.props.defaultLabel;
+      this.props.onChange(e);
+    }
+    this.onBlur();
+  }
 
-    const editPrompt = (
-      <Tooltip id="edit-metric-label-tooltip">Click to edit label</Tooltip>
-    );
+  render() {
+    const { title, onChange } = this.props;
 
     return this.state.isEditable ? (
       <FormControl
         className="metric-edit-popover-label-input"
         type="text"
-        placeholder={adhocMetric.label}
-        value={adhocMetric.hasCustomLabel ? adhocMetric.label : ''}
+        placeholder={title.label}
+        value={title.hasCustomLabel ? title.label : ''}
         autoFocus
         onChange={onChange}
+        onBlur={this.onInputBlur}
         data-test="AdhocMetricEditTitle#input"
       />
     ) : (
-      <OverlayTrigger
-        placement="top"
-        overlay={editPrompt}
-        onMouseOver={this.onMouseOver}
-        onMouseOut={this.onMouseOut}
-        onClick={this.onClick}
-        onBlur={this.onBlur}
-        className="AdhocMetricEditPopoverTitle"
-      >
+      <Tooltip placement="top" title="Click to edit label">
         <span
-          className="inline-editable"
+          className="AdhocMetricEditPopoverTitle inline-editable"
           data-test="AdhocMetricEditTitle#trigger"
+          onMouseOver={this.onMouseOver}
+          onMouseOut={this.onMouseOut}
+          onClick={this.onClick}
+          onBlur={this.onBlur}
+          role="button"
+          tabIndex={0}
         >
-          {adhocMetric.hasCustomLabel ? adhocMetric.label : 'My Metric'}
+          {title.hasCustomLabel ? title.label : 'My Metric'}
           &nbsp;
           <i
             className="fa fa-pencil"
             style={{ color: this.state.isHovered ? 'black' : 'grey' }}
           />
         </span>
-      </OverlayTrigger>
+      </Tooltip>
     );
   }
 }

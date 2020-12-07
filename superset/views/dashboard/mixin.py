@@ -74,6 +74,7 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
         "slug": _("Slug"),
         "charts": _("Charts"),
         "owners": _("Owners"),
+        "published": _("Published"),
         "creator": _("Creator"),
         "modified": _("Modified"),
         "position_json": _("Position JSON"),
