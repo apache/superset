@@ -158,7 +158,7 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test get items not allowed
         """
         self.login(username="gamma")
-        uri = f"api/v1/database/"
+        uri = "api/v1/database/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
@@ -451,7 +451,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         self.login(username="admin")
         database_data = {"database_name": "test-database-updated"}
-        uri = f"api/v1/database/invalid"
+        uri = "api/v1/database/invalid"
         rv = self.client.put(uri, json=database_data)
         self.assertEqual(rv.status_code, 404)
 
@@ -556,7 +556,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
-        uri = f"api/v1/database/some_database/table/some_table/some_schema/"
+        uri = "api/v1/database/some_database/table/some_table/some_schema/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
@@ -718,7 +718,7 @@ class TestDatabaseApi(SupersetTestCase):
             "sqlalchemy_uri": example_db.safe_sqlalchemy_uri(),
             "server_cert": ssl_certificate,
         }
-        url = f"api/v1/database/test_connection"
+        url = "api/v1/database/test_connection"
         rv = self.post_assert_metric(url, data, "test_connection")
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
@@ -747,7 +747,7 @@ class TestDatabaseApi(SupersetTestCase):
             "impersonate_user": False,
             "server_cert": None,
         }
-        url = f"api/v1/database/test_connection"
+        url = "api/v1/database/test_connection"
         rv = self.post_assert_metric(url, data, "test_connection")
         self.assertEqual(rv.status_code, 400)
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
@@ -787,7 +787,7 @@ class TestDatabaseApi(SupersetTestCase):
             "impersonate_user": False,
             "server_cert": None,
         }
-        url = f"api/v1/database/test_connection"
+        url = "api/v1/database/test_connection"
         rv = self.post_assert_metric(url, data, "test_connection")
         self.assertEqual(rv.status_code, 400)
         response = json.loads(rv.data.decode("utf-8"))
@@ -947,3 +947,88 @@ class TestDatabaseApi(SupersetTestCase):
         assert response == {
             "message": {"metadata.yaml": {"type": ["Must be equal to Database."]}}
         }
+
+    def test_import_database_masked_password(self):
+        """
+        Database API: Test import database with masked password
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+
+        masked_database_config = database_config.copy()
+        masked_database_config[
+            "sqlalchemy_uri"
+        ] = "postgresql://username:XXXXXXXXXX@host:12345/db"
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(masked_database_config).encode())
+            with bundle.open(
+                "database_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "message": {
+                "databases/imported_database.yaml": {
+                    "_schema": ["Must provide a password for the database"]
+                }
+            }
+        }
+
+    def test_import_database_masked_password_provided(self):
+        """
+        Database API: Test import database with masked password provided
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+
+        masked_database_config = database_config.copy()
+        masked_database_config[
+            "sqlalchemy_uri"
+        ] = "postgresql://username:XXXXXXXXXX@host:12345/db"
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(masked_database_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+            "passwords": json.dumps({"databases/imported_database.yaml": "SECRET"}),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        assert database.database_name == "imported_database"
+        assert (
+            database.sqlalchemy_uri == "postgresql://username:XXXXXXXXXX@host:12345/db"
+        )
+        assert database.password == "SECRET"
+
+        db.session.delete(database)
+        db.session.commit()
