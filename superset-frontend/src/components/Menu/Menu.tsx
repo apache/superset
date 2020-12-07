@@ -46,6 +46,7 @@ interface NavBarProps {
   user_info_url: string;
   user_login_url: string;
   user_logout_url: string;
+  user_profile_url: string | null;
   locale: string;
 }
 
@@ -195,8 +196,15 @@ export function Menu({
                 {!navbarRight.user_is_anonymous && [
                   <DropdownMenu.Divider key="user-divider" />,
                   <DropdownMenu.ItemGroup key="user-section" title={t('User')}>
-                    <DropdownMenu.Item key="profile">
-                      <a href={navbarRight.user_info_url}>{t('Profile')}</a>
+                    {navbarRight.user_profile_url && (
+                      <DropdownMenu.Item key="profile">
+                        <a href={navbarRight.user_profile_url}>
+                          {t('Profile')}
+                        </a>
+                      </DropdownMenu.Item>
+                    )}
+                    <DropdownMenu.Item key="info">
+                      <a href={navbarRight.user_info_url}>{t('Info')}</a>
                     </DropdownMenu.Item>
                     <DropdownMenu.Item key="logout">
                       <a href={navbarRight.user_logout_url}>{t('Logout')}</a>

@@ -80,6 +80,7 @@ module.exports = {
         '@typescript-eslint/explicit-module-boundary-types': 0, // re-enable up for discussion
         camelcase: 0,
         'class-methods-use-this': 0,
+        curly: 1,
         'func-names': 0,
         'guard-for-in': 0,
         'import/no-cycle': 0, // re-enable up for discussion, might require some major refactors
@@ -94,7 +95,7 @@ module.exports = {
         'import/no-named-as-default-member': 0,
         'import/prefer-default-export': 0,
         indent: 0,
-        'jsx-a11y/anchor-is-valid': 0, // disabled temporarily
+        'jsx-a11y/anchor-is-valid': 1,
         'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
         'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
         'new-cap': 0,
@@ -189,6 +190,7 @@ module.exports = {
       },
     ],
     'class-methods-use-this': 0,
+    curly: 1,
     'func-names': 0,
     'guard-for-in': 0,
     'import/extensions': [
@@ -204,7 +206,7 @@ module.exports = {
     'import/no-cycle': 0, // re-enable up for discussion, might require some major refactors
     'import/prefer-default-export': 0,
     indent: 0,
-    'jsx-a11y/anchor-is-valid': 0, // disabled temporarily
+    'jsx-a11y/anchor-is-valid': 1,
     'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
     'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
     'new-cap': 0,
