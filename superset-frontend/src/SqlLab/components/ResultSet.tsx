@@ -166,7 +166,6 @@ export default class ResultSet extends React.PureComponent<
     // only do this the first time the component is rendered/mounted
     this.reRunQueryIfSessionTimeoutErrorOnMount();
 
-    // Hack: waiting for talks with tai to pull data out of the initial state
     const appContainer = document.getElementById('app');
     const bootstrapData = JSON.parse(
       appContainer?.getAttribute('data-bootstrap') || '{}',
