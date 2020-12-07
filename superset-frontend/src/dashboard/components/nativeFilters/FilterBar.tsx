@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData, styled, SuperChart, t } from '@superset-ui/core';
+import {
+  QueryFormData,
+  styled,
+  SuperChart,
+  t,
+  ExtraFormData,
+} from '@superset-ui/core';
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import cx from 'classnames';
@@ -145,7 +151,7 @@ const FilterControls = styled.div`
 
 interface FilterProps {
   filter: Filter;
-  onExtraFormDataChange: any;
+  onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
 }
 
 interface FiltersBarProps {
@@ -198,7 +204,7 @@ const FilterValue: React.FC<FilterProps> = ({
     }
   }, [cascadingFilters]);
 
-  const setExtraFormData = (extraFormData: any) =>
+  const setExtraFormData = (extraFormData: ExtraFormData) =>
     onExtraFormDataChange(filter, extraFormData);
 
   return (
@@ -241,8 +247,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   filtersOpen,
   toggleFiltersBar,
 }) => {
-  const [filterData, setFilterData] = useState({});
-
+  const [filterData, setFilterData] = useState<{ [id: string]: ExtraFormData }>(
+    {},
+  );
   const setExtraFormData = useSetExtraFormData();
   const filterConfigs = useFilterConfiguration();
   const canEdit = useSelector<any, boolean>(
@@ -255,7 +262,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     }
   }, [filterConfigs]);
 
-  const handleExtraFormDataChange = (filter: Filter, extraFormData: any) => {
+  const handleExtraFormDataChange = (
+    filter: Filter,
+    extraFormData: ExtraFormData,
+  ) => {
     setFilterData(prevFilterData => ({
       ...prevFilterData,
       [filter.id]: extraFormData,
