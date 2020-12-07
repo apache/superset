@@ -31,7 +31,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 from marshmallow import Schema, validate
 from marshmallow.exceptions import ValidationError
@@ -55,6 +55,7 @@ class ImportModelsCommand(BaseCommand):
 
     dao = BaseDAO
     model_name = "model"
+    prefix = ""
     schemas: Dict[str, Schema] = {}
     import_error = CommandException
 
@@ -62,18 +63,25 @@ class ImportModelsCommand(BaseCommand):
     def __init__(self, contents: Dict[str, str], *args: Any, **kwargs: Any):
         self.contents = contents
         self.passwords: Dict[str, str] = kwargs.get("passwords") or {}
+        self.overwrite: bool = kwargs.get("overwrite", False)
         self._configs: Dict[str, Any] = {}
 
     @staticmethod
-    def _import(session: Session, configs: Dict[str, Any]) -> None:
-        raise NotImplementedError("Subclasses MUSC implement _import")
+    def _import(
+        session: Session, configs: Dict[str, Any], overwrite: bool = False
+    ) -> None:
+        raise NotImplementedError("Subclasses MUST implement _import")
+
+    @classmethod
+    def _get_uuids(cls) -> Set[str]:
+        return {str(model.uuid) for model in db.session.query(cls.dao.model_cls).all()}
 
     def run(self) -> None:
         self.validate()
 
         # rollback to prevent partial imports
         try:
-            self._import(db.session, self._configs)
+            self._import(db.session, self._configs, self.overwrite)
             db.session.commit()
         except Exception:
             db.session.rollback()
@@ -97,6 +105,15 @@ class ImportModelsCommand(BaseCommand):
             exceptions.append(exc)
             metadata = None
 
+        # validate that the type declared in METADATA_FILE_NAME is correct
+        if metadata:
+            type_validator = validate.Equal(self.dao.model_cls.__name__)  # type: ignore
+            try:
+                type_validator(metadata["type"])
+            except ValidationError as exc:
+                exc.messages = {METADATA_FILE_NAME: {"type": exc.messages}}
+                exceptions.append(exc)
+
         # validate objects
         for file_name, content in self.contents.items():
             prefix = file_name.split("/")[0]
@@ -117,14 +134,24 @@ class ImportModelsCommand(BaseCommand):
                     exc.messages = {file_name: exc.messages}
                     exceptions.append(exc)
 
-        # validate that the type declared in METADATA_FILE_NAME is correct
-        if metadata:
-            type_validator = validate.Equal(self.dao.model_cls.__name__)  # type: ignore
-            try:
-                type_validator(metadata["type"])
-            except ValidationError as exc:
-                exc.messages = {METADATA_FILE_NAME: {"type": exc.messages}}
-                exceptions.append(exc)
+        # check if the object exists and shouldn't be overwritten
+        if not self.overwrite:
+            existing_uuids = self._get_uuids()
+            for file_name, config in self._configs.items():
+                if (
+                    file_name.startswith(self.prefix)
+                    and config["uuid"] in existing_uuids
+                ):
+                    exceptions.append(
+                        ValidationError(
+                            {
+                                file_name: (
+                                    f"{self.model_name.title()} already exists "
+                                    "and `overwrite=true` was not passed"
+                                ),
+                            }
+                        )
+                    )
 
         if exceptions:
             exception = CommandInvalidError(f"Error importing {self.model_name}")
