@@ -38,9 +38,12 @@ describe('SaveDatasetModal', () => {
     shouldOverwriteDataset: false,
     userDatasetOptions: [],
     disableSaveAndExploreBtn: false,
+    handleSaveDatasetModalSearch: '',
+    filterAutocompleteOption: false,
+    onChangeAutoComplete: () => {},
   };
   it('renders a radio group btn', () => {
-    const wrapper = shallow(<SaveDatasetModal visible />);
+    const wrapper = shallow(<SaveDatasetModal />);
     expect(wrapper.find(Radio.Group)).toExist();
   });
   it('renders a autocomplete', () => {
