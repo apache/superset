@@ -43,7 +43,6 @@ export {
   Select,
   Skeleton,
   Switch,
-  Radio,
   Tabs,
   Tooltip,
 } from 'antd';
