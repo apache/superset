@@ -20,20 +20,27 @@
 import React from 'react';
 import { FormControl, FormGroup, Radio } from 'react-bootstrap';
 import Button from 'src/components/Button';
-import { t, CategoricalColorNamespace } from '@superset-ui/core';
+import {
+  t,
+  CategoricalColorNamespace,
+  JsonResponse,
+} from '@superset-ui/core';
 
-import ModalTrigger from '../../components/ModalTrigger';
-import Checkbox from '../../components/Checkbox';
-import { SAVE_TYPE_OVERWRITE, SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
+import ModalTrigger from 'src/components/ModalTrigger';
+import Checkbox from 'src/components/Checkbox';
+import {
+  SAVE_TYPE_OVERWRITE,
+  SAVE_TYPE_NEWDASHBOARD,
+} from 'src/dashboard/util/constants';
 
 type SaveType = typeof SAVE_TYPE_OVERWRITE | typeof SAVE_TYPE_NEWDASHBOARD;
 
 type SaveModalProps = {
-  addSuccessToast: Function;
-  addDangerToast: Function;
+  addSuccessToast: (arg: string) => void;
+  addDangerToast: (arg: string) => void;
   dashboardId: number;
   dashboardTitle: string;
-  dashboardInfo: object;
+  dashboardInfo: Record<string, any>;
   expandedSlices: object;
   layout: object;
   saveType: SaveType;
@@ -41,7 +48,7 @@ type SaveModalProps = {
   customCss: string;
   colorNamespace?: string;
   colorScheme?: string;
-  onSave: Function;
+  onSave: (data: any, id: number | string, saveType: SaveType) => void;
   canOverwrite: boolean;
   shouldPersistRefreshFrequency: boolean;
   refreshFrequency: number;
@@ -88,7 +95,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
     this.modal = ref;
   }
 
-  toggleDuplicateSlices(): any {
+  toggleDuplicateSlices(val?: boolean | undefined): void {
     this.setState(prevState => ({
       duplicateSlices: !prevState.duplicateSlices,
     }));
@@ -131,7 +138,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
     // check refresh frequency is for current session or persist
     const refreshFrequency = shouldPersistRefreshFrequency
       ? currentRefreshFrequency
-      : (dashboardInfo as any).metadata.refresh_frequency; // eslint-disable camelcase
+      : dashboardInfo.metadata.refresh_frequency; // eslint-disable camelcase
 
     const data = {
       positions,
@@ -152,7 +159,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
         t('You must pick a name for the new dashboard'),
       );
     } else {
-      this.onSave(data, dashboardId, saveType).then((resp: any) => {
+      this.onSave(data, dashboardId, saveType).then((resp: JsonResponse) => {
         if (
           saveType === SAVE_TYPE_NEWDASHBOARD &&
           resp &&
