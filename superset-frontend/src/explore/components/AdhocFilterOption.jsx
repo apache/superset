@@ -90,7 +90,7 @@ class AdhocFilterOption extends React.PureComponent {
         onChange={this.props.onFilterEdit}
       />
     );
-    
+
     return (
       <div
         role="button"
