@@ -89,7 +89,6 @@ interface ResultSetState {
   saveDatasetRadioBtnState: number;
   shouldOverwriteDataSet: boolean;
   datasetToOverwrite: Record<string, any>;
-  ctasSave: boolean;
   saveModalAutocompleteValue: string;
   userDatasetOptions: DatasetOptionAutocomplete[];
 }
@@ -131,7 +130,6 @@ export default class ResultSet extends React.PureComponent<
       saveDatasetRadioBtnState: DatasetRadioState.SAVE_NEW,
       shouldOverwriteDataSet: false,
       datasetToOverwrite: {},
-      ctasSave: false,
       saveModalAutocompleteValue: '',
       userDatasetOptions: [],
     };
@@ -163,7 +161,6 @@ export default class ResultSet extends React.PureComponent<
     this.handleOnChangeAutoComplete = this.handleOnChangeAutoComplete.bind(
       this,
     );
-    this.handleCTASExploreBtnClick = this.handleCTASExploreBtnClick.bind(this);
     this.handleExploreBtnClick = this.handleExploreBtnClick.bind(this);
   }
 
@@ -213,7 +210,7 @@ export default class ResultSet extends React.PureComponent<
   };
 
   handleOverwriteDataset = async () => {
-    const { sql, results } = this.props.query;
+    const { sql, results, dbId } = this.props.query;
     const { datasetToOverwrite } = this.state;
 
     if (
@@ -227,6 +224,7 @@ export default class ResultSet extends React.PureComponent<
 
     updateDatset(
       datasetToOverwrite.datasetId,
+      dbId,
       sql,
       results.selected_columns.map(d => ({ column_name: d.name })),
       true,
@@ -267,57 +265,31 @@ export default class ResultSet extends React.PureComponent<
     const { schema, sql, dbId, templateParams } = this.props.query;
     const selectedColumns = this.props.query?.results?.selected_columns || [];
 
-    if (this.state.ctasSave) {
-      // Create Table As flow for explore view
-      this.props.actions
-        .createCtasDatasource({
-          schema,
-          dbId,
-          templateParams,
-          datasourceName: this.state.newSaveDatasetName,
-        })
-        .then((data: { table_id: number }) => {
-          const formData = {
-            ...EXPLORE_CHART_DEFAULT,
-            datasource: `${data.table_id}__table`,
-          };
-          this.props.actions.addInfoToast(
-            t('Creating a data source and creating a new tab'),
-          );
-
-          // open new window for data visualization
-          exploreChart(formData);
-        })
-        .catch(() => {
-          this.props.actions.addDangerToast(t('An error occurred'));
+    this.props.actions
+      .createDatasource({
+        schema,
+        sql,
+        dbId,
+        templateParams,
+        datasourceName: this.state.newSaveDatasetName,
+        columns: selectedColumns,
+      })
+      .then((data: { table_id: number }) => {
+        exploreChart({
+          datasource: `${data.table_id}__table`,
+          metrics: [],
+          groupby: [],
+          time_range: 'No filter',
+          viz_type: 'table',
+          all_columns: selectedColumns.map(c => c.name),
+          row_limit: 1000,
         });
-    } else {
-      this.props.actions
-        .createDatasource({
-          schema,
-          sql,
-          dbId,
-          templateParams,
-          datasourceName: this.state.newSaveDatasetName,
-          columns: selectedColumns,
-        })
-        .then((data: { table_id: number }) => {
-          exploreChart({
-            datasource: `${data.table_id}__table`,
-            metrics: [],
-            groupby: [],
-            time_range: 'No filter',
-            viz_type: 'table',
-            all_columns: selectedColumns.map(c => c.name),
-            row_limit: 1000,
-          });
-        })
-        .catch(() => {
-          this.props.actions.addDangerToast(
-            t('An error occurred saving dataset'),
-          );
-        });
-    }
+      })
+      .catch(() => {
+        this.props.actions.addDangerToast(
+          t('An error occurred saving dataset'),
+        );
+      });
 
     this.setState({
       showSaveDatasetModal: false,
@@ -354,17 +326,9 @@ export default class ResultSet extends React.PureComponent<
     this.setState({ shouldOverwriteDataSet: false });
   };
 
-  handleCTASExploreBtnClick = () => {
-    this.setState({
-      showSaveDatasetModal: true,
-      ctasSave: false,
-    });
-  };
-
   handleExploreBtnClick = () => {
     this.setState({
       showSaveDatasetModal: true,
-      ctasSave: true,
     });
   };
 
