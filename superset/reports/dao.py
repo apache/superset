@@ -167,8 +167,6 @@ class ReportScheduleDAO(BaseDAO):
         """
         import json
 
-        logger.info('TRYING TO UPDATE')
-
         try:
             for key, value in properties.items():
                 if key != "recipients":

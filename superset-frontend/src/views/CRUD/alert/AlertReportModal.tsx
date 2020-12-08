@@ -533,7 +533,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         delete data.last_value;
         delete data.last_value_row_json;
 
-        console.log('PUT data', data);
         updateResource(update_id, data).then(() => {
           if (onAdd) {
             onAdd();
@@ -544,8 +543,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
     } else if (currentAlert) {
       // Create
-
-      console.log('POST data', data);
       createResource(data).then(response => {
         if (onAdd) {
           onAdd(response);
@@ -725,8 +722,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     data[name] = value;
     setCurrentAlert(data);
-
-    console.log('update data', data);
   };
 
   // Handle input/textarea updates
@@ -801,7 +796,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const validate = () => {
-    console.log('validate');
     if (
       currentAlert &&
       currentAlert.name?.length &&
@@ -938,7 +932,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       show={show}
       width="100%"
       title={
-        <h4 data-test="alert-modal-title">
+        <h4 data-test="alert-report-modal-title">
           {isEditMode ? (
             <StyledIcon name="edit-alt" />
           ) : (
