@@ -107,7 +107,7 @@ export const expectedRows = [
   {
     control: 'Fake Filters',
     before: 'a == hello',
-    after: 'b in [hello, my, name]',
+    after: 'b IN [hello, my, name]',
   },
   {
     control: 'Value bounds',
