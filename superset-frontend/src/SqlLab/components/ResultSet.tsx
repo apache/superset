@@ -414,8 +414,8 @@ export default class ResultSet extends React.PureComponent<
         showSaveDatasetModal,
       } = this.state;
       const disableSaveAndExploreBtn =
-        (saveDatasetRadioBtnState === 1 && newSaveDatasetName.length === 0) ||
-        (saveDatasetRadioBtnState === 2 &&
+        (saveDatasetRadioBtnState === DatasetRadioState.SAVE_NEW && newSaveDatasetName.length === 0) ||
+        (saveDatasetRadioBtnState === DatasetRadioState.OVERWRITE_DATASET &&
           Object.keys(datasetToOverwrite).length === 0 &&
           saveModalAutocompleteValue.length === 0);
 
