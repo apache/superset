@@ -213,25 +213,13 @@ export default class ResultSet extends React.PureComponent<
     const { sql, results, dbId } = this.props.query;
     const { datasetToOverwrite } = this.state;
 
-    updateDatset(
+    await updateDatset(
       datasetToOverwrite.datasetId,
       dbId,
       sql,
       results.selected_columns.map(d => ({ column_name: d.name })),
       true,
-    )
-      .then(() => {
-        exploreChart({
-          ...EXPLORE_CHART_DEFAULT,
-          datasource: `${datasetToOverwrite.datasetId}__table`,
-          all_columns: results.selected_columns.map(d => d.name),
-        });
-      })
-      .catch(() => {
-        this.props.actions.addDangerToast(
-          t('An error occurred overwriting dataset'),
-        );
-      });
+    );
 
     this.setState({
       showSaveDatasetModal: false,
@@ -240,6 +228,12 @@ export default class ResultSet extends React.PureComponent<
       newSaveDatasetName: `${this.props.query.tab} ${moment().format(
         'MM/DD/YYYY HH:mm:ss',
       )}`,
+    });
+
+    exploreChart({
+      ...EXPLORE_CHART_DEFAULT,
+      datasource: `${datasetToOverwrite.datasetId}__table`,
+      all_columns: results.selected_columns.map(d => d.name),
     });
   };
 
@@ -325,7 +319,7 @@ export default class ResultSet extends React.PureComponent<
 
   handleSaveDatasetModalSearch = (searchText: string) => {
     // Making sure that autocomplete input has a value before rendering the dropdown
-    // Transforming the userDatasetsOwned data for SaveModalComponent
+    // Transforming the userDatasetsOwned data for SaveModalComponent)
     const { userDatasetsOwned } = this.state;
     const userDatasets = !searchText
       ? []
