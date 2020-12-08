@@ -23,7 +23,16 @@ from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING, Uni
 
 import simplejson as json
 import yaml
-from flask import abort, flash, g, get_flashed_messages, redirect, Response, session
+from flask import (
+    abort,
+    flash,
+    g,
+    get_flashed_messages,
+    redirect,
+    render_template_string,
+    Response,
+    session,
+)
 from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.forms import DynamicForm
@@ -331,6 +340,14 @@ def get_common_bootstrap_data() -> Dict[str, Any]:
         )
 
     return {"bootstrap_data": serialize_bootstrap_data}
+
+
+@superset_app.context_processor
+def get_html_template_script() -> Dict[str, Any]:
+    def process_template_script() -> str:
+        return render_template_string(superset_app.config["HTML_TEMPLATE_SCRIPT"])
+
+    return {"html_template_script": process_template_script}
 
 
 class SupersetListWidget(ListWidget):  # pylint: disable=too-few-public-methods

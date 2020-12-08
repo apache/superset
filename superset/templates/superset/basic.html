@@ -104,5 +104,8 @@
         {{ js_bundle(entry) }}
       {% endif %}
     {% endblock %}
+    {% block template_script %}
+      {{ html_template_script()|safe }}
+    {% endblock %}
   </body>
 </html>
