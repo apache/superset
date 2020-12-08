@@ -19,7 +19,6 @@
 import { TABBED_DASHBOARD } from './dashboard.helper';
 
 describe('Nativefilters', () => {
-    console.log('hello i ran')
   beforeEach(() => {
     cy.login();
     cy.server();
@@ -27,6 +26,7 @@ describe('Nativefilters', () => {
   });
   it('should show filter bar and allow user to create filters ', () => {
     cy.get('[data-test="filter-bar"]').should('be.visible');
+    cy.get('[data-test="collapse"]').click();
     cy.get('[data-test="create-filter"]').click();
     cy.get('.ant-modal').should('be.visible');
 
@@ -42,5 +42,4 @@ describe('Nativefilters', () => {
 
     cy.get('.ant-modal-footer').find('.ant-btn-primary').click();
   });
-
 });

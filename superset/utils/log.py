@@ -46,9 +46,6 @@ class AbstractEventLogger(ABC):
         dashboard_id: Optional[int],
         duration_ms: Optional[int],
         slice_id: Optional[int],
-        path: Optional[str],
-        path_no_int: Optional[str],
-        ref: Optional[str],
         referrer: Optional[str],
         *args: Any,
         **kwargs: Any,
@@ -92,6 +89,13 @@ class AbstractEventLogger(ABC):
         if log_to_statsd:
             self.stats_logger.incr(action)
 
+        payload.update(
+            {
+                "path": request.path,
+                "path_no_param": strip_int_from_path(request.path),
+                "ref": ref,
+            }
+        )
         # bulk insert
         try:
             explode_by = payload.get("explode")
@@ -107,9 +111,6 @@ class AbstractEventLogger(ABC):
             slice_id=slice_id,
             duration_ms=round((time.time() - start_time) * 1000),
             referrer=referrer,
-            path=request.path,
-            path_no_int=strip_int_from_path(request.path),
-            ref=ref,
         )
 
     def _wrapper(
@@ -210,9 +211,6 @@ class DBEventLogger(AbstractEventLogger):
         dashboard_id: Optional[int],
         duration_ms: Optional[int],
         slice_id: Optional[int],
-        path: Optional[str],
-        path_no_int: Optional[str],
-        ref: Optional[str],
         referrer: Optional[str],
         *args: Any,
         **kwargs: Any,
@@ -236,9 +234,6 @@ class DBEventLogger(AbstractEventLogger):
                 duration_ms=duration_ms,
                 referrer=referrer,
                 user_id=user_id,
-                path=path,
-                path_no_int=path_no_int,
-                ref=ref,
             )
             logs.append(log)
         try:

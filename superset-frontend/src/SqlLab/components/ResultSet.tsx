@@ -17,7 +17,8 @@
  * under the License.
  */
 import React, { CSSProperties } from 'react';
-import { Alert, ButtonGroup, ProgressBar } from 'react-bootstrap';
+import { Alert, ButtonGroup } from 'react-bootstrap';
+import ProgressBar from 'src/common/components/ProgressBar';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
 import { styled, t } from '@superset-ui/core';
@@ -356,9 +357,8 @@ export default class ResultSet extends React.PureComponent<
     if (query.progress > 0) {
       progressBar = (
         <ProgressBar
+          percent={parseInt(query.progress.toFixed(0), 10)}
           striped
-          now={query.progress}
-          label={`${query.progress.toFixed(0)}%`}
         />
       );
     }

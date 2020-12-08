@@ -1599,6 +1599,13 @@ class ExtraFiltersTimeColumnType(str, Enum):
     TIME_RANGE = "__time_range"
 
 
+class AnnotationType(str, Enum):
+    FORMULA = "FORMULA"
+    INTERVAL = "INTERVAL"
+    EVENT = "EVENT"
+    TIME_SERIES = "TIME_SERIES"
+
+
 def is_test() -> bool:
     return strtobool(os.environ.get("SUPERSET_TESTENV", "false"))
 

@@ -62,6 +62,10 @@ const mockalerts = [...new Array(3)].map((_, i) => ({
   type: 'alert',
 }));
 
+const mockUser = {
+  userId: 1,
+};
+
 fetchMock.get(alertsEndpoint, {
   ids: [2, 0, 1],
   result: mockalerts,
@@ -74,9 +78,12 @@ fetchMock.put(alertEndpoint, { ...mockalerts[0], active: false });
 fetchMock.put(alertsEndpoint, { ...mockalerts[0], active: false });
 
 async function mountAndWait(props) {
-  const mounted = mount(<AlertList {...props} />, {
-    context: { store },
-  });
+  const mounted = mount(
+    <AlertList store={store} {...props} user={mockUser} />,
+    {
+      context: { store },
+    },
+  );
   await waitForComponentToPaint(mounted);
 
   return mounted;

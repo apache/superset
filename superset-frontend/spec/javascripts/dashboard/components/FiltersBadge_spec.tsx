@@ -82,10 +82,8 @@ describe('FiltersBadge', () => {
       dashboardFilters,
     });
     const wrapper = shallow(
-      <Provider store={store}>
-        <FiltersBadge chartId={sliceId} />
-      </Provider>,
-    );
+      <FiltersBadge {...{ store }} chartId={sliceId} />,
+    ).dive();
     expect(wrapper.dive().find('DetailsPanelPopover')).toExist();
     expect(
       wrapper.dive().find('[data-test="applied-filter-count"]'),
@@ -107,9 +105,7 @@ describe('FiltersBadge', () => {
       dashboardFilters,
     });
     const wrapper = shallow(
-      <Provider store={store}>
-        <FiltersBadge chartId={sliceId} />
-      </Provider>,
+      <FiltersBadge {...{ store }} chartId={sliceId} />,
     ).dive();
     expect(wrapper.dive().find('DetailsPanelPopover')).toExist();
     expect(

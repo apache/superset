@@ -241,7 +241,7 @@ describe('AlteredSliceTag', () => {
           clause: 'WHERE',
           comparator: ['1', 'g', '7', 'ho'],
           expressionType: 'SIMPLE',
-          operator: 'in',
+          operator: 'IN',
           subject: 'a',
         },
         {

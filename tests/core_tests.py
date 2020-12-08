@@ -36,6 +36,7 @@ import pandas as pd
 import sqlalchemy as sqla
 
 from superset.models.cache import CacheKey
+from superset.utils.core import get_example_database
 from tests.test_app import app  # isort:skip
 import superset.views.utils
 from superset import (
@@ -817,7 +818,9 @@ class TestCore(SupersetTestCase):
         clean_query = "SELECT '/* val 1 */' as c1, '-- val 2' as c2 FROM tbl"
         commented_query = "/* comment 1 */" + clean_query + "-- comment 2"
         table = SqlaTable(
-            table_name="test_comments_in_sqlatable_query_table", sql=commented_query
+            table_name="test_comments_in_sqlatable_query_table",
+            sql=commented_query,
+            database=get_example_database(),
         )
         rendered_query = str(table.get_from_clause())
         self.assertEqual(clean_query, rendered_query)

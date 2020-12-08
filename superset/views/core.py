@@ -1797,6 +1797,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @api
     @has_access
+    @event_logger.log_this
     @expose("/log/", methods=["POST"])
     def log(self) -> FlaskResponse:  # pylint: disable=no-self-use
         return Response(status=200)
@@ -2240,7 +2241,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
             # Explicitly forget the task to ensure the task metadata is removed from the
             # Celery results backend in a timely manner.
-            task.forget()
+            try:
+                task.forget()
+            except NotImplementedError:
+                logger.warning(
+                    "Unable to forget Celery task as backend"
+                    "does not support this operation"
+                )
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception("Query %i: %s", query.id, str(ex))
             msg = _(

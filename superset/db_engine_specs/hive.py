@@ -37,12 +37,13 @@ from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
 from superset.models.sql_lab import Query
-from superset.sql_parse import Table
+from superset.sql_parse import ParsedQuery, Table
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
     # prevent circular imports
     from superset.models.core import Database
+
 
 QueryStatus = utils.QueryStatus
 config = app.config
@@ -525,3 +526,12 @@ class HiveEngineSpec(PrestoEngineSpec):
         :return: A list of function names useable in the database
         """
         return database.get_df("SHOW FUNCTIONS")["tab_name"].tolist()
+
+    @classmethod
+    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
+        """Pessimistic readonly, 100% sure statement won't mutate anything"""
+        return (
+            super().is_readonly_query(parsed_query)
+            or parsed_query.is_set()
+            or parsed_query.is_show()
+        )
