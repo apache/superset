@@ -18,6 +18,7 @@
  */
 
 import React, { FunctionComponent } from 'react';
+import { AutoCompleteProps } from 'antd/lib/auto-complete';
 import { Radio, AutoComplete, Input } from 'src/common/components';
 import StyledModal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
@@ -46,7 +47,7 @@ interface SaveDatasetModalProps {
   disableSaveAndExploreBtn: boolean;
   saveDatasetRadioBtnState: number;
   shouldOverwriteDataset: boolean;
-  userDatasetOptions: Array<Record<string, any>>;
+  userDatasetOptions: AutoCompleteProps['options'];
 }
 
 const Styles = styled.div`
@@ -150,7 +151,6 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
                 Overwrite existing
                 <AutoComplete
                   className="smd-autocomplete"
-                  // @ts-ignore
                   options={userDatasetOptions}
                   onSelect={handleOverwriteDatasetOption}
                   onSearch={handleSaveDatasetModalSearch}
