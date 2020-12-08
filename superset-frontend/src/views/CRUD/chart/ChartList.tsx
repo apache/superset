@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetClient, getChartMetadataRegistry, t } from '@superset-ui/core';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -43,6 +43,7 @@ import ListView, {
 } from 'src/components/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
+import ImportChartModal from 'src/chart/components/ImportModal/index';
 import Chart from 'src/types/Chart';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import ChartCard from './ChartCard';
@@ -123,6 +124,22 @@ function ChartList(props: ChartListProps) {
     openChartEditModal,
     closeChartEditModal,
   } = useChartEditModal(setCharts, charts);
+
+  const [importingChart, showImportModal] = useState<boolean>(false);
+  const [passwordFields, setPasswordFields] = useState<string[]>([]);
+
+  function openChartImportModal() {
+    showImportModal(true);
+  }
+
+  function closeChartImportModal() {
+    showImportModal(false);
+  }
+
+  const handleChartImport = () => {
+    showImportModal(false);
+    refreshData();
+  };
 
   const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
@@ -482,6 +499,13 @@ function ChartList(props: ChartListProps) {
       },
     });
   }
+  if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+    subMenuButtons.push({
+      name: <Icon name="import" />,
+      buttonStyle: 'link',
+      onClick: openChartImportModal,
+    });
+  }
   return (
     <>
       <SubMenu name={t('Charts')} buttons={subMenuButtons} />
@@ -541,6 +565,16 @@ function ChartList(props: ChartListProps) {
           );
         }}
       </ConfirmStatusChange>
+
+      <ImportChartModal
+        show={importingChart}
+        onHide={closeChartImportModal}
+        addDangerToast={props.addDangerToast}
+        addSuccessToast={props.addSuccessToast}
+        onChartImport={handleChartImport}
+        passwordFields={passwordFields}
+        setPasswordFields={setPasswordFields}
+      />
     </>
   );
 }
