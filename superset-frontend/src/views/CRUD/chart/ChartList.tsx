@@ -132,13 +132,13 @@ function ChartList(props: ChartListProps) {
   const [importingChart, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
 
-  function openChartImportModal() {
+  const openChartImportModal = () => {
     showImportModal(true);
-  }
+  };
 
-  function closeChartImportModal() {
+  const closeChartImportModal = () => {
     showImportModal(false);
-  }
+  };
 
   const handleChartImport = () => {
     showImportModal(false);
@@ -581,8 +581,8 @@ function ChartList(props: ChartListProps) {
             'the database configuration are not present in export files, and ' +
             'should be added manually after the import if they are needed.',
         )}
-        addDangerToast={props.addDangerToast}
-        addSuccessToast={props.addSuccessToast}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
         onModelImport={handleChartImport}
         show={importingChart}
         onHide={closeChartImportModal}
