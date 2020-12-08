@@ -97,6 +97,8 @@ interface ChartListProps {
 }
 
 function ChartList(props: ChartListProps) {
+  const { addDangerToast, addSuccessToast } = props;
+
   const {
     state: {
       loading,
@@ -109,14 +111,14 @@ function ChartList(props: ChartListProps) {
     fetchData,
     toggleBulkSelect,
     refreshData,
-  } = useListViewResource<Chart>('chart', t('chart'), props.addDangerToast);
+  } = useListViewResource<Chart>('chart', t('chart'), addDangerToast);
 
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
 
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'chart',
     chartIds,
-    props.addDangerToast,
+    addDangerToast,
   );
   const {
     sliceCurrentlyEditing,
@@ -156,10 +158,10 @@ function ChartList(props: ChartListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
-        props.addSuccessToast(json.message);
+        addSuccessToast(json.message);
       },
       createErrorHandler(errMsg =>
-        props.addDangerToast(
+        addDangerToast(
           t('There was an issue deleting the selected charts: %s', errMsg),
         ),
       ),
@@ -263,8 +265,8 @@ function ChartList(props: ChartListProps) {
           const handleDelete = () =>
             handleChartDelete(
               original,
-              props.addSuccessToast,
-              props.addDangerToast,
+              addSuccessToast,
+              addDangerToast,
               refreshData,
             );
           const openEditModal = () => openChartEditModal(original);
@@ -359,7 +361,7 @@ function ChartList(props: ChartListProps) {
         'chart',
         'owners',
         createErrorHandler(errMsg =>
-          props.addDangerToast(
+          addDangerToast(
             t(
               'An error occurred while fetching chart owners values: %s',
               errMsg,
@@ -380,7 +382,7 @@ function ChartList(props: ChartListProps) {
         'chart',
         'created_by',
         createErrorHandler(errMsg =>
-          props.addDangerToast(
+          addDangerToast(
             t(
               'An error occurred while fetching chart created by values: %s',
               errMsg,
@@ -423,7 +425,7 @@ function ChartList(props: ChartListProps) {
       unfilteredLabel: 'All',
       fetchSelects: createFetchDatasets(
         createErrorHandler(errMsg =>
-          props.addDangerToast(
+          addDangerToast(
             t(
               'An error occurred while fetching chart dataset values: %s',
               errMsg,
@@ -469,8 +471,8 @@ function ChartList(props: ChartListProps) {
         hasPerm={hasPerm}
         openChartEditModal={openChartEditModal}
         bulkSelectEnabled={bulkSelectEnabled}
-        addDangerToast={props.addDangerToast}
-        addSuccessToast={props.addSuccessToast}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
         refreshData={refreshData}
         loading={loading}
         favoriteStatus={favoriteStatus[chart.id]}
@@ -569,8 +571,8 @@ function ChartList(props: ChartListProps) {
       <ImportChartModal
         show={importingChart}
         onHide={closeChartImportModal}
-        addDangerToast={props.addDangerToast}
-        addSuccessToast={props.addSuccessToast}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
         onChartImport={handleChartImport}
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
