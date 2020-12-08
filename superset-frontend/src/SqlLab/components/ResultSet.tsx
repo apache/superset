@@ -213,15 +213,6 @@ export default class ResultSet extends React.PureComponent<
     const { sql, results, dbId } = this.props.query;
     const { datasetToOverwrite } = this.state;
 
-    if (
-      Object.keys(datasetToOverwrite).length === 0 &&
-      datasetToOverwrite.constructor === Object
-    ) {
-      this.props.actions.addDangerToast(
-        t('You must select a dataset that has already been created'),
-      );
-    }
-
     updateDatset(
       datasetToOverwrite.datasetId,
       dbId,
@@ -229,7 +220,7 @@ export default class ResultSet extends React.PureComponent<
       results.selected_columns.map(d => ({ column_name: d.name })),
       true,
     )
-      .then(d => {
+      .then(() => {
         exploreChart({
           ...EXPLORE_CHART_DEFAULT,
           datasource: `${datasetToOverwrite.datasetId}__table`,
@@ -414,7 +405,8 @@ export default class ResultSet extends React.PureComponent<
         showSaveDatasetModal,
       } = this.state;
       const disableSaveAndExploreBtn =
-        (saveDatasetRadioBtnState === DatasetRadioState.SAVE_NEW && newSaveDatasetName.length === 0) ||
+        (saveDatasetRadioBtnState === DatasetRadioState.SAVE_NEW &&
+          newSaveDatasetName.length === 0) ||
         (saveDatasetRadioBtnState === DatasetRadioState.OVERWRITE_DATASET &&
           Object.keys(datasetToOverwrite).length === 0 &&
           saveModalAutocompleteValue.length === 0);
