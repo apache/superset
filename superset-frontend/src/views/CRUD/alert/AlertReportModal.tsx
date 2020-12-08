@@ -30,7 +30,7 @@ import { AsyncSelect } from 'src/components/Select';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 import Owner from 'src/types/Owner';
-import { AlertObject, Operator, MetaObject } from './types';
+import { AlertObject, Operator, Recipient, MetaObject } from './types';
 
 type SelectValue = {
   value: string;
@@ -46,7 +46,7 @@ interface AlertReportModalProps {
   show: boolean;
 }
 
-const NOTIFICATION_METHODS = ['email', 'slack'];
+const NOTIFICATION_METHODS: NotificationMethod[] = ['Email', 'Slack'];
 
 const CONDITIONS = [
   {
@@ -318,7 +318,7 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
   );
 };
 
-type NotificationMethod = 'email' | 'slack';
+type NotificationMethod = 'Email' | 'Slack';
 
 type NotificationSetting = {
   method?: NotificationMethod;
@@ -349,6 +349,9 @@ const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   }
 
   const onMethodChange = (method: NotificationMethod) => {
+    // Since we're swapping the method, reset the recipients
+    setRecipientValue('');
+
     if (onUpdate) {
       const updatedSetting = {
         ...setting,
@@ -366,7 +369,21 @@ const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     const { target } = event;
 
     setRecipientValue(target.value);
+
+    if (onUpdate) {
+      const updatedSetting = {
+        ...setting,
+        recipients: target.value,
+      };
+
+      onUpdate(index, updatedSetting);
+    }
   };
+
+  // Set recipients
+  if (!!recipients && recipientValue !== recipients) {
+    setRecipientValue(recipients);
+  }
 
   const methodOptions = (options || []).map((method: NotificationMethod) => {
     return (
@@ -456,7 +473,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     settings.push({
       recipients: '',
-      options: ['email', 'slack'], // Need better logic for this
+      options: NOTIFICATION_METHODS, // Need better logic for this
     });
 
     setNotificationSettings(settings);
@@ -502,6 +519,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onSave = () => {
+    // Notification Settings
+    const recipients: Recipient[] = [];
+
+    notificationSettings.forEach(setting => {
+      if (setting.method && setting.recipients.length) {
+        recipients.push({
+          recipient_config_json: {
+            target: setting.recipients,
+          },
+          type: setting.method,
+        });
+      }
+    });
+
     const data: any = {
       ...currentAlert,
       chart: contentType === 'chart' ? currentAlert?.chart?.value : undefined,
@@ -513,6 +544,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       owners: (currentAlert?.owners || []).map(
         owner => (owner as MetaObject).value,
       ),
+      recipients,
     };
 
     if (data.recipients && !data.recipients.length) {
@@ -795,6 +827,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setContentType(target.value);
   };
 
+  // Make sure notification settings has the required info
+  const checkNotificationSettings = () => {
+    if (!notificationSettings.length) {
+      return false;
+    }
+
+    let hasInfo = false;
+
+    notificationSettings.forEach(setting => {
+      if (!!setting.method && setting.recipients?.length) {
+        hasInfo = true;
+      }
+    });
+
+    return hasInfo;
+  };
+
   const validate = () => {
     if (
       currentAlert &&
@@ -802,7 +851,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       currentAlert.owners?.length &&
       currentAlert.crontab?.length &&
       ((contentType === 'dashboard' && !!currentAlert.dashboard) ||
-        (contentType === 'chart' && !!currentAlert.chart))
+        (contentType === 'chart' && !!currentAlert.chart)) &&
+      checkNotificationSettings()
     ) {
       if (isReport) {
         setDisableSave(false);
@@ -835,6 +885,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       fetchResource(id).then(() => {
         if (resource) {
           setContentType(resource.chart ? 'chart' : 'dashboard');
+
+          // Add notification settings
+          const settings = (resource.recipients || []).map(setting => ({
+            method: setting.type as NotificationMethod,
+            // @ts-ignore: Type not assignable
+            recipients: (JSON.parse(setting.recipient_config_json) || {})
+              .target,
+            options: NOTIFICATION_METHODS as NotificationMethod[], // Need better logic for this
+          }));
+
+          setNotificationSettings(settings);
 
           setCurrentAlert({
             ...resource,
@@ -902,6 +963,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           currentAlert.dashboard,
           currentAlert.chart,
           contentType,
+          notificationSettings,
         ]
       : [],
   );

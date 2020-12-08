@@ -131,7 +131,7 @@ function AlertList({
         accessor: 'name',
         Header: t('Name'),
       },
-      {
+      /* {
         Cell: ({
           row: {
             original: { recipients },
@@ -143,7 +143,7 @@ function AlertList({
         accessor: 'recipients',
         Header: t('Notification Method'),
         disableSortBy: true,
-      },
+      }, */
       {
         Header: t('Schedule'),
         accessor: 'crontab',

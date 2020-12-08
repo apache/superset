@@ -25,7 +25,7 @@ type user = {
   last_name: string;
 };
 
-type Recipient = {
+export type Recipient = {
   recipient_config_json: {
     target: string;
   };
