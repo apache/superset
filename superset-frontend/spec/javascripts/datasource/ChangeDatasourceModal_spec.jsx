@@ -21,6 +21,7 @@ import { mount } from 'enzyme';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
+import { act } from 'react-dom/test-utils';
 import sinon from 'sinon';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import Modal from 'src/common/components/Modal';
@@ -50,7 +51,7 @@ const DATASOURCES_ENDPOINT = 'glob:*/api/v1/dataset/';
 const DATASOURCE_ENDPOINT = `glob:*/datasource/get/${datasourceData.type}/${datasourceData.id}`;
 const DATASOURCE_PAYLOAD = { new: 'data' };
 
-fetchMock.get(DATASOURCES_ENDPOINT, [mockDatasource['7__table']]);
+fetchMock.get(DATASOURCES_ENDPOINT, { result: [mockDatasource['7__table']] });
 fetchMock.get(DATASOURCE_ENDPOINT, DATASOURCE_PAYLOAD);
 
 async function mountAndWait(props = mockedProps) {
@@ -81,5 +82,13 @@ describe('ChangeDatasourceModal', () => {
 
   it('fetches datasources', async () => {
     expect(fetchMock.calls(/api\/v1\/dataset/)).toHaveLength(3);
+  });
+
+  it('changes the datasource', async () => {
+    act(() => {
+      wrapper.find('.datasource-link').at(0).props().onClick(datasourceData);
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(fetchMock.calls(/datasource\/get\/table\/7/)).toHaveLength(1);
   });
 });
