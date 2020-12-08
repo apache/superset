@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Alert, Badge, Col, Radio, Well } from 'react-bootstrap';
+import { Alert, Col, Radio, Well } from 'react-bootstrap';
+import Badge from 'src/common/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
 
@@ -94,7 +95,7 @@ DATASOURCE_TYPES_ARR.forEach(o => {
 function CollectionTabTitle({ title, collection }) {
   return (
     <div data-test={`collection-tab-${title}`}>
-      {title} <Badge>{collection ? collection.length : 0}</Badge>
+      {title} <Badge count={collection ? collection.length : 0} showZero />
     </div>
   );
 }
@@ -421,18 +422,21 @@ class DatasourceEditor extends React.PureComponent {
     SupersetClient.get({ endpoint })
       .then(({ json }) => {
         const results = this.updateColumns(json);
-        if (results.modified.length)
+        if (results.modified.length) {
           this.props.addSuccessToast(
             t('Modified columns: %s', results.modified.join(', ')),
           );
-        if (results.removed.length)
+        }
+        if (results.removed.length) {
           this.props.addSuccessToast(
             t('Removed columns: %s', results.removed.join(', ')),
           );
-        if (results.added.length)
+        }
+        if (results.added.length) {
           this.props.addSuccessToast(
             t('New columns added: %s', results.added.join(', ')),
           );
+        }
         this.props.addSuccessToast(t('Metadata has been synced'));
         this.setState({ metadataLoading: false });
       })

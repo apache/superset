@@ -24,6 +24,8 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 import { FetchDataConfig } from 'src/components/ListView';
 import { FilterValue } from 'src/components/ListView/types';
 import Chart, { Slice } from 'src/types/Chart';
+import copyTextToClipboard from 'src/utils/copy';
+import getClientErrorObject from 'src/utils/getClientErrorObject';
 import { FavoriteStatus } from './types';
 
 interface ListViewResourceState<D extends object = any> {
@@ -311,6 +313,97 @@ export function useSingleViewResource<D extends object = any>(
   };
 }
 
+interface ImportResourceState<D extends object = any> {
+  loading: boolean;
+  passwordsNeeded: string[];
+}
+
+export function useImportResource<D extends object = any>(
+  resourceName: string,
+  resourceLabel: string, // resourceLabel for translations
+  handleErrorMsg: (errorMsg: string) => void,
+) {
+  const [state, setState] = useState<ImportResourceState<D>>({
+    loading: false,
+    passwordsNeeded: [],
+  });
+
+  function updateState(update: Partial<ImportResourceState<D>>) {
+    setState(currentState => ({ ...currentState, ...update }));
+  }
+
+  const needsPassword = (errMsg: Record<string, Record<string, string[]>>) =>
+    Object.values(errMsg).every(validationErrors =>
+      Object.entries(validationErrors as Object).every(
+        ([field, messages]) =>
+          field === '_schema' &&
+          messages.length === 1 &&
+          messages[0] === 'Must provide a password for the database',
+      ),
+    );
+
+  const importResource = useCallback(
+    (bundle: File, databasePasswords: Record<string, string> = {}) => {
+      // Set loading state
+      updateState({
+        loading: true,
+      });
+
+      const formData = new FormData();
+      formData.append('formData', bundle);
+
+      /* The import bundle never contains database passwords; if required
+       * they should be provided by the user during import.
+       */
+      if (databasePasswords) {
+        formData.append('passwords', JSON.stringify(databasePasswords));
+      }
+
+      return SupersetClient.post({
+        endpoint: `/api/v1/${resourceName}/import/`,
+        body: formData,
+      })
+        .then(() => true)
+        .catch(response =>
+          getClientErrorObject(response).then(error => {
+            /* When importing a bundle, if all validation errors are because
+             * the databases need passwords we return a list of the database
+             * files so that the user can type in the passwords and resubmit
+             * the file.
+             */
+            const errMsg = error.message || error.error;
+            if (typeof errMsg !== 'string' && needsPassword(errMsg)) {
+              updateState({
+                passwordsNeeded: Object.keys(errMsg),
+              });
+              return false;
+            }
+            handleErrorMsg(
+              t(
+                'An error occurred while importing %s: %s',
+                resourceLabel,
+                JSON.stringify(errMsg),
+              ),
+            );
+            return false;
+          }),
+        )
+        .finally(() => {
+          updateState({ loading: false });
+        });
+    },
+    [],
+  );
+
+  return {
+    state: {
+      loading: state.loading,
+      passwordsNeeded: state.passwordsNeeded,
+    },
+    importResource,
+  };
+}
+
 enum FavStarClassName {
   CHART = 'slice',
   DASHBOARD = 'Dashboard',
@@ -435,36 +528,13 @@ export const copyQueryLink = (
   addDangerToast: (arg0: string) => void,
   addSuccessToast: (arg0: string) => void,
 ) => {
-  const selection: Selection | null = document.getSelection();
-
-  if (selection) {
-    selection.removeAllRanges();
-    const range = document.createRange();
-    const span = document.createElement('span');
-    span.textContent = `${window.location.origin}/superset/sqllab?savedQueryId=${id}`;
-    span.style.position = 'fixed';
-    span.style.top = '0';
-    span.style.clip = 'rect(0, 0, 0, 0)';
-    span.style.whiteSpace = 'pre';
-
-    document.body.appendChild(span);
-    range.selectNode(span);
-    selection.addRange(range);
-
-    try {
-      if (!document.execCommand('copy')) {
-        throw new Error(t('Not successful'));
-      }
-    } catch (err) {
+  copyTextToClipboard(
+    `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+  )
+    .then(() => {
+      addSuccessToast(t('Link Copied!'));
+    })
+    .catch(() => {
       addDangerToast(t('Sorry, your browser does not support copying.'));
-    }
-
-    document.body.removeChild(span);
-    if (selection.removeRange) {
-      selection.removeRange(range);
-    } else {
-      selection.removeAllRanges();
-    }
-    addSuccessToast(t('Link Copied!'));
-  }
+    });
 };

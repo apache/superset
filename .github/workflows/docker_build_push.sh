@@ -21,14 +21,14 @@ SHA=$(git rev-parse HEAD)
 REPO_NAME="apache/incubator-superset"
 
 if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-  REFSPEC="${GITHUB_HEAD_REF/[^a-zA-Z0-9]/-}"
+  REFSPEC=$(echo "${GITHUB_HEAD_REF}" | sed 's/[^a-zA-Z0-9]/-/' | head -c 20)
   PR_NUM=$(echo "${GITHUB_REF}" | sed 's:refs/pull/::' | sed 's:/merge::')
   LATEST_TAG="pr-${PR_NUM}"
 elif [[ "${GITHUB_EVENT_NAME}" == "release" ]]; then
   REFSPEC="${GITHUB_REF}"
   LATEST_TAG="${REFSPEC}"
 else
-  REFSPEC=$(echo "${GITHUB_REF}" | sed 's:refs/heads/::' | sed 's/[^a-zA-Z0-9]/-/')
+  REFSPEC=$(echo "${GITHUB_REF}" | sed 's:refs/heads/::' | sed 's/[^a-zA-Z0-9]/-/' | head -c 20)
   LATEST_TAG="${REFSPEC}"
 fi
 
