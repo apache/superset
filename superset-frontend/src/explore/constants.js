@@ -38,7 +38,7 @@ export const OPERATORS = {
   IN: 'IN',
   'NOT IN': 'NOT IN',
   LIKE: 'LIKE',
-  regex: 'regex',
+  REGEX: 'REGEX',
   'IS NOT NULL': 'IS NOT NULL',
   'IS NULL': 'IS NULL',
   'LATEST PARTITION': 'LATEST PARTITION',
@@ -46,7 +46,7 @@ export const OPERATORS = {
 export const OPERATORS_OPTIONS = Object.values(OPERATORS);
 
 export const TABLE_ONLY_OPERATORS = [OPERATORS.LIKE];
-export const DRUID_ONLY_OPERATORS = [OPERATORS.regex];
+export const DRUID_ONLY_OPERATORS = [OPERATORS.REGEX];
 export const HAVING_OPERATORS = [
   OPERATORS['=='],
   OPERATORS['!='],

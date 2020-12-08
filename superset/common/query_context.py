@@ -25,14 +25,17 @@ import pandas as pd
 from flask_babel import gettext as _
 
 from superset import app, db, is_feature_enabled
+from superset.annotation_layers.dao import AnnotationLayerDAO
+from superset.charts.dao import ChartDAO
 from superset.common.query_object import QueryObject
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.exceptions import QueryObjectValidationError
+from superset.exceptions import QueryObjectValidationError, SupersetException
 from superset.extensions import cache_manager, security_manager
 from superset.stats_logger import BaseStatsLogger
 from superset.utils import core as utils
 from superset.utils.core import DTTM_ALIAS
+from superset.views.utils import get_viz
 from superset.viz import set_and_log_cache
 
 config = app.config
@@ -157,8 +160,7 @@ class QueryContext:
             query_obj.row_offset = 0
             query_obj.columns = [o.column_name for o in self.datasource.columns]
         payload = self.get_df_payload(query_obj)
-        # TODO: implement
-        payload["annotation_data"] = []
+
         df = payload["df"]
         status = payload["status"]
         if status != utils.QueryStatus.FAILED:
@@ -220,7 +222,79 @@ class QueryContext:
         )
         return cache_key
 
-    def get_df_payload(  # pylint: disable=too-many-statements
+    @staticmethod
+    def get_native_annotation_data(query_obj: QueryObject) -> Dict[str, Any]:
+        annotation_data = {}
+        annotation_layers = [
+            layer
+            for layer in query_obj.annotation_layers
+            if layer["sourceType"] == "NATIVE"
+        ]
+        layer_ids = [layer["value"] for layer in annotation_layers]
+        layer_objects = {
+            layer_object.id: layer_object
+            for layer_object in AnnotationLayerDAO.find_by_ids(layer_ids)
+        }
+
+        # annotations
+        for layer in annotation_layers:
+            layer_id = layer["value"]
+            layer_name = layer["name"]
+            columns = [
+                "start_dttm",
+                "end_dttm",
+                "short_descr",
+                "long_descr",
+                "json_metadata",
+            ]
+            layer_object = layer_objects[layer_id]
+            records = [
+                {column: getattr(annotation, column) for column in columns}
+                for annotation in layer_object.annotation
+            ]
+            result = {"columns": columns, "records": records}
+            annotation_data[layer_name] = result
+        return annotation_data
+
+    @staticmethod
+    def get_viz_annotation_data(
+        annotation_layer: Dict[str, Any], force: bool
+    ) -> Dict[str, Any]:
+        chart = ChartDAO.find_by_id(annotation_layer["value"])
+        form_data = chart.form_data.copy()
+        if not chart:
+            raise QueryObjectValidationError("The chart does not exist")
+        try:
+            viz_obj = get_viz(
+                datasource_type=chart.datasource.type,
+                datasource_id=chart.datasource.id,
+                form_data=form_data,
+                force=force,
+            )
+            payload = viz_obj.get_payload()
+            return payload["data"]
+        except SupersetException as ex:
+            raise QueryObjectValidationError(utils.error_msg_from_exception(ex))
+
+    def get_annotation_data(self, query_obj: QueryObject) -> Dict[str, Any]:
+        """
+
+        :param query_obj:
+        :return:
+        """
+        annotation_data: Dict[str, Any] = self.get_native_annotation_data(query_obj)
+        for annotation_layer in [
+            layer
+            for layer in query_obj.annotation_layers
+            if layer["sourceType"] in ("line", "table")
+        ]:
+            name = annotation_layer["name"]
+            annotation_data[name] = self.get_viz_annotation_data(
+                annotation_layer, self.force
+            )
+        return annotation_data
+
+    def get_df_payload(  # pylint: disable=too-many-statements,too-many-locals
         self, query_obj: QueryObject, **kwargs: Any
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""
@@ -233,6 +307,7 @@ class QueryContext:
         cache_value = None
         status = None
         query = ""
+        annotation_data = {}
         error_message = None
         if cache_key and cache_manager.data_cache and not self.force:
             cache_value = cache_manager.data_cache.get(cache_key)
@@ -241,6 +316,7 @@ class QueryContext:
                 try:
                     df = cache_value["df"]
                     query = cache_value["query"]
+                    annotation_data = cache_value.get("annotation_data", {})
                     status = utils.QueryStatus.SUCCESS
                     is_loaded = True
                     stats_logger.incr("loaded_from_cache")
@@ -272,6 +348,8 @@ class QueryContext:
                 query = query_result["query"]
                 error_message = query_result["error_message"]
                 df = query_result["df"]
+                annotation_data = self.get_annotation_data(query_obj)
+
                 if status != utils.QueryStatus.FAILED:
                     stats_logger.incr("loaded_from_source")
                     if not self.force:
@@ -289,18 +367,20 @@ class QueryContext:
 
             if is_loaded and cache_key and status != utils.QueryStatus.FAILED:
                 set_and_log_cache(
-                    cache_key,
-                    df,
-                    query,
-                    cached_dttm,
-                    self.cache_timeout,
-                    self.datasource.uid,
+                    cache_key=cache_key,
+                    df=df,
+                    query=query,
+                    annotation_data=annotation_data,
+                    cached_dttm=cached_dttm,
+                    cache_timeout=self.cache_timeout,
+                    datasource_uid=self.datasource.uid,
                 )
         return {
             "cache_key": cache_key,
             "cached_dttm": cache_value["dttm"] if cache_value is not None else None,
             "cache_timeout": self.cache_timeout,
             "df": df,
+            "annotation_data": annotation_data,
             "error": error_message,
             "is_cached": cache_value is not None,
             "query": query,

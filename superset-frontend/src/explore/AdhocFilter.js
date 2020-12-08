@@ -35,12 +35,10 @@ const OPERATORS_TO_SQL = {
   '<': '<',
   '>=': '>=',
   '<=': '<=',
-  in: 'IN',
-  'not in': 'NOT IN',
   IN: 'IN',
   'NOT IN': 'NOT IN',
   LIKE: 'LIKE',
-  regex: 'REGEX',
+  REGEX: 'REGEX',
   'IS NOT NULL': 'IS NOT NULL',
   'IS NULL': 'IS NULL',
   'LATEST PARTITION': ({ datasource }) => {
@@ -74,7 +72,7 @@ export default class AdhocFilter {
     this.expressionType = adhocFilter.expressionType || EXPRESSION_TYPES.SIMPLE;
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
       this.subject = adhocFilter.subject;
-      this.operator = adhocFilter.operator;
+      this.operator = adhocFilter.operator?.toUpperCase();
       this.comparator = adhocFilter.comparator;
       this.clause = adhocFilter.clause;
       this.sqlExpression = null;

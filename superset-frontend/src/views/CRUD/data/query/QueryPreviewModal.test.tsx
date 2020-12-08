@@ -96,8 +96,9 @@ describe('QueryPreviewModal', () => {
         .first()
         .props();
 
-      if (typeof props.onClick === 'function')
+      if (typeof props.onClick === 'function') {
         props.onClick({} as React.MouseEvent);
+      }
     });
 
     wrapper.update();
@@ -127,8 +128,9 @@ describe('QueryPreviewModal', () => {
           .find('[data-test="previous-query"]')
           .first()
           .props();
-        if (typeof props.onClick === 'function')
+        if (typeof props.onClick === 'function') {
           props.onClick({} as React.MouseEvent);
+        }
       });
 
       expect(mockedProps2.fetchData).toHaveBeenCalledWith(0);
@@ -139,8 +141,9 @@ describe('QueryPreviewModal', () => {
     it('calls fetchData with next index', () => {
       act(() => {
         const props = wrapper.find('[data-test="next-query"]').first().props();
-        if (typeof props.onClick === 'function')
+        if (typeof props.onClick === 'function') {
           props.onClick({} as React.MouseEvent);
+        }
       });
 
       expect(mockedProps.fetchData).toHaveBeenCalledWith(1);
@@ -168,8 +171,9 @@ describe('QueryPreviewModal', () => {
         .first()
         .props();
 
-      if (typeof props.onClick === 'function')
+      if (typeof props.onClick === 'function') {
         props.onClick({} as React.MouseEvent);
+      }
 
       expect(mockedProps.openInSqlLab).toHaveBeenCalled();
     });

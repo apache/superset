@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import urllib.parse
 from typing import Any, Dict, List, Optional
 
 from marshmallow import Schema, validate
@@ -47,8 +48,11 @@ class ImportDatabasesCommand(BaseCommand):
     """Import databases"""
 
     # pylint: disable=unused-argument
-    def __init__(self, contents: Dict[str, str], *args: Any, **kwargs: Any):
+    def __init__(
+        self, contents: Dict[str, str], *args: Any, **kwargs: Any,
+    ):
         self.contents = contents
+        self.passwords = kwargs.get("passwords") or {}
         self._configs: Dict[str, Any] = {}
 
     def _import_bundle(self, session: Session) -> None:
@@ -96,6 +100,8 @@ class ImportDatabasesCommand(BaseCommand):
             if schema:
                 try:
                     config = load_yaml(file_name, content)
+                    if file_name in self.passwords:
+                        config["password"] = self.passwords[file_name]
                     schema.load(config)
                     self._configs[file_name] = config
                 except ValidationError as exc:

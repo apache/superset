@@ -27,6 +27,7 @@ import { Sticky, StickyContainer } from 'react-sticky';
 import { TabContainer, TabContent, TabPane } from 'react-bootstrap';
 import { styled } from '@superset-ui/core';
 
+import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
@@ -150,6 +151,9 @@ class DashboardBuilder extends React.Component {
 
     this.handleChangeTab = this.handleChangeTab.bind(this);
     this.handleDeleteTopLevelTabs = this.handleDeleteTopLevelTabs.bind(this);
+    this.toggleDashboardFiltersOpen = this.toggleDashboardFiltersOpen.bind(
+      this,
+    );
   }
 
   getChildContext() {
@@ -176,10 +180,19 @@ class DashboardBuilder extends React.Component {
     }
   }
 
-  toggleDashboardFiltersOpen = () => {
-    const nextState = !this.state.dashboardFiltersOpen;
-    this.setState(state => ({ ...state, dashboardFiltersOpen: nextState }));
-  };
+  toggleDashboardFiltersOpen(visible) {
+    if (visible === undefined) {
+      this.setState(state => ({
+        ...state,
+        dashboardFiltersOpen: !state.dashboardFiltersOpen,
+      }));
+    } else {
+      this.setState(state => ({
+        ...state,
+        dashboardFiltersOpen: visible,
+      }));
+    }
+  }
 
   handleChangeTab({ pathToTabIndex }) {
     this.props.setDirectPathToChild(pathToTabIndex);
@@ -272,10 +285,12 @@ class DashboardBuilder extends React.Component {
               filtersOpen={this.state.dashboardFiltersOpen}
               topOffset={barTopOffset}
             >
-              <FilterBar
-                filtersOpen={this.state.dashboardFiltersOpen}
-                toggleFiltersBar={this.toggleDashboardFiltersOpen}
-              />
+              <ErrorBoundary>
+                <FilterBar
+                  filtersOpen={this.state.dashboardFiltersOpen}
+                  toggleFiltersBar={this.toggleDashboardFiltersOpen}
+                />
+              </ErrorBoundary>
             </StickyVerticalBar>
             // <FilterBar />
           )}

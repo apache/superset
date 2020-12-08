@@ -30,17 +30,18 @@ import yaml
 from sqlalchemy import and_
 from sqlalchemy.sql import func
 
-from superset.connectors.sqla.models import SqlaTable
-from superset.utils.core import get_example_database
-from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 from tests.test_app import app
+from superset.connectors.sqla.models import SqlaTable
+from superset.utils.core import AnnotationType, get_example_database
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.extensions import db, security_manager
+from superset.models.annotations import AnnotationLayer
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils import core as utils
+
 from tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.importexport import (
@@ -50,7 +51,9 @@ from tests.fixtures.importexport import (
     dataset_config,
     dataset_metadata_config,
 )
-from tests.fixtures.query_context import get_query_context
+from tests.fixtures.query_context import get_query_context, ANNOTATION_LAYERS
+from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
+from tests.annotation_layers.fixtures import create_annotation_layers
 
 CHART_DATA_URI = "api/v1/chart/data"
 CHARTS_FIXTURE_COUNT = 10
@@ -1383,3 +1386,44 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         assert response == {
             "message": {"metadata.yaml": {"type": ["Must be equal to Slice."]}}
         }
+
+    @pytest.mark.usefixtures("create_annotation_layers")
+    def test_chart_data_annotations(self):
+        """
+        Chart data API: Test chart data query
+        """
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+
+        annotation_layers = []
+        request_payload["queries"][0]["annotation_layers"] = annotation_layers
+
+        # formula
+        annotation_layers.append(ANNOTATION_LAYERS[AnnotationType.FORMULA])
+
+        # interval
+        interval_layer = (
+            db.session.query(AnnotationLayer)
+            .filter(AnnotationLayer.name == "name1")
+            .one()
+        )
+        interval = ANNOTATION_LAYERS[AnnotationType.INTERVAL]
+        interval["value"] = interval_layer.id
+        annotation_layers.append(interval)
+
+        # event
+        event_layer = (
+            db.session.query(AnnotationLayer)
+            .filter(AnnotationLayer.name == "name2")
+            .one()
+        )
+        event = ANNOTATION_LAYERS[AnnotationType.EVENT]
+        event["value"] = event_layer.id
+        annotation_layers.append(event)
+
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        # response should only contain interval and event data, not formula
+        self.assertEqual(len(data["result"][0]["annotation_data"]), 2)

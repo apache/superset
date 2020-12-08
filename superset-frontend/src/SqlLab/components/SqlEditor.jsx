@@ -199,13 +199,21 @@ class SqlEditor extends React.PureComponent {
         name: 'runQuery1',
         key: 'ctrl+r',
         descr: t('Run query'),
-        func: this.runQuery,
+        func: () => {
+          if (this.state.sql.trim() !== '') {
+            this.runQuery();
+          }
+        },
       },
       {
         name: 'runQuery2',
         key: 'ctrl+enter',
         descr: t('Run query'),
-        func: this.runQuery,
+        func: () => {
+          if (this.state.sql.trim() !== '') {
+            this.runQuery();
+          }
+        },
       },
       {
         name: 'newTab',

@@ -141,7 +141,7 @@ class Dashboard extends React.PureComponent {
     }
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps) {
     const { hasUnsavedChanges, editMode } = this.props.dashboardState;
 
     const { appliedFilters } = this;

@@ -59,7 +59,7 @@ const mockUser = {
 };
 
 fetchMock.get(templatesInfoEndpoint, {
-  permissions: ['can_delete'],
+  permissions: ['can_write'],
 });
 fetchMock.get(templatesEndpoint, {
   result: mocktemplates,
@@ -161,7 +161,7 @@ describe('CssTemplatesList', () => {
   });
 
   it('shows/hides bulk actions when bulk actions is clicked', async () => {
-    const button = wrapper.find(Button).at(0);
+    const button = wrapper.find(Button).at(1);
     act(() => {
       button.props().onClick();
     });

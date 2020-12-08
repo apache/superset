@@ -80,9 +80,10 @@ fetchMock.get(layersRelatedEndpoint, {
 
 describe('AnnotationLayersList', () => {
   const wrapper = mount(
-    <Provider store={store}>    
-    <AnnotationLayersList store={store} user={mockUser} />
-</Provider>);
+    <Provider store={store}>
+      <AnnotationLayersList store={store} user={mockUser} />
+    </Provider>,
+  );
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
   });
