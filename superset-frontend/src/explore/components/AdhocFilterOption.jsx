@@ -90,7 +90,7 @@ class AdhocFilterOption extends React.PureComponent {
         onChange={this.props.onFilterEdit}
       />
     );
-
+    
     return (
       <div
         role="button"
@@ -115,7 +115,6 @@ class AdhocFilterOption extends React.PureComponent {
           content={overlayContent}
           defaultVisible={this.state.popoverVisible || adhocFilter.isNew}
           visible={this.state.popoverVisible}
-          onVisibleChange={this.togglePopover}
           overlayStyle={{ zIndex: 1 }}
         >
           <Label className="option-label adhoc-option adhoc-filter-option">
