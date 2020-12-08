@@ -31,6 +31,7 @@ from superset.tasks.async_queries import (
     load_chart_data_into_cache,
     load_explore_json_into_cache,
 )
+from tests.base_tests import SupersetTestCase
 from tests.fixtures.query_context import get_query_context
 from tests.test_app import app
 
@@ -40,114 +41,112 @@ def get_table_by_name(name: str) -> SqlaTable:
         return db.session.query(SqlaTable).filter_by(table_name=name).one()
 
 
-@patch.object(async_query_manager, "update_job")
-def test_load_chart_data_into_cache(mock_update_job):
-    async_query_manager.init_app(app)
-    table = get_table_by_name("birth_names")
-    form_data = get_query_context(table.name, table.id, table.type)
-    job_metadata = {
-        "channel_id": str(uuid4()),
-        "job_id": str(uuid4()),
-        "user_id": 1,
-        "status": "pending",
-        "errors": [],
-    }
+class TestAsyncQueries(SupersetTestCase):
+    @patch.object(async_query_manager, "update_job")
+    def test_load_chart_data_into_cache(self, mock_update_job):
+        async_query_manager.init_app(app)
+        table = get_table_by_name("birth_names")
+        form_data = get_query_context(table.name, table.id, table.type)
+        job_metadata = {
+            "channel_id": str(uuid4()),
+            "job_id": str(uuid4()),
+            "user_id": 1,
+            "status": "pending",
+            "errors": [],
+        }
 
-    load_chart_data_into_cache(job_metadata, form_data)
-
-    assert mock_update_job.called
-    call_args = mock_update_job.call_args
-    assert call_args.args[0] == job_metadata
-    assert call_args.args[1] == "done"
-    assert re.match(r"^/api/v1/chart/data/qc-\w+", call_args.kwargs["result_url"])
-
-
-@patch.object(
-    ChartDataCommand, "run", side_effect=ChartDataQueryFailedError("Error: foo")
-)
-@patch.object(async_query_manager, "update_job")
-def test_load_chart_data_into_cache_error(mock_update_job, mock_run_command):
-    async_query_manager.init_app(app)
-    table = get_table_by_name("birth_names")
-    form_data = get_query_context(table.name, table.id, table.type)
-    job_metadata = {
-        "channel_id": str(uuid4()),
-        "job_id": str(uuid4()),
-        "user_id": 1,
-        "status": "pending",
-        "errors": [],
-    }
-    with pytest.raises(ChartDataQueryFailedError):
         load_chart_data_into_cache(job_metadata, form_data)
 
-    assert mock_run_command.called
-    assert mock_run_command.call_args.kwargs["cache"] == True
+        assert mock_update_job.called
+        call_args = mock_update_job.call_args
+        self.assertEqual(call_args.args[0], job_metadata)
+        assert call_args.args[1] == "done"
+        assert re.match(r"^/api/v1/chart/data/qc-\w+", call_args.kwargs["result_url"])
 
-    assert mock_update_job.called
-    call_args = mock_update_job.call_args
-    assert call_args.args[0] == job_metadata
-    assert call_args.args[1] == "error"
-    assert call_args.kwargs["errors"] == [{"message": "Error: foo"}]
-
-
-@patch.object(async_query_manager, "update_job")
-def test_load_explore_json_into_cache(mock_update_job):
-    async_query_manager.init_app(app)
-    table = get_table_by_name("birth_names")
-    form_data = {
-        "queryFields": {
-            "metrics": "metrics",
-            "groupby": "groupby",
-            "columns": "groupby",
-        },
-        "datasource": f"{table.id}__table",
-        "viz_type": "dist_bar",
-        "time_range_endpoints": ["inclusive", "exclusive"],
-        "granularity_sqla": "ds",
-        "time_range": "No filter",
-        "metrics": ["count"],
-        "adhoc_filters": [],
-        "groupby": ["gender"],
-        "row_limit": 100,
-    }
-    job_metadata = {
-        "channel_id": str(uuid4()),
-        "job_id": str(uuid4()),
-        "user_id": 1,
-        "status": "pending",
-        "errors": [],
-    }
-
-    load_explore_json_into_cache(job_metadata, form_data)
-
-    assert mock_update_job.called
-    call_args = mock_update_job.call_args
-    assert call_args.args[0] == job_metadata
-    assert call_args.args[1] == "done"
-    assert re.match(
-        r"^/superset/explore_json/data/ejr-\w+", call_args.kwargs["result_url"]
+    @patch.object(
+        ChartDataCommand, "run", side_effect=ChartDataQueryFailedError("Error: foo")
     )
+    @patch.object(async_query_manager, "update_job")
+    def test_load_chart_data_into_cache_error(self, mock_update_job, mock_run_command):
+        async_query_manager.init_app(app)
+        table = get_table_by_name("birth_names")
+        form_data = get_query_context(table.name, table.id, table.type)
+        job_metadata = {
+            "channel_id": str(uuid4()),
+            "job_id": str(uuid4()),
+            "user_id": 1,
+            "status": "pending",
+            "errors": [],
+        }
+        with pytest.raises(ChartDataQueryFailedError):
+            load_chart_data_into_cache(job_metadata, form_data)
 
+        assert mock_run_command.called
+        assert mock_run_command.call_args.kwargs["cache"] == True
 
-@patch.object(async_query_manager, "update_job")
-def test_load_explore_json_into_cache_error(mock_update_job):
-    async_query_manager.init_app(app)
-    form_data = {}
-    job_metadata = {
-        "channel_id": str(uuid4()),
-        "job_id": str(uuid4()),
-        "user_id": 1,
-        "status": "pending",
-        "errors": [],
-    }
+        assert mock_update_job.called
+        call_args = mock_update_job.call_args
+        self.assertEqual(call_args.args[0], job_metadata)
+        assert call_args.args[1] == "error"
+        assert call_args.kwargs["errors"] == [{"message": "Error: foo"}]
 
-    with pytest.raises(SupersetException):
+    @patch.object(async_query_manager, "update_job")
+    def test_load_explore_json_into_cache(self, mock_update_job):
+        async_query_manager.init_app(app)
+        table = get_table_by_name("birth_names")
+        form_data = {
+            "queryFields": {
+                "metrics": "metrics",
+                "groupby": "groupby",
+                "columns": "groupby",
+            },
+            "datasource": f"{table.id}__table",
+            "viz_type": "dist_bar",
+            "time_range_endpoints": ["inclusive", "exclusive"],
+            "granularity_sqla": "ds",
+            "time_range": "No filter",
+            "metrics": ["count"],
+            "adhoc_filters": [],
+            "groupby": ["gender"],
+            "row_limit": 100,
+        }
+        job_metadata = {
+            "channel_id": str(uuid4()),
+            "job_id": str(uuid4()),
+            "user_id": 1,
+            "status": "pending",
+            "errors": [],
+        }
+
         load_explore_json_into_cache(job_metadata, form_data)
 
-    assert mock_update_job.called
-    call_args = mock_update_job.call_args
-    assert call_args.args[0] == job_metadata
-    assert call_args.args[1] == "error"
-    assert call_args.kwargs["errors"] == [
-        "The datasource associated with this chart no longer exists"
-    ]
+        assert mock_update_job.called
+        call_args = mock_update_job.call_args
+        self.assertEqual(call_args.args[0], job_metadata)
+        assert call_args.args[1] == "done"
+        assert re.match(
+            r"^/superset/explore_json/data/ejr-\w+", call_args.kwargs["result_url"]
+        )
+
+    @patch.object(async_query_manager, "update_job")
+    def test_load_explore_json_into_cache_error(self, mock_update_job):
+        async_query_manager.init_app(app)
+        form_data = {}
+        job_metadata = {
+            "channel_id": str(uuid4()),
+            "job_id": str(uuid4()),
+            "user_id": 1,
+            "status": "pending",
+            "errors": [],
+        }
+
+        with pytest.raises(SupersetException):
+            load_explore_json_into_cache(job_metadata, form_data)
+
+        assert mock_update_job.called
+        call_args = mock_update_job.call_args
+        self.assertEqual(call_args.args[0], job_metadata)
+        assert call_args.args[1] == "error"
+        assert call_args.kwargs["errors"] == [
+            "The datasource associated with this chart no longer exists"
+        ]
