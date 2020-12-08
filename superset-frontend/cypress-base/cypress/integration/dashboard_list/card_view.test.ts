@@ -106,16 +106,10 @@ describe('Dashboard card view', () => {
     cy.get('[data-test="modal-cancel-button"]').click();
   });
 
-  it('should edit correctly', () => {
-    // show edit modal
+  it('should show edit link', () => {
     cy.get('[data-test="more-horiz"]').last().trigger('mouseover');
-    cy.get('[data-test="dashboard-card-option-edit-button"]')
-      .should('be.visible')
-      .click();
-    cy.get('[data-test="dashboard-edit-properties-form"]').should('be.visible');
-    cy.get('[data-test="dashboard-title-input"]').should('not.have.value');
-    cy.get('[data-test="properties-modal-cancel-button"]')
-      .contains('Cancel')
-      .click();
+    cy.get('[data-test="dashboard-card-option-edit-button"]').should(
+      'be.visible',
+    );
   });
 });
