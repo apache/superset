@@ -73,7 +73,7 @@ class AbstractEventLogger(ABC):
         pass
 
     @contextmanager
-    def log_context(
+    def log_context(  # pylint: disable=too-many-locals
         self, action: str, object_ref: Optional[str] = None, log_to_statsd: bool = True,
     ) -> Iterator[Callable[..., None]]:
         """
@@ -233,7 +233,7 @@ def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:
 class DBEventLogger(AbstractEventLogger):
     """Event logger that commits logs to Superset DB"""
 
-    def log(  # pylint: disable=too-many-arguments
+    def log(  # pylint: disable=too-many-arguments,too-many-locals
         self,
         user_id: Optional[int],
         action: str,
