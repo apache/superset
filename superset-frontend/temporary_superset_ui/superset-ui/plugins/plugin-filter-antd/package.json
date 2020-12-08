@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/plugin-filter-antd",
-  "version": "0.15.15",
+  "version": "0.15.17",
   "description": "Superset Filter - Plugin Filter AntD",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -26,8 +26,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart-controls": "0.15.15",
-    "@superset-ui/core": "0.15.15",
+    "@superset-ui/chart-controls": "0.15.17",
+    "@superset-ui/core": "0.15.17",
     "antd": "^4.9.1"
   },
   "peerDependencies": {
