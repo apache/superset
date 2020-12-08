@@ -165,6 +165,7 @@ export default function exploreReducer(state = {}, action) {
           ...state.slice,
           ...action.slice,
         },
+        sliceName: action.slice.slice_name ?? state.sliceName,
       };
     },
   };
