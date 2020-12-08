@@ -19,7 +19,6 @@
 import { TABBED_DASHBOARD } from './dashboard.helper';
 
 describe('Nativefilters', () => {
-    console.log('hello i ran')
   beforeEach(() => {
     cy.login();
     cy.server();
@@ -30,17 +29,29 @@ describe('Nativefilters', () => {
     cy.get('[data-test="create-filter"]').click();
     cy.get('.ant-modal').should('be.visible');
 
-    cy.get('[data-test="filter-modal"]')
+    cy.get('.ant-form-horizontal').find('.ant-tabs-nav-add').first().click();
+
+    cy.get('.ant-modal')
       .find('[data-test="name-input"]')
       .click()
       .type('TEST_Filter');
 
-    cy.get('[data-test="filter-modal"]')
-      .find('[data-test="datasource-input"]')
+    cy.get('.ant-modal').find('[data-test="datasource-input"]').click();
+
+    cy.get('[data-test="datasource-input"]')
+      .contains('wb_health_population')
+      .click();
+
+    // possible bug with cypress where it is having issue discovering the field input
+    // after it is enable it is enabled
+
+    /* cy.get('.ant-modal')
+      .find('[data-test="field-input"]')
       .click()
-      .select('wb_health_population');
+      .contains('country_name')
+      .click();
+      */
 
-    cy.get('.ant-modal-footer').find('.ant-btn-primary').click();
+    cy.get('.ant-modal-footer').find('.ant-btn-primary').should('be.visible');
   });
-
 });
