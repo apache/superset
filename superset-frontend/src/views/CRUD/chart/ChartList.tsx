@@ -43,7 +43,9 @@ import ListView, {
 } from 'src/components/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
-import ImportChartModal from 'src/chart/components/ImportModal/index';
+import ImportModelsModal, {
+  StyledIcon,
+} from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import ChartCard from './ChartCard';
@@ -568,12 +570,22 @@ function ChartList(props: ChartListProps) {
         }}
       </ConfirmStatusChange>
 
-      <ImportChartModal
+      <ImportModelsModal
+        resourceName="chart"
+        resourceLabel={t('chart')}
+        icon={<StyledIcon name="nav-charts" />}
+        passwordsNeededMessage={t(
+          'The passwords for the databases below are needed in order to ' +
+            'import them together with the charts. Please note that the ' +
+            '"Secure Extra" and "Certificate" sections of ' +
+            'the database configuration are not present in export files, and ' +
+            'should be added manually after the import if they are needed.',
+        )}
+        addDangerToast={props.addDangerToast}
+        addSuccessToast={props.addSuccessToast}
+        onModelImport={handleChartImport}
         show={importingChart}
         onHide={closeChartImportModal}
-        addDangerToast={addDangerToast}
-        addSuccessToast={addSuccessToast}
-        onChartImport={handleChartImport}
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />

@@ -37,7 +37,9 @@ import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import TooltipWrapper from 'src/components/TooltipWrapper';
-import ImportDashboardModal from 'src/dashboard/components/ImportModal/index';
+import ImportModelsModal, {
+  StyledIcon,
+} from 'src/components/ImportModal/index';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
 import DashboardCard from './DashboardCard';
@@ -526,16 +528,26 @@ function DashboardList(props: DashboardListProps) {
           );
         }}
       </ConfirmStatusChange>
-      <ImportDashboardModal
-        show={importingDashboard}
-        onHide={closeDashboardImportModal}
+
+      <ImportModelsModal
+        resourceName="dashboard"
+        resourceLabel={t('dashboard')}
+        icon={<StyledIcon name="nav-dashboard" />}
+        passwordsNeededMessage={t(
+          'The passwords for the databases below are needed in order to ' +
+            'import them together with the dashboards. Please note that the ' +
+            '"Secure Extra" and "Certificate" sections of ' +
+            'the database configuration are not present in export files, and ' +
+            'should be added manually after the import if they are needed.',
+        )}
         addDangerToast={props.addDangerToast}
         addSuccessToast={props.addSuccessToast}
-        onDashboardImport={handleDashboardImport}
+        onModelImport={handleDashboardImport}
+        show={importingDashboard}
+        onHide={closeDashboardImportModal}
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />
-      :
     </>
   );
 }
