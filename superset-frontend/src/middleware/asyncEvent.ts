@@ -49,7 +49,7 @@ type CachedDataResponse = {
 };
 
 const initAsyncEvents = (options: AsyncEventOptions) => {
-  const POLLING_DELAY = 500;
+  const POLLING_DELAY = 250;
   const {
     getPendingComponents,
     successAction,
