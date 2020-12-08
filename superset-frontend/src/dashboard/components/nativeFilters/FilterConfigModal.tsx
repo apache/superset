@@ -26,6 +26,7 @@ import { StyledModal } from 'src/common/components/Modal';
 import { LineEditableTabs } from 'src/common/components/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { usePrevious } from 'src/common/hooks/usePrevious';
+import ErrorBoundary from 'src/components/ErrorBoundary';
 import { useFilterConfigMap, useFilterConfiguration } from './state';
 import FilterConfigForm from './FilterConfigForm';
 import { FilterConfiguration, NativeFiltersForm } from './types';
@@ -230,50 +231,52 @@ export function FilterConfigModal({
       centered
       data-test="filter-modal"
     >
-      <StyledModalBody>
-        <Form
-          form={form}
-          onValuesChange={(changes, values) => {
-            if (
-              changes.filters &&
-              Object.values(changes.filters).some(
-                (filter: any) => filter.name != null,
-              )
-            ) {
-              // we only need to set this if a name changed
-              setFormValues(values);
-            }
-          }}
-        >
-          <LineEditableTabs
-            tabPosition="left"
-            onChange={setCurrentFilterId}
-            activeKey={currentFilterId}
-            onEdit={onTabEdit}
+      <ErrorBoundary>
+        <StyledModalBody>
+          <Form
+            form={form}
+            onValuesChange={(changes, values) => {
+              if (
+                changes.filters &&
+                Object.values(changes.filters).some(
+                  (filter: any) => filter.name != null,
+                )
+              ) {
+                // we only need to set this if a name changed
+                setFormValues(values);
+              }
+            }}
           >
-            {filterIds.map(id => (
-              <LineEditableTabs.TabPane
-                tab={
-                  <RemovedStatus
-                    className={removedFilters[id] ? 'removed' : ''}
-                  >
-                    {getFilterTitle(id)}
-                  </RemovedStatus>
-                }
-                key={id}
-                closeIcon={<DeleteFilled />}
-              >
-                <FilterConfigForm
-                  form={form}
-                  filterId={id}
-                  filterToEdit={filterConfigMap[id]}
-                  removed={!!removedFilters[id]}
-                />
-              </LineEditableTabs.TabPane>
-            ))}
-          </LineEditableTabs>
-        </Form>
-      </StyledModalBody>
+            <LineEditableTabs
+              tabPosition="left"
+              onChange={setCurrentFilterId}
+              activeKey={currentFilterId}
+              onEdit={onTabEdit}
+            >
+              {filterIds.map(id => (
+                <LineEditableTabs.TabPane
+                  tab={
+                    <RemovedStatus
+                      className={removedFilters[id] ? 'removed' : ''}
+                    >
+                      {getFilterTitle(id)}
+                    </RemovedStatus>
+                  }
+                  key={id}
+                  closeIcon={<DeleteFilled />}
+                >
+                  <FilterConfigForm
+                    form={form}
+                    filterId={id}
+                    filterToEdit={filterConfigMap[id]}
+                    removed={!!removedFilters[id]}
+                  />
+                </LineEditableTabs.TabPane>
+              ))}
+            </LineEditableTabs>
+          </Form>
+        </StyledModalBody>
+      </ErrorBoundary>
     </StyledModal>
   );
 }
