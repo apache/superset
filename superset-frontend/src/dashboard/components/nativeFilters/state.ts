@@ -67,12 +67,12 @@ export function useFilterState(id: string) {
   });
 }
 
-export function useSetExtraFormData(id: string) {
+export function useSetExtraFormData() {
   const dispatch = useDispatch();
   return useCallback(
-    (extraFormData: ExtraFormData) =>
+    (id: string, extraFormData: ExtraFormData) =>
       dispatch(setExtraFormData(id, extraFormData)),
-    [id, dispatch],
+    [dispatch],
   );
 }
 

@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData, styled, SuperChart, t } from '@superset-ui/core';
+import {
+  QueryFormData,
+  styled,
+  SuperChart,
+  t,
+  ExtraFormData,
+} from '@superset-ui/core';
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import cx from 'classnames';
@@ -145,6 +151,7 @@ const FilterControls = styled.div`
 
 interface FilterProps {
   filter: Filter;
+  onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
 }
 
 interface FiltersBarProps {
@@ -152,9 +159,11 @@ interface FiltersBarProps {
   toggleFiltersBar: any;
 }
 
-const FilterValue: React.FC<FilterProps> = ({ filter }) => {
+const FilterValue: React.FC<FilterProps> = ({
+  filter,
+  onExtraFormDataChange,
+}) => {
   const { id } = filter;
-  const setExtraFormData = useSetExtraFormData(id);
   const cascadingFilters = useCascadingFilters(id);
   const [state, setState] = useState({ data: undefined });
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
@@ -195,6 +204,9 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
     }
   }, [cascadingFilters]);
 
+  const setExtraFormData = (extraFormData: ExtraFormData) =>
+    onExtraFormDataChange(filter, extraFormData);
+
   return (
     <Form
       onFinish={values => {
@@ -215,12 +227,18 @@ const FilterValue: React.FC<FilterProps> = ({ filter }) => {
   );
 };
 
-const FilterControl: React.FC<FilterProps> = ({ filter }) => {
+const FilterControl: React.FC<FilterProps> = ({
+  filter,
+  onExtraFormDataChange,
+}) => {
   const { name = '<undefined>' } = filter;
   return (
     <div>
       <h3>{name}</h3>
-      <FilterValue filter={filter} />
+      <FilterValue
+        filter={filter}
+        onExtraFormDataChange={onExtraFormDataChange}
+      />
     </div>
   );
 };
@@ -229,6 +247,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   filtersOpen,
   toggleFiltersBar,
 }) => {
+  const [filterData, setFilterData] = useState<{ [id: string]: ExtraFormData }>(
+    {},
+  );
+  const setExtraFormData = useSetExtraFormData();
   const filterConfigs = useFilterConfiguration();
   const canEdit = useSelector<any, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
@@ -239,6 +261,29 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       toggleFiltersBar(false);
     }
   }, [filterConfigs]);
+
+  const handleExtraFormDataChange = (
+    filter: Filter,
+    extraFormData: ExtraFormData,
+  ) => {
+    setFilterData(prevFilterData => ({
+      ...prevFilterData,
+      [filter.id]: extraFormData,
+    }));
+
+    if (filter.isInstant) {
+      setExtraFormData(filter.id, extraFormData);
+    }
+  };
+
+  const handleApply = () => {
+    const filterIds = Object.keys(filterData);
+    filterIds.forEach(filterId => {
+      if (filterData[filterId]) {
+        setExtraFormData(filterId, filterData[filterId]);
+      }
+    });
+  };
 
   return (
     <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>
@@ -262,7 +307,12 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           <Icon name="expand" onClick={toggleFiltersBar} />
         </TitleArea>
         <ActionButtons>
-          <Button buttonStyle="primary" type="submit" buttonSize="sm">
+          <Button
+            buttonStyle="primary"
+            type="submit"
+            buttonSize="sm"
+            onClick={handleApply}
+          >
             {t('Apply')}
           </Button>
           <Button buttonStyle="secondary" buttonSize="sm">
@@ -275,6 +325,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
               data-test="filters-control"
               key={filter.id}
               filter={filter}
+              onExtraFormDataChange={handleExtraFormDataChange}
             />
           ))}
         </FilterControls>
