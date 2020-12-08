@@ -26,7 +26,8 @@ import React, {
 import { Alert, FormControl, FormControlProps } from 'react-bootstrap';
 import { SupersetClient, t } from '@superset-ui/core';
 import TableView from 'src/components/TableView';
-import Modal from 'src/common/components/Modal';
+import StyledModal from 'src/common/components/Modal';
+import Button from 'src/components/Button';
 import getClientErrorObject from '../utils/getClientErrorObject';
 import Loading from '../components/Loading';
 import withToasts from '../messageToasts/enhancers/withToasts';
@@ -63,6 +64,8 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   const [datasources, setDatasources] = useState<any>(null);
   const [filter, setFilter] = useState<any>(undefined);
   const [loading, setLoading] = useState(true);
+  const [confirmChange, setConfirmChange] = useState(false);
+  const [confirmedDataset, setConfirmedDataset] = useState<any>(undefined);
   let searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -71,24 +74,8 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       id: number;
       uid: string;
     }) => {
-      SupersetClient.get({
-        endpoint: `/datasource/get/${datasource.type}/${datasource.id}`,
-      })
-        .then(({ json }) => {
-          onDatasourceSave(json);
-          onChange(`${datasource.id}__table`);
-        })
-        .catch(response => {
-          getClientErrorObject(response).then(
-            ({ error, message }: { error: any; message: string }) => {
-              const errorMessage = error
-                ? error.error || error.statusText || error
-                : message;
-              addDangerToast(errorMessage);
-            },
-          );
-        });
-      onHide();
+      setConfirmChange(true);
+      setConfirmedDataset(datasource);
     };
 
     const onEnterModal = () => {
@@ -152,8 +139,33 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     [datasources, filter],
   );
 
+  const handleChangeConfirm = () => {
+    SupersetClient.get({
+      endpoint: `/datasource/get/${confirmedDataset.type}/${confirmedDataset.id}`,
+    })
+      .then(({ json }) => {
+        onDatasourceSave(json);
+        onChange(`${confirmedDataset.id}__table`);
+      })
+      .catch(response => {
+        getClientErrorObject(response).then(
+          ({ error, message }: { error: any; message: string }) => {
+            const errorMessage = error
+              ? error.error || error.statusText || error
+              : message;
+            addDangerToast(errorMessage);
+          },
+        );
+      });
+    onHide();
+  };
+
+  const handlerCancelConfirm = () => {
+    setConfirmChange(false);
+  };
+
   return (
-    <Modal
+    <StyledModal
       show={show}
       onHide={onHide}
       responsive
@@ -161,32 +173,47 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       hideFooter
     >
       <>
-        <Alert bsStyle="warning">
-          <strong>{t('Warning!')}</strong> {CHANGE_WARNING_MSG}
-        </Alert>
-        <div>
-          <FormControl
-            inputRef={ref => {
-              setSearchRef(ref);
-            }}
-            type="text"
-            bsSize="sm"
-            value={filter}
-            placeholder={t('Search / Filter')}
-            onChange={changeSearch}
-          />
-        </div>
-        {loading && <Loading />}
-        {datasources && (
-          <TableView
-            columns={TABLE_COLUMNS}
-            data={data}
-            pageSize={20}
-            className="table-condensed"
-          />
+        {!confirmChange && (
+          <>
+            <Alert bsStyle="warning">
+              <strong>{t('Warning!')}</strong> {CHANGE_WARNING_MSG}
+            </Alert>
+            <div>
+              <FormControl
+                inputRef={ref => {
+                  setSearchRef(ref);
+                }}
+                type="text"
+                bsSize="sm"
+                value={filter}
+                placeholder={t('Search / Filter')}
+                onChange={changeSearch}
+              />
+            </div>
+
+            {loading && <Loading />}
+            {datasources && (
+              <TableView
+                columns={TABLE_COLUMNS}
+                data={data}
+                pageSize={20}
+                className="table-condensed"
+              />
+            )}
+          </>
+        )}
+        {confirmChange && (
+          <>
+            Warning! Changing the datasource may breakthe chart if metadata that
+            does not exist in the target target target datasource
+            <div>
+              <Button buttonStyle="primary" onClick={handleChangeConfirm}>Proceed</Button>
+              <Button onClick={handlerCancelConfirm}>Cancel</Button>
+            </div>
+          </>
         )}
       </>
-    </Modal>
+    </StyledModal>
   );
 };
 
