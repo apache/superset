@@ -21,7 +21,7 @@ import React, { FunctionComponent } from 'react';
 import { Radio, AutoComplete, Input } from 'src/common/components';
 import StyledModal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
-import { styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { RadioChangeEvent } from 'antd/lib/radio';
 
 interface SaveDatasetModalProps {
@@ -67,6 +67,9 @@ const Styles = styled.div`
     margin: 10px 0px;
     line-height: 30px;
   }
+  .smd-overwrite-msg {
+    margin: 7px;
+  }
 `;
 
 // eslint-disable-next-line no-empty-pattern
@@ -102,7 +105,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
               buttonStyle="primary"
               onClick={onOk}
             >
-              Save &amp; Explore
+              {t('Save & Explore')}
             </Button>
           )}
           {shouldOverwriteDataset && (
@@ -117,7 +120,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
                 onClick={handleOverwriteDataset}
                 disabled={disableSaveAndExploreBtn}
               >
-                Save &amp; Explore
+                {t('Overwrite & Explore')}
               </Button>
             </>
           )}
@@ -161,7 +164,9 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
           </div>
         )}
         {shouldOverwriteDataset && (
-          <div>Are you sure you want to overwrite this dataset?</div>
+          <div className="smd-overwrite-msg">
+            Are you sure you want to overwrite this dataset?
+          </div>
         )}
       </Styles>
     </StyledModal>
