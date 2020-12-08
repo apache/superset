@@ -39,6 +39,7 @@ from superset.databases.commands.importers.v1.utils import import_database
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.models.core import Database
 from superset.models.dashboard import Dashboard, dashboard_slices
 
 schemas: Dict[str, Schema] = {
@@ -67,6 +68,7 @@ class ImportDashboardsCommand(BaseCommand):
     # pylint: disable=unused-argument
     def __init__(self, contents: Dict[str, str], *args: Any, **kwargs: Any):
         self.contents = contents
+        self.passwords: Dict[str, str] = kwargs.get("passwords") or {}
         self._configs: Dict[str, Any] = {}
 
     # TODO (betodealmeida): refactor to use code from other commands
@@ -162,6 +164,14 @@ class ImportDashboardsCommand(BaseCommand):
     def validate(self) -> None:
         exceptions: List[ValidationError] = []
 
+        # load existing databases so we can apply the password validation
+        db_passwords = {
+            str(uuid): password
+            for uuid, password in db.session.query(
+                Database.uuid, Database.password
+            ).all()
+        }
+
         # verify that the metadata file is present and valid
         try:
             metadata: Optional[Dict[str, str]] = load_metadata(self.contents)
@@ -169,12 +179,20 @@ class ImportDashboardsCommand(BaseCommand):
             exceptions.append(exc)
             metadata = None
 
+        # validate dashboards, charts, datasets, and databases
         for file_name, content in self.contents.items():
             prefix = file_name.split("/")[0]
             schema = schemas.get(f"{prefix}/")
             if schema:
                 try:
                     config = load_yaml(file_name, content)
+
+                    # populate passwords from the request or from existing DBs
+                    if file_name in self.passwords:
+                        config["password"] = self.passwords[file_name]
+                    elif prefix == "databases" and config["uuid"] in db_passwords:
+                        config["password"] = db_passwords[config["uuid"]]
+
                     schema.load(config)
                     self._configs[file_name] = config
                 except ValidationError as exc:
