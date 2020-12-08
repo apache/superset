@@ -25,7 +25,7 @@ import {
 
 interface CheckboxProps {
   checked: boolean;
-  onChange: (val?: boolean) => {};
+  onChange: (val?: boolean) => void;
   style?: object;
 }
 

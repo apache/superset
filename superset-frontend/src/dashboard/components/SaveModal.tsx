@@ -20,11 +20,7 @@
 import React from 'react';
 import { FormControl, FormGroup, Radio } from 'react-bootstrap';
 import Button from 'src/components/Button';
-import {
-  t,
-  CategoricalColorNamespace,
-  JsonResponse,
-} from '@superset-ui/core';
+import { t, CategoricalColorNamespace, JsonResponse } from '@superset-ui/core';
 
 import ModalTrigger from 'src/components/ModalTrigger';
 import Checkbox from 'src/components/Checkbox';
