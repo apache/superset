@@ -123,9 +123,7 @@ export default class ResultSet extends React.PureComponent<
       showExploreResultsButton: false,
       data: [],
       showSaveDatasetModal: false,
-      newSaveDatasetName: `${props.query.tab} ${moment().format(
-        'MM/DD/YYYY HH:mm:ss',
-      )}`,
+      newSaveDatasetName: this.getDefaultDatasetName(),
       userDatasetsOwned: [],
       saveDatasetRadioBtnState: DatasetRadioState.SAVE_NEW,
       shouldOverwriteDataSet: false,
@@ -205,6 +203,10 @@ export default class ResultSet extends React.PureComponent<
     }
   }
 
+  getDefaultDatasetName = () => {
+    return `${this.props.query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
+  };
+
   handleOnChangeAutoComplete = () => {
     this.setState({ datasetToOverwrite: {} });
   };
@@ -225,9 +227,7 @@ export default class ResultSet extends React.PureComponent<
       showSaveDatasetModal: false,
       shouldOverwriteDataSet: false,
       datasetToOverwrite: {},
-      newSaveDatasetName: `${this.props.query.tab} ${moment().format(
-        'MM/DD/YYYY HH:mm:ss',
-      )}`,
+      newSaveDatasetName: this.getDefaultDatasetName(),
     });
 
     exploreChart({
