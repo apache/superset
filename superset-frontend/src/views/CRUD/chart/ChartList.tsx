@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetClient, getChartMetadataRegistry, t } from '@superset-ui/core';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -43,6 +43,7 @@ import ListView, {
 } from 'src/components/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
+import ImportChartModal from 'src/chart/components/ImportModal/index';
 import Chart from 'src/types/Chart';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import ChartCard from './ChartCard';
@@ -96,6 +97,8 @@ interface ChartListProps {
 }
 
 function ChartList(props: ChartListProps) {
+  const { addDangerToast, addSuccessToast } = props;
+
   const {
     state: {
       loading,
@@ -108,14 +111,14 @@ function ChartList(props: ChartListProps) {
     fetchData,
     toggleBulkSelect,
     refreshData,
-  } = useListViewResource<Chart>('chart', t('chart'), props.addDangerToast);
+  } = useListViewResource<Chart>('chart', t('chart'), addDangerToast);
 
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
 
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'chart',
     chartIds,
-    props.addDangerToast,
+    addDangerToast,
   );
   const {
     sliceCurrentlyEditing,
@@ -123,6 +126,22 @@ function ChartList(props: ChartListProps) {
     openChartEditModal,
     closeChartEditModal,
   } = useChartEditModal(setCharts, charts);
+
+  const [importingChart, showImportModal] = useState<boolean>(false);
+  const [passwordFields, setPasswordFields] = useState<string[]>([]);
+
+  function openChartImportModal() {
+    showImportModal(true);
+  }
+
+  function closeChartImportModal() {
+    showImportModal(false);
+  }
+
+  const handleChartImport = () => {
+    showImportModal(false);
+    refreshData();
+  };
 
   const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
@@ -139,10 +158,10 @@ function ChartList(props: ChartListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
-        props.addSuccessToast(json.message);
+        addSuccessToast(json.message);
       },
       createErrorHandler(errMsg =>
-        props.addDangerToast(
+        addDangerToast(
           t('There was an issue deleting the selected charts: %s', errMsg),
         ),
       ),
@@ -246,8 +265,8 @@ function ChartList(props: ChartListProps) {
           const handleDelete = () =>
             handleChartDelete(
               original,
-              props.addSuccessToast,
-              props.addDangerToast,
+              addSuccessToast,
+              addDangerToast,
               refreshData,
             );
           const openEditModal = () => openChartEditModal(original);
@@ -342,7 +361,7 @@ function ChartList(props: ChartListProps) {
         'chart',
         'owners',
         createErrorHandler(errMsg =>
-          props.addDangerToast(
+          addDangerToast(
             t(
               'An error occurred while fetching chart owners values: %s',
               errMsg,
@@ -363,7 +382,7 @@ function ChartList(props: ChartListProps) {
         'chart',
         'created_by',
         createErrorHandler(errMsg =>
-          props.addDangerToast(
+          addDangerToast(
             t(
               'An error occurred while fetching chart created by values: %s',
               errMsg,
@@ -406,7 +425,7 @@ function ChartList(props: ChartListProps) {
       unfilteredLabel: 'All',
       fetchSelects: createFetchDatasets(
         createErrorHandler(errMsg =>
-          props.addDangerToast(
+          addDangerToast(
             t(
               'An error occurred while fetching chart dataset values: %s',
               errMsg,
@@ -452,8 +471,8 @@ function ChartList(props: ChartListProps) {
         hasPerm={hasPerm}
         openChartEditModal={openChartEditModal}
         bulkSelectEnabled={bulkSelectEnabled}
-        addDangerToast={props.addDangerToast}
-        addSuccessToast={props.addSuccessToast}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
         refreshData={refreshData}
         loading={loading}
         favoriteStatus={favoriteStatus[chart.id]}
@@ -480,6 +499,13 @@ function ChartList(props: ChartListProps) {
       onClick: () => {
         window.location.assign('/chart/add');
       },
+    });
+  }
+  if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+    subMenuButtons.push({
+      name: <Icon name="import" />,
+      buttonStyle: 'link',
+      onClick: openChartImportModal,
     });
   }
   return (
@@ -541,6 +567,16 @@ function ChartList(props: ChartListProps) {
           );
         }}
       </ConfirmStatusChange>
+
+      <ImportChartModal
+        show={importingChart}
+        onHide={closeChartImportModal}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onChartImport={handleChartImport}
+        passwordFields={passwordFields}
+        setPasswordFields={setPasswordFields}
+      />
     </>
   );
 }

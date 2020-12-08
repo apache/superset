@@ -129,7 +129,7 @@ class ImportV1ColumnSchema(Schema):
     verbose_name = fields.String(allow_none=True)
     is_dttm = fields.Boolean()
     is_active = fields.Boolean(allow_none=True)
-    type = fields.String(required=True)
+    type = fields.String(allow_none=True)
     groupby = fields.Boolean()
     filterable = fields.Boolean()
     expression = fields.String(allow_none=True)
