@@ -404,6 +404,8 @@ dataset_config: Dict[str, Any] = {
 }
 
 chart_config: Dict[str, Any] = {
+    "slice_name": "Deck Path",
+    "viz_type": "deck_path",
     "params": {
         "color_picker": {"a": 1, "b": 135, "g": 122, "r": 0},
         "datasource": "12__table",
