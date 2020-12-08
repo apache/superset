@@ -445,7 +445,7 @@ There are three types of assets you can build:
 
 1. `npm run build`: the production assets, CSS/JSS minified and optimized
 2. `npm run dev-server`: local development assets, with sourcemaps and hot refresh support
-3. `npm run build-instrumented`: instrumented application code for collection Cypress tests code coverage
+3. `npm run build-instrumented`: instrumented application code for collecting code coverage from Cypress tests
 
 #### Webpack dev server
 
