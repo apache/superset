@@ -2701,7 +2701,7 @@ class EventFlowViz(BaseViz):
         entity_key = form_data["entity"]
         meta_keys = [
             col
-            for col in form_data["all_columns"]
+            for col in form_data["all_columns"] or []
             if col != event_key and col != entity_key
         ]
 
