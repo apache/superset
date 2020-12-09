@@ -66,10 +66,7 @@ describe('ShareSqlLabQuery via /kv/store', () => {
 
   function setup(overrideProps) {
     const wrapper = shallow(
-      <ShareSqlLabQuery {...defaultProps} {...overrideProps} />,
-      {
-        context: { store },
-      },
+      <ShareSqlLabQuery store={store} {...defaultProps} {...overrideProps} />,
     ).dive(); // wrapped in withToasts HOC
 
     return wrapper;
