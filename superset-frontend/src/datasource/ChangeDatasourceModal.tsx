@@ -22,9 +22,11 @@ import React, {
   useRef,
   useMemo,
   useEffect,
+  useCallback,
 } from 'react';
+import rison from 'rison';
 import { Alert, FormControl, FormControlProps } from 'react-bootstrap';
-import { SupersetClient, t } from '@superset-ui/core';
+import { makeApi, SupersetClient, t } from '@superset-ui/core';
 import TableView from 'src/components/TableView';
 import Modal from 'src/common/components/Modal';
 import getClientErrorObject from '../utils/getClientErrorObject';
@@ -65,12 +67,8 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   const [loading, setLoading] = useState(true);
   let searchRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const selectDatasource = (datasource: {
-      type: string;
-      id: number;
-      uid: string;
-    }) => {
+  const selectDatasource = useCallback(
+    (datasource: { type: string; id: number; uid: string }) => {
       SupersetClient.get({
         endpoint: `/datasource/get/${datasource.type}/${datasource.id}`,
       })
@@ -89,15 +87,18 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
           );
         });
       onHide();
-    };
+    },
+    [addDangerToast, onChange, onDatasourceSave, onHide],
+  );
 
+  useEffect(() => {
     const onEnterModal = () => {
       if (searchRef && searchRef.current) {
         searchRef.current.focus();
       }
       if (!datasources) {
         SupersetClient.get({
-          endpoint: '/api/v1/dataset/',
+          endpoint: `/api/v1/dataset`,
         })
           .then(({ json }) => {
             const data = json.result.map((ds: any) => ({
@@ -130,7 +131,15 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     if (show) {
       onEnterModal();
     }
-  }, [addDangerToast, datasources, onChange, onDatasourceSave, onHide, show]);
+  }, [
+    addDangerToast,
+    datasources,
+    onChange,
+    onDatasourceSave,
+    onHide,
+    selectDatasource,
+    show,
+  ]);
 
   const setSearchRef = (ref: any) => {
     searchRef = ref;
@@ -139,7 +148,47 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   const changeSearch = (
     event: React.FormEvent<FormControl & FormControlProps>,
   ) => {
-    setFilter((event.currentTarget?.value as string) ?? '');
+    const searchValue = (event.currentTarget?.value as string) ?? '';
+    const queryParams = rison.encode({
+      filters: [
+        {
+          col: 'table_name',
+          opr: 'ct',
+          value: searchValue,
+        },
+      ],
+      page_size: 0,
+      page: 0,
+    });
+
+    SupersetClient.get({
+      endpoint: `/api/v1/dataset?q=${queryParams}`,
+    })
+      .then(({ json }) => {
+        const data = json.result.map((ds: any) => ({
+          rawName: ds.table_name,
+          connection: ds.database.database_name,
+          schema: ds.schema,
+          name: (
+            <a
+              href="#"
+              onClick={() => selectDatasource({ type: 'table', ...ds })}
+              className="datasource-link"
+            >
+              {ds.table_name}
+            </a>
+          ),
+          type: ds.kind,
+        }));
+        setLoading(false);
+        setDatasources(data);
+      })
+      .catch(response => {
+        setLoading(false);
+        getClientErrorObject(response).then(({ error }: any) => {
+          addDangerToast(error.error || error.statusText || error);
+        });
+      });
   };
 
   const data = useMemo(
