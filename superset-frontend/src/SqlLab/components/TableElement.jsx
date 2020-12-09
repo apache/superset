@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { ButtonGroup, Collapse, Well } from 'react-bootstrap';
 import shortid from 'shortid';
-import { t, styled } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 
 import Fade from 'src/common/components/Fade';
 import CopyToClipboard from '../../components/CopyToClipboard';
