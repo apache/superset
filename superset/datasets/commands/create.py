@@ -57,7 +57,7 @@ class CreateDatasetCommand(BaseCommand):
                 security_manager.add_permission_view_menu(
                     "schema_access", dataset.schema_perm
                 )
-                db.session.commit()
+            db.session.commit()
         except Exception as ex:
             logger.exception(ex)
             db.session.rollback()
