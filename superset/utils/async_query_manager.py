@@ -51,6 +51,15 @@ def parse_event(event_data: Tuple[str, Dict[str, Any]]) -> Dict[str, Any]:
     return {"id": event_id, **json.loads(event_payload)}
 
 
+def increment_id(redis_id: str) -> str:
+    # redis stream IDs are in this format: '1607477697866-0'
+    try:
+        prefix, last = redis_id[:-1], int(redis_id[-1])
+        return prefix + str(last + 1)
+    except Exception:  # pylint: disable=broad-except
+        return redis_id
+
+
 class AsyncQueryManager:
     MAX_EVENT_COUNT = 100
     STATUS_PENDING = "pending"
@@ -148,7 +157,7 @@ class AsyncQueryManager:
         self, channel: str, last_id: Optional[str]
     ) -> List[Optional[Dict[str, Any]]]:
         stream_name = f"{self._stream_prefix}{channel}"
-        start_id = last_id if last_id else "-"
+        start_id = increment_id(last_id) if last_id else "-"
         results = self._redis.xrange(  # type: ignore
             stream_name, start_id, "+", self.MAX_EVENT_COUNT
         )
@@ -169,8 +178,8 @@ class AsyncQueryManager:
         full_stream_name = f"{self._stream_prefix}full"
         scoped_stream_name = f"{self._stream_prefix}{job_metadata['channel_id']}"
 
-        logger.info("********** logging event data to stream %s", scoped_stream_name)
-        logger.info(event_data)
+        logger.debug("********** logging event data to stream %s", scoped_stream_name)
+        logger.debug(event_data)
 
         self._redis.xadd(  # type: ignore
             scoped_stream_name, event_data, "*", self._stream_limit

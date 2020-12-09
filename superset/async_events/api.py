@@ -74,19 +74,15 @@ class AsyncEventsRestApi(BaseApi):
                                 job_id:
                                   type: string
                                 user_id:
-                                  type: string
+                                  type: integer
                                 status:
                                   type: string
                                 msg:
                                   type: string
                                 cache_key:
                                   type: string
-            400:
-              $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
         """
