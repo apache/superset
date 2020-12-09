@@ -196,6 +196,7 @@ export const DataTablesPane = ({
           columns={columns[type]}
           data={filteredData[type]}
           withPagination={true}
+          pageSize={50}
           noDataText={t('No data')}
           emptyWrapperType={EmptyWrapperType.Small}
           className="table-condensed"
