@@ -36,6 +36,7 @@ import withToasts from '../messageToasts/enhancers/withToasts';
 
 interface ChangeDatasourceModalProps {
   addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
   onChange: (uid: string) => void;
   onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
   onHide: () => void;
@@ -58,6 +59,7 @@ const CHANGE_WARNING_MSG = t(
 
 const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   addDangerToast,
+  addSuccessToast,
   onChange,
   onDatasourceSave,
   onHide,
@@ -207,6 +209,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         );
       });
     onHide();
+    addSuccessToast('Successfully changed datasource!')
   };
 
   const handlerCancelConfirm = () => {
