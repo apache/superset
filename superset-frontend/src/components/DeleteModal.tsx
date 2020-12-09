@@ -65,7 +65,9 @@ export default function DeleteModal({
     >
       <DescriptionContainer>{description}</DescriptionContainer>
       <StyleFormGroup>
-        <FormLabel htmlFor="delete">{t('type "delete" to confirm')}</FormLabel>
+        <FormLabel htmlFor="delete">
+          {t('Type "%s" to confirm', t('DELETE'))}
+        </FormLabel>
         <FormControl
           data-test="delete-modal-input"
           id="delete"
@@ -75,7 +77,7 @@ export default function DeleteModal({
             event: React.FormEvent<FormControl & FormControlProps>,
           ) => {
             const targetValue = (event.currentTarget?.value as string) ?? '';
-            setDisableChange(targetValue.toUpperCase() !== 'DELETE');
+            setDisableChange(targetValue.toUpperCase() !== t('DELETE'));
           }}
         />
       </StyleFormGroup>
