@@ -44,7 +44,7 @@ export default class FilterScopeModal extends React.PureComponent<
     this.handleCloseModal = this.handleCloseModal.bind(this);
   }
 
-  handleCloseModal(): any {
+  handleCloseModal(): void {
     if (this.modal.current) {
       this.modal.current.close();
     }
