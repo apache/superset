@@ -1526,9 +1526,6 @@ def get_since_until(
                 # default matched case
                 since_and_until.append(f"DATETIME('{part}')")
 
-        logger.debug("Raw [time_range] text: %s", time_range)
-        logger.debug("[since] datetime_eval text: %s", since_and_until[0])
-        logger.debug("[until] datetime_eval text: %s", since_and_until[1])
         _since, _until = map(datetime_eval, since_and_until)
     else:
         since = since or ""
