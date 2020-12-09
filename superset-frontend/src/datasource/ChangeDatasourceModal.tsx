@@ -26,7 +26,7 @@ import React, {
 } from 'react';
 import rison from 'rison';
 import { Alert, FormControl, FormControlProps } from 'react-bootstrap';
-import { makeApi, SupersetClient, t } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
 import TableView from 'src/components/TableView';
 import StyledModal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
@@ -66,7 +66,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   show,
 }) => {
   const [datasources, setDatasources] = useState<any>(null);
-  const [filter, setFilter] = useState<any>(undefined);
+  const [filter] = useState<any>(undefined);
   const [loading, setLoading] = useState(true);
   const [confirmChange, setConfirmChange] = useState(false);
   const [confirmedDataset, setConfirmedDataset] = useState<any>(undefined);
@@ -209,7 +209,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         );
       });
     onHide();
-    addSuccessToast('Successfully changed datasource!')
+    addSuccessToast('Successfully changed datasource!');
   };
 
   const handlerCancelConfirm = () => {
