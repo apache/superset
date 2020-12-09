@@ -84,11 +84,26 @@ describe('ChangeDatasourceModal', () => {
     expect(fetchMock.calls(/api\/v1\/dataset/)).toHaveLength(3);
   });
 
-  it('changes the datasource', async () => {
+  it('renders confirmation message', async () => {
     act(() => {
-      wrapper.find('.datasource-link').at(0).props().onClick(datasourceData);
+      wrapper.find('.datasource-link').at(0).props().onClick();
     });
     await waitForComponentToPaint(wrapper);
+
+    expect(wrapper.find('.proceed-btn')).toExist();
+  });
+
+  it('changes the datasource', async () => {
+    act(() => {
+      wrapper.find('.datasource-link').at(0).props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+
+    act(() => {
+      wrapper.find('.proceed-btn').at(0).props().onClick(datasourceData);
+    });
+    await waitForComponentToPaint(wrapper);
+
     expect(fetchMock.calls(/datasource\/get\/table\/7/)).toHaveLength(1);
   });
 });

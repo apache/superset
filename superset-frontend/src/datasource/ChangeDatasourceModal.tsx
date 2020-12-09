@@ -85,9 +85,10 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       if (searchRef && searchRef.current) {
         searchRef.current.focus();
       }
+
       if (!datasources) {
         SupersetClient.get({
-          endpoint: `/api/v1/dataset`,
+          endpoint: '/api/v1/dataset/',
         })
           .then(({ json }) => {
             const data = json.result.map((ds: any) => ({
@@ -259,7 +260,11 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
             Warning! Changing the datasource may breakthe chart if metadata that
             does not exist in the target target target datasource
             <div>
-              <Button buttonStyle="primary" onClick={handleChangeConfirm}>
+              <Button
+                className="proceed-btn"
+                buttonStyle="primary"
+                onClick={handleChangeConfirm}
+              >
                 Proceed
               </Button>
               <Button onClick={handlerCancelConfirm}>Cancel</Button>
