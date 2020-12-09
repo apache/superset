@@ -41,7 +41,7 @@ const propTypes = {
   columns: PropTypes.arrayOf(columnType),
   datasourceType: PropTypes.string,
   title: PropTypes.shape({
-    customLabel: PropTypes.string,
+    label: PropTypes.string,
     hasCustomLabel: PropTypes.bool,
   }),
 };
@@ -100,10 +100,14 @@ export default class AdhocMetricEditPopover extends React.Component {
   }
 
   onSave() {
-    // unset isNew here in case save button was clicked when no changes were made
+    this.state.adhocMetric.label = this.props.title.hasCustomLabel
+      ? this.props.title.label
+      : this.state.adhocMetric.label;
+
+    console.log("onsave prop title is ", this.props.title);
     this.props.onChange({
       ...this.state.adhocMetric,
-      ...this.props.title,
+      // unset isNew here in case save button was clicked when no changes were made
       isNew: false,
     });
     this.props.onClose();
