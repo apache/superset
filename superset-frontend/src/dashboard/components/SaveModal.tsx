@@ -37,8 +37,8 @@ type SaveModalProps = {
   dashboardId: number;
   dashboardTitle: string;
   dashboardInfo: Record<string, any>;
-  expandedSlices: object;
-  layout: object;
+  expandedSlices: Record<string, any>;
+  layout: Record<string, any>;
   saveType: SaveType;
   triggerNode: JSX.Element;
   customCss: string;
@@ -69,7 +69,11 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
 
   modal: ModalTrigger | null;
 
-  onSave: Function;
+  onSave: (
+    data: Record<string, any>,
+    dashboardId: number | string,
+    saveType: SaveType,
+  ) => Promise<JsonResponse>;
 
   constructor(props: SaveModalProps) {
     super(props);
@@ -91,7 +95,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
     this.modal = ref;
   }
 
-  toggleDuplicateSlices(val?: boolean | undefined): void {
+  toggleDuplicateSlices(): void {
     this.setState(prevState => ({
       duplicateSlices: !prevState.duplicateSlices,
     }));
@@ -203,7 +207,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
             <div className="m-l-25 m-t-5">
               <Checkbox
                 checked={this.state.duplicateSlices}
-                onChange={this.toggleDuplicateSlices}
+                onChange={() => this.toggleDuplicateSlices}
               />
               <span className="m-l-5">{t('also copy (duplicate) charts')}</span>
             </div>
