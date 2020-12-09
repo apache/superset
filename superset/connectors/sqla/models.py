@@ -45,7 +45,6 @@ from sqlalchemy import (
     Table,
     Text,
 )
-from sqlalchemy.exc import CompileError
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
@@ -668,7 +667,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         )
                 # Broad exception catch, because there are multiple possible exceptions
                 # from different drivers that fall outside CompileError
-                except Exception:
+                except Exception:  # pylint: disable=broad-except
                     col["type"] = "UNKNOWN"
         return cols
 

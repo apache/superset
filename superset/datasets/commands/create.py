@@ -20,11 +20,9 @@ from typing import Any, Dict, List, Optional
 from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
-from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
 from superset.commands.utils import populate_owners
-from superset.dao.exceptions import DAOCreateFailedError
 from superset.datasets.commands.exceptions import (
     DatabaseNotFoundValidationError,
     DatasetCreateFailedError,
@@ -46,20 +44,20 @@ class CreateDatasetCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         # Creates SqlaTable (Dataset)
-        dataset = DatasetDAO.create(self._properties, commit=False)
-        # Updates columns and metrics from the dataset
-        dataset.fetch_metadata(commit=False)
-        # Add datasource access permission
-        security_manager.add_permission_view_menu(
-            "datasource_access", dataset.get_perm()
-        )
-        # Add schema access permission if exists
-        if dataset.schema:
-            security_manager.add_permission_view_menu(
-                "schema_access", dataset.schema_perm
-            )
         try:
-            db.session.commit()
+            dataset = DatasetDAO.create(self._properties, commit=False)
+            # Updates columns and metrics from the dataset
+            dataset.fetch_metadata(commit=False)
+            # Add datasource access permission
+            security_manager.add_permission_view_menu(
+                "datasource_access", dataset.get_perm()
+            )
+            # Add schema access permission if exists
+            if dataset.schema:
+                security_manager.add_permission_view_menu(
+                    "schema_access", dataset.schema_perm
+                )
+                db.session.commit()
         except Exception as ex:
             logger.exception(ex)
             db.session.rollback()
