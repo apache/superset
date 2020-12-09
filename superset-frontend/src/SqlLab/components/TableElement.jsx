@@ -42,21 +42,6 @@ const defaultProps = {
   timeout: 500,
 };
 
-const OptionsContainer = styled.div`
-  display: flex;
-  align-items: center;
-  float: right;
-`;
-
-const TableNameContainer = styled.div`
-  flex: 1;
-  float: right;
-`;
-
-const HeaderContainer = styled.div`
-  display: flex;
-`;
-
 class TableElement extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -215,19 +200,17 @@ class TableElement extends React.PureComponent {
   renderHeader() {
     const { table } = this.props;
     return (
-      <HeaderContainer>
-        <TableNameContainer>
-          <a
-            href="#"
-            className="table-name"
-            onClick={e => {
-              this.toggleTable(e);
-            }}
-          >
-            <strong>{table.name}</strong>
-          </a>
-        </TableNameContainer>
-        <OptionsContainer>
+      <div className="clearfix header-container">
+        <a
+          href="#"
+          className="table-name"
+          onClick={e => {
+            this.toggleTable(e);
+          }}
+        >
+          <strong>{table.name}</strong>
+        </a>
+        <div className="pull-right header-right-side">
           {table.isMetadataLoading || table.isExtraMetadataLoading ? (
             <Loading position="inline" />
           ) : (
@@ -246,8 +229,8 @@ class TableElement extends React.PureComponent {
               `fa-angle-${table.expanded ? 'up' : 'down'}`
             }
           />
-        </OptionsContainer>
-      </HeaderContainer>
+        </div>
+      </div>
     );
   }
 
