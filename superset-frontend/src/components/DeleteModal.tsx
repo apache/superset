@@ -65,7 +65,9 @@ export default function DeleteModal({
     >
       <DescriptionContainer>{description}</DescriptionContainer>
       <StyleFormGroup>
-        <FormLabel htmlFor="delete">{t('Type "DELETE" to confirm')}</FormLabel>
+        <FormLabel htmlFor="delete">
+          {t('Type "%s" to confirm', t('DELETE'))}
+        </FormLabel>
         <FormControl
           data-test="delete-modal-input"
           id="delete"
