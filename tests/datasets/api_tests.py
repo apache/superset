@@ -39,6 +39,7 @@ from superset.utils.core import backend, get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
 from tests.base_tests import SupersetTestCase
 from tests.conftest import CTAS_SCHEMA_NAME
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.importexport import (
     database_config,
     database_metadata_config,
@@ -196,6 +197,7 @@ class TestDatasetApi(SupersetTestCase):
         assert response["count"] == 0
         assert response["result"] == []
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_get_dataset_item(self):
         """
         Dataset API: Test get dataset item
