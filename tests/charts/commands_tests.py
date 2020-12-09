@@ -32,6 +32,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.slice import Slice
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.importexport import (
     chart_config,
     chart_metadata_config,
@@ -43,10 +44,13 @@ from tests.fixtures.importexport import (
 
 class TestExportChartsCommand(SupersetTestCase):
     @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_export_chart_command(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
 
-        example_chart = db.session.query(Slice).all()[0]
+        example_chart = (
+            db.session.query(Slice).filter_by(slice_name="Energy Sankey").one_or_none()
+        )
         command = ExportChartsCommand([example_chart.id])
         contents = dict(command.run())
 
@@ -97,11 +101,14 @@ class TestExportChartsCommand(SupersetTestCase):
             next(contents)
 
     @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_export_chart_command_key_order(self, mock_g):
         """Test that they keys in the YAML have the same order as export_fields"""
         mock_g.user = security_manager.find_user("admin")
 
-        example_chart = db.session.query(Slice).all()[0]
+        example_chart = (
+            db.session.query(Slice).filter_by(slice_name="Energy Sankey").one_or_none()
+        )
         command = ExportChartsCommand([example_chart.id])
         contents = dict(command.run())
 
