@@ -17,25 +17,23 @@
  * under the License.
  */
 
-import React, { useMemo, useEffect } from 'react';
-
 import { t } from '@superset-ui/core';
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import Button from 'src/components/Button';
-import Icon, { IconName } from 'src/components/Icon';
+import React, { useEffect, useMemo } from 'react';
+import { useHistory } from 'react-router-dom';
 import { Switch } from 'src/common/components/Switch';
-import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
+import Button from 'src/components/Button';
 import FacePile from 'src/components/FacePile';
-import ListView, { Filters, FilterOperators } from 'src/components/ListView';
+import Icon, { IconName } from 'src/components/Icon';
+import ListView, { FilterOperators, Filters } from 'src/components/ListView';
+import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-
+import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import {
   useListViewResource,
-  useSingleViewResource,
+  useSingleViewResource
 } from 'src/views/CRUD/hooks';
-
+import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import { AlertObject } from './types';
 
 const PAGE_SIZE = 25;
@@ -105,9 +103,6 @@ function AlertList({
     refreshData();
   }, [isReportEnabled]);
 
-  const gotoExecutionLog = (id: number, type: string) => {
-    window.location.href = `/${type.toLowerCase()}/${id}/log`;
-  };
   const columns = useMemo(
     () => [
       {
@@ -172,10 +167,11 @@ function AlertList({
       },
       {
         Cell: ({ row: { original } }: any) => {
+          const history = useHistory();
           const handleEdit = () => {}; // handleAnnotationEdit(original);
           const handleDelete = () => {}; // setAlertCurrentlyDeleting(original);
           const hanldGotoExecutionLog = () =>
-            gotoExecutionLog(original.id, original.type);
+            history.push(`/${original.type.toLowerCase()}/${original.id}/log`);
 
           const actions = [
             canEdit

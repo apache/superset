@@ -88,8 +88,8 @@ describe('ExecutionLog', () => {
 
   it('fetches report/alert', () => {
     const callsQ = fetchMock.calls(/report\/1/);
-    expect(callsQ).toHaveLength(2);
-    expect(callsQ[1][0]).toMatchInlineSnapshot(
+    expect(callsQ).toHaveLength(4);
+    expect(callsQ[0][0]).toMatchInlineSnapshot(
       `"http://localhost/api/v1/report/1"`,
     );
   });

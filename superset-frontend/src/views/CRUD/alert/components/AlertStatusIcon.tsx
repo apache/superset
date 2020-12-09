@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { styled, t } from '@superset-ui/core';
 import React from 'react';
-import { t, styled } from '@superset-ui/core';
-
-import Icon, { IconName } from 'src/components/Icon';
 import { Tooltip } from 'src/common/components/Tooltip';
+import Icon, { IconName } from 'src/components/Icon';
+import { AlertState } from '../types';
 
 const StatusIcon = styled(Icon)<{ status: string }>`
   color: ${({ status, theme }) => {
     switch (status) {
-      case 'Working':
+      case AlertState.working:
         return theme.colors.alert.base;
-      case 'Error':
+      case AlertState.error:
         return theme.colors.error.base;
-      case 'Success':
+      case AlertState.success:
         return theme.colors.success.base;
       default:
         return theme.colors.grayscale.base;
@@ -44,25 +44,25 @@ export default function AlertStatusIcon({ state }: { state: string }) {
     status: '',
   };
   switch (state) {
-    case 'Success':
+    case AlertState.success:
       lastStateConfig.name = 'check';
-      lastStateConfig.label = t('Success');
-      lastStateConfig.status = 'Success';
+      lastStateConfig.label = t(`${AlertState.success}`);
+      lastStateConfig.status = AlertState.success;
       break;
-    case 'Working':
+    case AlertState.working:
       lastStateConfig.name = 'exclamation';
-      lastStateConfig.label = t('Working');
-      lastStateConfig.status = 'Working';
+      lastStateConfig.label = t(`${AlertState.working}`);
+      lastStateConfig.status = AlertState.working;
       break;
-    case 'Error':
+    case AlertState.error:
       lastStateConfig.name = 'x-small';
-      lastStateConfig.label = t('Error');
-      lastStateConfig.status = 'Error';
+      lastStateConfig.label = t(`${AlertState.error}`);
+      lastStateConfig.status = AlertState.error;
       break;
     default:
       lastStateConfig.name = 'exclamation';
-      lastStateConfig.label = t('Working');
-      lastStateConfig.status = 'Working';
+      lastStateConfig.label = t(`${AlertState.working}`);
+      lastStateConfig.status = AlertState.working;
   }
   return (
     <Tooltip title={lastStateConfig.label} placement="bottom">

@@ -51,6 +51,14 @@ export type LogObject = {
   id: number;
   scheduled_dttm: string;
   start_dttm: string;
-  state: string;
+  state: 'Success' | 'Working' | 'Error' | 'Not triggered' | 'On Grace';
   value: string;
 };
+
+export enum AlertState {
+  success = 'Success',
+  working = 'Working',
+  error = 'Error',
+  noop = 'Not triggered',
+  grace = 'On Grace',
+}

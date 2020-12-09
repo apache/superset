@@ -17,22 +17,35 @@
  * under the License.
  */
 
-import React, { useMemo, useEffect, useCallback, useState } from 'react';
-import { useParams, Link, useHistory } from 'react-router-dom';
+import { styled, t } from '@superset-ui/core';
 import moment from 'moment';
-import { styled, t, SupersetClient } from '@superset-ui/core';
-
-import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
+import React, { useMemo, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import ListView from 'src/components/ListView';
 import SubMenu from 'src/components/Menu/SubMenu';
-import getClientErrorObject from 'src/utils/getClientErrorObject';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { fDuration } from 'src/modules/dates';
-import { useListViewResource } from 'src/views/CRUD/hooks';
-
-import { LogObject } from './types';
+import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
+import {
+  useListViewResource,
+  useSingleViewResource
+} from 'src/views/CRUD/hooks';
+import { AlertObject, LogObject } from './types';
 
 const PAGE_SIZE = 25;
+
+const StyledHeader = styled.div`
+  display: flex;
+  flex-direction: row;
+
+  a,
+  Link {
+    margin-left: 16px;
+    font-size: 12px;
+    font-weight: normal;
+    text-decoration: underline;
+  }
+`;
 
 interface ExecutionLogProps {
   addDangerToast: (msg: string) => void;
@@ -43,7 +56,7 @@ interface ExecutionLogProps {
 function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
   const { alertId }: any = useParams();
   const {
-    state: { loading, resourceCount: LogCount, resourceCollection: logs },
+    state: { loading, resourceCount: logCount, resourceCollection: logs },
     fetchData,
   } = useListViewResource<LogObject>(
     `report/${alertId}/log`,
@@ -51,52 +64,22 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
     addDangerToast,
     false,
   );
-  const [alertName, setAlertName] = useState<string>('');
-  const [executionLogType, setExecutionLogType] = useState<'Report' | 'Alert'>(
-    'Report',
+  const {
+    state: { loading: alertLoading, resource: alertResource },
+    fetchResource,
+  } = useSingleViewResource<AlertObject>(
+    'report',
+    t('reports'),
+    addDangerToast,
   );
-  const StyledHeader = styled.div`
-    display: flex;
-    flex-direction: row;
 
-    a,
-    Link {
-      margin-left: 16px;
-      font-size: 12px;
-      font-weight: normal;
-      text-decoration: underline;
-    }
-  `;
+  const [alert, setAlert] = useState<AlertObject | null>(null);
 
-  let hasHistory = true;
-
-  try {
-    useHistory();
-  } catch (err) {
-    // If error is thrown, we know not to use <Link> in render
-    hasHistory = false;
+  if (alertId !== null && !alert && !alertLoading) {
+    fetchResource(alertId).then(() => {
+      setAlert(alertResource);
+    });
   }
-
-  const fetchAlert = useCallback(
-    async function fetchAlert() {
-      try {
-        const response = await SupersetClient.get({
-          endpoint: `/api/v1/report/${alertId}`,
-        });
-        setAlertName(response.json.result.name);
-        setExecutionLogType(response.json.result.type);
-      } catch (response) {
-        await getClientErrorObject(response).then(({ message }: any) => {
-          addDangerToast(message || t('Sorry, An error occurred'));
-        });
-      }
-    },
-    [alertId],
-  );
-
-  useEffect(() => {
-    fetchAlert();
-  }, [fetchAlert]);
 
   const initialSort = [{ id: 'start_dttm', desc: true }];
   const columns = useMemo(
@@ -152,14 +135,10 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
         name={
           <StyledHeader>
             <span>
-              {t(`${executionLogType}`)} {alertName}
+              {t(`${alert?.type}`)} {alert?.name}
             </span>
             <span>
-              {hasHistory ? (
-                <Link to={path}>Back to all</Link>
-              ) : (
-                <a href={path}>Back to all</a>
-              )}
+              <Link to={path}>Back to all</Link>
             </span>
           </StyledHeader>
         }
@@ -167,7 +146,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
       <ListView<LogObject>
         className="execution-log-list-view"
         columns={columns}
-        count={LogCount}
+        count={logCount}
         data={logs}
         fetchData={fetchData}
         initialSort={initialSort}
