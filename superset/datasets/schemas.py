@@ -75,6 +75,7 @@ class DatasetPostSchema(Schema):
 
 class DatasetPutSchema(Schema):
     table_name = fields.String(allow_none=True, validate=Length(1, 250))
+    database_id = fields.Integer()
     sql = fields.String(allow_none=True)
     filter_select_enabled = fields.Boolean(allow_none=True)
     fetch_values_predicate = fields.String(allow_none=True, validate=Length(0, 1000))
@@ -129,7 +130,7 @@ class ImportV1ColumnSchema(Schema):
     verbose_name = fields.String(allow_none=True)
     is_dttm = fields.Boolean()
     is_active = fields.Boolean(allow_none=True)
-    type = fields.String(required=True)
+    type = fields.String(allow_none=True)
     groupby = fields.Boolean()
     filterable = fields.Boolean()
     expression = fields.String(allow_none=True)
