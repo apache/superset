@@ -74,6 +74,7 @@ class AlertCommand(BaseCommand):
         # check if query returned more then one column
         if len(rows[0]) > 2:
             raise AlertQueryMultipleColumnsError(
+                # len is subtracted by 1 to discard pandas index column
                 _(
                     "Alert query returned more then one column. %s columns returned"
                     % (len(rows[0]) - 1)

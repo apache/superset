@@ -183,7 +183,7 @@ class BaseReportState:
             )
         return NotificationContent(name=name, screenshot=screenshot_data)
 
-    def _send(self) -> None:
+    def send(self) -> None:
         """
         Creates the notification content and sends them to all recipients
 
@@ -216,7 +216,7 @@ class BaseReportState:
             < last_success.end_dttm
         )
 
-    def is_working_timeout(self) -> bool:
+    def is_on_working_timeout(self) -> bool:
         """
         Checks if an alert is on a working timeout
         """
@@ -252,7 +252,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
                 if not AlertCommand(self._report_schedule).run():
                     self.set_state_and_log(ReportState.NOOP)
                     return
-            self._send()
+            self.send()
             self.set_state_and_log(ReportState.SUCCESS)
         except CommandException as ex:
             self.set_state_and_log(ReportState.ERROR, error_message=str(ex))
@@ -270,7 +270,7 @@ class ReportWorkingState(BaseReportState):
     current_states = [ReportState.WORKING]
 
     def next(self) -> None:
-        if self.is_working_timeout():
+        if self.is_on_working_timeout():
             exception_timeout = ReportScheduleWorkingTimeoutError()
             self.set_state_and_log(
                 ReportState.ERROR, error_message=str(exception_timeout),
@@ -309,7 +309,7 @@ class ReportSuccessState(BaseReportState):
             )
             return
         try:
-            self._send()
+            self.send()
             self.set_state_and_log(ReportState.SUCCESS)
         except CommandException as ex:
             self.set_state_and_log(ReportState.ERROR, error_message=str(ex))
