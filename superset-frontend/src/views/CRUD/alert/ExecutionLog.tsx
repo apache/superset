@@ -28,7 +28,7 @@ import { fDuration } from 'src/modules/dates';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import {
   useListViewResource,
-  useSingleViewResource
+  useSingleViewResource,
 } from 'src/views/CRUD/hooks';
 import { AlertObject, LogObject } from './types';
 

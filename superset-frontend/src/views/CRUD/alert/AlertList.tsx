@@ -31,7 +31,7 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import {
   useListViewResource,
-  useSingleViewResource
+  useSingleViewResource,
 } from 'src/views/CRUD/hooks';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import { AlertObject } from './types';
