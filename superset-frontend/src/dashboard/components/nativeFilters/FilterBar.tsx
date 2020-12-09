@@ -23,7 +23,7 @@ import {
   t,
   ExtraFormData,
 } from '@superset-ui/core';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import cx from 'classnames';
 import { Form } from 'src/common/components';
@@ -243,6 +243,39 @@ const FilterControl: React.FC<FilterProps> = ({
   );
 };
 
+interface CascadeFilter extends Filter {
+  cascadeChildren: CascadeFilter[];
+}
+
+interface CascadeFilterControlProps {
+  filter: CascadeFilter;
+  onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
+}
+
+const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
+  filter,
+  onExtraFormDataChange,
+}) => {
+  return (
+    <div>
+      <FilterControl
+        filter={filter}
+        onExtraFormDataChange={onExtraFormDataChange}
+      />
+      <ul>
+        {filter.cascadeChildren?.map(childFilter => (
+          <li>
+            <CascadeFilterControl
+              filter={childFilter}
+              onExtraFormDataChange={onExtraFormDataChange}
+            />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
 const FilterBar: React.FC<FiltersBarProps> = ({
   filtersOpen,
   toggleFiltersBar,
@@ -285,6 +318,31 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     });
   };
 
+  const cascadeFilters = useMemo((): CascadeFilter[] => {
+    const cascadeChildren: { [id: string]: Filter[] } = {};
+    filterConfigs.forEach(filter => {
+      const [parentId] = filter.cascadeParentIds || [];
+      if (parentId) {
+        if (!cascadeChildren[parentId]) {
+          cascadeChildren[parentId] = [];
+        }
+        cascadeChildren[parentId].push(filter);
+      }
+    });
+
+    const getCascadeFilter = (filter: Filter): CascadeFilter => {
+      const children = cascadeChildren[filter.id] || [];
+      return {
+        ...filter,
+        cascadeChildren: children.map(getCascadeFilter),
+      };
+    };
+
+    return filterConfigs
+      .filter(filter => !filter.cascadeParentIds?.length)
+      .map(getCascadeFilter);
+  }, [filterConfigs]);
+
   return (
     <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>
       <CollapsedBar
@@ -300,7 +358,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             {t('Filters')} ({filterConfigs.length})
           </span>
           {canEdit && (
-            <FilterConfigurationLink createNewOnOpen>
+            <FilterConfigurationLink
+              createNewOnOpen={filterConfigs.length === 0}
+            >
               <Icon name="edit" data-test="create-filter" />
             </FilterConfigurationLink>
           )}
@@ -320,8 +380,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           </Button>
         </ActionButtons>
         <FilterControls>
-          {filterConfigs.map(filter => (
-            <FilterControl
+          {cascadeFilters.map(filter => (
+            <CascadeFilterControl
               data-test="filters-control"
               key={filter.id}
               filter={filter}

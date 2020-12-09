@@ -103,6 +103,11 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
     );
   }
 
+  const parentFilterOptions = parentFilters.map(filter => ({
+    value: filter.id,
+    label: filter.title,
+  }));
+
   return (
     <>
       <Form.Item
@@ -154,13 +159,11 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       <Form.Item
         name={['filters', filterId, 'parentFilter']}
         label={t('Parent Filter')}
+        initialValue={parentFilterOptions.find(
+          ({ value }) => value === filterToEdit?.cascadeParentIds[0],
+        )}
       >
-        <Select
-          options={parentFilters.map(filter => ({
-            value: filter.id,
-            label: filter.title,
-          }))}
-        />
+        <Select options={parentFilterOptions} isClearable />
       </Form.Item>
       <Form.Item
         name={['filters', filterId, 'isInstant']}
