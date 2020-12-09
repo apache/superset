@@ -388,7 +388,7 @@ const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const methodOptions = (options || []).map((method: NotificationMethod) => {
     return (
       <Select.Option key={method} value={method}>
-        {method}
+        {t(method)}
       </Select.Option>
     );
   });
@@ -758,9 +758,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Handle input/textarea updates
   const onTextChange = (
-    event:
-      | React.ChangeEvent<HTMLTextAreaElement>
-      | React.ChangeEvent<HTMLInputElement>,
+    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
     const { target } = event;
 
@@ -884,18 +882,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
       fetchResource(id).then(() => {
         if (resource) {
-          setContentType(resource.chart ? 'chart' : 'dashboard');
-
           // Add notification settings
           const settings = (resource.recipients || []).map(setting => ({
             method: setting.type as NotificationMethod,
             // @ts-ignore: Type not assignable
-            recipients: (JSON.parse(setting.recipient_config_json) || {})
-              .target,
+            recipients:
+              typeof setting.recipient_config_json === 'string'
+                ? (JSON.parse(setting.recipient_config_json) || {}).target
+                : setting.recipient_config_json,
             options: NOTIFICATION_METHODS as NotificationMethod[], // Need better logic for this
           }));
 
           setNotificationSettings(settings);
+          setContentType(resource.chart ? 'chart' : 'dashboard');
 
           setCurrentAlert({
             ...resource,
@@ -920,7 +919,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               }`,
             })),
             // @ts-ignore: Type not assignable
-            validator_config_json: JSON.parse(resource.validator_config_json),
+            validator_config_json:
+              typeof resource.validator_config_json === 'string'
+                ? JSON.parse(resource.validator_config_json)
+                : resource.validator_config_json,
           });
         }
       });
@@ -976,12 +978,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   // Dropdown options
   const conditionOptions = CONDITIONS.map(condition => {
     return (
-      <Select.Option value={condition.value}>{condition.label}</Select.Option>
+      <Select.Option value={condition.value}>
+        {t(condition.label)}
+      </Select.Option>
     );
   });
 
   const retentionOptions = RETENTION_OPTIONS.map(option => {
-    return <Select.Option value={option.value}>{option.label}</Select.Option>;
+    return (
+      <Select.Option value={option.value}>{t(option.label)}</Select.Option>
+    );
   });
 
   return (
