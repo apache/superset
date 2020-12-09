@@ -100,12 +100,14 @@ export default class AdhocMetricEditPopover extends React.Component {
   }
 
   onSave() {
-    if (this.props.title.hasCustomLabel) {
-      this.state.adhocMetric.label = this.props.title.label;
-      this.state.adhocMetric.hasCustomLabel = true;
-    }
+    const { label } = this.props.title.hasCustomLabel
+      ? this.props.title.label
+      : this.state.adhocMetric.label;
+    const { hasCustomLabel } = this.props.title.hasCustomLabel;
     this.props.onChange({
       ...this.state.adhocMetric,
+      label,
+      hasCustomLabel,
       // unset isNew here in case save button was clicked when no changes were made
       isNew: false,
     });
