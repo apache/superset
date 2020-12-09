@@ -43,8 +43,8 @@ class CreateDatasetCommand(BaseCommand):
 
     def run(self) -> Model:
         self.validate()
-        # Creates SqlaTable (Dataset)
         try:
+            # Creates SqlaTable (Dataset)
             dataset = DatasetDAO.create(self._properties, commit=False)
             # Updates columns and metrics from the dataset
             dataset.fetch_metadata(commit=False)
