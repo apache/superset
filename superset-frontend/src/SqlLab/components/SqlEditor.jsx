@@ -31,6 +31,7 @@ import Button from 'src/components/Button';
 import Checkbox from 'src/components/Checkbox';
 import Timer from 'src/components/Timer';
 import Hotkeys from 'src/components/Hotkeys';
+import { Dropdown, Menu as AntdMenu } from 'src/common/components';
 
 import LimitControl from './LimitControl';
 import TemplateParamsEditor from './TemplateParamsEditor';
@@ -50,6 +51,35 @@ import {
 import RunQueryActionButton from './RunQueryActionButton';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 import { CtasEnum } from '../actions/sqlLab';
+
+const menuDropdown = (
+  <AntdMenu>
+    <AntdMenu.Item>
+      <a
+        target="_blank"
+        rel="noopener noreferrer"
+        href="http://www.alipay.com/"
+      >
+        1st menu item
+      </a>
+    </AntdMenu.Item>
+    <AntdMenu.Item>
+      <a
+        target="_blank"
+        rel="noopener noreferrer"
+        href="http://www.taobao.com/"
+      >
+        2nd menu item
+      </a>
+    </AntdMenu.Item>
+    <AntdMenu.Item>
+      <a target="_blank" rel="noopener noreferrer" href="http://www.tmall.com/">
+        3rd menu item
+      </a>
+    </AntdMenu.Item>
+    <AntdMenu.Item danger>a danger item</AntdMenu.Item>
+  </AntdMenu>
+);
 
 const SQL_EDITOR_PADDING = 10;
 const INITIAL_NORTH_PERCENT = 30;
@@ -551,6 +581,14 @@ class SqlEditor extends React.PureComponent {
                 maxRow={this.props.maxRow}
                 onChange={this.setQueryLimit.bind(this)}
               />
+              <Dropdown overlay={menuDropdown}>
+                <a
+                  className="ant-dropdown-link"
+                  onClick={e => e.preventDefault()}
+                >
+                  LIMIT DROPDOWN
+                </a>
+              </Dropdown>
             </span>
             <span>
               <Hotkeys header={t('Keyboard shortcuts')} hotkeys={hotkeys} />
