@@ -57,9 +57,7 @@ describe('ChartTable', () => {
       userId: '2',
     },
   };
-  const wrapper = mount(<ChartTable {...mockedProps} />, {
-    context: { store },
-  });
+  const wrapper = mount(<ChartTable store={store} {...mockedProps} />);
   it('it renders', () => {
     expect(wrapper.find(ChartTable)).toExist();
   });
@@ -78,9 +76,7 @@ describe('ChartTable', () => {
 
   it('display EmptyState if there is no data', () => {
     fetchMock.resetHistory();
-    const wrapper = mount(<ChartTable {...mockedProps} />, {
-      context: { store },
-    });
+    const wrapper = mount(<ChartTable store={store} {...mockedProps} />);
     expect(wrapper.find('EmptyState')).toExist();
   });
 });

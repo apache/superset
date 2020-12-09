@@ -20,6 +20,7 @@ import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
+import { Provider } from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 import AnnotationList from 'src/views/CRUD/annotation/AnnotationList';
@@ -74,9 +75,11 @@ jest.mock('react-router-dom', () => ({
 }));
 
 async function mountAndWait(props) {
-  const mounted = mount(<AnnotationList {...props} />, {
-    context: { store },
-  });
+  const mounted = mount(
+    <Provider store={store}>
+      <AnnotationList {...props} />
+    </Provider>,
+  );
   await waitForComponentToPaint(mounted);
 
   return mounted;
