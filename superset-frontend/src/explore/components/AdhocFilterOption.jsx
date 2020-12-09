@@ -115,6 +115,7 @@ class AdhocFilterOption extends React.PureComponent {
           content={overlayContent}
           defaultVisible={this.state.popoverVisible || adhocFilter.isNew}
           visible={this.state.popoverVisible}
+          onVisibleChange={() => this.togglePopover(true)}
           overlayStyle={{ zIndex: 1 }}
         >
           <Label className="option-label adhoc-option adhoc-filter-option">
