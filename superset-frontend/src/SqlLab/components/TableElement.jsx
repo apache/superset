@@ -23,13 +23,13 @@ import shortid from 'shortid';
 import { t } from '@superset-ui/core';
 
 import Fade from 'src/common/components/Fade';
+import { Tooltip } from 'src/common/components/Tooltip';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import Link from '../../components/Link';
 import ColumnElement from './ColumnElement';
 import ShowSQL from './ShowSQL';
 import ModalTrigger from '../../components/ModalTrigger';
 import Loading from '../../components/Loading';
-import { Tooltip } from 'src/common/components/Tooltip';
 
 const propTypes = {
   table: PropTypes.object,
@@ -219,7 +219,7 @@ class TableElement extends React.PureComponent {
             <strong>{table.name}</strong>
           </a>
         </Tooltip>
-        
+
         <div className="pull-right header-right-side">
           {table.isMetadataLoading || table.isExtraMetadataLoading ? (
             <Loading position="inline" />
