@@ -170,7 +170,7 @@ function AlertList({
           const history = useHistory();
           const handleEdit = () => {}; // handleAnnotationEdit(original);
           const handleDelete = () => {}; // setAlertCurrentlyDeleting(original);
-          const hanldGotoExecutionLog = () =>
+          const hanldeGotoExecutionLog = () =>
             history.push(`/${original.type.toLowerCase()}/${original.id}/log`);
 
           const actions = [
@@ -180,7 +180,7 @@ function AlertList({
                   tooltip: t('Execution Log'),
                   placement: 'bottom',
                   icon: 'note' as IconName,
-                  onClick: hanldGotoExecutionLog,
+                  onClick: hanldeGotoExecutionLog,
                 }
               : null,
             canEdit
