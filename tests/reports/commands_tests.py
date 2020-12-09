@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 from unittest.mock import patch
 
@@ -29,12 +29,12 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.reports import (
     ReportExecutionLog,
-    ReportLogState,
     ReportRecipients,
     ReportRecipientType,
     ReportSchedule,
     ReportScheduleType,
     ReportScheduleValidatorType,
+    ReportState,
 )
 from superset.models.slice import Slice
 from superset.reports.commands.exceptions import (
@@ -43,6 +43,7 @@ from superset.reports.commands.exceptions import (
     ReportScheduleNotFoundError,
     ReportScheduleNotificationError,
     ReportSchedulePreviousWorkingError,
+    ReportScheduleWorkingTimeoutError,
 )
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
 from superset.utils.core import get_example_database
@@ -61,9 +62,16 @@ def get_target_from_report_schedule(report_schedule) -> List[str]:
 def assert_log(state: str, error_message: Optional[str] = None):
     db.session.commit()
     logs = db.session.query(ReportExecutionLog).all()
-    assert len(logs) == 1
-    assert logs[0].error_message == error_message
-    assert logs[0].state == state
+    if state == ReportState.WORKING:
+        assert len(logs) == 1
+        assert logs[0].error_message == error_message
+        assert logs[0].state == state
+        return
+    assert len(logs) == 2
+    log_states = [log.state for log in logs]
+    assert ReportState.WORKING in log_states
+    assert state in log_states
+    assert error_message in [log.error_message for log in logs]
 
 
 def create_report_notification(
@@ -107,6 +115,18 @@ def create_report_notification(
     return report_schedule
 
 
+def cleanup_report_schedule(report_schedule: ReportSchedule) -> None:
+    db.session.query(ReportExecutionLog).filter(
+        ReportExecutionLog.report_schedule == report_schedule
+    ).delete()
+    db.session.query(ReportRecipients).filter(
+        ReportRecipients.report_schedule == report_schedule
+    ).delete()
+
+    db.session.delete(report_schedule)
+    db.session.commit()
+
+
 @pytest.yield_fixture()
 def create_report_email_chart():
     with app.app_context():
@@ -116,8 +136,7 @@ def create_report_email_chart():
         )
         yield report_schedule
 
-        db.session.delete(report_schedule)
-        db.session.commit()
+        cleanup_report_schedule(report_schedule)
 
 
 @pytest.yield_fixture()
@@ -129,8 +148,7 @@ def create_report_email_dashboard():
         )
         yield report_schedule
 
-        db.session.delete(report_schedule)
-        db.session.commit()
+        cleanup_report_schedule(report_schedule)
 
 
 @pytest.yield_fixture()
@@ -142,8 +160,7 @@ def create_report_slack_chart():
         )
         yield report_schedule
 
-        db.session.delete(report_schedule)
-        db.session.commit()
+        cleanup_report_schedule(report_schedule)
 
 
 @pytest.yield_fixture()
@@ -153,12 +170,64 @@ def create_report_slack_chart_working():
         report_schedule = create_report_notification(
             slack_channel="slack_channel", chart=chart
         )
-        report_schedule.last_state = ReportLogState.WORKING
+        report_schedule.last_state = ReportState.WORKING
+        report_schedule.last_eval_dttm = datetime(2020, 1, 1, 0, 0)
         db.session.commit()
         yield report_schedule
 
-        db.session.delete(report_schedule)
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.yield_fixture()
+def create_alert_slack_chart_success():
+    with app.app_context():
+        chart = db.session.query(Slice).first()
+        report_schedule = create_report_notification(
+            slack_channel="slack_channel",
+            chart=chart,
+            report_type=ReportScheduleType.ALERT,
+        )
+        report_schedule.last_state = ReportState.SUCCESS
+        report_schedule.last_eval_dttm = datetime(2020, 1, 1, 0, 0)
+
+        log = ReportExecutionLog(
+            report_schedule=report_schedule,
+            state=ReportState.SUCCESS,
+            start_dttm=report_schedule.last_eval_dttm,
+            end_dttm=report_schedule.last_eval_dttm,
+            scheduled_dttm=report_schedule.last_eval_dttm,
+        )
+        db.session.add(log)
         db.session.commit()
+        yield report_schedule
+
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.yield_fixture()
+def create_alert_slack_chart_grace():
+    with app.app_context():
+        chart = db.session.query(Slice).first()
+        report_schedule = create_report_notification(
+            slack_channel="slack_channel",
+            chart=chart,
+            report_type=ReportScheduleType.ALERT,
+        )
+        report_schedule.last_state = ReportState.GRACE
+        report_schedule.last_eval_dttm = datetime(2020, 1, 1, 0, 0)
+
+        log = ReportExecutionLog(
+            report_schedule=report_schedule,
+            state=ReportState.SUCCESS,
+            start_dttm=report_schedule.last_eval_dttm,
+            end_dttm=report_schedule.last_eval_dttm,
+            scheduled_dttm=report_schedule.last_eval_dttm,
+        )
+        db.session.add(log)
+        db.session.commit()
+        yield report_schedule
+
+        cleanup_report_schedule(report_schedule)
 
 
 @pytest.yield_fixture(
@@ -217,8 +286,7 @@ def create_alert_email_chart(request):
         )
         yield report_schedule
 
-        db.session.delete(report_schedule)
-        db.session.commit()
+        cleanup_report_schedule(report_schedule)
 
 
 @contextmanager
@@ -291,8 +359,7 @@ def create_no_alert_email_chart(request):
             )
             yield report_schedule
 
-            db.session.delete(report_schedule)
-            db.session.commit()
+            cleanup_report_schedule(report_schedule)
 
 
 @pytest.yield_fixture(params=["alert1", "alert2"])
@@ -327,17 +394,7 @@ def create_mul_alert_email_chart(request):
             )
             yield report_schedule
 
-            # needed for MySQL
-            logs = (
-                db.session.query(ReportExecutionLog)
-                .filter(ReportExecutionLog.report_schedule == report_schedule)
-                .all()
-            )
-            for log in logs:
-                db.session.delete(log)
-            db.session.commit()
-            db.session.delete(report_schedule)
-            db.session.commit()
+            cleanup_report_schedule(report_schedule)
 
 
 @pytest.mark.usefixtures("create_report_email_chart")
@@ -367,7 +424,7 @@ def test_email_chart_report_schedule(
         smtp_images = email_mock.call_args[1]["images"]
         assert smtp_images[list(smtp_images.keys())[0]] == screenshot
         # Assert logs are correct
-        assert_log(ReportLogState.SUCCESS)
+        assert_log(ReportState.SUCCESS)
 
 
 @pytest.mark.usefixtures("create_report_email_dashboard")
@@ -397,7 +454,7 @@ def test_email_dashboard_report_schedule(
         smtp_images = email_mock.call_args[1]["images"]
         assert smtp_images[list(smtp_images.keys())[0]] == screenshot
         # Assert logs are correct
-        assert_log(ReportLogState.SUCCESS)
+        assert_log(ReportState.SUCCESS)
 
 
 @pytest.mark.usefixtures("create_report_slack_chart")
@@ -425,7 +482,7 @@ def test_slack_chart_report_schedule(
         assert file_upload_mock.call_args[1]["file"] == screenshot
 
         # Assert logs are correct
-        assert_log(ReportLogState.SUCCESS)
+        assert_log(ReportState.SUCCESS)
 
 
 @pytest.mark.usefixtures("create_report_slack_chart")
@@ -444,15 +501,81 @@ def test_report_schedule_working(create_report_slack_chart_working):
     ExecuteReport Command: Test report schedule still working
     """
     # setup screenshot mock
-    with pytest.raises(ReportSchedulePreviousWorkingError):
+    with freeze_time("2020-01-01T00:00:00Z"):
+        with pytest.raises(ReportSchedulePreviousWorkingError):
+            AsyncExecuteReportScheduleCommand(
+                create_report_slack_chart_working.id, datetime.utcnow()
+            ).run()
+
+        assert_log(
+            ReportState.WORKING,
+            error_message=ReportSchedulePreviousWorkingError.message,
+        )
+        assert create_report_slack_chart_working.last_state == ReportState.WORKING
+
+
+@pytest.mark.usefixtures("create_report_slack_chart_working")
+def test_report_schedule_working_timeout(create_report_slack_chart_working):
+    """
+    ExecuteReport Command: Test report schedule still working but should timed out
+    """
+    # setup screenshot mock
+    current_time = create_report_slack_chart_working.last_eval_dttm + timedelta(
+        seconds=create_report_slack_chart_working.working_timeout + 1
+    )
+
+    with freeze_time(current_time):
+        with pytest.raises(ReportScheduleWorkingTimeoutError):
+            AsyncExecuteReportScheduleCommand(
+                create_report_slack_chart_working.id, datetime.utcnow()
+            ).run()
+
+    # Only needed for MySQL, understand why
+    db.session.commit()
+    logs = db.session.query(ReportExecutionLog).all()
+    assert len(logs) == 1
+    assert logs[0].error_message == ReportScheduleWorkingTimeoutError.message
+    assert logs[0].state == ReportState.ERROR
+
+    assert create_report_slack_chart_working.last_state == ReportState.ERROR
+
+
+@pytest.mark.usefixtures("create_alert_slack_chart_success")
+def test_report_schedule_success_grace(create_alert_slack_chart_success):
+    """
+    ExecuteReport Command: Test report schedule on success to grace
+    """
+    # set current time to within the grace period
+    current_time = create_alert_slack_chart_success.last_eval_dttm + timedelta(
+        seconds=create_alert_slack_chart_success.grace_period - 10
+    )
+
+    with freeze_time(current_time):
         AsyncExecuteReportScheduleCommand(
-            create_report_slack_chart_working.id, datetime.utcnow()
+            create_alert_slack_chart_success.id, datetime.utcnow()
         ).run()
 
-    assert_log(
-        ReportLogState.ERROR, error_message=ReportSchedulePreviousWorkingError.message
+    db.session.commit()
+    assert create_alert_slack_chart_success.last_state == ReportState.GRACE
+
+
+@pytest.mark.usefixtures("create_alert_slack_chart_grace")
+def test_report_schedule_success_grace_end(create_alert_slack_chart_grace):
+    """
+    ExecuteReport Command: Test report schedule on grace to noop
+    """
+    # set current time to within the grace period
+    current_time = create_alert_slack_chart_grace.last_eval_dttm + timedelta(
+        seconds=create_alert_slack_chart_grace.grace_period + 1
     )
-    assert create_report_slack_chart_working.last_state == ReportLogState.WORKING
+
+    with freeze_time(current_time):
+        AsyncExecuteReportScheduleCommand(
+            create_alert_slack_chart_grace.id, datetime.utcnow()
+        ).run()
+
+    db.session.commit()
+    assert create_alert_slack_chart_grace.last_state == ReportState.NOOP
 
 
 @pytest.mark.usefixtures("create_report_email_dashboard")
@@ -476,7 +599,7 @@ def test_email_dashboard_report_fails(
             create_report_email_dashboard.id, datetime.utcnow()
         ).run()
 
-    assert_log(ReportLogState.ERROR, error_message="Could not connect to SMTP XPTO")
+    assert_log(ReportState.ERROR, error_message="Could not connect to SMTP XPTO")
 
 
 @pytest.mark.usefixtures("create_alert_email_chart")
@@ -502,7 +625,7 @@ def test_slack_chart_alert(screenshot_mock, email_mock, create_alert_email_chart
         smtp_images = email_mock.call_args[1]["images"]
         assert smtp_images[list(smtp_images.keys())[0]] == screenshot
         # Assert logs are correct
-        assert_log(ReportLogState.SUCCESS)
+        assert_log(ReportState.SUCCESS)
 
 
 @pytest.mark.usefixtures("create_no_alert_email_chart")
@@ -514,7 +637,7 @@ def test_email_chart_no_alert(create_no_alert_email_chart):
         AsyncExecuteReportScheduleCommand(
             create_no_alert_email_chart.id, datetime.utcnow()
         ).run()
-    assert_log(ReportLogState.NOOP)
+    assert_log(ReportState.NOOP)
 
 
 @pytest.mark.usefixtures("create_mul_alert_email_chart")
