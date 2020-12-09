@@ -17,24 +17,30 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 
-import ModalTrigger from '../../components/ModalTrigger';
+import ModalTrigger from 'src/components/ModalTrigger';
 
-const propTypes = {
-  triggerNode: PropTypes.node.isRequired,
-  code: PropTypes.string,
-  codeCallback: PropTypes.func,
+type CodeModalProps = {
+  triggerNode: JSX.Element;
+  code?: string;
+  codeCallback: () => string;
 };
 
-const defaultProps = {
-  codeCallback: () => {},
-  code: '',
+type CodeModalState = {
+  code?: string;
 };
 
-export default class CodeModal extends React.PureComponent {
-  constructor(props) {
+export default class CodeModal extends React.PureComponent<
+  CodeModalProps,
+  CodeModalState
+> {
+  static defaultProps = {
+    codeCallback: () => {},
+    code: '',
+  };
+
+  constructor(props: CodeModalProps) {
     super(props);
     this.state = { code: props.code };
     this.beforeOpen = this.beforeOpen.bind(this);
@@ -64,5 +70,3 @@ export default class CodeModal extends React.PureComponent {
     );
   }
 }
-CodeModal.propTypes = propTypes;
-CodeModal.defaultProps = defaultProps;
