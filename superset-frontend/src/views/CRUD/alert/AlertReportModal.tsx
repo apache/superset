@@ -102,6 +102,7 @@ const StyledIcon = styled(Icon)`
 
 const StyledSectionContainer = styled.div`
   display: flex;
+  min-width: 1000px;
   flex-direction: column;
 
   .header-section {
@@ -506,7 +507,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Alert fetch logic
   const {
-    state: { loading, resource },
+    state: { loading, resource, error: fetchError },
     fetchResource,
     createResource,
     updateResource,
@@ -877,55 +878,58 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       (alert && alert.id !== currentAlert.id) ||
       (isHidden && show))
   ) {
-    if (alert && alert.id !== null && !loading) {
+    if (alert && alert.id !== null && !loading && !fetchError) {
       const id = alert.id || 0;
 
-      fetchResource(id).then(() => {
-        if (resource) {
-          // Add notification settings
-          const settings = (resource.recipients || []).map(setting => ({
-            method: setting.type as NotificationMethod,
-            // @ts-ignore: Type not assignable
-            recipients:
-              typeof setting.recipient_config_json === 'string'
-                ? (JSON.parse(setting.recipient_config_json) || {}).target
-                : setting.recipient_config_json,
-            options: NOTIFICATION_METHODS as NotificationMethod[], // Need better logic for this
-          }));
+      fetchResource(id)
+        .then(() => {
+          if (resource) {
+            console.log('resource???', resource);
+            // Add notification settings
+            const settings = (resource.recipients || []).map(setting => ({
+              method: setting.type as NotificationMethod,
+              // @ts-ignore: Type not assignable
+              recipients:
+                typeof setting.recipient_config_json === 'string'
+                  ? (JSON.parse(setting.recipient_config_json) || {}).target
+                  : setting.recipient_config_json,
+              options: NOTIFICATION_METHODS as NotificationMethod[], // Need better logic for this
+            }));
 
-          setNotificationSettings(settings);
-          setContentType(resource.chart ? 'chart' : 'dashboard');
+            setNotificationSettings(settings);
+            setContentType(resource.chart ? 'chart' : 'dashboard');
 
-          setCurrentAlert({
-            ...resource,
-            chart: resource.chart
-              ? getChartData(resource.chart) || { value: resource.chart.id }
-              : undefined,
-            dashboard: resource.dashboard
-              ? getDashboardData(resource.dashboard) || {
-                  value: resource.dashboard.id,
-                }
-              : undefined,
-            database: resource.database
-              ? getSourceData(resource.database) || {
-                  value: resource.database.id,
-                }
-              : undefined,
-            // log_retention: { value: resource.log_retention },
-            owners: (resource.owners || []).map(owner => ({
-              value: owner.id,
-              label: `${(owner as Owner).first_name} ${
-                (owner as Owner).last_name
-              }`,
-            })),
-            // @ts-ignore: Type not assignable
-            validator_config_json:
-              typeof resource.validator_config_json === 'string'
-                ? JSON.parse(resource.validator_config_json)
-                : resource.validator_config_json,
-          });
-        }
-      });
+            setCurrentAlert({
+              ...resource,
+              chart: resource.chart
+                ? getChartData(resource.chart) || { value: resource.chart.id }
+                : undefined,
+              dashboard: resource.dashboard
+                ? getDashboardData(resource.dashboard) || {
+                    value: resource.dashboard.id,
+                  }
+                : undefined,
+              database: resource.database
+                ? getSourceData(resource.database) || {
+                    value: resource.database.id,
+                  }
+                : undefined,
+              // log_retention: { value: resource.log_retention },
+              owners: (resource.owners || []).map(owner => ({
+                value: owner.id,
+                label: `${(owner as Owner).first_name} ${
+                  (owner as Owner).last_name
+                }`,
+              })),
+              // @ts-ignore: Type not assignable
+              validator_config_json:
+                typeof resource.validator_config_json === 'string'
+                  ? JSON.parse(resource.validator_config_json)
+                  : resource.validator_config_json,
+            });
+          }
+        })
+        .catch(console.log);
     }
   } else if (
     !isEditMode &&
