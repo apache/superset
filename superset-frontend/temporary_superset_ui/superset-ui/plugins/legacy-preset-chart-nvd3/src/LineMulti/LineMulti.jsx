@@ -20,7 +20,7 @@
 import d3 from 'd3';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { isEqual } from 'lodash';
+import { isEqual, cloneDeep } from 'lodash';
 import { getExploreLongUrl } from '../vendor/superset/exploreUtils';
 import ReactNVD3 from '../ReactNVD3';
 import transformProps from '../transformProps';
@@ -61,7 +61,7 @@ function getJson(url) {
 class LineMulti extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { queryData: false };
+    this.state = { queryData: {} };
   }
 
   componentDidMount() {
@@ -153,7 +153,7 @@ class LineMulti extends React.Component {
       <ReactNVD3
         {...transformProps({
           ...this.props,
-          queryData,
+          queryData: cloneDeep(queryData),
         })}
       />
     );
