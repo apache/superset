@@ -79,10 +79,6 @@ class AsyncQueryManager:
 
     def init_app(self, app: Flask) -> None:
         config = app.config
-        print('************** config["CACHE_CONFIG"]')
-        print(config["CACHE_CONFIG"])
-        print('************** config["DATA_CACHE_CONFIG"]')
-        print(config["DATA_CACHE_CONFIG"])
         if (
             config["CACHE_CONFIG"]["CACHE_TYPE"] == "null"
             or config["DATA_CACHE_CONFIG"]["CACHE_TYPE"] == "null"
