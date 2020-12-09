@@ -666,7 +666,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         col["type"] = db_engine_spec.column_datatype_to_string(
                             col["type"], db_dialect
                         )
-                except CompileError:
+                # Broad exception catch, because there are multiple possible exceptions
+                # from different drivers that fall outside CompileError
+                except Exception:
                     col["type"] = "UNKNOWN"
         return cols
 

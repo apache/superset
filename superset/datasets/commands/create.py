@@ -45,20 +45,28 @@ class CreateDatasetCommand(BaseCommand):
 
     def run(self) -> Model:
         self.validate()
+        # Creates SqlaTable (Dataset)
+        dataset = DatasetDAO.create(self._properties, commit=False)
+
         try:
-            # Creates SqlaTable (Dataset)
-            dataset = DatasetDAO.create(self._properties, commit=False)
             # Updates columns and metrics from the dataset
             dataset.fetch_metadata(commit=False)
-            # Add datasource access permission
+        # Broad exception catch, because there are multiple possible exceptions
+        # from different drivers
+        except Exception as ex:
+            logger.exception(ex)
+            db.session.rollback()
+
+        # Add datasource access permission
+        security_manager.add_permission_view_menu(
+            "datasource_access", dataset.get_perm()
+        )
+        # Add schema access permission if exists
+        if dataset.schema:
             security_manager.add_permission_view_menu(
-                "datasource_access", dataset.get_perm()
+                "schema_access", dataset.schema_perm
             )
-            # Add schema access permission if exists
-            if dataset.schema:
-                security_manager.add_permission_view_menu(
-                    "schema_access", dataset.schema_perm
-                )
+        try:
             db.session.commit()
         except (SQLAlchemyError, DAOCreateFailedError) as ex:
             logger.exception(ex)
