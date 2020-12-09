@@ -195,7 +195,7 @@ export const DataTablesPane = ({
         <TableView
           columns={columns[type]}
           data={filteredData[type]}
-          withPagination={false}
+          withPagination={true}
           noDataText={t('No data')}
           emptyWrapperType={EmptyWrapperType.Small}
           className="table-condensed"
