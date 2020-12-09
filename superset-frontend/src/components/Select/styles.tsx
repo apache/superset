@@ -27,8 +27,7 @@ import {
   InputProps as ReactSelectInputProps,
 } from 'react-select';
 import { Props as SelectProps } from 'react-select/src/Select';
-import { colors as reactSelectColros } from 'react-select/src/theme';
-import { supersetColors } from 'src/components/styles';
+import { colors as reactSelectColors } from 'react-select/src/theme';
 import { DeepNonNullable } from 'react-select/src/components';
 import { OptionType } from 'antd/lib/select';
 import { SupersetStyledSelectProps } from './SupersetStyledSelect';
@@ -40,6 +39,30 @@ type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;
 };
 
+const themeColors = {
+  primary: supersetTheme.colors.success.base,
+  danger: supersetTheme.colors.error.base,
+  warning: supersetTheme.colors.warning.base,
+  indicator: supersetTheme.colors.info.base,
+  almostBlack: supersetTheme.colors.grayscale.dark1,
+  grayDark: supersetTheme.colors.grayscale.dark1,
+  grayLight: supersetTheme.colors.grayscale.light2,
+  gray: supersetTheme.colors.grayscale.light1,
+  grayBg: supersetTheme.colors.grayscale.light4,
+  grayBgDarker: supersetTheme.colors.grayscale.light3,
+  grayBgDarkest: supersetTheme.colors.grayscale.light2,
+  grayHeading: supersetTheme.colors.grayscale.light1,
+  menuHover: supersetTheme.colors.grayscale.light3,
+  lightest: supersetTheme.colors.grayscale.light5,
+  darkest: supersetTheme.colors.grayscale.dark2,
+  grayBorder: supersetTheme.colors.grayscale.light2,
+  grayBorderLight: supersetTheme.colors.grayscale.light3,
+  grayBorderDark: supersetTheme.colors.grayscale.light1,
+  textDefault: supersetTheme.colors.grayscale.dark1,
+  textDarkest: supersetTheme.colors.grayscale.dark2,
+  dangerLight: supersetTheme.colors.error.light1,
+};
+
 export type ThemeConfig = {
   borderRadius: number;
   // z-index for menu dropdown
@@ -47,10 +70,10 @@ export type ThemeConfig = {
   zIndex: number;
   colors: {
     // add known colors
-    [key in keyof typeof reactSelectColros]: string;
+    [key in keyof typeof reactSelectColors]: string;
   } &
     {
-      [key in keyof typeof supersetColors]: string;
+      [key in keyof typeof themeColors]: string;
     } & {
       [key: string]: string; // any other colors
     };
@@ -69,10 +92,7 @@ export type PartialThemeConfig = RecursivePartial<ThemeConfig>;
 export const DEFAULT_THEME: PartialThemeConfig = {
   borderRadius: supersetTheme.borderRadius,
   zIndex: 11,
-  colors: {
-    ...supersetColors,
-    dangerLight: supersetColors.warning,
-  },
+  colors: themeColors,
   spacing: {
     baseUnit: 3,
     menuGutter: 0,
