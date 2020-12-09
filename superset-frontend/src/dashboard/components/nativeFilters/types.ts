@@ -34,6 +34,10 @@ interface NativeFiltersFormItem {
   };
   column: string;
   defaultValue: string;
+  parentFilter: {
+    value: string;
+    label: string;
+  };
   inverseSelection: boolean;
   isInstant: boolean;
   allowsMultipleValues: boolean;

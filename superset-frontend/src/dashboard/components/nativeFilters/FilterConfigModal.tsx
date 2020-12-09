@@ -27,7 +27,6 @@ import { StyledModal } from 'src/common/components/Modal';
 import { LineEditableTabs } from 'src/common/components/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { usePrevious } from 'src/common/hooks/usePrevious';
-import ErrorBoundary from 'src/components/ErrorBoundary';
 import { useFilterConfigMap, useFilterConfiguration } from './state';
 import FilterConfigForm from './FilterConfigForm';
 import { FilterConfiguration, NativeFiltersForm } from './types';
@@ -251,6 +250,15 @@ export function FilterConfigModal({
     );
   }
 
+  function getParentFilters(id: string) {
+    return filterIds
+      .filter(filterId => filterId !== id && !removedFilters[filterId])
+      .map(id => ({
+        id,
+        title: getFilterTitle(id),
+      }));
+  }
+
   const validateForm = useCallback(async () => {
     try {
       return (await form.validateFields()) as NativeFiltersForm;
@@ -289,7 +297,6 @@ export function FilterConfigModal({
         if (!formInputs) return filterConfigMap[id];
         return {
           id,
-          cascadeParentIds: [],
           name: formInputs.name,
           type: 'text',
           // for now there will only ever be one target
@@ -302,6 +309,9 @@ export function FilterConfigModal({
             },
           ],
           defaultValue: formInputs.defaultValue || null,
+          cascadeParentIds: formInputs.parentFilter
+            ? [formInputs.parentFilter.value]
+            : [],
           scope: {
             rootPath: [DASHBOARD_ROOT_ID],
             excluded: [],
@@ -388,6 +398,7 @@ export function FilterConfigModal({
                   filterToEdit={filterConfigMap[id]}
                   removed={!!removedFilters[id]}
                   restore={restoreFilter}
+                  parentFilters={getParentFilters(id)}
                 />
               </LineEditableTabs.TabPane>
             ))}
