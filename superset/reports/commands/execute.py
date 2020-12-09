@@ -40,6 +40,7 @@ from superset.reports.commands.exceptions import (
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleSelleniumUserNotFoundError,
+    ReportScheduleStateNotFoundError,
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
 )
@@ -332,6 +333,7 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
         self._scheduled_dttm = scheduled_dttm
 
     def run(self) -> None:
+        state_found = False
         for state_cls in self.states_cls:
             if (self._report_schedule.last_state is None and state_cls.initial) or (
                 self._report_schedule.last_state in state_cls.current_states
@@ -339,7 +341,10 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
                 state_cls(
                     self._session, self._report_schedule, self._scheduled_dttm
                 ).next()
+                state_found = True
                 break
+        if not state_found:
+            raise ReportScheduleStateNotFoundError()
 
 
 class AsyncExecuteReportScheduleCommand(BaseCommand):

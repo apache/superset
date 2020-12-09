@@ -166,5 +166,9 @@ class ReportScheduleSelleniumUserNotFoundError(CommandException):
     message = _("Report Schedule sellenium user not found")
 
 
+class ReportScheduleStateNotFoundError(CommandException):
+    message = _("Report Schedule state not found")
+
+
 class ReportScheduleUnexpectedError(CommandException):
     message = _("Report schedule unexpected error")

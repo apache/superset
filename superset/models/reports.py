@@ -113,7 +113,7 @@ class ReportSchedule(Model, AuditMixinNullable):
 
     # (Alerts) Stamped last observations
     last_eval_dttm = Column(DateTime)
-    last_state = Column(String(50))
+    last_state = Column(String(50), default=ReportState.NOOP)
     last_value = Column(Float)
     last_value_row_json = Column(Text)
 
