@@ -37,6 +37,7 @@ import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import TooltipWrapper from 'src/components/TooltipWrapper';
+import ImportDashboardModal from 'src/dashboard/components/ImportModal/index';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
 import DashboardCard from './DashboardCard';
@@ -92,6 +93,22 @@ function DashboardList(props: DashboardListProps) {
   const [dashboardToEdit, setDashboardToEdit] = useState<Dashboard | null>(
     null,
   );
+
+  const [importingDashboard, showImportModal] = useState<boolean>(false);
+  const [passwordFields, setPasswordFields] = useState<string[]>([]);
+
+  function openDashboardImportModal() {
+    showImportModal(true);
+  }
+
+  function closeDashboardImportModal() {
+    showImportModal(false);
+  }
+
+  const handleDashboardImport = () => {
+    showImportModal(false);
+    refreshData();
+  };
 
   const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
@@ -439,6 +456,13 @@ function DashboardList(props: DashboardListProps) {
       },
     });
   }
+  if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+    subMenuButtons.push({
+      name: <Icon name="import" />,
+      buttonStyle: 'link',
+      onClick: openDashboardImportModal,
+    });
+  }
   return (
     <>
       <SubMenu name={t('Dashboards')} buttons={subMenuButtons} />
@@ -502,6 +526,16 @@ function DashboardList(props: DashboardListProps) {
           );
         }}
       </ConfirmStatusChange>
+      <ImportDashboardModal
+        show={importingDashboard}
+        onHide={closeDashboardImportModal}
+        addDangerToast={props.addDangerToast}
+        addSuccessToast={props.addSuccessToast}
+        onDashboardImport={handleDashboardImport}
+        passwordFields={passwordFields}
+        setPasswordFields={setPasswordFields}
+      />
+      :
     </>
   );
 }
