@@ -595,7 +595,7 @@ class SqlEditor extends React.PureComponent {
           in={!this.props.hideLeftBar}
           timeout={300}
         >
-          <div className="schemaPane col-sm-4">
+          <div className="schemaPane">
             <SqlEditorLeftBar
               database={this.props.database}
               queryEditor={this.props.queryEditor}

@@ -29,6 +29,7 @@ import ColumnElement from './ColumnElement';
 import ShowSQL from './ShowSQL';
 import ModalTrigger from '../../components/ModalTrigger';
 import Loading from '../../components/Loading';
+import { Tooltip } from 'src/common/components/Tooltip';
 
 const propTypes = {
   table: PropTypes.object,
@@ -201,15 +202,24 @@ class TableElement extends React.PureComponent {
     const { table } = this.props;
     return (
       <div className="clearfix header-container">
-        <a
-          href="#"
-          className="table-name"
-          onClick={e => {
-            this.toggleTable(e);
-          }}
+        <Tooltip
+          id="copy-to-clipboard-tooltip"
+          placement="top"
+          style={{ cursor: 'pointer' }}
+          title={table.name}
+          trigger={['hover']}
         >
-          <strong>{table.name}</strong>
-        </a>
+          <a
+            href="#"
+            className="table-name"
+            onClick={e => {
+              this.toggleTable(e);
+            }}
+          >
+            <strong>{table.name}</strong>
+          </a>
+        </Tooltip>
+        
         <div className="pull-right header-right-side">
           {table.isMetadataLoading || table.isExtraMetadataLoading ? (
             <Loading position="inline" />
