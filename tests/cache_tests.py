@@ -35,6 +35,7 @@ class TestCache(SupersetTestCase):
         cache_manager.data_cache.clear()
 
     def test_no_data_cache(self):
+        data_cache_config = app.config["DATA_CACHE_CONFIG"]
         app.config["DATA_CACHE_CONFIG"] = {"CACHE_TYPE": "null"}
         cache_manager.init_app(app)
 
@@ -48,11 +49,14 @@ class TestCache(SupersetTestCase):
         resp_from_cache = self.get_json_resp(
             json_endpoint, {"form_data": json.dumps(slc.viz.form_data)}
         )
+        # restore DATA_CACHE_CONFIG
+        app.config["DATA_CACHE_CONFIG"] = data_cache_config
         self.assertFalse(resp["is_cached"])
         self.assertFalse(resp_from_cache["is_cached"])
 
     def test_slice_data_cache(self):
         # Override cache config
+        data_cache_config = app.config["DATA_CACHE_CONFIG"]
         app.config["CACHE_DEFAULT_TIMEOUT"] = 100
         app.config["DATA_CACHE_CONFIG"] = {
             "CACHE_TYPE": "simple",
@@ -87,5 +91,5 @@ class TestCache(SupersetTestCase):
         self.assertIsNone(cache_manager.cache.get(resp_from_cache["cache_key"]))
 
         # reset cache config
-        app.config["DATA_CACHE_CONFIG"] = {"CACHE_TYPE": "null"}
+        app.config["DATA_CACHE_CONFIG"] = data_cache_config
         cache_manager.init_app(app)

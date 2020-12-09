@@ -79,7 +79,22 @@ class AsyncQueryManager:
 
     def init_app(self, app: Flask) -> None:
         config = app.config
-        if len(config.get("GLOBAL_ASYNC_QUERIES_JWT_SECRET", "")) < 32:
+        print('************** config["CACHE_CONFIG"]')
+        print(config["CACHE_CONFIG"])
+        print('************** config["DATA_CACHE_CONFIG"]')
+        print(config["DATA_CACHE_CONFIG"])
+        if (
+            config["CACHE_CONFIG"]["CACHE_TYPE"] == "null"
+            or config["DATA_CACHE_CONFIG"]["CACHE_TYPE"] == "null"
+        ):
+            raise Exception(
+                """
+                Cache backends (CACHE_CONFIG, DATA_CACHE_CONFIG) must be configured
+                and non-null in order to enable async queries
+                """
+            )
+
+        if len(config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]) < 32:
             raise AsyncQueryTokenException(
                 "Please provide a JWT secret at least 32 bytes long"
             )

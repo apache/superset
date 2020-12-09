@@ -17,9 +17,9 @@
  * under the License.
  */
 import { Middleware, MiddlewareAPI, Dispatch } from 'redux';
-import { SupersetClient } from '@superset-ui/core';
+import { makeApi, SupersetClient } from '@superset-ui/core';
 import { SupersetError } from 'src/components/ErrorMessage/types';
-import { isFeatureEnabled, FeatureFlag } from '../featureFlags';
+import { getFeatureFlag, isFeatureEnabled, FeatureFlag } from '../featureFlags';
 import {
   getClientErrorObject,
   parseErrorJson,
@@ -49,7 +49,11 @@ type CachedDataResponse = {
 };
 
 const initAsyncEvents = (options: AsyncEventOptions) => {
-  const POLLING_DELAY = 250;
+  // TODO: implement websocket support
+  const TRANSPORT_POLLING = 'polling';
+  const config = getFeatureFlag(FeatureFlag.GLOBAL_ASYNC_QUERIES_OPTIONS) || {};
+  const transport = config.transport || TRANSPORT_POLLING;
+  const polling_delay = config.polling_delay || 500;
   const {
     getPendingComponents,
     successAction,
@@ -76,18 +80,13 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
       console.warn('failed to fetch last event Id from localStorage');
     }
 
-    const fetchEvents = async (
-      lastEventId: string | null,
-    ): Promise<AsyncEvent[]> => {
-      const url = lastEventId
-        ? `${POLLING_URL}?last_id=${lastEventId}`
-        : POLLING_URL;
-      const { json } = await SupersetClient.get({
-        endpoint: url,
-      });
-
-      return json.result;
-    };
+    const fetchEvents = makeApi<
+      { last_id?: string | null },
+      { result: AsyncEvent[] }
+    >({
+      method: 'GET',
+      endpoint: POLLING_URL,
+    });
 
     const fetchCachedData = async (
       asyncEvent: AsyncEvent,
@@ -120,10 +119,13 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
     const processEvents = async () => {
       const state = store.getState();
       const queuedComponents = getPendingComponents(state);
-      let events: AsyncEvent[] = [];
+      const eventArgs = lastReceivedEventId
+        ? { last_id: lastReceivedEventId }
+        : {};
+      const events: AsyncEvent[] = [];
       if (queuedComponents && queuedComponents.length) {
         try {
-          events = await fetchEvents(lastReceivedEventId);
+          const { result: events } = await fetchEvents(eventArgs);
           if (events && events.length) {
             const componentsByJobId = queuedComponents.reduce((acc, item) => {
               acc[item.asyncJobId] = item;
@@ -137,7 +139,7 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
                   'component not found for job_id',
                   asyncEvent.job_id,
                 );
-                return false;
+                return setLastId(asyncEvent);
               }
               const componentId = component.id;
               switch (asyncEvent.status) {
@@ -174,10 +176,14 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
 
       if (processEventsCallback) processEventsCallback(events);
 
-      return setTimeout(processEvents, POLLING_DELAY);
+      return setTimeout(processEvents, polling_delay);
     };
 
-    if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) processEvents();
+    if (
+      isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES) &&
+      transport === TRANSPORT_POLLING
+    )
+      processEvents();
 
     return action => next(action);
   };

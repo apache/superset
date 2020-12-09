@@ -653,16 +653,6 @@ class SupersetAppInitializer:
 
     def configure_async_queries(self) -> None:
         if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
-            if (
-                self.config["CACHE_CONFIG"]["CACHE_TYPE"] == "null"
-                or self.config["DATA_CACHE_CONFIG"]["CACHE_TYPE"] == "null"
-            ):
-                raise Exception(
-                    """
-                    Cache backends (CACHE_CONFIG, DATA_CACHE_CONFIG) must be configured
-                    and non-null in order to enable async queries
-                    """
-                )
             async_query_manager.init_app(self.flask_app)
 
     def register_blueprints(self) -> None:

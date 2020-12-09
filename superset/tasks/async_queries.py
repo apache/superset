@@ -70,6 +70,7 @@ def load_explore_json_into_cache(
     force: bool = False,
 ) -> None:
     with app.app_context():  # type: ignore
+        cache_key_prefix = "ejr-"  # ejr: explore_json request
         try:
             datasource_id, datasource_type = get_datasource_info(None, None, form_data)
 
@@ -86,9 +87,7 @@ def load_explore_json_into_cache(
 
             # cache form_data for async retrieval
             cache_value = {"form_data": form_data, "response_type": response_type}
-            cache_key = generate_cache_key(
-                cache_value, "ejr-"
-            )  # ejr: explore_json request
+            cache_key = generate_cache_key(cache_value, cache_key_prefix)
             set_and_log_cache(cache_manager.cache, cache_key, cache_value)
             result_url = f"/superset/explore_json/data/{cache_key}"
             async_query_manager.update_job(

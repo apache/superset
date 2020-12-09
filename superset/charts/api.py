@@ -468,14 +468,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=exc.message)
 
         result_format = result["query_context"].result_format
-        response = self.response_400(
-            message=f"Unsupported result_format: {result_format}"
-        )
-
         if result_format == ChartDataResultFormat.CSV:
             # return the first result
             data = result["queries"][0]["data"]
-            response = CsvResponse(
+            return CsvResponse(
                 data,
                 status=200,
                 headers=generate_download_headers("csv"),
@@ -490,9 +486,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
             )
             resp = make_response(response_data, 200)
             resp.headers["Content-Type"] = "application/json; charset=utf-8"
-            response = resp
+            return resp
 
-        return response
+        return self.response_400(message=f"Unsupported result_format: {result_format}")
 
     @expose("/data", methods=["POST"])
     @protect()

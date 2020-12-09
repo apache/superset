@@ -237,8 +237,9 @@ class QueryContext:
 
     def cache_key(self, **extra: Any) -> str:
         """
-        The cache key is made out of the key/values from self.cached_values, plus any
-        other key/values in `extra`
+        The QueryContext cache key is made out of the key/values from
+        self.cached_values, plus any other key/values in `extra`. It includes only data
+        required to rehydrate a QueryContext object.
         """
         key_prefix = "qc-"
         cache_dict = self.cache_values.copy()
@@ -247,6 +248,9 @@ class QueryContext:
         return generate_cache_key(cache_dict, key_prefix)
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> Optional[str]:
+        """
+        Returns a QueryObject cache key for objects in self.queries
+        """
         extra_cache_keys = self.datasource.get_extra_cache_keys(query_obj.to_dict())
 
         cache_key = (

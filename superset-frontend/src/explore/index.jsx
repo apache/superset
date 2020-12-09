@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { filter } from 'lodash';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { createStore, applyMiddleware, compose } from 'redux';
@@ -39,8 +38,8 @@ initFeatureFlags(bootstrapData.common.feature_flags);
 const initState = getInitialState(bootstrapData);
 
 const asyncEventMiddleware = initAsyncEvents({
-  getPendingComponents: state =>
-    filter(state.charts, { chartStatus: 'loading' }),
+  getPendingComponents: ({ charts }) =>
+    Object.values(charts).filter(c => c.chartStatus === 'loading'),
   successAction: (componentId, componentData) =>
     actions.chartUpdateSucceeded(componentData, componentId),
   errorAction: (componentId, response) =>
