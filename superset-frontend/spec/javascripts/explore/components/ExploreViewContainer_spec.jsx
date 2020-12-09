@@ -21,10 +21,9 @@ import * as ReactAll from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import sinon from 'sinon';
-import { Provider, Subscription } from 'react-redux';
-import { shallow, mount } from 'enzyme';
+import { Subscription } from 'react-redux';
+import { shallow } from 'enzyme';
 
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import getInitialState from 'src/explore/reducers/getInitialState';
 import ExploreViewContainer from 'src/explore/components/ExploreViewContainer';
 import QueryAndSaveBtns from 'src/explore/components/QueryAndSaveBtns';
@@ -40,7 +39,6 @@ describe('ExploreViewContainer', () => {
   let isFeatureEnabledMock;
 
   jest.spyOn(ReactAll, 'useContext').mockImplementation(() => {
-    console.log('i inside mocked implmentation');
     return {
       store,
       subscription: new Subscription(store),

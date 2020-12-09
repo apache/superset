@@ -20,7 +20,6 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { shallow } from 'enzyme';
-import { Provider } from 'react-redux';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import shortid from 'shortid';
