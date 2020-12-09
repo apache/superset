@@ -95,7 +95,7 @@ describe('ImportDatasetModal', () => {
     const wrapperWithPasswords = mount(
       <ImportDatasetModal
         {...requiredProps}
-        passwordFields={['datasets/examples.yaml']}
+        passwordFields={['databases/examples.yaml']}
       />,
       {
         context: { store },

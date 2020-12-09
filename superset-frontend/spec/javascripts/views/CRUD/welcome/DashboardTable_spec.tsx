@@ -59,9 +59,7 @@ describe('DashboardTable', () => {
     },
     mine: mockDashboards,
   };
-  const wrapper = mount(<DashboardTable {...dashboardProps} />, {
-    context: { store },
-  });
+  const wrapper = mount(<DashboardTable store={store} {...dashboardProps} />);
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
@@ -95,10 +93,8 @@ describe('DashboardTable', () => {
         dashboardFilter="Mine"
         user={{ userId: '2' }}
         mine={[]}
+        store={store}
       />,
-      {
-        context: { store },
-      },
     );
     expect(wrapper.find('EmptyState')).toExist();
   });

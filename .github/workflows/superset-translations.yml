@@ -6,16 +6,20 @@ jobs:
   frontend-check:
     runs-on: ubuntu-18.04
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Install dependencies
-      uses: apache-superset/cached-dependencies@b90713b
-      with:
-        run: npm-install
-    - name: lint
-      working-directory: ./superset-frontend
-      run: |
-        npm run check-translation
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.6.0
+        with:
+          access_token: ${{ github.token }}
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        uses: apache-superset/cached-dependencies@b90713b
+        with:
+          run: npm-install
+      - name: lint
+        working-directory: ./superset-frontend
+        run: |
+          npm run check-translation
 
   babel-extract:
     runs-on: ubuntu-18.04
@@ -23,6 +27,10 @@ jobs:
       matrix:
         python-version: [3.7]
     steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.6.0
+        with:
+          access_token: ${{ github.token }}
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Setup Python

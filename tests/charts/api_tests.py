@@ -53,6 +53,7 @@ from tests.fixtures.importexport import (
     dataset_config,
     dataset_metadata_config,
 )
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.query_context import get_query_context, ANNOTATION_LAYERS
 from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 from tests.annotation_layers.fixtures import create_annotation_layers
@@ -711,6 +712,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 404)
 
     @pytest.mark.usefixtures("load_unicode_dashboard_with_slice")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_get_charts(self):
         """
         Chart API: Test get charts
@@ -763,7 +765,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(data["count"], 5)
 
     @pytest.fixture()
-    def load_charts(self):
+    def load_energy_charts(self):
         with app.app_context():
             admin = self.get_user("admin")
             energy_table = (
@@ -799,7 +801,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             db.session.delete(chart5)
             db.session.commit()
 
-    @pytest.mark.usefixtures("load_charts")
+    @pytest.mark.usefixtures("load_energy_charts")
     def test_get_charts_custom_filter(self):
         """
         Chart API: Test get charts custom filter
@@ -832,7 +834,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             self.assertEqual(item["slice_name"], expected_response[index]["slice_name"])
             self.assertEqual(item["viz_type"], expected_response[index]["viz_type"])
 
-    @pytest.mark.usefixtures("load_charts")
+    @pytest.mark.usefixtures("load_energy_table_with_slice", "load_energy_charts")
     def test_admin_gets_filtered_energy_slices(self):
         # test filtering on datasource_name
         arguments = {
@@ -850,7 +852,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 8)
 
-    @pytest.mark.usefixtures("load_charts")
+    @pytest.mark.usefixtures("load_energy_charts")
     def test_user_gets_none_filtered_energy_slices(self):
         # test filtering on datasource_name
         arguments = {
@@ -944,7 +946,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             if res["id"] in users_favorite_ids:
                 assert res["value"]
 
-    @pytest.mark.usefixtures("load_unicode_dashboard_with_slice")
+    @pytest.mark.usefixtures(
+        "load_unicode_dashboard_with_slice", "load_energy_table_with_slice"
+    )
     def test_get_charts_page(self):
         """
         Chart API: Test get charts filter

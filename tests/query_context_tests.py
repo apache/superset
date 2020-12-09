@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import pytest
+
 import tests.test_app
 from superset import db
 from superset.charts.schemas import ChartDataQueryContextSchema
@@ -27,6 +29,7 @@ from superset.utils.core import (
     TimeRangeEndpoint,
 )
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.query_context import get_query_context
 
 

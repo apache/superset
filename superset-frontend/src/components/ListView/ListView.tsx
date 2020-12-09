@@ -44,12 +44,14 @@ const ListViewStyles = styled.div`
   .superset-list-view {
     text-align: left;
     border-radius: 4px 0;
-    margin: 0 16px;
+    margin: 0 ${({ theme }) => theme.gridUnit * 4}px;
 
     .header {
       display: flex;
+      padding-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 
       .header-left {
+        display: flex;
         flex: 5;
       }
       .header-right {
@@ -91,24 +93,25 @@ const BulkSelectWrapper = styled(Alert)`
   margin-bottom: 0;
   padding-top: 0;
   padding-bottom: 0;
-  padding-right: 36px;
+  padding-right: ${({ theme }) => theme.gridUnit * 9}px;
   color: #3d3d3d;
   background-color: ${({ theme }) => theme.colors.primary.light4};
 
   .selectedCopy {
     display: inline-block;
-    padding: 16px 0;
+    padding: ${({ theme }) => theme.gridUnit * 4}px 0;
   }
 
   .deselect-all {
     color: #1985a0;
-    margin-left: 16px;
+    margin-left: ${({ theme }) => theme.gridUnit * 4}px;
   }
 
   .divider {
-    margin: -8px 0 -8px 16px;
+    margin: ${({ theme: { gridUnit } }) =>
+      `${-gridUnit * 2}px 0 ${-gridUnit * 2}px ${gridUnit * 4}px`};
     width: 1px;
-    height: 32px;
+    height: ${({ theme }) => theme.gridUnit * 8}px;
     box-shadow: inset -1px 0px 0px #dadada;
     display: inline-flex;
     vertical-align: middle;
@@ -116,7 +119,7 @@ const BulkSelectWrapper = styled(Alert)`
   }
 
   .close {
-    margin: 16px 0;
+    margin: ${({ theme }) => theme.gridUnit * 4}px 0;
   }
 `;
 
@@ -135,11 +138,8 @@ const bulkSelectColumnConfig = {
 };
 
 const ViewModeContainer = styled.div`
-  padding: 0 ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 8}px 0;
+  padding-right: ${({ theme }) => theme.gridUnit * 4}px;
   display: inline-block;
-  position: relative;
-  top: 8px;
 
   .toggle-button {
     display: inline-block;

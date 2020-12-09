@@ -76,9 +76,7 @@ describe('SouthPane', () => {
   };
 
   const getWrapper = () =>
-    shallow(<SouthPaneContainer {...mockedProps} />, {
-      context: { store },
-    });
+    shallow(<SouthPaneContainer store={store} {...mockedProps} />).dive();
 
   let wrapper;
 
