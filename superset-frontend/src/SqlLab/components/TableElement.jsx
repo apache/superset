@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { ButtonGroup, Collapse, Well } from 'react-bootstrap';
 import shortid from 'shortid';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 
 import Fade from 'src/common/components/Fade';
 import CopyToClipboard from '../../components/CopyToClipboard';
@@ -41,6 +41,21 @@ const defaultProps = {
   table: null,
   timeout: 500,
 };
+
+const OptionsContainer = styled.div`
+  display: flex;
+  align-items: center;
+  float: right;
+`;
+
+const TableNameContainer = styled.div`
+  flex: 1;
+  float: right;
+`;
+
+const HeaderContainer = styled.div`
+  display: flex;
+`;
 
 class TableElement extends React.PureComponent {
   constructor(props) {
@@ -200,8 +215,8 @@ class TableElement extends React.PureComponent {
   renderHeader() {
     const { table } = this.props;
     return (
-      <div className="clearfix">
-        <div className="pull-left">
+      <HeaderContainer>
+        <TableNameContainer>
           <a
             href="#"
             className="table-name"
@@ -211,8 +226,8 @@ class TableElement extends React.PureComponent {
           >
             <strong>{table.name}</strong>
           </a>
-        </div>
-        <div className="pull-right">
+        </TableNameContainer>
+        <OptionsContainer>
           {table.isMetadataLoading || table.isExtraMetadataLoading ? (
             <Loading position="inline" />
           ) : (
@@ -231,8 +246,8 @@ class TableElement extends React.PureComponent {
               `fa-angle-${table.expanded ? 'up' : 'down'}`
             }
           />
-        </div>
-      </div>
+        </OptionsContainer>
+      </HeaderContainer>
     );
   }
 
