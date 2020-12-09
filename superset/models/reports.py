@@ -58,11 +58,12 @@ class ReportRecipientType(str, enum.Enum):
     SLACK = "Slack"
 
 
-class ReportLogState(str, enum.Enum):
+class ReportState(str, enum.Enum):
     SUCCESS = "Success"
     WORKING = "Working"
     ERROR = "Error"
     NOOP = "Not triggered"
+    GRACE = "On Grace"
 
 
 class ReportEmailFormat(str, enum.Enum):
@@ -112,7 +113,7 @@ class ReportSchedule(Model, AuditMixinNullable):
 
     # (Alerts) Stamped last observations
     last_eval_dttm = Column(DateTime)
-    last_state = Column(String(50))
+    last_state = Column(String(50), default=ReportState.NOOP)
     last_value = Column(Float)
     last_value_row_json = Column(Text)
 
@@ -122,7 +123,10 @@ class ReportSchedule(Model, AuditMixinNullable):
 
     # Log retention
     log_retention = Column(Integer, default=90)
+    # (Alerts) After a success how long to wait for a new trigger (seconds)
     grace_period = Column(Integer, default=60 * 60 * 4)
+    # (Alerts/Reports) Unlock a possible stalled working state
+    working_timeout = Column(Integer, default=60 * 60 * 1)
 
     def __repr__(self) -> str:
         return str(self.name)

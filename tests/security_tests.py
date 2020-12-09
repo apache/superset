@@ -45,6 +45,7 @@ from .dashboard_utils import (
     create_slice,
     create_dashboard,
 )
+from .fixtures.energy_dashboard import load_energy_table_with_slice
 from .fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 
 NEW_SECURITY_CONVERGE_VIEWS = ("CssTemplate", "SavedQuery")
@@ -1128,6 +1129,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         session.delete(self.get_user("NoRlsRoleUser"))
         session.commit()
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_rls_filter_alters_energy_query(self):
         g.user = self.get_user(username="alpha")
         tbl = self.get_table_by_name("energy_usage")
@@ -1135,6 +1137,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         assert tbl.get_extra_cache_keys(self.query_obj) == [1]
         assert "value > 1" in sql
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_rls_filter_doesnt_alter_energy_query(self):
         g.user = self.get_user(
             username="admin"

@@ -45,6 +45,8 @@ import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import FacePile from 'src/components/FacePile';
 import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
+import ImportDatasetModal from 'src/datasource/components/ImportModal/index';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import AddDatasetModal from './AddDatasetModal';
 
 const PAGE_SIZE = 25;
@@ -113,6 +115,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     datasetCurrentlyEditing,
     setDatasetCurrentlyEditing,
   ] = useState<Dataset | null>(null);
+
+  const [importingDataset, showImportModal] = useState<boolean>(false);
+  const [passwordFields, setPasswordFields] = useState<string[]>([]);
+
+  const openDatasetImportModal = () => {
+    showImportModal(true);
+  };
+
+  const closeDatasetImportModal = () => {
+    showImportModal(false);
+  };
+
+  const handleDatasetImport = () => {
+    showImportModal(false);
+    refreshData();
+  };
 
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
@@ -453,6 +471,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     });
   }
 
+  if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+    buttonArr.push({
+      name: <Icon name="import" />,
+      buttonStyle: 'link',
+      onClick: openDatasetImportModal,
+    });
+  }
+
   menuData.buttons = buttonArr;
 
   const closeDatasetDeleteModal = () => {
@@ -620,6 +646,16 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           );
         }}
       </ConfirmStatusChange>
+
+      <ImportDatasetModal
+        show={importingDataset}
+        onHide={closeDatasetImportModal}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onDatasetImport={handleDatasetImport}
+        passwordFields={passwordFields}
+        setPasswordFields={setPasswordFields}
+      />
     </>
   );
 };
