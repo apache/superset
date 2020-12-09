@@ -20,6 +20,7 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { bindActionCreators } from 'redux';
+import { Provider } from 'react-redux';
 
 import { shallow } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
@@ -72,9 +73,9 @@ describe('SaveModal', () => {
   };
 
   const getWrapper = () =>
-    shallow(<SaveModal {...defaultProps} />, {
-      context: { store },
-    }).dive();
+    shallow(<SaveModal {...defaultProps} store={store} />)
+      .dive()
+      .dive();
 
   it('renders a Modal with the right set of components', () => {
     const wrapper = getWrapper();
@@ -117,15 +118,14 @@ describe('SaveModal', () => {
   });
 
   it('componentDidMount', () => {
-    sinon.spy(SaveModal.prototype, 'componentDidMount');
     sinon.spy(defaultProps.actions, 'fetchDashboards');
-    mount(<SaveModal {...defaultProps} />, {
-      context: { store },
-    });
-    expect(SaveModal.prototype.componentDidMount.calledOnce).toBe(true);
+    mount(
+      <Provider store={store}>
+        <SaveModal {...defaultProps} />
+      </Provider>,
+    );
     expect(defaultProps.actions.fetchDashboards.calledOnce).toBe(true);
 
-    SaveModal.prototype.componentDidMount.restore();
     defaultProps.actions.fetchDashboards.restore();
   });
 

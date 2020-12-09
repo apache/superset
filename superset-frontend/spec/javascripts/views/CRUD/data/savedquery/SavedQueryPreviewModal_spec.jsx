@@ -73,9 +73,7 @@ const SAVED_QUERY_PAYLOAD = { result: mockqueries[1] };
 fetchMock.get(FETCH_SAVED_QUERY_ENDPOINT, SAVED_QUERY_PAYLOAD);
 
 async function mountAndWait(props = mockedProps) {
-  const mounted = mount(<SavedQueryPreviewModal {...props} />, {
-    context: { store },
-  });
+  const mounted = mount(<SavedQueryPreviewModal store={store} {...props} />);
   await waitForComponentToPaint(mounted);
 
   return mounted;
