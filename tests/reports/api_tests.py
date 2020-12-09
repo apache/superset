@@ -36,7 +36,7 @@ from superset.models.reports import (
     ReportExecutionLog,
     ReportScheduleType,
     ReportRecipientType,
-    ReportLogState,
+    ReportState,
 )
 
 from tests.base_tests import SupersetTestCase
@@ -70,7 +70,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                     logs.append(
                         ReportExecutionLog(
                             scheduled_dttm=datetime(2020, 1, 1),
-                            state=ReportLogState.ERROR,
+                            state=ReportState.ERROR,
                             error_message=f"Error {cy}",
                         )
                     )
@@ -796,7 +796,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         self.login(username="admin")
         arguments = {
             "columns": ["name"],
-            "filters": [{"col": "state", "opr": "eq", "value": ReportLogState.SUCCESS}],
+            "filters": [{"col": "state", "opr": "eq", "value": ReportState.SUCCESS}],
         }
         uri = f"api/v1/report/{report_schedule.id}/log/?q={prison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
@@ -816,7 +816,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             .one_or_none()
         )
 
-        data = {"state": ReportLogState.ERROR, "error_message": "New error changed"}
+        data = {"state": ReportState.ERROR, "error_message": "New error changed"}
 
         self.login(username="admin")
         uri = f"api/v1/report/{report_schedule.id}/log/"

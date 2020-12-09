@@ -37,12 +37,13 @@ class AsyncPruneReportScheduleLogCommand(BaseCommand):
         with session_scope(nullpool=True) as session:
             self.validate()
             for report_schedule in session.query(ReportSchedule).all():
-                from_date = datetime.utcnow() - timedelta(
-                    days=report_schedule.log_retention
-                )
-                ReportScheduleDAO.bulk_delete_logs(
-                    report_schedule, from_date, session=session, commit=False
-                )
+                if report_schedule.log_retention is not None:
+                    from_date = datetime.utcnow() - timedelta(
+                        days=report_schedule.log_retention
+                    )
+                    ReportScheduleDAO.bulk_delete_logs(
+                        report_schedule, from_date, session=session, commit=False
+                    )
 
     def validate(self) -> None:
         pass
