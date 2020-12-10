@@ -924,7 +924,7 @@ class TestUtils(SupersetTestCase):
 
         self.assertEqual(
             get_time_range_endpoints(form_data={"datasource": "1__table"}, slc=slc),
-            (TimeRangeEndpoint.UNKNOWN, TimeRangeEndpoint.INCLUSIVE),
+            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
         )
 
         slc.datasource.database.get_extra.return_value = {
