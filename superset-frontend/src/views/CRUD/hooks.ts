@@ -133,6 +133,7 @@ export function useListViewResource<D extends object = any>(
       })
         .then(
           ({ json = {} }) => {
+            console.log('about to update state', json);
             updateState({
               collection: json.result,
               count: json.count,
@@ -149,6 +150,7 @@ export function useListViewResource<D extends object = any>(
           ),
         )
         .finally(() => {
+          console.log('in finally')
           updateState({ loading: false });
         });
     },

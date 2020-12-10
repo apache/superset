@@ -34,6 +34,9 @@ import getClientErrorObject from '../utils/getClientErrorObject';
 import Loading from '../components/Loading';
 import withToasts from '../messageToasts/enhancers/withToasts';
 
+import { useListViewResource } from 'src/views/CRUD/hooks';
+import Dataset from 'src/types/Dataset';
+
 interface ChangeDatasourceModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -72,6 +75,14 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   const [confirmedDataset, setConfirmedDataset] = useState<any>(undefined);
   let searchRef = useRef<HTMLInputElement>(null);
 
+  const {
+    state,
+    hasPerm,
+    fetchData,
+    toggleBulkSelect,
+    refreshData,
+  } = useListViewResource<Dataset>('dataset', t('dataset'), addDangerToast);
+
   const selectDatasource = useCallback(
     (datasource: { type: string; id: number; uid: string }) => {
       setConfirmChange(true);
@@ -81,12 +92,17 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   );
 
   useEffect(() => {
-    const onEnterModal = () => {
+    const onEnterModal = async () => {
       if (searchRef && searchRef.current) {
         searchRef.current.focus();
       }
 
       if (!datasources) {
+        // prototyping
+        await fetchData({pageIndex: 0, pageSize: 20, filters:[], sortBy: [{id: 'changed_on_delta_humanized'}]}).then( () => {
+          console.log(state);
+        });
+
         SupersetClient.get({
           endpoint: '/api/v1/dataset/',
         })
@@ -215,6 +231,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
 
   const handlerCancelConfirm = () => {
     setConfirmChange(false);
+    console.log(state);
   };
 
   return (
