@@ -50,6 +50,7 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
     ]
     list_columns = [
         "id",
+        "scheduled_dttm",
         "end_dttm",
         "start_dttm",
         "value",
