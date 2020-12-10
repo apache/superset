@@ -88,8 +88,8 @@ from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
-from superset.utils.core import TimeRangeEndpoint
 from superset.utils.cache import etag_cache
+from superset.utils.core import TimeRangeEndpoint
 from superset.utils.dates import now_as_float
 from superset.views.base import (
     api,
@@ -602,10 +602,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             and (
                 not form_data.get("time_range_endpoints")
                 or form_data["time_range_endpoints"]
-                != (
-                    TimeRangeEndpoint(start),
-                    TimeRangeEndpoint(end)
-                )
+                != (TimeRangeEndpoint(start), TimeRangeEndpoint(end))
             )
         ):
             url = Href("/superset/explore/")(
@@ -615,7 +612,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                             "slice_id": slc.id,
                             "time_range_endpoints": (
                                 TimeRangeEndpoint(start),
-                                TimeRangeEndpoint(end)
+                                TimeRangeEndpoint(end),
                             ),
                         }
                     )

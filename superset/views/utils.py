@@ -256,7 +256,7 @@ def get_time_range_endpoints(
     Note under certain circumstances the slice object may not exist, however the slice
     ID may be defined which serves as a fallback.
 
-    When SIP-15 is enabled all new slices will use the default interval set on 
+    When SIP-15 is enabled all new slices will use the default interval set on
     SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS. If the grace period is defined and has ended
     all slices will adhere to the default interval.
 
@@ -268,11 +268,11 @@ def get_time_range_endpoints(
     if (
         app.config["SIP_15_GRACE_PERIOD_END"]
         and date.today() >= app.config["SIP_15_GRACE_PERIOD_END"]
-    ):  
-        start, end  = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
+    ):
+        start, end = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
         return (TimeRangeEndpoint(start), TimeRangeEndpoint(end))
 
-    endpoints = form_data.get("time_range_endpoints")	
+    endpoints = form_data.get("time_range_endpoints")
     if (slc or slice_id) and not endpoints:
         try:
             _, datasource_type = get_datasource_info(None, None, form_data)
@@ -292,8 +292,8 @@ def get_time_range_endpoints(
         start, end = endpoints
         return (TimeRangeEndpoint(start), TimeRangeEndpoint(end))
 
-    start, end  = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
-    
+    start, end = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
+
     return (TimeRangeEndpoint(start), TimeRangeEndpoint(end))
 
 
