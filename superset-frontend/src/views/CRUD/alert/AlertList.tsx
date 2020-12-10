@@ -31,7 +31,7 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import {
   useListViewResource,
-  useSingleViewResource,
+  useSingleViewResource
 } from 'src/views/CRUD/hooks';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import { AlertObject } from './types';
@@ -170,7 +170,7 @@ function AlertList({
           const history = useHistory();
           const handleEdit = () => {}; // handleAnnotationEdit(original);
           const handleDelete = () => {}; // setAlertCurrentlyDeleting(original);
-          const hanldeGotoExecutionLog = () =>
+          const handleGotoExecutionLog = () =>
             history.push(`/${original.type.toLowerCase()}/${original.id}/log`);
 
           const actions = [
@@ -180,7 +180,7 @@ function AlertList({
                   tooltip: t('Execution Log'),
                   placement: 'bottom',
                   icon: 'note' as IconName,
-                  onClick: hanldeGotoExecutionLog,
+                  onClick: handleGotoExecutionLog,
                 }
               : null,
             canEdit

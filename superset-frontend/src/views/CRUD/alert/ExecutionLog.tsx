@@ -19,7 +19,7 @@
 
 import { styled, t } from '@superset-ui/core';
 import moment from 'moment';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ListView from 'src/components/ListView';
 import SubMenu from 'src/components/Menu/SubMenu';
@@ -73,12 +73,8 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
     addDangerToast,
   );
 
-  const [alert, setAlert] = useState<AlertObject | null>(null);
-
-  if (alertId !== null && !alert && !alertLoading) {
-    fetchResource(alertId).then(() => {
-      setAlert(alertResource);
-    });
+  if (alertId !== null && !alertLoading) {
+    fetchResource(alertId);
   }
 
   const initialSort = [{ id: 'start_dttm', desc: true }];
@@ -135,7 +131,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
         name={
           <StyledHeader>
             <span>
-              {t(`${alert?.type}`)} {alert?.name}
+              {t(`${alertResource?.type}`)} {alertResource?.name}
             </span>
             <span>
               <Link to={path}>Back to all</Link>
