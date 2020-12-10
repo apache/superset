@@ -634,7 +634,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
                     value={Math.abs(sinceGrainValue)}
                     min={1}
                     defaultValue={1}
-                    onChange={value =>
+                    onStep={value =>
                       onCustomRangeChange('sinceGrainValue', value || 1)
                     }
                   />
@@ -689,7 +689,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
                     value={untilGrainValue}
                     min={1}
                     defaultValue={1}
-                    onChange={value =>
+                    onStep={value =>
                       onCustomRangeChange('untilGrainValue', value || 1)
                     }
                   />
@@ -774,10 +774,9 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
             {t('APPLY')}
           </Button>,
           showValidateBtn() && (
-            <StyledValidateBtn>
+            <StyledValidateBtn key="validate">
               <Button
                 className="validate-btn"
-                key="validate"
                 type="default"
                 onClick={onValidate}
               >
