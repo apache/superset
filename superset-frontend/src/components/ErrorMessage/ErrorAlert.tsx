@@ -119,7 +119,7 @@ export default function ErrorAlert({
           </a>
         )}
       </div>
-      {!isExpandable ? (
+      {isExpandable ? (
         <div className="error-body">
           <p>{subtitle}</p>
           {body && (
@@ -152,7 +152,7 @@ export default function ErrorAlert({
       ) : (
         <ErrorModal
           level={level}
-          show
+          show={isModalOpen}
           onHide={() => setIsModalOpen(false)}
           title={
             <div className="header">
