@@ -86,7 +86,7 @@ export default class SupersetClientClass {
     }
   }
 
-  async init(force: boolean = false): CsrfPromise {
+  async init(force = false): CsrfPromise {
     if (this.isAuthenticated() && !force) {
       return this.csrfPromise as CsrfPromise;
     }

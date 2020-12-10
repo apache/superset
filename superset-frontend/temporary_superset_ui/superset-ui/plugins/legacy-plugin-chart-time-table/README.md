@@ -7,17 +7,18 @@ This plugin provides Time Table for Superset.
 
 ### Usage
 
-Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
+Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to
+lookup this chart throughout the app.
 
 ```js
 import TimeTableChartPlugin from '@superset-ui/legacy-plugin-chart-time-table';
 
-new TimeTableChartPlugin()
-  .configure({ key: 'time-table' })
-  .register();
+new TimeTableChartPlugin().configure({ key: 'time-table' }).register();
 ```
 
-Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-time-table) for more details.
+Then use it via `SuperChart`. See
+[storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-time-table)
+for more details.
 
 ```js
 <SuperChart

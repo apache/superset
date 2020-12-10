@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/no-zero-fractions */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file

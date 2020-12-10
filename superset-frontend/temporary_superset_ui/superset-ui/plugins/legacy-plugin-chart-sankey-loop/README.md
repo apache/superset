@@ -7,17 +7,18 @@ This plugin provides Sankey Diagram with loops for Superset.
 
 ### Usage
 
-Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
+Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to
+lookup this chart throughout the app.
 
 ```js
 import SankeyLoopChartPlugin from '@superset-ui/legacy-plugin-chart-sankey-loop';
 
-new SankeyLoopChartPlugin()
-  .configure({ key: 'sankey' })
-  .register();
+new SankeyLoopChartPlugin().configure({ key: 'sankey' }).register();
 ```
 
-Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-sankey-loop) for more details.
+Then use it via `SuperChart`. See
+[storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-sankey-loop)
+for more details.
 
 ```js
 <SuperChart

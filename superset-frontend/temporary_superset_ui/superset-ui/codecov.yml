@@ -8,14 +8,14 @@ coverage:
       core-packages-ts:
         target: 100%
         paths:
-          - "packages"
-          - "!packages/**/*.jsx"
-          - "!packages/**/*.tsx"
+          - 'packages'
+          - '!packages/**/*.jsx'
+          - '!packages/**/*.tsx'
       core-packages-tsx:
         target: 50%
         paths:
-          - "packages/**/*.jsx"
-          - "packages/**/*.tsx"
+          - 'packages/**/*.jsx'
+          - 'packages/**/*.tsx'
       plugins:
         target: 0
         paths:
