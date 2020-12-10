@@ -99,7 +99,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   }
 
   changeAction(action: any) {
-    console.log('Action', action);
     this.setState({ action });
   }
 
@@ -143,8 +142,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     }
     this.setState({ alert: null });
   }
+
   render() {
-    console.log("this.props.slice", this.props.slice);
     return (
       <Modal
         show
