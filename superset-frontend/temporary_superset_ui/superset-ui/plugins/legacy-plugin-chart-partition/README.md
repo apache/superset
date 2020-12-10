@@ -7,17 +7,18 @@ This plugin provides Partition for Superset.
 
 ### Usage
 
-Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
+Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to
+lookup this chart throughout the app.
 
 ```js
 import PartitionChartPlugin from '@superset-ui/legacy-plugin-chart-partition';
 
-new PartitionChartPlugin()
-  .configure({ key: 'partition' })
-  .register();
+new PartitionChartPlugin().configure({ key: 'partition' }).register();
 ```
 
-Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-partition) for more details.
+Then use it via `SuperChart`. See
+[storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-partition)
+for more details.
 
 ```js
 <SuperChart

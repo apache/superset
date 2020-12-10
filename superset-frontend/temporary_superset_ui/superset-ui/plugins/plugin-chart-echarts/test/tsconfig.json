@@ -13,10 +13,10 @@
   ],
   "references": [
     {
-      "path": "../../packages/superset-ui-chart-controls"
+      "path": "../../../packages/superset-ui-chart-controls"
     },
     {
-      "path": "../../packages/superset-ui-core"
+      "path": "../../../packages/superset-ui-core"
     }
   ]
 }

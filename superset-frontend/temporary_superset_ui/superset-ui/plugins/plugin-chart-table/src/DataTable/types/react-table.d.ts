@@ -17,8 +17,6 @@ import {
   UseSortByState,
   UseTableHooks,
   UseSortByHooks,
-  TableInstance,
-  ColumnInstance,
   Renderer,
   HeaderProps,
 } from 'react-table';

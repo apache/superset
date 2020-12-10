@@ -7,17 +7,18 @@ This plugin provides Pivot Table for Superset.
 
 ### Usage
 
-Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
+Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to
+lookup this chart throughout the app.
 
 ```js
 import PivottableChartPlugin from '@superset-ui/legacy-plugin-chart-pivot-table';
 
-new PivottableChartPlugin()
-  .configure({ key: 'pivot-table' })
-  .register();
+new PivottableChartPlugin().configure({ key: 'pivot-table' }).register();
 ```
 
-Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-pivot-table) for more details.
+Then use it via `SuperChart`. See
+[storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-pivot-table)
+for more details.
 
 ```js
 <SuperChart

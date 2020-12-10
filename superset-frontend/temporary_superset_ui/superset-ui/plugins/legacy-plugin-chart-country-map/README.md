@@ -7,17 +7,18 @@ This plugin provides Country Map for Superset.
 
 ### Usage
 
-Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
+Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to
+lookup this chart throughout the app.
 
 ```js
 import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
 
-new CountryMapChartPlugin()
-  .configure({ key: 'country-map' })
-  .register();
+new CountryMapChartPlugin().configure({ key: 'country-map' }).register();
 ```
 
-Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-country-map) for more details.
+Then use it via `SuperChart`. See
+[storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-country-map)
+for more details.
 
 ```js
 <SuperChart

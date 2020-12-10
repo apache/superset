@@ -7,17 +7,18 @@ This plugin provides Force-directed Graph for Superset.
 
 ### Usage
 
-Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
+Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to
+lookup this chart throughout the app.
 
 ```js
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-force-directed';
 
-new ChordChartPlugin()
-  .configure({ key: 'force-directed' })
-  .register();
+new ChordChartPlugin().configure({ key: 'force-directed' }).register();
 ```
 
-Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-force-directed) for more details.
+Then use it via `SuperChart`. See
+[storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-force-directed)
+for more details.
 
 ```js
 <SuperChart

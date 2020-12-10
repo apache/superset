@@ -25,6 +25,7 @@ export default function wrapSvgText(text, width, adjustedY) {
       line.push(word);
       tspan.text(line.join(' '));
       if (tspan.node().getComputedTextLength() > width) {
+        lineNumber += 1;
         line.pop();
         // remove word that pushes over the limit
         tspan.text(line.join(' '));
@@ -33,7 +34,7 @@ export default function wrapSvgText(text, width, adjustedY) {
           .append('tspan')
           .attr('x', x)
           .attr('y', y)
-          .attr('dy', `${++lineNumber * lineHeight + dy}em`)
+          .attr('dy', `${lineNumber * lineHeight + dy}em`)
           .text(word);
         didWrap = true;
       }

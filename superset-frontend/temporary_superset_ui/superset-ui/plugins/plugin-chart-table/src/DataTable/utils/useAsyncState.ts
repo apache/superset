@@ -28,7 +28,7 @@ import 'regenerator-runtime/runtime';
 export default function useAsyncState<T, F extends (newValue: T) => unknown>(
   initialValue: T,
   callback: F,
-  wait: number = 200,
+  wait = 200,
 ) {
   const [value, setValue] = useState(initialValue);
   const valueRef = useRef(initialValue);
