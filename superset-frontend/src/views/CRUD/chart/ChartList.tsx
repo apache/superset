@@ -51,6 +51,13 @@ import TooltipWrapper from 'src/components/TooltipWrapper';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
+const PASSWORDS_NEEDED_MESSAGE = t(
+  'The passwords for the databases below are needed in order to ' +
+    'import them together with the charts. Please note that the ' +
+    '"Secure Extra" and "Certificate" sections of ' +
+    'the database configuration are not present in export files, and ' +
+    'should be added manually after the import if they are needed.',
+);
 
 const createFetchDatasets = (handleError: (err: Response) => void) => async (
   filterValue = '',
@@ -574,13 +581,7 @@ function ChartList(props: ChartListProps) {
         resourceName="chart"
         resourceLabel={t('chart')}
         icon={<StyledIcon name="nav-charts" />}
-        passwordsNeededMessage={t(
-          'The passwords for the databases below are needed in order to ' +
-            'import them together with the charts. Please note that the ' +
-            '"Secure Extra" and "Certificate" sections of ' +
-            'the database configuration are not present in export files, and ' +
-            'should be added manually after the import if they are needed.',
-        )}
+        passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         onModelImport={handleChartImport}
