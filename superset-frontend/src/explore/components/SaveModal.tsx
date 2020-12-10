@@ -65,8 +65,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     };
     this.onDashboardSelectChange = this.onDashboardSelectChange.bind(this);
     this.onSliceNameChange = this.onSliceNameChange.bind(this);
-    this.changeAction = this.changeAction.bind(this, 'overwrite');
-    this.saveOrOverwrite = this.saveOrOverwrite.bind(this, false);
+    this.changeAction = this.changeAction.bind(this);
+    this.saveOrOverwrite = this.saveOrOverwrite.bind(this);
   }
 
   componentDidMount() {
