@@ -26,6 +26,7 @@ import logging
 from typing import Dict, List
 from urllib.parse import quote
 
+import pytest
 import pytz
 import random
 import re
@@ -36,7 +37,9 @@ import pandas as pd
 import sqlalchemy as sqla
 
 from superset.models.cache import CacheKey
-from tests.test_app import app  # isort:skip
+from superset.utils.core import get_example_database
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
+from tests.test_app import app
 import superset.views.utils
 from superset import (
     dataframe,
@@ -235,6 +238,7 @@ class TestCore(SupersetTestCase):
         assert_admin_view_menus_in("Alpha", self.assertNotIn)
         assert_admin_view_menus_in("Gamma", self.assertNotIn)
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_save_slice(self):
         self.login(username="admin")
         slice_name = f"Energy Sankey"
@@ -301,6 +305,7 @@ class TestCore(SupersetTestCase):
             db.session.delete(slc)
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_filter_endpoint(self):
         self.login(username="admin")
         slice_name = "Energy Sankey"
@@ -319,7 +324,7 @@ class TestCore(SupersetTestCase):
         # Changing name
         resp = self.get_resp(url.format(tbl_id, slice_id))
         assert len(resp) > 0
-        assert "Carbon Dioxide" in resp
+        assert "energy_target0" in resp
 
     def test_slice_data(self):
         # slice data should have some required attributes
@@ -332,6 +337,7 @@ class TestCore(SupersetTestCase):
         assert "modified" in slc_data_attributes
         assert "owners" in slc_data_attributes
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_slices(self):
         # Testing by hitting the two supported end points for all slices
         self.login(username="admin")
@@ -408,6 +414,7 @@ class TestCore(SupersetTestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_slices_V2(self):
         # Add explore-v2-beta role to admin user
         # Test all slice urls as user with with explore-v2-beta role
@@ -569,6 +576,7 @@ class TestCore(SupersetTestCase):
         database.allow_run_async = False
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_warm_up_cache(self):
         self.login()
         slc = self.get_slice("Girls", db.session)
@@ -817,7 +825,9 @@ class TestCore(SupersetTestCase):
         clean_query = "SELECT '/* val 1 */' as c1, '-- val 2' as c2 FROM tbl"
         commented_query = "/* comment 1 */" + clean_query + "-- comment 2"
         table = SqlaTable(
-            table_name="test_comments_in_sqlatable_query_table", sql=commented_query
+            table_name="test_comments_in_sqlatable_query_table",
+            sql=commented_query,
+            database=get_example_database(),
         )
         rendered_query = str(table.get_from_clause())
         self.assertEqual(clean_query, rendered_query)

@@ -50,7 +50,7 @@ describe('DisplayQueryButton', () => {
         theme: supersetTheme,
       },
     });
-    expect(wrapper.find(ModalTrigger)).toHaveLength(3);
-    expect(wrapper.find(Menu.Item)).toHaveLength(5);
+    expect(wrapper.find(ModalTrigger)).toHaveLength(1);
+    expect(wrapper.find(Menu.Item)).toHaveLength(3);
   });
 });

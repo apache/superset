@@ -75,9 +75,7 @@ describe('QueryPreviewModal', () => {
     }),
     show: true,
   };
-  const wrapper = mount(<QueryPreviewModal {...mockedProps} />, {
-    context: { store },
-  });
+  const wrapper = mount(<QueryPreviewModal store={store} {...mockedProps} />);
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
@@ -98,8 +96,9 @@ describe('QueryPreviewModal', () => {
         .first()
         .props();
 
-      if (typeof props.onClick === 'function')
+      if (typeof props.onClick === 'function') {
         props.onClick({} as React.MouseEvent);
+      }
     });
 
     wrapper.update();
@@ -121,16 +120,17 @@ describe('QueryPreviewModal', () => {
         ...mockedProps,
         query: mockQueries[1],
       };
-      const wrapper2 = mount(<QueryPreviewModal {...mockedProps2} />, {
-        context: { store },
-      });
+      const wrapper2 = mount(
+        <QueryPreviewModal store={store} {...mockedProps2} />,
+      );
       act(() => {
         const props = wrapper2
           .find('[data-test="previous-query"]')
           .first()
           .props();
-        if (typeof props.onClick === 'function')
+        if (typeof props.onClick === 'function') {
           props.onClick({} as React.MouseEvent);
+        }
       });
 
       expect(mockedProps2.fetchData).toHaveBeenCalledWith(0);
@@ -141,8 +141,9 @@ describe('QueryPreviewModal', () => {
     it('calls fetchData with next index', () => {
       act(() => {
         const props = wrapper.find('[data-test="next-query"]').first().props();
-        if (typeof props.onClick === 'function')
+        if (typeof props.onClick === 'function') {
           props.onClick({} as React.MouseEvent);
+        }
       });
 
       expect(mockedProps.fetchData).toHaveBeenCalledWith(1);
@@ -153,9 +154,9 @@ describe('QueryPreviewModal', () => {
         ...mockedProps,
         query: mockQueries[2],
       };
-      const wrapper2 = mount(<QueryPreviewModal {...mockedProps2} />, {
-        context: { store },
-      });
+      const wrapper2 = mount(
+        <QueryPreviewModal store={store} {...mockedProps2} />,
+      );
 
       expect(
         wrapper2.find('[data-test="next-query"]').first().props().disabled,
@@ -170,8 +171,9 @@ describe('QueryPreviewModal', () => {
         .first()
         .props();
 
-      if (typeof props.onClick === 'function')
+      if (typeof props.onClick === 'function') {
         props.onClick({} as React.MouseEvent);
+      }
 
       expect(mockedProps.openInSqlLab).toHaveBeenCalled();
     });

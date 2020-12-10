@@ -50,6 +50,9 @@ def scheduler() -> None:
         active_schedules = ReportScheduleDAO.find_active(session)
         for active_schedule in active_schedules:
             for schedule in cron_schedule_window(active_schedule.crontab):
+                logger.info(
+                    "Scheduling alert %s eta: %s", active_schedule.name, schedule
+                )
                 execute.apply_async((active_schedule.id, schedule,), eta=schedule)
 
 

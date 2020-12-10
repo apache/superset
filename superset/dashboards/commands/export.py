@@ -62,7 +62,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     payload[new_name] = json.loads(value)
                 except (TypeError, json.decoder.JSONDecodeError):
                     logger.info("Unable to decode `%s` field: %s", key, value)
-                    payload[new_name] = ""
+                    payload[new_name] = {}
 
         payload["version"] = EXPORT_VERSION
 

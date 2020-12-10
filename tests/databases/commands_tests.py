@@ -452,6 +452,26 @@ class TestImportDatabasesCommand(SupersetTestCase):
             }
         }
 
+    def test_import_v1_database_masked_password(self):
+        """Test that database imports with masked passwords are rejected"""
+        masked_database_config = database_config.copy()
+        masked_database_config[
+            "sqlalchemy_uri"
+        ] = "postgresql://username:XXXXXXXXXX@host:12345/db"
+        contents = {
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(masked_database_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        with pytest.raises(CommandInvalidError) as excinfo:
+            command.run()
+        assert str(excinfo.value) == "Error importing database"
+        assert excinfo.value.normalized_messages() == {
+            "databases/imported_database.yaml": {
+                "_schema": ["Must provide a password for the database"]
+            }
+        }
+
     @patch("superset.databases.commands.importers.v1.import_dataset")
     def test_import_v1_rollback(self, mock_import_dataset):
         """Test than on an exception everything is rolled back"""

@@ -20,6 +20,9 @@ import json
 import unittest
 from unittest import mock
 
+import pytest
+
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.test_app import app  # isort:skip
 from superset import db, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -184,6 +187,7 @@ class TestRequestAccess(SupersetTestCase):
         )
         self.assertEqual(3, len(perms))
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_override_role_permissions_drops_absent_perms(self):
         override_me = security_manager.find_role("override_me")
         override_me.permissions.append(
@@ -272,6 +276,7 @@ class TestRequestAccess(SupersetTestCase):
         gamma_user.roles.remove(security_manager.find_role("Alpha"))
         session.commit()
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_clean_requests_after_db_grant(self):
         session = db.session
 

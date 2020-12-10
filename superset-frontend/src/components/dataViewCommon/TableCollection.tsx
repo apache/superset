@@ -37,6 +37,7 @@ export const Table = styled.table`
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
   border-collapse: separate;
   border-radius: ${({ theme }) => theme.borderRadius}px;
+  overflow: hidden;
 
   thead > tr > th {
     border: 0;

@@ -167,7 +167,7 @@ def execute_sql_statement(
     parsed_query = ParsedQuery(sql_statement)
     sql = parsed_query.stripped()
 
-    if not parsed_query.is_readonly() and not database.allow_dml:
+    if not db_engine_spec.is_readonly_query(parsed_query) and not database.allow_dml:
         raise SqlLabSecurityException(
             _("Only `SELECT` statements are allowed against this database")
         )
@@ -296,7 +296,7 @@ def _serialize_and_expand_data(
     return (data, selected_columns, all_columns, expanded_columns)
 
 
-def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-locals, too-many-statements
+def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-locals, too-many-statements, too-many-branches
     query_id: int,
     rendered_query: str,
     return_results: bool,
@@ -322,9 +322,15 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
         raise SqlLabException("Results backend isn't configured.")
 
     # Breaking down into multiple statements
-    parsed_query = ParsedQuery(rendered_query)
-    statements = parsed_query.get_statements()
-    logger.info("Query %s: Executing %i statement(s)", str(query_id), len(statements))
+    if not db_engine_spec.run_multiple_statements_as_one:
+        parsed_query = ParsedQuery(rendered_query)
+        statements = parsed_query.get_statements()
+        logger.info(
+            "Query %s: Executing %i statement(s)", str(query_id), len(statements)
+        )
+    else:
+        statements = [rendered_query]
+        logger.info("Query %s: Executing query as a single statement", str(query_id))
 
     logger.info("Query %s: Set query to 'running'", str(query_id))
     query.status = QueryStatus.RUNNING

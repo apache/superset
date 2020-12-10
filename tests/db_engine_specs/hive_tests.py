@@ -23,7 +23,7 @@ import pytest
 from tests.test_app import app
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.exceptions import SupersetException
-from superset.sql_parse import Table
+from superset.sql_parse import Table, ParsedQuery
 
 
 def test_0_progress():
@@ -234,3 +234,16 @@ def test_get_create_table_stmt() -> None:
                 tblproperties ('skip.header.line.count'=:header_line_count)""",
         {"delim": ",", "location": "s3a://directory/table", "header_line_count": "101"},
     )
+
+
+def test_is_readonly():
+    def is_readonly(sql: str) -> bool:
+        return HiveEngineSpec.is_readonly_query(ParsedQuery(sql))
+
+    assert not is_readonly("UPDATE t1 SET col1 = NULL")
+    assert not is_readonly("INSERT OVERWRITE TABLE tabB SELECT a.Age FROM TableA")
+    assert is_readonly("SHOW LOCKS test EXTENDED")
+    assert is_readonly("SET hivevar:desc='Legislators'")
+    assert is_readonly("EXPLAIN SELECT 1")
+    assert is_readonly("SELECT 1")
+    assert is_readonly("WITH (SELECT 1) bla SELECT * from bla")

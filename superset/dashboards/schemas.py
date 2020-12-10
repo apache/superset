@@ -181,7 +181,7 @@ class GetFavStarIdsSchema(Schema):
 class ImportV1DashboardSchema(Schema):
     dashboard_title = fields.String(required=True)
     description = fields.String(allow_none=True)
-    css = fields.String()
+    css = fields.String(allow_none=True)
     slug = fields.String(allow_none=True)
     uuid = fields.UUID(required=True)
     position = fields.Dict()

@@ -18,14 +18,16 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Alert, Badge, Col, Radio, Well } from 'react-bootstrap';
+import { Alert, Col, Radio, Well } from 'react-bootstrap';
+import Badge from 'src/common/components/Badge';
 import shortid from 'shortid';
-import { styled, SupersetClient, t } from '@superset-ui/core';
+import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
 
 import Tabs from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
 import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
 import DatabaseSelector from 'src/components/DatabaseSelector';
+import Icon from 'src/components/Icon';
 import Label from 'src/components/Label';
 import Loading from 'src/components/Loading';
 import TableSelector from 'src/components/TableSelector';
@@ -45,6 +47,7 @@ import Fieldset from 'src/CRUD/Fieldset';
 import Field from 'src/CRUD/Field';
 
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 
 const DatasourceContainer = styled.div`
   .change-warning {
@@ -66,6 +69,15 @@ const FlexRowContainer = styled.div`
   }
 `;
 
+const EditLockContainer = styled.div`
+  font-size: ${supersetTheme.typography.sizes.s}px;
+  display: flex;
+  align-items: center;
+  a {
+    padding: 0 10px;
+  }
+`;
+
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
@@ -83,7 +95,7 @@ DATASOURCE_TYPES_ARR.forEach(o => {
 function CollectionTabTitle({ title, collection }) {
   return (
     <div data-test={`collection-tab-${title}`}>
-      {title} <Badge>{collection ? collection.length : 0}</Badge>
+      {title} <Badge count={collection ? collection.length : 0} showZero />
     </div>
   );
 }
@@ -279,6 +291,7 @@ class DatasourceEditor extends React.PureComponent {
       isSqla:
         props.datasource.datasource_type === 'table' ||
         props.datasource.type === 'table',
+      isEditMode: false,
       databaseColumns: props.datasource.columns.filter(col => !col.expression),
       calculatedColumns: props.datasource.columns.filter(
         col => !!col.expression,
@@ -291,12 +304,16 @@ class DatasourceEditor extends React.PureComponent {
     };
 
     this.onChange = this.onChange.bind(this);
+    this.onChangeEditMode = this.onChangeEditMode.bind(this);
     this.onDatasourcePropChange = this.onDatasourcePropChange.bind(this);
     this.onDatasourceChange = this.onDatasourceChange.bind(this);
     this.syncMetadata = this.syncMetadata.bind(this);
     this.setColumns = this.setColumns.bind(this);
     this.validateAndChange = this.validateAndChange.bind(this);
     this.handleTabSelect = this.handleTabSelect.bind(this);
+    this.allowEditSource = !isFeatureEnabled(
+      FeatureFlag.DISABLE_DATASET_SOURCE_EDIT,
+    );
   }
 
   onChange() {
@@ -313,6 +330,10 @@ class DatasourceEditor extends React.PureComponent {
       columns: [...this.state.databaseColumns, ...this.state.calculatedColumns],
     };
     this.props.onChange(newDatasource, this.state.errors);
+  }
+
+  onChangeEditMode() {
+    this.setState(prevState => ({ isEditMode: !prevState.isEditMode }));
   }
 
   onDatasourceChange(datasource) {
@@ -401,18 +422,21 @@ class DatasourceEditor extends React.PureComponent {
     SupersetClient.get({ endpoint })
       .then(({ json }) => {
         const results = this.updateColumns(json);
-        if (results.modified.length)
+        if (results.modified.length) {
           this.props.addSuccessToast(
             t('Modified columns: %s', results.modified.join(', ')),
           );
-        if (results.removed.length)
+        }
+        if (results.removed.length) {
           this.props.addSuccessToast(
             t('Removed columns: %s', results.removed.join(', ')),
           );
-        if (results.added.length)
+        }
+        if (results.added.length) {
           this.props.addSuccessToast(
             t('New columns added: %s', results.added.join(', ')),
           );
+        }
         this.props.addSuccessToast(t('Metadata has been synced'));
         this.setState({ metadataLoading: false });
       })
@@ -636,6 +660,7 @@ class DatasourceEditor extends React.PureComponent {
               inline
               onChange={this.onDatasourceTypeChange.bind(this, type.key)}
               checked={this.state.datasourceType === type.key}
+              disabled={!this.state.isEditMode}
             >
               {type.label}
             </Radio>
@@ -655,13 +680,16 @@ class DatasourceEditor extends React.PureComponent {
                         dbId={datasource.database.id}
                         schema={datasource.schema}
                         onSchemaChange={schema =>
+                          this.state.isEditMode &&
                           this.onDatasourcePropChange('schema', schema)
                         }
                         onDbChange={database =>
+                          this.state.isEditMode &&
                           this.onDatasourcePropChange('database', database)
                         }
                         formMode={false}
                         handleError={this.props.addDangerToast}
+                        readOnly={!this.state.isEditMode}
                       />
                     }
                   />
@@ -675,6 +703,7 @@ class DatasourceEditor extends React.PureComponent {
                           this.onDatasourcePropChange('table_name', table);
                         }}
                         placeholder={t('dataset name')}
+                        disabled={!this.state.isEditMode}
                       />
                     }
                   />
@@ -690,8 +719,9 @@ class DatasourceEditor extends React.PureComponent {
                       <TextAreaControl
                         language="sql"
                         offerEditInModal={false}
-                        minLines={25}
-                        maxLines={25}
+                        minLines={20}
+                        maxLines={20}
+                        readOnly={!this.state.isEditMode}
                       />
                     }
                   />
@@ -727,16 +757,25 @@ class DatasourceEditor extends React.PureComponent {
                       schema={datasource.schema}
                       sqlLabMode={false}
                       tableName={datasource.table_name}
-                      onSchemaChange={schema =>
-                        this.onDatasourcePropChange('schema', schema)
+                      onSchemaChange={
+                        this.state.isEditMode
+                          ? schema =>
+                              this.onDatasourcePropChange('schema', schema)
+                          : undefined
                       }
-                      onDbChange={database =>
-                        this.onDatasourcePropChange('database', database)
+                      onDbChange={
+                        this.state.isEditMode
+                          ? database =>
+                              this.onDatasourcePropChange('database', database)
+                          : undefined
                       }
-                      onTableChange={table => {
-                        this.onDatasourcePropChange('table_name', table);
-                      }}
-                      isDatabaseSelectEnabled={false}
+                      onTableChange={
+                        this.state.isEditMode
+                          ? table =>
+                              this.onDatasourcePropChange('table_name', table)
+                          : undefined
+                      }
+                      readOnly={!this.state.isEditMode}
                     />
                   }
                   description={t(
@@ -749,6 +788,22 @@ class DatasourceEditor extends React.PureComponent {
             </Col>
           )}
         </Fieldset>
+        {this.allowEditSource && (
+          <EditLockContainer>
+            <a href="#" onClick={this.onChangeEditMode}>
+              <Icon
+                color={supersetTheme.colors.grayscale.base}
+                name={this.state.isEditMode ? 'lock-unlocked' : 'lock-locked'}
+              />
+            </a>
+            {!this.state.isEditMode && (
+              <div>{t('Click the lock to make changes.')}</div>
+            )}
+            {this.state.isEditMode && (
+              <div>{t('Click the lock to prevent further changes.')}</div>
+            )}
+          </EditLockContainer>
+        )}
       </div>
     );
   }

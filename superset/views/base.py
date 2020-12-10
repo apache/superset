@@ -70,6 +70,7 @@ FRONTEND_CONF_KEYS = (
     "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT",
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
+    "DISABLE_DATASET_SOURCE_EDIT",
     "ENABLE_JAVASCRIPT_CONTROLS",
     "DEFAULT_SQLLAB_LIMIT",
     "SQL_MAX_ROW",
@@ -296,6 +297,9 @@ def menu_data() -> Dict[str, Any]:
             "user_info_url": appbuilder.get_url_for_userinfo,
             "user_logout_url": appbuilder.get_url_for_logout,
             "user_login_url": appbuilder.get_url_for_login,
+            "user_profile_url": None
+            if g.user.is_anonymous
+            else f"/superset/profile/{g.user.username}",
             "locale": session.get("locale", "en"),
         },
     }

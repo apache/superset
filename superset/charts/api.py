@@ -607,7 +607,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/<pk>/screenshot/<digest>/", methods=["GET"])
     @protect()
-    @rison(screenshot_query_schema)
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(log_to_statsd=False)
@@ -879,7 +878,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 for file_name in bundle.namelist()
             }
 
-        command = ImportChartsCommand(contents)
+        passwords = (
+            json.loads(request.form["passwords"])
+            if "passwords" in request.form
+            else None
+        )
+
+        command = ImportChartsCommand(contents, passwords=passwords)
         try:
             command.run()
             return self.response(200, message="OK")

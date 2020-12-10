@@ -14,17 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from tests.test_app import app  # isort:skip
-
 import datetime
 from unittest import mock
+
+import pytest
 
 from superset.db_engine_specs import engines
 from superset.db_engine_specs.base import BaseEngineSpec, builtin_time_grains
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
+from superset.sql_parse import ParsedQuery
 from superset.utils.core import get_example_database
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.test_app import app
 
+from ..fixtures.energy_dashboard import load_energy_table_with_slice
 from ..fixtures.pyodbcRow import Row
 
 
@@ -193,6 +196,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         )
         self.assertListEqual(base_result_expected, base_result)
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_column_datatype_to_string(self):
         example_db = get_example_database()
         sqla_table = example_db.get_table("energy_usage")
@@ -239,3 +243,15 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         ]
         result = BaseEngineSpec.pyodbc_rows_to_tuples(data)
         self.assertListEqual(result, data)
+
+
+def test_is_readonly():
+    def is_readonly(sql: str) -> bool:
+        return BaseEngineSpec.is_readonly_query(ParsedQuery(sql))
+
+    assert not is_readonly("SHOW LOCKS test EXTENDED")
+    assert not is_readonly("SET hivevar:desc='Legislators'")
+    assert not is_readonly("UPDATE t1 SET col1 = NULL")
+    assert is_readonly("EXPLAIN SELECT 1")
+    assert is_readonly("SELECT 1")
+    assert is_readonly("WITH (SELECT 1) bla SELECT * from bla")

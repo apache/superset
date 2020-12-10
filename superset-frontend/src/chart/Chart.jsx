@@ -81,6 +81,8 @@ const defaultProps = {
 };
 
 const Styles = styled.div`
+  position: relative;
+  height: 100%;
   .chart-tooltip {
     opacity: 0.75;
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
