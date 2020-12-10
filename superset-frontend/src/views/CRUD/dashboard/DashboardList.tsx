@@ -37,6 +37,9 @@ import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import TooltipWrapper from 'src/components/TooltipWrapper';
+import ImportModelsModal, {
+  StyledIcon,
+} from 'src/components/ImportModal/index';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
 import DashboardCard from './DashboardCard';
@@ -66,6 +69,8 @@ interface Dashboard {
 }
 
 function DashboardList(props: DashboardListProps) {
+  const { addDangerToast, addSuccessToast } = props;
+
   const {
     state: {
       loading,
@@ -81,17 +86,33 @@ function DashboardList(props: DashboardListProps) {
   } = useListViewResource<Dashboard>(
     'dashboard',
     t('dashboard'),
-    props.addDangerToast,
+    addDangerToast,
   );
   const dashboardIds = useMemo(() => dashboards.map(d => d.id), [dashboards]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'dashboard',
     dashboardIds,
-    props.addDangerToast,
+    addDangerToast,
   );
   const [dashboardToEdit, setDashboardToEdit] = useState<Dashboard | null>(
     null,
   );
+
+  const [importingDashboard, showImportModal] = useState<boolean>(false);
+  const [passwordFields, setPasswordFields] = useState<string[]>([]);
+
+  const openDashboardImportModal = () => {
+    showImportModal(true);
+  };
+
+  const closeDashboardImportModal = () => {
+    showImportModal(false);
+  };
+
+  const handleDashboardImport = () => {
+    showImportModal(false);
+    refreshData();
+  };
 
   const canCreate = hasPerm('can_add');
   const canEdit = hasPerm('can_edit');
@@ -119,7 +140,7 @@ function DashboardList(props: DashboardListProps) {
         );
       },
       createErrorHandler(errMsg =>
-        props.addDangerToast(
+        addDangerToast(
           t('An error occurred while fetching dashboards: %s', errMsg),
         ),
       ),
@@ -133,10 +154,10 @@ function DashboardList(props: DashboardListProps) {
       )}`,
     }).then(
       ({ json = {} }) => {
-        props.addSuccessToast(json.message);
+        addSuccessToast(json.message);
       },
       createErrorHandler(errMsg =>
-        props.addDangerToast(
+        addDangerToast(
           t('There was an issue deleting the selected dashboards: ', errMsg),
         ),
       ),
@@ -234,8 +255,8 @@ function DashboardList(props: DashboardListProps) {
             handleDashboardDelete(
               original,
               refreshData,
-              props.addSuccessToast,
-              props.addDangerToast,
+              addSuccessToast,
+              addDangerToast,
             );
           const handleEdit = () => openDashboardEditModal(original);
           const handleExport = () => handleBulkDashboardExport([original]);
@@ -329,7 +350,7 @@ function DashboardList(props: DashboardListProps) {
         'dashboard',
         'owners',
         createErrorHandler(errMsg =>
-          props.addDangerToast(
+          addDangerToast(
             t(
               'An error occurred while fetching dashboard owner values: %s',
               errMsg,
@@ -350,7 +371,7 @@ function DashboardList(props: DashboardListProps) {
         'dashboard',
         'created_by',
         createErrorHandler(errMsg =>
-          props.addDangerToast(
+          addDangerToast(
             t(
               'An error occurred while fetching dashboard created by values: %s',
               errMsg,
@@ -409,8 +430,8 @@ function DashboardList(props: DashboardListProps) {
         bulkSelectEnabled={bulkSelectEnabled}
         refreshData={refreshData}
         loading={loading}
-        addDangerToast={props.addDangerToast}
-        addSuccessToast={props.addSuccessToast}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
         openDashboardEditModal={openDashboardEditModal}
         saveFavoriteStatus={saveFavoriteStatus}
         favoriteStatus={favoriteStatus[dashboard.id]}
@@ -437,6 +458,13 @@ function DashboardList(props: DashboardListProps) {
       onClick: () => {
         window.location.assign('/dashboard/new');
       },
+    });
+  }
+  if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+    subMenuButtons.push({
+      name: <Icon name="import" />,
+      buttonStyle: 'link',
+      onClick: openDashboardImportModal,
     });
   }
   return (
@@ -502,6 +530,26 @@ function DashboardList(props: DashboardListProps) {
           );
         }}
       </ConfirmStatusChange>
+
+      <ImportModelsModal
+        resourceName="dashboard"
+        resourceLabel={t('dashboard')}
+        icon={<StyledIcon name="nav-dashboard" />}
+        passwordsNeededMessage={t(
+          'The passwords for the databases below are needed in order to ' +
+            'import them together with the dashboards. Please note that the ' +
+            '"Secure Extra" and "Certificate" sections of ' +
+            'the database configuration are not present in export files, and ' +
+            'should be added manually after the import if they are needed.',
+        )}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onModelImport={handleDashboardImport}
+        show={importingDashboard}
+        onHide={closeDashboardImportModal}
+        passwordFields={passwordFields}
+        setPasswordFields={setPasswordFields}
+      />
     </>
   );
 }

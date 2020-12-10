@@ -17,30 +17,107 @@
  * under the License.
  */
 import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
-import { t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 
+import Icon from 'src//components/Icon';
 import Modal from 'src/common/components/Modal';
-import {
-  StyledIcon,
-  StyledInputContainer,
-} from 'src/views/CRUD/data/database/DatabaseModal';
 import { useImportResource } from 'src/views/CRUD/hooks';
-import { DatabaseObject } from 'src/views/CRUD/data/database/types';
 
-export interface ImportDatabaseModalProps {
+export const StyledIcon = styled(Icon)`
+  margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
+`;
+
+const StyledInputContainer = styled.div`
+  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+
+  &.extra-container {
+    padding-top: 8px;
+  }
+
+  .helper {
+    display: block;
+    padding: ${({ theme }) => theme.gridUnit}px 0;
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    text-align: left;
+
+    .required {
+      margin-left: ${({ theme }) => theme.gridUnit / 2}px;
+      color: ${({ theme }) => theme.colors.error.base};
+    }
+  }
+
+  .input-container {
+    display: flex;
+    align-items: center;
+
+    label {
+      display: flex;
+      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+    }
+
+    i {
+      margin: 0 ${({ theme }) => theme.gridUnit}px;
+    }
+  }
+
+  input,
+  textarea {
+    flex: 1 1 auto;
+  }
+
+  textarea {
+    height: 160px;
+    resize: none;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+  }
+
+  textarea,
+  input[type='text'],
+  input[type='number'] {
+    padding: ${({ theme }) => theme.gridUnit * 1.5}px
+      ${({ theme }) => theme.gridUnit * 2}px;
+    border-style: none;
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border-radius: ${({ theme }) => theme.gridUnit}px;
+
+    &[name='name'] {
+      flex: 0 1 auto;
+      width: 40%;
+    }
+
+    &[name='sqlalchemy_uri'] {
+      margin-right: ${({ theme }) => theme.gridUnit * 3}px;
+    }
+  }
+`;
+
+export interface ImportModelsModalProps {
+  resourceName: string;
+  resourceLabel: string;
+  icon: React.ReactNode;
+  passwordsNeededMessage: string;
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  onDatabaseImport: () => void;
+  onModelImport: () => void;
   show: boolean;
   onHide: () => void;
   passwordFields?: string[];
   setPasswordFields?: (passwordFields: string[]) => void;
 }
 
-const ImportDatabaseModal: FunctionComponent<ImportDatabaseModalProps> = ({
+const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
+  resourceName,
+  resourceLabel,
+  icon,
+  passwordsNeededMessage,
   addDangerToast,
   addSuccessToast,
-  onDatabaseImport,
+  onModelImport,
   show,
   onHide,
   passwordFields = [],
@@ -53,8 +130,8 @@ const ImportDatabaseModal: FunctionComponent<ImportDatabaseModalProps> = ({
 
   const clearModal = () => {
     setUploadFile(null);
-    setPasswords({});
     setPasswordFields([]);
+    setPasswords({});
     if (fileInputRef && fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -68,15 +145,11 @@ const ImportDatabaseModal: FunctionComponent<ImportDatabaseModalProps> = ({
   const {
     state: { passwordsNeeded },
     importResource,
-  } = useImportResource<DatabaseObject>(
-    'database',
-    t('database'),
-    handleErrorMsg,
-  );
+  } = useImportResource<any>(resourceName, resourceLabel, handleErrorMsg);
 
   useEffect(() => {
     setPasswordFields(passwordsNeeded);
-  }, [passwordsNeeded]);
+  }, [passwordsNeeded, setPasswordFields]);
 
   // Functions
   const hide = () => {
@@ -91,9 +164,9 @@ const ImportDatabaseModal: FunctionComponent<ImportDatabaseModalProps> = ({
 
     importResource(uploadFile, passwords).then(result => {
       if (result) {
-        addSuccessToast(t('The databases have been imported'));
+        addSuccessToast(t('The import was successful'));
         clearModal();
-        onDatabaseImport();
+        onModelImport();
       }
     });
   };
@@ -110,11 +183,9 @@ const ImportDatabaseModal: FunctionComponent<ImportDatabaseModalProps> = ({
 
     return (
       <>
-        <h5>Passwords</h5>
+        <h5>Database passwords</h5>
         <StyledInputContainer>
-          <div className="helper">
-            {t('Please provide the password for the databases below')}
-          </div>
+          <div className="helper">{passwordsNeededMessage}</div>
         </StyledInputContainer>
         {passwordFields.map(fileName => (
           <StyledInputContainer key={`password-for-${fileName}`}>
@@ -124,7 +195,7 @@ const ImportDatabaseModal: FunctionComponent<ImportDatabaseModalProps> = ({
             </div>
             <input
               name={`password-${fileName}`}
-              autoComplete="off"
+              autoComplete={`password-${fileName}`}
               type="password"
               value={passwords[fileName]}
               onChange={event =>
@@ -144,8 +215,8 @@ const ImportDatabaseModal: FunctionComponent<ImportDatabaseModalProps> = ({
 
   return (
     <Modal
-      name="database"
-      className="database-modal"
+      name="model"
+      className="import-model-modal"
       disablePrimaryButton={uploadFile === null}
       onHandledPrimaryAction={onUpload}
       onHide={hide}
@@ -154,38 +225,31 @@ const ImportDatabaseModal: FunctionComponent<ImportDatabaseModalProps> = ({
       show={show}
       title={
         <h4>
-          <StyledIcon name="database" />
-          {t('Import Database')}
+          {icon}
+          {t('Import %s', resourceLabel)}
         </h4>
       }
     >
       <StyledInputContainer>
         <div className="control-label">
-          <label htmlFor="databaseFile">
+          <label htmlFor="modelFile">
             {t('File')}
             <span className="required">*</span>
           </label>
         </div>
         <input
           ref={fileInputRef}
-          data-test="database-file-input"
-          name="databaseFile"
-          id="databaseFile"
+          data-test="model-file-input"
+          name="modelFile"
+          id="modelFile"
           type="file"
           accept=".yaml,.json,.yml,.zip"
           onChange={changeFile}
         />
-        <div className="helper">
-          {t(
-            'Please note that the "Secure Extra" and "Certificate" sections of ' +
-              'the database configuration are not present in export files, and ' +
-              'should be added manually after the import if they are needed.',
-          )}
-        </div>
       </StyledInputContainer>
       {renderPasswordFields()}
     </Modal>
   );
 };
 
-export default ImportDatabaseModal;
+export default ImportModelsModal;

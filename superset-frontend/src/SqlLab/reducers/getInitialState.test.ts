@@ -16,31 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import configureStore from 'redux-mock-store';
-import { shallow } from 'enzyme';
 
-import URLShortLinkModal from 'src/components/URLShortLinkModal';
-import ModalTrigger from 'src/components/ModalTrigger';
+import getInitialState from './getInitialState';
 
-describe('URLShortLinkModal', () => {
-  const defaultProps = {
-    url: 'mockURL',
-    emailSubject: 'Mock Subject',
-    emailContent: 'mock content',
-    triggerNode: <div />,
-  };
-
-  function setup() {
-    const mockStore = configureStore([]);
-    const store = mockStore({});
-    return shallow(
-      <URLShortLinkModal store={store} {...defaultProps} />,
-    ).dive();
-  }
-
-  it('renders ModalTrigger', () => {
-    const wrapper = setup();
-    expect(wrapper.find(ModalTrigger)).toExist();
+const apiData = {
+  defaultDbId: 1,
+  common: {
+    conf: {
+      DEFAULT_SQLLAB_LIMIT: 1,
+    },
+  },
+  active_tab: null,
+  tab_state_ids: [],
+  databases: [],
+  queries: [],
+  requested_query: null,
+  user: {
+    userId: 1,
+    username: 'some name',
+  },
+};
+describe('getInitialState', () => {
+  it('should output the user that is passed in', () => {
+    expect(getInitialState(apiData).sqlLab.user.userId).toEqual(1);
   });
 });

@@ -45,6 +45,10 @@ import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import FacePile from 'src/components/FacePile';
 import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
+import ImportModelsModal, {
+  StyledIcon,
+} from 'src/components/ImportModal/index';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import AddDatasetModal from './AddDatasetModal';
 
 const PAGE_SIZE = 25;
@@ -113,6 +117,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     datasetCurrentlyEditing,
     setDatasetCurrentlyEditing,
   ] = useState<Dataset | null>(null);
+
+  const [importingDataset, showImportModal] = useState<boolean>(false);
+  const [passwordFields, setPasswordFields] = useState<string[]>([]);
+
+  const openDatasetImportModal = () => {
+    showImportModal(true);
+  };
+
+  const closeDatasetImportModal = () => {
+    showImportModal(false);
+  };
+
+  const handleDatasetImport = () => {
+    showImportModal(false);
+    refreshData();
+  };
 
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
@@ -453,6 +473,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     });
   }
 
+  if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+    buttonArr.push({
+      name: <Icon name="import" />,
+      buttonStyle: 'link',
+      onClick: openDatasetImportModal,
+    });
+  }
+
   menuData.buttons = buttonArr;
 
   const closeDatasetDeleteModal = () => {
@@ -620,6 +648,26 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           );
         }}
       </ConfirmStatusChange>
+
+      <ImportModelsModal
+        resourceName="dataset"
+        resourceLabel={t('dataset')}
+        icon={<StyledIcon name="table" />}
+        passwordsNeededMessage={t(
+          'The passwords for the databases below are needed in order to ' +
+            'import them together with the datasets. Please note that the ' +
+            '"Secure Extra" and "Certificate" sections of ' +
+            'the database configuration are not present in export files, and ' +
+            'should be added manually after the import if they are needed.',
+        )}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onModelImport={handleDatasetImport}
+        show={importingDataset}
+        onHide={closeDatasetImportModal}
+        passwordFields={passwordFields}
+        setPasswordFields={setPasswordFields}
+      />
     </>
   );
 };

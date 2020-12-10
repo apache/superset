@@ -43,7 +43,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
     not_found = DashboardNotFoundError
 
     @staticmethod
-    def export(model: Dashboard) -> Iterator[Tuple[str, str]]:
+    def _export(model: Dashboard) -> Iterator[Tuple[str, str]]:
         dashboard_slug = secure_filename(model.dashboard_title)
         file_name = f"dashboards/{dashboard_slug}.yaml"
 
@@ -62,7 +62,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     payload[new_name] = json.loads(value)
                 except (TypeError, json.decoder.JSONDecodeError):
                     logger.info("Unable to decode `%s` field: %s", key, value)
-                    payload[new_name] = ""
+                    payload[new_name] = {}
 
         payload["version"] = EXPORT_VERSION
 

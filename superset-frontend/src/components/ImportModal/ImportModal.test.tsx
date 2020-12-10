@@ -17,25 +17,36 @@
  * under the License.
  */
 import React from 'react';
+import thunk from 'redux-thunk';
+import configureStore from 'redux-mock-store';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { ReactWrapper } from 'enzyme';
 
-import ImportDatabaseModal from 'src/database/components/ImportModal';
+import ImportModelsModal, { StyledIcon } from 'src/components/ImportModal';
 import Modal from 'src/common/components/Modal';
 
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
+
 const requiredProps = {
+  resourceName: 'model',
+  resourceLabel: 'model',
+  icon: <StyledIcon name="database" />,
+  passwordsNeededMessage: 'Passwords are needed',
   addDangerToast: () => {},
   addSuccessToast: () => {},
-  onDatabaseImport: () => {},
+  onModelImport: () => {},
   show: true,
   onHide: () => {},
 };
 
-describe('ImportDatabaseModal', () => {
+describe('ImportModelsModal', () => {
   let wrapper: ReactWrapper;
 
   beforeEach(() => {
-    wrapper = mount(<ImportDatabaseModal {...requiredProps} />);
+    wrapper = mount(<ImportModelsModal {...requiredProps} />, {
+      context: { store },
+    });
   });
 
   afterEach(() => {
@@ -43,15 +54,15 @@ describe('ImportDatabaseModal', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(ImportDatabaseModal)).toExist();
+    expect(wrapper.find(ImportModelsModal)).toExist();
   });
 
   it('renders a Modal', () => {
     expect(wrapper.find(Modal)).toExist();
   });
 
-  it('renders "Import Database" header', () => {
-    expect(wrapper.find('h4').text()).toEqual('Import Database');
+  it('renders "Import model" header', () => {
+    expect(wrapper.find('h4').text()).toEqual('Import model');
   });
 
   it('renders a label and a file input field', () => {
@@ -60,7 +71,7 @@ describe('ImportDatabaseModal', () => {
   });
 
   it('should attach the label to the input field', () => {
-    const id = 'databaseFile';
+    const id = 'modelFile';
     expect(wrapper.find('label').prop('htmlFor')).toBe(id);
     expect(wrapper.find('input').prop('id')).toBe(id);
   });
@@ -76,7 +87,7 @@ describe('ImportDatabaseModal', () => {
   });
 
   it('should render the import button enabled when a file is selected', () => {
-    const file = new File([new ArrayBuffer(1)], 'database_export.zip');
+    const file = new File([new ArrayBuffer(1)], 'model_export.zip');
     wrapper.find('input').simulate('change', { target: { files: [file] } });
 
     expect(wrapper.find('button[children="Import"]').prop('disabled')).toBe(
@@ -86,10 +97,13 @@ describe('ImportDatabaseModal', () => {
 
   it('should render password fields when needed for import', () => {
     const wrapperWithPasswords = mount(
-      <ImportDatabaseModal
+      <ImportModelsModal
         {...requiredProps}
         passwordFields={['databases/examples.yaml']}
       />,
+      {
+        context: { store },
+      },
     );
     expect(wrapperWithPasswords.find('input[type="password"]')).toExist();
   });
