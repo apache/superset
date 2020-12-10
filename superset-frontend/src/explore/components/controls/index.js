@@ -24,7 +24,6 @@ import ColorMapControl from './ColorMapControl';
 import ColorPickerControl from './ColorPickerControl';
 import ColorSchemeControl from './ColorSchemeControl';
 import DatasourceControl from './DatasourceControl';
-// import DateFilterControl from './DateFilterControl';
 import DateFilterControl from './DateFilterControl/DateFilterControl';
 import FixedOrMetricControl from './FixedOrMetricControl';
 import HiddenControl from './HiddenControl';

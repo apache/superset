@@ -33,9 +33,17 @@ import {
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Label from 'src/components/Label';
 import Modal from 'src/common/components/Modal';
-import { DatePicker, Input, Button } from 'src/common/components';
+import {
+  DatePicker,
+  Input,
+  Button,
+  Col,
+  Divider,
+  InputNumber,
+  Radio,
+  Row,
+} from 'src/common/components';
 import { Select } from 'src/components/Select';
-import { Col, Divider, InputNumber, Radio, Row } from 'antd';
 import {
   TimeRangeFrameType,
   CommonRangeType,
@@ -424,16 +432,15 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
     }
     if (!value.includes(SEPARATOR) && value.startsWith('Last')) {
       since = value;
-      until = 'today';
     }
     if (!value.includes(SEPARATOR) && value.startsWith('Next')) {
-      since = 'today';
       until = value;
     }
     return `${since}${SEPARATOR}${until}`;
   }
 
   function onAdvancedRangeChange(control: 'since' | 'until', value: string) {
+    setValidAdvancedRange(false);
     const [since, until] = advancedRange.split(SEPARATOR);
     if (control === 'since') {
       setAdvancedRange(`${value}${SEPARATOR}${until}`);
@@ -473,7 +480,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
     return timeRangeFrame === 'Advanced';
   }
 
-  function restaState(value: string) {
+  function resetState(value: string) {
     setTimeRangeFrame(guessTimeRangeFrame(value));
     setCommonRange(getDefaultOrCommonRange(value));
     setCalendarRange(getDefaultOrCalendarRange(value));
@@ -485,18 +492,21 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   function onSave() {
     const currentValue = getCurrentValue();
     onChange(currentValue);
-    restaState(currentValue);
+    resetState(currentValue);
   }
 
   function onHide() {
-    restaState(value);
+    resetState(value);
   }
 
   function onValidate() {
     const value = getCurrentValue();
-    fetchActualTimeRange(value, endpoints).then(value => {
-      setValidAdvancedRange(true);
-    }).catch(err => { setValidAdvancedRange(false) });
+    fetchActualTimeRange(value, endpoints)
+      .then((value) => {
+        setEvalTimeRange(value);
+        setValidAdvancedRange(true);
+      })
+      .catch(() => setValidAdvancedRange(false));
   }
 
   function renderCommon() {

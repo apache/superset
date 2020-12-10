@@ -45,6 +45,11 @@ export {
   Switch,
   Tabs,
   Tooltip,
+  Col,
+  Divider,
+  InputNumber,
+  Radio,
+  Row,
 } from 'antd';
 
 export { default as Collapse } from './Collapse';
