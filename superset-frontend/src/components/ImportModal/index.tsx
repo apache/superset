@@ -145,7 +145,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   const {
     state: { passwordsNeeded },
     importResource,
-  } = useImportResource<any>(resourceName, resourceLabel, handleErrorMsg);
+  } = useImportResource(resourceName, resourceLabel, handleErrorMsg);
 
   useEffect(() => {
     setPasswordFields(passwordsNeeded);

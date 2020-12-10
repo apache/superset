@@ -313,22 +313,22 @@ export function useSingleViewResource<D extends object = any>(
   };
 }
 
-interface ImportResourceState<D extends object = any> {
+interface ImportResourceState {
   loading: boolean;
   passwordsNeeded: string[];
 }
 
-export function useImportResource<D extends object = any>(
+export function useImportResource(
   resourceName: string,
   resourceLabel: string, // resourceLabel for translations
   handleErrorMsg: (errorMsg: string) => void,
 ) {
-  const [state, setState] = useState<ImportResourceState<D>>({
+  const [state, setState] = useState<ImportResourceState>({
     loading: false,
     passwordsNeeded: [],
   });
 
-  function updateState(update: Partial<ImportResourceState<D>>) {
+  function updateState(update: Partial<ImportResourceState>) {
     setState(currentState => ({ ...currentState, ...update }));
   }
 
