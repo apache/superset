@@ -915,4 +915,4 @@ class ChartRestApi(BaseSupersetModelRestApi):
             }
             return self.response(200, result=result)
         except ValueError as e:
-            return self.response_400(f"Invalid datetime: {e}")
+            return self.response_400(f"Unexpected timeRange: {e}")

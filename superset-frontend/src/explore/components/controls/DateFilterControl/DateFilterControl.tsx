@@ -30,6 +30,7 @@ import {
   formatTimeRange,
   SEPARATOR,
 } from 'src/explore/dateFilterUtils';
+import getClientErrorObject from 'src/utils/getClientErrorObject';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Label from 'src/components/Label';
 import Modal from 'src/common/components/Modal';
@@ -275,20 +276,28 @@ const dttmToMoment = (dttm: string): Moment => {
   return moment(dttm);
 };
 
-const fetchActualTimeRange = async (
+const fetchTimeRange = async (
   timeRange: string,
   endpoints?: TimeRangeEndpoints,
 ) => {
   const query = rison.encode(timeRange);
+  const endpoint = `/api/v1/chart/time_range/?q=${query}`;
 
-  const { json = {} } = await SupersetClient.get({
-    endpoint: `/api/v1/chart/time_range/?q=${query}`,
-  });
-  const timeRangeString = buildTimeRangeString(
-    json?.result?.since || '',
-    json?.result?.until || '',
-  );
-  return formatTimeRange(timeRangeString, endpoints);
+  try {
+    const response = await SupersetClient.get({endpoint});
+    const timeRangeString = buildTimeRangeString(
+      response?.json?.result?.since || '',
+      response?.json?.result?.until || '',
+    );
+    return {
+      value: formatTimeRange(timeRangeString, endpoints),
+    };
+  } catch (response) {
+    const clientError = await getClientErrorObject(response);
+    return {
+      error: clientError.message || clientError.error
+    }
+  }
 };
 
 const StyledModalContainer = styled.div`
@@ -371,15 +380,15 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   const [evalTimeRange, setEvalTimeRange] = useState<string>(value);
 
   useEffect(() => {
-    fetchActualTimeRange(value, endpoints).then(value => {
-      setActualTimeRange(value);
+    fetchTimeRange(value, endpoints).then(({ value }) => {
+      setActualTimeRange(value || '');
     });
   }, [value]);
 
   useEffect(() => {
     const value = getCurrentValue();
-    fetchActualTimeRange(value, endpoints).then(value => {
-      setEvalTimeRange(value);
+    fetchTimeRange(value, endpoints).then(({ value }) => {
+      setEvalTimeRange(value || '');
     });
   }, [timeRangeFrame, commonRange, calendarRange, customRange]);
 
@@ -501,12 +510,16 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
 
   function onValidate() {
     const value = getCurrentValue();
-    fetchActualTimeRange(value, endpoints)
-      .then(value => {
-        setEvalTimeRange(value);
-        setValidAdvancedRange(true);
+    fetchTimeRange(value, endpoints)
+      .then(({ value, error }) => {
+        if (error) {
+          setEvalTimeRange(error || '');
+          setValidAdvancedRange(false);
+        } else {
+          setEvalTimeRange(value || '');
+          setValidAdvancedRange(true);
+        }
       })
-      .catch(() => setValidAdvancedRange(false));
   }
 
   function renderCommon() {
