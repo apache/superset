@@ -115,7 +115,6 @@ export type AllFilterState = {
 /** Chart state of redux */
 export type Chart = {
   id: number;
-  slice_id: 2107;
   formData: {
     viz_type: string;
   };
