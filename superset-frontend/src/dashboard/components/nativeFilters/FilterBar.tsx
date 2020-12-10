@@ -40,6 +40,7 @@ import {
 import { Filter } from './types';
 import { getChartDataRequest } from '../../../chart/chartAction';
 import { areObjectsEqual } from '../../../reduxUtils';
+import CascadePopover from './CascadePopover';
 
 const barWidth = `250px`;
 
@@ -227,7 +228,7 @@ const FilterValue: React.FC<FilterProps> = ({
   );
 };
 
-const FilterControl: React.FC<FilterProps> = ({
+export const FilterControl: React.FC<FilterProps> = ({
   filter,
   onExtraFormDataChange,
 }) => {
@@ -243,7 +244,7 @@ const FilterControl: React.FC<FilterProps> = ({
   );
 };
 
-interface CascadeFilter extends Filter {
+export interface CascadeFilter extends Filter {
   cascadeChildren: CascadeFilter[];
 }
 
@@ -252,7 +253,7 @@ interface CascadeFilterControlProps {
   onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
 }
 
-const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
+export const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
   filter,
   onExtraFormDataChange,
 }) => {
@@ -288,6 +289,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const canEdit = useSelector<any, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
+  const [visiblePopoverId, setVisiblePopoverId] = useState<string | null>(null);
 
   useEffect(() => {
     if (filterConfigs.length === 0 && filtersOpen) {
@@ -381,9 +383,13 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         </ActionButtons>
         <FilterControls>
           {cascadeFilters.map(filter => (
-            <CascadeFilterControl
-              data-test="filters-control"
+            <CascadePopover
+              data-test="cascade-filters-control"
               key={filter.id}
+              visible={visiblePopoverId === filter.id}
+              onVisibleChange={visible =>
+                setVisiblePopoverId(visible ? filter.id : null)
+              }
               filter={filter}
               onExtraFormDataChange={handleExtraFormDataChange}
             />
