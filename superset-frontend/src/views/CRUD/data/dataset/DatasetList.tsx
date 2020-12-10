@@ -52,6 +52,13 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import AddDatasetModal from './AddDatasetModal';
 
 const PAGE_SIZE = 25;
+const PASSWORDS_NEEDED_MESSAGE = t(
+  'The passwords for the databases below are needed in order to ' +
+    'import them together with the datasets. Please note that the ' +
+    '"Secure Extra" and "Certificate" sections of ' +
+    'the database configuration are not present in export files, and ' +
+    'should be added manually after the import if they are needed.',
+);
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -653,13 +660,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         resourceName="dataset"
         resourceLabel={t('dataset')}
         icon={<StyledIcon name="table" />}
-        passwordsNeededMessage={t(
-          'The passwords for the databases below are needed in order to ' +
-            'import them together with the datasets. Please note that the ' +
-            '"Secure Extra" and "Certificate" sections of ' +
-            'the database configuration are not present in export files, and ' +
-            'should be added manually after the import if they are needed.',
-        )}
+        passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         onModelImport={handleDatasetImport}
