@@ -55,7 +55,7 @@ function AlertList({
   isReportEnabled = false,
   user,
 }: AlertListProps) {
-  const title = isReportEnabled ? 'report' : 'alert';
+  const title = isReportEnabled ? t('report') : t('alert');
   const pathName = isReportEnabled ? 'Reports' : 'Alerts';
   const initalFilters = useMemo(
     () => [
@@ -234,7 +234,7 @@ function AlertList({
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t(`${title}`)}
+          <i className="fa fa-plus" /> {title}
         </>
       ),
       buttonStyle: 'primary',
@@ -245,8 +245,8 @@ function AlertList({
   }
 
   const EmptyStateButton = (
-    <Button buttonStyle="primary" onClick={() => {}}>
-      <i className="fa fa-plus" /> {t(`${title}`)}
+    <Button buttonStyle="primary" onClick={() => handleAlertEdit(null)}>
+      <i className="fa fa-plus" /> {title}
     </Button>
   );
 
