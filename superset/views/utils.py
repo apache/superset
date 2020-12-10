@@ -265,7 +265,6 @@ def get_time_range_endpoints(
     :param slice_id: The slice ID
     :returns: The time range endpoints tuple
     """
-    endpoints = None
     if (
         app.config["SIP_15_GRACE_PERIOD_END"]
         and date.today() >= app.config["SIP_15_GRACE_PERIOD_END"]
@@ -273,8 +272,8 @@ def get_time_range_endpoints(
         start, end  = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
         return (TimeRangeEndpoint(start), TimeRangeEndpoint(end))
 
-    
-    if (slc or slice_id):
+    endpoints = form_data.get("time_range_endpoints")	
+    if (slc or slice_id) and not endpoints:
         try:
             _, datasource_type = get_datasource_info(None, None, form_data)
         except SupersetException:
@@ -288,8 +287,6 @@ def get_time_range_endpoints(
                 endpoints = slc.datasource.database.get_extra().get(
                     "time_range_endpoints"
                 )
-    if form_data.get("time_range_endpoints"):
-        endpoints = form_data.get("time_range_endpoints")
 
     if endpoints:
         start, end = endpoints
