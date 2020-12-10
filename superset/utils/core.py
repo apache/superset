@@ -82,11 +82,11 @@ from pyparsing import (
     Forward,
     Group,
     Optional as ppOptional,
+    ParseException,
     ParseResults,
     pyparsing_common,
     quotedString,
     Suppress,
-    ParseException,
 )
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
