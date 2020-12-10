@@ -36,6 +36,12 @@ import DatabaseModal from './DatabaseModal';
 import { DatabaseObject } from './types';
 
 const PAGE_SIZE = 25;
+const PASSWORDS_NEEDED_MESSAGE = t(
+  'The passwords for the databases below are needed in order to ' +
+    'import them. Please note that the "Secure Extra" and "Certificate" ' +
+    'sections of the database configuration are not present in export ' +
+    'files, and should be added manually after the import if they are needed.',
+);
 
 interface DatabaseDeleteObject extends DatabaseObject {
   chart_count: number;
@@ -431,12 +437,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         resourceName="database"
         resourceLabel={t('database')}
         icon={<StyledIcon name="database" />}
-        passwordsNeededMessage={t(
-          'The passwords for the databases below are needed in order to ' +
-            'import them. Please note that the "Secure Extra" and "Certificate" ' +
-            'sections of the database configuration are not present in export ' +
-            'files, and should be added manually after the import if they are needed.',
-        )}
+        passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         onModelImport={handleDatabaseImport}
