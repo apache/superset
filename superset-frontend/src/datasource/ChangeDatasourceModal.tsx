@@ -70,7 +70,6 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
 }) => {
   const [datasources, setDatasources] = useState<any>(null);
   const [filter] = useState<any>(undefined);
-  const [loading, setLoading] = useState(true);
   const [confirmChange, setConfirmChange] = useState(false);
   const [confirmedDataset, setConfirmedDataset] = useState<any>(undefined);
   let searchRef = useRef<HTMLInputElement>(null);
@@ -97,44 +96,13 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         searchRef.current.focus();
       }
 
-      if (!datasources) {
-        // prototyping
-        await fetchData({
-          pageIndex: 0,
-          pageSize: 20,
-          filters: [],
-          sortBy: [{ id: 'changed_on_delta_humanized' }],
-        });
-
-        SupersetClient.get({
-          endpoint: '/api/v1/dataset/',
-        })
-          .then(({ json }) => {
-            const data = json.result.map((ds: any) => ({
-              rawName: ds.table_name,
-              connection: ds.database.database_name,
-              schema: ds.schema,
-              name: (
-                <a
-                  href="#"
-                  onClick={() => selectDatasource({ type: 'table', ...ds })}
-                  className="datasource-link"
-                >
-                  {ds.table_name}
-                </a>
-              ),
-              type: ds.kind,
-            }));
-            setLoading(false);
-            setDatasources(data);
-          })
-          .catch(response => {
-            setLoading(false);
-            getClientErrorObject(response).then(({ error }: any) => {
-              addDangerToast(error.error || error.statusText || error);
-            });
-          });
-      }
+      // Fetch initial datasets for tableview
+      await fetchData({
+        pageIndex: 0,
+        pageSize: 20,
+        filters: [],
+        sortBy: [{ id: 'changed_on_delta_humanized' }],
+      });
     };
 
     if (show) {
@@ -143,6 +111,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   }, [
     addDangerToast,
     datasources,
+    fetchData,
     onChange,
     onDatasourceSave,
     onHide,
@@ -158,46 +127,18 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     event: React.FormEvent<FormControl & FormControlProps>,
   ) => {
     const searchValue = (event.currentTarget?.value as string) ?? '';
-    const queryParams = rison.encode({
+    fetchData({
+      pageIndex: 0,
+      pageSize: 20,
       filters: [
         {
-          col: 'table_name',
-          opr: 'ct',
+          id: 'table_name',
+          operator: 'ct',
           value: searchValue,
         },
       ],
-      page_size: 0,
-      page: 0,
+      sortBy: [{ id: 'changed_on_delta_humanized' }],
     });
-
-    SupersetClient.get({
-      endpoint: `/api/v1/dataset?q=${queryParams}`,
-    })
-      .then(({ json }) => {
-        const data = json.result.map((ds: any) => ({
-          rawName: ds.table_name,
-          connection: ds.database.database_name,
-          schema: ds.schema,
-          name: (
-            <a
-              href="#"
-              onClick={() => selectDatasource({ type: 'table', ...ds })}
-              className="datasource-link"
-            >
-              {ds.table_name}
-            </a>
-          ),
-          type: ds.kind,
-        }));
-        setLoading(false);
-        setDatasources(data);
-      })
-      .catch(response => {
-        setLoading(false);
-        getClientErrorObject(response).then(({ error }: any) => {
-          addDangerToast(error.error || error.statusText || error);
-        });
-      });
   };
 
   const data = useMemo(
@@ -234,7 +175,6 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
 
   const handlerCancelConfirm = () => {
     setConfirmChange(false);
-    console.log(state);
   };
 
   const renderTableView = () => {
@@ -256,7 +196,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
 
     console.log(data);
 
-    return data
+    return data;
   };
 
   return (
@@ -285,15 +225,14 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
                 onChange={changeSearch}
               />
             </div>
-
-            {loading && <Loading />}
+            {state.loading && <Loading />}
             {state.resourceCollection.length !== 0 && (
               <TableView
                 columns={TABLE_COLUMNS}
                 data={renderTableView()}
                 pageSize={20}
                 className="table-condensed"
-            />
+              />
             )}
           </>
         )}
