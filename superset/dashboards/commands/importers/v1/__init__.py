@@ -52,6 +52,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
 
     dao = DashboardDAO
     model_name = "dashboard"
+    prefix = "dashboards/"
     schemas: Dict[str, Schema] = {
         "charts/": ImportV1ChartSchema(),
         "dashboards/": ImportV1DashboardSchema(),
@@ -63,7 +64,9 @@ class ImportDashboardsCommand(ImportModelsCommand):
     # TODO (betodealmeida): refactor to use code from other commands
     # pylint: disable=too-many-branches, too-many-locals
     @staticmethod
-    def _import(session: Session, configs: Dict[str, Any]) -> None:
+    def _import(
+        session: Session, configs: Dict[str, Any], overwrite: bool = False
+    ) -> None:
         # discover charts associated with dashboards
         chart_uuids: Set[str] = set()
         for file_name, config in configs.items():
@@ -125,7 +128,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
         dashboard_chart_ids: List[Tuple[int, int]] = []
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
-                dashboard = import_dashboard(session, config, overwrite=True)
+                dashboard = import_dashboard(session, config, overwrite=overwrite)
 
                 for uuid in find_chart_uuids(config["position"]):
                     chart_id = chart_ids[uuid]

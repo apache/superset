@@ -35,6 +35,7 @@ class ImportDatabasesCommand(ImportModelsCommand):
 
     dao = DatabaseDAO
     model_name = "database"
+    prefix = "databases/"
     schemas: Dict[str, Schema] = {
         "databases/": ImportV1DatabaseSchema(),
         "datasets/": ImportV1DatasetSchema(),
@@ -42,12 +43,14 @@ class ImportDatabasesCommand(ImportModelsCommand):
     import_error = DatabaseImportError
 
     @staticmethod
-    def _import(session: Session, configs: Dict[str, Any]) -> None:
+    def _import(
+        session: Session, configs: Dict[str, Any], overwrite: bool = False
+    ) -> None:
         # first import databases
         database_ids: Dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/"):
-                database = import_database(session, config, overwrite=True)
+                database = import_database(session, config, overwrite=overwrite)
                 database_ids[str(database.uuid)] = database.id
 
         # import related datasets

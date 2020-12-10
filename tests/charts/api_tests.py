@@ -175,6 +175,22 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             db.session.delete(self.chart)
             db.session.commit()
 
+    def create_chart_import(self):
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("chart_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(chart_metadata_config).encode())
+            with bundle.open(
+                "chart_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(database_config).encode())
+            with bundle.open("chart_export/datasets/imported_dataset.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+            with bundle.open("chart_export/charts/imported_chart.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(chart_config).encode())
+        buf.seek(0)
+        return buf
+
     def test_delete_chart(self):
         """
         Chart API: Test delete
@@ -1319,20 +1335,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.login(username="admin")
         uri = "api/v1/chart/import/"
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("chart_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(chart_metadata_config).encode())
-            with bundle.open(
-                "chart_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open("chart_export/datasets/imported_dataset.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-            with bundle.open("chart_export/charts/imported_chart.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(chart_config).encode())
-        buf.seek(0)
-
+        buf = self.create_chart_import()
         form_data = {
             "formData": (buf, "chart_export.zip"),
         }
@@ -1354,6 +1357,62 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
         chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
         assert chart.table == dataset
+
+        db.session.delete(chart)
+        db.session.delete(dataset)
+        db.session.delete(database)
+        db.session.commit()
+
+    def test_import_chart_overwrite(self):
+        """
+        Chart API: Test import existing chart
+        """
+        self.login(username="admin")
+        uri = "api/v1/chart/import/"
+
+        buf = self.create_chart_import()
+        form_data = {
+            "formData": (buf, "chart_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        # import again without overwrite flag
+        buf = self.create_chart_import()
+        form_data = {
+            "formData": (buf, "chart_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "message": {
+                "charts/imported_chart.yaml": "Chart already exists and `overwrite=true` was not passed",
+            }
+        }
+
+        # import with overwrite flag
+        buf = self.create_chart_import()
+        form_data = {
+            "formData": (buf, "chart_export.zip"),
+            "overwrite": "true",
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        # clean up
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        dataset = database.tables[0]
+        chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
 
         db.session.delete(chart)
         db.session.delete(dataset)

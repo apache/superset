@@ -37,6 +37,7 @@ class ImportChartsCommand(ImportModelsCommand):
 
     dao = ChartDAO
     model_name = "chart"
+    prefix = "charts/"
     schemas: Dict[str, Schema] = {
         "charts/": ImportV1ChartSchema(),
         "datasets/": ImportV1DatasetSchema(),
@@ -45,7 +46,9 @@ class ImportChartsCommand(ImportModelsCommand):
     import_error = ChartImportError
 
     @staticmethod
-    def _import(session: Session, configs: Dict[str, Any]) -> None:
+    def _import(
+        session: Session, configs: Dict[str, Any], overwrite: bool = False
+    ) -> None:
         # discover datasets associated with charts
         dataset_uuids: Set[str] = set()
         for file_name, config in configs.items():
@@ -88,4 +91,4 @@ class ImportChartsCommand(ImportModelsCommand):
             ):
                 # update datasource id, type, and name
                 config.update(dataset_info[config["dataset_uuid"]])
-                import_chart(session, config, overwrite=True)
+                import_chart(session, config, overwrite=overwrite)
