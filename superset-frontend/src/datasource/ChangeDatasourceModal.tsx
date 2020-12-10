@@ -232,9 +232,10 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
           <ConfirmModalStyled>
             <div className="confirm-modal-container">
               {t(
-                'Warning! Changing the datasource may break the chart if metadata does not exist in the target datasource',
+                'Warning! Changing the dataset may break the chart if the metadata does not exist in the target dataset',
               )}
               <div className="btn-container">
+                <Button onClick={handlerCancelConfirm}>Cancel</Button>
                 <Button
                   className="proceed-btn"
                   buttonStyle="primary"
@@ -242,7 +243,6 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
                 >
                   Proceed
                 </Button>
-                <Button onClick={handlerCancelConfirm}>Cancel</Button>
               </div>
             </div>
           </ConfirmModalStyled>
