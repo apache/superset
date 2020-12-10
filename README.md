@@ -133,12 +133,6 @@ A complete list of supported databases can be found
 
 [See in the documentation](https://superset.incubator.apache.org/docs/installation/installing-superset-using-docker-compose)
 
-
-
-
-
-
-
 ## Get Involved
 
 * Ask and answer questions on [StackOverflow](https://stackoverflow.com/questions/tagged/apache-superset)
