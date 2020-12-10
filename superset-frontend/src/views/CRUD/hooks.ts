@@ -26,7 +26,7 @@ import { FilterValue } from 'src/components/ListView/types';
 import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { FavoriteStatus } from './types';
+import { FavoriteStatus, ImportResourceName } from './types';
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -317,8 +317,6 @@ interface ImportResourceState {
   loading: boolean;
   passwordsNeeded: string[];
 }
-
-type ImportResourceName = 'chart' | 'dashboard' | 'database' | 'dataset';
 
 export function useImportResource(
   resourceName: ImportResourceName,
