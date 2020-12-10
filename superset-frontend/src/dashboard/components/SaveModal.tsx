@@ -61,7 +61,7 @@ const defaultProps = {
   saveType: SAVE_TYPE_OVERWRITE,
   colorNamespace: undefined,
   colorScheme: undefined,
-  shouldPersistRefreshFrequency: true,
+  shouldPersistRefreshFrequency: false,
 };
 
 class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
