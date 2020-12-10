@@ -61,9 +61,7 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
     processEventsCallback,
   } = options;
 
-  const middleware: Middleware = <S>(store: MiddlewareAPI<S>) => (
-    next: Dispatch<S>,
-  ) => {
+  const middleware: Middleware = (store: MiddlewareAPI) => (next: Dispatch) => {
     const JOB_STATUS = {
       PENDING: 'pending',
       RUNNING: 'running',
