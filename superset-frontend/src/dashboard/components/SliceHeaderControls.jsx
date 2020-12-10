@@ -176,7 +176,7 @@ class SliceHeaderControls extends React.PureComponent {
     const refreshTooltip = isCached
       ? t('Cached %s', cachedWhen)
       : (updatedWhen && t('Fetched %s', updatedWhen)) || '';
-    const resizeLabel = isFullSize ? t('Minimize') : t('Maximize');
+    const resizeLabel = isFullSize ? t('Minimize Chart') : t('Maximize Chart');
 
     const menu = (
       <Menu
@@ -206,7 +206,7 @@ class SliceHeaderControls extends React.PureComponent {
 
         {this.props.supersetCanExplore && (
           <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
-            {t('View Chart in Explorer')}
+            {t('View Chart in Explore')}
           </Menu.Item>
         )}
 
