@@ -197,7 +197,7 @@ class TestImportChartsCommand(SupersetTestCase):
             "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
             "charts/imported_chart.yaml": yaml.safe_dump(chart_config),
         }
-        command = ImportChartsCommand(contents)
+        command = ImportChartsCommand(contents, overwrite=True)
         command.run()
         command.run()
 
