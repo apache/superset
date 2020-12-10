@@ -24,46 +24,41 @@ from tests.test_app import app
 
 
 class TestAsyncEventApi(SupersetTestCase):
+    UUID = "943c920-32a5-412a-977d-b8e47d36f5a4"
+
     def fetch_events(self, last_id: Optional[str] = None):
         base_uri = "api/v1/async_event/"
         uri = f"{base_uri}?last_id={last_id}" if last_id else base_uri
         return self.client.get(uri)
 
-    def test_events(self):
+    @mock.patch("uuid.uuid4", return_value=UUID)
+    def test_events(self, mock_uuid4):
         async_query_manager.init_app(app)
         self.login(username="admin")
         with mock.patch.object(async_query_manager._redis, "xrange") as mock_xrange:
             rv = self.fetch_events()
             response = json.loads(rv.data.decode("utf-8"))
-            args = mock_xrange.call_args.args
-            prefix_len = len(app.config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"])
 
         assert rv.status_code == 200
-        assert mock_xrange.called
-        assert len(args[0]) == (prefix_len + 36)  # uuidv4
-        assert args[1] == "-"
-        assert args[2] == "+"
-        assert args[3] == 100
+        channel_id = app.config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"] + self.UUID
+        mock_xrange.assert_called_with(channel_id, "-", "+", 100)
         self.assertEqual(response, {"result": []})
 
-    def test_events_last_id(self):
+    @mock.patch("uuid.uuid4", return_value=UUID)
+    def test_events_last_id(self, mock_uuid4):
         async_query_manager.init_app(app)
         self.login(username="admin")
         with mock.patch.object(async_query_manager._redis, "xrange") as mock_xrange:
             rv = self.fetch_events("1607471525180-0")
             response = json.loads(rv.data.decode("utf-8"))
-            args = mock_xrange.call_args.args
-            prefix_len = len(app.config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"])
 
         assert rv.status_code == 200
-        assert mock_xrange.called
-        assert len(args[0]) == (prefix_len + 36)  # uuidv4
-        assert args[1] == "1607471525180-1"  # increments
-        assert args[2] == "+"
-        assert args[3] == 100
+        channel_id = app.config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"] + self.UUID
+        mock_xrange.assert_called_with(channel_id, "1607471525180-1", "+", 100)
         self.assertEqual(response, {"result": []})
 
-    def test_events_results(self):
+    @mock.patch("uuid.uuid4", return_value=UUID)
+    def test_events_results(self, mock_uuid4):
         async_query_manager.init_app(app)
         self.login(username="admin")
         with mock.patch.object(async_query_manager._redis, "xrange") as mock_xrange:
@@ -83,15 +78,10 @@ class TestAsyncEventApi(SupersetTestCase):
             ]
             rv = self.fetch_events()
             response = json.loads(rv.data.decode("utf-8"))
-            args = mock_xrange.call_args.args
-            prefix_len = len(app.config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"])
 
         assert rv.status_code == 200
-        assert mock_xrange.called
-        assert len(args[0]) == (prefix_len + 36)  # uuidv4
-        assert args[1] == "-"
-        assert args[2] == "+"
-        assert args[3] == 100
+        channel_id = app.config["GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX"] + self.UUID
+        mock_xrange.assert_called_with(channel_id, "-", "+", 100)
         expected = {
             "result": [
                 {

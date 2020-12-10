@@ -16,7 +16,7 @@
 # under the License.
 """Unit tests for async query celery jobs in Superset"""
 import re
-from unittest.mock import patch
+from unittest import mock
 from uuid import uuid4
 
 import pytest
@@ -42,7 +42,7 @@ def get_table_by_name(name: str) -> SqlaTable:
 
 
 class TestAsyncQueries(SupersetTestCase):
-    @patch.object(async_query_manager, "update_job")
+    @mock.patch.object(async_query_manager, "update_job")
     def test_load_chart_data_into_cache(self, mock_update_job):
         async_query_manager.init_app(app)
         table = get_table_by_name("birth_names")
@@ -57,16 +57,12 @@ class TestAsyncQueries(SupersetTestCase):
 
         load_chart_data_into_cache(job_metadata, form_data)
 
-        assert mock_update_job.called
-        call_args = mock_update_job.call_args
-        self.assertEqual(call_args.args[0], job_metadata)
-        assert call_args.args[1] == "done"
-        assert re.match(r"^/api/v1/chart/data/qc-\w+", call_args.kwargs["result_url"])
+        mock_update_job.assert_called_with(job_metadata, "done", result_url=mock.ANY)
 
-    @patch.object(
+    @mock.patch.object(
         ChartDataCommand, "run", side_effect=ChartDataQueryFailedError("Error: foo")
     )
-    @patch.object(async_query_manager, "update_job")
+    @mock.patch.object(async_query_manager, "update_job")
     def test_load_chart_data_into_cache_error(self, mock_update_job, mock_run_command):
         async_query_manager.init_app(app)
         table = get_table_by_name("birth_names")
@@ -81,16 +77,11 @@ class TestAsyncQueries(SupersetTestCase):
         with pytest.raises(ChartDataQueryFailedError):
             load_chart_data_into_cache(job_metadata, form_data)
 
-        assert mock_run_command.called
-        assert mock_run_command.call_args.kwargs["cache"] == True
+        mock_run_command.assert_called_with(cache=True)
+        errors = [{"message": "Error: foo"}]
+        mock_update_job.assert_called_with(job_metadata, "error", errors=errors)
 
-        assert mock_update_job.called
-        call_args = mock_update_job.call_args
-        self.assertEqual(call_args.args[0], job_metadata)
-        assert call_args.args[1] == "error"
-        assert call_args.kwargs["errors"] == [{"message": "Error: foo"}]
-
-    @patch.object(async_query_manager, "update_job")
+    @mock.patch.object(async_query_manager, "update_job")
     def test_load_explore_json_into_cache(self, mock_update_job):
         async_query_manager.init_app(app)
         table = get_table_by_name("birth_names")
@@ -120,15 +111,9 @@ class TestAsyncQueries(SupersetTestCase):
 
         load_explore_json_into_cache(job_metadata, form_data)
 
-        assert mock_update_job.called
-        call_args = mock_update_job.call_args
-        self.assertEqual(call_args.args[0], job_metadata)
-        assert call_args.args[1] == "done"
-        assert re.match(
-            r"^/superset/explore_json/data/ejr-\w+", call_args.kwargs["result_url"]
-        )
+        mock_update_job.assert_called_with(job_metadata, "done", result_url=mock.ANY)
 
-    @patch.object(async_query_manager, "update_job")
+    @mock.patch.object(async_query_manager, "update_job")
     def test_load_explore_json_into_cache_error(self, mock_update_job):
         async_query_manager.init_app(app)
         form_data = {}
@@ -143,10 +128,5 @@ class TestAsyncQueries(SupersetTestCase):
         with pytest.raises(SupersetException):
             load_explore_json_into_cache(job_metadata, form_data)
 
-        assert mock_update_job.called
-        call_args = mock_update_job.call_args
-        self.assertEqual(call_args.args[0], job_metadata)
-        assert call_args.args[1] == "error"
-        assert call_args.kwargs["errors"] == [
-            "The datasource associated with this chart no longer exists"
-        ]
+        errors = ["The datasource associated with this chart no longer exists"]
+        mock_update_job.assert_called_with(job_metadata, "error", errors=errors)
