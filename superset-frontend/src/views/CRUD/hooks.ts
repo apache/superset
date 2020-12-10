@@ -319,7 +319,7 @@ interface ImportResourceState {
 }
 
 export function useImportResource(
-  resourceName: string,
+  resourceName: 'chart' | 'dashboard' | 'database' | 'dataset',
   resourceLabel: string, // resourceLabel for translations
   handleErrorMsg: (errorMsg: string) => void,
 ) {
