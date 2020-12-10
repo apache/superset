@@ -64,8 +64,8 @@ describe('asyncEvent middleware', () => {
   };
   const EVENTS_ENDPOINT = 'glob:*/api/v1/async_event/*';
   const CACHED_DATA_ENDPOINT = 'glob:*/api/v1/chart/data/*';
-  let featureEnabledStub;
-  let getFeatureStub;
+  let featureEnabledStub: any;
+  let getFeatureStub: any;
 
   function setup() {
     const getPendingComponents = sinon.stub();
