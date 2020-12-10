@@ -18,7 +18,7 @@
  */
 import React, { CSSProperties, ComponentType, ReactNode } from 'react';
 import { css, SerializedStyles, ClassNames } from '@emotion/core';
-import { supersetTheme } from '@superset-ui/core';
+import { SupersetTheme } from '@superset-ui/core';
 import {
   Styles,
   Theme,
@@ -39,29 +39,29 @@ type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;
 };
 
-const themeColors = {
-  primary: supersetTheme.colors.success.base,
-  danger: supersetTheme.colors.error.base,
-  warning: supersetTheme.colors.warning.base,
-  indicator: supersetTheme.colors.info.base,
-  almostBlack: supersetTheme.colors.grayscale.dark1,
-  grayDark: supersetTheme.colors.grayscale.dark1,
-  grayLight: supersetTheme.colors.grayscale.light2,
-  gray: supersetTheme.colors.grayscale.light1,
-  grayBg: supersetTheme.colors.grayscale.light4,
-  grayBgDarker: supersetTheme.colors.grayscale.light3,
-  grayBgDarkest: supersetTheme.colors.grayscale.light2,
-  grayHeading: supersetTheme.colors.grayscale.light1,
-  menuHover: supersetTheme.colors.grayscale.light3,
-  lightest: supersetTheme.colors.grayscale.light5,
-  darkest: supersetTheme.colors.grayscale.dark2,
-  grayBorder: supersetTheme.colors.grayscale.light2,
-  grayBorderLight: supersetTheme.colors.grayscale.light3,
-  grayBorderDark: supersetTheme.colors.grayscale.light1,
-  textDefault: supersetTheme.colors.grayscale.dark1,
-  textDarkest: supersetTheme.colors.grayscale.dark2,
-  dangerLight: supersetTheme.colors.error.light1,
-};
+const colors = (theme: SupersetTheme) => ({
+  primary: theme.colors.success.base,
+  danger: theme.colors.error.base,
+  warning: theme.colors.warning.base,
+  indicator: theme.colors.info.base,
+  almostBlack: theme.colors.grayscale.dark1,
+  grayDark: theme.colors.grayscale.dark1,
+  grayLight: theme.colors.grayscale.light2,
+  gray: theme.colors.grayscale.light1,
+  grayBg: theme.colors.grayscale.light4,
+  grayBgDarker: theme.colors.grayscale.light3,
+  grayBgDarkest: theme.colors.grayscale.light2,
+  grayHeading: theme.colors.grayscale.light1,
+  menuHover: theme.colors.grayscale.light3,
+  lightest: theme.colors.grayscale.light5,
+  darkest: theme.colors.grayscale.dark2,
+  grayBorder: theme.colors.grayscale.light2,
+  grayBorderLight: theme.colors.grayscale.light3,
+  grayBorderDark: theme.colors.grayscale.light1,
+  textDefault: theme.colors.grayscale.dark1,
+  textDarkest: theme.colors.grayscale.dark2,
+  dangerLight: theme.colors.error.light1,
+});
 
 export type ThemeConfig = {
   borderRadius: number;
@@ -73,7 +73,7 @@ export type ThemeConfig = {
     [key in keyof typeof reactSelectColors]: string;
   } &
     {
-      [key in keyof typeof themeColors]: string;
+      [key in keyof ReturnType<typeof colors>]: string;
     } & {
       [key: string]: string; // any other colors
     };
@@ -89,18 +89,22 @@ export type ThemeConfig = {
 
 export type PartialThemeConfig = RecursivePartial<ThemeConfig>;
 
-export const DEFAULT_THEME: PartialThemeConfig = {
-  borderRadius: supersetTheme.borderRadius,
-  zIndex: 11,
-  colors: themeColors,
-  spacing: {
-    baseUnit: 3,
-    menuGutter: 0,
-    controlHeight: 28,
-    lineHeight: 19,
-    fontSize: 14,
-    minWidth: '7.5em', // just enough to display 'No options'
-  },
+export const defaultTheme: (
+  theme: SupersetTheme,
+) => PartialThemeConfig = theme => {
+  return {
+    borderRadius: theme.borderRadius,
+    zIndex: 11,
+    colors: colors(theme),
+    spacing: {
+      baseUnit: 3,
+      menuGutter: 0,
+      controlHeight: 28,
+      lineHeight: 19,
+      fontSize: 14,
+      minWidth: '7.5em', // just enough to display 'No options'
+    },
+  };
 };
 
 // let styles accept serialized CSS, too
