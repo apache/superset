@@ -206,15 +206,9 @@ class SliceHeaderControls extends React.PureComponent {
 
         {this.props.supersetCanExplore && (
           <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
-            {t('Explore chart')}
+            {t('View Chart in Explorer')}
           </Menu.Item>
         )}
-
-        {this.props.supersetCanCSV && (
-          <Menu.Item key={MENU_KEYS.EXPORT_CSV}>{t('Export CSV')}</Menu.Item>
-        )}
-
-        <Menu.Item key={MENU_KEYS.RESIZE_LABEL}>{resizeLabel}</Menu.Item>
 
         <Menu.Item key={MENU_KEYS.SHARE_CHART}>
           <URLShortLinkModal
@@ -229,9 +223,15 @@ class SliceHeaderControls extends React.PureComponent {
           />
         </Menu.Item>
 
+        <Menu.Item key={MENU_KEYS.RESIZE_LABEL}>{resizeLabel}</Menu.Item>
+
         <Menu.Item key={MENU_KEYS.DOWNLOAD_AS_IMAGE}>
           {t('Download as image')}
         </Menu.Item>
+
+        {this.props.supersetCanCSV && (
+          <Menu.Item key={MENU_KEYS.EXPORT_CSV}>{t('Export CSV')}</Menu.Item>
+        )}
       </Menu>
     );
 
