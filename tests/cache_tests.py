@@ -57,6 +57,7 @@ class TestCache(SupersetTestCase):
     def test_slice_data_cache(self):
         # Override cache config
         data_cache_config = app.config["DATA_CACHE_CONFIG"]
+        cache_default_timeout = app.config["CACHE_DEFAULT_TIMEOUT"]
         app.config["CACHE_DEFAULT_TIMEOUT"] = 100
         app.config["DATA_CACHE_CONFIG"] = {
             "CACHE_TYPE": "simple",
@@ -92,4 +93,5 @@ class TestCache(SupersetTestCase):
 
         # reset cache config
         app.config["DATA_CACHE_CONFIG"] = data_cache_config
+        app.config["CACHE_DEFAULT_TIMEOUT"] = cache_default_timeout
         cache_manager.init_app(app)
