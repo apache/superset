@@ -18,7 +18,6 @@
  */
 /* eslint camelcase: 0 */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { Alert, FormControl, FormGroup, Radio } from 'react-bootstrap';
 import { t } from '@superset-ui/core';
@@ -28,24 +27,35 @@ import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
 import { CreatableSelect } from 'src/components/Select/SupersetStyledSelect';
 
-const propTypes = {
-  can_overwrite: PropTypes.bool,
-  onHide: PropTypes.func.isRequired,
-  actions: PropTypes.object.isRequired,
-  form_data: PropTypes.object,
-  userId: PropTypes.string.isRequired,
-  dashboards: PropTypes.array.isRequired,
-  alert: PropTypes.string,
-  slice: PropTypes.object,
-  datasource: PropTypes.object,
-};
-
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
 const SELECT_PLACEHOLDER = t('**Select** a dashboard OR **create** a new one');
 
-class SaveModal extends React.Component {
-  constructor(props) {
+type SaveModalProps = {
+  can_overwrite?: boolean;
+  onHide: () => void;
+  actions: any;
+  form_data?: Record<string, any>;
+  userId: string;
+  dashboards: Array<any>;
+  alert?: string;
+  sliceName?: string;
+  slice?: Record<string, any>;
+  datasource?: Record<string, any>;
+};
+
+type ActionType = 'overwrite' | 'saveas';
+
+type SaveModalState = {
+  saveToDashboardId: number | string | null;
+  newSliceName?: string;
+  newDashboardName?: string;
+  alert: string | null;
+  action: ActionType;
+};
+
+class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
+  constructor(props: SaveModalProps) {
     super(props);
     this.state = {
       saveToDashboardId: null,
@@ -55,6 +65,8 @@ class SaveModal extends React.Component {
     };
     this.onDashboardSelectChange = this.onDashboardSelectChange.bind(this);
     this.onSliceNameChange = this.onSliceNameChange.bind(this);
+    this.changeAction = this.changeAction.bind(this, 'overwrite');
+    this.saveOrOverwrite = this.saveOrOverwrite.bind(this, false);
   }
 
   componentDidMount() {
@@ -62,8 +74,8 @@ class SaveModal extends React.Component {
       const dashboardIds = this.props.dashboards.map(
         dashboard => dashboard.value,
       );
-      let recentDashboard = sessionStorage.getItem(SK_DASHBOARD_ID);
-      recentDashboard = recentDashboard && parseInt(recentDashboard, 10);
+      const lastDashboard = sessionStorage.getItem(SK_DASHBOARD_ID);
+      const recentDashboard = lastDashboard && parseInt(lastDashboard, 10);
       if (
         recentDashboard !== null &&
         dashboardIds.indexOf(recentDashboard) !== -1
@@ -75,25 +87,25 @@ class SaveModal extends React.Component {
     });
   }
 
-  onSliceNameChange(event) {
-    this.setState({ newSliceName: event.target.value });
+  onSliceNameChange(event: React.FormEvent<FormControl>) {
+    this.setState({ newSliceName: (event.target as HTMLInputElement).value });
   }
 
-  onDashboardSelectChange(event) {
+  onDashboardSelectChange(event: Record<string, any>) {
     const newDashboardName = event ? event.label : null;
     const saveToDashboardId =
       event && typeof event.value === 'number' ? event.value : null;
     this.setState({ saveToDashboardId, newDashboardName });
   }
 
-  changeAction(action) {
+  changeAction(action: any) {
     this.setState({ action });
   }
 
-  saveOrOverwrite(gotodash) {
+  saveOrOverwrite(gotodash: boolean) {
     this.setState({ alert: null });
     this.props.actions.removeSaveModalAlert();
-    const sliceParams = {};
+    const sliceParams: Record<string, any> = {};
 
     if (this.props.slice && this.props.slice.slice_id) {
       sliceParams.slice_id = this.props.slice.slice_id;
@@ -111,7 +123,7 @@ class SaveModal extends React.Component {
 
     this.props.actions
       .saveSlice(this.props.form_data, sliceParams)
-      .then(({ data }) => {
+      .then(({ data }: any) => {
         if (data.dashboard_id === null) {
           sessionStorage.removeItem(SK_DASHBOARD_ID);
         } else {
@@ -148,7 +160,7 @@ class SaveModal extends React.Component {
               disabled={
                 !this.state.newSliceName || !this.state.newDashboardName
               }
-              onClick={this.saveOrOverwrite.bind(this, true)}
+              onClick={() => this.saveOrOverwrite(true)}
             >
               {t('Save & go to dashboard')}
             </Button>
@@ -156,7 +168,7 @@ class SaveModal extends React.Component {
               id="btn_modal_save"
               buttonSize="sm"
               buttonStyle="primary"
-              onClick={this.saveOrOverwrite.bind(this, false)}
+              onClick={() => this.saveOrOverwrite(false)}
               disabled={!this.state.newSliceName}
               data-test="btn-modal-save"
             >
@@ -187,7 +199,7 @@ class SaveModal extends React.Component {
               inline
               disabled={!(this.props.can_overwrite && this.props.slice)}
               checked={this.state.action === 'overwrite'}
-              onChange={this.changeAction.bind(this, 'overwrite')}
+              onChange={this.changeAction}
               data-test="save-overwrite-radio"
             >
               {t('Save (Overwrite)')}
@@ -197,7 +209,7 @@ class SaveModal extends React.Component {
               data-test="saveas-radio"
               inline
               checked={this.state.action === 'saveas'}
-              onChange={this.changeAction.bind(this, 'saveas')}
+              onChange={this.changeAction}
             >
               {' '}
               {t('Save as ...')} &nbsp;
@@ -227,7 +239,8 @@ class SaveModal extends React.Component {
               onChange={this.onDashboardSelectChange}
               autoSize={false}
               value={
-                this.state.saveToDashboardId || this.state.newDashboardName
+                (this.state.saveToDashboardId ||
+                  this.state.newDashboardName) as any
               }
               placeholder={
                 // Using markdown to allow for good i18n
@@ -244,9 +257,7 @@ class SaveModal extends React.Component {
   }
 }
 
-SaveModal.propTypes = propTypes;
-
-function mapStateToProps({ explore, saveModal }) {
+function mapStateToProps({ explore, saveModal }: Record<string, any>) {
   return {
     datasource: explore.datasource,
     slice: explore.slice,
@@ -254,7 +265,7 @@ function mapStateToProps({ explore, saveModal }) {
     userId: explore.user_id,
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,
-  };
+  } as Partial<SaveModalProps>;
 }
 
 export default connect(mapStateToProps, () => ({}))(SaveModal);
