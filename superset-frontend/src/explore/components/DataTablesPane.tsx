@@ -191,11 +191,12 @@ export const DataTablesPane = ({
       if (data[type]?.length === 0) {
         return <span>No data</span>;
       }
+      const renderWithPagination = true;
       return (
         <TableView
           columns={columns[type]}
           data={filteredData[type]}
-          withPagination={true}
+          withPagination={renderWithPagination}
           pageSize={50}
           noDataText={t('No data')}
           emptyWrapperType={EmptyWrapperType.Small}
