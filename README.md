@@ -78,11 +78,11 @@ A modern, enterprise-ready business intelligence web application.
 
 Superset provides:
 * An intuitive interface to explore and visualize datasets, and
-    create interactive dashboards.
+    create interactive dashboards
 * A wide array of beautiful visualizations to showcase your data.
 * Easy, code-free, user flows to drill down and slice and dice the data
     underlying exposed dashboards. The dashboards and charts act as a starting
-    point for deeper analysis.
+    point for deeper analysis
 * A state of the art SQL editor/IDE exposing a rich metadata browser, and
     an easy workflow to create visualizations out of any result set.
 * An extensible, high granularity security model allowing intricate rules
