@@ -10,14 +10,14 @@ const defaultProps = {
   onRenderSuccess() {},
 };
 
-export interface LoadableRenderer<Props, Exports>
+export interface LoadableRenderer<Props>
   extends React.ComponentClass<Props & LoadableRendererProps>,
     Loadable.LoadableComponent {}
 
 export default function createLoadableRenderer<Props, Exports>(
   options: Loadable.OptionsWithMap<Props, Exports>,
-): LoadableRenderer<Props, Exports> {
-  const LoadableRenderer = Loadable.Map(options) as LoadableRenderer<Props, Exports>;
+): LoadableRenderer<Props> {
+  const LoadableRenderer = Loadable.Map(options) as LoadableRenderer<Props>;
 
   // Extends the behavior of LoadableComponent to provide post-render listeners
   class CustomLoadableRenderer extends LoadableRenderer {

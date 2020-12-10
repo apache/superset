@@ -12,11 +12,11 @@ const formatLocalTimeRange = getTimeRangeFormatter(`${LOCAL_PREFIX}${formatStrin
 function testUTC(
   granularity: TimeGranularity,
   year: number,
-  month: number = 0,
-  date: number = 1,
-  hours: number = 0,
-  minutes: number = 0,
-  seconds: number = 0,
+  month = 0,
+  date = 1,
+  hours = 0,
+  minutes = 0,
+  seconds = 0,
 ) {
   return formatUTCTimeRange(
     createTimeRangeFromGranularity(
@@ -29,11 +29,11 @@ function testUTC(
 function testLocal(
   granularity: TimeGranularity,
   year: number,
-  month: number = 0,
-  date: number = 1,
-  hours: number = 0,
-  minutes: number = 0,
-  seconds: number = 0,
+  month = 0,
+  date = 1,
+  hours = 0,
+  minutes = 0,
+  seconds = 0,
 ) {
   return formatLocalTimeRange(
     createTimeRangeFromGranularity(

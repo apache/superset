@@ -1,4 +1,3 @@
-import 'babel-polyfill';
 import buildQuery from '../src/buildQuery';
 
 describe('TableVis buildQuery', () => {

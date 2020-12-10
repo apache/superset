@@ -7,17 +7,18 @@ This plugin provides World Map for Superset.
 
 ### Usage
 
-Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
+Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to
+lookup this chart throughout the app.
 
 ```js
 import WorldmapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
 
-new WorldmapChartPlugin()
-  .configure({ key: 'world-map' })
-  .register();
+new WorldmapChartPlugin().configure({ key: 'world-map' }).register();
 ```
 
-Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-world-map) for more details.
+Then use it via `SuperChart`. See
+[storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-world-map)
+for more details.
 
 ```js
 <SuperChart

@@ -49,8 +49,9 @@ export default async function handleError(error: ErrorInput): Promise<never> {
 
   // catch HTTP errors
   if (error instanceof Response) {
-    status = error.status;
-    statusText = error.statusText;
+    const { status: responseStatus, statusText: responseStatusText } = error;
+    status = responseStatus;
+    statusText = responseStatusText;
     errorMessage = `${status} ${statusText}`;
     try {
       errorJson = (await error.json()) as SupersetApiErrorPayload | SupersetApiMultiErrorsPayload;
@@ -85,6 +86,8 @@ export default async function handleError(error: ErrorInput): Promise<never> {
   }
   // all unknown error
   throw new SupersetApiError({
+    status,
+    statusText,
     message: errorMessage,
     originalError: error,
   });

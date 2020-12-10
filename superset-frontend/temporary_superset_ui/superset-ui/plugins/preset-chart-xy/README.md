@@ -9,17 +9,18 @@ This plugin provides basic charts on cartesian coordinates (Line, Box Plot) for 
 
 ### Usage
 
-Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
+Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to
+lookup this chart throughout the app.
 
 ```js
 import { BoxPlotChartPlugin } from '@superset-ui/preset-chart-xy';
 
-new BoxPlotChartPlugin()
-  .configure({ key: 'box-plot' })
-  .register();
+new BoxPlotChartPlugin().configure({ key: 'box-plot' }).register();
 ```
 
-Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-box-plot) for more details.
+Then use it via `SuperChart`. See
+[storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-box-plot)
+for more details.
 
 ```js
 <SuperChart

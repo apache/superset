@@ -302,6 +302,7 @@ function useInstance<D extends object>(instance: TableInstance<D>) {
   const useStickyWrap = (renderer: TableRenderer) => {
     const { width, height } = useMountedMemo(getTableSize, [getTableSize]) || sticky;
     // only change of data should trigger re-render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const table = useMemo(renderer, [page, rows]);
 
     useLayoutEffect(() => {
@@ -331,7 +332,7 @@ function useInstance<D extends object>(instance: TableInstance<D>) {
 
 export default function useSticky<D extends object>(hooks: Hooks<D>) {
   hooks.useInstance.push(useInstance);
-  hooks.stateReducers.push((newState, action_, previousState, instance) => {
+  hooks.stateReducers.push((newState, action_) => {
     const action = action_ as ReducerAction<ReducerActions, { size: StickyState }>;
     if (action.type === ReducerActions.init) {
       return {

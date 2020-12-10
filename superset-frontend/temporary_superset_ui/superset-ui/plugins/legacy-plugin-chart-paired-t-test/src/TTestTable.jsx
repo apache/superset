@@ -127,7 +127,7 @@ class TTestTable extends React.Component {
       const diff = control[i].y - value.y;
       /* eslint-disable-next-line */
       if (isFinite(diff)) {
-        finiteCount++;
+        finiteCount += 1;
         diffSum += diff;
         diffSqSum += diff * diff;
       }
@@ -151,7 +151,7 @@ class TTestTable extends React.Component {
     if (!data) {
       return;
     }
-    for (let i = 0; i < data.length; i++) {
+    for (let i = 0; i < data.length; i += 1) {
       if (i === control) {
         pValues.push('control');
         liftValues.push('control');

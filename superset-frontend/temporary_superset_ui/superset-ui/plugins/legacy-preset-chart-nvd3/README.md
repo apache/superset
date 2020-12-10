@@ -15,20 +15,19 @@ import { NVD3ChartPreset } from '@superset-ui/legacy-preset-chart-nvd3';
 new NVD3ChartPreset().register();
 ```
 
-or register charts one by one. Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
+or register charts one by one. Configure `key`, which can be any `string`, and register the plugin.
+This `key` will be used to lookup this chart throughout the app.
 
 ```js
 import { AreaChartPlugin, LineChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
 
-new AreaChartPlugin()
-  .configure({ key: 'area' })
-  .register();
-new LineChartPlugin()
-  .configure({ key: 'line' })
-  .register();
+new AreaChartPlugin().configure({ key: 'area' }).register();
+new LineChartPlugin().configure({ key: 'line' }).register();
 ```
 
-Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-nvd3) for more details.
+Then use it via `SuperChart`. See
+[storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-nvd3)
+for more details.
 
 ```js
 <SuperChart

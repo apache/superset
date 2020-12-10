@@ -7,17 +7,18 @@ This plugin provides Choropleth Map for Superset.
 
 ### Usage
 
-Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
+Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to
+lookup this chart throughout the app.
 
 ```js
 import ChoroplethMapChartPlugin from '@superset-ui/plugin-chart-choropleth-map';
 
-new ChoroplethMapChartPlugin()
-  .configure({ key: 'choropleth-map' })
-  .register();
+new ChoroplethMapChartPlugin().configure({ key: 'choropleth-map' }).register();
 ```
 
-Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui/?selectedKind=plugin-chart-choropleth-map) for more details.
+Then use it via `SuperChart`. See
+[storybook](https://apache-superset.github.io/superset-ui/?selectedKind=plugin-chart-choropleth-map)
+for more details.
 
 ```js
 <SuperChart

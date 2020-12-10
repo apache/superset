@@ -7,17 +7,18 @@ This plugin provides Paired T Test for Superset.
 
 ### Usage
 
-Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
+Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to
+lookup this chart throughout the app.
 
 ```js
 import PairedTTestChartPlugin from '@superset-ui/legacy-plugin-chart-paired-t-test';
 
-new PairedTTestChartPlugin()
-  .configure({ key: 'paired-t-test' })
-  .register();
+new PairedTTestChartPlugin().configure({ key: 'paired-t-test' }).register();
 ```
 
-Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-paired-t-test) for more details.
+Then use it via `SuperChart`. See
+[storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-paired-t-test)
+for more details.
 
 ```js
 <SuperChart

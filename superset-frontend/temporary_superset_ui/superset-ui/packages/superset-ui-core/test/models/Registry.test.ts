@@ -163,14 +163,12 @@ describe('Registry', () => {
         expect(err.toString()).toEqual('Error: Item with key "a" is not registered.');
       });
     });
-    it('If the key was registered multiple times, returns a promise of the most recent item.', () => {
+    it('If the key was registered multiple times, returns a promise of the most recent item.', async () => {
       const registry = new Registry();
       registry.registerValue('a', 'testValue');
-      const promise1 = registry.getAsPromise('a').then(value => expect(value).toBe('testValue'));
+      expect(await registry.getAsPromise('a')).toBe('testValue');
       registry.registerLoader('a', () => 'newValue');
-      const promise2 = registry.getAsPromise('a').then(value => expect(value).toBe('newValue'));
-
-      return Promise.all([promise1, promise2]);
+      expect(await registry.getAsPromise('a')).toBe('newValue');
     });
   });
 

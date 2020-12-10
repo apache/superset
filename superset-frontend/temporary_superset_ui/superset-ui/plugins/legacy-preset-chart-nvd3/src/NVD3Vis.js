@@ -757,7 +757,7 @@ function nvd3Vis(element, props) {
       if (ticks1.length > 0 && ticks2.length > 0 && difference !== 0) {
         const smallest = difference < 0 ? ticks1 : ticks2;
         const delta = smallest[1] - smallest[0];
-        for (let i = 0; i < Math.abs(difference); i++) {
+        for (let i = 0; i < Math.abs(difference); i += 1) {
           if (i % 2 === 0) {
             smallest.unshift(smallest[0] - delta);
           } else {

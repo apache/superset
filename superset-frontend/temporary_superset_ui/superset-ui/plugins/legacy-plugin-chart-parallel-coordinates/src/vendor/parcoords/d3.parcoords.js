@@ -557,7 +557,7 @@ export default function (config) {
     ctx.moveTo(cps[0].e(1), cps[0].e(2));
     for (var i = 1; i < cps.length; i += 3) {
       if (__.showControlPoints) {
-        for (var j = 0; j < 3; j++) {
+        for (var j = 0; j < 3; j += 1) {
           ctx.fillRect(cps[i + j].e(1), cps[i + j].e(2), 2, 2);
         }
       }
@@ -949,7 +949,7 @@ export default function (config) {
   // pairs of adjacent dimensions
   pc.adjacent_pairs = function (arr) {
     var ret = [];
-    for (var i = 0; i < arr.length - 1; i++) {
+    for (var i = 0; i < arr.length - 1; i += 1) {
       ret.push([arr[i], arr[i + 1]]);
     }
     return ret;
@@ -2321,7 +2321,7 @@ d3.renderQueue = function (func) {
       // render queue splits the original data set, we'll have to be slightly
       // more carefull about passing the correct index with the data item.
       var end = Math.min(_i + _rate, _queue.length);
-      for (var i = _i; i < end; i++) {
+      for (var i = _i; i < end; i += 1) {
         func(_queue[i], i);
       }
       _i += _rate;

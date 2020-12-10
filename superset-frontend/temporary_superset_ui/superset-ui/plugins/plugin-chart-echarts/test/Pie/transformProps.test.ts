@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import 'babel-polyfill';
 import { ChartProps, getNumberFormatter } from '@superset-ui/core';
 import transformProps, { formatPieLabel } from '../../src/Pie/transformProps';
 

@@ -16,10 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { configure } from '@superset-ui/core';
-import CacheStorage from './shims/CacheStorage';
+import Cache, { caches } from './Cache';
 
-configure();
+export default class CacheStorage {
+  open(key: string): Promise<Cache> {
+    return new Promise(resolve => {
+      resolve(new Cache(key));
+    });
+  }
 
-// @ts-ignore
-global.caches = new CacheStorage();
+  delete(key: string): Promise<boolean> {
+    const wasPresent = key in caches;
+    if (wasPresent) {
+      delete caches[key];
+    }
+    return Promise.resolve(wasPresent);
+  }
+}

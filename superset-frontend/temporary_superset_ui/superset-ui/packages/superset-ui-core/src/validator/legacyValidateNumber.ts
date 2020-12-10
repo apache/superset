@@ -5,7 +5,7 @@ import { t } from '../translation';
  * @param v
  */
 export default function numeric(v: unknown) {
-  if (v && isNaN(v as number)) {
+  if (v && Number.isNaN(Number(v))) {
     return t('is expected to be a number');
   }
   return false;

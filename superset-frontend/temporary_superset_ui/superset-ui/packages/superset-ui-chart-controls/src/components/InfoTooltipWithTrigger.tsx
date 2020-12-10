@@ -19,6 +19,7 @@
 import React, { CSSProperties } from 'react';
 import { kebabCase } from 'lodash';
 import { Tooltip, OverlayTrigger } from 'react-bootstrap';
+import { t } from '@superset-ui/core';
 
 const tooltipStyle: CSSProperties = { wordWrap: 'break-word' };
 
@@ -45,6 +46,7 @@ export function InfoTooltipWithTrigger({
   const iconEl = (
     <i
       role="button"
+      aria-label={t('Show info tooltip')}
       tabIndex={0}
       className={iconClass}
       style={{ cursor: onClick ? 'pointer' : undefined }}

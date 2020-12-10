@@ -16,7 +16,7 @@ export interface ProvidedProps {
   loading?: boolean;
 }
 
-export type Props =
+export type ChartDataProviderProps =
   /** User can pass either one or both of sliceId or formData */
   SliceIdAndOrFormData & {
     /** Child function called with ProvidedProps */
@@ -37,19 +37,21 @@ export type Props =
     queryRequestOptions?: Partial<RequestConfig>;
   };
 
-type State = {
+export type ChartDataProviderState = {
   status: 'uninitialized' | 'loading' | 'error' | 'loaded';
   payload?: ProvidedProps['payload'];
   error?: ProvidedProps['error'];
 };
 
-class ChartDataProvider extends React.PureComponent<Props, State> {
+class ChartDataProvider extends React.PureComponent<
+  ChartDataProviderProps,
+  ChartDataProviderState
+> {
   readonly chartClient: ChartClient;
 
-  state: State = { status: 'uninitialized' };
-
-  constructor(props: Props) {
+  constructor(props: ChartDataProviderProps) {
     super(props);
+    this.state = { status: 'uninitialized' };
     this.chartClient = new ChartClient({ client: props.client });
   }
 
@@ -57,7 +59,7 @@ class ChartDataProvider extends React.PureComponent<Props, State> {
     this.handleFetchData();
   }
 
-  componentDidUpdate(prevProps: Props) {
+  componentDidUpdate(prevProps: ChartDataProviderProps) {
     const { formData, sliceId } = this.props;
     if (formData !== prevProps.formData || sliceId !== prevProps.sliceId) {
       this.handleFetchData();
@@ -66,8 +68,7 @@ class ChartDataProvider extends React.PureComponent<Props, State> {
 
   private extractSliceIdAndFormData() {
     const { formData, sliceId } = this.props;
-
-    return formData ? { formData } : { sliceId: sliceId! };
+    return formData ? { formData } : { sliceId: sliceId as number };
   }
 
   private handleFetchData = () => {

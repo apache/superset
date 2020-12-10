@@ -5,7 +5,7 @@ import { t } from '../translation';
  * @param v
  */
 export default function legacyValidateInteger(v: unknown) {
-  if (v && (isNaN(v as number) || parseInt(v as string, 10) !== Number(v))) {
+  if (v && (Number.isNaN(Number(v)) || parseInt(v as string, 10) !== Number(v))) {
     return t('is expected to be an integer');
   }
   return false;

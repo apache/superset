@@ -62,7 +62,7 @@ function computeEndTimeFromGranularity(
 export default function createTimeRangeFromGranularity(
   time: Date,
   granularity: TimeGranularity,
-  useLocalTime: boolean = false,
+  useLocalTime = false,
 ) {
   const endTime = computeEndTimeFromGranularity(time, granularity, useLocalTime);
 

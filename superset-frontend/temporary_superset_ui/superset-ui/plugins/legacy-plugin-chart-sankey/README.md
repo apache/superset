@@ -7,17 +7,18 @@ This plugin provides Sankey Diagram for Superset.
 
 ### Usage
 
-Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
+Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to
+lookup this chart throughout the app.
 
 ```js
 import SankeyChartPlugin from '@superset-ui/legacy-plugin-chart-sankey';
 
-new SankeyChartPlugin()
-  .configure({ key: 'sankey' })
-  .register();
+new SankeyChartPlugin().configure({ key: 'sankey' }).register();
 ```
 
-Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-sankey) for more details.
+Then use it via `SuperChart`. See
+[storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-sankey)
+for more details.
 
 ```js
 <SuperChart

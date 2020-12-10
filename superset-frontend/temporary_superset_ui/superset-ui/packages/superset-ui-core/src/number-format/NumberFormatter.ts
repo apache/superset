@@ -78,7 +78,7 @@ class NumberFormatter extends ExtensibleFunction {
     return this.formatFunc(value);
   }
 
-  preview(value: number = PREVIEW_VALUE) {
+  preview(value = PREVIEW_VALUE) {
     return `${value} => ${this.format(value)}`;
   }
 }

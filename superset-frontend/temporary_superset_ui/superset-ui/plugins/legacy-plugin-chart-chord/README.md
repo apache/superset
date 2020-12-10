@@ -7,17 +7,18 @@ This plugin provides Chord Diagram for Superset.
 
 ### Usage
 
-Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
+Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to
+lookup this chart throughout the app.
 
 ```js
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 
-new ChordChartPlugin()
-  .configure({ key: 'chord' })
-  .register();
+new ChordChartPlugin().configure({ key: 'chord' }).register();
 ```
 
-Then use it via `SuperChart`. See [storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-chord) for more details.
+Then use it via `SuperChart`. See
+[storybook](https://apache-superset.github.io/superset-ui-plugins/?selectedKind=plugin-chart-chord)
+for more details.
 
 ```js
 <SuperChart

@@ -22,7 +22,6 @@ export default function createTickComponent({
     return ({
       x,
       y,
-      dy,
       formattedValue = '',
       ...textStyle
     }: {
@@ -49,7 +48,6 @@ export default function createTickComponent({
     return ({
       x,
       y,
-      dy,
       formattedValue = '',
       ...textStyle
     }: {

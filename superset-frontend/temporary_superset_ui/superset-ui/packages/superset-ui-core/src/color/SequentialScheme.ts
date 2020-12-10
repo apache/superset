@@ -44,7 +44,7 @@ export default class SequentialScheme extends ColorScheme {
    * For example [0.2, 1] will rescale the color scheme
    * such that color values in the range [0, 0.2) are excluded from the scheme.
    */
-  getColors(numColors: number = this.colors.length, extent: number[] = [0, 1]): string[] {
+  getColors(numColors = this.colors.length, extent: number[] = [0, 1]): string[] {
     if (numColors === this.colors.length && extent[0] === 0 && extent[1] === 1) {
       return this.colors;
     }

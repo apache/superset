@@ -1,6 +1,6 @@
 import { Margin } from './types';
 
-function mergeOneSide(operation: (a: number, b: number) => number, a: number = 0, b: number = 0) {
+function mergeOneSide(operation: (a: number, b: number) => number, a = 0, b = 0) {
   if (Number.isNaN(a) || a === null) return b;
   if (Number.isNaN(b) || b === null) return a;
 

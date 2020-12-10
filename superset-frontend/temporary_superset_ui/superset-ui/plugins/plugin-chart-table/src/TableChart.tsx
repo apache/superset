@@ -162,7 +162,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   // only take relevant page size options
   const pageSizeOptions = useMemo(
-    () => PAGE_SIZE_OPTIONS.filter(([n, _]) => n <= 2 * data.length) as SizeOption[],
+    () => PAGE_SIZE_OPTIONS.filter(([n]) => n <= 2 * data.length) as SizeOption[],
     [data.length],
   );
 
@@ -218,7 +218,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // typing is incorrect in current version of `@types/react-table`
         // so we ask TS not to check.
         accessor: ((datum: D) => datum[key]) as never,
-        Cell: ({ column: col, value }: { column: ColumnInstance<D>; value: DataRecordValue }) => {
+        Cell: ({ value }: { column: ColumnInstance<D>; value: DataRecordValue }) => {
           const [isHtml, text] = formatValue(column, value);
           const style = {
             background: valueRange

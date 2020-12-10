@@ -78,7 +78,7 @@ function buildHierarchy(rows) {
       return;
     }
     let currentNode = root;
-    for (let level = 0; level < levels.length; level++) {
+    for (let level = 0; level < levels.length; level += 1) {
       const children = currentNode.children || [];
       const nodeName = levels[level].toString();
       // If the next node has the name '0', it will
@@ -114,7 +114,7 @@ function buildHierarchy(rows) {
       let sums;
       let m1 = 0;
       let m2 = 0;
-      for (let i = 0; i < node.children.length; i++) {
+      for (let i = 0; i < node.children.length; i += 1) {
         sums = recurse(node.children[i]);
         m1 += sums[0];
         m2 += sums[1];
@@ -288,34 +288,38 @@ function Sunburst(element, props) {
 
     gMiddleText.selectAll('*').remove();
 
+    offsetIndex += 1;
     gMiddleText
       .append('text')
       .attr('class', 'path-abs-percent')
-      .attr('y', yOffsets[offsetIndex++])
+      .attr('y', yOffsets[offsetIndex])
       .text(`${absolutePercString} of total`);
 
     if (conditionalPercString) {
+      offsetIndex += 1;
       gMiddleText
         .append('text')
         .attr('class', 'path-cond-percent')
-        .attr('y', yOffsets[offsetIndex++])
+        .attr('y', yOffsets[offsetIndex])
         .text(`${conditionalPercString} of parent`);
     }
 
+    offsetIndex += 1;
     gMiddleText
       .append('text')
       .attr('class', 'path-metrics')
-      .attr('y', yOffsets[offsetIndex++])
+      .attr('y', yOffsets[offsetIndex])
       .text(
         `${metricLabel(metrics[0])}: ${formatNum(d.m1)}${
           metricsMatch ? '' : `, ${metricLabel(metrics[1])}: ${formatNum(d.m2)}`
         }`,
       );
 
+    offsetIndex += 1;
     gMiddleText
       .append('text')
       .attr('class', 'path-ratio')
-      .attr('y', yOffsets[offsetIndex++])
+      .attr('y', yOffsets[offsetIndex])
       .text(
         metricsMatch
           ? ''
