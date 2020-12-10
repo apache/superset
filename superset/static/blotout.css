@@ -5,17 +5,22 @@ header > nav {
   min-height: 0 !important;
 }
 
+header#main-menu {
+  display: none;
+}
+
 header > nav .navbar-header,
-header > nav .navbar-nav {
+header > nav ul {
   display: none;
 }
 
 header > nav .navbar-right {
+  display: block;
   padding-top: 15px !important;
-  margin-bottom: -10px !important;
+  margin-bottom: -30px !important;
 }
 
-header > nav .navbar-right .btn-default {
+header > nav .navbar-right .btn-primary {
   display: none;
 }
 

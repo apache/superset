@@ -10,7 +10,7 @@ const modifyElements = () => {
   // Add + button to source database and table pages
   if (window.location.pathname === '/databaseview/list/' ||
       window.location.pathname === '/tablemodelview/list/') {
-    document.querySelectorAll('header nav .navbar-right')[1].style.display = 'block'
+    document.querySelectorAll('header nav .navbar-right .btn-primary')[0].style.display = 'inline-block'
   }
 
   // remove reset password button from user page
