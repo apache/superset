@@ -191,13 +191,14 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       connection: ds.database.database_name,
       schema: ds.schema,
       name: (
-        <a
-          href="#"
+        <Button
+          buttonSize="xsmall"
+          buttonStyle="link"
           onClick={() => selectDatasource({ type: 'table', ...ds })}
           className="datasource-link"
         >
           {ds.table_name}
-        </a>
+        </Button>
       ),
       type: ds.kind,
     }));

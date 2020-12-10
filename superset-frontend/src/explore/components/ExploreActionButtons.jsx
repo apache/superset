@@ -79,7 +79,7 @@ export default function ExploreActionButtons({
       )}
 
       {latestQueryFormData && (
-        <a
+        <div
           role="button"
           tabIndex={0}
           onClick={doExportChart}
@@ -89,10 +89,10 @@ export default function ExploreActionButtons({
           rel="noopener noreferrer"
         >
           <i className="fa fa-file-code-o" /> .json
-        </a>
+        </div>
       )}
       {latestQueryFormData && (
-        <a
+        <div
           role="button"
           tabIndex={0}
           onClick={doExportCSV}
@@ -102,7 +102,7 @@ export default function ExploreActionButtons({
           rel="noopener noreferrer"
         >
           <i className="fa fa-file-text-o" /> .csv
-        </a>
+        </div>
       )}
       <ConnectedDisplayQueryButton
         chartHeight={chartHeight}
