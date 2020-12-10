@@ -99,6 +99,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   }
 
   changeAction(action: any) {
+    console.log('Action', action);
     this.setState({ action });
   }
 
@@ -142,8 +143,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     }
     this.setState({ alert: null });
   }
-
   render() {
+    console.log("this.props.slice", this.props.slice);
     return (
       <Modal
         show
@@ -199,7 +200,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               inline
               disabled={!(this.props.can_overwrite && this.props.slice)}
               checked={this.state.action === 'overwrite'}
-              onChange={this.changeAction}
+              onChange={() => this.changeAction('overwrite')}
               data-test="save-overwrite-radio"
             >
               {t('Save (Overwrite)')}
@@ -209,7 +210,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               data-test="saveas-radio"
               inline
               checked={this.state.action === 'saveas'}
-              onChange={this.changeAction}
+              onChange={() => this.changeAction('saveas')}
             >
               {' '}
               {t('Save as ...')} &nbsp;
