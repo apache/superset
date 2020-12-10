@@ -71,7 +71,7 @@ class AlertObservationModelView(
 class AlertReportModelView(SupersetModelView):
     datamodel = SQLAInterface(ReportSchedule)
     route_base = "/report"
-    include_route_methods = RouteMethod.CRUD_SET
+    include_route_methods = RouteMethod.CRUD_SET | {"log"}
 
     @expose("/list/")
     @has_access
@@ -84,11 +84,22 @@ class AlertReportModelView(SupersetModelView):
 
         return super().render_app_template()
 
+    @expose("/<pk>/log/", methods=["GET"])
+    @has_access
+    def log(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
+        if not (
+            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
+            and is_feature_enabled("SIP_34_ALERTS_UI")
+        ):
+            return super().list()
+
+        return super().render_app_template()
+
 
 class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Alert)
     route_base = "/alert"
-    include_route_methods = RouteMethod.CRUD_SET
+    include_route_methods = RouteMethod.CRUD_SET | {"log"}
 
     list_columns = (
         "label",
@@ -189,6 +200,17 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
+        if not (
+            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
+            and is_feature_enabled("SIP_34_ALERTS_UI")
+        ):
+            return super().list()
+
+        return super().render_app_template()
+
+    @expose("/<pk>/log/", methods=["GET"])
+    @has_access
+    def log(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
         if not (
             is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
             and is_feature_enabled("SIP_34_ALERTS_UI")
