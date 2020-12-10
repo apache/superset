@@ -95,6 +95,7 @@ const RETENTION_OPTIONS = [
 ];
 
 const DEFAULT_RETENTION = 90;
+const DEFAULT_WORKING_TIMEOUT = 3600;
 
 const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
@@ -447,9 +448,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [currentAlert, setCurrentAlert] = useState<AlertObject | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
-  const [contentType, setContentType] = useState<string>(
-    alert && alert.chart ? 'chart' : 'dashboard',
-  ); // Maybe make this always default to dashboard and don't update until alert is fetched
+  const [contentType, setContentType] = useState<string>('dashboard');
   const [scheduleFormat, setScheduleFormat] = useState<string>(
     'dropdown-format',
   );
@@ -461,7 +460,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const isEditMode = alert !== null;
 
-  // TODO: need to set status/settings list based on alert's notification settings
   const [notificationAddState, setNotificationAddState] = useState<
     NotificationAddStatus
   >('active');
@@ -801,9 +799,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const { target } = event;
 
     const config = {
-      op: currentAlert
-        ? currentAlert.validator_config_json?.op
-        : undefined,
+      op: currentAlert ? currentAlert.validator_config_json?.op : undefined,
       threshold: target.value,
     };
 
@@ -849,6 +845,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       currentAlert.name?.length &&
       currentAlert.owners?.length &&
       currentAlert.crontab?.length &&
+      currentAlert.working_timeout !== undefined &&
       ((contentType === 'dashboard' && !!currentAlert.dashboard) ||
         (contentType === 'chart' && !!currentAlert.chart)) &&
       checkNotificationSettings()
@@ -881,65 +878,61 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     if (alert && alert.id !== null && !loading && !fetchError) {
       const id = alert.id || 0;
 
-      fetchResource(id)
-        .then(() => {
-          if (resource) {
-            console.log('resource???', resource);
-            // Add notification settings
-            const settings = (resource.recipients || []).map(setting => ({
-              method: setting.type as NotificationMethod,
-              // @ts-ignore: Type not assignable
-              recipients:
-                typeof setting.recipient_config_json === 'string'
-                  ? (JSON.parse(setting.recipient_config_json) || {}).target
-                  : setting.recipient_config_json,
-              options: NOTIFICATION_METHODS as NotificationMethod[], // Need better logic for this
-            }));
+      fetchResource(id).then(() => {
+        if (resource) {
+          // Add notification settings
+          const settings = (resource.recipients || []).map(setting => ({
+            method: setting.type as NotificationMethod,
+            // @ts-ignore: Type not assignable
+            recipients:
+              typeof setting.recipient_config_json === 'string'
+                ? (JSON.parse(setting.recipient_config_json) || {}).target
+                : setting.recipient_config_json,
+            options: NOTIFICATION_METHODS as NotificationMethod[], // Need better logic for this
+          }));
 
-            setNotificationSettings(settings);
-            setContentType(resource.chart ? 'chart' : 'dashboard');
+          setNotificationSettings(settings);
+          setContentType(resource.chart ? 'chart' : 'dashboard');
 
-            setCurrentAlert({
-              ...resource,
-              chart: resource.chart
-                ? getChartData(resource.chart) || { value: resource.chart.id }
-                : undefined,
-              dashboard: resource.dashboard
-                ? getDashboardData(resource.dashboard) || {
-                    value: resource.dashboard.id,
-                  }
-                : undefined,
-              database: resource.database
-                ? getSourceData(resource.database) || {
-                    value: resource.database.id,
-                  }
-                : undefined,
-              // log_retention: { value: resource.log_retention },
-              owners: (resource.owners || []).map(owner => ({
-                value: owner.id,
-                label: `${(owner as Owner).first_name} ${
-                  (owner as Owner).last_name
-                }`,
-              })),
-              // @ts-ignore: Type not assignable
-              validator_config_json:
-                typeof resource.validator_config_json === 'string'
-                  ? JSON.parse(resource.validator_config_json)
-                  : resource.validator_config_json,
-            });
-          }
-        })
-        .catch(console.log);
+          setCurrentAlert({
+            ...resource,
+            chart: resource.chart
+              ? getChartData(resource.chart) || { value: resource.chart.id }
+              : undefined,
+            dashboard: resource.dashboard
+              ? getDashboardData(resource.dashboard) || {
+                  value: resource.dashboard.id,
+                }
+              : undefined,
+            database: resource.database
+              ? getSourceData(resource.database) || {
+                  value: resource.database.id,
+                }
+              : undefined,
+            owners: (resource.owners || []).map(owner => ({
+              value: owner.id,
+              label: `${(owner as Owner).first_name} ${
+                (owner as Owner).last_name
+              }`,
+            })),
+            // @ts-ignore: Type not assignable
+            validator_config_json:
+              typeof resource.validator_config_json === 'string'
+                ? JSON.parse(resource.validator_config_json)
+                : resource.validator_config_json,
+          });
+        }
+      });
     }
   } else if (
     !isEditMode &&
     (!currentAlert || currentAlert.id || (isHidden && show))
   ) {
-    // TODO: update to match expected type variables
     setCurrentAlert({
       active: true,
       crontab: '',
       log_retention: DEFAULT_RETENTION,
+      working_timeout: DEFAULT_WORKING_TIMEOUT,
       name: '',
       owners: [],
       recipients: [],
@@ -966,6 +959,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           currentAlert.sql,
           currentAlert.validator_config_json,
           currentAlert.crontab,
+          currentAlert.working_timeout,
           currentAlert.dashboard,
           currentAlert.chart,
           contentType,
@@ -1047,8 +1041,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 defaultOptions // load options on render
                 cacheOptions
                 onChange={onOwnersChange}
-                // disabled={!isDashboardLoaded}
-                filterOption={null} // options are filtered at the api
               />
             </div>
           </StyledInputContainer>
@@ -1098,8 +1090,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     defaultOptions // load options on render
                     cacheOptions
                     onChange={onSourceChange}
-                    // disabled={!isDashboardLoaded}
-                    filterOption={null} // options are filtered at the api
                   />
                 </div>
               </StyledInputContainer>
@@ -1128,14 +1118,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       placeholder="Condition"
                       defaultValue={
                         currentAlert
-                          ? currentAlert.validator_config_json?.op ||
-                            undefined
+                          ? currentAlert.validator_config_json?.op || undefined
                           : undefined
                       }
                       value={
                         currentAlert
-                          ? currentAlert.validator_config_json?.op ||
-                            undefined
+                          ? currentAlert.validator_config_json?.op || undefined
                           : undefined
                       }
                     >
@@ -1223,6 +1211,22 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </div>
             </StyledInputContainer>
             <StyledInputContainer>
+              <div className="control-label">
+                {t('Working Timeout')}
+                <span className="required">*</span>
+              </div>
+              <div className="input-container">
+                <input
+                  type="number"
+                  name="working_timeout"
+                  value={currentAlert ? currentAlert.working_timeout : ''}
+                  placeholder={t('Time in seconds')}
+                  onChange={onTextChange}
+                />
+                <span className="input-label">seconds</span>
+              </div>
+            </StyledInputContainer>
+            <StyledInputContainer>
               <div className="control-label">{t('Grace Period')}</div>
               <div className="input-container">
                 <input
@@ -1265,7 +1269,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               defaultOptions // load options on render
               cacheOptions
               onChange={onChartChange}
-              filterOption={null} // options are filtered at the api
             />
             <AsyncSelect
               className={
@@ -1286,7 +1289,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               defaultOptions // load options on render
               cacheOptions
               onChange={onDashboardChange}
-              filterOption={null} // options are filtered at the api
             />
             <StyledSectionTitle>
               <h4>{t('Notification Method')}</h4>

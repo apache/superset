@@ -66,6 +66,7 @@ export type AlertObject = {
     threshold?: number;
   };
   validator_type?: string;
+  working_timeout?: number;
 };
 
 export type LogObject = {
