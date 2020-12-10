@@ -19,7 +19,7 @@
 
 import { styled, t } from '@superset-ui/core';
 import moment from 'moment';
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ListView from 'src/components/ListView';
 import SubMenu from 'src/components/Menu/SubMenu';
@@ -73,9 +73,11 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
     addDangerToast,
   );
 
-  if (alertId !== null && !alertLoading) {
-    fetchResource(alertId);
-  }
+  useEffect(() => {
+    if (alertId !== null && !alertLoading) {
+      fetchResource(alertId);
+    }
+  }, [alertId]);
 
   const initialSort = [{ id: 'start_dttm', desc: true }];
   const columns = useMemo(

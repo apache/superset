@@ -38,7 +38,7 @@ export type AlertObject = {
   created_on?: string;
   id?: number;
   last_eval_dttm?: number;
-  last_state?: string;
+  last_state?: 'Success' | 'Working' | 'Error' | 'Not triggered' | 'On Grace';
   name?: string;
   owners?: Array<Owner>;
   recipients?: recipients;
@@ -51,7 +51,7 @@ export type LogObject = {
   id: number;
   scheduled_dttm: string;
   start_dttm: string;
-  state: 'Success' | 'Working' | 'Error' | 'Not triggered' | 'On Grace';
+  state: string;
   value: string;
 };
 
@@ -61,4 +61,9 @@ export enum AlertState {
   error = 'Error',
   noop = 'Not triggered',
   grace = 'On Grace',
+}
+
+export enum RecipientIconName {
+  email = 'Email',
+  slack = 'Slack',
 }

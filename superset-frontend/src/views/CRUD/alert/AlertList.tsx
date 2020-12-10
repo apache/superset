@@ -23,18 +23,19 @@ import { useHistory } from 'react-router-dom';
 import { Switch } from 'src/common/components/Switch';
 import Button from 'src/components/Button';
 import FacePile from 'src/components/FacePile';
-import Icon, { IconName } from 'src/components/Icon';
+import { IconName } from 'src/components/Icon';
 import ListView, { FilterOperators, Filters } from 'src/components/ListView';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
+import RecipientIcon from 'src/views/CRUD/alert/components/RecipientIcon';
 import {
   useListViewResource,
-  useSingleViewResource
+  useSingleViewResource,
 } from 'src/views/CRUD/hooks';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
-import { AlertObject } from './types';
+import { AlertObject, AlertState } from './types';
 
 const PAGE_SIZE = 25;
 
@@ -126,7 +127,7 @@ function AlertList({
           },
         }: any) =>
           recipients.map((r: any) => (
-            <Icon key={r.id} name={r.type as IconName} />
+            <RecipientIcon key={r.id} type={r.type} />
           )),
         accessor: 'recipients',
         Header: t('Notification Method'),
@@ -264,9 +265,11 @@ function AlertList({
         operator: FilterOperators.equals,
         unfilteredLabel: 'Any',
         selects: [
-          { label: t('Success'), value: 'Success' },
-          { label: t('Working'), value: 'Working' },
-          { label: t('Error'), value: 'Error' },
+          { label: t(`${AlertState.success}`), value: AlertState.success },
+          { label: t(`${AlertState.working}`), value: AlertState.working },
+          { label: t(`${AlertState.error}`), value: AlertState.error },
+          { label: t(`${AlertState.noop}`), value: AlertState.noop },
+          { label: t(`${AlertState.grace}`), value: AlertState.grace },
         ],
       },
       {
