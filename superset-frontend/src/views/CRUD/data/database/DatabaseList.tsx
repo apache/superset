@@ -29,7 +29,9 @@ import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import ListView, { Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
-import ImportDatabaseModal from 'src/database/components/ImportModal/index';
+import ImportModelsModal, {
+  StyledIcon,
+} from 'src/components/ImportModal/index';
 import DatabaseModal from './DatabaseModal';
 import { DatabaseObject } from './types';
 
@@ -425,12 +427,21 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         pageSize={PAGE_SIZE}
       />
 
-      <ImportDatabaseModal
-        show={importingDatabase}
-        onHide={closeDatabaseImportModal}
+      <ImportModelsModal
+        resourceName="database"
+        resourceLabel={t('database')}
+        icon={<StyledIcon name="database" />}
+        passwordsNeededMessage={t(
+          'The passwords for the databases below are needed in order to ' +
+            'import them. Please note that the "Secure Extra" and "Certificate" ' +
+            'sections of the database configuration are not present in export ' +
+            'files, and should be added manually after the import if they are needed.',
+        )}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
-        onDatabaseImport={handleDatabaseImport}
+        onModelImport={handleDatabaseImport}
+        show={importingDatabase}
+        onHide={closeDatabaseImportModal}
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />

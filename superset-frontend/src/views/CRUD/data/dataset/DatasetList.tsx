@@ -45,7 +45,9 @@ import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import FacePile from 'src/components/FacePile';
 import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
-import ImportDatasetModal from 'src/datasource/components/ImportModal/index';
+import ImportModelsModal, {
+  StyledIcon,
+} from 'src/components/ImportModal/index';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import AddDatasetModal from './AddDatasetModal';
 
@@ -647,12 +649,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         }}
       </ConfirmStatusChange>
 
-      <ImportDatasetModal
-        show={importingDataset}
-        onHide={closeDatasetImportModal}
+      <ImportModelsModal
+        resourceName="dataset"
+        resourceLabel={t('dataset')}
+        icon={<StyledIcon name="table" />}
+        passwordsNeededMessage={t(
+          'The passwords for the databases below are needed in order to ' +
+            'import them together with the datasets. Please note that the ' +
+            '"Secure Extra" and "Certificate" sections of ' +
+            'the database configuration are not present in export files, and ' +
+            'should be added manually after the import if they are needed.',
+        )}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
-        onDatasetImport={handleDatasetImport}
+        onModelImport={handleDatasetImport}
+        show={importingDataset}
+        onHide={closeDatasetImportModal}
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />
