@@ -34,7 +34,7 @@ from tests.test_app import app
 from superset.charts.commands.data import ChartDataCommand
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
-from superset.extensions import async_query_manager, db, security_manager
+from superset.extensions import async_query_manager, cache_manager, db, security_manager
 from superset.models.annotations import AnnotationLayer
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
@@ -99,6 +99,12 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.add(slice)
         db.session.commit()
         return slice
+
+    @pytest.fixture(autouse=True)
+    def clear_data_cache(self):
+        with app.app_context():
+            cache_manager.data_cache.clear()
+            yield
 
     @pytest.fixture()
     def create_charts(self):
