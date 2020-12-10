@@ -786,9 +786,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('active', checked);
   };
 
-  const onConditionChange = (operation: Operator) => {
+  const onConditionChange = (op: Operator) => {
     const config = {
-      operation,
+      op,
       threshold: currentAlert
         ? currentAlert.validator_config_json?.threshold
         : undefined,
@@ -801,8 +801,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const { target } = event;
 
     const config = {
-      operation: currentAlert
-        ? currentAlert.validator_config_json?.operation
+      op: currentAlert
+        ? currentAlert.validator_config_json?.op
         : undefined,
       threshold: target.value,
     };
@@ -858,7 +858,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       } else if (
         !!currentAlert.database &&
         currentAlert.sql?.length &&
-        !!currentAlert.validator_config_json?.operation &&
+        !!currentAlert.validator_config_json?.op &&
         currentAlert.validator_config_json?.threshold !== undefined
       ) {
         setDisableSave(false);
@@ -1128,13 +1128,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       placeholder="Condition"
                       defaultValue={
                         currentAlert
-                          ? currentAlert.validator_config_json?.operation ||
+                          ? currentAlert.validator_config_json?.op ||
                             undefined
                           : undefined
                       }
                       value={
                         currentAlert
-                          ? currentAlert.validator_config_json?.operation ||
+                          ? currentAlert.validator_config_json?.op ||
                             undefined
                           : undefined
                       }

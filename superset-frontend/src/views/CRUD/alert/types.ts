@@ -62,7 +62,7 @@ export type AlertObject = {
   recipients?: Array<Recipient>;
   type?: string;
   validator_config_json?: {
-    operation?: Operator;
+    op?: Operator;
     threshold?: number;
   };
   validator_type?: string;
