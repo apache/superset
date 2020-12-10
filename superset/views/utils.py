@@ -256,31 +256,33 @@ def get_time_range_endpoints(
     Note under certain circumstances the slice object may not exist, however the slice
     ID may be defined which serves as a fallback.
 
-    When SIP-15 is enabled all new slices will use the [start, end) interval. If the
-    grace period is defined and has ended all slices will adhere to the [start, end)
-    interval.
+    When SIP-15 is enabled all new slices will use the default interval set on 
+    SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS. If the grace period is defined and has ended
+    all slices will adhere to the default interval.
 
     :param form_data: The form-data
     :param slc: The slice
     :param slice_id: The slice ID
     :returns: The time range endpoints tuple
     """
-
+    endpoints = None
     if (
         app.config["SIP_15_GRACE_PERIOD_END"]
         and date.today() >= app.config["SIP_15_GRACE_PERIOD_END"]
-    ):
-        return (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE)
+    ):  
+        start, end  = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
+        return (TimeRangeEndpoint(start), TimeRangeEndpoint(end))
 
-    endpoints = form_data.get("time_range_endpoints")
-
-    if (slc or slice_id) and not endpoints:
+    
+    if (slc or slice_id):
+        print('CHECK')
         try:
             _, datasource_type = get_datasource_info(None, None, form_data)
         except SupersetException:
             return None
 
         if datasource_type == "table":
+            print('TABLE')
             if not slc:
                 slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
 
@@ -288,15 +290,16 @@ def get_time_range_endpoints(
                 endpoints = slc.datasource.database.get_extra().get(
                     "time_range_endpoints"
                 )
-
-            if not endpoints:
-                endpoints = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
+    if form_data.get("time_range_endpoints"):
+        endpoints = form_data.get("time_range_endpoints")
 
     if endpoints:
         start, end = endpoints
         return (TimeRangeEndpoint(start), TimeRangeEndpoint(end))
 
-    return (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE)
+    start, end  = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
+    
+    return (TimeRangeEndpoint(start), TimeRangeEndpoint(end))
 
 
 # see all dashboard components type in

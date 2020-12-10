@@ -88,6 +88,7 @@ from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
+from superset.utils.core import TimeRangeEndpoint
 from superset.utils.cache import etag_cache
 from superset.utils.dates import now_as_float
 from superset.views.base import (
@@ -593,6 +594,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         # Flash the SIP-15 message if the slice is owned by the current user and has not
         # been updated, i.e., is not using the [start, end) interval.
+        start, end = app.config["SIP_15_DEFAULT_TIME_RANGE_ENDPOINTS"]
         if (
             config["SIP_15_ENABLED"]
             and slc
@@ -601,8 +603,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 not form_data.get("time_range_endpoints")
                 or form_data["time_range_endpoints"]
                 != (
-                    utils.TimeRangeEndpoint.INCLUSIVE,
-                    utils.TimeRangeEndpoint.EXCLUSIVE,
+                    TimeRangeEndpoint(start),
+                    TimeRangeEndpoint(end)
                 )
             )
         ):
@@ -612,8 +614,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         {
                             "slice_id": slc.id,
                             "time_range_endpoints": (
-                                utils.TimeRangeEndpoint.INCLUSIVE.value,
-                                utils.TimeRangeEndpoint.EXCLUSIVE.value,
+                                TimeRangeEndpoint(start),
+                                TimeRangeEndpoint(end)
                             ),
                         }
                     )
