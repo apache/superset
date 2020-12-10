@@ -131,7 +131,7 @@ function AlertList({
         accessor: 'name',
         Header: t('Name'),
       },
-      /* {
+      {
         Cell: ({
           row: {
             original: { recipients },
@@ -139,11 +139,12 @@ function AlertList({
         }: any) =>
           recipients.map((r: any) => (
             <RecipientIcon key={r.id} type={r.type} />
+            // <Icon key={r.id} name={r.type.toLowerCase() as IconName} />
           )),
         accessor: 'recipients',
         Header: t('Notification Method'),
         disableSortBy: true,
-      }, */
+      },
       {
         Header: t('Schedule'),
         accessor: 'crontab',
