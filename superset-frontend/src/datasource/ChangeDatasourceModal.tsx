@@ -141,16 +141,6 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     });
   };
 
-  const data = useMemo(
-    () =>
-      filter && datasources
-        ? datasources.filter((datasource: any) =>
-            TABLE_FILTERABLE.some(field => datasource[field]?.includes(filter)),
-          )
-        : datasources,
-    [datasources, filter],
-  );
-
   const handleChangeConfirm = () => {
     SupersetClient.get({
       endpoint: `/datasource/get/${confirmedDataset.type}/${confirmedDataset.id}`,
