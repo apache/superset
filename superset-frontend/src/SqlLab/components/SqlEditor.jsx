@@ -52,32 +52,14 @@ import RunQueryActionButton from './RunQueryActionButton';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 import { CtasEnum } from '../actions/sqlLab';
 
+const LIMIT_DROPDOWN = [10, 100, 1000, 10000, 100000];
 const menuDropdown = (
   <AntdMenu>
-    <AntdMenu.Item>
-      <a
-        target="_blank"
-        rel="noopener noreferrer"
-        href="http://www.alipay.com/"
-      >
-        1st menu item
-      </a>
-    </AntdMenu.Item>
-    <AntdMenu.Item>
-      <a
-        target="_blank"
-        rel="noopener noreferrer"
-        href="http://www.taobao.com/"
-      >
-        2nd menu item
-      </a>
-    </AntdMenu.Item>
-    <AntdMenu.Item>
-      <a target="_blank" rel="noopener noreferrer" href="http://www.tmall.com/">
-        3rd menu item
-      </a>
-    </AntdMenu.Item>
-    <AntdMenu.Item danger>a danger item</AntdMenu.Item>
+    {LIMIT_DROPDOWN.map(limit => (
+      <AntdMenu.Item>
+        <a>{limit}</a>
+      </AntdMenu.Item>
+    ))}
   </AntdMenu>
 );
 
