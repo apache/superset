@@ -23,10 +23,12 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { styled, logging, t } from '@superset-ui/core';
 
+import Icon from 'src/components/Icon';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
+import DataSourceMetrics from './DatasourceMetrics';
 import { getExploreLongUrl } from '../exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 import { getFormDataFromControls } from '../controlUtils';
@@ -72,6 +74,35 @@ const Styles = styled.div`
     padding: 0 ${({ theme }) => 2 * theme.gridUnit}px;
     max-height: 100%;
   }
+  .title-container {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 20px;
+    .action-button {
+      position: absolute;
+      top: -5px;
+      right: 10px;
+    }
+    .horizontal-text {
+      top: -5px;
+      position: absolute;
+      text-transform: uppercase;
+      color: #879399;
+      font-size: 12px;
+    }
+  }
+  .no-show {
+    display: none;
+  }
+  .vertical-text {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+  .sidebar {
+    width: 30px;
+    height: 100%;
+  }
 `;
 
 class ExploreViewContainer extends React.Component {
@@ -84,6 +115,7 @@ class ExploreViewContainer extends React.Component {
       showModal: false,
       chartIsStale: false,
       refreshOverlayVisible: false,
+      collapse: true,
     };
 
     this.addHistory = this.addHistory.bind(this);
@@ -93,6 +125,7 @@ class ExploreViewContainer extends React.Component {
     this.onQuery = this.onQuery.bind(this);
     this.toggleModal = this.toggleModal.bind(this);
     this.handleKeydown = this.handleKeydown.bind(this);
+    this.handleCollapse = this.handleCollapse.bind(this);
   }
 
   componentDidMount() {
@@ -259,6 +292,10 @@ class ExploreViewContainer extends React.Component {
     }
   }
 
+  handleCollapse() {
+    this.setState(prevState => ({ collapse: !prevState.collapse }));
+  }
+
   handleResize() {
     clearTimeout(this.resizeTimer);
     this.resizeTimer = setTimeout(() => {
@@ -326,10 +363,10 @@ class ExploreViewContainer extends React.Component {
   }
 
   render() {
+    const { collapse } = this.state;
     if (this.props.standalone) {
       return this.renderChartContainer();
     }
-
     return (
       <Styles id="explore-container" height={this.state.height}>
         {this.state.showModal && (
@@ -340,7 +377,43 @@ class ExploreViewContainer extends React.Component {
             sliceName={this.props.sliceName}
           />
         )}
-        <div className="col-sm-4 control-pane">
+
+        <div className={collapse ? 'no-show' : 'col-sm-3 control-pane'}>
+          <div className="title-container">
+            <span className="horizontal-text">Datasource</span>
+            <span
+              role="button"
+              tabIndex={0}
+              className="action-button"
+              onClick={this.handleCollapse}
+            >
+              <Icon name="expand" />
+            </span>
+          </div>
+          <DataSourceMetrics
+            datasource={this.props.datasource}
+            controls={this.props.controls}
+            actions={this.props.actions}
+          />
+        </div>
+        {collapse ? (
+          <div className="sidebar">
+            <span
+              role="button"
+              tabIndex={0}
+              className="action-button"
+              onClick={this.handleCollapse}
+            >
+              <Icon name="collapse" />
+            </span>
+            <span className="vertical-text">Datasource</span>
+          </div>
+        ) : null}
+        <div
+          className={
+            collapse ? 'col-sm-4 control-pane' : 'col-sm-3 control-pane'
+          }
+        >
           <QueryAndSaveBtns
             canAdd={!!(this.props.can_add || this.props.can_overwrite)}
             onQuery={this.onQuery}
@@ -359,7 +432,9 @@ class ExploreViewContainer extends React.Component {
             isDatasourceMetaLoading={this.props.isDatasourceMetaLoading}
           />
         </div>
-        <div className="col-sm-8">{this.renderChartContainer()}</div>
+        <div className={collapse ? 'col-sm-8' : 'col-sm-6'}>
+          {this.renderChartContainer()}
+        </div>
       </Styles>
     );
   }
@@ -372,7 +447,6 @@ function mapStateToProps(state) {
   const form_data = getFormDataFromControls(explore.controls);
   const chartKey = Object.keys(charts)[0];
   const chart = charts[chartKey];
-
   return {
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
     datasource: explore.datasource,

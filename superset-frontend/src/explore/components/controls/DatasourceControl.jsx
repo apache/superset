@@ -22,6 +22,7 @@ import { Col, Collapse, Row, Well } from 'react-bootstrap';
 import { t, styled, supersetTheme } from '@superset-ui/core';
 import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
 
+import Select from 'src/components/Select';
 import { Dropdown, Menu } from 'src/common/components';
 import { Tooltip } from 'src/common/components/Tooltip';
 import Icon from 'src/components/Icon';
@@ -77,6 +78,27 @@ const Styles = styled.div`
   .datasource-controls {
     display: flex;
   }
+  .title-select {
+    position: absolute;
+    left: 32px;
+    right: 32px;
+    width: ${({ theme }) => theme.gridUnit * 65}px;
+    display: inline-block;
+    .Select__control {
+      background-color: #f0f0f0;
+    }
+  }
+  .dataset-svg {
+    position: absolute;
+    let: 0;
+    top: 1px;
+    vertical-align: -9px;
+    margin-right: 10px;
+  }
+  .container {
+    position: relative;
+    height: 30px;
+  }
 `;
 
 /**
@@ -107,7 +129,6 @@ class DatasourceControl extends React.PureComponent {
     );
     this.toggleEditDatasourceModal = this.toggleEditDatasourceModal.bind(this);
     this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
-    this.renderDatasource = this.renderDatasource.bind(this);
     this.handleMenuItemClick = this.handleMenuItemClick.bind(this);
   }
 
@@ -153,56 +174,8 @@ class DatasourceControl extends React.PureComponent {
     }
   }
 
-  renderDatasource() {
-    const { datasource } = this.props;
-    const { showDatasource } = this.state;
-    const maxNumColumns = 50;
-    return (
-      <div className="m-t-10">
-        <Well className="m-t-0">
-          <div className="m-b-10">
-            <Label>
-              <i className="fa fa-database" /> {datasource.database.backend}
-            </Label>
-            {` ${datasource.database.name} `}
-          </div>
-          {showDatasource && (
-            <Row className="datasource-container">
-              <ColumnsCol md={6}>
-                <strong>Columns</strong>
-                {datasource.columns.slice(0, maxNumColumns).map(col => (
-                  <div key={col.column_name}>
-                    <ColumnOption showType column={col} />
-                  </div>
-                ))}
-                {datasource.columns.length > maxNumColumns && (
-                  <div className="and-more">...</div>
-                )}
-              </ColumnsCol>
-              <ColumnsCol md={6}>
-                <strong>Metrics</strong>
-                {datasource.metrics.slice(0, maxNumColumns).map(m => (
-                  <div key={m.metric_name}>
-                    <MetricOption metric={m} showType />
-                  </div>
-                ))}
-                {datasource.columns.length > maxNumColumns && (
-                  <div className="and-more">...</div>
-                )}
-              </ColumnsCol>
-            </Row>
-          )}
-        </Well>
-      </div>
-    );
-  }
-
   render() {
-    const {
-      showChangeDatasourceModal,
-      showEditDatasourceModal,
-      showDatasource,
-    } = this.state;
+    const { showChangeDatasourceModal, showEditDatasourceModal } = this.state;
     const { datasource, onChange } = this.props;
 
     const datasourceMenu = (
@@ -259,9 +232,6 @@ class DatasourceControl extends React.PureComponent {
             </Tooltip>
           </Dropdown>
         </div>
-        <Collapse in={this.state.showDatasource}>
-          {this.renderDatasource()}
-        </Collapse>
         {showEditDatasourceModal && (
           <DatasourceModal
             datasource={datasource}
