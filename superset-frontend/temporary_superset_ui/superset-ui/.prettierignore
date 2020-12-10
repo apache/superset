@@ -1,3 +1,4 @@
+_gh-pages/
 coverage/
 node_modules/
 public/
@@ -12,3 +13,5 @@ tsconfig.json
 tsconfig.options.json
 tsconfig.eslint.json
 CHANGELOG.md
+*.geojson
+*-topo.json

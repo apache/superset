@@ -162,13 +162,13 @@ function Rose(element, props) {
       const sum = datum[t].reduce((a, v, i) => a + (state.disabled[i] ? 0 : v.value), 0);
       maxSum = sum > maxSum ? sum : maxSum;
       sums[grain] = sum;
-      grain++;
+      grain += 1;
     }
 
     // Compute angle occupied by each time grain
     const dtheta = (Math.PI * 2) / numGrains;
     const angles = [];
-    for (let i = 0; i <= numGrains; i++) {
+    for (let i = 0; i <= numGrains; i += 1) {
       angles.push(dtheta * i - Math.PI / 2);
     }
 
@@ -192,7 +192,7 @@ function Rose(element, props) {
       groupLabels: [],
     };
     let arcId = 0;
-    for (let i = 0; i < numGrains; i++) {
+    for (let i = 0; i < numGrains; i += 1) {
       const t = times[i];
       const startAngle = angles[i];
       const endAngle = angles[i + 1];
@@ -232,7 +232,7 @@ function Rose(element, props) {
           innerRadius: innerRadius * mini,
           outerRadius: outerRadius * mini,
         };
-        arcId++;
+        arcId += 1;
         innerRadius = outerRadius;
       }
       const labelArc = { ...arcSt.data[i * numGroups] };

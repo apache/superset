@@ -18,7 +18,7 @@ export default class Plugin {
     return this;
   }
 
-  configure(config: PlainObject, replace: boolean = false) {
+  configure(config: PlainObject, replace = false) {
     this.config = replace ? config : { ...this.config, ...config };
 
     return this;

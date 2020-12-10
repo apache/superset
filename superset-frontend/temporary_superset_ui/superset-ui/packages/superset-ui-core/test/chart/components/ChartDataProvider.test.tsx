@@ -13,7 +13,7 @@ type MockLoadFormData = typeof defaultMockLoadFormData | jest.Mock<Promise<unkno
 
 let mockLoadFormData: MockLoadFormData = defaultMockLoadFormData;
 
-function createPromise<T>(input: T, ..._args: unknown[]) {
+function createPromise<T>(input: T) {
   return Promise.resolve(input);
 }
 
@@ -101,7 +101,7 @@ describe('ChartDataProvider', () => {
         setup({ loadDatasource: true });
         setTimeout(() => {
           expect(mockLoadDatasource.mock.calls).toHaveLength(1);
-          expect(mockLoadDatasource.mock.calls[0][0]).toEqual(props.formData!.datasource);
+          expect(mockLoadDatasource.mock.calls[0][0]).toEqual(props.formData.datasource);
           done();
         }, 0);
       });
@@ -129,7 +129,7 @@ describe('ChartDataProvider', () => {
 
         setTimeout(() => {
           expect(mockLoadDatasource.mock.calls).toHaveLength(2);
-          expect(mockLoadDatasource.mock.calls[0][0]).toEqual(props.formData!.datasource);
+          expect(mockLoadDatasource.mock.calls[0][0]).toEqual(props.formData.datasource);
           expect(mockLoadDatasource.mock.calls[1][0]).toEqual(newDatasource);
           done();
         }, 0);
@@ -201,7 +201,7 @@ describe('ChartDataProvider', () => {
           expect(children.mock.calls[1][0]).toEqual({
             payload: {
               formData: props.formData,
-              datasource: props.formData!.datasource,
+              datasource: props.formData.datasource,
               queryData: props.formData,
             },
           });
@@ -257,7 +257,7 @@ describe('ChartDataProvider', () => {
           expect(onLoaded.mock.calls).toHaveLength(1);
           expect(onLoaded.mock.calls[0][0]).toEqual({
             formData: props.formData,
-            datasource: props.formData!.datasource,
+            datasource: props.formData.datasource,
             queryData: props.formData,
           });
           done();

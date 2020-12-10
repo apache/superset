@@ -46,7 +46,7 @@ const formData = {
  * Add null values to trendline data
  * @param data input data
  */
-function withNulls(origData: object[], nullPosition: number = 3) {
+function withNulls(origData: object[], nullPosition = 3) {
   const data = [...origData];
   data[nullPosition] = {
     ...data[nullPosition],

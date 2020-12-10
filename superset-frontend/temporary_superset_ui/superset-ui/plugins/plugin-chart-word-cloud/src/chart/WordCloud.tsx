@@ -36,26 +36,23 @@ export interface WordCloudProps extends WordCloudVisualProps {
   width: number;
 }
 
-interface State {
+export interface WordCloudState {
   words: Word[];
 }
 
-const defaultProps = {
+const defaultProps: Required<WordCloudVisualProps> = {
   encoding: {},
   rotation: 'flat',
 };
 
-class WordCloud extends React.PureComponent<
-  WordCloudProps & typeof defaultProps & SupersetThemeProps,
-  State
-> {
+type FullWordCloudProps = WordCloudProps & typeof defaultProps & SupersetThemeProps;
+
+class WordCloud extends React.PureComponent<FullWordCloudProps, WordCloudState> {
+  static defaultProps = defaultProps;
+
   // Cannot name it isMounted because of conflict
   // with React's component function name
-  isComponentMounted: boolean = false;
-
-  state: State = {
-    words: [],
-  };
+  isComponentMounted = false;
 
   wordCloudEncoderFactory = createEncoderFactory<WordCloudEncodingConfig>({
     channelTypes: {
@@ -76,7 +73,13 @@ class WordCloud extends React.PureComponent<
 
   createEncoder = this.wordCloudEncoderFactory.createSelector();
 
-  static defaultProps = defaultProps;
+  constructor(props: FullWordCloudProps) {
+    super(props);
+    this.state = {
+      words: [],
+    };
+    this.setWords = this.setWords.bind(this);
+  }
 
   componentDidMount() {
     this.isComponentMounted = true;
@@ -101,11 +104,11 @@ class WordCloud extends React.PureComponent<
     this.isComponentMounted = false;
   }
 
-  setWords = (words: Word[]) => {
+  setWords(words: Word[]) {
     if (this.isComponentMounted) {
       this.setState({ words });
     }
-  };
+  }
 
   update() {
     const { data, width, height, rotation, encoding } = this.props;

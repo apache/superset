@@ -133,7 +133,7 @@ class HorizonRow extends React.PureComponent {
         y.range([bands * height + bExtents, bExtents]);
 
         // only the current data frame is being drawn i.e. what's visible:
-        for (let i = startIndex; i < endIndex; i++) {
+        for (let i = startIndex; i < endIndex; i += 1) {
           value = data[i].y;
           if (value <= 0) {
             hasNegative = true;
@@ -153,7 +153,7 @@ class HorizonRow extends React.PureComponent {
           context.scale(1, -1);
         }
 
-        for (let b = 0; b < bands; b++) {
+        for (let b = 0; b < bands; b += 1) {
           context.fillStyle = colors[bands - b - 1];
 
           // Adjust the range based on the current band index.
@@ -161,7 +161,7 @@ class HorizonRow extends React.PureComponent {
           y.range([bands * height + bExtents, bExtents]);
 
           // only the current data frame is being drawn i.e. what's visible:
-          for (let ii = startIndex; ii < endIndex; ii++) {
+          for (let ii = startIndex; ii < endIndex; ii += 1) {
             value = data[ii].y;
             if (value >= 0) {
               continue;

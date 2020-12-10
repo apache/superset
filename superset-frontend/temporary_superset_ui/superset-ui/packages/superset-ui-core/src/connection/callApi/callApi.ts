@@ -67,7 +67,7 @@ export default async function callApi({
     cache !== 'no-store' &&
     cache !== 'reload' &&
     CACHE_AVAILABLE &&
-    (self.location && self.location.protocol) === 'https:'
+    (window.location && window.location.protocol) === 'https:'
   ) {
     const supersetCache = await caches.open(CACHE_KEY);
     const cachedResponse = await supersetCache.match(url);

@@ -211,18 +211,18 @@ function Icicle(element, props) {
             }
             const removeIndices = [];
             // Keep at least one child
-            for (let j = 1; j < n.children.length; j++) {
+            for (let j = 1; j < n.children.length; j += 1) {
               if (n.children[j].weight / n.sum < partitionThreshold) {
                 removeIndices.push(j);
               }
             }
-            for (let j = removeIndices.length - 1; j >= 0; j--) {
+            for (let j = removeIndices.length - 1; j >= 0; j -= 1) {
               n.children.splice(removeIndices[j], 1);
             }
           } else {
             // Find first child that falls below the threshold
             let j;
-            for (j = 1; j < n.children.length; j++) {
+            for (j = 1; j < n.children.length; j += 1) {
               if (n.children[j].weight / n.sum < partitionThreshold) {
                 break;
               }
@@ -375,7 +375,7 @@ function Icicle(element, props) {
     });
   }
 
-  for (let i = 0; i < data.length; i++) {
+  for (let i = 0; i < data.length; i += 1) {
     drawVis(i, data);
   }
 }

@@ -18,11 +18,11 @@ Current master: https://superset-ui.now.sh/
 
 ### Core packages
 
-| Package                                                                                                                       | Version                                                                                                                                                           |
-| ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [@superset-ui/core](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-core)                     | [![Version](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat-square)](https://www.npmjs.com/package/@superset-ui/core)                               |
-| [@superset-ui/chart-controls](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-chart-controls) | [![Version](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat-square)](https://www.npmjs.com/package/@superset-ui/chart-controls) |
-| [@superset-ui/generator-superset](https://github.com/apache-superset/superset-ui/tree/master/packages/generator-superset)     | [![Version](https://img.shields.io/npm/v/@superset-ui/generator-superset.svg?style=flat-square)](https://www.npmjs.com/package/@superset-ui/generator-superset)   |
+| Package                                                                                                                       | Version                                                                                                                                                         |
+| ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [@superset-ui/core](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-core)                     | [![Version](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat-square)](https://www.npmjs.com/package/@superset-ui/core)                             |
+| [@superset-ui/chart-controls](https://github.com/apache-superset/superset-ui/tree/master/packages/superset-ui-chart-controls) | [![Version](https://img.shields.io/npm/v/@superset-ui/core.svg?style=flat-square)](https://www.npmjs.com/package/@superset-ui/chart-controls)                   |
+| [@superset-ui/generator-superset](https://github.com/apache-superset/superset-ui/tree/master/packages/generator-superset)     | [![Version](https://img.shields.io/npm/v/@superset-ui/generator-superset.svg?style=flat-square)](https://www.npmjs.com/package/@superset-ui/generator-superset) |
 
 ### Chart plugin packages
 

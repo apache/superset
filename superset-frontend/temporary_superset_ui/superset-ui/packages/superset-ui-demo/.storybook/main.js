@@ -52,11 +52,11 @@ module.exports = {
     // Let webpack know where to find the source code
     Object.assign(config.resolve.alias, {
       ...packages.reduce(
-        (acc, name) => ({ 
-            ...acc,
-            [`@superset-ui/${name}$`]: path.join(basePath, name, 'src'),
+        (acc, name) => ({
+          ...acc,
+          [`@superset-ui/${name}$`]: path.join(basePath, name, 'src'),
         }),
-        {}
+        {},
       ),
     });
 

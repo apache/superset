@@ -295,19 +295,19 @@ describe('callApi()', () => {
   });
 
   describe('caching', () => {
-    const origLocation = self.location;
+    const origLocation = window.location;
 
     beforeAll(() => {
-      Object.defineProperty(self, 'location', { value: {} });
+      Object.defineProperty(window, 'location', { value: {} });
     });
 
     afterAll(() => {
-      Object.defineProperty(self, 'location', { value: origLocation });
+      Object.defineProperty(window, 'location', { value: origLocation });
     });
 
-    beforeEach(() => {
-      self.location.protocol = 'https:';
-      return caches.delete(constants.CACHE_KEY);
+    beforeEach(async () => {
+      window.location.protocol = 'https:';
+      await caches.delete(constants.CACHE_KEY);
     });
 
     it('caches requests with ETags', async () => {
@@ -322,7 +322,7 @@ describe('callApi()', () => {
 
     it('will not use cache when running off an insecure connection', async () => {
       expect.assertions(2);
-      self.location.protocol = 'http:';
+      window.location.protocol = 'http:';
 
       await callApi({ url: mockCacheUrl, method: 'GET' });
       const calls = fetchMock.calls(mockCacheUrl);

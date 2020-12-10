@@ -63,7 +63,7 @@ export default function computeAxisLayout<Def extends ChannelDef<Output>, Output
 
   const spaceForAxisTitle = axis.hasTitle() ? labelPadding + axisTitleHeight : 0;
   let tickTextAnchor = 'middle';
-  let labelOffset: number = 0;
+  let labelOffset = 0;
   let requiredMargin =
     tickSize + gapBetweenTickAndTickLabel + spaceForAxisTitle + gapBetweenAxisLabelAndBorder;
 

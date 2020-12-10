@@ -79,7 +79,7 @@ function getPackages(pattern, tsOnly = false) {
 let scope = getPackages(glob);
 
 if (shouldLint) {
-  run(`nimbus eslint {packages,plugins}/${scope}/{src,test}`);
+  run(`yarn lint --fix {packages,plugins}/${scope}/{src,test}`);
 }
 
 if (shouldCleanup) {
