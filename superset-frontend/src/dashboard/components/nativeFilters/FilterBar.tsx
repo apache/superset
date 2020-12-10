@@ -164,14 +164,22 @@ const FilterValue: React.FC<FilterProps> = ({
   filter,
   onExtraFormDataChange,
 }) => {
-  const { id } = filter;
+  const {
+    id,
+    allowsMultipleValues,
+    inverseSelection,
+    targets,
+    currentValue,
+    defaultValue,
+  } = filter;
   const cascadingFilters = useCascadingFilters(id);
   const [state, setState] = useState({ data: undefined });
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
-  const { allowsMultipleValues, inverseSelection, targets } = filter;
   const [target] = targets;
   const { datasetId = 18, column } = target;
   const { name: groupby } = column;
+
+  console.log("Filter name: ", filter.name, "value", currentValue);
 
   const getFormData = (): Partial<QueryFormData> => ({
     adhoc_filters: [],
@@ -189,6 +197,7 @@ const FilterValue: React.FC<FilterProps> = ({
     time_range_endpoints: ['inclusive', 'exclusive'],
     url_params: {},
     viz_type: 'filter_select',
+    defaultValues: currentValue || defaultValue || [],
   });
 
   useEffect(() => {
@@ -321,6 +330,14 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   };
 
   const cascadeFilters = useMemo((): CascadeFilter[] => {
+    const getFilterValue = (filterId: string): string[] | null => {
+      const filters = filterData[filterId]?.append_form_data?.filters;
+      if (filters?.length) {
+        return filters[0].val;
+      }
+      return null;
+    };
+
     const cascadeChildren: { [id: string]: Filter[] } = {};
     filterConfigs.forEach(filter => {
       const [parentId] = filter.cascadeParentIds || [];
@@ -337,13 +354,14 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       return {
         ...filter,
         cascadeChildren: children.map(getCascadeFilter),
+        currentValue: getFilterValue(filter.id),
       };
     };
 
     return filterConfigs
       .filter(filter => !filter.cascadeParentIds?.length)
       .map(getCascadeFilter);
-  }, [filterConfigs]);
+  }, [filterConfigs, filterData]);
 
   return (
     <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>
