@@ -502,7 +502,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   function onValidate() {
     const value = getCurrentValue();
     fetchActualTimeRange(value, endpoints)
-      .then((value) => {
+      .then(value => {
         setEvalTimeRange(value);
         setValidAdvancedRange(true);
       })
