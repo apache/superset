@@ -99,8 +99,11 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
 
       if (!datasources) {
         // prototyping
-        await fetchData({pageIndex: 0, pageSize: 20, filters:[], sortBy: [{id: 'changed_on_delta_humanized'}]}).then( () => {
-          console.log(state);
+        await fetchData({
+          pageIndex: 0,
+          pageSize: 20,
+          filters: [],
+          sortBy: [{ id: 'changed_on_delta_humanized' }],
         });
 
         SupersetClient.get({
@@ -234,6 +237,28 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     console.log(state);
   };
 
+  const renderTableView = () => {
+    const data = state.resourceCollection.map((ds: any) => ({
+      rawName: ds.table_name,
+      connection: ds.database.database_name,
+      schema: ds.schema,
+      name: (
+        <a
+          href="#"
+          onClick={() => selectDatasource({ type: 'table', ...ds })}
+          className="datasource-link"
+        >
+          {ds.table_name}
+        </a>
+      ),
+      type: ds.kind,
+    }));
+
+    console.log(data);
+
+    return data
+  };
+
   return (
     <StyledModal
       show={show}
@@ -262,13 +287,13 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
             </div>
 
             {loading && <Loading />}
-            {datasources && (
+            {state.resourceCollection.length !== 0 && (
               <TableView
                 columns={TABLE_COLUMNS}
-                data={data}
+                data={renderTableView()}
                 pageSize={20}
                 className="table-condensed"
-              />
+            />
             )}
           </>
         )}
