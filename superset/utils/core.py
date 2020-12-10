@@ -108,6 +108,182 @@ DTTM_ALIAS = "__timestamp"
 
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
+
+class LenientEnum(Enum):
+    """Enums with a `get` method that convert a enum value to `Enum` if it is a
+    valid value."""
+
+    @classmethod
+    def get(cls, value: Any) -> Any:
+        try:
+            return super().__new__(cls, value)
+        except ValueError:
+            return None
+
+
+class AdhocMetricExpressionType(str, Enum):
+    SIMPLE = "SIMPLE"
+    SQL = "SQL"
+
+
+class AnnotationType(str, Enum):
+    FORMULA = "FORMULA"
+    INTERVAL = "INTERVAL"
+    EVENT = "EVENT"
+    TIME_SERIES = "TIME_SERIES"
+
+
+class DbColumnType(Enum):
+    """
+    Generic database column type
+    """
+
+    NUMERIC = 0
+    STRING = 1
+    TEMPORAL = 2
+
+
+class ChartDataResultFormat(str, Enum):
+    """
+    Chart data response format
+    """
+
+    CSV = "csv"
+    JSON = "json"
+
+
+class ChartDataResultType(str, Enum):
+    """
+    Chart data response type
+    """
+
+    FULL = "full"
+    QUERY = "query"
+    RESULTS = "results"
+    SAMPLES = "samples"
+
+
+class ExtraFiltersTimeColumnType(str, Enum):
+    GRANULARITY = "__granularity"
+    TIME_COL = "__time_col"
+    TIME_GRAIN = "__time_grain"
+    TIME_ORIGIN = "__time_origin"
+    TIME_RANGE = "__time_range"
+
+
+class FilterOperator(str, Enum):
+    """
+    Operators used filter controls
+    """
+
+    EQUALS = "=="
+    NOT_EQUALS = "!="
+    GREATER_THAN = ">"
+    LESS_THAN = "<"
+    GREATER_THAN_OR_EQUALS = ">="
+    LESS_THAN_OR_EQUALS = "<="
+    LIKE = "LIKE"
+    IS_NULL = "IS NULL"
+    IS_NOT_NULL = "IS NOT NULL"
+    IN = "IN"  # pylint: disable=invalid-name
+    NOT_IN = "NOT IN"
+    REGEX = "REGEX"
+
+
+class PostProcessingBoxplotWhiskerType(str, Enum):
+    """
+    Calculate cell contibution to row/column total
+    """
+
+    TUKEY = "tukey"
+    MINMAX = "min/max"
+    PERCENTILE = "percentile"
+
+
+class PostProcessingContributionOrientation(str, Enum):
+    """
+    Calculate cell contibution to row/column total
+    """
+
+    ROW = "row"
+    COLUMN = "column"
+
+
+class QueryMode(str, LenientEnum):
+    """
+    Whether the query runs on aggregate or returns raw records
+    """
+
+    RAW = "raw"
+    AGGREGATE = "aggregate"
+
+
+class QuerySource(Enum):
+    """
+    The source of a SQL query.
+    """
+
+    CHART = 0
+    DASHBOARD = 1
+    SQL_LAB = 2
+
+
+class QueryStatus(str, Enum):  # pylint: disable=too-few-public-methods
+    """Enum-type class for query statuses"""
+
+    STOPPED: str = "stopped"
+    FAILED: str = "failed"
+    PENDING: str = "pending"
+    RUNNING: str = "running"
+    SCHEDULED: str = "scheduled"
+    SUCCESS: str = "success"
+    TIMED_OUT: str = "timed_out"
+
+
+class ReservedUrlParameters(str, Enum):
+    """
+    Reserved URL parameters that are used internally by Superset. These will not be
+    passed to chart queries, as they control the behavior of the UI.
+    """
+
+    STANDALONE = "standalone"
+    EDIT_MODE = "edit"
+
+
+class RowLevelSecurityFilterType(str, Enum):
+    REGULAR = "Regular"
+    BASE = "Base"
+
+
+class TimeRangeEndpoint(str, Enum):
+    """
+    The time range endpoint types which represent inclusive, exclusive, or unknown.
+
+    Unknown represents endpoints which are ill-defined as though the interval may be
+    [start, end] the filter may behave like (start, end] due to mixed data types and
+    lexicographical ordering.
+
+    :see: https://github.com/apache/incubator-superset/issues/6360
+    """
+
+    EXCLUSIVE = "exclusive"
+    INCLUSIVE = "inclusive"
+    UNKNOWN = "unknown"
+
+
+class TemporalType(str, Enum):
+    """
+    Supported temporal types
+    """
+
+    DATE = "DATE"
+    DATETIME = "DATETIME"
+    SMALLDATETIME = "SMALLDATETIME"
+    TEXT = "TEXT"
+    TIME = "TIME"
+    TIMESTAMP = "TIMESTAMP"
+
+
 try:
     # Having might not have been imported.
     class DimSelector(Having):
@@ -688,18 +864,6 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
         finally:
             # restore 'close with result'
             connection.should_close_with_result = save_should_close_with_result
-
-
-class QueryStatus:  # pylint: disable=too-few-public-methods
-    """Enum-type class for query statuses"""
-
-    STOPPED: str = "stopped"
-    FAILED: str = "failed"
-    PENDING: str = "pending"
-    RUNNING: str = "running"
-    SCHEDULED: str = "scheduled"
-    SUCCESS: str = "success"
-    TIMED_OUT: str = "timed_out"
 
 
 def notify_user_about_perm_udate(  # pylint: disable=too-many-arguments
@@ -1434,168 +1598,6 @@ def indexed(
         key_ = getattr(item, key) if isinstance(key, str) else key(item)
         idx.setdefault(key_, []).append(item)
     return idx
-
-
-class LenientEnum(Enum):
-    """Enums that do not raise ValueError when value is invalid"""
-
-    @classmethod
-    def get(cls, value: Any) -> Any:
-        try:
-            return super().__new__(cls, value)
-        except ValueError:
-            return None
-
-
-class TimeRangeEndpoint(str, Enum):
-    """
-    The time range endpoint types which represent inclusive, exclusive, or unknown.
-
-    Unknown represents endpoints which are ill-defined as though the interval may be
-    [start, end] the filter may behave like (start, end] due to mixed data types and
-    lexicographical ordering.
-
-    :see: https://github.com/apache/incubator-superset/issues/6360
-    """
-
-    EXCLUSIVE = "exclusive"
-    INCLUSIVE = "inclusive"
-    UNKNOWN = "unknown"
-
-
-class ReservedUrlParameters(str, Enum):
-    """
-    Reserved URL parameters that are used internally by Superset. These will not be
-    passed to chart queries, as they control the behavior of the UI.
-    """
-
-    STANDALONE = "standalone"
-    EDIT_MODE = "edit"
-
-
-class QuerySource(Enum):
-    """
-    The source of a SQL query.
-    """
-
-    CHART = 0
-    DASHBOARD = 1
-    SQL_LAB = 2
-
-
-class DbColumnType(Enum):
-    """
-    Generic database column type
-    """
-
-    NUMERIC = 0
-    STRING = 1
-    TEMPORAL = 2
-
-
-class QueryMode(str, LenientEnum):
-    """
-    Whether the query runs on aggregate or returns raw records
-    """
-
-    RAW = "raw"
-    AGGREGATE = "aggregate"
-
-
-class FilterOperator(str, Enum):
-    """
-    Operators used filter controls
-    """
-
-    EQUALS = "=="
-    NOT_EQUALS = "!="
-    GREATER_THAN = ">"
-    LESS_THAN = "<"
-    GREATER_THAN_OR_EQUALS = ">="
-    LESS_THAN_OR_EQUALS = "<="
-    LIKE = "LIKE"
-    IS_NULL = "IS NULL"
-    IS_NOT_NULL = "IS NOT NULL"
-    IN = "IN"  # pylint: disable=invalid-name
-    NOT_IN = "NOT IN"
-    REGEX = "REGEX"
-
-
-class ChartDataResultType(str, Enum):
-    """
-    Chart data response type
-    """
-
-    FULL = "full"
-    QUERY = "query"
-    RESULTS = "results"
-    SAMPLES = "samples"
-
-
-class ChartDataResultFormat(str, Enum):
-    """
-    Chart data response format
-    """
-
-    CSV = "csv"
-    JSON = "json"
-
-
-class TemporalType(str, Enum):
-    """
-    Supported temporal types
-    """
-
-    DATE = "DATE"
-    DATETIME = "DATETIME"
-    SMALLDATETIME = "SMALLDATETIME"
-    TEXT = "TEXT"
-    TIME = "TIME"
-    TIMESTAMP = "TIMESTAMP"
-
-
-class PostProcessingContributionOrientation(str, Enum):
-    """
-    Calculate cell contibution to row/column total
-    """
-
-    ROW = "row"
-    COLUMN = "column"
-
-
-class PostProcessingBoxplotWhiskerType(str, Enum):
-    """
-    Calculate cell contibution to row/column total
-    """
-
-    TUKEY = "tukey"
-    MINMAX = "min/max"
-    PERCENTILE = "percentile"
-
-
-class AdhocMetricExpressionType(str, Enum):
-    SIMPLE = "SIMPLE"
-    SQL = "SQL"
-
-
-class RowLevelSecurityFilterType(str, Enum):
-    REGULAR = "Regular"
-    BASE = "Base"
-
-
-class ExtraFiltersTimeColumnType(str, Enum):
-    GRANULARITY = "__granularity"
-    TIME_COL = "__time_col"
-    TIME_GRAIN = "__time_grain"
-    TIME_ORIGIN = "__time_origin"
-    TIME_RANGE = "__time_range"
-
-
-class AnnotationType(str, Enum):
-    FORMULA = "FORMULA"
-    INTERVAL = "INTERVAL"
-    EVENT = "EVENT"
-    TIME_SERIES = "TIME_SERIES"
 
 
 def is_test() -> bool:

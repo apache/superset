@@ -75,9 +75,7 @@ describe('QueryPreviewModal', () => {
     }),
     show: true,
   };
-  const wrapper = mount(<QueryPreviewModal {...mockedProps} />, {
-    context: { store },
-  });
+  const wrapper = mount(<QueryPreviewModal store={store} {...mockedProps} />);
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
@@ -122,9 +120,9 @@ describe('QueryPreviewModal', () => {
         ...mockedProps,
         query: mockQueries[1],
       };
-      const wrapper2 = mount(<QueryPreviewModal {...mockedProps2} />, {
-        context: { store },
-      });
+      const wrapper2 = mount(
+        <QueryPreviewModal store={store} {...mockedProps2} />,
+      );
       act(() => {
         const props = wrapper2
           .find('[data-test="previous-query"]')
@@ -156,9 +154,9 @@ describe('QueryPreviewModal', () => {
         ...mockedProps,
         query: mockQueries[2],
       };
-      const wrapper2 = mount(<QueryPreviewModal {...mockedProps2} />, {
-        context: { store },
-      });
+      const wrapper2 = mount(
+        <QueryPreviewModal store={store} {...mockedProps2} />,
+      );
 
       expect(
         wrapper2.find('[data-test="next-query"]').first().props().disabled,

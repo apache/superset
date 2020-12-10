@@ -20,6 +20,7 @@ import React from 'react';
 import { act } from 'react-dom/test-utils';
 import configureStore from 'redux-mock-store';
 import { mount } from 'enzyme';
+import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
 import sinon from 'sinon';
@@ -50,11 +51,15 @@ const mockedProps = {
 };
 
 async function mountAndWait(props = mockedProps) {
-  const mounted = mount(<DatasourceModal {...props} />, {
-    context: { store },
-    wrappingComponent: ThemeProvider,
-    wrappingComponentProps: { theme: supersetTheme },
-  });
+  const mounted = mount(
+    <Provider store={store}>
+      <DatasourceModal {...props} />
+    </Provider>,
+    {
+      wrappingComponent: ThemeProvider,
+      wrappingComponentProps: { theme: supersetTheme },
+    },
+  );
   await waitForComponentToPaint(mounted);
 
   return mounted;

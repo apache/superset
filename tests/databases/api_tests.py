@@ -34,13 +34,13 @@ from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.utils.core import get_example_database, get_main_database
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.certificates import ssl_certificate
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.importexport import (
     database_config,
     dataset_config,
     database_metadata_config,
     dataset_metadata_config,
 )
-
 from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_position
 from tests.test_app import app
 
@@ -800,7 +800,9 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.assertEqual(response, expected_response)
 
-    @pytest.mark.usefixtures("load_unicode_dashboard_with_position")
+    @pytest.mark.usefixtures(
+        "load_unicode_dashboard_with_position", "load_energy_table_with_slice"
+    )
     def test_get_database_related_objects(self):
         """
         Database API: Test get chart and dashboard count related to a database
