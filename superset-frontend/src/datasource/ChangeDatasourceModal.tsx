@@ -20,22 +20,19 @@ import React, {
   FunctionComponent,
   useState,
   useRef,
-  useMemo,
   useEffect,
   useCallback,
 } from 'react';
-import rison from 'rison';
 import { Alert, FormControl, FormControlProps } from 'react-bootstrap';
-import { SupersetClient, t } from '@superset-ui/core';
+import { SupersetClient, t, styled } from '@superset-ui/core';
 import TableView from 'src/components/TableView';
 import StyledModal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
+import { useListViewResource } from 'src/views/CRUD/hooks';
+import Dataset from 'src/types/Dataset';
 import getClientErrorObject from '../utils/getClientErrorObject';
 import Loading from '../components/Loading';
 import withToasts from '../messageToasts/enhancers/withToasts';
-
-import { useListViewResource } from 'src/views/CRUD/hooks';
-import Dataset from 'src/types/Dataset';
 
 interface ChangeDatasourceModalProps {
   addDangerToast: (msg: string) => void;
@@ -46,6 +43,19 @@ interface ChangeDatasourceModalProps {
   show: boolean;
 }
 
+const ConfirmModalStyled = styled.div`
+  .btn-container {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0px 15px;
+    margin: 10px 0 0 0;
+  }
+
+  .confirm-modal-container {
+    margin: 9px;
+  }
+`;
+
 const TABLE_COLUMNS = [
   'name',
   'type',
@@ -54,7 +64,6 @@ const TABLE_COLUMNS = [
   'creator',
 ].map(col => ({ accessor: col, Header: col }));
 
-const TABLE_FILTERABLE = ['rawName', 'type', 'schema', 'connection', 'creator'];
 const CHANGE_WARNING_MSG = t(
   'Changing the dataset may break the chart if the chart relies ' +
     'on columns or metadata that does not exist in the target dataset',
@@ -68,18 +77,14 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   onHide,
   show,
 }) => {
-  const [datasources, setDatasources] = useState<any>(null);
   const [filter] = useState<any>(undefined);
   const [confirmChange, setConfirmChange] = useState(false);
   const [confirmedDataset, setConfirmedDataset] = useState<any>(undefined);
   let searchRef = useRef<HTMLInputElement>(null);
 
   const {
-    state,
-    hasPerm,
+    state: { loading, resourceCollection },
     fetchData,
-    toggleBulkSelect,
-    refreshData,
   } = useListViewResource<Dataset>('dataset', t('dataset'), addDangerToast);
 
   const selectDatasource = useCallback(
@@ -110,7 +115,6 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     }
   }, [
     addDangerToast,
-    datasources,
     fetchData,
     onChange,
     onDatasourceSave,
@@ -168,7 +172,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   };
 
   const renderTableView = () => {
-    const data = state.resourceCollection.map((ds: any) => ({
+    const data = resourceCollection.map((ds: any) => ({
       rawName: ds.table_name,
       connection: ds.database.database_name,
       schema: ds.schema,
@@ -183,8 +187,6 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       ),
       type: ds.kind,
     }));
-
-    console.log(data);
 
     return data;
   };
@@ -215,8 +217,8 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
                 onChange={changeSearch}
               />
             </div>
-            {state.loading && <Loading />}
-            {state.resourceCollection.length !== 0 && (
+            {loading && <Loading />}
+            {resourceCollection.length !== 0 && (
               <TableView
                 columns={TABLE_COLUMNS}
                 data={renderTableView()}
@@ -227,20 +229,23 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
           </>
         )}
         {confirmChange && (
-          <>
-            Warning! Changing the datasource may breakthe chart if metadata that
-            does not exist in the target target target datasource
-            <div>
-              <Button
-                className="proceed-btn"
-                buttonStyle="primary"
-                onClick={handleChangeConfirm}
-              >
-                Proceed
-              </Button>
-              <Button onClick={handlerCancelConfirm}>Cancel</Button>
+          <ConfirmModalStyled>
+            <div className="confirm-modal-container">
+              {t(
+                'Warning! Changing the datasource may break the chart if metadata does not exist in the target datasource',
+              )}
+              <div className="btn-container">
+                <Button
+                  className="proceed-btn"
+                  buttonStyle="primary"
+                  onClick={handleChangeConfirm}
+                >
+                  Proceed
+                </Button>
+                <Button onClick={handlerCancelConfirm}>Cancel</Button>
+              </div>
             </div>
-          </>
+          </ConfirmModalStyled>
         )}
       </>
     </StyledModal>
