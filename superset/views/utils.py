@@ -275,14 +275,12 @@ def get_time_range_endpoints(
 
     
     if (slc or slice_id):
-        print('CHECK')
         try:
             _, datasource_type = get_datasource_info(None, None, form_data)
         except SupersetException:
             return None
 
         if datasource_type == "table":
-            print('TABLE')
             if not slc:
                 slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
 
