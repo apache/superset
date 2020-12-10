@@ -35,6 +35,7 @@ class ImportDatasetsCommand(ImportModelsCommand):
 
     dao = DatasetDAO
     model_name = "dataset"
+    prefix = "datasets/"
     schemas: Dict[str, Schema] = {
         "databases/": ImportV1DatabaseSchema(),
         "datasets/": ImportV1DatasetSchema(),
@@ -42,7 +43,9 @@ class ImportDatasetsCommand(ImportModelsCommand):
     import_error = DatasetImportError
 
     @staticmethod
-    def _import(session: Session, configs: Dict[str, Any]) -> None:
+    def _import(
+        session: Session, configs: Dict[str, Any], overwrite: bool = False
+    ) -> None:
         # discover databases associated with datasets
         database_uuids: Set[str] = set()
         for file_name, config in configs.items():
@@ -63,4 +66,4 @@ class ImportDatasetsCommand(ImportModelsCommand):
                 and config["database_uuid"] in database_ids
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
-                import_dataset(session, config, overwrite=True)
+                import_dataset(session, config, overwrite=overwrite)
