@@ -49,7 +49,7 @@ PVM_MAP = {
     Pvm("SliceModelView", "can_download",): (Pvm("Chart", "can_read"),),
     Pvm("SliceModelView", "muldelete",): (Pvm("Chart", "can_write"),),
     Pvm("SliceModelView", "can_mulexport",): (Pvm("Chart", "can_read"),),
-    Pvm("SliceModelView", "can_favorite_status",): (Pvm("Chart", "can_write"),),
+    Pvm("SliceModelView", "can_favorite_status",): (Pvm("Chart", "can_read"),),
     Pvm("SliceModelView", "can_cache_screenshot",): (Pvm("Chart", "can_read"),),
     Pvm("SliceModelView", "can_screenshot",): (Pvm("Chart", "can_read"),),
     Pvm("SliceAsync", "can_list",): (Pvm("Chart", "can_read"),),
