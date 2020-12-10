@@ -318,8 +318,10 @@ interface ImportResourceState {
   passwordsNeeded: string[];
 }
 
+type ImportResourceName = 'chart' | 'dashboard' | 'database' | 'dataset';
+
 export function useImportResource(
-  resourceName: 'chart' | 'dashboard' | 'database' | 'dataset',
+  resourceName: ImportResourceName,
   resourceLabel: string, // resourceLabel for translations
   handleErrorMsg: (errorMsg: string) => void,
 ) {
