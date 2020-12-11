@@ -18,20 +18,14 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Col, Collapse, Row, Well } from 'react-bootstrap';
-import { t, styled, supersetTheme } from '@superset-ui/core';
-import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
+import { t, styled } from '@superset-ui/core';
 
-import Select from 'src/components/Select';
 import { Dropdown, Menu } from 'src/common/components';
 import { Tooltip } from 'src/common/components/Tooltip';
 import Icon from 'src/components/Icon';
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import DatasourceModal from 'src/datasource/DatasourceModal';
-import Label from 'src/components/Label';
 import { postForm } from 'src/explore/exploreUtils';
-
-import ControlHeader from '../ControlHeader';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -71,7 +65,7 @@ const Styles = styled.div`
 
   svg.datasource-modal-trigger {
     color: ${({ theme }) => theme.colors.primary.base};
-    vertical-align: middle;
+    vertical-align: ${({ theme }) => theme.gridUnit + 2}px;
     cursor: pointer;
   }
 
@@ -79,30 +73,19 @@ const Styles = styled.div`
     display: flex;
   }
   .title-select {
-    width: ${({ theme }) => theme.gridUnit * 50}px;
+    width: ${({ theme }) => theme.gridUnit * 43}px;
     display: inline-block;
-    .Select__control {
-      background-color: #f0f0f0;
-    }
+    background-color: #f0f0f0;
+    padding: ${({ theme }) => theme.gridUnit * 2}px;
+    border-radius: 3px;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
   }
   .dataset-svg {
-    vertical-align: -9px;
+    vertical-align: ${({ theme }) => theme.gridUnit + 2}px;
     margin-right: 10px;
-  }
-  .data-container {
-  }
-  .datasource-modal-trigger.ant-dropdown-trigger {
-  }
-`;
-
-/**
- * <Col> used in column details.
- */
-const ColumnsCol = styled(Col)`
-  overflow: auto; /* for very very long columns names */
-  white-space: nowrap; /* make sure tooltip trigger is on the same line as the metric */
-  .and-more {
-    padding-left: 38px;
   }
 `;
 

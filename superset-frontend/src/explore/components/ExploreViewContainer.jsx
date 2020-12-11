@@ -81,7 +81,7 @@ const Styles = styled.div`
     margin-bottom: 20px;
     .action-button {
       position: absolute;
-      top: ${({ theme }) => theme.gridUnit * 0}px;
+      top: ${({ theme }) => theme.gridUnit * -3}px;
       right: 10px;
     }
     .horizontal-text {
@@ -106,7 +106,7 @@ const Styles = styled.div`
   .data-tab {
     width: 280px;
   }
-  .callpase-icon {
+  .callpase-icon > svg {
     color: ${({ theme }) => theme.colors.primary.base};
   }
 `;
@@ -393,7 +393,11 @@ class ExploreViewContainer extends React.Component {
               className="action-button"
               onClick={this.handleCollapse}
             >
-              <Icon name="expand" className="collapse-icon" />
+              <Icon
+                name="expand"
+                color={supersetTheme.colors.primary.base}
+                className="collapse-icon"
+              />
             </span>
           </div>
           <DataSourceMetrics
@@ -410,9 +414,13 @@ class ExploreViewContainer extends React.Component {
               className="action-button"
               onClick={this.handleCollapse}
             >
-              <Icon name="collapse" className="collapse-icon" />
+              <Icon
+                name="collapse"
+                color={supersetTheme.colors.primary.base}
+                className="collapse-icon"
+              />
             </span>
-            <span className="vertical-text">Datasource</span>
+            <Icon name="dataset-physical" />
           </div>
         ) : null}
         <div
