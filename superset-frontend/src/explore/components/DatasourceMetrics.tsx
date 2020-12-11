@@ -16,15 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { styled, t } from '@superset-ui/core';
+import React, { useEffect, useState } from 'react';
+import { styled, t, QueryFormData } from '@superset-ui/core';
 import { Collapse } from 'src/common/components';
-import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
+import {
+  ColumnOption,
+  MetricOption,
+  ControlType,
+} from '@superset-ui/chart-controls';
 import Control from './Control';
 
 type DatasourceControl = {
   validationErrors: any;
-  mapStateToProps: () => void;
+  mapStateToProps: QueryFormData;
+  type: ControlType;
+  label: string;
 };
 
 interface Props {
@@ -76,28 +82,31 @@ const DataSourceMetrics = ({
     columns: datasource.columns,
     metrics: datasource.metrics,
   });
-  const search = (e: string) => {
+  const search = ({ target: { value } }: { target: { value: string } }) => {
     const columns = datasource.columns.filter(
-      obj => obj.column_name.indexOf(e.target.value) !== -1,
+      obj => obj.column_name.indexOf(value) !== -1,
     );
     const metrics = lists.metrics.filter(
-      objs => objs.metric_name.indexOf(e.target.value) !== -1,
+      objs => objs.metric_name.indexOf(value) !== -1,
     );
-    if (e.target.value === '') {
+    if (value === '') {
       setColList({ columns: datasource.columns, metrics: datasource.metrics });
     } else setColList({ columns, metrics });
   };
-
+  useEffect(() => {
+    setColList({
+      columns: datasource.columns,
+      metrics: datasource.metrics,
+    });
+  }, [datasource]);
   return (
     <DatasourceContainer>
       <Control
+        {...datasourceControl}
         name="datasource"
-        // @ts-ignore
         validationErrors={datasourceControl.validationErrors}
         actions={actions}
-        // @ts-ignore
         formData={datasourceControl.mapStateToProps}
-        {...datasourceControl}
       />
       <input
         type="text"
