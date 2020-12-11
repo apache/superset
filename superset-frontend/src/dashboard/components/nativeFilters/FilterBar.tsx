@@ -23,7 +23,7 @@ import {
   t,
   ExtraFormData,
 } from '@superset-ui/core';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import cx from 'classnames';
 import { Form } from 'src/common/components';
@@ -37,7 +37,8 @@ import {
   useFilterConfiguration,
   useSetExtraFormData,
 } from './state';
-import { Filter } from './types';
+import { Filter, CascadeFilter } from './types';
+import { buildCascadeFiltersTree, mapParentFiltersToChildren } from './utils';
 import { getChartDataRequest } from '../../../chart/chartAction';
 import { areObjectsEqual } from '../../../reduxUtils';
 import CascadePopover from './CascadePopover';
@@ -278,10 +279,6 @@ export const FilterControl: React.FC<FilterProps> = ({
   );
 };
 
-export interface CascadeFilter extends Filter {
-  cascadeChildren: CascadeFilter[];
-}
-
 interface CascadeFilterControlProps {
   filter: CascadeFilter;
   onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
@@ -331,39 +328,29 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     }
   }, [filterConfigs]);
 
-  const cascadeFilters = useMemo((): CascadeFilter[] => {
-    const getFilterValue = (filterId: string): string[] | null => {
-      const filters = filterData[filterId]?.append_form_data?.filters;
+  const getFilterValue = useCallback(
+    (filter: Filter): string[] | null => {
+      const filters = filterData[filter.id]?.append_form_data?.filters;
       if (filters?.length) {
         return filters[0].val;
       }
       return null;
-    };
+    },
+    [filterData],
+  );
 
-    const cascadeChildren: { [id: string]: Filter[] } = {};
-    filterConfigs.forEach(filter => {
-      const [parentId] = filter.cascadeParentIds || [];
-      if (parentId) {
-        if (!cascadeChildren[parentId]) {
-          cascadeChildren[parentId] = [];
-        }
-        cascadeChildren[parentId].push(filter);
-      }
-    });
+  const cascadeChildren = useMemo(
+    () => mapParentFiltersToChildren(filterConfigs),
+    [filterConfigs],
+  );
 
-    const getCascadeFilter = (filter: Filter): CascadeFilter => {
-      const children = cascadeChildren[filter.id] || [];
-      return {
-        ...filter,
-        cascadeChildren: children.map(getCascadeFilter),
-        currentValue: getFilterValue(filter.id),
-      };
-    };
-
-    return filterConfigs
-      .filter(filter => !filter.cascadeParentIds?.length)
-      .map(getCascadeFilter);
-  }, [filterConfigs, filterData]);
+  const cascadeFilters = useMemo(() => {
+    const filtersWithValue = filterConfigs.map(filter => ({
+      ...filter,
+      currentValue: getFilterValue(filter),
+    }));
+    return buildCascadeFiltersTree(filtersWithValue);
+  }, [filterConfigs, getFilterValue]);
 
   const handleExtraFormDataChange = (
     filter: Filter,
@@ -374,8 +361,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       [filter.id]: extraFormData,
     }));
 
-    const children =
-      cascadeFilters.find(({ id }) => id === filter.id)?.cascadeChildren || [];
+    const children = cascadeChildren[filter.id] || [];
+    // force instant updating for parent filters
     if (filter.isInstant || children.length > 0) {
       setExtraFormData(filter.id, extraFormData);
     }

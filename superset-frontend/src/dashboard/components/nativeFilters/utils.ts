@@ -24,6 +24,8 @@ import {
   Scope,
   Charts,
   NativeFiltersState,
+  Filter,
+  CascadeFilter,
 } from './types';
 import {
   CHART_TYPE,
@@ -145,4 +147,36 @@ export function getExtraFormData(
     extraFormData = mergeExtraFormData(extraFormData, newExtra);
   });
   return extraFormData;
+}
+
+export function mapParentFiltersToChildren(
+  filters: Filter[],
+): { [id: string]: Filter[] } {
+  const cascadeChildren = {};
+  filters.forEach(filter => {
+    const [parentId] = filter.cascadeParentIds || [];
+    if (parentId) {
+      if (!cascadeChildren[parentId]) {
+        cascadeChildren[parentId] = [];
+      }
+      cascadeChildren[parentId].push(filter);
+    }
+  });
+  return cascadeChildren;
+}
+
+export function buildCascadeFiltersTree(filters: Filter[]): CascadeFilter[] {
+  const cascadeChildren = mapParentFiltersToChildren(filters);
+
+  const getCascadeFilter = (filter: Filter): CascadeFilter => {
+    const children = cascadeChildren[filter.id] || [];
+    return {
+      ...filter,
+      cascadeChildren: children.map(getCascadeFilter),
+    };
+  };
+
+  return filters
+    .filter(filter => !filter.cascadeParentIds?.length)
+    .map(getCascadeFilter);
 }

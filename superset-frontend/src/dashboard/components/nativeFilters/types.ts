@@ -91,6 +91,10 @@ export interface Filter {
   targets: [Target];
 }
 
+export interface CascadeFilter extends Filter {
+  cascadeChildren: CascadeFilter[];
+}
+
 export type FilterConfiguration = Filter[];
 
 export type SelectedValues = string[] | null;

@@ -261,7 +261,31 @@ export function FilterConfigModal({
 
   const validateForm = useCallback(async () => {
     try {
-      return (await form.validateFields()) as NativeFiltersForm;
+      const formValues = (await form.validateFields()) as NativeFiltersForm;
+
+      const validateCycles = (filterId: string, trace: string[] = []) => {
+        if (trace.includes(filterId)) {
+          const fieldError = {
+            name: ['filters', filterId, 'parentFilter'],
+            errors: ['Cannot create cyclic hierarchy'],
+          };
+          form.setFields([fieldError]);
+          // eslint-disable-next-line no-throw-literal
+          throw { errorFields: [fieldError] };
+        }
+        const parentId = formValues.filters[filterId]
+          ? formValues.filters[filterId].parentFilter?.value
+          : filterConfigMap[filterId]?.cascadeParentIds?.[0];
+        if (parentId) {
+          validateCycles(parentId, [...trace, filterId]);
+        }
+      };
+
+      filterIds
+        .filter(id => !removedFilters[id])
+        .forEach(filterId => validateCycles(filterId));
+
+      return formValues;
     } catch (error) {
       console.warn('Filter Configuration Failed:', error);
 
@@ -282,7 +306,7 @@ export function FilterConfigModal({
       }
       return null;
     }
-  }, [form, currentFilterId]);
+  }, [form, currentFilterId, filterConfigMap, filterIds, removedFilters]);
 
   const onOk = useCallback(async () => {
     const values: NativeFiltersForm | null = await validateForm();

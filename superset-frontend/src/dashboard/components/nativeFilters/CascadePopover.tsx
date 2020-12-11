@@ -21,12 +21,8 @@ import { ExtraFormData, styled, t } from '@superset-ui/core';
 import Popover from 'src/common/components/Popover';
 import Icon from 'src/components/Icon';
 import { Pill } from 'src/dashboard/components/FiltersBadge/Styles';
-import {
-  CascadeFilterControl,
-  CascadeFilter,
-  FilterControl,
-} from './FilterBar';
-import { Filter } from './types';
+import { CascadeFilterControl, FilterControl } from './FilterBar';
+import { Filter, CascadeFilter } from './types';
 
 interface CascadePopoverProps {
   filter: CascadeFilter;
