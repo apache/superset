@@ -43,7 +43,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
     not_found = DashboardNotFoundError
 
     @staticmethod
-    def export(model: Dashboard) -> Iterator[Tuple[str, str]]:
+    def _export(model: Dashboard) -> Iterator[Tuple[str, str]]:
         dashboard_slug = secure_filename(model.dashboard_title)
         file_name = f"dashboards/{dashboard_slug}.yaml"
 

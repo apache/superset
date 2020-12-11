@@ -30,7 +30,7 @@ import {
   addSuccessToast as addSuccessToastAction,
   addWarningToast as addWarningToastAction,
 } from '../../messageToasts/actions/index';
-import getClientErrorObject from '../../utils/getClientErrorObject';
+import { getClientErrorObject } from '../../utils/getClientErrorObject';
 import COMMON_ERR_MESSAGES from '../../utils/errorMessages';
 
 export const RESET_STATE = 'RESET_STATE';

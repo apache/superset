@@ -90,6 +90,14 @@ class ChartBulkDeleteFailedError(DeleteFailedError):
     message = _("Charts could not be deleted.")
 
 
+class ChartDataQueryFailedError(CommandException):
+    pass
+
+
+class ChartDataCacheLoadError(CommandException):
+    pass
+
+
 class ChartBulkDeleteFailedReportsExistError(ChartBulkDeleteFailedError):
     message = _("There are associated alerts or reports")
 

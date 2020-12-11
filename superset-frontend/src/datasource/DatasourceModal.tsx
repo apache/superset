@@ -25,7 +25,7 @@ import Modal from 'src/common/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
-import getClientErrorObject from 'src/utils/getClientErrorObject';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
