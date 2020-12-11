@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ErrorTypeEnum } from 'src/components/ErrorMessage/types';
-import getClientErrorObject from 'src/utils/getClientErrorObject';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 describe('getClientErrorObject()', () => {
   it('Returns a Promise', () => {

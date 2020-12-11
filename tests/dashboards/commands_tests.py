@@ -339,7 +339,7 @@ class TestImportDashboardsCommand(SupersetTestCase):
             "charts/imported_chart.yaml": yaml.safe_dump(chart_config),
             "dashboards/imported_dashboard.yaml": yaml.safe_dump(dashboard_config),
         }
-        command = v1.ImportDashboardsCommand(contents)
+        command = v1.ImportDashboardsCommand(contents, overwrite=True)
         command.run()
         command.run()
 

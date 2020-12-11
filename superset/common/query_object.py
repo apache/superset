@@ -277,7 +277,8 @@ class QueryObject:
         :param df: DataFrame returned from database model.
         :return: new DataFrame to which all post processing operations have been
                  applied
-        :raises ChartDataValidationError: If the post processing operation in incorrect
+        :raises QueryObjectValidationError: If the post processing operation
+                 is incorrect
         """
         for post_process in self.post_processing:
             operation = post_process.get("operation")

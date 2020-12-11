@@ -91,6 +91,22 @@ class TestDatabaseApi(SupersetTestCase):
             db.session.delete(database)
             db.session.commit()
 
+    def create_database_import(self):
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(database_config).encode())
+            with bundle.open(
+                "database_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+        buf.seek(0)
+        return buf
+
     def test_get_items(self):
         """
         Database API: Test get items
@@ -881,20 +897,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         uri = "api/v1/database/import/"
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-
+        buf = self.create_database_import()
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -914,6 +917,59 @@ class TestDatabaseApi(SupersetTestCase):
         assert dataset.table_name == "imported_dataset"
         assert str(dataset.uuid) == dataset_config["uuid"]
 
+        db.session.delete(dataset)
+        db.session.delete(database)
+        db.session.commit()
+
+    def test_import_database_overwrite(self):
+        """
+        Database API: Test import existing database
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+
+        buf = self.create_database_import()
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        # import again without overwrite flag
+        buf = self.create_database_import()
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "message": {
+                "databases/imported_database.yaml": "Database already exists and `overwrite=true` was not passed"
+            }
+        }
+
+        # import with overwrite flag
+        buf = self.create_database_import()
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+            "overwrite": "true",
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        # clean up
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        dataset = database.tables[0]
         db.session.delete(dataset)
         db.session.delete(database)
         db.session.commit()

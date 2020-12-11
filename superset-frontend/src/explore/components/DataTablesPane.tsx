@@ -23,7 +23,7 @@ import Tabs from 'src/common/components/Tabs';
 import Loading from 'src/components/Loading';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { getChartDataRequest } from 'src/chart/chartAction';
-import getClientErrorObject from 'src/utils/getClientErrorObject';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import {
   CopyToClipboardButton,
   FilterInput,

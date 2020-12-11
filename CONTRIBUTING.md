@@ -623,6 +623,11 @@ cd superset-frontend
 npm run test
 ```
 
+To run a single test file:
+```bash
+npm run test -- path/to/file.js
+```
+
 ### Integration Testing
 
 We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be run by `tox -e cypress`. To open Cypress and explore tests first setup and run test server:

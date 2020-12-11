@@ -43,7 +43,7 @@ class ExportChartsCommand(ExportModelsCommand):
     not_found = ChartNotFoundError
 
     @staticmethod
-    def export(model: Slice) -> Iterator[Tuple[str, str]]:
+    def _export(model: Slice) -> Iterator[Tuple[str, str]]:
         chart_slug = secure_filename(model.slice_name)
         file_name = f"charts/{chart_slug}.yaml"
 

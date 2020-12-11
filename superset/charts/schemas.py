@@ -1105,6 +1105,18 @@ class ChartDataResponseSchema(Schema):
     )
 
 
+class ChartDataAsyncResponseSchema(Schema):
+    channel_id = fields.String(
+        description="Unique session async channel ID", allow_none=False,
+    )
+    job_id = fields.String(description="Unique async job ID", allow_none=False,)
+    user_id = fields.String(description="Requesting user ID", allow_none=True,)
+    status = fields.String(description="Status value for async job", allow_none=False,)
+    result_url = fields.String(
+        description="Unique result URL for fetching async query data", allow_none=False,
+    )
+
+
 class ChartFavStarResponseResult(Schema):
     id = fields.Integer(description="The Chart id")
     value = fields.Boolean(description="The FaveStar value")
@@ -1130,6 +1142,7 @@ class ImportV1ChartSchema(Schema):
 CHART_SCHEMAS = (
     ChartDataQueryContextSchema,
     ChartDataResponseSchema,
+    ChartDataAsyncResponseSchema,
     # TODO: These should optimally be included in the QueryContext schema as an `anyOf`
     #  in ChartDataPostPricessingOperation.options, but since `anyOf` is not
     #  by Marshmallow<3, this is not currently possible.
