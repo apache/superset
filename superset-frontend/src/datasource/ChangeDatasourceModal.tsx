@@ -27,7 +27,7 @@ import { Alert, FormControl, FormControlProps } from 'react-bootstrap';
 import { SupersetClient, t } from '@superset-ui/core';
 import TableView from 'src/components/TableView';
 import Modal from 'src/common/components/Modal';
-import getClientErrorObject from '../utils/getClientErrorObject';
+import { getClientErrorObject } from '../utils/getClientErrorObject';
 import Loading from '../components/Loading';
 import withToasts from '../messageToasts/enhancers/withToasts';
 

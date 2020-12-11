@@ -31,21 +31,21 @@ from sqlalchemy import and_
 from sqlalchemy.sql import func
 
 from tests.test_app import app
-from superset.connectors.sqla.models import SqlaTable
-from superset.utils.core import AnnotationType, get_example_database
-from tests.fixtures.energy_dashboard import load_energy_table_with_slice
-from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
+from superset.charts.commands.data import ChartDataCommand
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.extensions import db, security_manager
+from superset.connectors.sqla.models import SqlaTable
+from superset.extensions import async_query_manager, cache_manager, db, security_manager
 from superset.models.annotations import AnnotationLayer
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils import core as utils
+from superset.utils.core import AnnotationType, get_example_database
 
 from tests.base_api_tests import ApiOwnersTestCaseMixin
-from tests.base_tests import SupersetTestCase
+from tests.base_tests import SupersetTestCase, post_assert_metric, test_client
+
 from tests.fixtures.importexport import (
     chart_config,
     chart_metadata_config,
@@ -53,6 +53,7 @@ from tests.fixtures.importexport import (
     dataset_config,
     dataset_metadata_config,
 )
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.query_context import get_query_context, ANNOTATION_LAYERS
 from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 from tests.annotation_layers.fixtures import create_annotation_layers
@@ -98,6 +99,12 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.add(slice)
         db.session.commit()
         return slice
+
+    @pytest.fixture(autouse=True)
+    def clear_data_cache(self):
+        with app.app_context():
+            cache_manager.data_cache.clear()
+            yield
 
     @pytest.fixture()
     def create_charts(self):
@@ -1286,6 +1293,155 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         result = response_payload["result"][0]["query"]
         if get_example_database().backend != "presto":
             assert "('boy' = 'boy')" in result
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        GLOBAL_ASYNC_QUERIES=True,
+    )
+    def test_chart_data_async(self):
+        """
+        Chart data API: Test chart data query (async)
+        """
+        async_query_manager.init_app(app)
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 202)
+        data = json.loads(rv.data.decode("utf-8"))
+        keys = list(data.keys())
+        self.assertCountEqual(
+            keys, ["channel_id", "job_id", "user_id", "status", "errors", "result_url"]
+        )
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        GLOBAL_ASYNC_QUERIES=True,
+    )
+    def test_chart_data_async_results_type(self):
+        """
+        Chart data API: Test chart data query non-JSON format (async)
+        """
+        async_query_manager.init_app(app)
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        request_payload["result_type"] = "results"
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 200)
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        GLOBAL_ASYNC_QUERIES=True,
+    )
+    def test_chart_data_async_invalid_token(self):
+        """
+        Chart data API: Test chart data query (async)
+        """
+        async_query_manager.init_app(app)
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        request_payload = get_query_context(table.name, table.id, table.type)
+        test_client.set_cookie(
+            "localhost", app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], "foo"
+        )
+        rv = post_assert_metric(test_client, CHART_DATA_URI, request_payload, "data")
+        self.assertEqual(rv.status_code, 401)
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        GLOBAL_ASYNC_QUERIES=True,
+    )
+    @mock.patch.object(ChartDataCommand, "load_query_context_from_cache")
+    def test_chart_data_cache(self, load_qc_mock):
+        """
+        Chart data cache API: Test chart data async cache request
+        """
+        async_query_manager.init_app(app)
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        query_context = get_query_context(table.name, table.id, table.type)
+        load_qc_mock.return_value = query_context
+        orig_run = ChartDataCommand.run
+
+        def mock_run(self, **kwargs):
+            assert kwargs["force_cached"] == True
+            # override force_cached to get result from DB
+            return orig_run(self, force_cached=False)
+
+        with mock.patch.object(ChartDataCommand, "run", new=mock_run):
+            rv = self.get_assert_metric(
+                f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
+            )
+            data = json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(data["result"][0]["rowcount"], 45)
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        GLOBAL_ASYNC_QUERIES=True,
+    )
+    @mock.patch.object(ChartDataCommand, "load_query_context_from_cache")
+    def test_chart_data_cache_run_failed(self, load_qc_mock):
+        """
+        Chart data cache API: Test chart data async cache request with run failure
+        """
+        async_query_manager.init_app(app)
+        self.login(username="admin")
+        table = self.get_table_by_name("birth_names")
+        query_context = get_query_context(table.name, table.id, table.type)
+        load_qc_mock.return_value = query_context
+        rv = self.get_assert_metric(
+            f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
+        )
+        data = json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(rv.status_code, 422)
+        self.assertEqual(data["message"], "Error loading data from cache")
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        GLOBAL_ASYNC_QUERIES=True,
+    )
+    @mock.patch.object(ChartDataCommand, "load_query_context_from_cache")
+    def test_chart_data_cache_no_login(self, load_qc_mock):
+        """
+        Chart data cache API: Test chart data async cache request (no login)
+        """
+        async_query_manager.init_app(app)
+        table = self.get_table_by_name("birth_names")
+        query_context = get_query_context(table.name, table.id, table.type)
+        load_qc_mock.return_value = query_context
+        orig_run = ChartDataCommand.run
+
+        def mock_run(self, **kwargs):
+            assert kwargs["force_cached"] == True
+            # override force_cached to get result from DB
+            return orig_run(self, force_cached=False)
+
+        with mock.patch.object(ChartDataCommand, "run", new=mock_run):
+            rv = self.get_assert_metric(
+                f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
+            )
+
+        self.assertEqual(rv.status_code, 401)
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        GLOBAL_ASYNC_QUERIES=True,
+    )
+    def test_chart_data_cache_key_error(self):
+        """
+        Chart data cache API: Test chart data async cache request with invalid cache key
+        """
+        async_query_manager.init_app(app)
+        self.login(username="admin")
+        rv = self.get_assert_metric(
+            f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
+        )
+
+        self.assertEqual(rv.status_code, 404)
 
     def test_export_chart(self):
         """

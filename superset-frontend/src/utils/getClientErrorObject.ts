@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClientResponse, t } from '@superset-ui/core';
+import { JsonObject, SupersetClientResponse, t } from '@superset-ui/core';
 import {
   SupersetError,
   ErrorTypeEnum,
@@ -36,7 +36,33 @@ export type ClientErrorObject = {
   stacktrace?: string;
 } & Partial<SupersetClientResponse>;
 
-export default function getClientErrorObject(
+export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
+  let error = { ...responseObject };
+  // Backwards compatibility for old error renderers with the new error object
+  if (error.errors && error.errors.length > 0) {
+    error.error = error.description = error.errors[0].message;
+    error.link = error.errors[0]?.extra?.link;
+  }
+
+  if (error.stack) {
+    error = {
+      ...error,
+      error:
+        t('Unexpected error: ') +
+        (error.description || t('(no description, click to see stack trace)')),
+      stacktrace: error.stack,
+    };
+  } else if (error.responseText && error.responseText.indexOf('CSRF') >= 0) {
+    error = {
+      ...error,
+      error: t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT),
+    };
+  }
+
+  return { ...error, error: error.error }; // explicit ClientErrorObject
+}
+
+export function getClientErrorObject(
   response: SupersetClientResponse | (Response & { timeout: number }) | string,
 ): Promise<ClientErrorObject> {
   // takes a SupersetClientResponse as input, attempts to read response as Json if possible,
@@ -54,33 +80,8 @@ export default function getClientErrorObject(
           .clone()
           .json()
           .then(errorJson => {
-            let error = { ...responseObject, ...errorJson };
-
-            // Backwards compatibility for old error renderers with the new error object
-            if (error.errors && error.errors.length > 0) {
-              error.error = error.description = error.errors[0].message;
-              error.link = error.errors[0]?.extra?.link;
-            }
-
-            if (error.stack) {
-              error = {
-                ...error,
-                error:
-                  t('Unexpected error: ') +
-                  (error.description ||
-                    t('(no description, click to see stack trace)')),
-                stacktrace: error.stack,
-              };
-            } else if (
-              error.responseText &&
-              error.responseText.indexOf('CSRF') >= 0
-            ) {
-              error = {
-                ...error,
-                error: t(COMMON_ERR_MESSAGES.SESSION_TIMED_OUT),
-              };
-            }
-            resolve(error);
+            const error = { ...responseObject, ...errorJson };
+            resolve(parseErrorJson(error));
           })
           .catch(() => {
             // fall back to reading as text
