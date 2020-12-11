@@ -22,6 +22,7 @@ import configureStore from 'redux-mock-store';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { ReactWrapper } from 'enzyme';
 
+import { ImportResourceName } from 'src/views/CRUD/types';
 import ImportModelsModal, { StyledIcon } from 'src/components/ImportModal';
 import Modal from 'src/common/components/Modal';
 
@@ -29,8 +30,8 @@ const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const requiredProps = {
-  resourceName: 'model',
-  resourceLabel: 'model',
+  resourceName: 'database' as ImportResourceName,
+  resourceLabel: 'database',
   icon: <StyledIcon name="database" />,
   passwordsNeededMessage: 'Passwords are needed',
   addDangerToast: () => {},
@@ -61,8 +62,8 @@ describe('ImportModelsModal', () => {
     expect(wrapper.find(Modal)).toExist();
   });
 
-  it('renders "Import model" header', () => {
-    expect(wrapper.find('h4').text()).toEqual('Import model');
+  it('renders "Import database" header', () => {
+    expect(wrapper.find('h4').text()).toEqual('Import database');
   });
 
   it('renders a label and a file input field', () => {

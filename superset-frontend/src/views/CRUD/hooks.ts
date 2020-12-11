@@ -26,7 +26,7 @@ import { FilterValue } from 'src/components/ListView/types';
 import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { FavoriteStatus } from './types';
+import { FavoriteStatus, ImportResourceName } from './types';
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -313,22 +313,22 @@ export function useSingleViewResource<D extends object = any>(
   };
 }
 
-interface ImportResourceState<D extends object = any> {
+interface ImportResourceState {
   loading: boolean;
   passwordsNeeded: string[];
 }
 
-export function useImportResource<D extends object = any>(
-  resourceName: string,
+export function useImportResource(
+  resourceName: ImportResourceName,
   resourceLabel: string, // resourceLabel for translations
   handleErrorMsg: (errorMsg: string) => void,
 ) {
-  const [state, setState] = useState<ImportResourceState<D>>({
+  const [state, setState] = useState<ImportResourceState>({
     loading: false,
     passwordsNeeded: [],
   });
 
-  function updateState(update: Partial<ImportResourceState<D>>) {
+  function updateState(update: Partial<ImportResourceState>) {
     setState(currentState => ({ ...currentState, ...update }));
   }
 
