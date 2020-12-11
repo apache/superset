@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useCallback } from 'react';
 import { ExtraFormData } from '@superset-ui/core';
 import Popover from 'src/common/components/Popover';
 import Button from 'src/components/Button';
@@ -41,6 +41,28 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   onVisibleChange,
   onExtraFormDataChange,
 }) => {
+  const getActiveChildren = useCallback(
+    (filter: CascadeFilter): CascadeFilter[] | null => {
+      const children = filter.cascadeChildren || [];
+      const currentValue = filter.currentValue || [];
+
+      const activeChildren = children.flatMap(
+        childFilter => getActiveChildren(childFilter) || [],
+      );
+
+      if (activeChildren.length > 0) {
+        return activeChildren;
+      }
+
+      if (currentValue.length > 0) {
+        return [filter];
+      }
+
+      return null;
+    },
+    [filter],
+  );
+
   const title = <span>Select Parent Filters (ilosc poziomow) {filter.id}</span>;
 
   const content = (
@@ -51,6 +73,8 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
       onExtraFormDataChange={onExtraFormDataChange}
     />
   );
+
+  const activeFilters = getActiveChildren(filter) || [filter];
 
   return (
     <>
@@ -72,10 +96,14 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
           />
         </>
       )}
-      <FilterControl
-        filter={filter}
-        onExtraFormDataChange={onExtraFormDataChange}
-      />
+
+      {activeFilters.map(activeFilter => (
+        <FilterControl
+          key={activeFilter.id}
+          filter={activeFilter}
+          onExtraFormDataChange={onExtraFormDataChange}
+        />
+      ))}
     </>
   );
 };
