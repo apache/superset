@@ -38,6 +38,8 @@ logger = logging.getLogger(__name__)
 
 # keys stored as JSON are loaded and the prefix/suffix removed
 JSON_KEYS = {"position_json": "position", "json_metadata": "metadata"}
+DEFAULT_CHART_HEIGHT = 50
+DEFAULT_CHART_WIDTH = 4
 
 
 def suffix(length: int = 8) -> str:
@@ -52,18 +54,18 @@ def default_position(title: str, charts: List[Slice]) -> Dict[str, Any]:
     row_hash = f"ROW-N-{suffix()}"
     position = {
         "DASHBOARD_VERSION_KEY": "v2",
-        "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT",},
+        "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
         "GRID_ID": {
             "children": [row_hash],
             "id": "GRID_ID",
             "parents": ["ROOT_ID"],
             "type": "GRID",
         },
-        "HEADER_ID": {"id": "HEADER_ID", "meta": {"text": title,}, "type": "HEADER",},
+        "HEADER_ID": {"id": "HEADER_ID", "meta": {"text": title}, "type": "HEADER"},
         row_hash: {
             "children": chart_hashes,
             "id": row_hash,
-            "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT",},
+            "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"},
             "parents": ["ROOT_ID", "GRID_ID"],
             "type": "ROW",
         },
@@ -75,10 +77,10 @@ def default_position(title: str, charts: List[Slice]) -> Dict[str, Any]:
             "id": chart_hash,
             "meta": {
                 "chartId": chart.id,
-                "height": 50,
+                "height": DEFAULT_CHART_HEIGHT,
                 "sliceName": chart.slice_name,
                 "uuid": str(chart.uuid),
-                "width": 4,
+                "width": DEFAULT_CHART_WIDTH,
             },
             "parents": ["ROOT_ID", "GRID_ID", row_hash],
             "type": "CHART",
