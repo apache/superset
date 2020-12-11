@@ -38,7 +38,7 @@ export enum FeatureFlag {
 }
 
 export type FeatureFlagMap = {
-  [key in FeatureFlag]?: any;
+  [key in FeatureFlag]?: boolean;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
