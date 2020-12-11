@@ -158,8 +158,9 @@ const StyledCascadeChildrenList = styled.ul`
 `;
 
 const StyledFilterControlTitle = styled.h4`
-  font-size: ${({ theme }) => theme.typography.sizes.l};
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
+  margin: 0;
   text-transform: uppercase;
 `;
 
@@ -330,29 +331,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     }
   }, [filterConfigs]);
 
-  const handleExtraFormDataChange = (
-    filter: Filter,
-    extraFormData: ExtraFormData,
-  ) => {
-    setFilterData(prevFilterData => ({
-      ...prevFilterData,
-      [filter.id]: extraFormData,
-    }));
-
-    if (filter.isInstant) {
-      setExtraFormData(filter.id, extraFormData);
-    }
-  };
-
-  const handleApply = () => {
-    const filterIds = Object.keys(filterData);
-    filterIds.forEach(filterId => {
-      if (filterData[filterId]) {
-        setExtraFormData(filterId, filterData[filterId]);
-      }
-    });
-  };
-
   const cascadeFilters = useMemo((): CascadeFilter[] => {
     const getFilterValue = (filterId: string): string[] | null => {
       const filters = filterData[filterId]?.append_form_data?.filters;
@@ -386,6 +364,31 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       .filter(filter => !filter.cascadeParentIds?.length)
       .map(getCascadeFilter);
   }, [filterConfigs, filterData]);
+
+  const handleExtraFormDataChange = (
+    filter: Filter,
+    extraFormData: ExtraFormData,
+  ) => {
+    setFilterData(prevFilterData => ({
+      ...prevFilterData,
+      [filter.id]: extraFormData,
+    }));
+
+    const children =
+      cascadeFilters.find(({ id }) => id === filter.id)?.cascadeChildren || [];
+    if (filter.isInstant || children.length > 0) {
+      setExtraFormData(filter.id, extraFormData);
+    }
+  };
+
+  const handleApply = () => {
+    const filterIds = Object.keys(filterData);
+    filterIds.forEach(filterId => {
+      if (filterData[filterId]) {
+        setExtraFormData(filterId, filterData[filterId]);
+      }
+    });
+  };
 
   return (
     <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>

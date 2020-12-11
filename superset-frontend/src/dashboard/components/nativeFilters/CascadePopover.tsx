@@ -44,6 +44,10 @@ const StyledTitleBox = styled.div`
   margin: -5px -16px; // to override default antd padding
   padding: ${({ theme }) => theme.gridUnit * 2}px
     ${({ theme }) => theme.gridUnit * 4}px;
+
+  & > *:last-child {
+    cursor: pointer;
+  }
 `;
 
 const StyledTitle = styled.h4`
@@ -66,27 +70,35 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   onVisibleChange,
   onExtraFormDataChange,
 }) => {
-  const getActiveChildren = useCallback(
-    (filter: CascadeFilter): CascadeFilter[] | null => {
-      const children = filter.cascadeChildren || [];
-      const currentValue = filter.currentValue || [];
+  const getActiveChildren = useCallback((filter: CascadeFilter):
+    | CascadeFilter[]
+    | null => {
+    const children = filter.cascadeChildren || [];
+    const currentValue = filter.currentValue || [];
 
-      const activeChildren = children.flatMap(
-        childFilter => getActiveChildren(childFilter) || [],
-      );
+    const activeChildren = children.flatMap(
+      childFilter => getActiveChildren(childFilter) || [],
+    );
 
-      if (activeChildren.length > 0) {
-        return activeChildren;
-      }
+    if (activeChildren.length > 0) {
+      return activeChildren;
+    }
 
-      if (currentValue.length > 0) {
-        return [filter];
-      }
+    if (currentValue.length > 0) {
+      return [filter];
+    }
 
-      return null;
-    },
-    [filter],
-  );
+    return null;
+  }, []);
+
+  if (!filter.cascadeChildren?.length) {
+    return (
+      <FilterControl
+        filter={filter}
+        onExtraFormDataChange={onExtraFormDataChange}
+      />
+    );
+  }
 
   const countFilters = (filter: CascadeFilter): number => {
     let count = 1;
@@ -122,35 +134,35 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   const activeFilters = getActiveChildren(filter) || [filter];
 
   return (
-    <>
-      {activeFilters.map(activeFilter => (
-        <FilterControl
-          key={activeFilter.id}
-          filter={activeFilter}
-          onExtraFormDataChange={onExtraFormDataChange}
-          icon={
-            <>
-              {filter.cascadeChildren.length !== 0 && (
-                <Popover
-                  content={content}
-                  title={title}
-                  trigger="click"
-                  visible={visible}
-                  onVisibleChange={onVisibleChange}
-                  placement="rightBottom"
-                  id={filter.id}
-                  overlayStyle={{ minWidth: '400px' }}
-                >
+    <Popover
+      content={content}
+      title={title}
+      trigger="click"
+      visible={visible}
+      onVisibleChange={onVisibleChange}
+      placement="rightTop"
+      id={filter.id}
+      overlayStyle={{ minWidth: '400px' }}
+    >
+      <div>
+        {activeFilters.map(activeFilter => (
+          <FilterControl
+            key={activeFilter.id}
+            filter={activeFilter}
+            onExtraFormDataChange={onExtraFormDataChange}
+            icon={
+              <>
+                {filter.cascadeChildren.length !== 0 && (
                   <Pill onClick={() => onVisibleChange(true)}>
                     <Icon name="filter" /> {totalChildren}
                   </Pill>
-                </Popover>
-              )}
-            </>
-          }
-        />
-      ))}
-    </>
+                )}
+              </>
+            }
+          />
+        ))}
+      </div>
+    </Popover>
   );
 };
 
