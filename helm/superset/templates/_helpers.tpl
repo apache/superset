@@ -97,4 +97,15 @@ RESULTS_BACKEND = RedisCache(
       port=env('REDIS_PORT'),
       key_prefix='superset_results'
 )
+FEATURE_FLAGS = { 'ENABLE_TEMPLATE_PROCESSING': True }
+ENABLE_SCHEDULED_EMAIL_REPORTS = True
+EMAIL_NOTIFICATIONS = True
+
+SMTP_HOST = "email-smtp.eu-west-1.amazonaws.com"
+SMTP_STARTTLS = True
+SMTP_SSL = False
+SMTP_USER = "smtp_username"
+SMTP_PORT = 25
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
+SMTP_MAIL_FROM = "insights@komoot.com"
 {{- end }}

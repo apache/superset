@@ -27,8 +27,8 @@ additionalRequirements:
   - "psycopg2==2.8.5"
   - "redis==3.2.1"
   - "sqlalchemy-redshift==0.7.9"
-  - "databricks-dbapi[sqlalchemy]==0.3.0"
-
+  - "databricks-dbapi"
+  - "databricks-dbapi[sqlalchemy]"
 ## The name of the secret which we will use to generate a superset_config.py file
 ## Note: this secret must have the key superset_config.py in it and can include other files as well
 ##
@@ -47,7 +47,7 @@ configMountPath: "/app/pythonpath"
 
 image:
   repository: 766930725927.dkr.ecr.us-west-2.amazonaws.com/superset
-  tag: 8
+  tag: d7fd985091e8e33f1f3cda3c7004b65c7422a1be
   pullPolicy: IfNotPresent
 
 service:
