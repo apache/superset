@@ -43,12 +43,21 @@ import ListView, {
 } from 'src/components/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
-import ImportChartModal from 'src/chart/components/ImportModal/index';
+import ImportModelsModal, {
+  StyledIcon,
+} from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
+const PASSWORDS_NEEDED_MESSAGE = t(
+  'The passwords for the databases below are needed in order to ' +
+    'import them together with the charts. Please note that the ' +
+    '"Secure Extra" and "Certificate" sections of ' +
+    'the database configuration are not present in export files, and ' +
+    'should be added manually after the import if they are needed.',
+);
 
 const createFetchDatasets = (handleError: (err: Response) => void) => async (
   filterValue = '',
@@ -130,13 +139,13 @@ function ChartList(props: ChartListProps) {
   const [importingChart, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
 
-  function openChartImportModal() {
+  const openChartImportModal = () => {
     showImportModal(true);
-  }
+  };
 
-  function closeChartImportModal() {
+  const closeChartImportModal = () => {
     showImportModal(false);
-  }
+  };
 
   const handleChartImport = () => {
     showImportModal(false);
@@ -568,12 +577,16 @@ function ChartList(props: ChartListProps) {
         }}
       </ConfirmStatusChange>
 
-      <ImportChartModal
-        show={importingChart}
-        onHide={closeChartImportModal}
+      <ImportModelsModal
+        resourceName="chart"
+        resourceLabel={t('chart')}
+        icon={<StyledIcon name="nav-charts" />}
+        passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
-        onChartImport={handleChartImport}
+        onModelImport={handleChartImport}
+        show={importingChart}
+        onHide={closeChartImportModal}
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />

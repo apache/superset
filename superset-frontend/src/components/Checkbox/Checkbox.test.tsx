@@ -67,9 +67,9 @@ describe('Checkbox', () => {
 
   it('renders custom Checkbox styles without melting', () => {
     wrapper = mount(
-      <Checkbox onChange={() => true} checked={false} style={{ foo: 'foo' }} />,
+      <Checkbox onChange={() => true} checked={false} style={{ opacity: 1 }} />,
     );
     expect(wrapper.find('Checkbox')).toExist();
-    expect(wrapper.find('Checkbox')).toHaveStyle({ foo: 'foo' });
+    expect(wrapper.find('Checkbox')).toHaveStyle({ opacity: 1 });
   });
 });

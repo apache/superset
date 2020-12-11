@@ -22,25 +22,29 @@ import configureStore from 'redux-mock-store';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { ReactWrapper } from 'enzyme';
 
-import ImportDatasetModal from 'src/datasource/components/ImportModal';
+import ImportModelsModal, { StyledIcon } from 'src/components/ImportModal';
 import Modal from 'src/common/components/Modal';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const requiredProps = {
+  resourceName: 'model',
+  resourceLabel: 'model',
+  icon: <StyledIcon name="database" />,
+  passwordsNeededMessage: 'Passwords are needed',
   addDangerToast: () => {},
   addSuccessToast: () => {},
-  onDatasetImport: () => {},
+  onModelImport: () => {},
   show: true,
   onHide: () => {},
 };
 
-describe('ImportDatasetModal', () => {
+describe('ImportModelsModal', () => {
   let wrapper: ReactWrapper;
 
   beforeEach(() => {
-    wrapper = mount(<ImportDatasetModal {...requiredProps} />, {
+    wrapper = mount(<ImportModelsModal {...requiredProps} />, {
       context: { store },
     });
   });
@@ -50,15 +54,15 @@ describe('ImportDatasetModal', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(ImportDatasetModal)).toExist();
+    expect(wrapper.find(ImportModelsModal)).toExist();
   });
 
   it('renders a Modal', () => {
     expect(wrapper.find(Modal)).toExist();
   });
 
-  it('renders "Import Dataset" header', () => {
-    expect(wrapper.find('h4').text()).toEqual('Import Dataset');
+  it('renders "Import model" header', () => {
+    expect(wrapper.find('h4').text()).toEqual('Import model');
   });
 
   it('renders a label and a file input field', () => {
@@ -67,7 +71,7 @@ describe('ImportDatasetModal', () => {
   });
 
   it('should attach the label to the input field', () => {
-    const id = 'datasetFile';
+    const id = 'modelFile';
     expect(wrapper.find('label').prop('htmlFor')).toBe(id);
     expect(wrapper.find('input').prop('id')).toBe(id);
   });
@@ -83,7 +87,7 @@ describe('ImportDatasetModal', () => {
   });
 
   it('should render the import button enabled when a file is selected', () => {
-    const file = new File([new ArrayBuffer(1)], 'dataset_export.zip');
+    const file = new File([new ArrayBuffer(1)], 'model_export.zip');
     wrapper.find('input').simulate('change', { target: { files: [file] } });
 
     expect(wrapper.find('button[children="Import"]').prop('disabled')).toBe(
@@ -93,7 +97,7 @@ describe('ImportDatasetModal', () => {
 
   it('should render password fields when needed for import', () => {
     const wrapperWithPasswords = mount(
-      <ImportDatasetModal
+      <ImportModelsModal
         {...requiredProps}
         passwordFields={['databases/examples.yaml']}
       />,

@@ -28,7 +28,11 @@ import simplejson as json
 from flask import abort, flash, g, Markup, redirect, render_template, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_appbuilder.security.decorators import has_access, has_access_api
+from flask_appbuilder.security.decorators import (
+    has_access,
+    has_access_api,
+    permission_name,
+)
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __, lazy_gettext as _
 from jinja2.exceptions import TemplateError
@@ -66,6 +70,7 @@ from superset.dashboards.dao import DashboardDAO
 from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.exceptions import (
+    CacheLoadError,
     CertificateException,
     DatabaseNotFound,
     SerializationError,
@@ -73,6 +78,7 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetTimeoutException,
 )
+from superset.extensions import async_query_manager, cache_manager
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database, FavStar, Log
 from superset.models.dashboard import Dashboard
@@ -87,8 +93,10 @@ from superset.security.analytics_db_safety import (
 )
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
+from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
+from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
 from superset.utils.dates import now_as_float
 from superset.views.base import (
@@ -113,6 +121,7 @@ from superset.views.utils import (
     apply_display_max_row_limit,
     bootstrap_user_data,
     check_datasource_perms,
+    check_explore_cache_perms,
     check_slice_perms,
     get_cta_schema_name,
     get_dashboard_extra_filters,
@@ -484,6 +493,43 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         payload = viz_obj.get_payload()
         return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
 
+    @event_logger.log_this
+    @api
+    @has_access_api
+    @handle_api_exception
+    @permission_name("explore_json")
+    @expose("/explore_json/data/<cache_key>", methods=["GET"])
+    @etag_cache(check_perms=check_explore_cache_perms)
+    def explore_json_data(self, cache_key: str) -> FlaskResponse:
+        """Serves cached result data for async explore_json calls
+
+        `self.generate_json` receives this input and returns different
+        payloads based on the request args in the first block
+
+        TODO: form_data should not be loaded twice from cache
+          (also loaded in `check_explore_cache_perms`)
+        """
+        try:
+            cached = cache_manager.cache.get(cache_key)
+            if not cached:
+                raise CacheLoadError("Cached data not found")
+
+            form_data = cached.get("form_data")
+            response_type = cached.get("response_type")
+
+            datasource_id, datasource_type = get_datasource_info(None, None, form_data)
+
+            viz_obj = get_viz(
+                datasource_type=cast(str, datasource_type),
+                datasource_id=datasource_id,
+                form_data=form_data,
+                force_cached=True,
+            )
+
+            return self.generate_json(viz_obj, response_type)
+        except SupersetException as ex:
+            return json_error_response(utils.error_msg_from_exception(ex), 400)
+
     EXPLORE_JSON_METHODS = ["POST"]
     if not is_feature_enabled("ENABLE_EXPLORE_JSON_CSRF_PROTECTION"):
         EXPLORE_JSON_METHODS.append("GET")
@@ -528,11 +574,31 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 datasource_id, datasource_type, form_data
             )
 
+            force = request.args.get("force") == "true"
+
+            # TODO: support CSV, SQL query and other non-JSON types
+            if (
+                is_feature_enabled("GLOBAL_ASYNC_QUERIES")
+                and response_type == utils.ChartDataResultFormat.JSON
+            ):
+                try:
+                    async_channel_id = async_query_manager.parse_jwt_from_request(
+                        request
+                    )["channel"]
+                    job_metadata = async_query_manager.init_job(async_channel_id)
+                    load_explore_json_into_cache.delay(
+                        job_metadata, form_data, response_type, force
+                    )
+                except AsyncQueryTokenException:
+                    return json_error_response("Not authorized", 401)
+
+                return json_success(json.dumps(job_metadata), status=202)
+
             viz_obj = get_viz(
                 datasource_type=cast(str, datasource_type),
                 datasource_id=datasource_id,
                 form_data=form_data,
-                force=request.args.get("force") == "true",
+                force=force,
             )
 
             return self.generate_json(viz_obj, response_type)
