@@ -21,7 +21,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { styled, logging, t } from '@superset-ui/core';
+import { styled, logging, t, supersetTheme } from '@superset-ui/core';
 
 import Icon from 'src/components/Icon';
 import ExploreChartPanel from './ExploreChartPanel';
@@ -81,11 +81,11 @@ const Styles = styled.div`
     margin-bottom: 20px;
     .action-button {
       position: absolute;
-      top: -5px;
+      top: ${({ theme }) => theme.gridUnit * 0}px;
       right: 10px;
     }
     .horizontal-text {
-      top: -5px;
+      top: ${({ theme }) => theme.gridUnit * -2}px;
       position: absolute;
       text-transform: uppercase;
       color: #879399;
@@ -102,6 +102,12 @@ const Styles = styled.div`
   .sidebar {
     width: 30px;
     height: 100%;
+  }
+  .data-tab {
+    width: 280px;
+  }
+  .callpase-icon {
+    color: ${({ theme }) => theme.colors.primary.base};
   }
 `;
 
@@ -378,7 +384,7 @@ class ExploreViewContainer extends React.Component {
           />
         )}
 
-        <div className={collapse ? 'no-show' : 'col-sm-3 control-pane'}>
+        <div className={collapse ? 'no-show' : 'data-tab control-pane'}>
           <div className="title-container">
             <span className="horizontal-text">Datasource</span>
             <span
@@ -387,7 +393,7 @@ class ExploreViewContainer extends React.Component {
               className="action-button"
               onClick={this.handleCollapse}
             >
-              <Icon name="expand" />
+              <Icon name="expand" className="collapse-icon" />
             </span>
           </div>
           <DataSourceMetrics
@@ -404,7 +410,7 @@ class ExploreViewContainer extends React.Component {
               className="action-button"
               onClick={this.handleCollapse}
             >
-              <Icon name="collapse" />
+              <Icon name="collapse" className="collapse-icon" />
             </span>
             <span className="vertical-text">Datasource</span>
           </div>
@@ -432,7 +438,7 @@ class ExploreViewContainer extends React.Component {
             isDatasourceMetaLoading={this.props.isDatasourceMetaLoading}
           />
         </div>
-        <div className={collapse ? 'col-sm-8' : 'col-sm-6'}>
+        <div className={collapse ? 'col-sm-8' : 'col-sm-7'}>
           {this.renderChartContainer()}
         </div>
       </Styles>

@@ -79,25 +79,19 @@ const Styles = styled.div`
     display: flex;
   }
   .title-select {
-    position: absolute;
-    left: 32px;
-    right: 32px;
-    width: ${({ theme }) => theme.gridUnit * 65}px;
+    width: ${({ theme }) => theme.gridUnit * 50}px;
     display: inline-block;
     .Select__control {
       background-color: #f0f0f0;
     }
   }
   .dataset-svg {
-    position: absolute;
-    let: 0;
-    top: 1px;
     vertical-align: -9px;
     margin-right: 10px;
   }
-  .container {
-    position: relative;
-    height: 30px;
+  .data-container {
+  }
+  .datasource-modal-trigger.ant-dropdown-trigger {
   }
 `;
 

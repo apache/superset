@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Collapse } from 'src/common/components';
 import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
@@ -25,7 +25,7 @@ import Control from './Control';
 type DatasourceControl = {
   validationErrors: any;
   mapStateToProps: () => void;
-}
+};
 
 interface Props {
   datasource: {
@@ -60,6 +60,9 @@ const DatasourceContainer = styled.div`
       transform: rotate(-90deg) !important;
     }
   }
+  .header {
+    font-size: ${({ theme }) => theme.typography.sizes.l}px;
+  }
 `;
 
 const maxNumColumns = 50;
@@ -69,7 +72,22 @@ const DataSourceMetrics = ({
   controls: { datasource: datasourceControl },
   actions,
 }: Props) => {
-  console.log('datasource', datasource);
+  const [lists, setColList] = useState({
+    columns: datasource.columns,
+    metrics: datasource.metrics,
+  });
+  const search = (e: string) => {
+    const columns = datasource.columns.filter(
+      obj => obj.column_name.indexOf(e.target.value) !== -1,
+    );
+    const metrics = lists.metrics.filter(
+      objs => objs.metric_name.indexOf(e.target.value) !== -1,
+    );
+    if (e.target.value === '') {
+      setColList({ columns: datasource.columns, metrics: datasource.metrics });
+    } else setColList({ columns, metrics });
+  };
+
   return (
     <DatasourceContainer>
       <Control
@@ -83,14 +101,20 @@ const DataSourceMetrics = ({
       />
       <input
         type="text"
-        // onChange={//this.changeSearch}
-        // onKeyDown={//this.onKeyDown}
+        onChange={search}
         className="form-control input-sm"
-        placeholder={t('Search Metrics')}
+        placeholder={t('Search Metrics & Columns')}
       />
-      <Collapse accordion bordered={false}>
-        <Collapse.Panel header="Columns" key="column">
-          {datasource.columns.slice(0, maxNumColumns).map(col => (
+      <Collapse
+        accordion
+        bordered={false}
+        defaultActiveKey={['column', 'metrics']}
+      >
+        <Collapse.Panel
+          header={<span className="header">Columns</span>}
+          key="column"
+        >
+          {lists.columns.slice(0, maxNumColumns).map(col => (
             <div key={col.column_name}>
               <ColumnOption showType column={col} />
             </div>
@@ -101,8 +125,11 @@ const DataSourceMetrics = ({
         </Collapse.Panel>
       </Collapse>
       <Collapse accordion bordered={false}>
-        <Collapse.Panel header="Metrics" key="metrics">
-          {datasource.metrics.slice(0, maxNumColumns).map(m => (
+        <Collapse.Panel
+          header={<span className="header">Metrics</span>}
+          key="metrics"
+        >
+          {lists.metrics.slice(0, maxNumColumns).map(m => (
             <div key={m.metric_name}>
               <MetricOption metric={m} showType />
             </div>
