@@ -435,14 +435,7 @@ export function useImportResource(
     [],
   );
 
-  return {
-    state: {
-      loading: state.loading,
-      passwordsNeeded: state.passwordsNeeded,
-      alreadyExists: state.alreadyExists,
-    },
-    importResource,
-  };
+  return { state, importResource };
 }
 
 enum FavStarClassName {
