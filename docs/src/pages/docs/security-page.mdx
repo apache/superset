@@ -49,7 +49,7 @@ to all databases by default, both **Alpha** and **Gamma** users need to be given
 
 Using this role, you can allow logged-out users to access some Superset features.
 
-By setting `PUBLIC_ROLE_LIKE_GAMMA = True` in your `superset_config.py` file, you grant
+By setting `PUBLIC_ROLE_LIKE = True` in your `superset_config.py` file, you grant
 public role the same set of permissions as for the **Gamma** role. This is useful if one
 wants to enable anonymous users to view dashboards. Explicit grant on specific datasets is
 still required, meaning that you need to edit the **Public** role and add the public data sources to the role manually.
@@ -82,7 +82,7 @@ permissions. Here are the different categories of permissions:
 
 - Model & Action: models are entities like Dashboard, Slice, or User. Each model has
 a fixed set of permissions, like **can_edit**, **can_show**, **can_delete**, **can_list**, **can_add**,
-and so on. For example, you can allow a user to delete dasdhboards by adding **can_delete** on
+and so on. For example, you can allow a user to delete dashboards by adding **can_delete** on
 Dashboard entity to a role and granting this user that role.
 - Views: views are individual web pages, like the Explore view or the SQL Lab view.
 When granted to a user, they will see that view in its menu items, and be able to load that page.
