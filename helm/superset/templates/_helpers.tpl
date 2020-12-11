@@ -85,11 +85,31 @@ WTF_CSRF_ENABLED = True
 WTF_CSRF_EXEMPT_LIST = []
 # A CSRF token that expires in 1 year
 WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
+from celery.schedules import crontab
 class CeleryConfig(object):
   BROKER_URL = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-  CELERY_IMPORTS = ('superset.sql_lab', )
+  CELERY_IMPORTS = ('superset.sql_lab', "superset.tasks" )
   CELERY_RESULT_BACKEND = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-  CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+  CELERYD_LOG_LEVEL = "DEBUG"
+  CELERYD_PREFETCH_MULTIPLIER = 1
+  CELERY_ACKS_LATE = False
+  CELERY_ANNOTATIONS = {
+    'tasks.add': {'rate_limit': '10/s'},
+
+    "email_reports.send": {
+            "rate_limit": "1/s",
+            "time_limit": 120,
+            "soft_time_limit": 150,
+            "ignore_result": True,
+    },
+  }
+
+  CELERYBEAT_SCHEDULE = {
+    "email_reports.schedule_hourly": {
+        "task": "email_reports.schedule_hourly",
+        "schedule": crontab(minute=1, hour="*"),
+    }
+  }
 
 CELERY_CONFIG = CeleryConfig
 RESULTS_BACKEND = RedisCache(
@@ -99,6 +119,7 @@ RESULTS_BACKEND = RedisCache(
 )
 FEATURE_FLAGS = { 'ENABLE_TEMPLATE_PROCESSING': True }
 ENABLE_SCHEDULED_EMAIL_REPORTS = True
+ENABLE_ALERTS = True
 EMAIL_NOTIFICATIONS = True
 
 SMTP_HOST = "email-smtp.eu-west-1.amazonaws.com"
