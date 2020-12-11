@@ -1101,7 +1101,7 @@ class TestDatasetApi(SupersetTestCase):
 
         self.login(username="gamma")
         rv = self.client.get(uri)
-        assert rv.status_code == 401
+        assert rv.status_code == 404
 
     @patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
