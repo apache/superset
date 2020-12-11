@@ -56,7 +56,6 @@ PVM_MAP = {
     Pvm("DashboardModelViewAsync", "can_list",): (Pvm("Dashboard", "can_read"),),
     Pvm("DashboardModelViewAsync", "muldelete",): (Pvm("Dashboard", "can_write"),),
     Pvm("DashboardModelViewAsync", "mulexport",): (Pvm("Dashboard", "can_read"),),
-    Pvm("DashboardModelViewAsync", "can_list",): (Pvm("Dashboard", "can_read"),),
     Pvm("Dashboard", "can_new",): (Pvm("Dashboard", "can_write"),),
 }
 
