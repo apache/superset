@@ -14,20 +14,39 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from .bart_lines import load_bart_lines
-from .birth_names import load_birth_names
-from .country_map import load_country_map_data
-from .css_templates import load_css_templates
-from .deck import load_deck_dash
-from .energy import load_energy
-from .flights import load_flights
-from .long_lat import load_long_lat_data
-from .misc_dashboard import load_misc_dashboard
-from .multi_line import load_multi_line
-from .multiformat_time_series import load_multiformat_time_series
-from .paris import load_paris_iris_geojson
-from .random_time_series import load_random_time_series_data
-from .sf_population_polygons import load_sf_population_polygons
-from .tabbed_dashboard import load_tabbed_dashboard
-from .utils import load_from_configs
-from .world_bank import load_world_bank_health_n_pop
+dashboard_title: Unicode Test
+description: null
+css: null
+slug: unicode-test
+uuid: 6b2de44e-7db1-4264-bfc1-ac3c00d42fad
+position:
+  CHART-Hkx6154FEm:
+    children: []
+    id: CHART-Hkx6154FEm
+    meta:
+      chartId: 389
+      height: 30
+      sliceName: slice 1
+      width: 4
+      uuid: 609e26d8-8e1e-4097-9751-931708e24ee4
+    type: CHART
+  GRID_ID:
+    children:
+    - ROW-SyT19EFEQ
+    id: GRID_ID
+    type: GRID
+  ROOT_ID:
+    children:
+    - GRID_ID
+    id: ROOT_ID
+    type: ROOT
+  ROW-SyT19EFEQ:
+    children:
+    - CHART-Hkx6154FEm
+    id: ROW-SyT19EFEQ
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+  DASHBOARD_VERSION_KEY: v2
+metadata: {}
+version: 1.0.0
