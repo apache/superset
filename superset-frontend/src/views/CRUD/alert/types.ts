@@ -25,24 +25,48 @@ type user = {
   last_name: string;
 };
 
-type recipients = {
-  id: number;
+export type Recipient = {
+  recipient_config_json: {
+    target: string;
+  };
   type: string;
 };
 
+export type MetaObject = {
+  id?: number;
+  label?: string;
+  value?: number | string;
+};
+
+export type Operator = '<' | '>' | '<=' | '>=' | '==' | '!=';
+
 export type AlertObject = {
   active?: boolean;
+  chart?: MetaObject;
   changed_by?: user;
   changed_on_delta_humanized?: string;
   created_by?: user;
   created_on?: string;
+  crontab?: string;
+  dashboard?: MetaObject;
+  database?: MetaObject;
+  description?: string;
+  grace_period?: number;
   id?: number;
   last_eval_dttm?: number;
   last_state?: 'Success' | 'Working' | 'Error' | 'Not triggered' | 'On Grace';
+  log_retention?: number;
   name?: string;
-  owners?: Array<Owner>;
-  recipients?: recipients;
+  owners?: Array<Owner | MetaObject>;
+  sql?: string;
+  recipients?: Array<Recipient>;
   type?: string;
+  validator_config_json?: {
+    op?: Operator;
+    threshold?: number;
+  };
+  validator_type?: string;
+  working_timeout?: number;
 };
 
 export type LogObject = {
