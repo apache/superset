@@ -71,9 +71,14 @@ fetchMock.get(chartEndpoint, {
 });
 
 async function mountAndWait(props = mockedProps) {
-  const mounted = mount(<Provider store={store}><AlertReportModal show {...props} /></Provider>, {
-    context: { store },
-  });
+  const mounted = mount(
+    <Provider store={store}>
+      <AlertReportModal show {...props} />
+    </Provider>,
+    {
+      context: { store },
+    },
+  );
 
   await waitForComponentToPaint(mounted);
 
