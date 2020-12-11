@@ -461,7 +461,6 @@ class TestDatasetApi(SupersetTestCase):
         self.login(username="admin")
         table_data = {
             "database": energy_usage_ds.database_id,
-            "schema": energy_usage_ds.schema or "",
             "table_name": energy_usage_ds.table_name,
         }
         uri = "api/v1/dataset/"
