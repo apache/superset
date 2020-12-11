@@ -28,7 +28,6 @@ import ListView, { FilterOperators, Filters } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import { Switch } from 'src/common/components/Switch';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import AlertReportModal from './AlertReportModal';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import RecipientIcon from 'src/views/CRUD/alert/components/RecipientIcon';
 
@@ -37,6 +36,7 @@ import {
   useSingleViewResource,
 } from 'src/views/CRUD/hooks';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
+import AlertReportModal from './AlertReportModal';
 import { AlertObject, AlertState } from './types';
 
 const PAGE_SIZE = 25;

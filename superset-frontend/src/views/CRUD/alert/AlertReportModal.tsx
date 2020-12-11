@@ -472,7 +472,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     settings.push({
       recipients: '',
-      options: NOTIFICATION_METHODS, // Need better logic for this
+      options: NOTIFICATION_METHODS, // TODO: Need better logic for this
     });
 
     setNotificationSettings(settings);
