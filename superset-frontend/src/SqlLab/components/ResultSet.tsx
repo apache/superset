@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { CSSProperties } from 'react';
+import { connect } from 'react-redux';
 import { Alert, ButtonGroup } from 'react-bootstrap';
 import ProgressBar from 'src/common/components/ProgressBar';
 import moment from 'moment';
@@ -77,6 +78,7 @@ interface ResultSetProps {
   search?: boolean;
   showSql?: boolean;
   visualize?: boolean;
+  userId: number;
 }
 
 interface ResultSetState {
@@ -103,10 +105,7 @@ const MonospaceDiv = styled.div`
   white-space: pre-wrap;
 `;
 
-export default class ResultSet extends React.PureComponent<
-  ResultSetProps,
-  ResultSetState
-> {
+class ResultSet extends React.PureComponent<ResultSetProps, ResultSetState> {
   static defaultProps = {
     cache: false,
     csv: true,
@@ -166,12 +165,8 @@ export default class ResultSet extends React.PureComponent<
     // only do this the first time the component is rendered/mounted
     this.reRunQueryIfSessionTimeoutErrorOnMount();
 
-    const appContainer = document.getElementById('app');
-    const bootstrapData = JSON.parse(
-      appContainer?.getAttribute('data-bootstrap') || '{}',
-    );
-
-    const datasets = await getByUser(bootstrapData.user.userId);
+    const { userId } = this.props;
+    const datasets = await getByUser(userId);
     const userDatasetsOwned = datasets.map(
       (r: { table_name: string; id: number }) => ({
         datasetName: r.table_name,
@@ -638,3 +633,12 @@ export default class ResultSet extends React.PureComponent<
     );
   }
 }
+
+function mapStateToProps({ sqlLab }: any, props: ResultSetProps) {
+  return {
+    ...props,
+    userId: sqlLab.user.userId,
+  };
+}
+
+export default connect(mapStateToProps)(ResultSet);
