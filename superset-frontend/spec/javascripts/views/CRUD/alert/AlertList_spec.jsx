@@ -19,6 +19,7 @@
 import fetchMock from 'fetch-mock';
 import React from 'react';
 import configureStore from 'redux-mock-store';
+import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 import { styledMount as mount } from 'spec/helpers/theming';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
@@ -78,33 +79,30 @@ fetchMock.get(alertsCreatedByEndpoint, { result: [] });
 fetchMock.put(alertEndpoint, { ...mockalerts[0], active: false });
 fetchMock.put(alertsEndpoint, { ...mockalerts[0], active: false });
 
-async function mountAndWait(props) {
-  const mounted = mount(<AlertList {...props} user={mockUser} store={store} />);
-  await waitForComponentToPaint(mounted);
-
-  return mounted;
-}
-
 describe('AlertList', () => {
-  let wrapper;
+  const wrapper = mount(
+    <Provider store={store}>
+      <AlertList store={store} user={mockUser} />
+    </Provider>,
+  );
 
   beforeAll(async () => {
-    wrapper = await mountAndWait();
+    await waitForComponentToPaint(wrapper);
   });
 
-  it('renders', () => {
+  it('renders', async () => {
     expect(wrapper.find(AlertList)).toExist();
   });
 
-  it('renders a SubMenu', () => {
+  it('renders a SubMenu', async () => {
     expect(wrapper.find(SubMenu)).toExist();
   });
 
-  it('renders a ListView', () => {
+  it('renders a ListView', async () => {
     expect(wrapper.find(ListView)).toExist();
   });
 
-  it('renders switches', () => {
+  it('renders switches', async () => {
     expect(wrapper.find(Switch)).toHaveLength(3);
   });
 });

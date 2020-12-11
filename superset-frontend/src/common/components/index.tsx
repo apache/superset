@@ -39,10 +39,10 @@ export {
   Input,
   Modal,
   Popover,
+  Radio,
   Select,
   Skeleton,
   Switch,
-  Radio,
   Tabs,
   Tooltip,
 } from 'antd';

@@ -87,6 +87,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "recipients.id",
         "recipients.type",
         "recipients.recipient_config_json",
+        "sql",
         "working_timeout",
     ]
     show_select_columns = show_columns + [

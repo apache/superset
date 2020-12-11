@@ -184,8 +184,9 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
     if (
       isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES) &&
       transport === TRANSPORT_POLLING
-    )
+    ) {
       processEvents();
+    }
 
     return action => next(action);
   };

@@ -17,24 +17,26 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
-import React, { useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
-import { Switch } from 'src/common/components/Switch';
+import { t } from '@superset-ui/core';
+import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import Button from 'src/components/Button';
 import FacePile from 'src/components/FacePile';
 import { IconName } from 'src/components/Icon';
 import ListView, { FilterOperators, Filters } from 'src/components/ListView';
-import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import { Switch } from 'src/common/components/Switch';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import RecipientIcon from 'src/views/CRUD/alert/components/RecipientIcon';
+
 import {
   useListViewResource,
   useSingleViewResource,
 } from 'src/views/CRUD/hooks';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
+import AlertReportModal from './AlertReportModal';
 import { AlertObject, AlertState } from './types';
 
 const PAGE_SIZE = 25;
@@ -85,6 +87,15 @@ function AlertList({
     addDangerToast,
   );
 
+  const [alertModalOpen, setAlertModalOpen] = useState<boolean>(false);
+  const [currentAlert, setCurrentAlert] = useState<AlertObject | null>(null);
+
+  // Actions
+  function handleAlertEdit(alert: AlertObject | null) {
+    setCurrentAlert(alert);
+    setAlertModalOpen(true);
+  }
+
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
   const canCreate = hasPerm('can_add');
@@ -128,6 +139,7 @@ function AlertList({
         }: any) =>
           recipients.map((r: any) => (
             <RecipientIcon key={r.id} type={r.type} />
+            // <Icon key={r.id} name={r.type.toLowerCase() as IconName} />
           )),
         accessor: 'recipients',
         Header: t('Notification Method'),
@@ -169,7 +181,7 @@ function AlertList({
       {
         Cell: ({ row: { original } }: any) => {
           const history = useHistory();
-          const handleEdit = () => {}; // handleAnnotationEdit(original);
+          const handleEdit = () => handleAlertEdit(original);
           const handleDelete = () => {}; // setAlertCurrentlyDeleting(original);
           const handleGotoExecutionLog = () =>
             history.push(`/${original.type.toLowerCase()}/${original.id}/log`);
@@ -217,6 +229,7 @@ function AlertList({
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
+
   if (canCreate) {
     subMenuButtons.push({
       name: (
@@ -225,7 +238,9 @@ function AlertList({
         </>
       ),
       buttonStyle: 'primary',
-      onClick: () => {},
+      onClick: () => {
+        handleAlertEdit(null);
+      },
     });
   }
 
@@ -302,6 +317,17 @@ function AlertList({
           },
         ]}
         buttons={subMenuButtons}
+      />
+      <AlertReportModal
+        alert={currentAlert}
+        addDangerToast={addDangerToast}
+        layer={currentAlert}
+        onHide={() => {
+          setAlertModalOpen(false);
+          refreshData();
+        }}
+        show={alertModalOpen}
+        isReport={isReportEnabled}
       />
       <ListView<AlertObject>
         className="alerts-list-view"
