@@ -33,6 +33,7 @@ const Collapse = Object.assign(
   styled(({ light, bigger, bold, ...props }: CollapseProps) => (
     <AntdCollapse {...props} />
   ))`
+    height: 100%;
     .ant-collapse-item {
       border: 0;
       height: 100%;
