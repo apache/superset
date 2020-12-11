@@ -124,9 +124,8 @@ class AsyncQueryManager:
                 session["async_channel_id"] = async_channel_id
                 session["async_user_id"] = user_id
 
-                token = self.generate_jwt(
-                    {"channel": async_channel_id, "user_id": user_id}
-                )
+                sub = str(user_id) if user_id else None
+                token = self.generate_jwt({"channel": async_channel_id, "sub": sub})
 
                 response.set_cookie(
                     self._jwt_cookie_name,
