@@ -111,3 +111,5 @@ export enum QueryObjectColumns {
   tmp_table_name = 'tmp_table_name',
   tracking_url = 'tracking_url',
 }
+
+export type ImportResourceName = 'chart' | 'dashboard' | 'database' | 'dataset';
