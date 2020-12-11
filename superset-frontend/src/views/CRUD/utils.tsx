@@ -164,7 +164,7 @@ export function createErrorHandler(handleErrorFunc: (errMsg?: string) => void) {
   return async (e: SupersetClientResponse | string) => {
     const parsedError = await getClientErrorObject(e);
     logging.error(e);
-    handleErrorFunc(parsedError.message || parsedError.error);
+    handleErrorFunc((parsedError.message || parsedError.error) as string);
   };
 }
 
