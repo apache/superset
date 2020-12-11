@@ -16,16 +16,19 @@
 # under the License.
 import inspect
 import json
+import urllib.parse
+from typing import Any, Dict
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
-from marshmallow import fields, Schema
+from marshmallow import fields, Schema, validates_schema
 from marshmallow.validate import Length, ValidationError
 from sqlalchemy import MetaData
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
 
 from superset.exceptions import CertificateException
+from superset.models.core import PASSWORD_MASK
 from superset.utils.core import markdown, parse_ssl_cert
 
 database_schemas_query_schema = {
@@ -420,6 +423,7 @@ class ImportV1DatabaseExtraSchema(Schema):
 class ImportV1DatabaseSchema(Schema):
     database_name = fields.String(required=True)
     sqlalchemy_uri = fields.String(required=True)
+    password = fields.String(allow_none=True)
     cache_timeout = fields.Integer(allow_none=True)
     expose_in_sqllab = fields.Boolean()
     allow_run_async = fields.Boolean()
@@ -429,3 +433,12 @@ class ImportV1DatabaseSchema(Schema):
     extra = fields.Nested(ImportV1DatabaseExtraSchema)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
+
+    # pylint: disable=no-self-use, unused-argument
+    @validates_schema
+    def validate_password(self, data: Dict[str, Any], **kwargs: Any) -> None:
+        """If sqlalchemy_uri has a masked password, password is required"""
+        uri = data["sqlalchemy_uri"]
+        password = urllib.parse.urlparse(uri).password
+        if password == PASSWORD_MASK and data.get("password") is None:
+            raise ValidationError("Must provide a password for the database")

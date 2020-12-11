@@ -104,9 +104,12 @@ def set_and_log_cache(
     cached_dttm: str,
     cache_timeout: int,
     datasource_uid: Optional[str],
+    annotation_data: Optional[Dict[str, Any]] = None,
 ) -> None:
     try:
-        cache_value = dict(dttm=cached_dttm, df=df, query=query)
+        cache_value = dict(
+            dttm=cached_dttm, df=df, query=query, annotation_data=annotation_data or {}
+        )
         stats_logger.incr("set_cache_key")
         cache_manager.data_cache.set(cache_key, cache_value, timeout=cache_timeout)
 
@@ -587,12 +590,12 @@ class BaseViz:
 
             if is_loaded and cache_key and self.status != utils.QueryStatus.FAILED:
                 set_and_log_cache(
-                    cache_key,
-                    df,
-                    self.query,
-                    cached_dttm,
-                    self.cache_timeout,
-                    self.datasource.uid,
+                    cache_key=cache_key,
+                    df=df,
+                    query=self.query,
+                    cached_dttm=cached_dttm,
+                    cache_timeout=self.cache_timeout,
+                    datasource_uid=self.datasource.uid,
                 )
         return {
             "cache_key": self._any_cache_key,
@@ -2698,7 +2701,7 @@ class EventFlowViz(BaseViz):
         entity_key = form_data["entity"]
         meta_keys = [
             col
-            for col in form_data["all_columns"]
+            for col in form_data["all_columns"] or []
             if col != event_key and col != entity_key
         ]
 

@@ -87,6 +87,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "recipients.id",
         "recipients.type",
         "recipients.recipient_config_json",
+        "working_timeout",
     ]
     show_select_columns = show_columns + [
         "chart.datasource_id",
@@ -128,6 +129,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "recipients",
         "sql",
         "type",
+        "working_timeout",
         "validator_config_json",
         "validator_type",
     ]
@@ -145,7 +147,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "name",
         "type",
     ]
-    search_columns = ["name", "active", "created_by", "type"]
+    search_columns = ["name", "active", "created_by", "type", "last_state"]
     search_filters = {"name": [ReportScheduleAllTextFilter]}
     allowed_rel_fields = {"created_by", "chart", "dashboard"}
     filter_rel_fields = {

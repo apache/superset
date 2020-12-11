@@ -77,6 +77,10 @@ grace_period_description = (
     "Once an alert is triggered, how long, in seconds, before "
     "Superset nags you again. (in seconds)"
 )
+working_timeout_description = (
+    "If an alert is staled at a working state, how long until it's state is reseted to"
+    " error"
+)
 
 
 def validate_crontab(value: Union[bytes, bytearray, str]) -> None:
@@ -85,7 +89,7 @@ def validate_crontab(value: Union[bytes, bytearray, str]) -> None:
 
 
 class ValidatorConfigJSONSchema(Schema):
-    operation = fields.String(
+    op = fields.String(  # pylint: disable=invalid-name
         description=validator_config_json_op_description,
         validate=validate.OneOf(choices=["<", "<=", ">", ">=", "==", "!="]),
     )
@@ -155,7 +159,15 @@ class ReportSchedulePostSchema(Schema):
     )
     validator_config_json = fields.Nested(ValidatorConfigJSONSchema)
     log_retention = fields.Integer(description=log_retention_description, example=90)
-    grace_period = fields.Integer(description=grace_period_description, example=14400)
+    grace_period = fields.Integer(
+        description=grace_period_description, example=60 * 60 * 4, default=60 * 60 * 4
+    )
+    working_timeout = fields.Integer(
+        description=working_timeout_description,
+        example=60 * 60 * 1,
+        default=60 * 60 * 1,
+    )
+
     recipients = fields.List(fields.Nested(ReportRecipientSchema))
 
 
@@ -204,6 +216,9 @@ class ReportSchedulePutSchema(Schema):
         description=log_retention_description, example=90, required=False
     )
     grace_period = fields.Integer(
-        description=grace_period_description, example=14400, required=False
+        description=grace_period_description, example=60 * 60 * 4, required=False
+    )
+    working_timeout = fields.Integer(
+        description=working_timeout_description, example=60 * 60 * 1, required=False
     )
     recipients = fields.List(fields.Nested(ReportRecipientSchema), required=False)

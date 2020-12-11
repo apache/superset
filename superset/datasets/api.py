@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from datetime import datetime
 from distutils.util import strtobool
@@ -656,7 +657,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 for file_name in bundle.namelist()
             }
 
-        command = ImportDatasetsCommand(contents)
+        passwords = (
+            json.loads(request.form["passwords"])
+            if "passwords" in request.form
+            else None
+        )
+
+        command = ImportDatasetsCommand(contents, passwords=passwords)
         try:
             command.run()
             return self.response(200, message="OK")

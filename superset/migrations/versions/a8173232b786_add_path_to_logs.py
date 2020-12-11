@@ -30,16 +30,20 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import mysql
 
+from superset.migrations.shared import utils
+
 
 def upgrade():
-    op.add_column("logs", sa.Column("path", sa.String(length=256), nullable=True))
-    op.add_column(
-        "logs", sa.Column("path_no_int", sa.String(length=256), nullable=True)
-    )
-    op.add_column("logs", sa.Column("ref", sa.String(length=256), nullable=True))
+    # This migration was modified post hoc to avoid locking the large logs table
+    # during migrations.
+    pass
 
 
 def downgrade():
-    op.drop_column("logs", "path")
-    op.drop_column("logs", "path_no_int")
-    op.drop_column("logs", "ref")
+    with op.batch_alter_table("logs") as batch_op:
+        if utils.table_has_column("logs", "path"):
+            batch_op.drop_column("path")
+        if utils.table_has_column("logs", "path_no_int"):
+            batch_op.drop_column("path_no_int")
+        if utils.table_has_column("logs", "ref"):
+            batch_op.drop_column("ref")

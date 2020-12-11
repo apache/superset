@@ -28,6 +28,7 @@ RUN mkdir /app \
             default-libmysqlclient-dev \
             libpq-dev \
             libsasl2-dev \
+            libecpg-dev \
         && rm -rf /var/lib/apt/lists/*
 
 # First, we just wanna install requirements, which will allow us to utilize the cache

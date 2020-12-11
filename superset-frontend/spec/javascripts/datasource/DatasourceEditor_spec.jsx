@@ -51,8 +51,8 @@ describe('DatasourceEditor', () => {
   let isFeatureEnabledMock;
 
   beforeEach(() => {
-    el = <DatasourceEditor {...props} />;
-    wrapper = shallow(el, { context: { store } }).dive();
+    el = <DatasourceEditor {...props} store={store} />;
+    wrapper = shallow(el).dive();
     inst = wrapper.instance();
   });
 
@@ -152,9 +152,7 @@ describe('DatasourceEditor', () => {
     beforeAll(() => {
       isFeatureEnabledMock = jest
         .spyOn(featureFlags, 'isFeatureEnabled')
-        .mockImplementation(
-          feature => feature === 'ENABLE_DATASET_SOURCE_EDIT',
-        );
+        .mockImplementation(() => false);
       wrapper = shallow(el, { context: { store } }).dive();
     });
 

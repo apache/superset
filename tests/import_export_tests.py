@@ -19,9 +19,11 @@
 import json
 import unittest
 
+import pytest
 from flask import g
 from sqlalchemy.orm.session import make_transient
 
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.test_app import app
 from superset.dashboards.commands.importers.v0 import decode_dashboards
 from superset import db, security_manager
@@ -399,6 +401,7 @@ class TestImportExport(SupersetTestCase):
         meta["chartId"] = imported_dash.slices[0].id
         self.assertEqual(expected_position, imported_dash.position)
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_import_dashboard_2_slices(self):
         e_slc = self.create_slice("e_slc", id=10007, table_name="energy_usage")
         b_slc = self.create_slice("b_slc", id=10008, table_name="birth_names")
@@ -450,6 +453,7 @@ class TestImportExport(SupersetTestCase):
             expected_json_metadata, json.loads(imported_dash.json_metadata)
         )
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_import_override_dashboard_2_slices(self):
         e_slc = self.create_slice("e_slc", id=10009, table_name="energy_usage")
         b_slc = self.create_slice("b_slc", id=10010, table_name="birth_names")
