@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { Row, Col, FormControl } from 'react-bootstrap';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
@@ -28,6 +27,7 @@ import {
   t,
   SupersetClient,
   getCategoricalSchemeRegistry,
+  SupersetClientResponse,
 } from '@superset-ui/core';
 
 import Modal from 'src/common/components/Modal';
@@ -38,33 +38,14 @@ import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeContr
 import getClientErrorObject from '../../utils/getClientErrorObject';
 import withToasts from '../../messageToasts/enhancers/withToasts';
 import '../stylesheets/buttons.less';
+import Owner from '../../types/Owner';
 
 const StyledJsonEditor = styled(JsonEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
   border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
 `;
 
-const propTypes = {
-  dashboardId: PropTypes.number.isRequired,
-  show: PropTypes.bool,
-  onHide: PropTypes.func,
-  colorScheme: PropTypes.string,
-  setColorSchemeAndUnsavedChanges: PropTypes.func,
-  onSubmit: PropTypes.func,
-  addSuccessToast: PropTypes.func.isRequired,
-  onlyApply: PropTypes.bool,
-};
-
-const defaultProps = {
-  onHide: () => {},
-  setColorSchemeAndUnsavedChanges: () => {},
-  onSubmit: () => {},
-  show: false,
-  colorScheme: undefined,
-  onlyApply: false,
-};
-
-const handleErrorResponse = async response => {
+const handleErrorResponse = async (response: SupersetClientResponse) => {
   const { error, statusText, message } = await getClientErrorObject(response);
   let errorText = error || statusText || t('An error has occurred');
 
@@ -91,7 +72,7 @@ const loadOwnerOptions = (input = '') => {
     endpoint: `/api/v1/dashboard/related/owners?q=${query}`,
   }).then(
     response => {
-      return response.json.result.map(item => ({
+      return response.json.result.map((item: Record<string, any>) => ({
         value: item.value,
         label: item.text,
       }));
@@ -103,8 +84,38 @@ const loadOwnerOptions = (input = '') => {
   );
 };
 
-class PropertiesModal extends React.PureComponent {
-  constructor(props) {
+type PropertiesModalProps = {
+  dashboardId: number;
+  show: boolean;
+  onHide: () => void;
+  colorScheme?: string;
+  setColorSchemeAndUnsavedChanges: () => void;
+  onSubmit: (data: Record<string, any>) => void;
+  addSuccessToast: (msg: string) => void;
+  onlyApply: boolean;
+};
+
+type PropertiesModalState = {
+  errors: Array<any>;
+  values: Record<string, any>;
+  isDashboardLoaded: boolean;
+  isAdvancedOpen: boolean;
+};
+
+class PropertiesModal extends React.PureComponent<
+  PropertiesModalProps,
+  PropertiesModalState
+> {
+  static defaultProps = {
+    onHide: () => {},
+    setColorSchemeAndUnsavedChanges: () => {},
+    onSubmit: () => {},
+    show: false,
+    colorScheme: undefined,
+    onlyApply: false,
+  };
+
+  constructor(props: PropertiesModalProps) {
     super(props);
     this.state = {
       errors: [],
@@ -131,7 +142,7 @@ class PropertiesModal extends React.PureComponent {
     JsonEditor.preload();
   }
 
-  onColorSchemeChange(value, { updateMetadata = true } = {}) {
+  onColorSchemeChange(value: string, { updateMetadata = true } = {}) {
     // check that color_scheme is valid
     const colorChoices = getCategoricalSchemeRegistry().keys();
     const { json_metadata: jsonMetadata } = this.state.values;
@@ -160,16 +171,16 @@ class PropertiesModal extends React.PureComponent {
     this.updateFormState('colorScheme', value);
   }
 
-  onOwnersChange(value) {
+  onOwnersChange(value: any) {
     this.updateFormState('owners', value);
   }
 
-  onMetadataChange(metadata) {
+  onMetadataChange(metadata: string) {
     this.updateFormState('json_metadata', metadata);
   }
 
-  onChange(e) {
-    const { name, value } = e.target;
+  onChange(e: React.FormEvent<FormControl>) {
+    const { name, value } = e.target as HTMLInputElement;
     this.updateFormState(name, value);
   }
 
@@ -199,7 +210,7 @@ class PropertiesModal extends React.PureComponent {
           colorScheme: jsonMetadataObj.color_scheme,
         },
       }));
-      const initialSelectedOwners = dashboard.owners.map(owner => ({
+      const initialSelectedOwners = dashboard.owners.map((owner: Owner) => ({
         value: owner.id,
         label: `${owner.first_name} ${owner.last_name}`,
       }));
@@ -207,7 +218,7 @@ class PropertiesModal extends React.PureComponent {
     }, handleErrorResponse);
   }
 
-  updateFormState(name, value) {
+  updateFormState(name: string, value: string) {
     this.setState(state => ({
       values: {
         ...state.values,
@@ -222,7 +233,7 @@ class PropertiesModal extends React.PureComponent {
     }));
   }
 
-  submit(e) {
+  submit(e: any) {
     e.preventDefault();
     e.stopPropagation();
     const {
@@ -235,8 +246,8 @@ class PropertiesModal extends React.PureComponent {
       },
     } = this.state;
     const { onlyApply } = this.props;
-    const owners = ownersValue.map(o => o.value);
-    let metadataColorScheme;
+    const owners = ownersValue.map((o: Record<string, any>) => o.value);
+    const metadataColorScheme: string | undefined = undefined;
 
     // update color scheme to match metadata
     if (jsonMetadata?.length) {
@@ -403,7 +414,6 @@ class PropertiesModal extends React.PureComponent {
                   <StyledJsonEditor
                     showLoadingForImport
                     name="json_metadata"
-                    defaultValue={this.defaultMetadataValue}
                     value={values.json_metadata}
                     onChange={this.onMetadataChange}
                     tabSize={2}
@@ -425,8 +435,5 @@ class PropertiesModal extends React.PureComponent {
     );
   }
 }
-
-PropertiesModal.propTypes = propTypes;
-PropertiesModal.defaultProps = defaultProps;
 
 export default withToasts(PropertiesModal);
