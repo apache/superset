@@ -20,19 +20,12 @@ import React from 'react';
 import { styled } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
 import { Collapse as AntdCollapse } from 'antd';
-import {
-  CollapseProps as AntdCollapseProps,
-  CollapsePanelProps as AntdCollapsePanelProps,
-} from 'antd/lib/collapse';
+import { CollapseProps as AntdCollapseProps } from 'antd/lib/collapse';
 
 interface CollapseProps extends AntdCollapseProps {
   light?: boolean;
   bigger?: boolean;
   bold?: boolean;
-}
-
-interface CollapsePanelProps extends AntdCollapsePanelProps {
-  light?: boolean;
 }
 
 const Collapse = Object.assign(
@@ -47,41 +40,37 @@ const Collapse = Object.assign(
       &:last-of-type.ant-collapse-item-active {
         padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
       }
-    }
-    .ant-collapse-header {
-      background-color: transparent;
-      font-weight: ${({ bold, theme }) =>
-        bold ? theme.typography.weights.bold : theme.typography.weights.normal};
-      font-size: ${({ bigger, theme }) =>
-        bigger ? `${theme.gridUnit * 4}px` : 'inherit'};
-      ${({ light, theme }) =>
-        light &&
-        `
-          color: ${theme.colors.grayscale.light4};
-          .ant-collapse-arrow svg {
+      .ant-collapse-header {
+        background-color: transparent;
+        font-weight: ${({ bold, theme }) =>
+          bold
+            ? theme.typography.weights.bold
+            : theme.typography.weights.normal};
+        font-size: ${({ bigger, theme }) =>
+          bigger ? `${theme.gridUnit * 4}px` : 'inherit'};
+        ${({ light, theme }) =>
+          light &&
+          `
             color: ${theme.colors.grayscale.light4};
+            .ant-collapse-arrow svg {
+              color: ${theme.colors.grayscale.light4};
+            }
+          `}
+      }
+      .ant-collapse-content {
+        height: 100%;
+        .ant-collapse-content-box {
+          height: 100%;
+          .loading.inline {
+            margin: ${({ theme }) => theme.gridUnit * 12}px auto;
+            display: block;
           }
-        `}
+        }
+      }
     }
   `,
   {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    Panel: styled(({ light, ...props }: CollapsePanelProps) => (
-      <AntdCollapse.Panel {...props} />
-    ))`
-      .ant-collapse-content {
-        height: 100%;
-      }
-      .ant-collapse-content-box {
-        height: 100%;
-        ${({ light, theme }) =>
-          light && `color: ${theme.colors.grayscale.light4};`}
-        .loading.inline {
-          margin: ${({ theme }) => theme.gridUnit * 12}px auto;
-          display: block;
-        }
-      }
-    `,
+    Panel: AntdCollapse.Panel,
   },
 );
 

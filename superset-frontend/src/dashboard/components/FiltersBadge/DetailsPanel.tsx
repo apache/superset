@@ -171,7 +171,6 @@ const DetailsPanelPopover = ({
                   {t('Applied Filters (%d)', appliedIndicators.length)}
                 </Title>
               }
-              light
             >
               <Indent>
                 {appliedIndicators.map(indicator => (
@@ -196,7 +195,6 @@ const DetailsPanelPopover = ({
                   )}
                 </Title>
               }
-              light
             >
               <Indent>
                 {incompatibleIndicators.map(indicator => (
@@ -219,7 +217,6 @@ const DetailsPanelPopover = ({
                 </Title>
               }
               disabled={!unsetIndicators.length}
-              light
             >
               <Indent>
                 {unsetIndicators.map(indicator => (
