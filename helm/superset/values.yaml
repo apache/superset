@@ -47,7 +47,7 @@ configMountPath: "/app/pythonpath"
 
 image:
   repository: 766930725927.dkr.ecr.us-west-2.amazonaws.com/superset
-  tag: d7fd985091e8e33f1f3cda3c7004b65c7422a1be
+  tag: 2ea3286cba92f280b182a00c7686ba0088fa95bc
   pullPolicy: IfNotPresent
 
 service:

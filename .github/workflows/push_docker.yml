@@ -2,7 +2,7 @@ name: push_docker_image
 
 on:
   push:
-    branches: [ patch ]
+    branches: [ patch , gecko]
 
 jobs:
 
