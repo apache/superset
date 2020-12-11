@@ -17,16 +17,18 @@
 import datetime
 from unittest import mock
 
+import pytest
+
 from superset.db_engine_specs import engines
 from superset.db_engine_specs.base import BaseEngineSpec, builtin_time_grains
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.sql_parse import ParsedQuery
 from superset.utils.core import get_example_database
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.test_app import app
 
+from ..fixtures.energy_dashboard import load_energy_table_with_slice
 from ..fixtures.pyodbcRow import Row
-
-from tests.test_app import app  # isort:skip
 
 
 class TestDbEngineSpecs(TestDbEngineSpec):
@@ -194,6 +196,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         )
         self.assertListEqual(base_result_expected, base_result)
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_column_datatype_to_string(self):
         example_db = get_example_database()
         sqla_table = example_db.get_table("energy_usage")

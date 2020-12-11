@@ -27,6 +27,7 @@ import { Sticky, StickyContainer } from 'react-sticky';
 import { TabContainer, TabContent, TabPane } from 'react-bootstrap';
 import { styled } from '@superset-ui/core';
 
+import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
@@ -284,10 +285,12 @@ class DashboardBuilder extends React.Component {
               filtersOpen={this.state.dashboardFiltersOpen}
               topOffset={barTopOffset}
             >
-              <FilterBar
-                filtersOpen={this.state.dashboardFiltersOpen}
-                toggleFiltersBar={this.toggleDashboardFiltersOpen}
-              />
+              <ErrorBoundary>
+                <FilterBar
+                  filtersOpen={this.state.dashboardFiltersOpen}
+                  toggleFiltersBar={this.toggleDashboardFiltersOpen}
+                />
+              </ErrorBoundary>
             </StickyVerticalBar>
             // <FilterBar />
           )}

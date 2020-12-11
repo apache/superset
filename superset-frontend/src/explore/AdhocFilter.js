@@ -72,7 +72,7 @@ export default class AdhocFilter {
     this.expressionType = adhocFilter.expressionType || EXPRESSION_TYPES.SIMPLE;
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
       this.subject = adhocFilter.subject;
-      this.operator = adhocFilter.operator.toUpperCase();
+      this.operator = adhocFilter.operator?.toUpperCase();
       this.comparator = adhocFilter.comparator;
       this.clause = adhocFilter.clause;
       this.sqlExpression = null;

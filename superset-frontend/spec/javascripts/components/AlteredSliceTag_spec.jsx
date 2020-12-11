@@ -252,7 +252,7 @@ describe('AlteredSliceTag', () => {
           subject: 'b',
         },
       ];
-      const expected = 'a in [1, g, 7, ho], b not in [hu, ho, ha]';
+      const expected = 'a IN [1, g, 7, ho], b NOT IN [hu, ho, ha]';
       expect(
         wrapper.instance().formatValue(filters, 'adhoc_filters', controlsMap),
       ).toBe(expected);
