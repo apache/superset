@@ -336,7 +336,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "info")
         assert rv.status_code == 200
 
-    def test_info_security_chart(self):
+    def test_info_security_dataset(self):
         """
         Dataset API: Test info security
         """

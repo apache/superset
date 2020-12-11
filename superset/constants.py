@@ -98,4 +98,5 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "related": "read",
     "refresh": "read",
     "related_objects": "read",
+    "import_": "write",
 }
