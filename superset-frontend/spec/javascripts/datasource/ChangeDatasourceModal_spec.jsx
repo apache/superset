@@ -55,8 +55,7 @@ fetchMock.get(DATASOURCES_ENDPOINT, [mockDatasource['7__table']]);
 fetchMock.get(DATASOURCE_ENDPOINT, DATASOURCE_PAYLOAD);
 
 async function mountAndWait(props = mockedProps) {
-  const mounted = mount(<ChangeDatasourceModal {...props} />, {
-    context: { store },
+  const mounted = mount(<ChangeDatasourceModal store={store} {...props} />, {
     wrappingComponent: ThemeProvider,
     wrappingComponentProps: { theme: supersetTheme },
   });

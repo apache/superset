@@ -19,6 +19,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import { supersetTheme } from '@superset-ui/core';
+import { Provider } from 'react-redux';
 import * as SupersetUI from '@superset-ui/core';
 import { CHART_UPDATE_SUCCEEDED } from 'src/chart/chartAction';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
@@ -57,7 +58,11 @@ describe('FiltersBadge', () => {
       },
       dashboardFilters,
     });
-    const wrapper = shallow(<FiltersBadge {...{ store }} chartId={sliceId} />);
+    const wrapper = shallow(
+      <Provider store={store}>
+        <FiltersBadge chartId={sliceId} />,
+      </Provider>,
+    );
     expect(
       wrapper.dive().find('[data-test="applied-filter-count"]'),
     ).not.toExist();
@@ -76,7 +81,9 @@ describe('FiltersBadge', () => {
       },
       dashboardFilters,
     });
-    const wrapper = shallow(<FiltersBadge {...{ store }} chartId={sliceId} />);
+    const wrapper = shallow(
+      <FiltersBadge {...{ store }} chartId={sliceId} />,
+    ).dive();
     expect(wrapper.dive().find('DetailsPanelPopover')).toExist();
     expect(
       wrapper.dive().find('[data-test="applied-filter-count"]'),
@@ -97,7 +104,9 @@ describe('FiltersBadge', () => {
       },
       dashboardFilters,
     });
-    const wrapper = shallow(<FiltersBadge {...{ store }} chartId={sliceId} />);
+    const wrapper = shallow(
+      <FiltersBadge {...{ store }} chartId={sliceId} />,
+    ).dive();
     expect(wrapper.dive().find('DetailsPanelPopover')).toExist();
     expect(
       wrapper.dive().find('[data-test="applied-filter-count"]'),

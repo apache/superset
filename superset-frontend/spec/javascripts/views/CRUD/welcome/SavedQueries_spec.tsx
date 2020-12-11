@@ -77,9 +77,7 @@ describe('SavedQueries', () => {
     mine: mockqueries,
   };
 
-  const wrapper = mount(<SavedQueries {...savedQueryProps} />, {
-    context: { store },
-  });
+  const wrapper = mount(<SavedQueries store={store} {...savedQueryProps} />);
 
   const clickTab = (idx: number) => {
     act(() => {

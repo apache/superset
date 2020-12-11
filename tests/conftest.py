@@ -42,7 +42,6 @@ def setup_sample_data() -> Any:
         from superset import examples
 
         examples.load_css_templates()
-        examples.load_energy(sample=True)
         examples.load_world_bank_health_n_pop(sample=True)
         examples.load_birth_names(sample=True)
 
@@ -50,7 +49,6 @@ def setup_sample_data() -> Any:
 
     with app.app_context():
         engine = get_example_database().get_sqla_engine()
-        engine.execute("DROP TABLE energy_usage")
         engine.execute("DROP TABLE wb_health_population")
         engine.execute("DROP TABLE birth_names")
 

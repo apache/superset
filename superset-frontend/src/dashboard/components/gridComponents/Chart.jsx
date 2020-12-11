@@ -19,6 +19,8 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
+import { styled } from '@superset-ui/core';
+
 import { exploreChart, exportChart } from '../../../explore/exploreUtils';
 import SliceHeader from '../SliceHeader';
 import ChartContainer from '../../../chart/ChartContainer';
@@ -80,6 +82,13 @@ const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
 );
 const OVERFLOWABLE_VIZ_TYPES = new Set(['filter_box']);
 const DEFAULT_HEADER_HEIGHT = 22;
+
+const ChartOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+`;
 
 export default class Chart extends React.Component {
   constructor(props) {
@@ -257,7 +266,8 @@ export default class Chart extends React.Component {
       return <MissingChart height={this.getChartHeight()} />;
     }
 
-    const { queryResponse, chartUpdateEndTime } = chart;
+    const { queryResponse, chartUpdateEndTime, chartStatus } = chart;
+    const isLoading = chartStatus === 'loading';
     const isCached = queryResponse && queryResponse.is_cached;
     const cachedDttm = queryResponse && queryResponse.cached_dttm;
     const isOverflowable = OVERFLOWABLE_VIZ_TYPES.has(slice.viz_type);
@@ -319,6 +329,15 @@ export default class Chart extends React.Component {
             isOverflowable && 'dashboard-chart--overflowable',
           )}
         >
+          {isLoading && (
+            <ChartOverlay
+              style={{
+                width,
+                height: this.getChartHeight(),
+              }}
+            />
+          )}
+
           <ChartContainer
             width={width}
             height={this.getChartHeight()}
@@ -328,7 +347,7 @@ export default class Chart extends React.Component {
             annotationData={chart.annotationData}
             chartAlert={chart.chartAlert}
             chartId={id}
-            chartStatus={chart.chartStatus}
+            chartStatus={chartStatus}
             datasource={datasource}
             dashboardId={dashboardId}
             initialValues={initialValues}

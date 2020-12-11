@@ -29,7 +29,11 @@ from superset.models.slice import Slice
 
 
 def create_table_for_dashboard(
-    df: DataFrame, table_name: str, database: Database, dtype: Dict[str, Any]
+    df: DataFrame,
+    table_name: str,
+    database: Database,
+    dtype: Dict[str, Any],
+    table_description: str = "",
 ) -> SqlaTable:
     df.to_sql(
         table_name,
@@ -48,6 +52,7 @@ def create_table_for_dashboard(
     if not table:
         table = table_source(table_name=table_name)
     table.database = database
+    table.description = table_description
     db.session.merge(table)
     db.session.commit()
 

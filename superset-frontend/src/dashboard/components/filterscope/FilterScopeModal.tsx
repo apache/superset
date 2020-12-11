@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
+import React, { RefObject } from 'react';
 import { styled } from '@superset-ui/core';
 
-import ModalTrigger from '../../../components/ModalTrigger';
-import FilterScope from '../../containers/FilterScope';
+import ModalTrigger from 'src/components/ModalTrigger';
+import FilterScope from 'src/dashboard/containers/FilterScope';
 
-const propTypes = {
-  triggerNode: PropTypes.node.isRequired,
+type FilterScopeModalProps = {
+  triggerNode: JSX.Element;
 };
 
 const FilterScopeModalBody = styled.div(({ theme: { gridUnit } }) => ({
@@ -32,28 +31,37 @@ const FilterScopeModalBody = styled.div(({ theme: { gridUnit } }) => ({
   paddingBottom: gridUnit * 3,
 }));
 
-export default class FilterScopeModal extends React.PureComponent {
-  constructor(props) {
+export default class FilterScopeModal extends React.PureComponent<
+  FilterScopeModalProps,
+  {}
+> {
+  modal: RefObject<ModalTrigger>;
+
+  constructor(props: FilterScopeModalProps) {
     super(props);
 
     this.modal = React.createRef();
     this.handleCloseModal = this.handleCloseModal.bind(this);
   }
 
-  handleCloseModal() {
+  handleCloseModal(): void {
     if (this.modal.current) {
       this.modal.current.close();
     }
   }
 
   render() {
+    const filterScopeProps = {
+      onCloseModal: this.handleCloseModal,
+    };
+
     return (
       <ModalTrigger
         ref={this.modal}
         triggerNode={this.props.triggerNode}
         modalBody={
           <FilterScopeModalBody>
-            <FilterScope onCloseModal={this.handleCloseModal} />
+            <FilterScope {...filterScopeProps} />
           </FilterScopeModalBody>
         }
         width="80%"
@@ -61,5 +69,3 @@ export default class FilterScopeModal extends React.PureComponent {
     );
   }
 }
-
-FilterScopeModal.propTypes = propTypes;

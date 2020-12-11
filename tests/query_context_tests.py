@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import pytest
+
 import tests.test_app
 from superset import db
 from superset.charts.schemas import ChartDataQueryContextSchema
@@ -27,6 +29,7 @@ from superset.utils.core import (
     TimeRangeEndpoint,
 )
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.query_context import get_query_context
 
 
@@ -79,7 +82,7 @@ class TestQueryContext(SupersetTestCase):
         # construct baseline cache_key
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        cache_key_original = query_context.cache_key(query_object)
+        cache_key_original = query_context.query_cache_key(query_object)
 
         # make temporary change and revert it to refresh the changed_on property
         datasource = ConnectorRegistry.get_datasource(
@@ -96,7 +99,7 @@ class TestQueryContext(SupersetTestCase):
         # create new QueryContext with unchanged attributes and extract new cache_key
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        cache_key_new = query_context.cache_key(query_object)
+        cache_key_new = query_context.query_cache_key(query_object)
 
         # the new cache_key should be different due to updated datasource
         self.assertNotEqual(cache_key_original, cache_key_new)
@@ -112,20 +115,20 @@ class TestQueryContext(SupersetTestCase):
         # construct baseline cache_key from query_context with post processing operation
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        cache_key_original = query_context.cache_key(query_object)
+        cache_key_original = query_context.query_cache_key(query_object)
 
         # ensure added None post_processing operation doesn't change cache_key
         payload["queries"][0]["post_processing"].append(None)
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        cache_key_with_null = query_context.cache_key(query_object)
+        cache_key_with_null = query_context.query_cache_key(query_object)
         self.assertEqual(cache_key_original, cache_key_with_null)
 
         # ensure query without post processing operation is different
         payload["queries"][0].pop("post_processing")
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        cache_key_without_post_processing = query_context.cache_key(query_object)
+        cache_key_without_post_processing = query_context.query_cache_key(query_object)
         self.assertNotEqual(cache_key_original, cache_key_without_post_processing)
 
     def test_query_context_time_range_endpoints(self):
@@ -176,12 +179,9 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
         self.assertEqual(len(responses), 1)
-        data = responses[0]["data"]
+        data = responses["queries"][0]["data"]
         self.assertIn("name,sum__num\n", data)
         self.assertEqual(len(data.split("\n")), 12)
-
-        ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
-        assert ck.datasource_uid == f"{table.id}__table"
 
     def test_sql_injection_via_groupby(self):
         """
@@ -194,7 +194,7 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["groupby"] = ["currentDatabase()"]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_payload = query_context.get_payload()
-        assert query_payload[0].get("error") is not None
+        assert query_payload["queries"][0].get("error") is not None
 
     def test_sql_injection_via_columns(self):
         """
@@ -209,7 +209,7 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["columns"] = ["*, 'extra'"]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_payload = query_context.get_payload()
-        assert query_payload[0].get("error") is not None
+        assert query_payload["queries"][0].get("error") is not None
 
     def test_sql_injection_via_metrics(self):
         """
@@ -230,7 +230,7 @@ class TestQueryContext(SupersetTestCase):
         ]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_payload = query_context.get_payload()
-        assert query_payload[0].get("error") is not None
+        assert query_payload["queries"][0].get("error") is not None
 
     def test_samples_response_type(self):
         """
@@ -245,7 +245,7 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
         self.assertEqual(len(responses), 1)
-        data = responses[0]["data"]
+        data = responses["queries"][0]["data"]
         self.assertIsInstance(data, list)
         self.assertEqual(len(data), 5)
         self.assertNotIn("sum__num", data[0])
@@ -262,7 +262,7 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
         self.assertEqual(len(responses), 1)
-        response = responses[0]
+        response = responses["queries"][0]
         self.assertEqual(len(response), 2)
         self.assertEqual(response["language"], "sql")
         self.assertIn("SELECT", response["query"])

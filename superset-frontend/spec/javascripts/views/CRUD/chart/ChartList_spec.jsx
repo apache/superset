@@ -19,6 +19,7 @@
 import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
+import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import * as featureFlags from 'src/featureFlags';
 
@@ -97,9 +98,11 @@ describe('ChartList', () => {
     isFeatureEnabledMock.restore();
   });
   const mockedProps = {};
-  const wrapper = mount(<ChartList {...mockedProps} user={mockUser} />, {
-    context: { store },
-  });
+  const wrapper = mount(
+    <Provider store={store}>
+      <ChartList {...mockedProps} user={mockUser} />
+    </Provider>,
+  );
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);

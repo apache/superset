@@ -17,30 +17,27 @@
  * under the License.
  */
 
-// Variables ported from "src/stylesheets/less/variables.less"
-// TODO: move to `@superset-ui/style`
-// Keep it here to make PRs easier for review.
-export const supersetColors = {
-  primary: '#00a699',
-  danger: '#fe4a49',
-  warning: '#ffab00',
-  indicator: '#44c0ff',
-  almostBlack: '#263238',
-  grayDark: '#484848',
-  grayLight: '#cfd8dc',
-  gray: '#879399',
-  grayBg: '#f5f5f5',
-  grayBgDarker: '#e8e8e8', // select option menu hover
-  grayBgDarkest: '#d2d2d2', // table cell bar chart
-  grayHeading: '#a3a3a3',
-  menuHover: '#f2f3f5',
-  lightest: '#fff',
-  darkest: '#000',
+import getInitialState from './getInitialState';
 
-  // addition most common colors
-  grayBorder: '#ccc',
-  grayBorderLight: '#d9d9d9',
-  grayBorderDark: '#b3b3b3',
-  textDefault: '#333',
-  textDarkest: '#111',
+const apiData = {
+  defaultDbId: 1,
+  common: {
+    conf: {
+      DEFAULT_SQLLAB_LIMIT: 1,
+    },
+  },
+  active_tab: null,
+  tab_state_ids: [],
+  databases: [],
+  queries: [],
+  requested_query: null,
+  user: {
+    userId: 1,
+    username: 'some name',
+  },
 };
+describe('getInitialState', () => {
+  it('should output the user that is passed in', () => {
+    expect(getInitialState(apiData).sqlLab.user.userId).toEqual(1);
+  });
+});
