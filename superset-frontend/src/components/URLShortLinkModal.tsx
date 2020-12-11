@@ -24,9 +24,9 @@ import withToasts from '../messageToasts/enhancers/withToasts';
 import ModalTrigger from './ModalTrigger';
 
 type URLShortLinkModalProps = {
-  url?: string;
-  emailSubject?: string;
-  emailContent?: string;
+  url: string;
+  emailSubject: string;
+  emailContent: string;
   title?: string;
   addDangerToast: (msg: string) => void;
   triggerNode: JSX.Element;
