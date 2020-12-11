@@ -35,7 +35,6 @@ export enum FeatureFlag {
   ESCAPE_MARKDOWN_HTML = 'ESCAPE_MARKDOWN_HTML',
   VERSIONED_EXPORT = 'VERSIONED_EXPORT',
   GLOBAL_ASYNC_QUERIES = 'GLOBAL_ASYNC_QUERIES',
-  GLOBAL_ASYNC_QUERIES_OPTIONS = 'GLOBAL_ASYNC_QUERIES_OPTIONS',
 }
 
 export type FeatureFlagMap = {
@@ -59,8 +58,4 @@ export function initFeatureFlags(featureFlags: FeatureFlagMap) {
 
 export function isFeatureEnabled(feature: FeatureFlag) {
   return window && window.featureFlags && !!window.featureFlags[feature];
-}
-
-export function getFeatureFlag(feature: FeatureFlag) {
-  return window.featureFlags[feature];
 }

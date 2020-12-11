@@ -64,8 +64,11 @@ describe('asyncEvent middleware', () => {
   };
   const EVENTS_ENDPOINT = 'glob:*/api/v1/async_event/*';
   const CACHED_DATA_ENDPOINT = 'glob:*/api/v1/chart/data/*';
+  const config = {
+    GLOBAL_ASYNC_QUERIES_TRANSPORT: 'polling',
+    GLOBAL_ASYNC_QUERIES_POLLING_DELAY: 500,
+  };
   let featureEnabledStub: any;
-  let getFeatureStub: any;
 
   function setup() {
     const getPendingComponents = sinon.stub();
@@ -99,16 +102,11 @@ describe('asyncEvent middleware', () => {
     });
     featureEnabledStub = sinon.stub(featureFlags, 'isFeatureEnabled');
     featureEnabledStub.withArgs('GLOBAL_ASYNC_QUERIES').returns(true);
-    getFeatureStub = sinon.stub(featureFlags, 'getFeatureFlag');
-    getFeatureStub
-      .withArgs('GLOBAL_ASYNC_QUERIES_OPTIONS')
-      .returns({ transport: 'polling', polling_delay: 250 });
   });
   afterEach(() => {
     fetchMock.reset();
     next.resetHistory();
     featureEnabledStub.restore();
-    getFeatureStub.restore();
   });
   afterAll(fetchMock.reset);
 
@@ -116,6 +114,7 @@ describe('asyncEvent middleware', () => {
     const { getPendingComponents, successAction, errorAction } = setup();
     getPendingComponents.returns([]);
     const asyncEventMiddleware = initAsyncEvents({
+      config,
       getPendingComponents,
       successAction,
       errorAction,
@@ -134,6 +133,7 @@ describe('asyncEvent middleware', () => {
     } = setup();
     getPendingComponents.returns(Object.values(state.charts));
     const asyncEventMiddleware = initAsyncEvents({
+      config,
       getPendingComponents,
       successAction,
       errorAction,
@@ -166,6 +166,7 @@ describe('asyncEvent middleware', () => {
     });
     getPendingComponents.returns(Object.values(state.charts));
     const asyncEventMiddleware = initAsyncEvents({
+      config,
       getPendingComponents,
       successAction,
       errorAction,
@@ -200,6 +201,7 @@ describe('asyncEvent middleware', () => {
     });
     getPendingComponents.returns(Object.values(state.charts));
     const asyncEventMiddleware = initAsyncEvents({
+      config,
       getPendingComponents,
       successAction,
       errorAction,
@@ -230,6 +232,7 @@ describe('asyncEvent middleware', () => {
     });
     getPendingComponents.returns(Object.values(state.charts));
     const asyncEventMiddleware = initAsyncEvents({
+      config,
       getPendingComponents,
       successAction,
       errorAction,
@@ -250,6 +253,7 @@ describe('asyncEvent middleware', () => {
     const { getPendingComponents, successAction, errorAction } = setup();
     getPendingComponents.returns(Object.values(state.charts));
     const asyncEventMiddleware = initAsyncEvents({
+      config,
       getPendingComponents,
       successAction,
       errorAction,

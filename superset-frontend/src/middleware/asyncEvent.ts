@@ -19,7 +19,7 @@
 import { Middleware, MiddlewareAPI, Dispatch } from 'redux';
 import { makeApi, SupersetClient } from '@superset-ui/core';
 import { SupersetError } from 'src/components/ErrorMessage/types';
-import { getFeatureFlag, isFeatureEnabled, FeatureFlag } from '../featureFlags';
+import { isFeatureEnabled, FeatureFlag } from '../featureFlags';
 import {
   getClientErrorObject,
   parseErrorJson,
@@ -36,6 +36,10 @@ export type AsyncEvent = {
 };
 
 type AsyncEventOptions = {
+  config: {
+    GLOBAL_ASYNC_QUERIES_TRANSPORT: string;
+    GLOBAL_ASYNC_QUERIES_POLLING_DELAY: number;
+  };
   getPendingComponents: (state: any) => any[];
   successAction: (componentId: number, componentData: any) => { type: string };
   errorAction: (componentId: number, response: any) => { type: string };
@@ -51,15 +55,15 @@ type CachedDataResponse = {
 const initAsyncEvents = (options: AsyncEventOptions) => {
   // TODO: implement websocket support
   const TRANSPORT_POLLING = 'polling';
-  const config = getFeatureFlag(FeatureFlag.GLOBAL_ASYNC_QUERIES_OPTIONS) || {};
-  const transport = config.transport || TRANSPORT_POLLING;
-  const polling_delay = config.polling_delay || 500;
   const {
+    config,
     getPendingComponents,
     successAction,
     errorAction,
     processEventsCallback,
   } = options;
+  const transport = config.GLOBAL_ASYNC_QUERIES_TRANSPORT || TRANSPORT_POLLING;
+  const polling_delay = config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY || 500;
 
   const middleware: Middleware = (store: MiddlewareAPI) => (next: Dispatch) => {
     const JOB_STATUS = {

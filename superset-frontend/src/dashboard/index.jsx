@@ -36,6 +36,7 @@ initFeatureFlags(bootstrapData.common.feature_flags);
 const initState = getInitialState(bootstrapData);
 
 const asyncEventMiddleware = initAsyncEvents({
+  config: bootstrapData.common.conf,
   getPendingComponents: ({ charts }) =>
     Object.values(charts).filter(c => c.chartStatus === 'loading'),
   successAction: (componentId, componentData) =>
