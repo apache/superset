@@ -121,7 +121,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
 
   return (
     <WelcomeContainer>
-      <Collapse defaultActiveKey={['1', '2', '3', '4']} ghost>
+      <Collapse defaultActiveKey={['1', '2', '3', '4']} ghost bigger>
         <Collapse.Panel header={t('Recents')} key="1">
           <ActivityTable
             user={user}

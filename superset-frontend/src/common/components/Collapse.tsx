@@ -26,44 +26,60 @@ import {
 } from 'antd/lib/collapse';
 
 interface CollapseProps extends AntdCollapseProps {
-  background?: string;
+  light?: boolean;
+  bigger?: boolean;
+  bold?: boolean;
 }
 
 interface CollapsePanelProps extends AntdCollapsePanelProps {
-  background?: string;
+  light?: boolean;
 }
 
 const Collapse = Object.assign(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  styled(({ background, ...props }: CollapseProps) => (
+  styled(({ light, bigger, bold, ...props }: CollapseProps) => (
     <AntdCollapse {...props} />
   ))`
+    background-color: transparent;
+    .ant-collapse-item {
+      border: 0;
+      height: 100%;
+      &:last-of-type.ant-collapse-item-active {
+        padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+      }
+    }
     .ant-collapse-header {
-      font-weight: ${({ theme }) => theme.typography.weights.normal};
-      font-size: ${({ theme }) => theme.gridUnit * 4}px;
-      ${({ background }) =>
-        background &&
+      background-color: transparent;
+      font-weight: ${({ bold, theme }) =>
+        bold ? theme.typography.weights.bold : theme.typography.weights.normal};
+      font-size: ${({ bigger, theme }) =>
+        bigger ? `${theme.gridUnit * 4}px` : 'inherit'};
+      ${({ light, theme }) =>
+        light &&
         `
-          background-color: ${background};
+          color: ${theme.colors.grayscale.light4};
+          .ant-collapse-arrow svg {
+            color: ${theme.colors.grayscale.light4};
+          }
         `}
     }
   `,
   {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    Panel: styled(({ background, ...props }: CollapsePanelProps) => (
+    Panel: styled(({ light, ...props }: CollapsePanelProps) => (
       <AntdCollapse.Panel {...props} />
     ))`
+      .ant-collapse-content {
+        height: 100%;
+      }
       .ant-collapse-content-box {
-        min-height: 265px;
+        height: 100%;
+        ${({ light, theme }) =>
+          light && `color: ${theme.colors.grayscale.light4};`}
         .loading.inline {
           margin: ${({ theme }) => theme.gridUnit * 12}px auto;
           display: block;
         }
-        ${({ background }) =>
-          background &&
-          `
-            background-color: ${background};
-          `}
       }
     `,
   },
