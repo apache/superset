@@ -33,7 +33,6 @@ const Collapse = Object.assign(
   styled(({ light, bigger, bold, ...props }: CollapseProps) => (
     <AntdCollapse {...props} />
   ))`
-    background-color: transparent;
     .ant-collapse-item {
       border: 0;
       height: 100%;
@@ -41,13 +40,13 @@ const Collapse = Object.assign(
         padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
       }
       .ant-collapse-header {
-        background-color: transparent;
         font-weight: ${({ bold, theme }) =>
           bold
             ? theme.typography.weights.bold
             : theme.typography.weights.normal};
         font-size: ${({ bigger, theme }) =>
           bigger ? `${theme.gridUnit * 4}px` : 'inherit'};
+
         ${({ light, theme }) =>
           light &&
           `

@@ -227,6 +227,7 @@ export const DataTablesPane = ({
           bordered={false}
           onChange={handleCollapseChange}
           bold
+          ghost
         >
           <Collapse.Panel header={t('Data')} key="data">
             <Tabs
