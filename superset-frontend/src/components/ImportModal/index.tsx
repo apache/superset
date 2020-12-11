@@ -22,6 +22,7 @@ import { styled, t } from '@superset-ui/core';
 import Icon from 'src//components/Icon';
 import Modal from 'src/common/components/Modal';
 import { useImportResource } from 'src/views/CRUD/hooks';
+import { ImportResourceName } from 'src/views/CRUD/types';
 
 export const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
@@ -97,7 +98,7 @@ const StyledInputContainer = styled.div`
 `;
 
 export interface ImportModelsModalProps {
-  resourceName: string;
+  resourceName: ImportResourceName;
   resourceLabel: string;
   icon: React.ReactNode;
   passwordsNeededMessage: string;
@@ -145,7 +146,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   const {
     state: { passwordsNeeded },
     importResource,
-  } = useImportResource<any>(resourceName, resourceLabel, handleErrorMsg);
+  } = useImportResource(resourceName, resourceLabel, handleErrorMsg);
 
   useEffect(() => {
     setPasswordFields(passwordsNeeded);
