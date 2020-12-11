@@ -48,7 +48,7 @@ from .dashboard_utils import (
 from .fixtures.energy_dashboard import load_energy_table_with_slice
 from .fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 
-NEW_SECURITY_CONVERGE_VIEWS = ("CssTemplate", "SavedQuery", "Chart")
+NEW_SECURITY_CONVERGE_VIEWS = ("CssTemplate", "SavedQuery", "Chart", "Annotation")
 
 
 def get_perm_tuples(role_name):
@@ -672,7 +672,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_menu("Dashboards", perm_set)
 
     def assert_can_alpha(self, perm_set):
-        self.assert_can_all("AnnotationLayerModelView", perm_set)
+        self.assert_can_all("Annotation", perm_set)
         self.assert_can_all("CssTemplate", perm_set)
         self.assert_can_all("TableModelView", perm_set)
         self.assert_can_read("QueryView", perm_set)
