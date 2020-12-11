@@ -452,23 +452,24 @@ class TestDatasetApi(SupersetTestCase):
         expected_result = {"message": {"owners": ["Owners are invalid"]}}
         assert data == expected_result
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_create_dataset_validate_uniqueness(self):
         """
         Dataset API: Test create dataset validate table uniqueness
         """
-        example_db = get_example_database()
+        energy_usage_ds = self.get_energy_usage_dataset()
         self.login(username="admin")
         table_data = {
-            "database": example_db.id,
-            "schema": "",
-            "table_name": "birth_names",
+            "database": energy_usage_ds.database_id,
+            "schema": energy_usage_ds.schema or "",
+            "table_name": energy_usage_ds.table_name,
         }
         uri = "api/v1/dataset/"
         rv = self.post_assert_metric(uri, table_data, "post")
         assert rv.status_code == 422
         data = json.loads(rv.data.decode("utf-8"))
         assert data == {
-            "message": {"table_name": ["Datasource birth_names already exists"]}
+            "message": {"table_name": ["Datasource energy_usage already exists"]}
         }
 
     def test_create_dataset_same_name_different_schema(self):
@@ -1161,8 +1162,8 @@ class TestDatasetApi(SupersetTestCase):
 
         self.login(username="gamma")
         rv = self.client.get(uri)
-
-        assert rv.status_code == 401
+        # gamma users by default do not have access to this dataset
+        assert rv.status_code == 404
 
     def test_get_dataset_related_objects(self):
         """

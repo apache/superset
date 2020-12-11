@@ -53,6 +53,7 @@ def create_table_for_dashboard(
         table = table_source(table_name=table_name)
     table.database = database
     table.description = table_description
+    table.schema = ""
     db.session.merge(table)
     db.session.commit()
 
