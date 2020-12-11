@@ -47,7 +47,8 @@ const datasourceData = {
   uid: datasource.id,
 };
 
-const DATASOURCES_ENDPOINT = 'glob:*/api/v1/dataset/';
+const DATASOURCES_ENDPOINT =
+  'glob:*/api/v1/dataset/?q=(order_column:changed_on_delta_humanized,order_direction:asc,page:0,page_size:20)';
 const DATASOURCE_ENDPOINT = `glob:*/datasource/get/${datasourceData.type}/${datasourceData.id}`;
 const DATASOURCE_PAYLOAD = { new: 'data' };
 
@@ -81,7 +82,7 @@ describe('ChangeDatasourceModal', () => {
   });
 
   it('fetches datasources', async () => {
-    expect(fetchMock.calls(/api\/v1\/dataset/)).toHaveLength(3);
+    expect(fetchMock.calls(/api\/v1\/dataset/)).toHaveLength(6);
   });
 
   it('renders confirmation message', async () => {
