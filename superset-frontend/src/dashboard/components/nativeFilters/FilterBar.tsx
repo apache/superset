@@ -150,8 +150,30 @@ const FilterControls = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
+const StyledCascadeChildrenList = styled.ul`
+  list-style-type: none;
+  & > * {
+    list-style-type: none;
+  }
+`;
+
+const StyledFilterControlTitle = styled.h4`
+  font-size: ${({ theme }) => theme.typography.sizes.l};
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  text-transform: uppercase;
+`;
+
+const StyledFilterControlTitleBox = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
 interface FilterProps {
   filter: Filter;
+  icon?: React.ReactElement;
   onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
 }
 
@@ -178,8 +200,6 @@ const FilterValue: React.FC<FilterProps> = ({
   const [target] = targets;
   const { datasetId = 18, column } = target;
   const { name: groupby } = column;
-
-  console.log("Filter name: ", filter.name, "value", currentValue);
 
   const getFormData = (): Partial<QueryFormData> => ({
     adhoc_filters: [],
@@ -239,17 +259,21 @@ const FilterValue: React.FC<FilterProps> = ({
 
 export const FilterControl: React.FC<FilterProps> = ({
   filter,
+  icon,
   onExtraFormDataChange,
 }) => {
   const { name = '<undefined>' } = filter;
   return (
-    <div>
-      <h3>{name}</h3>
+    <>
+      <StyledFilterControlTitleBox>
+        <StyledFilterControlTitle>{name}</StyledFilterControlTitle>
+        <div>{icon}</div>
+      </StyledFilterControlTitleBox>
       <FilterValue
         filter={filter}
         onExtraFormDataChange={onExtraFormDataChange}
       />
-    </div>
+    </>
   );
 };
 
@@ -272,7 +296,7 @@ export const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
         filter={filter}
         onExtraFormDataChange={onExtraFormDataChange}
       />
-      <ul>
+      <StyledCascadeChildrenList>
         {filter.cascadeChildren?.map(childFilter => (
           <li>
             <CascadeFilterControl
@@ -281,7 +305,7 @@ export const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
             />
           </li>
         ))}
-      </ul>
+      </StyledCascadeChildrenList>
     </div>
   );
 };

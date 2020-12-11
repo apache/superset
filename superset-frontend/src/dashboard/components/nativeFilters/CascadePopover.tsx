@@ -17,10 +17,10 @@
  * under the License.
  */
 import React, { useCallback } from 'react';
-import { ExtraFormData } from '@superset-ui/core';
+import { ExtraFormData, styled, t } from '@superset-ui/core';
 import Popover from 'src/common/components/Popover';
-import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
+import { Pill } from 'src/dashboard/components/FiltersBadge/Styles';
 import {
   CascadeFilterControl,
   CascadeFilter,
@@ -34,6 +34,31 @@ interface CascadePopoverProps {
   onVisibleChange: (visible: boolean) => void;
   onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
 }
+
+const StyledTitleBox = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  background-color: ${({ theme }) => theme.colors.grayscale.light4};
+  margin: -5px -16px; // to override default antd padding
+  padding: ${({ theme }) => theme.gridUnit * 2}px
+    ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
+const StyledTitle = styled.h4`
+  display: flex;
+  align-items: center;
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  margin: 0;
+  padding: 0;
+`;
+
+const StyledIcon = styled(Icon)`
+  margin-right: ${({ theme }) => theme.gridUnit}px;
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  width: ${({ theme }) => theme.gridUnit * 4}px;
+`;
 
 const CascadePopover: React.FC<CascadePopoverProps> = ({
   filter,
@@ -63,45 +88,66 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
     [filter],
   );
 
-  const title = <span>Select Parent Filters (ilosc poziomow) {filter.id}</span>;
+  const countFilters = (filter: CascadeFilter): number => {
+    let count = 1;
+    filter.cascadeChildren.forEach(child => {
+      count += countFilters(child);
+    });
+    return count;
+  };
+
+  const totalChildren = countFilters(filter);
+
+  const title = (
+    <StyledTitleBox>
+      <StyledTitle>
+        <StyledIcon name="edit" />
+        {t('Select Parent Filters')} ({totalChildren})
+      </StyledTitle>
+      <StyledIcon name="close" onClick={() => onVisibleChange(false)} />
+    </StyledTitleBox>
+  );
 
   const content = (
-    <CascadeFilterControl
-      data-test="cascade-filters-control"
-      key={filter.id}
-      filter={filter}
-      onExtraFormDataChange={onExtraFormDataChange}
-    />
+    <>
+      <CascadeFilterControl
+        data-test="cascade-filters-control"
+        key={filter.id}
+        filter={filter}
+        onExtraFormDataChange={onExtraFormDataChange}
+      />
+    </>
   );
 
   const activeFilters = getActiveChildren(filter) || [filter];
 
   return (
     <>
-      {filter.cascadeChildren.length !== 0 && (
-        <>
-          <Button buttonSize="xs" onClick={() => onVisibleChange(true)}>
-            ({filter.cascadeChildren.length})
-            <Icon name="filter" />
-          </Button>
-
-          <Popover
-            content={content}
-            title={title}
-            trigger="click"
-            visible={visible}
-            onVisibleChange={onVisibleChange}
-            placement="right"
-            id={filter.id}
-          />
-        </>
-      )}
-
       {activeFilters.map(activeFilter => (
         <FilterControl
           key={activeFilter.id}
           filter={activeFilter}
           onExtraFormDataChange={onExtraFormDataChange}
+          icon={
+            <>
+              {filter.cascadeChildren.length !== 0 && (
+                <Popover
+                  content={content}
+                  title={title}
+                  trigger="click"
+                  visible={visible}
+                  onVisibleChange={onVisibleChange}
+                  placement="rightBottom"
+                  id={filter.id}
+                  overlayStyle={{ minWidth: '400px' }}
+                >
+                  <Pill onClick={() => onVisibleChange(true)}>
+                    <Icon name="filter" /> {totalChildren}
+                  </Pill>
+                </Popover>
+              )}
+            </>
+          }
         />
       ))}
     </>
