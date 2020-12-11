@@ -185,6 +185,7 @@ export function useListViewResource<D extends object = any>(
 interface SingleViewResourceState<D extends object = any> {
   loading: boolean;
   resource: D | null;
+  error: string | null;
 }
 
 export function useSingleViewResource<D extends object = any>(
@@ -195,6 +196,7 @@ export function useSingleViewResource<D extends object = any>(
   const [state, setState] = useState<SingleViewResourceState<D>>({
     loading: false,
     resource: null,
+    error: null,
   });
 
   function updateState(update: Partial<SingleViewResourceState<D>>) {
@@ -214,18 +216,23 @@ export function useSingleViewResource<D extends object = any>(
         ({ json = {} }) => {
           updateState({
             resource: json.result,
+            error: null,
           });
           return json.result;
         },
-        createErrorHandler(errMsg =>
+        createErrorHandler(errMsg => {
           handleErrorMsg(
             t(
               'An error occurred while fetching %ss: %s',
               resourceLabel,
               JSON.stringify(errMsg),
             ),
-          ),
-        ),
+          );
+
+          updateState({
+            error: errMsg,
+          });
+        }),
       )
       .finally(() => {
         updateState({ loading: false });
@@ -299,10 +306,7 @@ export function useSingleViewResource<D extends object = any>(
   }, []);
 
   return {
-    state: {
-      loading: state.loading,
-      resource: state.resource,
-    },
+    state,
     setResource: (update: D) =>
       updateState({
         resource: update,
