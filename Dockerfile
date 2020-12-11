@@ -109,7 +109,7 @@ RUN apt-get update && apt-get install -y firefox-esr
 RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.28.0/geckodriver-v0.28.0-linux64.tar.gz
 RUN tar -x geckodriver -zf geckodriver-v0.28.0-linux64.tar.gz -O > /usr/bin/geckodriver
 RUN chmod +x /usr/bin/geckodriver
-RUN rm geckodriver-v0.24.0-linux64.tar.gz
+RUN rm geckodriver-v0.28.0-linux64.tar.gz
 WORKDIR /app
 
 USER superset
