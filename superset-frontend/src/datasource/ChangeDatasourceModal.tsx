@@ -34,6 +34,10 @@ import getClientErrorObject from '../utils/getClientErrorObject';
 import Loading from '../components/Loading';
 import withToasts from '../messageToasts/enhancers/withToasts';
 
+const CONFIRM_WARNING_MESSAGE = t(
+  'Warning! Changing the dataset may break the chart if the metadata does not exist in the target dataset',
+);
+
 interface ChangeDatasourceModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -69,6 +73,20 @@ const CHANGE_WARNING_MSG = t(
     'on columns or metadata that does not exist in the target dataset',
 );
 
+const useDebouncedEffect = (effect, delay, deps) => {
+  const callback = useCallback(effect, deps);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      callback();
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [callback, delay]);
+};
+
 const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   addDangerToast,
   addSuccessToast,
@@ -77,7 +95,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   onHide,
   show,
 }) => {
-  const [filter] = useState<any>(undefined);
+  const [filter, setFilter] = useState<any>(undefined);
   const [confirmChange, setConfirmChange] = useState(false);
   const [confirmedDataset, setConfirmedDataset] = useState<any>(undefined);
   let searchRef = useRef<HTMLInputElement>(null);
@@ -93,6 +111,25 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       setConfirmedDataset(datasource);
     },
     [],
+  );
+
+  useDebouncedEffect(
+    () => {
+      fetchData({
+        pageIndex: 0,
+        pageSize: 20,
+        filters: [
+          {
+            id: 'table_name',
+            operator: 'ct',
+            value: filter,
+          },
+        ],
+        sortBy: [{ id: 'changed_on_delta_humanized' }],
+      });
+    },
+    1000,
+    [filter],
   );
 
   useEffect(() => {
@@ -131,18 +168,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     event: React.FormEvent<FormControl & FormControlProps>,
   ) => {
     const searchValue = (event.currentTarget?.value as string) ?? '';
-    fetchData({
-      pageIndex: 0,
-      pageSize: 20,
-      filters: [
-        {
-          id: 'table_name',
-          operator: 'ct',
-          value: searchValue,
-        },
-      ],
-      sortBy: [{ id: 'changed_on_delta_humanized' }],
-    });
+    setFilter(searchValue);
   };
 
   const handleChangeConfirm = () => {
@@ -218,7 +244,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
               />
             </div>
             {loading && <Loading />}
-            {resourceCollection.length !== 0 && (
+            {!loading && (
               <TableView
                 columns={TABLE_COLUMNS}
                 data={renderTableView()}
@@ -231,9 +257,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         {confirmChange && (
           <ConfirmModalStyled>
             <div className="confirm-modal-container">
-              {t(
-                'Warning! Changing the dataset may break the chart if the metadata does not exist in the target dataset',
-              )}
+              {CONFIRM_WARNING_MESSAGE}
               <div className="btn-container">
                 <Button onClick={handlerCancelConfirm}>Cancel</Button>
                 <Button
