@@ -30,6 +30,7 @@ from superset.extensions import (
     _event_logger,
     APP_DIR,
     appbuilder,
+    async_query_manager,
     cache_manager,
     celery_app,
     csrf,
@@ -127,6 +128,7 @@ class SupersetAppInitializer:
         # pylint: disable=too-many-branches
         from superset.annotation_layers.api import AnnotationLayerRestApi
         from superset.annotation_layers.annotations.api import AnnotationRestApi
+        from superset.async_events.api import AsyncEventsRestApi
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
         from superset.connectors.druid.views import (
@@ -201,6 +203,7 @@ class SupersetAppInitializer:
         #
         appbuilder.add_api(AnnotationRestApi)
         appbuilder.add_api(AnnotationLayerRestApi)
+        appbuilder.add_api(AsyncEventsRestApi)
         appbuilder.add_api(CacheRestApi)
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(CssTemplateRestApi)
@@ -498,6 +501,7 @@ class SupersetAppInitializer:
         self.configure_url_map_converters()
         self.configure_data_sources()
         self.configure_auth_provider()
+        self.configure_async_queries()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -647,6 +651,10 @@ class SupersetAppInitializer:
             csrf_exempt_list = self.config["WTF_CSRF_EXEMPT_LIST"]
             for ex in csrf_exempt_list:
                 csrf.exempt(ex)
+
+    def configure_async_queries(self) -> None:
+        if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+            async_query_manager.init_app(self.flask_app)
 
     def register_blueprints(self) -> None:
         for bp in self.config["BLUEPRINTS"]:
