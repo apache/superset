@@ -108,4 +108,5 @@ SMTP_USER = "smtp_username"
 SMTP_PORT = 25
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
 SMTP_MAIL_FROM = "insights@komoot.com"
+EMAIL_REPORTS_USER = 'admin'
 {{- end }}
