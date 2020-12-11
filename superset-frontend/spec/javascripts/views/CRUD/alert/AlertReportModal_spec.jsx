@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
@@ -70,9 +71,10 @@ fetchMock.get(chartEndpoint, {
 });
 
 async function mountAndWait(props = mockedProps) {
-  const mounted = mount(<AlertReportModal show {...props} />, {
+  const mounted = mount(<Provider store={store}><AlertReportModal show {...props} /></Provider>, {
     context: { store },
   });
+
   await waitForComponentToPaint(mounted);
 
   return mounted;

@@ -50,46 +50,46 @@ const NOTIFICATION_METHODS: NotificationMethod[] = ['Email', 'Slack'];
 
 const CONDITIONS = [
   {
-    label: '< (Smaller than)',
+    label: t('< (Smaller than)'),
     value: '<',
   },
   {
-    label: '> (Larger than)',
+    label: t('> (Larger than)'),
     value: '>',
   },
   {
-    label: '<= (Smaller or equal)',
+    label: t('<= (Smaller or equal)'),
     value: '<=',
   },
   {
-    label: '>= (Larger or equal)',
+    label: t('>= (Larger or equal)'),
     value: '>=',
   },
   {
-    label: '== (Is Equal)',
+    label: t('== (Is Equal)'),
     value: '==',
   },
   {
-    label: '!= (Is Not Equal)',
+    label: t('!= (Is Not Equal)'),
     value: '!=',
   },
 ];
 
 const RETENTION_OPTIONS = [
   {
-    label: 'None',
+    label: t('None'),
     value: 0,
   },
   {
-    label: '30 days',
+    label: t('30 days'),
     value: 30,
   },
   {
-    label: '60 days',
+    label: t('60 days'),
     value: 60,
   },
   {
-    label: '90 days',
+    label: t('90 days'),
     value: 90,
   },
 ];
@@ -976,16 +976,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   // Dropdown options
   const conditionOptions = CONDITIONS.map(condition => {
     return (
-      <Select.Option value={condition.value}>
-        {t(condition.label)}
-      </Select.Option>
+      <Select.Option value={condition.value}>{condition.label}</Select.Option>
     );
   });
 
   const retentionOptions = RETENTION_OPTIONS.map(option => {
-    return (
-      <Select.Option value={option.value}>{t(option.label)}</Select.Option>
-    );
+    return <Select.Option value={option.value}>{option.label}</Select.Option>;
   });
 
   return (
