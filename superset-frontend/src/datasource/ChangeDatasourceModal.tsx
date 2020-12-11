@@ -113,24 +113,20 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     [],
   );
 
-  useDebouncedEffect(
-    () => {
-      fetchData({
-        pageIndex: 0,
-        pageSize: 20,
-        filters: [
-          {
-            id: 'table_name',
-            operator: 'ct',
-            value: filter,
-          },
-        ],
-        sortBy: [{ id: 'changed_on_delta_humanized' }],
-      });
-    },
-    1000,
-    [filter],
-  );
+  useDebouncedEffect(() => {
+    fetchData({
+      pageIndex: 0,
+      pageSize: 20,
+      filters: [
+        {
+          id: 'table_name',
+          operator: 'ct',
+          value: filter,
+        },
+      ],
+      sortBy: [{ id: 'changed_on_delta_humanized' }],
+    });
+  }, 1000);
 
   useEffect(() => {
     const onEnterModal = async () => {
