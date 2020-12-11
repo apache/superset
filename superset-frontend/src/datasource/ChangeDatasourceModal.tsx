@@ -30,7 +30,7 @@ import StyledModal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import Dataset from 'src/types/Dataset';
-import getClientErrorObject from '../utils/getClientErrorObject';
+import { getClientErrorObject } from '../utils/getClientErrorObject';
 import Loading from '../components/Loading';
 import withToasts from '../messageToasts/enhancers/withToasts';
 
@@ -73,8 +73,8 @@ const CHANGE_WARNING_MSG = t(
     'on columns or metadata that does not exist in the target dataset',
 );
 
-const useDebouncedEffect = (effect, delay, deps) => {
-  const callback = useCallback(effect, deps);
+const useDebouncedEffect = (effect: any, delay: number) => {
+  const callback = useCallback(effect, [effect]);
 
   useEffect(() => {
     const handler = setTimeout(() => {

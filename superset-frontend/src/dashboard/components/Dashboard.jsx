@@ -86,7 +86,6 @@ class Dashboard extends React.PureComponent {
   constructor(props) {
     super(props);
     this.appliedFilters = props.activeFilters || {};
-
     this.onVisibilityChange = this.onVisibilityChange.bind(this);
   }
 

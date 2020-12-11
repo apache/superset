@@ -51,8 +51,8 @@ describe('DatasourceEditor', () => {
   let isFeatureEnabledMock;
 
   beforeEach(() => {
-    el = <DatasourceEditor {...props} />;
-    wrapper = shallow(el, { context: { store } }).dive();
+    el = <DatasourceEditor {...props} store={store} />;
+    wrapper = shallow(el).dive();
     inst = wrapper.instance();
   });
 

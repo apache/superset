@@ -20,6 +20,7 @@ import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
+import { Provider } from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 import DatasetList from 'src/views/CRUD/data/dataset/DatasetList';
@@ -74,9 +75,11 @@ fetchMock.get(databaseEndpoint, {
 });
 
 async function mountAndWait(props) {
-  const mounted = mount(<DatasetList {...props} user={mockUser} />, {
-    context: { store },
-  });
+  const mounted = mount(
+    <Provider store={store}>
+      <DatasetList {...props} user={mockUser} />
+    </Provider>,
+  );
   await waitForComponentToPaint(mounted);
 
   return mounted;

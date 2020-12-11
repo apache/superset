@@ -17,9 +17,11 @@
  * under the License.
  */
 import React from 'react';
+import * as ReactAll from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import sinon from 'sinon';
+import { Subscription } from 'react-redux';
 import { shallow } from 'enzyme';
 
 import getInitialState from 'src/explore/reducers/getInitialState';
@@ -35,6 +37,13 @@ describe('ExploreViewContainer', () => {
   let store;
   let wrapper;
   let isFeatureEnabledMock;
+
+  jest.spyOn(ReactAll, 'useContext').mockImplementation(() => {
+    return {
+      store,
+      subscription: new Subscription(store),
+    };
+  });
 
   beforeAll(() => {
     isFeatureEnabledMock = jest
@@ -57,10 +66,11 @@ describe('ExploreViewContainer', () => {
   });
 
   beforeEach(() => {
-    wrapper = shallow(<ExploreViewContainer />, {
-      context: { store },
+    wrapper = shallow(<ExploreViewContainer store={store} />, {
       disableLifecycleMethods: true,
-    }).dive();
+    })
+      .dive()
+      .dive();
   });
 
   it('renders', () => {

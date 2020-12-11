@@ -33,9 +33,9 @@ describe('URLShortLinkButton', () => {
   function setup() {
     const mockStore = configureStore([]);
     const store = mockStore({});
-    return shallow(<URLShortLinkButton {...defaultProps} />, {
-      context: { store },
-    }).dive();
+    return shallow(
+      <URLShortLinkButton store={store} {...defaultProps} />,
+    ).dive();
   }
 
   it('renders OverlayTrigger', () => {

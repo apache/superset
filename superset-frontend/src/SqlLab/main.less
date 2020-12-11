@@ -310,8 +310,8 @@ div.Workspace {
   padding: 10px;
 
   .schemaPane {
-    flex: 0 0 300px;
-    max-width: 300px;
+    flex: 0 0 400px;
+    max-width: 400px;
     transition: transform @timing-normal ease-in-out;
   }
 
@@ -451,6 +451,24 @@ div.tablePopover {
 
   .ws-el-controls {
     margin-right: -0.3em;
+    display: flex;
+  }
+
+  .header-container {
+    display: flex;
+
+    .table-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 16px;
+    }
+
+    .header-right-side {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+    }
   }
 }
 
