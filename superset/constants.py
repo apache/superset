@@ -78,10 +78,12 @@ MODEL_VIEW_RW_METHOD_PERMISSION_MAP = {
     "api_update": "write",
     "delete": "write",
     "download": "read",
+    "download_dashboards": "read",
     "edit": "write",
     "list": "read",
     "muldelete": "write",
     "show": "read",
+    "new": "write",
 }
 
 MODEL_API_RW_METHOD_PERMISSION_MAP = {
@@ -95,4 +97,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "post": "write",
     "put": "write",
     "related": "read",
+    "favorite_status": "read",
+    "thumbnail": "read",
+    "import_": "write",
 }
