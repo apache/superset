@@ -40,6 +40,11 @@ from superset.migrations.shared.security_converge import (
 
 NEW_PVMS = {"Dataset": ("can_read", "can_write",)}
 PVM_MAP = {
+    Pvm("SqlMetricInlineView", "can_add"): (Pvm("Dataset", "can_write"),),
+    Pvm("SqlMetricInlineView", "can_delete"): (Pvm("Dataset", "can_write"),),
+    Pvm("SqlMetricInlineView", "can_edit"): (Pvm("Dataset", "can_write"),),
+    Pvm("SqlMetricInlineView", "can_list"): (Pvm("Dataset", "can_read"),),
+    Pvm("SqlMetricInlineView", "can_show"): (Pvm("Dataset", "can_read"),),
     Pvm("TableColumnInlineView", "can_add"): (Pvm("Dataset", "can_write"),),
     Pvm("TableColumnInlineView", "can_delete"): (Pvm("Dataset", "can_write"),),
     Pvm("TableColumnInlineView", "can_edit"): (Pvm("Dataset", "can_write"),),
