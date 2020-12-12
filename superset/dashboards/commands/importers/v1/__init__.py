@@ -25,7 +25,10 @@ from superset.charts.commands.importers.v1.utils import import_chart
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.dashboards.commands.exceptions import DashboardImportError
-from superset.dashboards.commands.importers.v1.utils import import_dashboard
+from superset.dashboards.commands.importers.v1.utils import (
+    import_dashboard,
+    update_id_refs,
+)
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.commands.importers.v1.utils import import_database
@@ -128,8 +131,8 @@ class ImportDashboardsCommand(ImportModelsCommand):
         dashboard_chart_ids: List[Tuple[int, int]] = []
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
+                config = update_id_refs(config, chart_ids)
                 dashboard = import_dashboard(session, config, overwrite=overwrite)
-
                 for uuid in find_chart_uuids(config["position"]):
                     chart_id = chart_ids[uuid]
                     if (dashboard.id, chart_id) not in existing_relationships:
