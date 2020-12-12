@@ -60,7 +60,7 @@ def update_id_refs(config: Dict[str, Any], chart_ids: Dict[str, int]) -> Dict[st
         ]
 
     if "filter_scopes" in metadata:
-        # in filter_scopes the key is a chart ID as a string; we nede to udpate
+        # in filter_scopes the key is the chart ID as a string; we need to udpate
         # them to be the new ID as a string:
         metadata["filter_scopes"] = {
             str(id_map[int(old_id)]): columns
