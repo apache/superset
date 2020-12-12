@@ -488,8 +488,9 @@ dashboard_config = {
         },
     },
     "metadata": {
-        "timed_refresh_immune_slices": [],
-        "expanded_slices": {},
+        "timed_refresh_immune_slices": [83],
+        "filter_scopes": {"83": {"region": {"scope": ["ROOT_ID"], "immune": [83]}},},
+        "expanded_slices": {"83": True},
         "refresh_frequency": 0,
         "default_filters": "{}",
         "color_scheme": None,

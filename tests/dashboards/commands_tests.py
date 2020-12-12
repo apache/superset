@@ -263,6 +263,12 @@ class TestImportDashboardsCommand(SupersetTestCase):
         dashboard = (
             db.session.query(Dashboard).filter_by(uuid=dashboard_config["uuid"]).one()
         )
+
+        assert len(dashboard.slices) == 1
+        chart = dashboard.slices[0]
+        assert str(chart.uuid) == chart_config["uuid"]
+        new_chart_id = chart.id
+
         assert dashboard.dashboard_title == "Test dash"
         assert dashboard.description is None
         assert dashboard.css == ""
@@ -272,7 +278,7 @@ class TestImportDashboardsCommand(SupersetTestCase):
                 "children": [],
                 "id": "CHART-SVAlICPOSJ",
                 "meta": {
-                    "chartId": 83,
+                    "chartId": new_chart_id,
                     "height": 50,
                     "sliceName": "Number of California Births",
                     "uuid": "0c23747a-6528-4629-97bf-e4b78d3b9df1",
@@ -305,16 +311,17 @@ class TestImportDashboardsCommand(SupersetTestCase):
         assert json.loads(dashboard.json_metadata) == {
             "color_scheme": None,
             "default_filters": "{}",
-            "expanded_slices": {},
+            "expanded_slices": {str(new_chart_id): True},
+            "filter_scopes": {
+                str(new_chart_id): {
+                    "region": {"scope": ["ROOT_ID"], "immune": [new_chart_id]}
+                },
+            },
             "import_time": 1604342885,
             "refresh_frequency": 0,
             "remote_id": 7,
-            "timed_refresh_immune_slices": [],
+            "timed_refresh_immune_slices": [new_chart_id],
         }
-
-        assert len(dashboard.slices) == 1
-        chart = dashboard.slices[0]
-        assert str(chart.uuid) == chart_config["uuid"]
 
         dataset = chart.table
         assert str(dataset.uuid) == dataset_config["uuid"]
