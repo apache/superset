@@ -102,6 +102,7 @@ export interface ImportModelsModalProps {
   resourceLabel: string;
   icon: React.ReactNode;
   passwordsNeededMessage: string;
+  confirmOverwriteMessage: string;
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
   onModelImport: () => void;
@@ -116,6 +117,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   resourceLabel,
   icon,
   passwordsNeededMessage,
+  confirmOverwriteMessage,
   addDangerToast,
   addSuccessToast,
   onModelImport,
@@ -124,9 +126,14 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   passwordFields = [],
   setPasswordFields = () => {},
 }) => {
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [passwords, setPasswords] = useState<Record<string, string>>({});
+  const [needsOverwriteConfirm, setNeedsOverwriteConfirm] = useState<boolean>(
+    false,
+  );
+  const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const clearModal = () => {
@@ -144,13 +151,17 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   };
 
   const {
-    state: { passwordsNeeded },
+    state: { alreadyExists, passwordsNeeded },
     importResource,
   } = useImportResource(resourceName, resourceLabel, handleErrorMsg);
 
   useEffect(() => {
     setPasswordFields(passwordsNeeded);
   }, [passwordsNeeded, setPasswordFields]);
+
+  useEffect(() => {
+    setNeedsOverwriteConfirm(alreadyExists.length > 0);
+  }, [alreadyExists]);
 
   // Functions
   const hide = () => {
@@ -163,7 +174,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       return;
     }
 
-    importResource(uploadFile, passwords).then(result => {
+    importResource(uploadFile, passwords, confirmedOverwrite).then(result => {
       if (result) {
         addSuccessToast(t('The import was successful'));
         clearModal();
@@ -175,6 +186,11 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   const changeFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { files } = event.target as HTMLInputElement;
     setUploadFile((files && files[0]) || null);
+  };
+
+  const confirmOverwrite = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const targetValue = (event.currentTarget?.value as string) ?? '';
+    setConfirmedOverwrite(targetValue.toUpperCase() === t('OVERWRITE'));
   };
 
   const renderPasswordFields = () => {
@@ -209,6 +225,31 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     );
   };
 
+  const renderOverwriteConfirmation = () => {
+    if (alreadyExists.length === 0) {
+      return null;
+    }
+
+    return (
+      <>
+        <StyledInputContainer>
+          <div>{confirmOverwriteMessage}</div>
+          <div className="control-label">
+            <label htmlFor="overwrite">
+              {t('Type "%s" to confirm', t('OVERWRITE'))}
+            </label>
+          </div>
+          <input
+            data-test="overwrite-modal-input"
+            id="overwrite"
+            type="text"
+            onChange={confirmOverwrite}
+          />
+        </StyledInputContainer>
+      </>
+    );
+  };
+
   // Show/hide
   if (isHidden && show) {
     setIsHidden(false);
@@ -218,10 +259,13 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     <Modal
       name="model"
       className="import-model-modal"
-      disablePrimaryButton={uploadFile === null}
+      disablePrimaryButton={
+        uploadFile === null || (needsOverwriteConfirm && !confirmedOverwrite)
+      }
       onHandledPrimaryAction={onUpload}
       onHide={hide}
-      primaryButtonName={t('Import')}
+      primaryButtonName={needsOverwriteConfirm ? t('Overwrite') : t('Import')}
+      primaryButtonType={needsOverwriteConfirm ? 'danger' : 'primary'}
       width="750px"
       show={show}
       title={
@@ -249,6 +293,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
         />
       </StyledInputContainer>
       {renderPasswordFields()}
+      {renderOverwriteConfirmation()}
     </Modal>
   );
 };

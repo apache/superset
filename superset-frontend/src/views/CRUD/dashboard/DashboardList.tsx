@@ -543,6 +543,9 @@ function DashboardList(props: DashboardListProps) {
         resourceLabel={t('dashboard')}
         icon={<StyledIcon name="nav-dashboard" />}
         passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
+        confirmOverwriteMessage={t(
+          'One or more dashboards to be imported already exist.',
+        )}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         onModelImport={handleDashboardImport}
