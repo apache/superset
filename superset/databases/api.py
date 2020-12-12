@@ -744,11 +744,19 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         ---
         post:
           requestBody:
+            required: true
             content:
-              application/zip:
+              multipart/form-data:
                 schema:
-                  type: string
-                  format: binary
+                  type: object
+                  properties:
+                    formData:
+                      type: string
+                      format: binary
+                    passwords:
+                      type: string
+                    overwrite:
+                      type: bool
           responses:
             200:
               description: Database import result
@@ -782,8 +790,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             if "passwords" in request.form
             else None
         )
+        overwrite = request.form.get("overwrite") == "true"
 
-        command = ImportDatabasesCommand(contents, passwords=passwords)
+        command = ImportDatabasesCommand(
+            contents, passwords=passwords, overwrite=overwrite
+        )
         try:
             command.run()
             return self.response(200, message="OK")

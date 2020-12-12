@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -86,6 +87,11 @@ class UpdateReportScheduleCommand(BaseReportScheduleCommand):
 
         # Validate chart or dashboard relations
         self.validate_chart_dashboard(exceptions, update=True)
+
+        if "validator_config_json" in self._properties:
+            self._properties["validator_config_json"] = json.dumps(
+                self._properties["validator_config_json"]
+            )
 
         # Validate/Populate owner
         if owner_ids is None:

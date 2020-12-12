@@ -29,6 +29,7 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import Menu from 'src/components/Menu/Menu';
 import FlashProvider from 'src/components/FlashProvider';
 import AlertList from 'src/views/CRUD/alert/AlertList';
+import ExecutionLog from 'src/views/CRUD/alert/ExecutionLog';
 import AnnotationLayersList from 'src/views/CRUD/annotationlayers/AnnotationLayersList';
 import AnnotationList from 'src/views/CRUD/annotation/AnnotationList';
 import ChartList from 'src/views/CRUD/chart/ChartList';
@@ -133,6 +134,16 @@ const App = () => (
               <Route path="/report/list/">
                 <ErrorBoundary>
                   <AlertList user={user} isReportEnabled />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/alert/:alertId/log">
+                <ErrorBoundary>
+                  <ExecutionLog user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/report/:alertId/log">
+                <ErrorBoundary>
+                  <ExecutionLog user={user} isReportEnabled />
                 </ErrorBoundary>
               </Route>
             </Switch>

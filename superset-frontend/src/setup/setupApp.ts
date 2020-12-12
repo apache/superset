@@ -19,7 +19,8 @@
 /* eslint global-require: 0 */
 import $ from 'jquery';
 import { SupersetClient } from '@superset-ui/core';
-import getClientErrorObject, {
+import {
+  getClientErrorObject,
   ClientErrorObject,
 } from '../utils/getClientErrorObject';
 import setupErrorMessages from './setupErrorMessages';
