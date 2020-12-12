@@ -21,15 +21,8 @@
 
 import React from 'react';
 import { t, validateNonEmpty } from '@superset-ui/core';
-import { ColumnOption } from '@superset-ui/chart-controls';
+import { sharedControls } from '@superset-ui/chart-controls';
 import { D3_FORMAT_OPTIONS, columnChoices, PRIMARY_COLOR } from './controls';
-
-const timeColumnOption = {
-  verbose_name: 'Time',
-  column_name: '__timestamp',
-  // eslint-disable-next-line no-useless-concat
-  description: t('A reference to the [Time] configuration, taking granularity into ' + 'account'),
-};
 
 const DEFAULT_VIEWPORT = {
   longitude: 6.85236157047845,
@@ -37,35 +30,6 @@ const DEFAULT_VIEWPORT = {
   zoom: 1,
   bearing: 0,
   pitch: 0,
-};
-
-const groupByControl = {
-  type: 'SelectControl',
-  multi: true,
-  freeForm: true,
-  label: t('Group by'),
-  default: [],
-  includeTime: false,
-  description: t('One or many controls to group by'),
-  optionRenderer: c => <ColumnOption showType column={c} />,
-  valueRenderer: c => <ColumnOption column={c} />,
-  valueKey: 'column_name',
-  allowAll: true,
-  filterOption: (opt, text) =>
-    (opt.column_name && opt.column_name.toLowerCase().includes(text.toLowerCase())) ||
-    (opt.verbose_name && opt.verbose_name.toLowerCase().includes(text.toLowerCase())),
-  promptTextCreator: label => label,
-  mapStateToProps: (state, control) => {
-    const newState = {};
-    if (state.datasource) {
-      newState.options = state.datasource.columns.filter(c => c.groupby);
-      if (control && control.includeTime) {
-        newState.options.push(timeColumnOption);
-      }
-    }
-    return newState;
-  },
-  commaChoosesOption: false,
 };
 
 const sandboxUrl =
@@ -129,7 +93,7 @@ export const autozoom = {
 export const dimension = {
   name: 'dimension',
   config: {
-    ...groupByControl,
+    ...sharedControls.groupby,
     label: t('Dimension'),
     description: t('Select a dimension'),
     multi: false,
@@ -140,7 +104,7 @@ export const dimension = {
 export const jsColumns = {
   name: 'js_columns',
   config: {
-    ...groupByControl,
+    ...sharedControls.groupby,
     label: t('Extra data for JS'),
     default: [],
     description: t('List of extra columns made available in Javascript functions'),
