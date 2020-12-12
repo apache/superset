@@ -582,6 +582,9 @@ function ChartList(props: ChartListProps) {
         resourceLabel={t('chart')}
         icon={<StyledIcon name="nav-charts" />}
         passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
+        confirmOverwriteMessage={t(
+          'One or more charts to be imported already exist.',
+        )}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         onModelImport={handleChartImport}

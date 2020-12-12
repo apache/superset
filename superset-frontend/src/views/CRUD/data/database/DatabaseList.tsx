@@ -438,6 +438,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         resourceLabel={t('database')}
         icon={<StyledIcon name="database" />}
         passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
+        confirmOverwriteMessage={t(
+          'One or more databases to be imported already exist.',
+        )}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         onModelImport={handleDatabaseImport}
