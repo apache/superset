@@ -320,6 +320,7 @@ export function useSingleViewResource<D extends object = any>(
 interface ImportResourceState {
   loading: boolean;
   passwordsNeeded: string[];
+  alreadyExists: string[];
 }
 
 export function useImportResource(
@@ -330,24 +331,51 @@ export function useImportResource(
   const [state, setState] = useState<ImportResourceState>({
     loading: false,
     passwordsNeeded: [],
+    alreadyExists: [],
   });
 
   function updateState(update: Partial<ImportResourceState>) {
     setState(currentState => ({ ...currentState, ...update }));
   }
 
-  const needsPassword = (errMsg: Record<string, Record<string, string[]>>) =>
-    Object.values(errMsg).every(validationErrors =>
-      Object.entries(validationErrors as Object).every(
-        ([field, messages]) =>
-          field === '_schema' &&
-          messages.length === 1 &&
-          messages[0] === 'Must provide a password for the database',
-      ),
+  /* eslint-disable no-underscore-dangle */
+  const isNeedsPassword = (payload: any) =>
+    typeof payload === 'object' &&
+    Array.isArray(payload._schema) &&
+    payload._schema.length === 1 &&
+    payload._schema[0] === 'Must provide a password for the database';
+
+  const isAlreadyExists = (payload: any) =>
+    typeof payload === 'string' &&
+    payload.includes('already exists and `overwrite=true` was not passed');
+
+  const getPasswordsNeeded = (
+    errMsg: Record<string, Record<string, string[]>>,
+  ) =>
+    Object.entries(errMsg)
+      .filter(([, validationErrors]) => isNeedsPassword(validationErrors))
+      .map(([fileName]) => fileName);
+
+  const getAlreadyExists = (errMsg: Record<string, Record<string, string[]>>) =>
+    Object.entries(errMsg)
+      .filter(([, validationErrors]) => isAlreadyExists(validationErrors))
+      .map(([fileName]) => fileName);
+
+  const hasTerminalValidation = (
+    errMsg: Record<string, Record<string, string[]>>,
+  ) =>
+    Object.values(errMsg).some(
+      validationErrors =>
+        !isNeedsPassword(validationErrors) &&
+        !isAlreadyExists(validationErrors),
     );
 
   const importResource = useCallback(
-    (bundle: File, databasePasswords: Record<string, string> = {}) => {
+    (
+      bundle: File,
+      databasePasswords: Record<string, string> = {},
+      overwrite = false,
+    ) => {
       // Set loading state
       updateState({
         loading: true,
@@ -362,6 +390,12 @@ export function useImportResource(
       if (databasePasswords) {
         formData.append('passwords', JSON.stringify(databasePasswords));
       }
+      /* If the imported model already exists the user needs to confirm
+       * that they want to overwrite it.
+       */
+      if (overwrite) {
+        formData.append('overwrite', 'true');
+      }
 
       return SupersetClient.post({
         endpoint: `/api/v1/${resourceName}/import/`,
@@ -370,25 +404,31 @@ export function useImportResource(
         .then(() => true)
         .catch(response =>
           getClientErrorObject(response).then(error => {
-            /* When importing a bundle, if all validation errors are because
-             * the databases need passwords we return a list of the database
-             * files so that the user can type in the passwords and resubmit
-             * the file.
-             */
             const errMsg = error.message || error.error;
-            if (typeof errMsg !== 'string' && needsPassword(errMsg)) {
-              updateState({
-                passwordsNeeded: Object.keys(errMsg),
-              });
+            if (typeof errMsg === 'string') {
+              handleErrorMsg(
+                t(
+                  'An error occurred while importing %s: %s',
+                  resourceLabel,
+                  errMsg,
+                ),
+              );
               return false;
             }
-            handleErrorMsg(
-              t(
-                'An error occurred while importing %s: %s',
-                resourceLabel,
-                JSON.stringify(errMsg),
-              ),
-            );
+            if (hasTerminalValidation(errMsg)) {
+              handleErrorMsg(
+                t(
+                  'An error occurred while importing %s: %s',
+                  resourceLabel,
+                  JSON.stringify(errMsg),
+                ),
+              );
+            } else {
+              updateState({
+                passwordsNeeded: getPasswordsNeeded(errMsg),
+                alreadyExists: getAlreadyExists(errMsg),
+              });
+            }
             return false;
           }),
         )
@@ -399,13 +439,7 @@ export function useImportResource(
     [],
   );
 
-  return {
-    state: {
-      loading: state.loading,
-      passwordsNeeded: state.passwordsNeeded,
-    },
-    importResource,
-  };
+  return { state, importResource };
 }
 
 enum FavStarClassName {
