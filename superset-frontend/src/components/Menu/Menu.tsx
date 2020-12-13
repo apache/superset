@@ -99,11 +99,7 @@ const StyledHeader = styled.header`
     padding-left: 12px;
   }
 
-  .dropdown-menu {
-    transform: translateY(3px);
-  }
-
-  .navbar-inverse .navbar-nav > li > a {
+  .navbar-nav > li > a {
     color: ${({ theme }) => theme.colors.grayscale.dark1};
     border-bottom: none;
     &:focus {
@@ -178,10 +174,12 @@ export function Menu({
         <Nav className="navbar-right">
           {!navbarRight.user_is_anonymous && <NewMenu />}
           {settings && settings.length > 0 && (
-            <NavDropdown id="settings-dropdown" title={t('Settings')}
-              onMouseEnter = { () => setDropdownOpen(true) }
-              onMouseLeave = { () => setDropdownOpen(false) }
-              open={ dropdownOpen }
+            <NavDropdown
+              id="settings-dropdown"
+              title={t('Settings')}
+              onMouseEnter={() => setDropdownOpen(true)}
+              onMouseLeave={() => setDropdownOpen(false)}
+              open={dropdownOpen}
             >
               <DropdownMenu>
                 {settings.map((section, index) => [

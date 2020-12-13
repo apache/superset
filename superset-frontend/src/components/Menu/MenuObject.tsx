@@ -55,12 +55,13 @@ export default function MenuObject({
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
-    <NavDropdown 
-        id={`menu-dropdown-${label}`} 
-        title={label} 
-        onMouseEnter = { () => setDropdownOpen(true) }
-        onMouseLeave = { () => setDropdownOpen(false) }
-        open={ dropdownOpen }>
+    <NavDropdown
+      id={`menu-dropdown-${label}`}
+      title={label}
+      onMouseEnter={() => setDropdownOpen(true)}
+      onMouseLeave={() => setDropdownOpen(false)}
+      open={dropdownOpen}
+    >
       <Menu>
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
           if (typeof child === 'string' && child === '-') {

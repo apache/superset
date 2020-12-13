@@ -41,9 +41,9 @@ export default function LanguagePicker({
 
   return (
     <NavDropdown
-      onMouseEnter = { () => setDropdownOpen(true) }
-      onMouseLeave = { () => setDropdownOpen(false) }
-      open={ dropdownOpen }
+      onMouseEnter={() => setDropdownOpen(true)}
+      onMouseLeave={() => setDropdownOpen(false)}
+      open={dropdownOpen}
       id="locale-dropdown"
       title={
         <span className="f16">
