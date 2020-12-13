@@ -99,7 +99,7 @@ const StyledHeader = styled.header`
     padding-left: 12px;
   }
 
-  .navbar-nav > li > a {
+  .navbar-inverse .navbar-nav > li > a {
     color: ${({ theme }) => theme.colors.grayscale.dark1};
     border-bottom: none;
     &:focus {
