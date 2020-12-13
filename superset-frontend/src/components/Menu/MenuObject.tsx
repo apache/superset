@@ -44,6 +44,8 @@ export default function MenuObject({
   url,
   index,
 }: MenuObjectProps) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
   if (url) {
     return (
       <NavItem eventKey={index} href={url}>
@@ -51,8 +53,6 @@ export default function MenuObject({
       </NavItem>
     );
   }
-
-  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
     <NavDropdown
