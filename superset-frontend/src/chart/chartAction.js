@@ -362,7 +362,6 @@ export function exploreJSON(
     const chartDataRequestCaught = chartDataRequest
       .then(response => {
         const queriesResponse = response.result;
-        
         if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
           // deal with getChartDataRequest transforming the response data
           const result = 'result' in response ? response.result[0] : response;
