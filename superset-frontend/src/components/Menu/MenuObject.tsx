@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { NavItem } from 'react-bootstrap';
 import { Menu } from 'src/common/components';
 import NavDropdown from '../NavDropdown';
@@ -52,8 +52,15 @@ export default function MenuObject({
     );
   }
 
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
   return (
-    <NavDropdown id={`menu-dropdown-${label}`} title={label}>
+    <NavDropdown 
+        id={`menu-dropdown-${label}`} 
+        title={label} 
+        onMouseEnter = { () => setDropdownOpen(true) }
+        onMouseLeave = { () => setDropdownOpen(false) }
+        open={ dropdownOpen }>
       <Menu>
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
           if (typeof child === 'string' && child === '-') {
