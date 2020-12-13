@@ -30,6 +30,7 @@ import StyledModal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import Dataset from 'src/types/Dataset';
+import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { getClientErrorObject } from '../utils/getClientErrorObject';
 import Loading from '../components/Loading';
 import withToasts from '../messageToasts/enhancers/withToasts';
@@ -73,20 +74,6 @@ const CHANGE_WARNING_MSG = t(
     'on columns or metadata that does not exist in the target dataset',
 );
 
-const useDebouncedEffect = (effect: any, delay: number) => {
-  const callback = useCallback(effect, [effect]);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      callback();
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [callback, delay]);
-};
-
 const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   addDangerToast,
   addSuccessToast,
@@ -114,18 +101,20 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   );
 
   useDebouncedEffect(() => {
-    fetchData({
-      pageIndex: 0,
-      pageSize: 20,
-      filters: [
-        {
-          id: 'table_name',
-          operator: 'ct',
-          value: filter,
-        },
-      ],
-      sortBy: [{ id: 'changed_on_delta_humanized' }],
-    });
+    if (filter) {
+      fetchData({
+        pageIndex: 0,
+        pageSize: 20,
+        filters: [
+          {
+            id: 'table_name',
+            operator: 'ct',
+            value: filter,
+          },
+        ],
+        sortBy: [{ id: 'changed_on_delta_humanized' }],
+      });
+    }
   }, 1000);
 
   useEffect(() => {
