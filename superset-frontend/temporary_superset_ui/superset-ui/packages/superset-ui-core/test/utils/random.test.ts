@@ -16,30 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { seedRandom } from '@superset-ui/core';
-import loadMap from '../../../../../../plugins/plugin-chart-choropleth-map/src/chart/loadMap';
 
-const FRUITS = ['apple', 'banana', 'grape'];
+import { seed, seedRandom } from '../../src';
 
-export type FakeMapData = {
-  key: string;
-  favoriteFruit: string;
-  numStudents: number;
-}[];
+describe('random', () => {
+  it('seeded random should return the same value', () => {
+    expect(seedRandom()).toEqual(0.7237953289342797);
+  });
 
-/**
- * Generate mock data for the given map
- * Output is a promise of an array
- * { key, favoriteFruit, numStudents }[]
- * @param map map name
- */
-export default async function generateFakeMapData(map: string) {
-  const { object, metadata } = await loadMap(map);
-  return object.features
-    .map(f => metadata.keyAccessor(f))
-    .map(key => ({
-      key,
-      favoriteFruit: FRUITS[Math.round(seedRandom() * 2)],
-      numStudents: Math.round(seedRandom() * 100),
-    }));
-}
+  it('should allow update seed', () => {
+    const a = seed('abc');
+    const b = seed('abc');
+    expect(a()).toEqual(b());
+  });
+});

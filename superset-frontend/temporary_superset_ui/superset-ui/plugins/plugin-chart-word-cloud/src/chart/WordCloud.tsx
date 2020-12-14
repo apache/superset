@@ -1,13 +1,13 @@
 import React from 'react';
 import cloudLayout, { Word } from 'd3-cloud';
 import { PlainObject, createEncoderFactory, DeriveEncoding } from 'encodable';
-import { SupersetThemeProps, withTheme } from '@superset-ui/core';
+import { SupersetThemeProps, withTheme, seedRandom } from '@superset-ui/core';
 
 export const ROTATION = {
   flat: () => 0,
   // this calculates a random rotation between -90 and 90 degrees.
-  random: () => Math.floor(Math.random() * 6 - 3) * 30,
-  square: () => Math.floor(Math.random() * 2) * 90,
+  random: () => Math.floor(seedRandom() * 6 - 3) * 30,
+  square: () => Math.floor(seedRandom() * 2) * 90,
 };
 
 export type RotationType = keyof typeof ROTATION;
