@@ -97,7 +97,9 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
 }) => {
   const [filter, setFilter] = useState<any>(undefined);
   const [confirmChange, setConfirmChange] = useState(false);
-  const [confirmedDataset, setConfirmedDataset] = useState<Datasource>(undefined);
+  const [confirmedDataset, setConfirmedDataset] = useState<Datasource>(
+    undefined,
+  );
   let searchRef = useRef<HTMLInputElement>(null);
 
   const {
