@@ -416,6 +416,7 @@ class SqlEditor extends React.PureComponent {
   }
 
   renderDropdown() {
+    const qe = this.props.queryEditor;
     const menu = (
       <Menu onClick={this.handleMenuClick}>
         <Menu.Item>
@@ -426,7 +427,14 @@ class SqlEditor extends React.PureComponent {
             onChange={this.handleToggleAutocompleteEnabled}
           />{' '}
         </Menu.Item>
-        <Menu.Item>Set Parameters</Menu.Item>
+        <Menu.Item>
+          <TemplateParamsEditor
+            language="json"
+            onChange={params => {
+              this.props.actions.queryEditorSetTemplateParams(qe, params);
+            }}
+            code={qe.templateParams}
+          /></Menu.Item>
         <Menu.Item>Schedule Run</Menu.Item>
       </Menu>
     );
@@ -589,21 +597,6 @@ class SqlEditor extends React.PureComponent {
           <Dropdown overlay={this.renderDropdown()} arrow>
             <Icon name="more-horiz" />
           </Dropdown>
-          <Button
-            data-test="autocomplete"
-            buttonSize="small"
-            onClick={this.handleToggleAutocompleteEnabled}
-          >
-            <Checkbox checked={this.state.autocompleteEnabled} />{' '}
-            {t('Autocomplete')}
-          </Button>{' '}
-          <TemplateParamsEditor
-            language="json"
-            onChange={params => {
-              this.props.actions.queryEditorSetTemplateParams(qe, params);
-            }}
-            code={qe.templateParams}
-          />
           {limitWarning}
           {this.props.latestQuery && (
             <Timer
