@@ -362,113 +362,126 @@ function ChartList(props: ChartListProps) {
         hidden: !canEdit && !canDelete,
       },
     ],
-    [canEdit, canDelete, canExport, favoriteStatus],
+    [
+      canEdit,
+      canDelete,
+      saveFavoriteStatus,
+      favoriteStatus,
+      canExport,
+      addSuccessToast,
+      addDangerToast,
+      refreshData,
+      openChartEditModal,
+    ],
   );
 
-  const filters: Filters = [
-    {
-      Header: t('Owner'),
-      id: 'owners',
-      input: 'select',
-      operator: FilterOperators.relationManyMany,
-      unfilteredLabel: 'All',
-      fetchSelects: createFetchRelated(
-        'chart',
-        'owners',
-        createErrorHandler(errMsg =>
-          addDangerToast(
-            t(
-              'An error occurred while fetching chart owners values: %s',
-              errMsg,
+  const filters: Filters = useMemo(
+    () => [
+      {
+        Header: t('Owner'),
+        id: 'owners',
+        input: 'select',
+        operator: FilterOperators.relationManyMany,
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'chart',
+          'owners',
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t(
+                'An error occurred while fetching chart owners values: %s',
+                errMsg,
+              ),
             ),
           ),
+          props.user.userId,
         ),
-        props.user.userId,
-      ),
-      paginate: true,
-    },
-    {
-      Header: t('Created By'),
-      id: 'created_by',
-      input: 'select',
-      operator: FilterOperators.relationOneMany,
-      unfilteredLabel: 'All',
-      fetchSelects: createFetchRelated(
-        'chart',
-        'created_by',
-        createErrorHandler(errMsg =>
-          addDangerToast(
-            t(
-              'An error occurred while fetching chart created by values: %s',
-              errMsg,
+        paginate: true,
+      },
+      {
+        Header: t('Created By'),
+        id: 'created_by',
+        input: 'select',
+        operator: FilterOperators.relationOneMany,
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'chart',
+          'created_by',
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t(
+                'An error occurred while fetching chart created by values: %s',
+                errMsg,
+              ),
             ),
           ),
+          props.user.userId,
         ),
-        props.user.userId,
-      ),
-      paginate: true,
-    },
-    {
-      Header: t('Viz Type'),
-      id: 'viz_type',
-      input: 'select',
-      operator: FilterOperators.equals,
-      unfilteredLabel: 'All',
-      selects: registry
-        .keys()
-        .map(k => ({ label: registry.get(k)?.name || k, value: k }))
-        .sort((a, b) => {
-          if (!a.label || !b.label) {
+        paginate: true,
+      },
+      {
+        Header: t('Viz Type'),
+        id: 'viz_type',
+        input: 'select',
+        operator: FilterOperators.equals,
+        unfilteredLabel: 'All',
+        selects: registry
+          .keys()
+          .map(k => ({ label: registry.get(k)?.name || k, value: k }))
+          .sort((a, b) => {
+            if (!a.label || !b.label) {
+              return 0;
+            }
+
+            if (a.label > b.label) {
+              return 1;
+            }
+            if (a.label < b.label) {
+              return -1;
+            }
+
             return 0;
-          }
-
-          if (a.label > b.label) {
-            return 1;
-          }
-          if (a.label < b.label) {
-            return -1;
-          }
-
-          return 0;
-        }),
-    },
-    {
-      Header: t('Dataset'),
-      id: 'datasource_id',
-      input: 'select',
-      operator: FilterOperators.equals,
-      unfilteredLabel: 'All',
-      fetchSelects: createFetchDatasets(
-        createErrorHandler(errMsg =>
-          addDangerToast(
-            t(
-              'An error occurred while fetching chart dataset values: %s',
-              errMsg,
+          }),
+      },
+      {
+        Header: t('Dataset'),
+        id: 'datasource_id',
+        input: 'select',
+        operator: FilterOperators.equals,
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchDatasets(
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t(
+                'An error occurred while fetching chart dataset values: %s',
+                errMsg,
+              ),
             ),
           ),
         ),
-      ),
-      paginate: false,
-    },
-    {
-      Header: t('Favorite'),
-      id: 'id',
-      urlDisplay: 'favorite',
-      input: 'select',
-      operator: FilterOperators.chartIsFav,
-      unfilteredLabel: 'Any',
-      selects: [
-        { label: t('Yes'), value: true },
-        { label: t('No'), value: false },
-      ],
-    },
-    {
-      Header: t('Search'),
-      id: 'slice_name',
-      input: 'search',
-      operator: FilterOperators.chartAllText,
-    },
-  ];
+        paginate: false,
+      },
+      {
+        Header: t('Favorite'),
+        id: 'id',
+        urlDisplay: 'favorite',
+        input: 'select',
+        operator: FilterOperators.chartIsFav,
+        unfilteredLabel: 'Any',
+        selects: [
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
+        ],
+      },
+      {
+        Header: t('Search'),
+        id: 'slice_name',
+        input: 'search',
+        operator: FilterOperators.chartAllText,
+      },
+    ],
+    [addDangerToast, props.user.userId],
+  );
 
   const sortTypes = [
     {

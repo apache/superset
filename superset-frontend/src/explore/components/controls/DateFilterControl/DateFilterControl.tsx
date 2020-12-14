@@ -217,7 +217,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
         setValidTimeRange(true);
       }
     });
-  }, [value]);
+  }, [endpoints, value]);
 
   useEffect(() => {
     fetchTimeRange(timeRangeValue, endpoints).then(({ value, error }) => {
@@ -229,7 +229,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
         setValidTimeRange(true);
       }
     });
-  }, [timeRangeValue]);
+  }, [endpoints, timeRangeValue]);
 
   function onSave() {
     onChange(timeRangeValue);

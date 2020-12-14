@@ -192,19 +192,6 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
     setCurrentAnnotation(data);
   };
 
-  const validate = () => {
-    if (
-      currentAnnotation &&
-      currentAnnotation.short_descr.length &&
-      currentAnnotation.start_dttm.length &&
-      currentAnnotation.end_dttm.length
-    ) {
-      setDisableSave(false);
-    } else {
-      setDisableSave(true);
-    }
-  };
-
   // Initialize
   if (
     isEditMode &&
@@ -235,12 +222,21 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
 
   // Validation
   useEffect(() => {
+    const validate = () => {
+      if (
+        currentAnnotation &&
+        currentAnnotation.short_descr.length &&
+        currentAnnotation.start_dttm.length &&
+        currentAnnotation.end_dttm.length
+      ) {
+        setDisableSave(false);
+      } else {
+        setDisableSave(true);
+      }
+    };
+
     validate();
-  }, [
-    currentAnnotation ? currentAnnotation.short_descr : '',
-    currentAnnotation ? currentAnnotation.start_dttm : '',
-    currentAnnotation ? currentAnnotation.end_dttm : '',
-  ]);
+  }, [currentAnnotation]);
 
   // Show/hide
   if (isHidden && show) {

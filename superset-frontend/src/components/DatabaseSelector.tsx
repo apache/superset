@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useEffect, useState } from 'react';
+import React, { ReactNode, useEffect, useState, useCallback } from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import rison from 'rison';
 import { Select } from 'src/components/Select';
@@ -99,41 +99,44 @@ export default function DatabaseSelector({
   const [schemaLoading, setSchemaLoading] = useState(false);
   const [schemaOptions, setSchemaOptions] = useState([]);
 
-  function fetchSchemas(databaseId: number, forceRefresh = false) {
-    const actualDbId = databaseId || dbId;
-    if (actualDbId) {
-      setSchemaLoading(true);
-      const queryParams = rison.encode({
-        force: Boolean(forceRefresh),
-      });
-      const endpoint = `/api/v1/database/${actualDbId}/schemas/?q=${queryParams}`;
-      return SupersetClient.get({ endpoint })
-        .then(({ json }) => {
-          const options = json.result.map((s: string) => ({
-            value: s,
-            label: s,
-            title: s,
-          }));
-          setSchemaOptions(options);
-          setSchemaLoading(false);
-          if (onSchemasLoad) {
-            onSchemasLoad(options);
-          }
-        })
-        .catch(() => {
-          setSchemaOptions([]);
-          setSchemaLoading(false);
-          handleError(t('Error while fetching schema list'));
+  const fetchSchemas = useCallback(
+    (databaseId: number, forceRefresh = false) => {
+      const actualDbId = databaseId || dbId;
+      if (actualDbId) {
+        setSchemaLoading(true);
+        const queryParams = rison.encode({
+          force: Boolean(forceRefresh),
         });
-    }
-    return Promise.resolve();
-  }
+        const endpoint = `/api/v1/database/${actualDbId}/schemas/?q=${queryParams}`;
+        return SupersetClient.get({ endpoint })
+          .then(({ json }) => {
+            const options = json.result.map((s: string) => ({
+              value: s,
+              label: s,
+              title: s,
+            }));
+            setSchemaOptions(options);
+            setSchemaLoading(false);
+            if (onSchemasLoad) {
+              onSchemasLoad(options);
+            }
+          })
+          .catch(() => {
+            setSchemaOptions([]);
+            setSchemaLoading(false);
+            handleError(t('Error while fetching schema list'));
+          });
+      }
+      return Promise.resolve();
+    },
+    [dbId, handleError, onSchemasLoad],
+  );
 
   useEffect(() => {
     if (currentDbId) {
       fetchSchemas(currentDbId);
     }
-  }, [currentDbId]);
+  }, [currentDbId, fetchSchemas]);
 
   function onSelectChange({ dbId, schema }: { dbId: number; schema?: string }) {
     setCurrentDbId(dbId);

@@ -65,7 +65,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
     false,
   );
   const {
-    state: { loading: alertLoading, resource: alertResource },
+    state: { resource: alertResource },
     fetchResource,
   } = useSingleViewResource<AlertObject>(
     'report',
@@ -74,10 +74,10 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
   );
 
   useEffect(() => {
-    if (alertId !== null && !alertLoading) {
+    if (alertId !== null) {
       fetchResource(alertId);
     }
-  }, [alertId]);
+  }, [alertId, fetchResource]);
 
   const initialSort = [{ id: 'start_dttm', desc: true }];
   const columns = useMemo(

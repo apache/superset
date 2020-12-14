@@ -70,6 +70,11 @@ module.exports = {
       ],
       plugins: ['@typescript-eslint/eslint-plugin', 'prettier', 'react'],
       rules: {
+        'no-unused-vars': 0,
+        '@typescript-eslint/no-unused-vars': [
+          'error',
+          { argsIgnorePattern: '^_' },
+        ],
         '@typescript-eslint/ban-ts-ignore': 0,
         '@typescript-eslint/ban-ts-comment': 0, // disabled temporarily
         '@typescript-eslint/ban-types': 0, // disabled temporarily

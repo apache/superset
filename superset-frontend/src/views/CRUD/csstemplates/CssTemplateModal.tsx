@@ -160,19 +160,6 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
     setCurrentCssTemplate(data);
   };
 
-  const validate = () => {
-    if (
-      currentCssTemplate &&
-      currentCssTemplate.template_name.length &&
-      currentCssTemplate.css &&
-      currentCssTemplate.css.length
-    ) {
-      setDisableSave(false);
-    } else {
-      setDisableSave(true);
-    }
-  };
-
   // Initialize
   useEffect(() => {
     if (
@@ -206,11 +193,21 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
 
   // Validation
   useEffect(() => {
+    const validate = () => {
+      if (
+        currentCssTemplate &&
+        currentCssTemplate.template_name.length &&
+        currentCssTemplate.css &&
+        currentCssTemplate.css.length
+      ) {
+        setDisableSave(false);
+      } else {
+        setDisableSave(true);
+      }
+    };
+
     validate();
-  }, [
-    currentCssTemplate ? currentCssTemplate.template_name : '',
-    currentCssTemplate ? currentCssTemplate.css : '',
-  ]);
+  }, [currentCssTemplate]);
 
   // Show/hide
   if (isHidden && show) {

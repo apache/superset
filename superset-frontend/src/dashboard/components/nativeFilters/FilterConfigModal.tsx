@@ -20,7 +20,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { findLastIndex, uniq } from 'lodash';
 import shortid from 'shortid';
 import { DeleteFilled, PlusOutlined } from '@ant-design/icons';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, logging } from '@superset-ui/core';
 import { Form } from 'src/common/components';
 import { StyledModal } from 'src/common/components/Modal';
 import Button from 'src/components/Button';
@@ -292,19 +292,18 @@ export function FilterConfigModal({
       }));
   }
 
-  const addValidationError = (
-    filterId: string,
-    field: string,
-    error: string,
-  ) => {
-    const fieldError = {
-      name: ['filters', filterId, field],
-      errors: [error],
-    };
-    form.setFields([fieldError]);
-    // eslint-disable-next-line no-throw-literal
-    throw { errorFields: [fieldError] };
-  };
+  const addValidationError = useCallback(
+    (filterId: string, field: string, error: string) => {
+      const fieldError = {
+        name: ['filters', filterId, field],
+        errors: [error],
+      };
+      form.setFields([fieldError]);
+      // eslint-disable-next-line no-throw-literal
+      throw { errorFields: [fieldError] };
+    },
+    [form],
+  );
 
   const validateForm = useCallback(async () => {
     try {
@@ -346,7 +345,7 @@ export function FilterConfigModal({
 
       return formValues;
     } catch (error) {
-      console.warn('Filter Configuration Failed:', error);
+      logging.warn('Filter Configuration Failed:', error);
 
       if (!error.errorFields || !error.errorFields.length) return null; // not a validation error
 
@@ -365,7 +364,14 @@ export function FilterConfigModal({
       }
       return null;
     }
-  }, [form, currentFilterId, filterConfigMap, filterIds, removedFilters]);
+  }, [
+    form,
+    filterIds,
+    filterConfigMap,
+    addValidationError,
+    removedFilters,
+    currentFilterId,
+  ]);
 
   const onOk = useCallback(async () => {
     const values: NativeFiltersForm | null = await validateForm();

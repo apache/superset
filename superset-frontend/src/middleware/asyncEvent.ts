@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Dispatch, Middleware, MiddlewareAPI } from 'redux';
-import { makeApi, SupersetClient } from '@superset-ui/core';
+import { makeApi, SupersetClient, logging } from '@superset-ui/core';
 import { SupersetError } from 'src/components/ErrorMessage/types';
 import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
 import {
@@ -79,7 +79,7 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
     try {
       lastReceivedEventId = localStorage.getItem(LOCALSTORAGE_KEY);
     } catch (err) {
-      console.warn('failed to fetch last event Id from localStorage');
+      logging.warn('failed to fetch last event Id from localStorage');
     }
 
     const fetchEvents = makeApi<
@@ -114,7 +114,7 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
       try {
         localStorage.setItem(LOCALSTORAGE_KEY, lastReceivedEventId as string);
       } catch (err) {
-        console.warn('Error saving event ID to localStorage', err);
+        logging.warn('Error saving event ID to localStorage', err);
       }
     };
 
@@ -137,7 +137,7 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
             events.forEach((asyncEvent: AsyncEvent) => {
               const component = componentsByJobId[asyncEvent.job_id];
               if (!component) {
-                console.warn(
+                logging.warn(
                   'component not found for job_id',
                   asyncEvent.job_id,
                 );
@@ -156,7 +156,7 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
                   );
                   break;
                 default:
-                  console.warn('received event with status', asyncEvent.status);
+                  logging.warn('received event with status', asyncEvent.status);
               }
 
               return setLastId(asyncEvent);
@@ -175,7 +175,7 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
             });
           }
         } catch (err) {
-          console.warn(err);
+          logging.warn(err);
         }
       }
 

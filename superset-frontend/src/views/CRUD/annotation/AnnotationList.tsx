@@ -96,7 +96,7 @@ function AnnotationList({
         });
       }
     },
-    [annotationLayerId],
+    [addDangerToast, annotationLayerId],
   );
 
   const handleAnnotationDelete = ({ id, short_descr }: AnnotationObject) => {
@@ -197,7 +197,7 @@ function AnnotationList({
         disableSortBy: true,
       },
     ],
-    [true, true],
+    [],
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];

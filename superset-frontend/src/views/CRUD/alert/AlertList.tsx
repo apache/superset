@@ -174,15 +174,6 @@ function AlertList({
 
   const initialSort = [{ id: 'name', desc: true }];
 
-  const toggleActive = (data: AlertObject, checked: boolean) => {
-    if (data && data.id) {
-      const update_id = data.id;
-      updateResource(update_id, { active: checked }).then(() => {
-        refreshData();
-      });
-    }
-  };
-
   const columns = useMemo(
     () => [
       {
@@ -264,14 +255,24 @@ function AlertList({
         size: 'xl',
       },
       {
-        Cell: ({ row: { original } }: any) => (
-          <Switch
-            data-test="toggle-active"
-            checked={original.active}
-            onClick={(checked: boolean) => toggleActive(original, checked)}
-            size="small"
-          />
-        ),
+        Cell: ({ row: { original } }: any) => {
+          const toggleActive = (data: AlertObject, checked: boolean) => {
+            if (data && data.id) {
+              const update_id = data.id;
+              updateResource(update_id, { active: checked }).then(() => {
+                refreshData();
+              });
+            }
+          };
+          return (
+            <Switch
+              data-test="toggle-active"
+              checked={original.active}
+              onClick={(checked: boolean) => toggleActive(original, checked)}
+              size="small"
+            />
+          );
+        },
         Header: t('Active'),
         accessor: 'active',
         id: 'active',
@@ -324,7 +325,7 @@ function AlertList({
         size: 'xl',
       },
     ],
-    [canDelete, canEdit, isReportEnabled],
+    [canDelete, canEdit, isReportEnabled, refreshData, updateResource],
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
@@ -401,7 +402,7 @@ function AlertList({
         operator: FilterOperators.contains,
       },
     ],
-    [],
+    [user.userId],
   );
 
   return (

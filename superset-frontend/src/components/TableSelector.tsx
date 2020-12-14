@@ -21,6 +21,7 @@ import React, {
   useEffect,
   useState,
   ReactNode,
+  useCallback,
 } from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import { AsyncSelect, CreatableSelect, Select } from 'src/components/Select';
@@ -132,54 +133,57 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   const [tableLoading, setTableLoading] = useState(false);
   const [tableOptions, setTableOptions] = useState([]);
 
-  function fetchTables(
-    databaseId?: number,
-    schema?: string,
-    forceRefresh = false,
-    substr = 'undefined',
-  ) {
-    const dbSchema = schema || currentSchema;
-    const actualDbId = databaseId || dbId;
-    if (actualDbId && dbSchema) {
-      const encodedSchema = encodeURIComponent(dbSchema);
-      const encodedSubstr = encodeURIComponent(substr);
-      setTableLoading(true);
+  const fetchTables = useCallback(
+    (
+      databaseId?: number,
+      schema?: string,
+      forceRefresh = false,
+      substr = 'undefined',
+    ) => {
+      const dbSchema = schema || currentSchema;
+      const actualDbId = databaseId || dbId;
+      if (actualDbId && dbSchema) {
+        const encodedSchema = encodeURIComponent(dbSchema);
+        const encodedSubstr = encodeURIComponent(substr);
+        setTableLoading(true);
+        setTableOptions([]);
+        const endpoint = encodeURI(
+          `/superset/tables/${actualDbId}/${encodedSchema}/${encodedSubstr}/${!!forceRefresh}/`,
+        );
+        return SupersetClient.get({ endpoint })
+          .then(({ json }) => {
+            const options = json.options.map((o: any) => ({
+              value: o.value,
+              schema: o.schema,
+              label: o.label,
+              title: o.title,
+              type: o.type,
+              extra: o?.extra,
+            }));
+            setTableLoading(false);
+            setTableOptions(options);
+            if (onTablesLoad) {
+              onTablesLoad(json.options);
+            }
+          })
+          .catch(() => {
+            setTableLoading(false);
+            setTableOptions([]);
+            handleError(t('Error while fetching table list'));
+          });
+      }
+      setTableLoading(false);
       setTableOptions([]);
-      const endpoint = encodeURI(
-        `/superset/tables/${actualDbId}/${encodedSchema}/${encodedSubstr}/${!!forceRefresh}/`,
-      );
-      return SupersetClient.get({ endpoint })
-        .then(({ json }) => {
-          const options = json.options.map((o: any) => ({
-            value: o.value,
-            schema: o.schema,
-            label: o.label,
-            title: o.title,
-            type: o.type,
-            extra: o?.extra,
-          }));
-          setTableLoading(false);
-          setTableOptions(options);
-          if (onTablesLoad) {
-            onTablesLoad(json.options);
-          }
-        })
-        .catch(() => {
-          setTableLoading(false);
-          setTableOptions([]);
-          handleError(t('Error while fetching table list'));
-        });
-    }
-    setTableLoading(false);
-    setTableOptions([]);
-    return Promise.resolve();
-  }
+      return Promise.resolve();
+    },
+    [currentSchema, dbId, handleError, onTablesLoad],
+  );
 
   useEffect(() => {
     if (dbId && schema) {
       fetchTables();
     }
-  }, [dbId, schema]);
+  }, [dbId, fetchTables, schema]);
 
   function onSelectionChange({
     dbId,

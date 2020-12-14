@@ -246,6 +246,7 @@ describe('sqlLabReducer', () => {
     });
     it('should refresh queries when polling returns empty', () => {
       newState = sqlLabReducer(newState, actions.refreshQueries({}));
+      expect(newState.queriesLastUpdate).toBeDefined();
     });
   });
 });

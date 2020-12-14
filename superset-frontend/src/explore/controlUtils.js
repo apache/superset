@@ -16,19 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isEqual } from 'lodash';
 import memoizeOne from 'memoize-one';
 import { getChartControlPanelRegistry } from '@superset-ui/core';
 import { expandControlConfig } from '@superset-ui/chart-controls';
 import * as SECTIONS from './controlPanels/sections';
 
-export function getFormDataFromControls(controlsState) {
+export const getFormDataFromControls = memoizeOne(controlsState => {
   const formData = {};
   Object.keys(controlsState).forEach(controlName => {
     const control = controlsState[controlName];
     formData[controlName] = control.value;
   });
   return formData;
-}
+}, isEqual);
 
 export function validateControl(control, processedState) {
   const { validators } = control;

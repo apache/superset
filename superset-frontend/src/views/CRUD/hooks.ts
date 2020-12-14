@@ -55,9 +55,12 @@ export function useListViewResource<D extends object = any>(
     bulkSelectEnabled: false,
   });
 
-  function updateState(update: Partial<ListViewResourceState<D>>) {
-    setState(currentState => ({ ...currentState, ...update }));
-  }
+  const updateState = useCallback(
+    (update: Partial<ListViewResourceState<D>>) => {
+      setState(currentState => ({ ...currentState, ...update }));
+    },
+    [],
+  );
 
   function toggleBulkSelect() {
     updateState({ bulkSelectEnabled: !state.bulkSelectEnabled });
@@ -85,7 +88,7 @@ export function useListViewResource<D extends object = any>(
         ),
       ),
     );
-  }, []);
+  }, [handleErrorMsg, infoEnable, resource, resourceLabel, updateState]);
 
   function hasPerm(perm: string) {
     if (!state.permissions.length) {
@@ -154,7 +157,7 @@ export function useListViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [baseFilters],
+    [baseFilters, handleErrorMsg, resource, resourceLabel, updateState],
   );
 
   return {
@@ -172,15 +175,19 @@ export function useListViewResource<D extends object = any>(
     hasPerm,
     fetchData,
     toggleBulkSelect,
-    refreshData: (provideConfig?: FetchDataConfig) => {
-      if (state.lastFetchDataConfig) {
-        return fetchData(state.lastFetchDataConfig);
-      }
-      if (provideConfig) {
-        return fetchData(provideConfig);
-      }
-      return null;
-    },
+    refreshData: useCallback(
+      (provideConfig?: FetchDataConfig) => {
+        if (state.lastFetchDataConfig) {
+          return fetchData(state.lastFetchDataConfig);
+        }
+        if (provideConfig) {
+          return fetchData(provideConfig);
+        }
+        return null;
+      },
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [fetchData],
+    ),
   };
 }
 
@@ -202,9 +209,12 @@ export function useSingleViewResource<D extends object = any>(
     error: null,
   });
 
-  function updateState(update: Partial<SingleViewResourceState<D>>) {
-    setState(currentState => ({ ...currentState, ...update }));
-  }
+  const updateState = useCallback(
+    (update: Partial<SingleViewResourceState<D>>) => {
+      setState(currentState => ({ ...currentState, ...update }));
+    },
+    [],
+  );
 
   const fetchResource = useCallback(
     (resourceID: number) => {
@@ -242,7 +252,7 @@ export function useSingleViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [handleErrorMsg, resourceName, resourceLabel],
+    [handleErrorMsg, resourceLabel, resourceName, updateState],
   );
 
   const createResource = useCallback(
@@ -283,7 +293,7 @@ export function useSingleViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [handleErrorMsg, resourceName, resourceLabel],
+    [handleErrorMsg, resourceLabel, resourceName, updateState],
   );
 
   const updateResource = useCallback(
@@ -326,7 +336,7 @@ export function useSingleViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [handleErrorMsg, resourceName, resourceLabel],
+    [handleErrorMsg, resourceLabel, resourceName, updateState],
   );
   const clearError = () =>
     updateState({
@@ -378,27 +388,6 @@ export function useImportResource(
     typeof payload === 'string' &&
     payload.includes('already exists and `overwrite=true` was not passed');
 
-  const getPasswordsNeeded = (
-    errMsg: Record<string, Record<string, string[]>>,
-  ) =>
-    Object.entries(errMsg)
-      .filter(([, validationErrors]) => isNeedsPassword(validationErrors))
-      .map(([fileName]) => fileName);
-
-  const getAlreadyExists = (errMsg: Record<string, Record<string, string[]>>) =>
-    Object.entries(errMsg)
-      .filter(([, validationErrors]) => isAlreadyExists(validationErrors))
-      .map(([fileName]) => fileName);
-
-  const hasTerminalValidation = (
-    errMsg: Record<string, Record<string, string[]>>,
-  ) =>
-    Object.values(errMsg).some(
-      validationErrors =>
-        !isNeedsPassword(validationErrors) &&
-        !isAlreadyExists(validationErrors),
-    );
-
   const importResource = useCallback(
     (
       bundle: File,
@@ -425,6 +414,29 @@ export function useImportResource(
       if (overwrite) {
         formData.append('overwrite', 'true');
       }
+
+      const getPasswordsNeeded = (
+        errMsg: Record<string, Record<string, string[]>>,
+      ) =>
+        Object.entries(errMsg)
+          .filter(([, validationErrors]) => isNeedsPassword(validationErrors))
+          .map(([fileName]) => fileName);
+
+      const getAlreadyExists = (
+        errMsg: Record<string, Record<string, string[]>>,
+      ) =>
+        Object.entries(errMsg)
+          .filter(([, validationErrors]) => isAlreadyExists(validationErrors))
+          .map(([fileName]) => fileName);
+
+      const hasTerminalValidation = (
+        errMsg: Record<string, Record<string, string[]>>,
+      ) =>
+        Object.values(errMsg).some(
+          validationErrors =>
+            !isNeedsPassword(validationErrors) &&
+            !isAlreadyExists(validationErrors),
+        );
 
       return SupersetClient.post({
         endpoint: `/api/v1/${resourceName}/import/`,
@@ -465,7 +477,7 @@ export function useImportResource(
           updateState({ loading: false });
         });
     },
-    [],
+    [handleErrorMsg, resourceLabel, resourceName],
   );
 
   return { state, importResource };
@@ -524,7 +536,7 @@ export function useFavoriteStatus(
         ),
       ),
     );
-  }, [ids]);
+  }, [handleErrorMsg, ids, type]);
 
   const saveFaveStar = useCallback(
     (id: number, isStarred: boolean) => {
@@ -546,7 +558,7 @@ export function useFavoriteStatus(
         ),
       );
     },
-    [type],
+    [handleErrorMsg, type],
   );
 
   return [saveFaveStar, favoriteStatus] as const;

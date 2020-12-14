@@ -254,7 +254,7 @@ function AnnotationLayersList({
         size: 'xl',
       },
     ],
-    [canDelete, canCreate],
+    [canEdit, canDelete],
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
@@ -309,7 +309,7 @@ function AnnotationLayersList({
         operator: 'ct',
       },
     ],
-    [],
+    [user.userId],
   );
 
   const EmptyStateButton = (

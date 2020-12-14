@@ -3,10 +3,10 @@
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "target": "ES5",
-    "lib": ["ES5", "ES2015", "DOM"],
+    "lib": ["ES5", "ES2015", "DOM", "ES2016"],
     "types": ["cypress"],
     "allowJs": true,
-    "noEmit": true,
+    "noEmit": true
   },
   "files": ["cypress/support/index.d.ts"],
   "include": ["node_modules/cypress", "cypress/**/*.ts"]

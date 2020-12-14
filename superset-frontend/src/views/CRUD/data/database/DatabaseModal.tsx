@@ -276,19 +276,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setDB(data);
   };
 
-  const validate = () => {
-    if (
-      db &&
-      db.database_name.length &&
-      db.sqlalchemy_uri &&
-      db.sqlalchemy_uri.length
-    ) {
-      setDisableSave(false);
-    } else {
-      setDisableSave(true);
-    }
-  };
-
   // Initialize
   if (
     isEditMode &&
@@ -321,8 +308,21 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   // Validation
   useEffect(() => {
+    const validate = () => {
+      if (
+        db &&
+        db.database_name.length &&
+        db.sqlalchemy_uri &&
+        db.sqlalchemy_uri.length
+      ) {
+        setDisableSave(false);
+      } else {
+        setDisableSave(true);
+      }
+    };
+
     validate();
-  }, [db ? db.database_name : null, db ? db.sqlalchemy_uri : null]);
+  }, [db]);
 
   // Show/hide
   if (isHidden && show) {

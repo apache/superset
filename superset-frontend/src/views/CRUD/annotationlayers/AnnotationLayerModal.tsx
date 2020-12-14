@@ -153,14 +153,6 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
     setCurrentLayer(data);
   };
 
-  const validate = () => {
-    if (currentLayer && currentLayer.name.length) {
-      setDisableSave(false);
-    } else {
-      setDisableSave(true);
-    }
-  };
-
   // Initialize
   if (
     isEditMode &&
@@ -188,11 +180,16 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
 
   // Validation
   useEffect(() => {
+    const validate = () => {
+      if (currentLayer && currentLayer.name.length) {
+        setDisableSave(false);
+      } else {
+        setDisableSave(true);
+      }
+    };
+
     validate();
-  }, [
-    currentLayer ? currentLayer.name : '',
-    currentLayer ? currentLayer.descr : '',
-  ]);
+  }, [currentLayer]);
 
   // Show/hide
   if (isHidden && show) {

@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject, SupersetClientResponse, t } from '@superset-ui/core';
+import {
+  JsonObject,
+  SupersetClientResponse,
+  t,
+  logging,
+} from '@superset-ui/core';
 import {
   SupersetError,
   ErrorTypeEnum,
@@ -130,8 +135,7 @@ export function getClientErrorObject(
         // fall back to Response.statusText or generic error of we cannot read the response
         let error = (response as any).statusText || (response as any).message;
         if (!error) {
-          // eslint-disable-next-line no-console
-          console.error('non-standard error:', response);
+          logging.error('non-standard error:', response);
           error = t('An error occurred');
         }
         resolve({

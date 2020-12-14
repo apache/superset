@@ -233,7 +233,7 @@ function CssTemplatesList({
         size: 'xl',
       },
     ],
-    [canDelete, canCreate],
+    [canEdit, canDelete],
   );
 
   const menuData: SubMenuProps = {
@@ -295,7 +295,7 @@ function CssTemplatesList({
         operator: 'ct',
       },
     ],
-    [],
+    [user.userId],
   );
 
   return (

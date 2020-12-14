@@ -26,7 +26,7 @@ import ChartContainer from 'src/chart/ChartContainer';
 import ConnectedExploreChartHeader from './ExploreChartHeader';
 import { DataTablesPane } from './DataTablesPane';
 
-const propTypes = {
+export const propTypes = {
   actions: PropTypes.object.isRequired,
   addHistory: PropTypes.func,
   onQuery: PropTypes.func,

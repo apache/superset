@@ -189,6 +189,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         ),
       );
 
+  const handleBulkDatasetExport = (datasetsToExport: Dataset[]) =>
+    window.location.assign(
+      `/api/v1/dataset/export/?q=${rison.encode(
+        datasetsToExport.map(({ id }) => id),
+      )}`,
+    );
+
   const columns = useMemo(
     () => [
       {
@@ -301,7 +308,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {
         Cell: ({
           row: {
-            original: { owners = [], table_name: tableName },
+            original: { owners = [] },
           },
         }: any) => <FacePile users={owners} />,
         Header: t('Owners'),
@@ -453,7 +460,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         operator: 'ct',
       },
     ],
-    [],
+    [user.userId],
   );
 
   const menuData: SubMenuProps = {
@@ -535,13 +542,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       ),
     );
   };
-
-  const handleBulkDatasetExport = (datasetsToExport: Dataset[]) =>
-    window.location.assign(
-      `/api/v1/dataset/export/?q=${rison.encode(
-        datasetsToExport.map(({ id }) => id),
-      )}`,
-    );
 
   return (
     <>

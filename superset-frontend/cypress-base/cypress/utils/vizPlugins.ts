@@ -23,15 +23,18 @@ export const DASHBOARD_CHART_ALIAS_PREFIX = 'getJson_';
 export function isLegacyChart(vizType: string): boolean {
   return !V1_PLUGINS.includes(vizType);
 }
-export function isLegacyResponse(response: any): boolean {
+export function isLegacyResponse(response: { result: unknown }): boolean {
   return !response.result;
 }
 export function getSliceIdFromRequestUrl(url: string): string {
   const address = new URL(url);
   const query = address.searchParams.get('form_data');
-  return query?.match(/\d+/)[0];
+  const match = query ? query.match(/\d+/) : undefined;
+  return match ? match[0] : '';
 }
-export function getChartAliases(slices: any[]): string[] {
+export function getChartAliases(
+  slices: { form_data: { viz_type: string }; slice_id: number }[],
+): string[] {
   const aliases: string[] = [];
   Array.from(slices).forEach(slice => {
     const vizType = slice.form_data.viz_type;

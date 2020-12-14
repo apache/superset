@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState, useEffect } from 'react';
+import React, {
+  FunctionComponent,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react';
 import { styled, t, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -641,9 +646,61 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           value: item.value,
           label: item.text,
         })),
-      badResponse => [],
+      _ => [],
     );
   };
+
+  // Updating alert/report state
+  const updateAlertState = (name: string, value: any) => {
+    setCurrentAlert(currentAlertData => ({
+      ...currentAlertData,
+      [name]: value,
+    }));
+  };
+
+  const getSourceData = useCallback(
+    (db?: MetaObject) => {
+      const database = db || currentAlert?.database;
+
+      if (!database || database.label) {
+        return null;
+      }
+
+      let result;
+
+      // Cycle through source options to find the selected option
+      sourceOptions.forEach(source => {
+        if (source.value === database.value || source.value === database.id) {
+          result = source;
+        }
+      });
+
+      return result;
+    },
+    [currentAlert?.database, sourceOptions],
+  );
+
+  const getDashboardData = useCallback(
+    (db?: MetaObject) => {
+      const dashboard = db || currentAlert?.dashboard;
+
+      if (!dashboard || dashboard.label) {
+        return null;
+      }
+
+      let result;
+
+      // Cycle through dashboard options to find the selected option
+      dashboardOptions.forEach(dash => {
+        if (dash.value === dashboard.value || dash.value === dashboard.id) {
+          result = dash;
+        }
+      });
+
+      return result;
+    },
+    [currentAlert?.dashboard, dashboardOptions],
+  );
 
   const loadSourceOptions = (input = '') => {
     const query = rison.encode({ filter: input, page_size: SELECT_PAGE_SIZE });
@@ -669,27 +726,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
         return list;
       },
-      badResponse => [],
+      _ => [],
     );
-  };
-
-  const getSourceData = (db?: MetaObject) => {
-    const database = db || currentAlert?.database;
-
-    if (!database || database.label) {
-      return null;
-    }
-
-    let result;
-
-    // Cycle through source options to find the selected option
-    sourceOptions.forEach(source => {
-      if (source.value === database.value || source.value === database.id) {
-        result = source;
-      }
-    });
-
-    return result;
   };
 
   const loadDashboardOptions = (input = '') => {
@@ -716,28 +754,31 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
         return list;
       },
-      badResponse => [],
+      _ => [],
     );
   };
 
-  const getDashboardData = (db?: MetaObject) => {
-    const dashboard = db || currentAlert?.dashboard;
+  const getChartData = useCallback(
+    (chartData?: MetaObject) => {
+      const chart = chartData || currentAlert?.chart;
 
-    if (!dashboard || dashboard.label) {
-      return null;
-    }
-
-    let result;
-
-    // Cycle through dashboard options to find the selected option
-    dashboardOptions.forEach(dash => {
-      if (dash.value === dashboard.value || dash.value === dashboard.id) {
-        result = dash;
+      if (!chart || chart.label) {
+        return null;
       }
-    });
 
-    return result;
-  };
+      let result;
+
+      // Cycle through chart options to find the selected option
+      chartOptions.forEach(slice => {
+        if (slice.value === chart.value || slice.value === chart.id) {
+          result = slice;
+        }
+      });
+
+      return result;
+    },
+    [chartOptions, currentAlert?.chart],
+  );
 
   const loadChartOptions = (input = '') => {
     const query = rison.encode({ filter: input, page_size: SELECT_PAGE_SIZE });
@@ -759,35 +800,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
         return list;
       },
-      badResponse => [],
+      _ => [],
     );
-  };
-
-  const getChartData = (chartData?: MetaObject) => {
-    const chart = chartData || currentAlert?.chart;
-
-    if (!chart || chart.label) {
-      return null;
-    }
-
-    let result;
-
-    // Cycle through chart options to find the selected option
-    chartOptions.forEach(slice => {
-      if (slice.value === chart.value || slice.value === chart.id) {
-        result = slice;
-      }
-    });
-
-    return result;
-  };
-
-  // Updating alert/report state
-  const updateAlertState = (name: string, value: any) => {
-    setCurrentAlert(currentAlertData => ({
-      ...currentAlertData,
-      [name]: value,
-    }));
   };
 
   // Handle input/textarea updates
@@ -857,52 +871,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setContentType(target.value);
   };
 
-  // Make sure notification settings has the required info
-  const checkNotificationSettings = () => {
-    if (!notificationSettings.length) {
-      return false;
-    }
-
-    let hasInfo = false;
-
-    notificationSettings.forEach(setting => {
-      if (!!setting.method && setting.recipients?.length) {
-        hasInfo = true;
-      }
-    });
-
-    return hasInfo;
-  };
-
-  const validate = () => {
-    if (
-      currentAlert &&
-      currentAlert.name?.length &&
-      currentAlert.owners?.length &&
-      currentAlert.crontab?.length &&
-      currentAlert.working_timeout !== undefined &&
-      ((contentType === 'dashboard' && !!currentAlert.dashboard) ||
-        (contentType === 'chart' && !!currentAlert.chart)) &&
-      checkNotificationSettings()
-    ) {
-      if (isReport) {
-        setDisableSave(false);
-      } else if (
-        !!currentAlert.database &&
-        currentAlert.sql?.length &&
-        (conditionNotNull || !!currentAlert.validator_config_json?.op) &&
-        (conditionNotNull ||
-          currentAlert.validator_config_json?.threshold !== undefined)
-      ) {
-        setDisableSave(false);
-      } else {
-        setDisableSave(true);
-      }
-    } else {
-      setDisableSave(true);
-    }
-  };
-
   // Initialize
   useEffect(() => {
     if (
@@ -936,7 +904,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       setNotificationSettings([]);
       setNotificationAddState('active');
     }
-  }, [alert]);
+  }, [
+    alert,
+    currentAlert,
+    fetchError,
+    fetchResource,
+    isEditMode,
+    isHidden,
+    loading,
+    show,
+  ]);
 
   useEffect(() => {
     if (resource) {
@@ -989,30 +966,64 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             : validatorConfig,
       });
     }
-  }, [resource]);
+  }, [getChartData, getDashboardData, getSourceData, resource]);
 
   // Validation
-  useEffect(
-    () => {
-      validate();
-    },
-    currentAlert
-      ? [
-          currentAlert.name,
-          currentAlert.owners,
-          currentAlert.database,
-          currentAlert.sql,
-          currentAlert.validator_config_json,
-          currentAlert.crontab,
-          currentAlert.working_timeout,
-          currentAlert.dashboard,
-          currentAlert.chart,
-          contentType,
-          notificationSettings,
-          conditionNotNull,
-        ]
-      : [],
-  );
+  useEffect(() => {
+    // Make sure notification settings has the required info
+    const checkNotificationSettings = () => {
+      if (!notificationSettings.length) {
+        return false;
+      }
+
+      let hasInfo = false;
+
+      notificationSettings.forEach(setting => {
+        if (!!setting.method && setting.recipients?.length) {
+          hasInfo = true;
+        }
+      });
+
+      return hasInfo;
+    };
+
+    const validate = () => {
+      if (
+        currentAlert &&
+        currentAlert.name?.length &&
+        currentAlert.owners?.length &&
+        currentAlert.crontab?.length &&
+        currentAlert.working_timeout !== undefined &&
+        ((contentType === 'dashboard' && !!currentAlert.dashboard) ||
+          (contentType === 'chart' && !!currentAlert.chart)) &&
+        checkNotificationSettings()
+      ) {
+        if (isReport) {
+          setDisableSave(false);
+        } else if (
+          !!currentAlert.database &&
+          currentAlert.sql?.length &&
+          (conditionNotNull || !!currentAlert.validator_config_json?.op) &&
+          (conditionNotNull ||
+            currentAlert.validator_config_json?.threshold !== undefined)
+        ) {
+          setDisableSave(false);
+        } else {
+          setDisableSave(true);
+        }
+      } else {
+        setDisableSave(true);
+      }
+    };
+
+    validate();
+  }, [
+    conditionNotNull,
+    contentType,
+    currentAlert,
+    isReport,
+    notificationSettings,
+  ]);
 
   // Show/hide
   if (isHidden && show) {

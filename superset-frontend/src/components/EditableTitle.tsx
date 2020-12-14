@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef, useReducer } from 'react';
 import cx from 'classnames';
 import { t } from '@superset-ui/core';
 import TooltipWrapper from './TooltipWrapper';
@@ -33,6 +33,50 @@ interface EditableTitleProps {
   title: string;
 }
 
+interface State {
+  isEditing: boolean;
+  currentTitle: string;
+  lastTitle: string;
+  contentBoundingRect: DOMRect | null;
+}
+
+enum actionType {
+  SET_IS_EDITING,
+  SET_CURRENT_TITLE,
+  SET_LAST_TITLE,
+  SET_TITLE,
+  SET_CONTENT_BOUNDING_RECT,
+}
+
+interface Action {
+  type: actionType;
+  payload: boolean | string | DOMRect | null;
+}
+
+const reducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case actionType.SET_IS_EDITING:
+      return { ...state, isEditing: action.payload as boolean };
+    case actionType.SET_CURRENT_TITLE:
+      return { ...state, currentTitle: action.payload as string };
+    case actionType.SET_LAST_TITLE:
+      return { ...state, lastTitle: action.payload as string };
+    case actionType.SET_TITLE:
+      return {
+        ...state,
+        lastTitle: state.currentTitle,
+        currentTitle: action.payload as string,
+      };
+    case actionType.SET_CONTENT_BOUNDING_RECT:
+      return {
+        ...state,
+        contentBoundingRect: action.payload as DOMRect | null,
+      };
+    default:
+      throw new Error();
+  }
+};
+
 export default function EditableTitle({
   canEdit = false,
   emptyText,
@@ -44,22 +88,20 @@ export default function EditableTitle({
   style,
   title,
 }: EditableTitleProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [currentTitle, setCurrentTitle] = useState(title);
-  const [lastTitle, setLastTitle] = useState(title);
-  const [
-    contentBoundingRect,
-    setContentBoundingRect,
-  ] = useState<DOMRect | null>(null);
-  // Used so we can access the DOM element if a user clicks on this component.
+  const [state, dispatch] = useReducer(reducer, {
+    isEditing: false,
+    currentTitle: title,
+    lastTitle: title,
+    contentBoundingRect: null,
+  });
 
+  const { isEditing, currentTitle, lastTitle, contentBoundingRect } = state;
+
+  // Used so we can access the DOM element if a user clicks on this component.
   const contentRef = useRef<any | HTMLInputElement | HTMLTextAreaElement>();
 
   useEffect(() => {
-    if (title !== currentTitle) {
-      setLastTitle(currentTitle);
-      setCurrentTitle(title);
-    }
+    dispatch({ type: actionType.SET_TITLE, payload: title });
   }, [title]);
 
   function handleClick() {
@@ -72,8 +114,11 @@ export default function EditableTitle({
     const contentBounding = contentRef.current
       ? contentRef.current.getBoundingClientRect()
       : null;
-    setIsEditing(true);
-    setContentBoundingRect(contentBounding);
+    dispatch({ type: actionType.SET_IS_EDITING, payload: true });
+    dispatch({
+      type: actionType.SET_CONTENT_BOUNDING_RECT,
+      payload: contentBounding,
+    });
   }
 
   function handleBlur() {
@@ -83,15 +128,18 @@ export default function EditableTitle({
       return;
     }
 
-    setIsEditing(false);
+    dispatch({ type: actionType.SET_IS_EDITING, payload: false });
 
     if (!formattedTitle.length) {
-      setCurrentTitle(lastTitle);
+      dispatch({
+        type: actionType.SET_CURRENT_TITLE,
+        payload: lastTitle,
+      });
       return;
     }
 
     if (lastTitle !== formattedTitle) {
-      setLastTitle(formattedTitle);
+      dispatch({ type: actionType.SET_LAST_TITLE, payload: formattedTitle });
     }
 
     if (title !== formattedTitle) {
@@ -116,7 +164,7 @@ export default function EditableTitle({
     if (!canEdit) {
       return;
     }
-    setCurrentTitle(ev.target.value);
+    dispatch({ type: actionType.SET_CURRENT_TITLE, payload: ev.target.value });
   }
 
   function handleKeyPress(ev: any) {

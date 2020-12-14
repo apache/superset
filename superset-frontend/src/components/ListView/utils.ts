@@ -135,7 +135,6 @@ export function convertFiltersRison(
     const filter: FilterValue = {
       id,
       value: filterObj[id],
-      // operator: filterObj[id][1], // TODO: can probably get rid of this
     };
 
     refs[id] = filter;
@@ -185,14 +184,17 @@ interface UseListViewConfig {
   defaultViewMode?: ViewModeType;
 }
 
+const defaultInitialFilters: Filter[] = [];
+const defaultInitialSort: SortColumn[] = [];
+
 export function useListViewState({
   fetchData,
   columns,
   data,
   count,
   initialPageSize,
-  initialFilters = [],
-  initialSort = [],
+  initialFilters = defaultInitialFilters, // must be memoized
+  initialSort = defaultInitialSort, // must be memoized
   bulkSelectMode = false,
   bulkSelectColumnConfig,
   renderCard = false,
@@ -211,7 +213,7 @@ export function useListViewState({
       query.sortColumn && query.sortOrder
         ? [{ id: query.sortColumn, desc: query.sortOrder === 'desc' }]
         : initialSort,
-    [query.sortColumn, query.sortOrder],
+    [initialSort, query.sortColumn, query.sortOrder],
   );
 
   const initialState = {
@@ -234,7 +236,7 @@ export function useListViewState({
     return bulkSelectMode
       ? [bulkSelectColumnConfig, ...columnsWithFilter]
       : columnsWithFilter;
-  }, [bulkSelectMode, columns]);
+  }, [bulkSelectColumnConfig, bulkSelectMode, columns]);
 
   const {
     getTableProps,
@@ -286,7 +288,7 @@ export function useListViewState({
         ),
       );
     }
-  }, [initialFilters]);
+  }, [initialFilters, query.filters]);
 
   useEffect(() => {
     // From internalFilters, produce a simplified obj
@@ -322,15 +324,25 @@ export function useListViewState({
         : 'replace';
 
     setQuery(queryParams, method);
+  }, [
+    internalFilters,
+    pageIndex,
+    query.pageIndex,
+    renderCard,
+    setQuery,
+    sortBy,
+    viewMode,
+  ]);
 
+  useEffect(() => {
     fetchData({ pageIndex, pageSize, sortBy, filters });
-  }, [fetchData, pageIndex, pageSize, sortBy, filters, viewMode]);
+  }, [fetchData, pageIndex, pageSize, sortBy, filters]);
 
   useEffect(() => {
     if (!isEqual(initialState.pageIndex, pageIndex)) {
-      gotoPage(initialState.pageIndex);
+      gotoPage(pageIndex);
     }
-  }, [query]);
+  }, [gotoPage, initialState.pageIndex, pageIndex, query]);
 
   const applyFilterValue = (index: number, value: any) => {
     setInternalFilters(currentInternalFilters => {

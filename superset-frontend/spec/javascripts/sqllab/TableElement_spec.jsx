@@ -52,7 +52,7 @@ describe('TableElement', () => {
     expect(wrapper.find(ColumnElement)).toHaveLength(14);
   });
   it('mounts', () => {
-    mount(
+    const wrapper = mount(
       <Provider store={store}>
         <TableElement {...mockedProps} />
       </Provider>,
@@ -63,6 +63,7 @@ describe('TableElement', () => {
         },
       },
     );
+    expect(wrapper.find('.table-name')).toBeTruthy();
   });
   it('fades table', () => {
     const wrapper = shallow(<TableElement {...mockedProps} />);

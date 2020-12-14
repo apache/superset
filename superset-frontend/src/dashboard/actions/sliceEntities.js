@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { t, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient, logging } from '@superset-ui/core';
 import rison from 'rison';
 
 import { addDangerToast } from 'src/messageToasts/actions';
@@ -106,7 +106,7 @@ export function fetchAllSlices(userId) {
         })
         .catch(
           errorResponse =>
-            console.log(errorResponse) ||
+            logging.log(errorResponse) ||
             getClientErrorObject(errorResponse).then(({ error }) => {
               dispatch(
                 fetchAllSlicesFailed(

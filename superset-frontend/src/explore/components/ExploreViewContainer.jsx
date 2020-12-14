@@ -17,11 +17,11 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { styled, t, supersetTheme, css } from '@superset-ui/core';
+import { styled, t, supersetTheme, css, logging } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Resizable } from 're-resizable';
 
@@ -30,7 +30,9 @@ import { Global } from '@emotion/core';
 import { Tooltip } from 'src/common/components/Tooltip';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import Icon from 'src/components/Icon';
-import ExploreChartPanel from './ExploreChartPanel';
+import ExploreChartPanel, {
+  propTypes as exploreChartPanelPropTypes,
+} from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
@@ -50,7 +52,7 @@ import {
 } from '../../logger/LogUtils';
 
 const propTypes = {
-  ...ExploreChartPanel.propTypes,
+  ...exploreChartPanelPropTypes,
   height: PropTypes.string,
   width: PropTypes.string,
   actions: PropTypes.object.isRequired,
@@ -142,7 +144,7 @@ function useWindowSize({ delayMs = 250 } = {}) {
     const onWindowResize = debounce(() => setSize(getWindowSize()), delayMs);
     window.addEventListener('resize', onWindowResize);
     return () => window.removeEventListener('resize', onWindowResize);
-  }, []);
+  }, [delayMs]);
 
   return size;
 }
@@ -166,76 +168,40 @@ function ExploreViewContainer(props) {
     ? `${props.forcedHeight}px`
     : `${windowSize.height - navHeight}px`;
 
-  function addHistory({ isReplace = false, title } = {}) {
-    const payload = { ...props.form_data };
-    const longUrl = getExploreLongUrl(
-      props.form_data,
-      props.standalone ? 'standalone' : null,
-      false,
-    );
-    try {
-      if (isReplace) {
-        window.history.replaceState(payload, title, longUrl);
-      } else {
-        window.history.pushState(payload, title, longUrl);
-      }
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        'Failed at altering browser history',
-        payload,
-        title,
-        longUrl,
-      );
-    }
-  }
-
-  function handlePopstate() {
-    const formData = window.history.state;
-    if (formData && Object.keys(formData).length) {
-      props.actions.setExploreControls(formData);
-      props.actions.postChartFormData(
-        formData,
+  const addHistory = useCallback(
+    ({ isReplace = false, title } = {}) => {
+      const payload = { ...props.form_data };
+      const longUrl = getExploreLongUrl(
+        props.form_data,
+        props.standalone ? 'standalone' : null,
         false,
-        props.timeout,
-        props.chart.id,
       );
-    }
-  }
+      try {
+        if (isReplace) {
+          window.history.replaceState(payload, title, longUrl);
+        } else {
+          window.history.pushState(payload, title, longUrl);
+        }
+      } catch (e) {
+        logging.warn(
+          'Failed at altering browser history',
+          payload,
+          title,
+          longUrl,
+        );
+      }
+    },
+    [props.form_data, props.standalone],
+  );
 
-  function onQuery() {
+  const onQuery = useCallback(() => {
     // remove alerts when query
     props.actions.removeControlPanelAlert();
     props.actions.triggerQuery(true, props.chart.id);
 
     setChartIsStale(false);
     addHistory();
-  }
-
-  function handleKeydown(event) {
-    const controlOrCommand = event.ctrlKey || event.metaKey;
-    if (controlOrCommand) {
-      const isEnter = event.key === 'Enter' || event.keyCode === 13;
-      const isS = event.key === 's' || event.keyCode === 83;
-      if (isEnter) {
-        onQuery();
-      } else if (isS) {
-        if (props.slice) {
-          props.actions
-            .saveSlice(props.form_data, {
-              action: 'overwrite',
-              slice_id: props.slice.slice_id,
-              slice_name: props.slice.slice_name,
-              add_to_dash: 'noSave',
-              goto_dash: false,
-            })
-            .then(({ data }) => {
-              window.location = data.slice.slice_url;
-            });
-        }
-      }
-    }
-  }
+  }, [addHistory, props.actions, props.chart.id]);
 
   function onStop() {
     if (props.chart && props.chart.queryController) {
@@ -253,6 +219,44 @@ function ExploreViewContainer(props) {
 
   // effect to run on mount
   useEffect(() => {
+    function handleKeydown(event) {
+      const controlOrCommand = event.ctrlKey || event.metaKey;
+      if (controlOrCommand) {
+        const isEnter = event.key === 'Enter' || event.keyCode === 13;
+        const isS = event.key === 's' || event.keyCode === 83;
+        if (isEnter) {
+          onQuery();
+        } else if (isS) {
+          if (props.slice) {
+            props.actions
+              .saveSlice(props.form_data, {
+                action: 'overwrite',
+                slice_id: props.slice.slice_id,
+                slice_name: props.slice.slice_name,
+                add_to_dash: 'noSave',
+                goto_dash: false,
+              })
+              .then(({ data }) => {
+                window.location = data.slice.slice_url;
+              });
+          }
+        }
+      }
+    }
+
+    function handlePopstate() {
+      const formData = window.history.state;
+      if (formData && Object.keys(formData).length) {
+        props.actions.setExploreControls(formData);
+        props.actions.postChartFormData(
+          formData,
+          false,
+          props.timeout,
+          props.chart.id,
+        );
+      }
+    }
+
     props.actions.logEvent(LOG_ACTIONS_MOUNT_EXPLORER);
     addHistory({ isReplace: true });
     window.addEventListener('popstate', handlePopstate);
@@ -261,14 +265,22 @@ function ExploreViewContainer(props) {
       window.removeEventListener('popstate', handlePopstate);
       document.removeEventListener('keydown', handleKeydown);
     };
-  }, []);
+  }, [
+    addHistory,
+    onQuery,
+    props.actions,
+    props.chart.id,
+    props.form_data,
+    props.slice,
+    props.timeout,
+  ]);
 
   useEffect(() => {
     if (wasDynamicPluginLoading && !isDynamicPluginLoading) {
       // reload the controls now that we actually have the control config
       props.actions.dynamicPluginControlsReady();
     }
-  }, [isDynamicPluginLoading]);
+  }, [isDynamicPluginLoading, props.actions, wasDynamicPluginLoading]);
 
   useEffect(() => {
     const hasError = Object.values(props.controls).some(
@@ -278,7 +290,7 @@ function ExploreViewContainer(props) {
     if (!hasError) {
       props.actions.triggerQuery(true, props.chart.id);
     }
-  }, []);
+  }, [props.actions, props.chart.id, props.controls]);
 
   // effect to run when controls change
   useEffect(() => {
@@ -328,7 +340,14 @@ function ExploreViewContainer(props) {
         setChartIsStale(true);
       }
     }
-  }, [props.controls]);
+  }, [
+    addHistory,
+    previousControls,
+    props.actions,
+    props.chart.id,
+    props.controls,
+    props.form_data.datasource,
+  ]);
 
   function renderErrorMessage() {
     // Returns an error message as a node if any errors are in the store

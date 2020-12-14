@@ -220,24 +220,35 @@ const FilterValue: React.FC<FilterProps> = ({
   const { datasetId = 18, column } = target;
   const { name: groupby } = column;
 
-  const getFormData = (): Partial<QueryFormData> => ({
-    adhoc_filters: [],
-    datasource: `${datasetId}__table`,
-    extra_filters: [],
-    extra_form_data: cascadingFilters,
-    granularity_sqla: 'ds',
-    groupby: [groupby],
-    inverseSelection,
-    metrics: ['count'],
-    multiSelect: allowsMultipleValues,
-    row_limit: 10000,
-    showSearch: true,
-    time_range: 'No filter',
-    time_range_endpoints: ['inclusive', 'exclusive'],
-    url_params: {},
-    viz_type: 'filter_select',
-    defaultValues: currentValue || defaultValue || [],
-  });
+  const getFormData = useCallback(
+    (): Partial<QueryFormData> => ({
+      adhoc_filters: [],
+      datasource: `${datasetId}__table`,
+      extra_filters: [],
+      extra_form_data: cascadingFilters,
+      granularity_sqla: 'ds',
+      groupby: [groupby],
+      inverseSelection,
+      metrics: ['count'],
+      multiSelect: allowsMultipleValues,
+      row_limit: 10000,
+      showSearch: true,
+      time_range: 'No filter',
+      time_range_endpoints: ['inclusive', 'exclusive'],
+      url_params: {},
+      viz_type: 'filter_select',
+      defaultValues: currentValue || defaultValue || [],
+    }),
+    [
+      allowsMultipleValues,
+      cascadingFilters,
+      currentValue,
+      datasetId,
+      defaultValue,
+      groupby,
+      inverseSelection,
+    ],
+  );
 
   useEffect(() => {
     const newFormData = getFormData();
@@ -252,7 +263,7 @@ const FilterValue: React.FC<FilterProps> = ({
         setLoading(false);
       });
     }
-  }, [cascadingFilters]);
+  }, [cascadingFilters, formData, getFormData]);
 
   const setExtraFormData = (extraFormData: ExtraFormData) =>
     onExtraFormDataChange(filter, extraFormData);
@@ -351,10 +362,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const [visiblePopoverId, setVisiblePopoverId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (filterConfigs.length === 0 && filtersOpen) {
+    if (filterConfigs.length === 0) {
       toggleFiltersBar(false);
     }
-  }, [filterConfigs]);
+  }, [filterConfigs, toggleFiltersBar]);
 
   const getFilterValue = useCallback(
     (filter: Filter): (string | number | boolean)[] | null => {

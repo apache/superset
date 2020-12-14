@@ -117,7 +117,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           `There was an issue fetching your recent acitivity: ${e}`,
         );
       });
-  }, []);
+  }, [addDangerToast, recent, user.userId]);
 
   return (
     <WelcomeContainer>

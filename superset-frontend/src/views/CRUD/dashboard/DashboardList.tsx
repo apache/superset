@@ -351,82 +351,94 @@ function DashboardList(props: DashboardListProps) {
         disableSortBy: true,
       },
     ],
-    [canEdit, canDelete, canExport, favoriteStatus],
+    [
+      canEdit,
+      canDelete,
+      canExport,
+      saveFavoriteStatus,
+      favoriteStatus,
+      refreshData,
+      addSuccessToast,
+      addDangerToast,
+    ],
   );
 
-  const filters: Filters = [
-    {
-      Header: t('Owner'),
-      id: 'owners',
-      input: 'select',
-      operator: FilterOperators.relationManyMany,
-      unfilteredLabel: 'All',
-      fetchSelects: createFetchRelated(
-        'dashboard',
-        'owners',
-        createErrorHandler(errMsg =>
-          addDangerToast(
-            t(
-              'An error occurred while fetching dashboard owner values: %s',
-              errMsg,
+  const filters: Filters = useMemo(
+    () => [
+      {
+        Header: t('Owner'),
+        id: 'owners',
+        input: 'select',
+        operator: FilterOperators.relationManyMany,
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'dashboard',
+          'owners',
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t(
+                'An error occurred while fetching dashboard owner values: %s',
+                errMsg,
+              ),
             ),
           ),
+          props.user.userId,
         ),
-        props.user.userId,
-      ),
-      paginate: true,
-    },
-    {
-      Header: t('Created By'),
-      id: 'created_by',
-      input: 'select',
-      operator: FilterOperators.relationOneMany,
-      unfilteredLabel: 'All',
-      fetchSelects: createFetchRelated(
-        'dashboard',
-        'created_by',
-        createErrorHandler(errMsg =>
-          addDangerToast(
-            t(
-              'An error occurred while fetching dashboard created by values: %s',
-              errMsg,
+        paginate: true,
+      },
+      {
+        Header: t('Created By'),
+        id: 'created_by',
+        input: 'select',
+        operator: FilterOperators.relationOneMany,
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'dashboard',
+          'created_by',
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t(
+                'An error occurred while fetching dashboard created by values: %s',
+                errMsg,
+              ),
             ),
           ),
+          props.user.userId,
         ),
-        props.user.userId,
-      ),
-      paginate: true,
-    },
-    {
-      Header: t('Status'),
-      id: 'published',
-      input: 'select',
-      operator: FilterOperators.equals,
-      unfilteredLabel: 'Any',
-      selects: [
-        { label: t('Published'), value: true },
-        { label: t('Unpublished'), value: false },
-      ],
-    },
-    {
-      Header: t('Favorite'),
-      id: 'id',
-      urlDisplay: 'favorite',
-      input: 'select',
-      operator: FilterOperators.dashboardIsFav,
-      unfilteredLabel: 'Any',
-      selects: [
-        { label: t('Yes'), value: true },
-        { label: t('No'), value: false },
-      ],
-    },
-    {
-      Header: t('Search'),
-      id: 'dashboard_title',
-      input: 'search',
-      operator: FilterOperators.titleOrSlug,
-    },
-  ];
+        paginate: true,
+      },
+      {
+        Header: t('Status'),
+        id: 'published',
+        input: 'select',
+        operator: FilterOperators.equals,
+        unfilteredLabel: 'Any',
+        selects: [
+          { label: t('Published'), value: true },
+          { label: t('Unpublished'), value: false },
+        ],
+      },
+      {
+        Header: t('Favorite'),
+        id: 'id',
+        urlDisplay: 'favorite',
+        input: 'select',
+        operator: FilterOperators.dashboardIsFav,
+        unfilteredLabel: 'Any',
+        selects: [
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
+        ],
+      },
+      {
+        Header: t('Search'),
+        id: 'dashboard_title',
+        input: 'search',
+        operator: FilterOperators.titleOrSlug,
+      },
+    ],
+    [addDangerToast, props.user.userId],
+  );
 
   const sortTypes = [
     {
