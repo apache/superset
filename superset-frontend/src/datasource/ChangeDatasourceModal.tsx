@@ -97,9 +97,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
 }) => {
   const [filter, setFilter] = useState<any>(undefined);
   const [confirmChange, setConfirmChange] = useState(false);
-  const [confirmedDataset, setConfirmedDataset] = useState<Datasource>(
-    undefined,
-  );
+  const [confirmedDataset, setConfirmedDataset] = useState<Datasource>();
   let searchRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -163,11 +161,11 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
 
   const handleChangeConfirm = () => {
     SupersetClient.get({
-      endpoint: `/datasource/get/${confirmedDataset.type}/${confirmedDataset.id}`,
+      endpoint: `/datasource/get/${confirmedDataset?.type}/${confirmedDataset?.id}`,
     })
       .then(({ json }) => {
         onDatasourceSave(json);
-        onChange(`${confirmedDataset.id}__table`);
+        onChange(`${confirmedDataset?.id}__table`);
       })
       .catch(response => {
         getClientErrorObject(response).then(
