@@ -64,6 +64,7 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
         "error_message",
         "end_dttm",
         "start_dttm",
+        "scheduled_dttm",
     ]
     openapi_spec_tag = "Report Schedules"
     openapi_spec_methods = openapi_spec_methods_override

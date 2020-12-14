@@ -145,6 +145,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "changed_on",
         "changed_on_delta_humanized",
         "created_on",
+        "crontab",
         "name",
         "type",
     ]
@@ -200,7 +201,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         try:
             DeleteReportScheduleCommand(g.user, pk).run()
             return self.response(200, message="OK")
-        except ReportScheduleNotFoundError as ex:
+        except ReportScheduleNotFoundError:
             return self.response_404()
         except ReportScheduleDeleteFailedError as ex:
             logger.error(
