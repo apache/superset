@@ -73,7 +73,7 @@ const Styles = styled.div`
     display: flex;
   }
   .title-select {
-    width: ${({ theme }) => theme.gridUnit * 46}px;
+    width: ${({ theme }) => theme.gridUnit * 49}px;
     display: inline-block;
     background-color: #f0f0f0;
     padding: ${({ theme }) => theme.gridUnit * 2}px;

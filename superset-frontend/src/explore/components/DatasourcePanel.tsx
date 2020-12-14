@@ -68,16 +68,13 @@ const DatasourceContainer = styled.div`
   }
   .header {
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
-    margin-left: -10px;
-  }
-  .type-label {
-   // margin-
+    margin-left: ${({ theme }) => theme.gridUnit * -2}px;
   }
   .ant-collapse-content-box > div > span {
-    margin-left: -14px;
+    margin-left:  ${({ theme }) => theme.gridUnit * -3}px;
   }
-  .ant-collapse-contnet-box > div > div {
-    margin-left -25px;
+  .ant-collapse-content-box > div > div {
+    margin-left ${({ theme }) => theme.gridUnit * -6}px;
   }
 `;
 

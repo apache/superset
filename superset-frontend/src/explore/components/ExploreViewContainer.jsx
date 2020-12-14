@@ -406,6 +406,7 @@ class ExploreViewContainer extends React.Component {
                 name="expand"
                 color={supersetTheme.colors.primary.base}
                 className="collapse-icon"
+                width={16}
               />
             </span>
           </div>
@@ -427,9 +428,10 @@ class ExploreViewContainer extends React.Component {
                 name="collapse"
                 color={supersetTheme.colors.primary.base}
                 className="collapse-icon"
+                width={16}
               />
             </span>
-            <Icon name="dataset-physical" />
+            <Icon name="dataset-physical" width={16} />
           </div>
         ) : null}
         <div
