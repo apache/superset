@@ -677,6 +677,9 @@ As an alternative you can use docker-compose environment for testing:
 Make sure you have added below line to your /etc/hosts file:
 ```127.0.0.1 db```
 
+If you already have launched Docker environment please use the following command to assure a fresh database instance:
+```docker-compose down -v```
+
 Launch environment:
 
 CYPRESS_CONFIG=true docker-compose up
