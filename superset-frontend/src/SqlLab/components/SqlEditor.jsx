@@ -421,10 +421,11 @@ class SqlEditor extends React.PureComponent {
       <Menu onClick={this.handleMenuClick}>
         <Menu.Item>
           {' '}
-          Autocomplete{' '}
+          <label for="autocomplete-switch">Autocomplete</label>{' '}
           <Switch
             checked={this.state.autocompleteEnabled}
             onChange={this.handleToggleAutocompleteEnabled}
+            name="autocomplete-switch"
           />{' '}
         </Menu.Item>
         <Menu.Item>
