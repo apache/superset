@@ -23,6 +23,10 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import AlertReportModal from 'src/views/CRUD/alert/AlertReportModal';
 import Modal from 'src/common/components/Modal';
+import { AsyncSelect } from 'src/components/Select';
+import { Radio } from 'src/common/components/Radio';
+import { Select } from 'src/common/components/Select';
+import { Switch } from 'src/common/components/Switch';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
 
@@ -127,11 +131,87 @@ describe('AlertReportModal', () => {
     ).toEqual('Edit Report');
   });
 
+  // Fields
   it('renders input element for name', () => {
     expect(wrapper.find('input[name="name"]')).toExist();
   });
 
+  it('renders three async select elements when in report mode', () => {
+    expect(wrapper.find(AsyncSelect)).toExist();
+    expect(wrapper.find(AsyncSelect)).toHaveLength(3);
+  });
+
+  it('renders four async select elements when in alert mode', async () => {
+    const props = {
+      ...mockedProps,
+      isReport: false,
+    };
+
+    const addWrapper = await mountAndWait(props);
+
+    expect(addWrapper.find(AsyncSelect)).toExist();
+    expect(addWrapper.find(AsyncSelect)).toHaveLength(4);
+  });
+
+  it('renders Switch element', () => {
+    expect(wrapper.find(Switch)).toExist();
+  });
+
   it('renders input element for description', () => {
     expect(wrapper.find('input[name="description"]')).toExist();
+  });
+
+  it('renders input element for sql in alert mode only', async () => {
+    const props = {
+      ...mockedProps,
+      isReport: false,
+    };
+
+    const addWrapper = await mountAndWait(props);
+
+    expect(wrapper.find('textarea[name="sql"]')).toHaveLength(0);
+    expect(addWrapper.find('textarea[name="sql"]')).toExist();
+  });
+
+  it('renders one select element when in report mode', () => {
+    expect(wrapper.find(Select)).toExist();
+    expect(wrapper.find(Select)).toHaveLength(1);
+  });
+
+  it('renders two select elements when in alert mode', async () => {
+    const props = {
+      ...mockedProps,
+      isReport: false,
+    };
+
+    const addWrapper = await mountAndWait(props);
+
+    expect(addWrapper.find(Select)).toExist();
+    expect(addWrapper.find(Select)).toHaveLength(2);
+  });
+
+  it('renders value input element when in alert mode', async () => {
+    const props = {
+      ...mockedProps,
+      isReport: false,
+    };
+
+    const addWrapper = await mountAndWait(props);
+
+    expect(wrapper.find('input[name="threshold"]')).toHaveLength(0);
+    expect(addWrapper.find('input[name="threshold"]')).toExist();
+  });
+
+  it('renders four radio buttons', () => {
+    expect(wrapper.find(Radio)).toExist();
+    expect(wrapper.find(Radio)).toHaveLength(4);
+  });
+
+  it('renders input element for working timeout', () => {
+    expect(wrapper.find('input[name="working_timeout"]')).toExist();
+  });
+
+  it('renders input element for grace period', () => {
+    expect(wrapper.find('input[name="grace_period"]')).toExist();
   });
 });
