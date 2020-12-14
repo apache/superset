@@ -53,6 +53,11 @@ if [ -z "${GITHUB_TAG_NAME}" ]; then
     exit 1
 fi
 
+if [ -z "$(git show-ref ${GITHUB_TAG_NAME})" ]; then
+    echo "The tag ${GITHUB_TAG_NAME} does not exist. Please use a different tag."
+    exit 1
+fi
+
 # check that this tag only contains a proper semantic version
 if ! [[ ${GITHUB_TAG_NAME} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
 then
@@ -92,7 +97,7 @@ do
     # check that this only contains a proper semantic version
     if ! [[ ${LATEST_RELEASE_TAG} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
     then
-      echo "This tag ${LATEST_RELEASE_TAG} is not a valid release version. Looking for another."
+      echo "'Latest' has been associated with tag ${LATEST_RELEASE_TAG} which is not a valid release version. Looking for another."
       continue
     fi
     echo "The current release with the latest tag is version ${LATEST_RELEASE_TAG}"
