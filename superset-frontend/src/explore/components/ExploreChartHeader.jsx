@@ -202,7 +202,10 @@ export class ExploreChartHeader extends React.PureComponent {
             status={CHART_STATUS_MAP[chartStatus]}
           />
           <ExploreActionButtons
-            actions={this.props.actions}
+            actions={{
+              ...this.props.actions,
+              openPropertiesModal: this.openProperiesModal,
+            }}
             slice={this.props.slice}
             canDownload={this.props.can_download}
             chartStatus={chartStatus}

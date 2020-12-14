@@ -110,6 +110,7 @@ export default function ExploreActionButtons({
         latestQueryFormData={latestQueryFormData}
         chartStatus={chartStatus}
         onOpenInEditor={actions.redirectSQLLab}
+        onOpenPropertiesModal={actions.openPropertiesModal}
         slice={slice}
       />
     </div>
