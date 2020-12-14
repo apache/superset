@@ -122,7 +122,7 @@ const StyledSectionContainer = styled.div`
 
     .column {
       flex: 1 1 auto;
-      min-width: 33.33%;
+      min-width: calc(33.33% - ${({ theme }) => theme.gridUnit * 8}px);
       padding: ${({ theme }) => theme.gridUnit * 4}px;
 
       .async-select {
@@ -143,6 +143,9 @@ const StyledSectionContainer = styled.div`
     display: flex;
     flex-direction: row;
     align-items: center;
+    &.wrap {
+      flex-wrap: wrap;
+    }
 
     > div {
       flex: 1 1 auto;
@@ -1099,7 +1102,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   />
                 </div>
               </StyledInputContainer>
-              <div className="inline-container">
+              <div className="inline-container wrap">
                 <StyledInputContainer>
                   <div className="control-label">
                     {t('Alert If...')}
