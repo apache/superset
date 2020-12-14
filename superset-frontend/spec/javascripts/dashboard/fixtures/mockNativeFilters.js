@@ -44,10 +44,7 @@ export const nativeFiltersInfo = {
   filtersState: {
     DefaultsID: {
       id: 'DefaultId',
-      optionsStatus: 'loading',
-      options: [],
       selectedValues: [],
-      isDirty: true,
     },
   },
 };
