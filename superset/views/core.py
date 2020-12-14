@@ -725,7 +725,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         slice_add_perm = security_manager.can_access("can_write", "Chart")
         slice_overwrite_perm = is_owner(slc, g.user) if slc else False
         slice_download_perm = security_manager.can_access(
-            "can_download", "SliceModelView"
+            "can_read", "Chart"
         )
 
         form_data["datasource"] = str(datasource_id) + "__" + cast(str, datasource_type)
