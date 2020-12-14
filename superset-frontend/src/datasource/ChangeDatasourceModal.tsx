@@ -39,6 +39,12 @@ const CONFIRM_WARNING_MESSAGE = t(
   'Warning! Changing the dataset may break the chart if the metadata does not exist in the target dataset',
 );
 
+interface Datasource {
+  type: string;
+  id: number;
+  uid: string;
+}
+
 interface ChangeDatasourceModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -74,6 +80,13 @@ const CHANGE_WARNING_MSG = t(
     'on columns or metadata that does not exist in the target dataset',
 );
 
+const emptyRequest = {
+  pageIndex: 0,
+  pageSize: 20,
+  filters: [],
+  sortBy: [{ id: 'changed_on_delta_humanized' }],
+};
+
 const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   addDangerToast,
   addSuccessToast,
@@ -92,19 +105,15 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     fetchData,
   } = useListViewResource<Dataset>('dataset', t('dataset'), addDangerToast);
 
-  const selectDatasource = useCallback(
-    (datasource: { type: string; id: number; uid: string }) => {
-      setConfirmChange(true);
-      setConfirmedDataset(datasource);
-    },
-    [],
-  );
+  const selectDatasource = useCallback((datasource: Datasource) => {
+    setConfirmChange(true);
+    setConfirmedDataset(datasource);
+  }, []);
 
   useDebouncedEffect(() => {
     if (filter) {
       fetchData({
-        pageIndex: 0,
-        pageSize: 20,
+        ...emptyRequest,
         filters: [
           {
             id: 'table_name',
@@ -112,7 +121,6 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
             value: filter,
           },
         ],
-        sortBy: [{ id: 'changed_on_delta_humanized' }],
       });
     }
   }, 1000);
@@ -124,12 +132,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       }
 
       // Fetch initial datasets for tableview
-      await fetchData({
-        pageIndex: 0,
-        pageSize: 20,
-        filters: [],
-        sortBy: [{ id: 'changed_on_delta_humanized' }],
-      });
+      await fetchData(emptyRequest);
     };
 
     if (show) {
