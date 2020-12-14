@@ -90,4 +90,4 @@ columns:
   python_date_format: null
 version: 1.0.0
 database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
-data: https://gist.githubusercontent.com/betodealmeida/bd3b49ec1e2ee230e56854cf1b72a131/raw/7cf28e3e71250e7ba7443a2b692f6a2d694b26d6/unicode_test_data.csv
+data: https://raw.githubusercontent.com/apache-superset/examples-data/master/datasets/examples/unicode_test.csv
