@@ -24,6 +24,7 @@ import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import Button from 'src/components/Button';
 import FacePile from 'src/components/FacePile';
 import { IconName } from 'src/components/Icon';
+import { Tooltip } from 'src/common/components/Tooltip';
 import ListView, { FilterOperators, Filters } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import { Switch } from 'src/common/components/Switch';
@@ -139,20 +140,31 @@ function AlertList({
         }: any) =>
           recipients.map((r: any) => (
             <RecipientIcon key={r.id} type={r.type} />
-            // <Icon key={r.id} name={r.type.toLowerCase() as IconName} />
           )),
         accessor: 'recipients',
         Header: t('Notification Method'),
         disableSortBy: true,
+        size: 'xl',
       },
       {
         Header: t('Schedule'),
-        accessor: 'crontab',
+        accessor: 'crontab_humanized',
+        size: 'xl',
+        Cell: ({
+          row: {
+            original: { crontab_humanized = '' },
+          },
+        }: any) => (
+          <Tooltip title={crontab_humanized} placement="topLeft">
+            <span>{crontab_humanized}</span>,
+          </Tooltip>
+        ),
       },
       {
         accessor: 'created_by',
         disableSortBy: true,
         hidden: true,
+        size: 'xl',
       },
       {
         Cell: ({
@@ -163,7 +175,7 @@ function AlertList({
         Header: t('Owners'),
         id: 'owners',
         disableSortBy: true,
-        size: 'lg',
+        size: 'xl',
       },
       {
         Cell: ({ row: { original } }: any) => (
@@ -177,6 +189,7 @@ function AlertList({
         Header: t('Active'),
         accessor: 'active',
         id: 'active',
+        size: 'xl',
       },
       {
         Cell: ({ row: { original } }: any) => {
