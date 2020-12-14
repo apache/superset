@@ -95,4 +95,10 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "post": "write",
     "put": "write",
     "related": "read",
+    "import_": "read",
+    "related_objects": "read",
+    "schemas": "read",
+    "select_star": "read",
+    "table_metadata": "read",
+    "test_connection": "read",
 }
