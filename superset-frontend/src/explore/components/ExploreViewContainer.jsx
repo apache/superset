@@ -76,7 +76,7 @@ const Styles = styled.div`
     border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     display: flex;
     flex-direction: column;
-    padding: 0 ${({ theme }) => 2 * theme.gridUnit}px;
+    padding: ${({ theme }) => 2 * theme.gridUnit}px;
     max-height: 100%;
     &.bg {
       background-color: ${({ theme }) => theme.colors.grayscale.light4};
@@ -86,16 +86,12 @@ const Styles = styled.div`
     position: relative;
     display: flex;
     flex-direction: row;
-    margin-bottom: 20px;
-    .action-button {
-      position: absolute;
-      right: 10px;
-    }
+    margin-bottom: ${({ theme }) => 2 * theme.gridUnit}px;
+    justify-content: space-between;
     .horizontal-text {
-      position: absolute;
       text-transform: uppercase;
-      color: #879399;
-      font-size: 12px;
+      color: ${({ theme }) => theme.colors.grayscale.light1};
+      font-size: ${({ theme }) => 4 * theme.typography.sizes.s};
     }
   }
   .no-show {
@@ -106,14 +102,13 @@ const Styles = styled.div`
     text-orientation: mixed;
   }
   .sidebar {
-    width: 30px;
     height: 100%;
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
-    text-align: center;
-    padding: 0 ${({ theme }) => 2 * theme.gridUnit}px;
+    padding: ${({ theme }) => 2 * theme.gridUnit}px;
+    width: ${({ theme }) => 10 * theme.gridUnit}px;
   }
   .data-tab {
-    min-width: 280px;
+    min-width: 288px;
   }
   .callpase-icon > svg {
     color: ${({ theme }) => theme.colors.primary.base};
