@@ -21,12 +21,12 @@
 import d3 from 'd3';
 import PropTypes from 'prop-types';
 import cloudLayout from 'd3-cloud';
-import { CategoricalColorNamespace } from '@superset-ui/core';
+import { CategoricalColorNamespace, seedRandom } from '@superset-ui/core';
 
 const ROTATION = {
-  square: () => Math.floor(Math.random() * 2) * 90,
+  square: () => Math.floor(seedRandom() * 2) * 90,
   flat: () => 0,
-  random: () => Math.floor(Math.random() * 6 - 3) * 30,
+  random: () => Math.floor(seedRandom() * 6 - 3) * 30,
 };
 
 const propTypes = {

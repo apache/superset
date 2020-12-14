@@ -4856,6 +4856,9 @@
     conventional-changelog-cli "^2.0.12"
     cz-conventional-changelog "^2.1.0"
 
+"@superset-ui/core@file:packages/superset-ui-core/src":
+  version "0.0.0"
+
 "@superset-ui/legacy-plugin-chart-word-cloud@^0.11.15":
   version "0.11.15"
   resolved "https://registry.yarnpkg.com/@superset-ui/legacy-plugin-chart-word-cloud/-/legacy-plugin-chart-word-cloud-0.11.15.tgz#70a146aaf3cf1977c29086c069f0216325f092b2"
@@ -5458,6 +5461,11 @@
   version "0.0.6"
   resolved "https://registry.yarnpkg.com/@types/rison/-/rison-0.0.6.tgz#405605f63d4fe0ec0d66b2dd7eaf51a99a51144e"
   integrity sha512-mE3eRK0fpTN/GnNBOIg2tGq2cFhchQXF6fCbrLxus75TgnoOECbdHikr948FGO/UAml7/ZhLMa5FbGkF5PKvmw==
+
+"@types/seedrandom@^2.4.28":
+  version "2.4.28"
+  resolved "https://registry.yarnpkg.com/@types/seedrandom/-/seedrandom-2.4.28.tgz#9ce8fa048c1e8c85cb71d7fe4d704e000226036f"
+  integrity sha512-SMA+fUwULwK7sd/ZJicUztiPs8F1yCPwF3O23Z9uQ32ME5Ha0NmDK9+QTsYE4O2tHXChzXomSWWeIhCnoN1LqA==
 
 "@types/shortid@^0.0.29":
   version "0.0.29"
