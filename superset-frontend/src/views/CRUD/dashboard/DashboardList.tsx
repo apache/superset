@@ -69,6 +69,7 @@ interface Dashboard {
   dashboard_title: string;
   id: number;
   published: boolean;
+  favorite: boolean;
   url: string;
   thumbnail_url: string;
   owners: Owner[];
@@ -101,6 +102,7 @@ function DashboardList(props: DashboardListProps) {
     dashboardIds,
     addDangerToast,
   );
+
   const [dashboardToEdit, setDashboardToEdit] = useState<Dashboard | null>(
     null,
   );
@@ -398,6 +400,17 @@ function DashboardList(props: DashboardListProps) {
       selects: [
         { label: t('Published'), value: true },
         { label: t('Unpublished'), value: false },
+      ],
+    },
+    {
+      Header: t('Favorite'),
+      id: 'favorite',
+      input: 'select',
+      operator: 'eq',
+      unfilteredLabel: 'Any',
+      selects: [
+        { label: t('Yes'), value: true },
+        { label: t('No'), value: false },
       ],
     },
     {
