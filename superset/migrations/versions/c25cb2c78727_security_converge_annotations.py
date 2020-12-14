@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""security_coverage_annotations
+"""security_converge_annotations
 
 Revision ID: c25cb2c78727
 Revises: 811494c0cc23
