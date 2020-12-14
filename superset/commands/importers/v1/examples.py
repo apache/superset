@@ -21,6 +21,7 @@ from marshmallow import Schema
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
 
+from superset import db
 from superset.charts.commands.importers.v1.utils import import_chart
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.exceptions import CommandException
@@ -36,6 +37,7 @@ from superset.databases.commands.importers.v1.utils import import_database
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.models.core import Database
 from superset.models.dashboard import dashboard_slices
 
 
@@ -66,10 +68,16 @@ class ImportExamplesCommand(ImportModelsCommand):
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets
+        # TODO (betodealmeida): once we have all examples being imported we can
+        # have a stable UUID for the database stored in the dataset YAML; for
+        # now we need to fetch the current ID.
+        examples_id = (
+            db.session.query(Database).filter_by(database_name="examples").one().id
+        )
         dataset_info: Dict[str, Dict[str, Any]] = {}
         for file_name, config in configs.items():
             if file_name.startswith("datasets/"):
-                config["database_id"] = database_ids[config["database_uuid"]]
+                config["database_id"] = examples_id
                 dataset = import_dataset(session, config, overwrite=overwrite)
                 dataset_info[str(dataset.uuid)] = {
                     "datasource_id": dataset.id,
