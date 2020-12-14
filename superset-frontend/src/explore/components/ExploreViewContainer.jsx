@@ -59,6 +59,9 @@ const propTypes = {
 };
 
 const Styles = styled.div`
+    /* &.light { */
+  background: ${({ theme }) => theme.colors.grayscale.light5};
+    /* } */
   height: ${({ height }) => height};
   min-height: ${({ height }) => height};
   text-align: left;
@@ -68,11 +71,16 @@ const Styles = styled.div`
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: stretch;
+  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   .control-pane {
+    border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     display: flex;
     flex-direction: column;
     padding: 0 ${({ theme }) => 2 * theme.gridUnit}px;
     max-height: 100%;
+    &.bg {
+      background-color: ${({ theme }) => theme.colors.grayscale.light4};
+    }
   }
   .title-container {
     position: relative;
@@ -81,11 +89,9 @@ const Styles = styled.div`
     margin-bottom: 20px;
     .action-button {
       position: absolute;
-      top: ${({ theme }) => theme.gridUnit * -3}px;
       right: 10px;
     }
     .horizontal-text {
-      top: ${({ theme }) => theme.gridUnit * -2}px;
       position: absolute;
       text-transform: uppercase;
       color: #879399;
@@ -102,6 +108,9 @@ const Styles = styled.div`
   .sidebar {
     width: 30px;
     height: 100%;
+    background-color: ${({ theme }) => theme.colors.grayscale.light4};
+    text-align: center;
+    padding: 0 ${({ theme }) => 2 * theme.gridUnit}px;
   }
   .data-tab {
     min-width: 280px;
@@ -384,7 +393,7 @@ class ExploreViewContainer extends React.Component {
           />
         )}
 
-        <div className={collapse ? 'no-show' : 'data-tab control-pane'}>
+        <div className={collapse ? 'no-show' : 'data-tab control-pane bg'}>
           <div className="title-container">
             <span className="horizontal-text">Datasource</span>
             <span
