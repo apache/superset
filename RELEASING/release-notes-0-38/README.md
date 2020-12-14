@@ -60,7 +60,7 @@ Database list view refactor/redesign #55 ([Roadmap](https://github.com/apache-su
 
 Datasets CRUD screen refactor/redesign ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/13))
 - feat: dataset editor improvements  (#[10444](https://github.com/apache/incubator-superset/pull/10444))
-![10444](meida/10444.gif)
+![10444](media/10444.gif)
 
 
 Datasets CRUD screen refactor/redesign #13 ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/13))
