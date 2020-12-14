@@ -259,24 +259,50 @@ export function FilterConfigModal({
       }));
   }
 
+  const addValidationError = (
+    filterId: string,
+    field: string,
+    error: string,
+  ) => {
+    const fieldError = {
+      name: ['filters', filterId, field],
+      errors: [error],
+    };
+    form.setFields([fieldError]);
+    // eslint-disable-next-line no-throw-literal
+    throw { errorFields: [fieldError] };
+  };
+
   const validateForm = useCallback(async () => {
     try {
       const formValues = (await form.validateFields()) as NativeFiltersForm;
 
+      const validateInstant = (filterId: string) => {
+        const isInstant = formValues.filters[filterId]
+          ? formValues.filters[filterId].isInstant
+          : filterConfigMap[filterId]?.isInstant;
+        if (!isInstant) {
+          addValidationError(
+            filterId,
+            'isInstant',
+            'For parent filters changes must be applied instantly',
+          );
+        }
+      };
+
       const validateCycles = (filterId: string, trace: string[] = []) => {
         if (trace.includes(filterId)) {
-          const fieldError = {
-            name: ['filters', filterId, 'parentFilter'],
-            errors: ['Cannot create cyclic hierarchy'],
-          };
-          form.setFields([fieldError]);
-          // eslint-disable-next-line no-throw-literal
-          throw { errorFields: [fieldError] };
+          addValidationError(
+            filterId,
+            'parentFilter',
+            'Cannot create cyclic hierarchy',
+          );
         }
         const parentId = formValues.filters[filterId]
           ? formValues.filters[filterId].parentFilter?.value
           : filterConfigMap[filterId]?.cascadeParentIds?.[0];
         if (parentId) {
+          validateInstant(parentId);
           validateCycles(parentId, [...trace, filterId]);
         }
       };
