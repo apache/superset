@@ -40,6 +40,7 @@ import {
 } from 'react-sortable-hoc';
 import arrayMove from 'array-move';
 import { Props as SelectProps } from 'react-select/src/Select';
+import { useTheme } from '@superset-ui/core';
 import {
   WindowedSelectComponentType,
   WindowedSelectProps,
@@ -52,13 +53,13 @@ import {
   DEFAULT_CLASS_NAME,
   DEFAULT_CLASS_NAME_PREFIX,
   DEFAULT_STYLES,
-  DEFAULT_THEME,
   DEFAULT_COMPONENTS,
   VALUE_LABELED_STYLES,
   PartialThemeConfig,
   PartialStylesConfig,
   SelectComponentsType,
   InputProps,
+  defaultTheme,
 } from './styles';
 import { findValue } from './utils';
 
@@ -176,7 +177,6 @@ function styled<
         }
         return optionRenderer ? optionRenderer(option) : getOptionLabel(option);
       },
-
       ...restProps
     } = selectProps;
 
@@ -256,6 +256,9 @@ function styled<
         selectRef.current = stateManager;
       }
     };
+
+    const theme = useTheme();
+
     return (
       <MaybeSortableSelect
         ref={setRef}
@@ -276,7 +279,9 @@ function styled<
         styles={{ ...DEFAULT_STYLES, ...stylesConfig } as SelectProps['styles']}
         // merge default theme from `react-select`, default theme for Superset,
         // and the theme from props.
-        theme={defaultTheme => merge(defaultTheme, DEFAULT_THEME, themeConfig)}
+        theme={reactSelectTheme =>
+          merge(reactSelectTheme, defaultTheme(theme), themeConfig)
+        }
         formatOptionLabel={formatOptionLabel}
         getOptionLabel={getOptionLabel}
         getOptionValue={getOptionValue}

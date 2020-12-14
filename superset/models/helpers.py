@@ -85,6 +85,10 @@ class ImportExportMixin:
     # The names of the attributes
     # that are available for import and export
 
+    extra_import_fields: List[str] = []
+    # Additional fields that should be imported,
+    # even though they were not exported
+
     __mapper__: Mapper
 
     @classmethod
@@ -155,7 +159,12 @@ class ImportExportMixin:
         if sync is None:
             sync = []
         parent_refs = cls.parent_foreign_key_mappings()
-        export_fields = set(cls.export_fields) | set(parent_refs.keys()) | {"uuid"}
+        export_fields = (
+            set(cls.export_fields)
+            | set(cls.extra_import_fields)
+            | set(parent_refs.keys())
+            | {"uuid"}
+        )
         new_children = {c: dict_rep[c] for c in cls.export_children if c in dict_rep}
         unique_constrains = cls._unique_constrains()
 

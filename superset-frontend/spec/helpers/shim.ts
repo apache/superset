@@ -46,6 +46,19 @@ const g = global as any;
 g.window = g.window || {};
 g.window.location = { href: 'about:blank' };
 g.window.performance = { now: () => new Date().getTime() };
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: jest.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(), // Deprecated
+    removeListener: jest.fn(), // Deprecated
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  })),
+});
 
 g.$ = jQuery(g.window);
 

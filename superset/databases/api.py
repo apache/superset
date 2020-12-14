@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from datetime import datetime
 from io import BytesIO
@@ -743,11 +744,19 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         ---
         post:
           requestBody:
+            required: true
             content:
-              application/zip:
+              multipart/form-data:
                 schema:
-                  type: string
-                  format: binary
+                  type: object
+                  properties:
+                    formData:
+                      type: string
+                      format: binary
+                    passwords:
+                      type: string
+                    overwrite:
+                      type: bool
           responses:
             200:
               description: Database import result
@@ -776,7 +785,16 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 for file_name in bundle.namelist()
             }
 
-        command = ImportDatabasesCommand(contents)
+        passwords = (
+            json.loads(request.form["passwords"])
+            if "passwords" in request.form
+            else None
+        )
+        overwrite = request.form.get("overwrite") == "true"
+
+        command = ImportDatabasesCommand(
+            contents, passwords=passwords, overwrite=overwrite
+        )
         try:
             command.run()
             return self.response(200, message="OK")

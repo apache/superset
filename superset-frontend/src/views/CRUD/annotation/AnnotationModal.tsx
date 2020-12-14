@@ -291,7 +291,6 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
           onChange={onDateChange}
           showTime={{ format: 'hh:mm a' }}
           use12Hours
-          // @ts-ignore
           value={
             currentAnnotation &&
             (currentAnnotation?.start_dttm.length ||

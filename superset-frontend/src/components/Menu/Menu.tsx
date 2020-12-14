@@ -46,6 +46,7 @@ interface NavBarProps {
   user_info_url: string;
   user_login_url: string;
   user_logout_url: string;
+  user_profile_url: string | null;
   locale: string;
 }
 
@@ -98,12 +99,10 @@ const StyledHeader = styled.header`
     padding-left: 12px;
   }
 
-  .navbar-nav > li > a {
+  .navbar-inverse .navbar-nav > li > a {
     color: ${({ theme }) => theme.colors.grayscale.dark1};
     border-bottom: none;
-    &:focus {
-      border-bottom: none;
-    }
+    transition: background-color ${({ theme }) => theme.transitionTiming}s;
     &:after {
       content: '';
       position: absolute;
@@ -114,19 +113,22 @@ const StyledHeader = styled.header`
       opacity: 0;
       transform: translateX(-50%);
       transition: all ${({ theme }) => theme.transitionTiming}s;
+      background-color: ${({ theme }) => theme.colors.primary.base};
     }
-
+    &:focus {
+      border-bottom: none;
+      background-color: transparent;
+      /* background-color: ${({ theme }) => theme.colors.primary.light5}; */
+    }
     &:hover {
       color: ${({ theme }) => theme.colors.grayscale.dark1};
+      background-color: ${({ theme }) => theme.colors.primary.light5};
       border-bottom: none;
+      margin: 0;
       &:after {
         opacity: 1;
         width: 100%;
       }
-    }
-    &:hover,
-    &:focus {
-      margin: 0;
     }
   }
 
@@ -163,7 +165,7 @@ export function Menu({
           </Navbar.Brand>
           <Navbar.Toggle />
         </Navbar.Header>
-        <Nav>
+        <Nav data-test="navbar-top">
           {menu.map((item, index) => (
             <MenuObject {...item} key={item.label} index={index + 1} />
           ))}
@@ -195,8 +197,15 @@ export function Menu({
                 {!navbarRight.user_is_anonymous && [
                   <DropdownMenu.Divider key="user-divider" />,
                   <DropdownMenu.ItemGroup key="user-section" title={t('User')}>
-                    <DropdownMenu.Item key="profile">
-                      <a href={navbarRight.user_info_url}>{t('Profile')}</a>
+                    {navbarRight.user_profile_url && (
+                      <DropdownMenu.Item key="profile">
+                        <a href={navbarRight.user_profile_url}>
+                          {t('Profile')}
+                        </a>
+                      </DropdownMenu.Item>
+                    )}
+                    <DropdownMenu.Item key="info">
+                      <a href={navbarRight.user_info_url}>{t('Info')}</a>
                     </DropdownMenu.Item>
                     <DropdownMenu.Item key="logout">
                       <a href={navbarRight.user_logout_url}>{t('Logout')}</a>

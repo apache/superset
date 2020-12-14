@@ -16,21 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow } from 'enzyme';
-import ControlSetRow from 'src/explore/components/ControlRow';
-
-describe('ControlSetRow', () => {
-  it('renders a single row with one element', () => {
-    // eslint-disable-next-line jsx-a11y/anchor-has-content
-    const wrapper = shallow(<ControlSetRow controls={[<a />]} />);
-    expect(wrapper.find('.row')).toExist();
-    expect(wrapper.find('.row').find('a')).toExist();
-  });
-  it('renders a single row with two elements', () => {
-    // eslint-disable-next-line jsx-a11y/anchor-has-content
-    const wrapper = shallow(<ControlSetRow controls={[<a />, <a />]} />);
-    expect(wrapper.find('.row')).toExist();
-    expect(wrapper.find('.row').find('a')).toHaveLength(2);
-  });
-});
+export type ChartObject = {
+  slice_name?: string;
+  description?: string;
+  viz_type?: string;
+  params?: string;
+  cache_timeout?: number;
+  datasource_id?: number;
+  datasource_type?: number;
+};

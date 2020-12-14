@@ -38,7 +38,7 @@ class ExportDatabasesCommand(ExportModelsCommand):
     not_found = DatabaseNotFoundError
 
     @staticmethod
-    def export(model: Database) -> Iterator[Tuple[str, str]]:
+    def _export(model: Database) -> Iterator[Tuple[str, str]]:
         database_slug = secure_filename(model.database_name)
         file_name = f"databases/{database_slug}.yaml"
 

@@ -17,32 +17,14 @@
  * under the License.
  */
 import React from 'react';
-import { styledMount as mount } from 'spec/helpers/theming';
-import Timer from 'src/components/Timer';
-import { now } from 'src/modules/dates';
+import { styled } from '@superset-ui/core';
+import { Switch as BaseSwitch } from 'src/common/components';
+import { SwitchProps } from 'antd/lib/switch';
 
-describe('Timer', () => {
-  let wrapper;
-  const mockedProps = {
-    endTime: null,
-    isRunning: true,
-    status: 'warning',
-  };
+const StyledSwitch = styled(BaseSwitch)`
+  .ant-switch-checked {
+    background-color: ${({ theme }) => theme.colors.primary.base};
+  }
+`;
 
-  beforeEach(() => {
-    mockedProps.startTime = now() + 1;
-    wrapper = mount(<Timer {...mockedProps} />);
-  });
-
-  it('renders correctly', () => {
-    expect(React.isValidElement(<Timer {...mockedProps} />)).toBe(true);
-    expect(wrapper.find('span').hasClass('label-warning')).toBe(true);
-  });
-
-  it('should start timer and sets clockStr', async () => {
-    expect.assertions(2);
-    expect(wrapper.find('span').text()).toBe('');
-    await new Promise(r => setTimeout(r, 35));
-    expect(wrapper.find('span').text()).not.toBe('');
-  });
-});
+export const Switch = (props: SwitchProps) => <StyledSwitch {...props} />;

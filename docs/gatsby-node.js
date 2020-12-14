@@ -634,4 +634,34 @@ exports.createPages = ({ actions }) => {
     toPath: '/docs/creating-charts-dashboards/first-dashboard',
     isPermanent: true,
   });
+  createRedirect({
+    fromPath: '/issue_code_reference.html#issue-1000',
+    toPath: '/docs/miscellaneous/issue-codes#issue-1000',
+    isPermanent: true,
+  });
+  createRedirect({
+    fromPath: '/issue_code_reference.html#issue-1001',
+    toPath: '/docs/miscellaneous/issue-codes#issue-1001',
+    isPermanent: true,
+  });
+  createRedirect({
+    fromPath: '/issue_code_reference.html#issue-1002',
+    toPath: '/docs/miscellaneous/issue-codes#issue-1002',
+    isPermanent: true,
+  });
+  createRedirect({
+    fromPath: '/issue_code_reference.html#issue-1003',
+    toPath: '/docs/miscellaneous/issue-codes#issue-1003',
+    isPermanent: true,
+  });
+  createRedirect({
+    fromPath: '/issue_code_reference.html#issue-1004',
+    toPath: '/docs/miscellaneous/issue-codes#issue-1004',
+    isPermanent: true,
+  });
+  createRedirect({
+    fromPath: '/issue_code_reference.html#issue-1005',
+    toPath: '/docs/miscellaneous/issue-codes#issue-1005',
+    isPermanent: true,
+  });
 };
