@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
-import { Select } from 'src/components/Select';
+import { Select } from 'src/common/components/Select';
 import { t, SupersetClient } from '@superset-ui/core';
 
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
@@ -92,11 +92,8 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     };
 
     this.selectProps = {
-      isMulti: false,
       name: 'select-column',
-      labelKey: 'label',
-      autosize: false,
-      clearable: false,
+      showSearch: true,
     };
 
     this.menuPortalProps = {
@@ -116,7 +113,9 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     }
   }
 
-  onSubjectChange(option) {
+  onSubjectChange(optionId) {
+    const option = this.props.options.find(option => option.id === optionId);
+
     let subject;
     let clause;
     // infer the new clause based on what subject was selected.
@@ -259,15 +258,13 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     const { adhocFilter, options: columns, datasource } = this.props;
     const { subject, operator, comparator } = adhocFilter;
     const subjectSelectProps = {
-      options: columns,
-      value: subject ? { value: subject } : undefined,
+      value: subject ?? undefined,
       onChange: this.onSubjectChange,
-      optionRenderer: this.renderSubjectOptionLabel,
-      valueRenderer: this.renderSubjectOptionValue,
-      valueKey: 'filterOptionName',
       noResultsText: t(
         'No such column found. To filter on a metric, try the Custom SQL tab.',
       ),
+      filterOption: (input, option) =>
+        option.filterBy.toLowerCase().indexOf(input.toLowerCase()) >= 0,
     };
 
     if (datasource.type === 'druid') {
@@ -283,19 +280,15 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         adhocFilter.clause === CLAUSES.WHERE
           ? t('%s column(s)', columns.length)
           : t('To filter on a metric, use Custom SQL tab.');
-      // make sure options have `column_name`
-      subjectSelectProps.options = columns.filter(option => option.column_name);
     }
 
     const operatorSelectProps = {
       placeholder: t('%s operators(s)', OPERATORS_OPTIONS.length),
       // like AGGREGTES_OPTIONS, operator options are string
-      options: OPERATORS_OPTIONS.filter(op =>
-        this.isOperatorRelevant(op, subject),
-      ),
       value: operator,
       onChange: this.onOperatorChange,
-      getOptionLabel: translateOperator,
+      filterOption: (input, option) =>
+        option.value.toLowerCase().indexOf(input.toLowerCase()) >= 0,
     };
 
     return (
@@ -303,18 +296,40 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         <FormGroup className="adhoc-filter-simple-column-dropdown">
           <Select
             {...this.selectProps}
-            {...this.menuPortalProps}
             {...subjectSelectProps}
             name="filter-column"
-          />
+          >
+            {columns
+              .filter(column => !!column.column_name)
+              .map(column => (
+                <Select.Option
+                  value={column.id}
+                  filterBy={
+                    column.saved_metric_name ||
+                    column.column_name ||
+                    column.label
+                  }
+                  key={column.id}
+                >
+                  {this.renderSubjectOptionLabel(column)}
+                </Select.Option>
+              ))}
+          </Select>
         </FormGroup>
         <FormGroup>
           <Select
             {...this.selectProps}
-            {...this.menuPortalProps}
             {...operatorSelectProps}
             name="filter-operator"
-          />
+          >
+            {OPERATORS_OPTIONS.filter(op =>
+              this.isOperatorRelevant(op, subject),
+            ).map(option => (
+              <Select.Option value={option} key={option}>
+                {translateOperator(option)}
+              </Select.Option>
+            ))}
+          </Select>
         </FormGroup>
         <FormGroup data-test="adhoc-filter-simple-value">
           {MULTI_OPERATORS.has(operator) ||
