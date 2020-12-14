@@ -51,6 +51,9 @@ import RunQueryActionButton from './RunQueryActionButton';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 import { CtasEnum } from '../actions/sqlLab';
 
+import { Menu, Dropdown, message, Space, Switch } from 'antd';
+import Icon from 'src/components/Icon';
+
 const SQL_EDITOR_PADDING = 10;
 const INITIAL_NORTH_PERCENT = 30;
 const INITIAL_SOUTH_PERCENT = 70;
@@ -121,6 +124,9 @@ class SqlEditor extends React.PureComponent {
       this.handleWindowResize.bind(this),
       WINDOW_RESIZE_THROTTLE_MS,
     );
+
+    this.handleMenuClick = this.handleMenuClick.bind(this);
+    this.renderDropdown = this.renderDropdown.bind(this);
   }
 
   UNSAFE_componentWillMount() {
@@ -405,6 +411,28 @@ class SqlEditor extends React.PureComponent {
     );
   }
 
+  handleMenuClick() {
+    console.log('pressed a menu item');
+  }
+
+  renderDropdown() {
+    const menu = (
+      <Menu onClick={this.handleMenuClick}>
+        <Menu.Item>
+          {' '}
+          Autocomplete{' '}
+          <Switch
+            checked={this.state.autocompleteEnabled}
+            onChange={this.handleToggleAutocompleteEnabled}
+          />{' '}
+        </Menu.Item>
+        <Menu.Item>Set Parameters</Menu.Item>
+        <Menu.Item>Schedule Run</Menu.Item>
+      </Menu>
+    );
+    return menu;
+  }
+
   renderEditorBottomBar(hotkeys) {
     let ctasControls;
     if (
@@ -558,6 +586,9 @@ class SqlEditor extends React.PureComponent {
           </Form>
         </div>
         <div className="rightItems">
+          <Dropdown overlay={this.renderDropdown()} arrow>
+            <Icon name="more-horiz" />
+          </Dropdown>
           <Button
             data-test="autocomplete"
             buttonSize="small"
