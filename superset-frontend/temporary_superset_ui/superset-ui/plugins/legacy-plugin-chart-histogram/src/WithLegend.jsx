@@ -117,13 +117,18 @@ class WithLegend extends React.Component {
       flexDirection: legendDirection,
       justifyContent: this.getLegendJustifyContent(),
     };
-
+    const legendContainerStyle = {
+      flexWrap: 'wrap',
+      display: 'flex',
+      flexDirection: legendDirection,
+    };
     return (
       <div className={`with-legend ${className}`} style={style}>
         <div className="legend-container" style={legendStyle}>
           {renderLegend({
             // Pass flexDirection for @vx/legend to arrange legend items
             direction: legendDirection,
+            style: legendContainerStyle,
           })}
         </div>
         <div className="main-container" style={chartStyle}>
