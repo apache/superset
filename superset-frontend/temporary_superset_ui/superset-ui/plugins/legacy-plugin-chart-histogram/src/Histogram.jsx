@@ -81,8 +81,9 @@ class CustomHistogram extends React.PureComponent {
         width={width}
         height={height}
         position="top"
-        renderLegend={({ direction }) => (
+        renderLegend={({ direction, style }) => (
           <LegendOrdinal
+            style={style}
             scale={colorScale}
             direction={direction}
             shape="rect"
