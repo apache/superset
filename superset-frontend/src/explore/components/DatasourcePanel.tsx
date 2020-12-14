@@ -68,12 +68,22 @@ const DatasourceContainer = styled.div`
   }
   .header {
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
+    margin-left: -10px;
+  }
+  .type-label {
+   // margin-
+  }
+  .ant-collapse-content-box > div > span {
+    margin-left: -14px;
+  }
+  .ant-collapse-contnet-box > div > div {
+    margin-left -25px;
   }
 `;
 
 const maxNumColumns = 50;
 
-const DataSourceMetrics = ({
+const DataSourcePanel = ({
   datasource,
   controls: { datasource: datasourceControl },
   actions,
@@ -152,4 +162,4 @@ const DataSourceMetrics = ({
   );
 };
 
-export default DataSourceMetrics;
+export default DataSourcePanel;

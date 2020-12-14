@@ -28,7 +28,7 @@ import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
-import DataSourceMetrics from './DatasourceMetrics';
+import DataSourcePanel from './DatasourcePanel';
 import { getExploreLongUrl } from '../exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 import { getFormDataFromControls } from '../controlUtils';
@@ -104,7 +104,7 @@ const Styles = styled.div`
     height: 100%;
   }
   .data-tab {
-    width: 280px;
+    min-width: 280px;
   }
   .callpase-icon > svg {
     color: ${({ theme }) => theme.colors.primary.base};
@@ -400,7 +400,7 @@ class ExploreViewContainer extends React.Component {
               />
             </span>
           </div>
-          <DataSourceMetrics
+          <DataSourcePanel
             datasource={this.props.datasource}
             controls={this.props.controls}
             actions={this.props.actions}
@@ -425,7 +425,7 @@ class ExploreViewContainer extends React.Component {
         ) : null}
         <div
           className={
-            collapse ? 'col-sm-4 control-pane' : 'col-sm-3 control-pane'
+            collapse ? 'col-sm-3 control-pane' : 'col-sm-3 control-pane'
           }
         >
           <QueryAndSaveBtns
@@ -446,7 +446,7 @@ class ExploreViewContainer extends React.Component {
             isDatasourceMetaLoading={this.props.isDatasourceMetaLoading}
           />
         </div>
-        <div className={collapse ? 'col-sm-8' : 'col-sm-7'}>
+        <div className={collapse ? 'col-sm-9' : 'col-sm-7'}>
           {this.renderChartContainer()}
         </div>
       </Styles>
