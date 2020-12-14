@@ -36,7 +36,7 @@ import Loading from '../components/Loading';
 import withToasts from '../messageToasts/enhancers/withToasts';
 
 const CONFIRM_WARNING_MESSAGE = t(
-  'Warning! Changing the dataset may break the chart if the metadata does not exist in the target dataset',
+  'Warning! Changing the dataset may break the chart if the metadata (columns/metrics) does not exist in the target dataset',
 );
 
 interface Datasource {
@@ -97,7 +97,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
 }) => {
   const [filter, setFilter] = useState<any>(undefined);
   const [confirmChange, setConfirmChange] = useState(false);
-  const [confirmedDataset, setConfirmedDataset] = useState<any>(undefined);
+  const [confirmedDataset, setConfirmedDataset] = useState<Datasource>(undefined);
   let searchRef = useRef<HTMLInputElement>(null);
 
   const {
