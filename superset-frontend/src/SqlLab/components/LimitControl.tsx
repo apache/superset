@@ -23,7 +23,6 @@ import { t, styled } from '@superset-ui/core';
 import Popover from 'src/common/components/Popover';
 import Button from 'src/components/Button';
 import Label from 'src/components/Label';
-import Dropdown from 'src/common/components/Dropdown';
 import ControlHeader from '../../explore/components/ControlHeader';
 
 export interface LimitControlProps {

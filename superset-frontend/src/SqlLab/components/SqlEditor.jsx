@@ -21,7 +21,7 @@ import { CSSTransition } from 'react-transition-group';
 import PropTypes from 'prop-types';
 import { FormGroup, InputGroup, Form, FormControl } from 'react-bootstrap';
 import Split from 'react-split';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 
@@ -33,7 +33,6 @@ import Timer from 'src/components/Timer';
 import Hotkeys from 'src/components/Hotkeys';
 import { Dropdown, Menu as AntdMenu } from 'src/common/components';
 
-import LimitControl from './LimitControl';
 import TemplateParamsEditor from './TemplateParamsEditor';
 import ConnectedSouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
@@ -53,22 +52,19 @@ import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 import { CtasEnum } from '../actions/sqlLab';
 
 const LIMIT_DROPDOWN = [10, 100, 1000, 10000, 100000];
-const menuDropdown = (
-  <AntdMenu>
-    {LIMIT_DROPDOWN.map(limit => (
-      <AntdMenu.Item>
-        <a>{limit}</a>
-      </AntdMenu.Item>
-    ))}
-  </AntdMenu>
-);
-
 const SQL_EDITOR_PADDING = 10;
 const INITIAL_NORTH_PERCENT = 30;
 const INITIAL_SOUTH_PERCENT = 70;
 const SET_QUERY_EDITOR_SQL_DEBOUNCE_MS = 2000;
 const VALIDATION_DEBOUNCE_MS = 600;
 const WINDOW_RESIZE_THROTTLE_MS = 100;
+
+const LimitSelectStyled = styled.span`
+  .ant-dropdown-trigger {
+    color: black;
+    text-decoration: none;
+  }
+`;
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -120,6 +116,7 @@ class SqlEditor extends React.PureComponent {
       SET_QUERY_EDITOR_SQL_DEBOUNCE_MS,
     );
     this.queryPane = this.queryPane.bind(this);
+    this.renderQueryLimit = this.renderQueryLimit.bind(this);
     this.getAceEditorAndSouthPaneHeights = this.getAceEditorAndSouthPaneHeights.bind(
       this,
     );
@@ -417,6 +414,20 @@ class SqlEditor extends React.PureComponent {
     );
   }
 
+  renderQueryLimit() {
+    const menuDropdown = (
+      <AntdMenu>
+        {LIMIT_DROPDOWN.map(limit => (
+          <AntdMenu.Item onClick={() => this.setQueryLimit(limit)}>
+            <a>{limit}</a>
+          </AntdMenu.Item>
+        ))}
+      </AntdMenu>
+    );
+
+    return menuDropdown;
+  }
+
   renderEditorBottomBar(hotkeys) {
     let ctasControls;
     if (
@@ -553,24 +564,16 @@ class SqlEditor extends React.PureComponent {
             </span>
             {ctasControls && <span>{ctasControls}</span>}
             <span>
-              <LimitControl
-                value={
-                  this.props.queryEditor.queryLimit !== undefined
-                    ? this.props.queryEditor.queryLimit
-                    : this.props.defaultQueryLimit
-                }
-                defaultQueryLimit={this.props.defaultQueryLimit}
-                maxRow={this.props.maxRow}
-                onChange={this.setQueryLimit.bind(this)}
-              />
-              <Dropdown overlay={menuDropdown}>
-                <a
-                  className="ant-dropdown-link"
-                  onClick={e => e.preventDefault()}
-                >
-                  LIMIT DROPDOWN
-                </a>
-              </Dropdown>
+              <LimitSelectStyled>
+                <Dropdown overlay={this.renderQueryLimit()}>
+                  <a onClick={e => e.preventDefault()}>
+                    <b>LIMIT:</b>{' '}
+                    {this.props.queryEditor.queryLimit !== undefined
+                      ? this.props.queryEditor.queryLimit
+                      : this.props.defaultQueryLimit}
+                  </a>
+                </Dropdown>
+              </LimitSelectStyled>
             </span>
             <span>
               <Hotkeys header={t('Keyboard shortcuts')} hotkeys={hotkeys} />
