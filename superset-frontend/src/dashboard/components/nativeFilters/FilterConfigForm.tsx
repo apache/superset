@@ -30,6 +30,7 @@ import {
   Radio,
   Typography,
 } from 'src/common/components';
+import { Select } from 'src/components/Select/SupersetStyledSelect';
 import { Filter, NativeFiltersForm, Scope, Scoping } from './types';
 import ScopingTree from './ScopingTree';
 import { ColumnSelect } from './ColumnSelect';
@@ -65,6 +66,7 @@ export interface FilterConfigFormProps {
   removed?: boolean;
   restore: (filterId: string) => void;
   form: FormInstance<NativeFiltersForm>;
+  parentFilters: { id: string; title: string }[];
 }
 
 /**
@@ -77,6 +79,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   removed,
   restore,
   form,
+  parentFilters,
 }) => {
   const [advancedScopingOpen, setAdvancedScopingOpen] = useState<Scoping>(
     Scoping.all,
@@ -99,6 +102,11 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       </RemovedContent>
     );
   }
+
+  const parentFilterOptions = parentFilters.map(filter => ({
+    value: filter.id,
+    label: filter.title,
+  }));
 
   return (
     <>
@@ -147,6 +155,15 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         initialValue={filterToEdit?.defaultValue}
       >
         <Input />
+      </Form.Item>
+      <Form.Item
+        name={['filters', filterId, 'parentFilter']}
+        label={t('Parent Filter')}
+        initialValue={parentFilterOptions.find(
+          ({ value }) => value === filterToEdit?.cascadeParentIds[0],
+        )}
+      >
+        <Select options={parentFilterOptions} isClearable />
       </Form.Item>
       <Form.Item
         name={['filters', filterId, 'isInstant']}

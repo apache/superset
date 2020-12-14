@@ -27,7 +27,6 @@ import { StyledModal } from 'src/common/components/Modal';
 import { LineEditableTabs } from 'src/common/components/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { usePrevious } from 'src/common/hooks/usePrevious';
-import ErrorBoundary from 'src/components/ErrorBoundary';
 import { useFilterConfigMap, useFilterConfiguration } from './state';
 import FilterConfigForm from './FilterConfigForm';
 import { FilterConfiguration, NativeFiltersForm } from './types';
@@ -251,9 +250,68 @@ export function FilterConfigModal({
     );
   }
 
+  function getParentFilters(id: string) {
+    return filterIds
+      .filter(filterId => filterId !== id && !removedFilters[filterId])
+      .map(id => ({
+        id,
+        title: getFilterTitle(id),
+      }));
+  }
+
+  const addValidationError = (
+    filterId: string,
+    field: string,
+    error: string,
+  ) => {
+    const fieldError = {
+      name: ['filters', filterId, field],
+      errors: [error],
+    };
+    form.setFields([fieldError]);
+    // eslint-disable-next-line no-throw-literal
+    throw { errorFields: [fieldError] };
+  };
+
   const validateForm = useCallback(async () => {
     try {
-      return (await form.validateFields()) as NativeFiltersForm;
+      const formValues = (await form.validateFields()) as NativeFiltersForm;
+
+      const validateInstant = (filterId: string) => {
+        const isInstant = formValues.filters[filterId]
+          ? formValues.filters[filterId].isInstant
+          : filterConfigMap[filterId]?.isInstant;
+        if (!isInstant) {
+          addValidationError(
+            filterId,
+            'isInstant',
+            'For parent filters changes must be applied instantly',
+          );
+        }
+      };
+
+      const validateCycles = (filterId: string, trace: string[] = []) => {
+        if (trace.includes(filterId)) {
+          addValidationError(
+            filterId,
+            'parentFilter',
+            'Cannot create cyclic hierarchy',
+          );
+        }
+        const parentId = formValues.filters[filterId]
+          ? formValues.filters[filterId].parentFilter?.value
+          : filterConfigMap[filterId]?.cascadeParentIds?.[0];
+        if (parentId) {
+          validateInstant(parentId);
+          validateCycles(parentId, [...trace, filterId]);
+        }
+      };
+
+      filterIds
+        .filter(id => !removedFilters[id])
+        .forEach(filterId => validateCycles(filterId));
+
+      return formValues;
     } catch (error) {
       console.warn('Filter Configuration Failed:', error);
 
@@ -274,7 +332,7 @@ export function FilterConfigModal({
       }
       return null;
     }
-  }, [form, currentFilterId]);
+  }, [form, currentFilterId, filterConfigMap, filterIds, removedFilters]);
 
   const onOk = useCallback(async () => {
     const values: NativeFiltersForm | null = await validateForm();
@@ -289,7 +347,6 @@ export function FilterConfigModal({
         if (!formInputs) return filterConfigMap[id];
         return {
           id,
-          cascadeParentIds: [],
           name: formInputs.name,
           type: 'text',
           // for now there will only ever be one target
@@ -302,6 +359,9 @@ export function FilterConfigModal({
             },
           ],
           defaultValue: formInputs.defaultValue || null,
+          cascadeParentIds: formInputs.parentFilter
+            ? [formInputs.parentFilter.value]
+            : [],
           scope: {
             rootPath: [DASHBOARD_ROOT_ID],
             excluded: [],
@@ -388,6 +448,7 @@ export function FilterConfigModal({
                   filterToEdit={filterConfigMap[id]}
                   removed={!!removedFilters[id]}
                   restore={restoreFilter}
+                  parentFilters={getParentFilters(id)}
                 />
               </LineEditableTabs.TabPane>
             ))}

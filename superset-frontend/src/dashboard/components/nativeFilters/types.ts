@@ -34,6 +34,10 @@ interface NativeFiltersFormItem {
   };
   column: string;
   defaultValue: string;
+  parentFilter: {
+    value: string;
+    label: string;
+  };
   inverseSelection: boolean;
   isInstant: boolean;
   allowsMultipleValues: boolean;
@@ -74,6 +78,7 @@ export interface Filter {
   allowsMultipleValues: boolean;
   cascadeParentIds: string[];
   defaultValue: string | null;
+  currentValue?: string[] | null;
   inverseSelection: boolean;
   isInstant: boolean;
   isRequired: boolean;
@@ -84,6 +89,10 @@ export interface Filter {
   // for now there will only ever be one target
   // when multiple targets are supported, change this to Target[]
   targets: [Target];
+}
+
+export interface CascadeFilter extends Filter {
+  cascadeChildren: CascadeFilter[];
 }
 
 export type FilterConfiguration = Filter[];
