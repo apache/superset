@@ -30,7 +30,7 @@ import { AsyncSelect } from 'src/components/Select';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Owner from 'src/types/Owner';
 
-import { AlertReportCronScheduler } from './AlertReportCronScheduler';
+import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { AlertObject, Operator, Recipient, MetaObject } from './types';
 
 type SelectValue = {

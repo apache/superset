@@ -22,7 +22,7 @@ import { t, useTheme } from '@superset-ui/core';
 import { Input } from 'src/common/components';
 import { Radio } from 'src/common/components/Radio';
 import { CronPicker, CronError } from 'src/common/components/CronPicker';
-import { StyledInputContainer } from './AlertReportModal';
+import { StyledInputContainer } from '../AlertReportModal';
 
 interface AlertReportCronSchedulerProps {
   value?: string;
