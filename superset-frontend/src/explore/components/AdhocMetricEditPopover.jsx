@@ -203,7 +203,6 @@ export default class AdhocMetricEditPopover extends React.Component {
         (adhocMetric.column && adhocMetric.column.column_name) ||
         adhocMetric.inferSqlExpressionColumn(),
       onChange: this.onColumnChange,
-      optionRenderer: this.renderColumnOption,
       allowClear: true,
       showSearch: true,
       filterOption: (input, option) =>
@@ -254,7 +253,8 @@ export default class AdhocMetricEditPopover extends React.Component {
                 {columns.map(column => (
                   <Select.Option
                     value={column.id}
-                    filterBy={column.column_name}
+                    filterBy={column.verbose_name || column.column_name}
+                    key={column.id}
                   >
                     {this.renderColumnOption(column)}
                   </Select.Option>
@@ -267,7 +267,9 @@ export default class AdhocMetricEditPopover extends React.Component {
               </FormLabel>
               <Select name="select-aggregate" {...aggregateSelectProps}>
                 {AGGREGATES_OPTIONS.map(option => (
-                  <Select.Option value={option}>{option}</Select.Option>
+                  <Select.Option value={option} key={option}>
+                    {option}
+                  </Select.Option>
                 ))}
               </Select>
             </FormGroup>
