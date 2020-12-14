@@ -20,7 +20,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { keyframes } from '@emotion/react';
 import { findLastIndex, uniq } from 'lodash';
 import shortid from 'shortid';
-import { DeleteFilled } from '@ant-design/icons';
+import { DeleteFilled, PlusOutlined } from '@ant-design/icons';
 import { styled, t } from '@superset-ui/core';
 import { Form } from 'src/common/components';
 import { StyledModal } from 'src/common/components/Modal';
@@ -79,11 +79,26 @@ const FilterTabTitle = styled.span`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  padding: ${({ theme }) => theme.gridUnit * 2}px
+    ${({ theme }) => theme.gridUnit * 2}px 0 0;
 
   &.removed {
     color: ${({ theme }) => theme.colors.warning.dark1};
     transform-origin: top;
     animation: ${tabTitleRemovalAnimation} ${REMOVAL_DELAY_SECS}s;
+  }
+`;
+
+const StyledAddFilterBox = styled.div`
+  color: ${({ theme }) => theme.colors.primary.dark1};
+  text-align: left;
+  padding: ${({ theme }) => theme.gridUnit * 2}px 0;
+  margin: ${({ theme }) => theme.gridUnit * 3}px 0 0
+    ${({ theme }) => -theme.gridUnit * 2}px;
+  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light1};
+
+  &:hover {
+    color: ${({ theme }) => theme.colors.primary.base};
   }
 `;
 
@@ -416,11 +431,17 @@ export function FilterConfigModal({
               }
             }}
           >
+            <h5>{t('Filters')}</h5>
             <FilterTabs
               tabPosition="left"
               onChange={setCurrentFilterId}
               activeKey={currentFilterId}
               onEdit={onTabEdit}
+              addIcon={
+                <StyledAddFilterBox>
+                  <PlusOutlined /> <span>{t('Add Filter')}</span>
+                </StyledAddFilterBox>
+              }
             >
               {filterIds.map(id => (
                 <LineEditableTabs.TabPane
