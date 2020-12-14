@@ -18,7 +18,9 @@
 
 import json
 import logging
-from typing import Iterator, Tuple
+import random
+import string
+from typing import Any, Dict, Iterator, List, Tuple
 
 import yaml
 from werkzeug.utils import secure_filename
@@ -28,6 +30,7 @@ from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.dao import DashboardDAO
 from superset.commands.export import ExportModelsCommand
 from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.utils.dict_import_export import EXPORT_VERSION
 
 logger = logging.getLogger(__name__)
@@ -35,6 +38,55 @@ logger = logging.getLogger(__name__)
 
 # keys stored as JSON are loaded and the prefix/suffix removed
 JSON_KEYS = {"position_json": "position", "json_metadata": "metadata"}
+DEFAULT_CHART_HEIGHT = 50
+DEFAULT_CHART_WIDTH = 4
+
+
+def suffix(length: int = 8) -> str:
+    return "".join(
+        random.SystemRandom().choice(string.ascii_uppercase + string.digits)
+        for _ in range(length)
+    )
+
+
+def default_position(title: str, charts: List[Slice]) -> Dict[str, Any]:
+    chart_hashes = [f"CHART-{suffix()}" for _ in charts]
+    row_hash = f"ROW-N-{suffix()}"
+    position = {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+        "GRID_ID": {
+            "children": [row_hash],
+            "id": "GRID_ID",
+            "parents": ["ROOT_ID"],
+            "type": "GRID",
+        },
+        "HEADER_ID": {"id": "HEADER_ID", "meta": {"text": title}, "type": "HEADER"},
+        row_hash: {
+            "children": chart_hashes,
+            "id": row_hash,
+            "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"},
+            "parents": ["ROOT_ID", "GRID_ID"],
+            "type": "ROW",
+        },
+    }
+
+    for chart_hash, chart in zip(chart_hashes, charts):
+        position[chart_hash] = {
+            "children": [],
+            "id": chart_hash,
+            "meta": {
+                "chartId": chart.id,
+                "height": DEFAULT_CHART_HEIGHT,
+                "sliceName": chart.slice_name,
+                "uuid": str(chart.uuid),
+                "width": DEFAULT_CHART_WIDTH,
+            },
+            "parents": ["ROOT_ID", "GRID_ID", row_hash],
+            "type": "CHART",
+        }
+
+    return position
 
 
 class ExportDashboardsCommand(ExportModelsCommand):
@@ -63,6 +115,11 @@ class ExportDashboardsCommand(ExportModelsCommand):
                 except (TypeError, json.decoder.JSONDecodeError):
                     logger.info("Unable to decode `%s` field: %s", key, value)
                     payload[new_name] = {}
+
+        # the mapping between dashboard -> charts is inferred from the position
+        # attributes, so if it's not present we need to add a default config
+        if not payload.get("position"):
+            payload["position"] = default_position(model.dashboard_title, model.slices)
 
         payload["version"] = EXPORT_VERSION
 

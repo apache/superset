@@ -222,7 +222,13 @@ export const DataTablesPane = ({
     <SouthPane>
       {displayBackground && <SouthPaneBackground />}
       <TabsWrapper contentHeight={tableSectionHeight}>
-        <Collapse accordion bordered={false} onChange={handleCollapseChange}>
+        <Collapse
+          accordion
+          bordered={false}
+          onChange={handleCollapseChange}
+          bold
+          ghost
+        >
           <Collapse.Panel header={t('Data')} key="data">
             <Tabs
               fullWidth={false}
