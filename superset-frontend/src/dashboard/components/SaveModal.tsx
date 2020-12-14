@@ -18,42 +18,64 @@
  */
 /* eslint-env browser */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { FormControl, FormGroup, Radio } from 'react-bootstrap';
 import Button from 'src/components/Button';
-import { t, CategoricalColorNamespace } from '@superset-ui/core';
+import { t, CategoricalColorNamespace, JsonResponse } from '@superset-ui/core';
 
-import ModalTrigger from '../../components/ModalTrigger';
-import Checkbox from '../../components/Checkbox';
-import { SAVE_TYPE_OVERWRITE, SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
+import ModalTrigger from 'src/components/ModalTrigger';
+import Checkbox from 'src/components/Checkbox';
+import {
+  SAVE_TYPE_OVERWRITE,
+  SAVE_TYPE_NEWDASHBOARD,
+} from 'src/dashboard/util/constants';
 
-const propTypes = {
-  addSuccessToast: PropTypes.func.isRequired,
-  addDangerToast: PropTypes.func.isRequired,
-  dashboardId: PropTypes.number.isRequired,
-  dashboardTitle: PropTypes.string.isRequired,
-  dashboardInfo: PropTypes.object.isRequired,
-  expandedSlices: PropTypes.object.isRequired,
-  layout: PropTypes.object.isRequired,
-  saveType: PropTypes.oneOf([SAVE_TYPE_OVERWRITE, SAVE_TYPE_NEWDASHBOARD]),
-  triggerNode: PropTypes.node.isRequired,
-  customCss: PropTypes.string.isRequired,
-  colorNamespace: PropTypes.string,
-  colorScheme: PropTypes.string,
-  onSave: PropTypes.func.isRequired,
-  canOverwrite: PropTypes.bool.isRequired,
-  refreshFrequency: PropTypes.number.isRequired,
-  lastModifiedTime: PropTypes.number.isRequired,
+type SaveType = typeof SAVE_TYPE_OVERWRITE | typeof SAVE_TYPE_NEWDASHBOARD;
+
+type SaveModalProps = {
+  addSuccessToast: (arg: string) => void;
+  addDangerToast: (arg: string) => void;
+  dashboardId: number;
+  dashboardTitle: string;
+  dashboardInfo: Record<string, any>;
+  expandedSlices: Record<string, any>;
+  layout: Record<string, any>;
+  saveType: SaveType;
+  triggerNode: JSX.Element;
+  customCss: string;
+  colorNamespace?: string;
+  colorScheme?: string;
+  onSave: (data: any, id: number | string, saveType: SaveType) => void;
+  canOverwrite: boolean;
+  shouldPersistRefreshFrequency: boolean;
+  refreshFrequency: number;
+  lastModifiedTime: number;
+};
+
+type SaveModalState = {
+  saveType: SaveType;
+  newDashName: string;
+  duplicateSlices: boolean;
 };
 
 const defaultProps = {
   saveType: SAVE_TYPE_OVERWRITE,
   colorNamespace: undefined,
   colorScheme: undefined,
+  shouldPersistRefreshFrequency: false,
 };
 
-class SaveModal extends React.PureComponent {
-  constructor(props) {
+class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
+  static defaultProps = defaultProps;
+
+  modal: ModalTrigger | null;
+
+  onSave: (
+    data: Record<string, any>,
+    dashboardId: number | string,
+    saveType: SaveType,
+  ) => Promise<JsonResponse>;
+
+  constructor(props: SaveModalProps) {
     super(props);
     this.state = {
       saveType: props.saveType,
@@ -69,25 +91,25 @@ class SaveModal extends React.PureComponent {
     this.onSave = this.props.onSave.bind(this);
   }
 
-  setModalRef(ref) {
+  setModalRef(ref: ModalTrigger | null) {
     this.modal = ref;
   }
 
-  toggleDuplicateSlices() {
+  toggleDuplicateSlices(): void {
     this.setState(prevState => ({
       duplicateSlices: !prevState.duplicateSlices,
     }));
   }
 
-  handleSaveTypeChange(event) {
+  handleSaveTypeChange(event: React.FormEvent<Radio>) {
     this.setState({
-      saveType: event.target.value,
+      saveType: (event.target as HTMLInputElement).value as SaveType,
     });
   }
 
-  handleNameChange(event) {
+  handleNameChange(event: React.FormEvent<FormControl>) {
     this.setState({
-      newDashName: event.target.value,
+      newDashName: (event.target as HTMLInputElement).value,
       saveType: SAVE_TYPE_NEWDASHBOARD,
     });
   }
@@ -137,17 +159,17 @@ class SaveModal extends React.PureComponent {
         t('You must pick a name for the new dashboard'),
       );
     } else {
-      this.onSave(data, dashboardId, saveType).then(resp => {
+      this.onSave(data, dashboardId, saveType).then((resp: JsonResponse) => {
         if (
           saveType === SAVE_TYPE_NEWDASHBOARD &&
           resp &&
           resp.json &&
           resp.json.id
         ) {
-          window.location = `/superset/dashboard/${resp.json.id}/`;
+          window.location.href = `/superset/dashboard/${resp.json.id}/`;
         }
       });
-      this.modal.close();
+      this.modal?.close();
     }
   }
 
@@ -185,7 +207,7 @@ class SaveModal extends React.PureComponent {
             <div className="m-l-25 m-t-5">
               <Checkbox
                 checked={this.state.duplicateSlices}
-                onChange={this.toggleDuplicateSlices}
+                onChange={() => this.toggleDuplicateSlices()}
               />
               <span className="m-l-5">{t('also copy (duplicate) charts')}</span>
             </div>
@@ -206,8 +228,5 @@ class SaveModal extends React.PureComponent {
     );
   }
 }
-
-SaveModal.propTypes = propTypes;
-SaveModal.defaultProps = defaultProps;
 
 export default SaveModal;

@@ -19,10 +19,11 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { shallow, mount } from 'enzyme';
+import { shallow } from 'enzyme';
 import { Select, CreatableSelect } from 'src/components/Select';
 import OnPasteSelect from 'src/components/Select/OnPasteSelect';
 import SelectControl from 'src/explore/components/controls/SelectControl';
+import { styledMount as mount } from 'spec/helpers/theming';
 
 const defaultProps = {
   choices: [

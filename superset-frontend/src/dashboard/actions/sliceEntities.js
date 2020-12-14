@@ -22,7 +22,7 @@ import rison from 'rison';
 
 import { addDangerToast } from 'src/messageToasts/actions';
 import { getDatasourceParameter } from 'src/modules/utils';
-import getClientErrorObject from 'src/utils/getClientErrorObject';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 export const SET_ALL_SLICES = 'SET_ALL_SLICES';
 export function setAllSlices(slices) {

@@ -17,25 +17,27 @@
  * under the License.
  */
 
-import React, { useMemo, useEffect } from 'react';
-import { t, styled } from '@superset-ui/core';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useHistory } from 'react-router-dom';
+import { t } from '@superset-ui/core';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import Button from 'src/components/Button';
-import Icon, { IconName } from 'src/components/Icon';
-import { Tooltip } from 'src/common/components/Tooltip';
-import { Switch } from 'src/common/components/Switch';
 import FacePile from 'src/components/FacePile';
-import ListView, { Filters, FilterOperators } from 'src/components/ListView';
+import { IconName } from 'src/components/Icon';
+import ListView, { FilterOperators, Filters } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
+import { Switch } from 'src/common/components/Switch';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
+import RecipientIcon from 'src/views/CRUD/alert/components/RecipientIcon';
 
 import {
   useListViewResource,
   useSingleViewResource,
 } from 'src/views/CRUD/hooks';
-
-import { AlertObject } from './types';
+import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
+import AlertReportModal from './AlertReportModal';
+import { AlertObject, AlertState } from './types';
 
 const PAGE_SIZE = 25;
 
@@ -48,27 +50,13 @@ interface AlertListProps {
   };
 }
 
-const StatusIcon = styled(Icon)<{ status: string }>`
-  color: ${({ status, theme }) => {
-    switch (status) {
-      case 'Working':
-        return theme.colors.alert.base;
-      case 'Error':
-        return theme.colors.error.base;
-      case 'Success':
-        return theme.colors.success.base;
-      default:
-        return theme.colors.grayscale.base;
-    }
-  }};
-`;
-
 function AlertList({
   addDangerToast,
   isReportEnabled = false,
   user,
 }: AlertListProps) {
-  const title = isReportEnabled ? t('report') : t('alert');
+  const title = isReportEnabled ? 'report' : 'alert';
+  const pathName = isReportEnabled ? 'Reports' : 'Alerts';
   const initalFilters = useMemo(
     () => [
       {
@@ -92,12 +80,21 @@ function AlertList({
     undefined,
     initalFilters,
   );
-  const pathName = isReportEnabled ? 'Reports' : 'Alerts';
+
   const { updateResource } = useSingleViewResource<AlertObject>(
     'report',
     t('reports'),
     addDangerToast,
   );
+
+  const [alertModalOpen, setAlertModalOpen] = useState<boolean>(false);
+  const [currentAlert, setCurrentAlert] = useState<AlertObject | null>(null);
+
+  // Actions
+  function handleAlertEdit(alert: AlertObject | null) {
+    setCurrentAlert(alert);
+    setAlertModalOpen(true);
+  }
 
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
@@ -125,42 +122,7 @@ function AlertList({
           row: {
             original: { last_state: lastState },
           },
-        }: any) => {
-          const lastStateConfig = {
-            name: '',
-            label: '',
-            status: '',
-          };
-          switch (lastState) {
-            case 'Success':
-              lastStateConfig.name = 'check';
-              lastStateConfig.label = t('Success');
-              lastStateConfig.status = 'Success';
-              break;
-            case 'Working':
-              lastStateConfig.name = 'exclamation';
-              lastStateConfig.label = t('Working');
-              lastStateConfig.status = 'Working';
-              break;
-            case 'Error':
-              lastStateConfig.name = 'x-small';
-              lastStateConfig.label = t('Error');
-              lastStateConfig.status = 'Error';
-              break;
-            default:
-              lastStateConfig.name = 'exclamation';
-              lastStateConfig.label = t('Working');
-              lastStateConfig.status = 'Working';
-          }
-          return (
-            <Tooltip title={lastStateConfig.label} placement="bottom">
-              <StatusIcon
-                name={lastStateConfig.name as IconName}
-                status={lastStateConfig.status}
-              />
-            </Tooltip>
-          );
-        },
+        }: any) => <AlertStatusIcon state={lastState} />,
         accessor: 'last_state',
         size: 'xs',
         disableSortBy: true,
@@ -176,7 +138,8 @@ function AlertList({
           },
         }: any) =>
           recipients.map((r: any) => (
-            <Icon key={r.id} name={r.type as IconName} />
+            <RecipientIcon key={r.id} type={r.type} />
+            // <Icon key={r.id} name={r.type.toLowerCase() as IconName} />
           )),
         accessor: 'recipients',
         Header: t('Notification Method'),
@@ -217,16 +180,20 @@ function AlertList({
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const handleEdit = () => {}; // handleAnnotationEdit(original);
+          const history = useHistory();
+          const handleEdit = () => handleAlertEdit(original);
           const handleDelete = () => {}; // setAlertCurrentlyDeleting(original);
+          const handleGotoExecutionLog = () =>
+            history.push(`/${original.type.toLowerCase()}/${original.id}/log`);
+
           const actions = [
             canEdit
               ? {
-                  label: 'preview-action',
+                  label: 'execution-log-action',
                   tooltip: t('Execution Log'),
                   placement: 'bottom',
                   icon: 'note' as IconName,
-                  onClick: handleEdit,
+                  onClick: handleGotoExecutionLog,
                 }
               : null,
             canEdit
@@ -262,21 +229,24 @@ function AlertList({
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
+
   if (canCreate) {
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {title}
+          <i className="fa fa-plus" /> {t(`${title}`)}
         </>
       ),
       buttonStyle: 'primary',
-      onClick: () => {},
+      onClick: () => {
+        handleAlertEdit(null);
+      },
     });
   }
 
   const EmptyStateButton = (
     <Button buttonStyle="primary" onClick={() => {}}>
-      <i className="fa fa-plus" /> {title}
+      <i className="fa fa-plus" /> {t(`${title}`)}
     </Button>
   );
 
@@ -310,9 +280,11 @@ function AlertList({
         operator: FilterOperators.equals,
         unfilteredLabel: 'Any',
         selects: [
-          { label: t('Success'), value: 'Success' },
-          { label: t('Working'), value: 'Working' },
-          { label: t('Error'), value: 'Error' },
+          { label: t(`${AlertState.success}`), value: AlertState.success },
+          { label: t(`${AlertState.working}`), value: AlertState.working },
+          { label: t(`${AlertState.error}`), value: AlertState.error },
+          { label: t(`${AlertState.noop}`), value: AlertState.noop },
+          { label: t(`${AlertState.grace}`), value: AlertState.grace },
         ],
       },
       {
@@ -345,6 +317,17 @@ function AlertList({
           },
         ]}
         buttons={subMenuButtons}
+      />
+      <AlertReportModal
+        alert={currentAlert}
+        addDangerToast={addDangerToast}
+        layer={currentAlert}
+        onHide={() => {
+          setAlertModalOpen(false);
+          refreshData();
+        }}
+        show={alertModalOpen}
+        isReport={isReportEnabled}
       />
       <ListView<AlertObject>
         className="alerts-list-view"
