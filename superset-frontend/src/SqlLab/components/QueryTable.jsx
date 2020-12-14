@@ -27,7 +27,7 @@ import { t } from '@superset-ui/core';
 import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
 import { fDuration } from 'src/modules/dates';
-import IconTooltip from '../../components/IconTooltip';
+import { IconTooltip } from '../../components/IconTooltip';
 import ResultSet from './ResultSet';
 import ModalTrigger from '../../components/ModalTrigger';
 import HighlightedSql from './HighlightedSql';

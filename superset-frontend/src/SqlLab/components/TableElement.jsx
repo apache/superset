@@ -25,7 +25,7 @@ import { t, styled } from '@superset-ui/core';
 import Fade from 'src/common/components/Fade';
 import { Tooltip } from 'src/common/components/Tooltip';
 import CopyToClipboard from '../../components/CopyToClipboard';
-import IconTooltip from '../../components/IconTooltip';
+import { IconTooltip } from '../../components/IconTooltip';
 import ColumnElement from './ColumnElement';
 import ShowSQL from './ShowSQL';
 import ModalTrigger from '../../components/ModalTrigger';
@@ -216,7 +216,7 @@ class TableElement extends React.PureComponent {
           trigger={['hover']}
         >
           <StyledSpan
-            dataTest="collapse"
+            data-test="collapse"
             className="table-name"
             onClick={e => {
               this.toggleTable(e);

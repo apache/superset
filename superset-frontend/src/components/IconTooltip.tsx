@@ -81,4 +81,4 @@ const IconTooltip = ({
   return iconTooltip;
 };
 
-export default IconTooltip;
+export { IconTooltip };

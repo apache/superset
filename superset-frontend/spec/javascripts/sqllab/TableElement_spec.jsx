@@ -22,7 +22,7 @@ import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
-import IconTooltip from 'src/components/IconTooltip';
+import { IconTooltip } from 'src/components/IconTooltip';
 import Fade from 'src/common/components/Fade';
 import TableElement from 'src/SqlLab/components/TableElement';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
@@ -95,7 +95,7 @@ describe('TableElement', () => {
       },
     );
     expect(mockedActions.collapseTable.called).toBe(false);
-    wrapper.find({ dataTest: 'collapse' }).simulate('click');
+    wrapper.find('[data-test="collapse"]').hostNodes().simulate('click');
     expect(mockedActions.collapseTable.called).toBe(true);
   });
   it('removes the table', () => {

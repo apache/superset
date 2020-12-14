@@ -21,7 +21,7 @@ import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 
-import IconTooltip from '../../components/IconTooltip';
+import { IconTooltip } from '../../components/IconTooltip';
 import ModalTrigger from '../../components/ModalTrigger';
 
 SyntaxHighlighter.registerLanguage('sql', sql);

@@ -19,12 +19,11 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 import { Tooltip } from 'src/common/components/Tooltip';
-import IconTooltip from 'src/components/IconTooltip';
+import { IconTooltip } from 'src/components/IconTooltip';
 
 describe('IconTooltip', () => {
   const mockedProps = {
     tooltip: 'This is a tooltip',
-    href: 'https://www.airbnb.com',
   };
   it('renders', () => {
     expect(React.isValidElement(<IconTooltip>TEST</IconTooltip>)).toBe(true);
