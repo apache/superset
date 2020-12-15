@@ -450,7 +450,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   isReport = false,
 }) => {
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [currentAlert, setCurrentAlert] = useState<AlertObject | null>();
+  const [currentAlert, setCurrentAlert] = useState<Partial<
+    AlertObject
+  > | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [contentType, setContentType] = useState<string>('dashboard');
   // Dropdown options
@@ -749,9 +751,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const updateAlertState = (name: string, value: any) => {
     const data = {
       ...currentAlert,
+      [name]: value,
     };
 
-    data[name] = value;
     setCurrentAlert(data);
   };
 

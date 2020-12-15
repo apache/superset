@@ -107,7 +107,9 @@ function AlertList({
   );
 
   const [alertModalOpen, setAlertModalOpen] = useState<boolean>(false);
-  const [currentAlert, setCurrentAlert] = useState<AlertObject | null>(null);
+  const [currentAlert, setCurrentAlert] = useState<Partial<AlertObject> | null>(
+    null,
+  );
   const [
     currentAlertDeleting,
     setCurrentAlertDeleting,
