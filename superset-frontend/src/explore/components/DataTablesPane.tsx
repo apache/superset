@@ -200,7 +200,7 @@ export const DataTablesPane = ({
         <TableView
           columns={columns[type]}
           data={filteredData[type]}
-          withPagination={true}
+          withPagination={renderWithPagination}
           pageSize={pageSize}
           noDataText={t('No data')}
           emptyWrapperType={EmptyWrapperType.Small}
