@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Col, Collapse, Row, Well } from 'react-bootstrap';
-import { t, styled } from '@superset-ui/core';
+import { t, styled, supersetTheme } from '@superset-ui/core';
 import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
 
 import { Dropdown, Menu } from 'src/common/components';
@@ -213,10 +213,18 @@ class DatasourceControl extends React.PureComponent {
       </Menu>
     );
 
+    let healthCheckMessage = '';
+    const { extra: rawExtra } = datasource;
+    if (rawExtra) {
+      const extra = JSON.parse(rawExtra) || {};
+      // eslint-disable-next-line camelcase
+      healthCheckMessage = extra?.health_check?.message;
+    }
+
     return (
       <Styles className="DatasourceControl">
         <ControlHeader {...this.props} />
-        <div>
+        <div style={{ display: 'flex' }}>
           <Tooltip title={t('Expand/collapse dataset configuration')}>
             <Label
               style={{ textTransform: 'none' }}
@@ -230,6 +238,14 @@ class DatasourceControl extends React.PureComponent {
               />
             </Label>
           </Tooltip>
+          {healthCheckMessage && (
+            <Tooltip title={healthCheckMessage}>
+              <Icon
+                name="alert-solid"
+                color={supersetTheme.colors.warning.base}
+              />
+            </Tooltip>
+          )}
           <Dropdown
             overlay={datasourceMenu}
             trigger={['click']}

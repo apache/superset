@@ -650,6 +650,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 f"datasource_id={datasource_id}&"
             )
 
+        # if feature enabled, run some health check rules for sqla datasource
+        if hasattr(datasource, "health_check") and conf["DATASET_HEALTH_CHECK"]:
+            datasource.health_check()
+
         viz_type = form_data.get("viz_type")
         if not viz_type and datasource.default_endpoint:
             return redirect(datasource.default_endpoint)

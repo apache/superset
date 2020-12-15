@@ -698,6 +698,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             data_["fetch_values_predicate"] = self.fetch_values_predicate
             data_["template_params"] = self.template_params
             data_["is_sqllab_view"] = self.is_sqllab_view
+            data_["extra"] = self.extra
         return data_
 
     @property
@@ -1466,6 +1467,25 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             sqla_query = self.get_sqla_query(**query_obj)
             extra_cache_keys += sqla_query.extra_cache_keys
         return extra_cache_keys
+
+    def health_check(self, commit: bool = False, force: bool = False) -> None:
+        check = config["DATASET_HEALTH_CHECK"]
+        if check is None:
+            return
+
+        extra = self.extra_dict
+        # force re-run health check, or health check is updated
+        if force or not extra.get("health_check", {}).get("version") == check.version:
+            message = check(self)
+            if message:
+                extra["health_check"] = {"version": check.version, "message": message}
+            else:
+                extra.pop("health_check", None)
+            self.extra = json.dumps(extra)
+
+            db.session.merge(self)
+            if commit:
+                db.session.commit()
 
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)
