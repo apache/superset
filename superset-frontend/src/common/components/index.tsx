@@ -33,6 +33,7 @@ export {
   Button,
   Card,
   DatePicker,
+  Divider,
   Dropdown,
   Empty,
   Input,

@@ -24,6 +24,7 @@ chardet==3.0.4            # via aiohttp
 click==7.1.2              # via apache-superset, flask, flask-appbuilder
 colorama==0.4.4           # via apache-superset, flask-appbuilder
 contextlib2==0.6.0.post1  # via apache-superset
+cron-descriptor==1.2.24   # via apache-superset
 croniter==0.3.36          # via apache-superset
 cryptography==3.2.1       # via apache-superset
 decorator==4.4.2          # via retry

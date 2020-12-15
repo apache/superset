@@ -187,6 +187,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "created_by",
             "created_on",
             "crontab",
+            "crontab_humanized",
             "id",
             "last_eval_dttm",
             "last_state",
