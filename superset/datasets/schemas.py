@@ -168,3 +168,4 @@ class ImportV1DatasetSchema(Schema):
     metrics = fields.List(fields.Nested(ImportV1MetricSchema))
     version = fields.String(required=True)
     database_uuid = fields.UUID(required=True)
+    data = fields.URL()

@@ -14,20 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from .bart_lines import load_bart_lines
-from .birth_names import load_birth_names
-from .country_map import load_country_map_data
-from .css_templates import load_css_templates
-from .deck import load_deck_dash
-from .energy import load_energy
-from .flights import load_flights
-from .long_lat import load_long_lat_data
-from .misc_dashboard import load_misc_dashboard
-from .multi_line import load_multi_line
-from .multiformat_time_series import load_multiformat_time_series
-from .paris import load_paris_iris_geojson
-from .random_time_series import load_random_time_series_data
-from .sf_population_polygons import load_sf_population_polygons
-from .tabbed_dashboard import load_tabbed_dashboard
-from .utils import load_from_configs
-from .world_bank import load_world_bank_health_n_pop
+slice_name: Unicode Cloud
+viz_type: word_cloud
+params:
+  granularity_sqla: dttm
+  groupby: []
+  limit: '100'
+  metric:
+    aggregate: SUM
+    column:
+      column_name: value
+    expressionType: SIMPLE
+    label: Value
+  rotation: square
+  row_limit: 50000
+  series: short_phrase
+  since: 100 years ago
+  size_from: '10'
+  size_to: '70'
+  until: now
+  viz_type: word_cloud
+cache_timeout: null
+uuid: 609e26d8-8e1e-4097-9751-931708e24ee4
+version: 1.0.0
+dataset_uuid: a6771c73-96fc-44c6-8b6e-9d303955ea48
