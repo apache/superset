@@ -18,7 +18,6 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import rison from 'rison';
 import { useHistory } from 'react-router-dom';
 import { t, SupersetClient, makeApi } from '@superset-ui/core';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
@@ -285,7 +284,7 @@ function AlertList({
                   onClick: handleDelete,
                 }
               : null,
-          ].filter(item => !!item);
+          ].filter(item => item !== null);
 
           return <ActionsBar actions={actions as ActionProps[]} />;
         },
@@ -319,6 +318,7 @@ function AlertList({
       name: t('Bulk Select'),
       onClick: toggleBulkSelect,
       buttonStyle: 'secondary',
+      'data-test': 'bulk-select-toggle',
     });
   }
 
