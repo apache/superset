@@ -23,7 +23,6 @@ import { t, styled } from '@superset-ui/core';
 
 import { Tooltip } from 'src/common/components/Tooltip';
 import Button from 'src/components/Button';
-import Hotkeys from '../../components/Hotkeys';
 
 const propTypes = {
   canAdd: PropTypes.bool.isRequired,
@@ -39,19 +38,6 @@ const defaultProps = {
   onStop: () => {},
   onSave: () => {},
 };
-
-// Prolly need to move this to a global context
-const keymap = {
-  RUN: 'ctrl + r, ctrl + enter',
-  SAVE: 'ctrl + s',
-};
-
-const getHotKeys = () =>
-  Object.keys(keymap).map(k => ({
-    name: k,
-    descr: keymap[k],
-    key: k,
-  }));
 
 const Styles = styled.div`
   display: flex;
@@ -132,13 +118,6 @@ export default function QueryAndSaveBtns({
             </Tooltip>
           </span>
         )}
-      </div>
-      <div className="m-l-5 text-muted">
-        <Hotkeys
-          header="Keyboard shortcuts"
-          hotkeys={getHotKeys()}
-          placement="right"
-        />
       </div>
     </Styles>
   );
