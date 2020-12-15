@@ -419,7 +419,7 @@ class SqlEditor extends React.PureComponent {
       <AntdMenu>
         {LIMIT_DROPDOWN.map(limit => (
           <AntdMenu.Item onClick={() => this.setQueryLimit(limit)}>
-            <a>{limit}</a>
+            <a>{limit.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')}</a>
           </AntdMenu.Item>
         ))}
       </AntdMenu>
