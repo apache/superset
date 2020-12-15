@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ExtraFormData, makeApi, SupersetClient } from '@superset-ui/core';
+import { ExtraFormData, makeApi } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {
   Filter,
