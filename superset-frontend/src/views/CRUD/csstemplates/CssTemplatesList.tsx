@@ -40,11 +40,15 @@ const PAGE_SIZE = 25;
 interface CssTemplatesListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
+  user: {
+    userId: string | number;
+  };
 }
 
 function CssTemplatesList({
   addDangerToast,
   addSuccessToast,
+  user,
 }: CssTemplatesListProps) {
   const {
     state: {
@@ -70,9 +74,9 @@ function CssTemplatesList({
     setCurrentCssTemplate,
   ] = useState<TemplateObject | null>(null);
 
-  const canCreate = hasPerm('can_add');
-  const canEdit = hasPerm('can_edit');
-  const canDelete = hasPerm('can_delete');
+  const canCreate = hasPerm('can_write');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
 
   const [
     templateCurrentlyDeleting,
@@ -280,6 +284,7 @@ function CssTemplatesList({
               errMsg,
             ),
           ),
+          user.userId,
         ),
         paginate: true,
       },

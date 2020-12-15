@@ -19,7 +19,8 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
-import { ProgressBar, Well } from 'react-bootstrap';
+import { Well } from 'react-bootstrap';
+import ProgressBar from 'src/common/components/ProgressBar';
 import Label from 'src/components/Label';
 import { t } from '@superset-ui/core';
 
@@ -118,16 +119,14 @@ const QueryTable = props => {
         );
         q.started = moment(q.startDttm).format('HH:mm:ss');
         q.querylink = (
-          <div style={{ width: '100px' }}>
-            <Button
-              buttonSize="small"
-              buttonStyle="link"
-              onClick={() => openQuery(q.queryId)}
-            >
-              <i className="fa fa-external-link m-r-3" />
-              {t('Edit')}
-            </Button>
-          </div>
+          <Button
+            buttonSize="small"
+            buttonStyle="link"
+            onClick={() => openQuery(q.queryId)}
+          >
+            <i className="fa fa-external-link m-r-3" />
+            {t('Edit')}
+          </Button>
         );
         q.sql = (
           <Well>
@@ -171,12 +170,7 @@ const QueryTable = props => {
           q.output = [schemaUsed, q.tempTable].filter(v => v).join('.');
         }
         q.progress = (
-          <ProgressBar
-            style={{ width: '75px' }}
-            striped
-            now={q.progress}
-            label={`${q.progress.toFixed(0)}%`}
-          />
+          <ProgressBar percent={parseInt(q.progress.toFixed(0), 10)} striped />
         );
         let errorTooltip;
         if (q.errorMessage) {
@@ -193,7 +187,7 @@ const QueryTable = props => {
           </div>
         );
         q.actions = (
-          <div style={{ width: '75px' }}>
+          <div>
             <Link
               className="fa fa-pencil m-r-3"
               onClick={() => restoreSql(query)}

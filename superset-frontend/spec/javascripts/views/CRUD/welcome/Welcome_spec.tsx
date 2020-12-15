@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
+import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
 import configureStore from 'redux-mock-store';
@@ -69,9 +70,11 @@ describe('Welcome', () => {
       isActive: true,
     },
   };
-  const wrapper = mount(<Welcome {...mockedProps} />, {
-    context: { store },
-  });
+  const wrapper = mount(
+    <Provider store={store}>
+      <Welcome {...mockedProps} />
+    </Provider>,
+  );
 
   it('renders', () => {
     expect(wrapper).toExist();

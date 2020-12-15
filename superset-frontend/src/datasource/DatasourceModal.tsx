@@ -25,7 +25,7 @@ import Modal from 'src/common/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
-import getClientErrorObject from 'src/utils/getClientErrorObject';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
@@ -88,9 +88,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const onConfirmSave = () => {
     // Pull out extra fields into the extra object
     const schema =
-      currentDatasource.schema ||
+      currentDatasource.tableSelector?.schema ||
       currentDatasource.databaseSelector?.schema ||
-      currentDatasource.tableSelector?.schema;
+      currentDatasource.schema;
 
     setIsSaving(true);
 

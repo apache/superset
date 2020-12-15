@@ -207,3 +207,11 @@ to your plugin. These do a quick sanity check that the plugin actually loads cor
 through the basics of making sure that your controls are properly respected by modifying the
 resulting data and/or props of the plugin. Running `yarn test` from the root directory of
 `superset-ui` will run all the tests for plugins/packages, including your Hello World.
+
+### Deploying Custom Visualization to Production
+
+To deploy plugins to a production environment, you must have additional code
+inside Superset that includes the npm packages of your plugins so they can be installed in the frontend.
+
+
+One option is to build your Dockerfile so it contains your custom visualization packages.

@@ -38,7 +38,7 @@ class ExportDatasetsCommand(ExportModelsCommand):
     not_found = DatasetNotFoundError
 
     @staticmethod
-    def export(model: SqlaTable) -> Iterator[Tuple[str, str]]:
+    def _export(model: SqlaTable) -> Iterator[Tuple[str, str]]:
         database_slug = secure_filename(model.database.database_name)
         dataset_slug = secure_filename(model.table_name)
         file_name = f"datasets/{database_slug}/{dataset_slug}.yaml"

@@ -19,13 +19,18 @@
 import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
+import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
+import { act } from 'react-dom/test-utils';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
 
-import QueryList, { QueryObject } from 'src/views/CRUD/data/query/QueryList';
+import QueryList from 'src/views/CRUD/data/query/QueryList';
+import QueryPreviewModal from 'src/views/CRUD/data/query/QueryPreviewModal';
+import { QueryObject } from 'src/views/CRUD/types';
 import ListView from 'src/components/ListView';
+import Filters from 'src/components/ListView/Filters';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 
 // store needed for withToasts
@@ -43,6 +48,7 @@ const mockQueries: QueryObject[] = [...new Array(3)].map((_, i) => ({
   },
   schema: 'public',
   sql: `SELECT ${i} FROM table`,
+  executed_sql: `SELECT ${i} FROM table`,
   sql_tables: [
     { schema: 'foo', table: 'table' },
     { schema: 'bar', table: 'table_2' },
@@ -67,11 +73,29 @@ fetchMock.get(queriesEndpoint, {
   chart_count: 3,
 });
 
+fetchMock.get('glob:*/api/v1/query/related/user*', {
+  result: [],
+  count: 0,
+});
+fetchMock.get('glob:*/api/v1/query/related/database*', {
+  result: [],
+  count: 0,
+});
+fetchMock.get('glob:*/api/v1/query/disting/status*', {
+  result: [],
+  count: 0,
+});
+
 describe('QueryList', () => {
   const mockedProps = {};
-  const wrapper = mount(<QueryList {...mockedProps} />, {
-    context: { store },
-  });
+  const wrapper = mount(
+    <Provider store={store}>
+      <QueryList {...mockedProps} />
+    </Provider>,
+    {
+      context: { store },
+    },
+  );
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
@@ -90,11 +114,37 @@ describe('QueryList', () => {
     const callsD = fetchMock.calls(/query\/\?q/);
     expect(callsD).toHaveLength(1);
     expect(callsD[0][0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/query/?q=(order_column:changed_on,order_direction:desc,page:0,page_size:25)"`,
+      `"http://localhost/api/v1/query/?q=(order_column:start_time,order_direction:desc,page:0,page_size:25)"`,
     );
   });
 
   it('renders a SyntaxHighlight', () => {
     expect(wrapper.find(SyntaxHighlighter)).toExist();
+  });
+
+  it('opens a query preview', () => {
+    act(() => {
+      const props = wrapper
+        .find('[data-test="open-sql-preview-0"]')
+        .first()
+        .props();
+      if (props.onClick) props.onClick({} as React.MouseEvent);
+    });
+    wrapper.update();
+
+    expect(wrapper.find(QueryPreviewModal)).toExist();
+  });
+
+  it('searches', async () => {
+    const filtersWrapper = wrapper.find(Filters);
+    act(() => {
+      const props = filtersWrapper.find('[name="sql"]').first().props();
+      // @ts-ignore
+      if (props.onSubmit) props.onSubmit('fooo');
+    });
+    await waitForComponentToPaint(wrapper);
+    expect((fetchMock.lastCall() ?? [])[0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/query/?q=(filters:!((col:sql,opr:ct,value:fooo)),order_column:start_time,order_direction:desc,page:0,page_size:25)"`,
+    );
   });
 });

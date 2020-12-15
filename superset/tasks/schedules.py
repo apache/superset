@@ -385,7 +385,9 @@ def _get_slice_screenshot(slice_id: int, session: Session) -> ScreenshotData:
         "Superset.slice", user_friendly=True, slice_id=slice_obj.id,
     )
 
-    user = security_manager.find_user(current_app.config["THUMBNAIL_SELENIUM_USER"])
+    user = security_manager.get_user_by_username(
+        current_app.config["THUMBNAIL_SELENIUM_USER"], session=session
+    )
     image_data = screenshot.compute_and_cache(
         user=user, cache=thumbnail_cache, force=True,
     )

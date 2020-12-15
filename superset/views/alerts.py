@@ -16,12 +16,17 @@
 # under the License.
 from croniter import croniter
 from flask_appbuilder import CompactCRUDMixin
+from flask_appbuilder.api import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.security.decorators import has_access
 from flask_babel import lazy_gettext as _
 
+from superset import is_feature_enabled
 from superset.constants import RouteMethod
 from superset.models.alerts import Alert, AlertLog, SQLObservation
+from superset.models.reports import ReportSchedule
 from superset.tasks.alerts.validator import check_validator
+from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.utils.core import get_email_address_str, markdown
 
@@ -63,10 +68,38 @@ class AlertObservationModelView(
     }
 
 
+class AlertReportModelView(SupersetModelView):
+    datamodel = SQLAInterface(ReportSchedule)
+    route_base = "/report"
+    include_route_methods = RouteMethod.CRUD_SET | {"log"}
+
+    @expose("/list/")
+    @has_access
+    def list(self) -> FlaskResponse:
+        if not (
+            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
+            and is_feature_enabled("SIP_34_ALERTS_UI")
+        ):
+            return super().list()
+
+        return super().render_app_template()
+
+    @expose("/<pk>/log/", methods=["GET"])
+    @has_access
+    def log(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
+        if not (
+            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
+            and is_feature_enabled("SIP_34_ALERTS_UI")
+        ):
+            return super().list()
+
+        return super().render_app_template()
+
+
 class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Alert)
     route_base = "/alert"
-    include_route_methods = RouteMethod.CRUD_SET
+    include_route_methods = RouteMethod.CRUD_SET | {"log"}
 
     list_columns = (
         "label",
@@ -163,6 +196,28 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         AlertObservationModelView,
         AlertLogModelView,
     ]
+
+    @expose("/list/")
+    @has_access
+    def list(self) -> FlaskResponse:
+        if not (
+            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
+            and is_feature_enabled("SIP_34_ALERTS_UI")
+        ):
+            return super().list()
+
+        return super().render_app_template()
+
+    @expose("/<pk>/log/", methods=["GET"])
+    @has_access
+    def log(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
+        if not (
+            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
+            and is_feature_enabled("SIP_34_ALERTS_UI")
+        ):
+            return super().list()
+
+        return super().render_app_template()
 
     def pre_add(self, item: "AlertModelView") -> None:
         item.recipients = get_email_address_str(item.recipients)

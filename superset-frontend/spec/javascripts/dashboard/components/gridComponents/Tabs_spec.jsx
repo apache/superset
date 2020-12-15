@@ -30,9 +30,9 @@ import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import Tabs from 'src/dashboard/components/gridComponents/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import WithDragDropContext from '../../helpers/WithDragDropContext';
-import { dashboardLayoutWithTabs } from '../../fixtures/mockDashboardLayout';
-import { mockStoreWithTabs } from '../../fixtures/mockStore';
+import WithDragDropContext from 'spec/helpers/WithDragDropContext';
+import { dashboardLayoutWithTabs } from 'spec/fixtures/mockDashboardLayout';
+import { mockStoreWithTabs } from 'spec/fixtures/mockStore';
 
 describe('Tabs', () => {
   const props = {

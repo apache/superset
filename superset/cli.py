@@ -235,7 +235,9 @@ def refresh_druid(datasource: str, merge: bool) -> None:
 )
 def import_dashboards(path: str, recursive: bool, username: str) -> None:
     """Import dashboards from JSON"""
-    from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
+    from superset.dashboards.commands.importers.dispatcher import (
+        ImportDashboardsCommand,
+    )
 
     path_object = Path(path)
     files: List[Path] = []
@@ -301,7 +303,7 @@ def export_dashboards(dashboard_file: str, print_stdout: bool) -> None:
 )
 def import_datasources(path: str, sync: str, recursive: bool) -> None:
     """Import datasources from YAML"""
-    from superset.datasets.commands.importers.v0 import ImportDatasetsCommand
+    from superset.datasets.commands.importers.dispatcher import ImportDatasetsCommand
 
     sync_array = sync.split(",")
     sync_columns = "columns" in sync_array

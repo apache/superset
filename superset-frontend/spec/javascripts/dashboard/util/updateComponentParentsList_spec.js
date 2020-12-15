@@ -21,7 +21,7 @@ import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import {
   dashboardLayout,
   dashboardLayoutWithTabs,
-} from '../fixtures/mockDashboardLayout';
+} from 'spec/fixtures/mockDashboardLayout';
 
 describe('updateComponentParentsList', () => {
   const emptyLayout = {

@@ -18,10 +18,12 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ButtonGroup, Collapse, Fade, Well } from 'react-bootstrap';
+import { ButtonGroup, Collapse, Well } from 'react-bootstrap';
 import shortid from 'shortid';
 import { t } from '@superset-ui/core';
 
+import Fade from 'src/common/components/Fade';
+import { Tooltip } from 'src/common/components/Tooltip';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import Link from '../../components/Link';
 import ColumnElement from './ColumnElement';
@@ -199,8 +201,14 @@ class TableElement extends React.PureComponent {
   renderHeader() {
     const { table } = this.props;
     return (
-      <div className="clearfix">
-        <div className="pull-left">
+      <div className="clearfix header-container">
+        <Tooltip
+          id="copy-to-clipboard-tooltip"
+          placement="top"
+          style={{ cursor: 'pointer' }}
+          title={table.name}
+          trigger={['hover']}
+        >
           <a
             href="#"
             className="table-name"
@@ -210,12 +218,13 @@ class TableElement extends React.PureComponent {
           >
             <strong>{table.name}</strong>
           </a>
-        </div>
-        <div className="pull-right">
+        </Tooltip>
+
+        <div className="pull-right header-right-side">
           {table.isMetadataLoading || table.isExtraMetadataLoading ? (
             <Loading position="inline" />
           ) : (
-            <Fade in={this.state.hovered}>{this.renderControls()}</Fade>
+            <Fade hovered={this.state.hovered}>{this.renderControls()}</Fade>
           )}
           <i
             role="button"

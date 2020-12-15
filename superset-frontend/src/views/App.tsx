@@ -28,15 +28,17 @@ import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Menu from 'src/components/Menu/Menu';
 import FlashProvider from 'src/components/FlashProvider';
-import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
-import ChartList from 'src/views/CRUD/chart/ChartList';
-import DatasetList from 'src/views/CRUD/data/dataset/DatasetList';
-import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
-import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
-import CssTemplatesList from 'src/views/CRUD/csstemplates/CssTemplatesList';
+import AlertList from 'src/views/CRUD/alert/AlertList';
+import ExecutionLog from 'src/views/CRUD/alert/ExecutionLog';
 import AnnotationLayersList from 'src/views/CRUD/annotationlayers/AnnotationLayersList';
 import AnnotationList from 'src/views/CRUD/annotation/AnnotationList';
+import ChartList from 'src/views/CRUD/chart/ChartList';
+import CssTemplatesList from 'src/views/CRUD/csstemplates/CssTemplatesList';
+import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
+import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
+import DatasetList from 'src/views/CRUD/data/dataset/DatasetList';
 import QueryList from 'src/views/CRUD/data/query/QueryList';
+import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
 
 import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
@@ -68,7 +70,10 @@ const App = () => (
     <ThemeProvider theme={supersetTheme}>
       <FlashProvider common={common}>
         <Router>
-          <QueryParamProvider ReactRouterRoute={Route}>
+          <QueryParamProvider
+            ReactRouterRoute={Route}
+            stringifyOptions={{ encode: false }}
+          >
             <Menu data={menu} />
             <Switch>
               <Route path="/superset/welcome/">
@@ -119,6 +124,26 @@ const App = () => (
               <Route path="/superset/sqllab/history/">
                 <ErrorBoundary>
                   <QueryList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/alert/list/">
+                <ErrorBoundary>
+                  <AlertList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/report/list/">
+                <ErrorBoundary>
+                  <AlertList user={user} isReportEnabled />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/alert/:alertId/log">
+                <ErrorBoundary>
+                  <ExecutionLog user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/report/:alertId/log">
+                <ErrorBoundary>
+                  <ExecutionLog user={user} isReportEnabled />
                 </ErrorBoundary>
               </Route>
             </Switch>

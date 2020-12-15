@@ -130,6 +130,7 @@ function processHTML(proxyResponse, response) {
       body = Buffer.concat([body, data]);
     })
     .on('error', error => {
+      // eslint-disable-next-line no-console
       console.error(error);
       response.end(`Error fetching proxied request: ${error.message}`);
     })

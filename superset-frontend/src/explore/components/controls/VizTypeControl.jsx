@@ -18,14 +18,9 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import {
-  Row,
-  Col,
-  FormControl,
-  OverlayTrigger,
-  Tooltip,
-} from 'react-bootstrap';
+import { Row, Col, FormControl } from 'react-bootstrap';
 import { t, getChartMetadataRegistry } from '@superset-ui/core';
+import { Tooltip } from 'src/common/components/Tooltip';
 import Modal from 'src/common/components/Modal';
 import Label from 'src/components/Label';
 import ControlHeader from '../ControlHeader';
@@ -181,13 +176,10 @@ const VizTypeControl = props => {
   return (
     <div>
       <ControlHeader {...props} />
-      <OverlayTrigger
+      <Tooltip
+        id="error-tooltip"
         placement="right"
-        overlay={
-          <Tooltip id="error-tooltip">
-            {t('Click to change visualization type')}
-          </Tooltip>
-        }
+        title={t('Click to change visualization type')}
       >
         <>
           <Label onClick={toggleModal} bsStyle={labelBsStyle}>
@@ -200,7 +192,7 @@ const VizTypeControl = props => {
             </div>
           )}
         </>
-      </OverlayTrigger>
+      </Tooltip>
       <Modal
         show={showModal}
         onHide={toggleModal}

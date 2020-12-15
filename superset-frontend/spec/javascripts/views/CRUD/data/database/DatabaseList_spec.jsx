@@ -20,6 +20,7 @@ import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
+import { Provider } from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
@@ -56,6 +57,10 @@ const mockdatabases = [...new Array(3)].map((_, i) => ({
   id: i,
 }));
 
+const mockUser = {
+  userId: 1,
+};
+
 fetchMock.get(databasesInfoEndpoint, {
   permissions: ['can_delete'],
 });
@@ -77,8 +82,11 @@ fetchMock.get(databaseRelatedEndpoint, {
 });
 
 describe('DatabaseList', () => {
-  const wrapper = mount(<DatabaseList />, { context: { store } });
-
+  const wrapper = mount(
+    <Provider store={store}>
+      <DatabaseList user={mockUser} />
+    </Provider>,
+  );
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
   });

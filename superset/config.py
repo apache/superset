@@ -298,8 +298,13 @@ LANGUAGES = {}
 # and FEATURE_FLAGS = { 'BAR': True, 'BAZ': True } in superset_config.py
 # will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
 DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
+    # allow dashboard to use sub-domains to send chart request
+    # you also need ENABLE_CORS and
+    # SUPERSET_WEBSERVER_DOMAINS for list of domains
+    "ALLOW_DASHBOARD_DOMAIN_SHARDING": True,
     # Experimental feature introducing a client (browser) cache
     "CLIENT_CACHE": False,
+    "DISABLE_DATASET_SOURCE_EDIT": False,
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "ENABLE_TEMPLATE_PROCESSING": False,
     "KV_STORE": False,
@@ -322,6 +327,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DISPLAY_MARKDOWN_HTML": True,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
+    "GLOBAL_ASYNC_QUERIES": False,
     "VERSIONED_EXPORT": False,
     # Note that: RowLevelSecurityFilter is only given by default to the Admin role
     # and the Admin Role does have the all_datasources security permission.
@@ -333,14 +339,14 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ROW_LEVEL_SECURITY": False,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
-    "SIP_34_QUERY_SEARCH_UI": False,
+    "SIP_34_ALERTS_UI": False,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.
-# Setting LISTVIEW_DEFAULT_CARD_VIEW to False will force the default view to
+# Setting LISTVIEWS_DEFAULT_CARD_VIEW to False will force the default view to
 # always be the table layout
 if DEFAULT_FEATURE_FLAGS["THUMBNAILS"]:
-    DEFAULT_FEATURE_FLAGS["LISTVIEW_DEFAULT_CARD_VIEW"] = True
+    DEFAULT_FEATURE_FLAGS["LISTVIEWS_DEFAULT_CARD_VIEW"] = True
 
 # This is merely a default.
 FEATURE_FLAGS: Dict[str, bool] = {}
@@ -364,7 +370,7 @@ GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] =
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
 # ---------------------------------------------------
-THUMBNAIL_SELENIUM_USER = "Admin"
+THUMBNAIL_SELENIUM_USER = "admin"
 THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_TYPE": "null",
     "CACHE_NO_NULL_WARNING": True,
@@ -400,6 +406,9 @@ CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 
 # Cache for datasource metadata and query results
 DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+
+# store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
+STORE_CACHE_KEYS_IN_METADATA_DB = False
 
 # CORS Options
 ENABLE_CORS = False
@@ -885,7 +894,10 @@ DEFAULT_RELATIVE_START_TIME = "today"
 DEFAULT_RELATIVE_END_TIME = "today"
 
 # Configure which SQL validator to use for each engine
-SQL_VALIDATORS_BY_ENGINE = {"presto": "PrestoDBSQLValidator"}
+SQL_VALIDATORS_BY_ENGINE = {
+    "presto": "PrestoDBSQLValidator",
+    "postgresql": "PostgreSQLValidator",
+}
 
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = False
@@ -956,6 +968,23 @@ SIP_15_TOAST_MESSAGE = (
 # This can be used to set any properties of the object based on naming
 # conventions and such. You can find examples in the tests.
 SQLA_TABLE_MUTATOR = lambda table: table
+
+# Global async query config options.
+# Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
+GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
+    "port": 6379,
+    "host": "127.0.0.1",
+    "password": "",
+    "db": 0,
+}
+GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX = "async-events-"
+GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT = 1000
+GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE = 1000000
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
+GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"
+GLOBAL_ASYNC_QUERIES_TRANSPORT = "polling"
+GLOBAL_ASYNC_QUERIES_POLLING_DELAY = 500
 
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful

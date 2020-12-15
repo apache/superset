@@ -21,7 +21,7 @@ import { styled, t, SupersetClient } from '@superset-ui/core';
 import InfoTooltip from 'src/common/components/InfoTooltip';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import getClientErrorObject from 'src/utils/getClientErrorObject';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
 import Tabs from 'src/common/components/Tabs';
@@ -601,10 +601,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 checked={db ? !!db.allow_csv_upload : false}
                 onChange={onInputChange}
               />
-              <div>{t('Allow CSV Upload')}</div>
+              <div>{t('Allow Data Upload')}</div>
               <InfoTooltip
                 tooltip={t(
-                  'If selected, please set the schemas allowed for csv upload in Extra.',
+                  'If selected, please set the schemas allowed for data upload in Extra.',
                 )}
               />
             </div>

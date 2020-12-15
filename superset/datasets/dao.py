@@ -143,8 +143,12 @@ class DatasetDAO(BaseDAO):
         return len(dataset_query) == 0
 
     @classmethod
-    def update(
-        cls, model: SqlaTable, properties: Dict[str, Any], commit: bool = True
+    def update(  # pylint: disable=W:279
+        cls,
+        model: SqlaTable,
+        properties: Dict[str, Any],
+        commit: bool = True,
+        override_columns: bool = False,
     ) -> Optional[SqlaTable]:
         """
         Updates a Dataset model on the metadata DB
@@ -174,6 +178,13 @@ class DatasetDAO(BaseDAO):
                     metric_obj = DatasetDAO.create_metric(metric, commit=commit)
                 new_metrics.append(metric_obj)
             properties["metrics"] = new_metrics
+
+        if override_columns:
+            # remove columns initially for full refresh
+            original_properties = properties["columns"]
+            properties["columns"] = []
+            super().update(model, properties, commit=commit)
+            properties["columns"] = original_properties
 
         return super().update(model, properties, commit=commit)
 

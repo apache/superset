@@ -93,6 +93,7 @@ class Slice(
         "params",
         "cache_timeout",
     ]
+    export_parent = "table"
 
     def __repr__(self) -> str:
         return self.slice_name or str(self.id)

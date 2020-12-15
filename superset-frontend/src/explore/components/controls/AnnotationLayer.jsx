@@ -118,20 +118,29 @@ export default class AnnotationLayer extends React.PureComponent {
       descriptionColumns,
       timeColumn,
       intervalEndColumn,
+      vizType,
     } = props;
 
-    const overridesKeys = Object.keys(overrides);
-    if (overridesKeys.includes('since') || overridesKeys.includes('until')) {
+    // Only allow override whole time_range
+    if ('since' in overrides || 'until' in overrides) {
       overrides.time_range = null;
       delete overrides.since;
       delete overrides.until;
     }
 
+    // Check if annotationType is supported by this chart
+    const metadata = getChartMetadataRegistry().get(vizType);
+    const supportedAnnotationTypes = metadata?.supportedAnnotationTypes || [];
+    const validAnnotationType = supportedAnnotationTypes.includes(
+      annotationType,
+    )
+      ? annotationType
+      : supportedAnnotationTypes[0];
+
     this.state = {
       // base
       name,
-      oldName: !this.props.name ? null : name,
-      annotationType,
+      annotationType: validAnnotationType,
       sourceType,
       value,
       overrides,
@@ -149,10 +158,9 @@ export default class AnnotationLayer extends React.PureComponent {
       showMarkers,
       hideLine,
       // refData
-      isNew: !this.props.name,
+      isNew: !name,
       isLoadingOptions: true,
       valueOptions: [],
-      validationErrors: {},
     };
     this.submitAnnotation = this.submitAnnotation.bind(this);
     this.deleteAnnotation = this.deleteAnnotation.bind(this);
@@ -189,7 +197,7 @@ export default class AnnotationLayer extends React.PureComponent {
         label: chartMetadata.name,
       }));
     // Prepend native source if applicable
-    if (ANNOTATION_TYPES_METADATA[annotationType].supportNativeSource) {
+    if (ANNOTATION_TYPES_METADATA[annotationType]?.supportNativeSource) {
       sources.unshift(ANNOTATION_SOURCE_TYPES_METADATA.NATIVE);
     }
     return sources;
@@ -237,7 +245,6 @@ export default class AnnotationLayer extends React.PureComponent {
     this.setState({
       annotationType,
       sourceType: null,
-      validationErrors: {},
       value: null,
     });
   }
@@ -246,12 +253,7 @@ export default class AnnotationLayer extends React.PureComponent {
     const { sourceType: prevSourceType } = this.state;
 
     if (prevSourceType !== sourceType) {
-      this.setState({
-        sourceType,
-        isLoadingOptions: true,
-        validationErrors: {},
-        value: null,
-      });
+      this.setState({ sourceType, value: null, isLoadingOptions: true });
     }
   }
 
@@ -267,7 +269,7 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   fetchOptions(annotationType, sourceType, isLoadingOptions) {
-    if (isLoadingOptions === true) {
+    if (isLoadingOptions) {
       if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
         SupersetClient.get({
           endpoint: '/annotationlayermodelview/api/read?',
@@ -310,28 +312,43 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   deleteAnnotation() {
+    this.props.removeAnnotationLayer();
     this.props.close();
-    if (!this.state.isNew) {
-      this.props.removeAnnotationLayer(this.state);
-    }
   }
 
   applyAnnotation() {
-    if (this.state.name.length) {
-      const annotation = {};
-      Object.keys(this.state).forEach(k => {
-        if (this.state[k] !== null) {
-          annotation[k] = this.state[k];
+    if (this.isValidForm()) {
+      const annotationFields = [
+        'name',
+        'annotationType',
+        'sourceType',
+        'color',
+        'opacity',
+        'style',
+        'width',
+        'showMarkers',
+        'hideLine',
+        'value',
+        'overrides',
+        'show',
+        'titleColumn',
+        'descriptionColumns',
+        'timeColumn',
+        'intervalEndColumn',
+      ];
+      const newAnnotation = {};
+      annotationFields.forEach(field => {
+        if (this.state[field] !== null) {
+          newAnnotation[field] = this.state[field];
         }
       });
-      delete annotation.isNew;
-      delete annotation.valueOptions;
-      delete annotation.isLoadingOptions;
-      delete annotation.validationErrors;
-      annotation.color =
-        annotation.color === AUTOMATIC_COLOR ? null : annotation.color;
-      this.props.addAnnotationLayer(annotation);
-      this.setState(prevState => ({ isNew: false, oldName: prevState.name }));
+
+      if (newAnnotation.color === AUTOMATIC_COLOR) {
+        newAnnotation.color = null;
+      }
+
+      this.props.addAnnotationLayer(newAnnotation);
+      this.setState({ isNew: false });
     }
   }
 
@@ -363,7 +380,7 @@ export default class AnnotationLayer extends React.PureComponent {
         label = 'Annotation Layer';
         description = 'Select the Annotation Layer you would like to use.';
       } else {
-        label = label = t('Chart');
+        label = t('Chart');
         description = `Use a pre defined Superset Chart as a source for annotations and overlays.
         your chart must be one of these visualization types:
         [${this.getSupportedSourceTypes(annotationType)
@@ -502,7 +519,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 label="Override time range"
                 description={`This controls whether the "time_range" field from the current
                   view should be passed down to the chart containing the annotation data.`}
-                value={!!Object.keys(overrides).find(x => x === 'time_range')}
+                value={'time_range' in overrides}
                 onChange={v => {
                   delete overrides.time_range;
                   if (v) {
@@ -520,9 +537,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 label="Override time grain"
                 description={`This controls whether the time grain field from the current
                   view should be passed down to the chart containing the annotation data.`}
-                value={
-                  !!Object.keys(overrides).find(x => x === 'time_grain_sqla')
-                }
+                value={'time_grain_sqla' in overrides}
                 onChange={v => {
                   delete overrides.time_grain_sqla;
                   delete overrides.granularity;
@@ -597,6 +612,7 @@ export default class AnnotationLayer extends React.PureComponent {
             { value: 'dotted', label: 'Dotted' },
           ]}
           value={style}
+          clearable={false}
           onChange={v => this.setState({ style: v })}
         />
         <SelectControl
@@ -704,11 +720,12 @@ export default class AnnotationLayer extends React.PureComponent {
                 description={t('Choose the Annotation Layer Type')}
                 label={t('Annotation Layer Type')}
                 name="annotation-layer-type"
+                clearable={false}
                 options={supportedAnnotationTypes}
                 value={annotationType}
                 onChange={this.handleAnnotationType}
               />
-              {!!supportedSourceTypes.length && (
+              {supportedSourceTypes.length > 0 && (
                 <SelectControl
                   hovered
                   description="Choose the source of your annotations"
@@ -717,6 +734,7 @@ export default class AnnotationLayer extends React.PureComponent {
                   options={supportedSourceTypes}
                   value={sourceType}
                   onChange={this.handleAnnotationSourceType}
+                  validationErrors={!sourceType ? [t('Mandatory')] : []}
                 />
               )}
               {this.renderValueConfiguration()}
@@ -726,9 +744,15 @@ export default class AnnotationLayer extends React.PureComponent {
           {this.renderDisplayConfiguration()}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button buttonSize="sm" onClick={this.deleteAnnotation}>
-            {!isNew ? t('Remove') : t('Cancel')}
-          </Button>
+          {isNew ? (
+            <Button buttonSize="sm" onClick={() => this.props.close()}>
+              {t('Cancel')}
+            </Button>
+          ) : (
+            <Button buttonSize="sm" onClick={this.deleteAnnotation}>
+              {t('Remove')}
+            </Button>
+          )}
           <div>
             <Button
               buttonSize="sm"
@@ -740,6 +764,7 @@ export default class AnnotationLayer extends React.PureComponent {
 
             <Button
               buttonSize="sm"
+              buttonStyle="primary"
               disabled={!isValid}
               onClick={this.submitAnnotation}
             >

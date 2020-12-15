@@ -19,6 +19,7 @@
 import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
+import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import AnnotationLayerModal from 'src/views/CRUD/annotationlayers/AnnotationLayerModal';
 import Modal from 'src/common/components/Modal';
@@ -43,9 +44,11 @@ const mockedProps = {
 };
 
 async function mountAndWait(props = mockedProps) {
-  const mounted = mount(<AnnotationLayerModal show {...props} />, {
-    context: { store },
-  });
+  const mounted = mount(
+    <Provider store={store}>
+      <AnnotationLayerModal show {...props} />
+    </Provider>,
+  );
   await waitForComponentToPaint(mounted);
 
   return mounted;

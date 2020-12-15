@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
@@ -25,6 +26,7 @@ from sqlalchemy.orm.session import make_transient
 
 from superset import db
 from superset.commands.base import BaseCommand
+from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.druid.models import (
     DruidCluster,
@@ -282,32 +284,61 @@ class ImportDatasetsCommand(BaseCommand):
     in Superset.
     """
 
+    # pylint: disable=unused-argument
     def __init__(
-        self,
-        contents: Dict[str, str],
-        sync_columns: bool = False,
-        sync_metrics: bool = False,
+        self, contents: Dict[str, str], *args: Any, **kwargs: Any,
     ):
         self.contents = contents
+        self._configs: Dict[str, Any] = {}
 
         self.sync = []
-        if sync_columns:
+        if kwargs.get("sync_columns"):
             self.sync.append("columns")
-        if sync_metrics:
+        if kwargs.get("sync_metrics"):
             self.sync.append("metrics")
 
     def run(self) -> None:
         self.validate()
 
-        for file_name, content in self.contents.items():
+        # TODO (betodealmeida): add rollback in case of error
+        for file_name, config in self._configs.items():
             logger.info("Importing dataset from file %s", file_name)
-            import_from_dict(db.session, yaml.safe_load(content), sync=self.sync)
+            if isinstance(config, dict):
+                import_from_dict(db.session, config, sync=self.sync)
+            else:  # list
+                for dataset in config:
+                    # UI exports don't have the database metadata, so we assume
+                    # the DB exists and has the same name
+                    params = json.loads(dataset["params"])
+                    database = (
+                        db.session.query(Database)
+                        .filter_by(database_name=params["database_name"])
+                        .one()
+                    )
+                    dataset["database_id"] = database.id
+                    SqlaTable.import_from_dict(db.session, dataset, sync=self.sync)
 
     def validate(self) -> None:
         # ensure all files are YAML
-        for content in self.contents.values():
+        for file_name, content in self.contents.items():
             try:
-                yaml.safe_load(content)
+                config = yaml.safe_load(content)
             except yaml.parser.ParserError:
                 logger.exception("Invalid YAML file")
-                raise
+                raise IncorrectVersionError(f"{file_name} is not a valid YAML file")
+
+            # CLI export
+            if isinstance(config, dict):
+                # TODO (betodealmeida): validate with Marshmallow
+                if DATABASES_KEY not in config and DRUID_CLUSTERS_KEY not in config:
+                    raise IncorrectVersionError(f"{file_name} has no valid keys")
+
+            # UI export
+            elif isinstance(config, list):
+                # TODO (betodealmeida): validate with Marshmallow
+                pass
+
+            else:
+                raise IncorrectVersionError(f"{file_name} is not a valid file")
+
+            self._configs[file_name] = config

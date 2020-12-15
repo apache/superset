@@ -29,10 +29,19 @@ import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import ListView, { Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
+import ImportModelsModal, {
+  StyledIcon,
+} from 'src/components/ImportModal/index';
 import DatabaseModal from './DatabaseModal';
 import { DatabaseObject } from './types';
 
 const PAGE_SIZE = 25;
+const PASSWORDS_NEEDED_MESSAGE = t(
+  'The passwords for the databases below are needed in order to ' +
+    'import them. Please note that the "Secure Extra" and "Certificate" ' +
+    'sections of the database configuration are not present in export ' +
+    'files, and should be added manually after the import if they are needed.',
+);
 
 interface DatabaseDeleteObject extends DatabaseObject {
   chart_count: number;
@@ -74,6 +83,21 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const [currentDatabase, setCurrentDatabase] = useState<DatabaseObject | null>(
     null,
   );
+  const [importingDatabase, showImportModal] = useState<boolean>(false);
+  const [passwordFields, setPasswordFields] = useState<string[]>([]);
+
+  const openDatabaseImportModal = () => {
+    showImportModal(true);
+  };
+
+  const closeDatabaseImportModal = () => {
+    showImportModal(false);
+  };
+
+  const handleDatabaseImport = () => {
+    showImportModal(false);
+    refreshData();
+  };
 
   const openDatabaseDeleteModal = (database: DatabaseObject) =>
     SupersetClient.get({
@@ -146,6 +170,14 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         },
       },
     ];
+
+    if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+      menuData.buttons.push({
+        name: <Icon name="import" />,
+        buttonStyle: 'link',
+        onClick: openDatabaseImportModal,
+      });
+    }
   }
 
   function handleDatabaseExport(database: DatabaseObject) {
@@ -399,6 +431,23 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         initialSort={initialSort}
         loading={loading}
         pageSize={PAGE_SIZE}
+      />
+
+      <ImportModelsModal
+        resourceName="database"
+        resourceLabel={t('database')}
+        icon={<StyledIcon name="database" />}
+        passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
+        confirmOverwriteMessage={t(
+          'One or more databases to be imported already exist.',
+        )}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onModelImport={handleDatabaseImport}
+        show={importingDatabase}
+        onHide={closeDatabaseImportModal}
+        passwordFields={passwordFields}
+        setPasswordFields={setPasswordFields}
       />
     </>
   );

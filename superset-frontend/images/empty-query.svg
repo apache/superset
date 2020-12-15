@@ -1,0 +1,25 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+<svg width="458" height="146" viewBox="0 0 458 146" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M17 21C17 18.7909 18.7909 17 21 17H125C127.209 17 129 18.7909 129 21V29C129 31.2091 127.209 33 125 33H21C18.7909 33 17 31.2091 17 29V21Z" fill="#ECEEF2"/>
+<path d="M17 45C17 42.7909 18.7909 41 21 41H223C225.209 41 227 42.7909 227 45V53C227 55.2091 225.209 57 223 57H21C18.7909 57 17 55.2091 17 53V45Z" fill="#ECEEF2"/>
+<path d="M21 65C18.7909 65 17 66.7909 17 69V77C17 79.2091 18.7909 81 21 81H172C174.209 81 176 79.2091 176 77V69C176 66.7909 174.209 65 172 65H21Z" fill="#ECEEF2"/>
+<path d="M17 93C17 90.7909 18.7909 89 21 89H286C288.209 89 290 90.7909 290 93V101C290 103.209 288.209 105 286 105H21C18.7909 105 17 103.209 17 101V93Z" fill="#ECEEF2"/>
+<path d="M21 113C18.7909 113 17 114.791 17 117V125C17 127.209 18.7909 129 21 129H73C75.2091 129 77 127.209 77 125V117C77 114.791 75.2091 113 73 113H21Z" fill="#ECEEF2"/>
+</svg>

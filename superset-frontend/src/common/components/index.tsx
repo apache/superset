@@ -19,9 +19,8 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
-import { Dropdown, Skeleton, Menu as AntdMenu } from 'antd';
+import { Menu as AntdMenu, Dropdown, Skeleton } from 'antd';
 import { DropDownProps } from 'antd/lib/dropdown';
-
 /*
   Antd is re-exported from here so we can override components with Emotion as needed.
 
@@ -29,20 +28,28 @@ import { DropDownProps } from 'antd/lib/dropdown';
  */
 // eslint-disable-next-line no-restricted-imports
 export {
+  AutoComplete,
   Avatar,
+  Button,
   Card,
-  Collapse,
   DatePicker,
+  Divider,
   Dropdown,
   Empty,
   Input,
   Modal,
   Popover,
+  Radio,
   Select,
   Skeleton,
+  Switch,
   Tabs,
   Tooltip,
 } from 'antd';
+
+export { default as Collapse } from './Collapse';
+export { default as Badge } from './Badge';
+export { default as Progress } from './ProgressBar';
 
 export const MenuItem = styled(AntdMenu.Item)`
   > a {
@@ -60,6 +67,7 @@ export const MenuItem = styled(AntdMenu.Item)`
       display: inline-block;
       width: 100%;
     }
+    transition-duration: 0s;
   }
 `;
 

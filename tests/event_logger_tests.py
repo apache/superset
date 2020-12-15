@@ -79,5 +79,8 @@ class TestEventLogger(unittest.TestCase):
             result = test_func(1, karg1=2)  # pylint: disable=no-value-for-parameter
             self.assertEqual(result, 2)
             # should contain only manual payload
-            self.assertEqual(mock_log.call_args[1]["records"], [{"foo": "bar"}])
+            self.assertEqual(
+                mock_log.call_args[1]["records"],
+                [{"foo": "bar", "path": "/", "path_no_param": "/", "ref": None}],
+            )
             assert mock_log.call_args[1]["duration_ms"] >= 100
