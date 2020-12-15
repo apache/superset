@@ -89,21 +89,11 @@ describe('SqlEditor', () => {
       SQL_EDITOR_GUTTER_HEIGHT;
     expect(totalSize).toEqual(450);
   });
-  it('render a Limit Dropdown with default limit', () => {
+  it('render a Limit Dropdown', () => {
     const defaultQueryLimit = 101;
     const updatedProps = { ...mockedProps, defaultQueryLimit };
     const wrapper = shallow(<SqlEditor {...updatedProps} />);
     expect(wrapper.find(Dropdown)).toExist();
-    // expect(wrapper.find(LimitControl).props().value).toEqual(defaultQueryLimit);
-  });
-  it('render a LimitControl with existing limit', () => {
-    const queryEditor = { ...defaultQueryEditor, queryLimit: 101 };
-    const updatedProps = { ...mockedProps, queryEditor };
-    const wrapper = shallow(<SqlEditor {...updatedProps} />);
-    expect(wrapper.find(Dropdown)).toExist();
-    // expect(wrapper.find(LimitControl).props().value).toEqual(
-    //   queryEditor.queryLimit,
-    // );
   });
   it('allows toggling autocomplete', () => {
     const wrapper = shallow(<SqlEditor {...mockedProps} />);
