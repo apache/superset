@@ -18,9 +18,8 @@
  */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { supersetTheme, ThemeProvider, QueryFormData } from '@superset-ui/core';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import DatasourcePanel from 'src/explore/components/DatasourcePanel';
-import { ControlType } from '@superset-ui/chart-controls';
 
 describe('datasourcepanel', () => {
   const props = {
@@ -39,7 +38,7 @@ describe('datasourcepanel', () => {
     controls: {
       datasource: {
         validationErrors: null,
-        mapStateToProps: QueryFormData,
+        mapStateToProps: () => null,
         type: 'DatasourceControl',
         label: 'hello',
         datasource: {
