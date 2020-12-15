@@ -39,7 +39,7 @@ const StyledSelect = styled(BaseSelect)`
     }
   }
 `;
-const StyledOption = styled(BaseSelect.Option)``;
+const StyledOption = BaseSelect.Option;
 
 export const Select = Object.assign(StyledSelect, {
   Option: StyledOption,
