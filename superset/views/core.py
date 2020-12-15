@@ -651,7 +651,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
 
         # if feature enabled, run some health check rules for sqla datasource
-        if hasattr(datasource, "health_check") and conf["DATASET_HEALTH_CHECK"]:
+        if hasattr(datasource, "health_check"):
             datasource.health_check()
 
         viz_type = form_data.get("viz_type")

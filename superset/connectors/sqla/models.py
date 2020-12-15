@@ -1483,13 +1483,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         if force or extra.get("health_check", {}).get("version") != check.version:
             with event_logger.log_context(action="dataset_health_check"):
                 message = check(self)
-                if message:
-                    extra["health_check"] = {
-                        "version": check.version,
-                        "message": message,
-                    }
-                else:
-                    extra.pop("health_check", None)
+                extra["health_check"] = {
+                    "version": check.version,
+                    "message": message,
+                }
                 self.extra = json.dumps(extra)
 
                 db.session.merge(self)
