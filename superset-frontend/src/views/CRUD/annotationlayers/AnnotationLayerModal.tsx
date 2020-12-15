@@ -122,10 +122,6 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
         delete currentLayer.id;
         delete currentLayer.created_by;
         updateResource(update_id, currentLayer).then(() => {
-          if (onLayerAdd) {
-            onLayerAdd();
-          }
-
           hide();
         });
       }

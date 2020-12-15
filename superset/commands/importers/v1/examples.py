@@ -15,101 +15,83 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Tuple
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import select
 
+from superset import db
 from superset.charts.commands.importers.v1.utils import import_chart
 from superset.charts.schemas import ImportV1ChartSchema
+from superset.commands.exceptions import CommandException
 from superset.commands.importers.v1 import ImportModelsCommand
-from superset.dashboards.commands.exceptions import DashboardImportError
+from superset.dao.base import BaseDAO
 from superset.dashboards.commands.importers.v1.utils import (
     find_chart_uuids,
     import_dashboard,
     update_id_refs,
 )
-from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.commands.importers.v1.utils import import_database
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.models.core import Database
 from superset.models.dashboard import dashboard_slices
 
 
-class ImportDashboardsCommand(ImportModelsCommand):
+class ImportExamplesCommand(ImportModelsCommand):
 
-    """Import dashboards"""
+    """Import examples"""
 
-    dao = DashboardDAO
-    model_name = "dashboard"
-    prefix = "dashboards/"
+    dao = BaseDAO
+    model_name = "model"
     schemas: Dict[str, Schema] = {
         "charts/": ImportV1ChartSchema(),
         "dashboards/": ImportV1DashboardSchema(),
         "datasets/": ImportV1DatasetSchema(),
         "databases/": ImportV1DatabaseSchema(),
     }
-    import_error = DashboardImportError
+    import_error = CommandException
 
-    # TODO (betodealmeida): refactor to use code from other commands
-    # pylint: disable=too-many-branches, too-many-locals
+    # pylint: disable=too-many-locals
     @staticmethod
     def _import(
         session: Session, configs: Dict[str, Any], overwrite: bool = False
     ) -> None:
-        # discover charts associated with dashboards
-        chart_uuids: Set[str] = set()
-        for file_name, config in configs.items():
-            if file_name.startswith("dashboards/"):
-                chart_uuids.update(find_chart_uuids(config["position"]))
-
-        # discover datasets associated with charts
-        dataset_uuids: Set[str] = set()
-        for file_name, config in configs.items():
-            if file_name.startswith("charts/") and config["uuid"] in chart_uuids:
-                dataset_uuids.add(config["dataset_uuid"])
-
-        # discover databases associated with datasets
-        database_uuids: Set[str] = set()
-        for file_name, config in configs.items():
-            if file_name.startswith("datasets/") and config["uuid"] in dataset_uuids:
-                database_uuids.add(config["database_uuid"])
-
-        # import related databases
+        # import databases
         database_ids: Dict[str, int] = {}
         for file_name, config in configs.items():
-            if file_name.startswith("databases/") and config["uuid"] in database_uuids:
-                database = import_database(session, config, overwrite=False)
+            if file_name.startswith("databases/"):
+                database = import_database(session, config, overwrite=overwrite)
                 database_ids[str(database.uuid)] = database.id
 
-        # import datasets with the correct parent ref
+        # import datasets
+        # TODO (betodealmeida): once we have all examples being imported we can
+        # have a stable UUID for the database stored in the dataset YAML; for
+        # now we need to fetch the current ID.
+        examples_id = (
+            db.session.query(Database).filter_by(database_name="examples").one().id
+        )
         dataset_info: Dict[str, Dict[str, Any]] = {}
         for file_name, config in configs.items():
-            if (
-                file_name.startswith("datasets/")
-                and config["database_uuid"] in database_ids
-            ):
-                config["database_id"] = database_ids[config["database_uuid"]]
-                dataset = import_dataset(session, config, overwrite=False)
+            if file_name.startswith("datasets/"):
+                config["database_id"] = examples_id
+                dataset = import_dataset(session, config, overwrite=overwrite)
                 dataset_info[str(dataset.uuid)] = {
                     "datasource_id": dataset.id,
                     "datasource_type": "view" if dataset.is_sqllab_view else "table",
                     "datasource_name": dataset.table_name,
                 }
 
-        # import charts with the correct parent ref
+        # import charts
         chart_ids: Dict[str, int] = {}
         for file_name, config in configs.items():
-            if (
-                file_name.startswith("charts/")
-                and config["dataset_uuid"] in dataset_info
-            ):
+            if file_name.startswith("charts/"):
                 # update datasource id, type, and name
                 config.update(dataset_info[config["dataset_uuid"]])
-                chart = import_chart(session, config, overwrite=False)
+                chart = import_chart(session, config, overwrite=overwrite)
                 chart_ids[str(chart.uuid)] = chart.id
 
         # store the existing relationship between dashboards and charts
