@@ -192,6 +192,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "get_delete_ids_schema": get_delete_ids_schema,
         "get_export_ids_schema": get_export_ids_schema,
         "get_fav_star_ids_schema": get_fav_star_ids_schema,
+        "get_time_range_schema": get_time_range_schema,
     }
     """ Add extra schemas to the OpenAPI components schema section """
     openapi_spec_methods = openapi_spec_methods_override
@@ -907,12 +908,47 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @safe
     @rison(get_time_range_schema)
     def time_range(self, **kwargs: Any) -> Response:
+        """Get actually time range from human readable string or datetime expression
+        ---
+        get:
+          description: >-
+            Get actually time range from human readable string or datetime expression
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_time_range_schema'
+          responses:
+            200:
+              description: actually time range object
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      since:
+                        type: string
+                      until:
+                        type: string
+                      timeRange:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
         time_range = kwargs["rison"]
         try:
             since, until = get_since_until(time_range)
             result = {
-                "since": since.isoformat() if since else None,
-                "until": until.isoformat() if until else None,
+                "since": since.isoformat() if since else "",
+                "until": until.isoformat() if until else "",
                 "timeRange": time_range,
             }
             return self.response(200, result=result)
