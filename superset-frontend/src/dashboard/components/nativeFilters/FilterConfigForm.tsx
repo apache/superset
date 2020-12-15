@@ -48,7 +48,6 @@ const datasetToSelectOption = (item: any): DatasetSelectValue => ({
 });
 
 const ScopingTreeNote = styled.div`
-  margin-top: -20px;
   margin-bottom: 10px;
 `;
 
@@ -81,10 +80,6 @@ const StyledLabel = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
   font-size: ${({ theme }) => theme.typography.sizes.s};
   text-transform: uppercase;
-`;
-
-const StyledScopingInfo = styled.span`
-  color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
 export interface FilterConfigFormProps {
@@ -262,19 +257,20 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
           </Radio>
         </Radio.Group>
       </StyledFormCheckbox>
-      <StyledScopingInfo>
-        All panels with this column will be affected by this filter.
-      </StyledScopingInfo>
-      {advancedScopingOpen === Scoping.specific && (
-        <>
-          <ScopingTreeNote>
-            <Typography.Text type="secondary">
-              {t('Only selected panels will be affected by this filter')}
-            </Typography.Text>
-          </ScopingTreeNote>
+      <>
+        <ScopingTreeNote>
+          <Typography.Text type="secondary">
+            {advancedScopingOpen === Scoping.specific
+              ? t('Only selected panels will be affected by this filter')
+              : t(
+                  'All panels with this column will be affected by this filter',
+                )}
+          </Typography.Text>
+        </ScopingTreeNote>
+        {advancedScopingOpen === Scoping.specific && (
           <ScopingTree setFilterScope={setFilterScope} />
-        </>
-      )}
+        )}
+      </>
     </>
   );
 };
