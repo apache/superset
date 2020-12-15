@@ -96,6 +96,26 @@ class TestReportSchedulesApi(SupersetTestCase):
                 db.session.delete(report_schedule)
             db.session.commit()
 
+    @pytest.fixture()
+    def create_alpha_users(self):
+        with self.create_app().app_context():
+
+            users = [
+                self.create_user(
+                    "alpha1", "password", "Alpha", email="alpha1@superset.org"
+                ),
+                self.create_user(
+                    "alpha2", "password", "Alpha", email="alpha2@superset.org"
+                ),
+            ]
+
+            yield users
+
+            # rollback changes (assuming cascade delete)
+            for user in users:
+                db.session.delete(user)
+            db.session.commit()
+
     @pytest.mark.usefixtures("create_report_schedules")
     def test_get_report_schedule(self):
         """
@@ -657,6 +677,26 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert data == {"message": {"dashboard": "Dashboard does not exist"}}
 
     @pytest.mark.usefixtures("create_report_schedules")
+    @pytest.mark.usefixtures("create_alpha_users")
+    def test_update_report_not_owned(self):
+        """
+        ReportSchedule API: Test update report not owned
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+
+        self.login(username="alpha2", password="password")
+        report_schedule_data = {
+            "active": False,
+        }
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
+        self.assertEqual(rv.status_code, 403)
+
+    @pytest.mark.usefixtures("create_report_schedules")
     def test_delete_report_schedule(self):
         """
         ReportSchedule Api: Test update report schedule
@@ -699,6 +739,23 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert rv.status_code == 404
 
     @pytest.mark.usefixtures("create_report_schedules")
+    @pytest.mark.usefixtures("create_alpha_users")
+    def test_delete_report_not_owned(self):
+        """
+        ReportSchedule API: Test delete try not owned
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+
+        self.login(username="alpha2", password="password")
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 403)
+
+    @pytest.mark.usefixtures("create_report_schedules")
     def test_bulk_delete_report_schedule(self):
         """
         ReportSchedule Api: Test bulk delete report schedules
@@ -736,6 +793,24 @@ class TestReportSchedulesApi(SupersetTestCase):
         uri = f"api/v1/report/?q={prison.dumps(report_schedules_ids)}"
         rv = self.client.delete(uri)
         assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    @pytest.mark.usefixtures("create_alpha_users")
+    def test_bulk_delete_report_not_owned(self):
+        """
+        ReportSchedule API: Test bulk delete try not owned
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+        report_schedules_ids = [report_schedule.id]
+
+        self.login(username="alpha2", password="password")
+        uri = f"api/v1/report/?q={prison.dumps(report_schedules_ids)}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 403)
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_get_list_report_schedule_logs(self):

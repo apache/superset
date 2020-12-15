@@ -34,6 +34,7 @@ from superset.reports.commands.exceptions import (
     ReportScheduleBulkDeleteFailedError,
     ReportScheduleCreateFailedError,
     ReportScheduleDeleteFailedError,
+    ReportScheduleForbiddenError,
     ReportScheduleInvalidError,
     ReportScheduleNotFoundError,
     ReportScheduleUpdateFailedError,
@@ -192,6 +193,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                     properties:
                       message:
                         type: string
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -204,6 +207,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             return self.response(200, message="OK")
         except ReportScheduleNotFoundError as ex:
             return self.response_404()
+        except ReportScheduleForbiddenError:
+            return self.response_403()
         except ReportScheduleDeleteFailedError as ex:
             logger.error(
                 "Error deleting report schedule %s: %s",
@@ -278,7 +283,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @permission_name("put")
-    def put(self, pk: int) -> Response:
+    def put(self, pk: int) -> Response:  # pylint: disable=too-many-return-statements
         """Updates an Report Schedule
         ---
         put:
@@ -313,6 +318,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             500:
@@ -332,6 +339,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except ReportScheduleInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
+        except ReportScheduleForbiddenError:
+            return self.response_403()
         except ReportScheduleUpdateFailedError as ex:
             logger.error(
                 "Error updating report %s: %s", self.__class__.__name__, str(ex)
@@ -368,6 +377,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                         type: string
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -388,5 +399,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             )
         except ReportScheduleNotFoundError:
             return self.response_404()
+        except ReportScheduleForbiddenError:
+            return self.response_403()
         except ReportScheduleBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
