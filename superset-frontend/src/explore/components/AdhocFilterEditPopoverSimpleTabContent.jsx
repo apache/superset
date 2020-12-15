@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
 import { Select } from 'src/common/components/Select';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient, styled } from '@superset-ui/core';
 
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
 import adhocMetricType from '../propTypes/adhocMetricType';
@@ -36,6 +36,15 @@ import {
   DISABLE_INPUT_OPERATORS,
 } from '../constants';
 import FilterDefinitionOption from './FilterDefinitionOption';
+
+const SelectWithLabel = styled(Select)`
+  .ant-select-selector::after {
+    content: '${({ labelText }) => labelText || '\\A0'}';
+    display: inline-block;
+    white-space: nowrap;
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+  }
+`;
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
@@ -247,11 +256,20 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     }
   }
 
+  optionsRemaining() {
+    const { suggestions } = this.state;
+    const { comparator } = this.props.adhocFilter;
+    // if select is multi/value is array, we show the options not selected
+    const valuesFromSuggestionsLength = Array.isArray(comparator)
+      ? comparator.filter(v => suggestions.includes(v)).length
+      : 0;
+    return suggestions?.length - valuesFromSuggestionsLength ?? 0;
+  }
+
   createSuggestionsPlaceholder() {
-    const suggestionsLength = this.state.suggestions.length;
-    return suggestionsLength
-      ? t('%s option(s)', this.state.suggestions.length)
-      : '';
+    const optionsRemaining = this.optionsRemaining();
+    const placeholder = t('%s option(s)', optionsRemaining);
+    return optionsRemaining ? placeholder : '';
   }
 
   renderSubjectOptionLabel(option) {
@@ -336,7 +354,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         <FormGroup data-test="adhoc-filter-simple-value">
           {MULTI_OPERATORS.has(operator) ||
           this.state.suggestions.length > 0 ? (
-            <Select
+            <SelectWithLabel
               name="filter-value"
               autoFocus
               allowClear
@@ -349,13 +367,16 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
               notFoundContent={t('type a value here')}
               disabled={DISABLE_INPUT_OPERATORS.includes(operator)}
               placeholder={this.createSuggestionsPlaceholder()}
+              labelText={
+                comparator?.length > 0 && this.createSuggestionsPlaceholder()
+              }
             >
               {this.state.suggestions.map(suggestion => (
                 <Select.Option value={suggestion} key={suggestion}>
                   {suggestion}
                 </Select.Option>
               ))}
-            </Select>
+            </SelectWithLabel>
           ) : (
             <input
               name="filter-value"
