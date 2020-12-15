@@ -248,7 +248,7 @@ export function postForm(url, payload, target = '_blank') {
   document.body.removeChild(hiddenForm);
 }
 
-export function getSamplesPageSize(columnsLength) {
+export function columnCount(columnsLength) {
   let pageSize;
   if (columnsLength) {
     pageSize = Math.ceil(Math.max(5, 10000 / columnsLength));
