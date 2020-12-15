@@ -198,7 +198,6 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       >
         <Input />
       </StyledFormItem>
-
       <StyledFormItem
         name={['filters', filterId, 'parentFilter']}
         label={<StyledLabel>{t('Parent Filter')}</StyledLabel>}

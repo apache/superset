@@ -177,6 +177,14 @@ const StyledFilterControlContainer = styled.div`
   width: 100%;
 `;
 
+const StyledFilterControlBox = styled.div`
+  display: flex;
+`;
+
+const StyledCaretIcon = styled(Icon)`
+  margin-top: ${({ theme }) => -theme.gridUnit}px;
+`;
+
 interface FilterProps {
   filter: Filter;
   icon?: React.ReactElement;
@@ -294,13 +302,13 @@ export const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
 }) => {
   return (
     <>
-      <div style={{ display: 'flex' }}>
-        <Icon name="caret-down" style={{ marginTop: -4 }} />
+      <StyledFilterControlBox>
+        <StyledCaretIcon name="caret-down" />
         <FilterControl
           filter={filter}
           onExtraFormDataChange={onExtraFormDataChange}
         />
-      </div>
+      </StyledFilterControlBox>
 
       <StyledCascadeChildrenList>
         {filter.cascadeChildren?.map(childFilter => (
