@@ -16,10 +16,11 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import sys
 from datetime import datetime, timedelta
 from subprocess import Popen
-from sys import stdout
-from typing import Any, Dict, List, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
+from zipfile import ZipFile
 
 import click
 import yaml
@@ -30,7 +31,7 @@ from flask.cli import FlaskGroup, with_appcontext
 from flask_appbuilder import Model
 from pathlib2 import Path
 
-from superset import app, appbuilder, security_manager
+from superset import app, appbuilder, config, security_manager
 from superset.app import create_app
 from superset.extensions import celery_app, db
 from superset.utils import core as utils
@@ -38,6 +39,14 @@ from superset.utils.celery import session_scope
 from superset.utils.urls import get_url_path
 
 logger = logging.getLogger(__name__)
+
+
+feature_flags = config.DEFAULT_FEATURE_FLAGS.copy()
+feature_flags.update(config.FEATURE_FLAGS)
+feature_flags_func = config.GET_FEATURE_FLAGS_FUNC
+if feature_flags_func:
+    # pylint: disable=not-callable
+    feature_flags = feature_flags_func(feature_flags)
 
 
 def normalize_token(token_name: str) -> str:
@@ -212,180 +221,325 @@ def refresh_druid(datasource: str, merge: bool) -> None:
     session.commit()
 
 
-@superset.command()
-@with_appcontext
-@click.option(
-    "--path",
-    "-p",
-    help="Path to a single JSON file or path containing multiple JSON "
-    "files to import (*.json)",
-)
-@click.option(
-    "--recursive",
-    "-r",
-    is_flag=True,
-    default=False,
-    help="recursively search the path for json files",
-)
-@click.option(
-    "--username",
-    "-u",
-    default=None,
-    help="Specify the user name to assign dashboards to",
-)
-def import_dashboards(path: str, recursive: bool, username: str) -> None:
-    """Import dashboards from JSON"""
-    from superset.dashboards.commands.importers.dispatcher import (
-        ImportDashboardsCommand,
+if feature_flags.get("VERSIONED_EXPORT"):
+
+    @superset.command()
+    @with_appcontext
+    @click.option(
+        "--dashboard-file",
+        "-f",
+        default="dashboard_export_YYYYMMDDTHHMMSS",
+        help="Specify the the file to export to",
     )
+    def export_dashboards(dashboard_file: Optional[str]) -> None:
+        """Export dashboards to ZIP file"""
+        from superset.dashboards.commands.export import ExportDashboardsCommand
+        from superset.models.dashboard import Dashboard
 
-    path_object = Path(path)
-    files: List[Path] = []
-    if path_object.is_file():
-        files.append(path_object)
-    elif path_object.exists() and not recursive:
-        files.extend(path_object.glob("*.json"))
-    elif path_object.exists() and recursive:
-        files.extend(path_object.rglob("*.json"))
-    if username is not None:
-        g.user = security_manager.find_user(username=username)
-    contents = {path.name: open(path).read() for path in files}
-    try:
-        ImportDashboardsCommand(contents).run()
-    except Exception:  # pylint: disable=broad-except
-        logger.exception("Error when importing dashboard")
+        g.user = security_manager.find_user(username="admin")
 
+        dashboard_ids = [id_ for (id_,) in db.session.query(Dashboard.id).all()]
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+        root = f"dashboard_export_{timestamp}"
+        dashboard_file = dashboard_file or f"{root}.zip"
 
-@superset.command()
-@with_appcontext
-@click.option(
-    "--dashboard-file", "-f", default=None, help="Specify the the file to export to"
-)
-@click.option(
-    "--print_stdout", "-p", is_flag=True, default=False, help="Print JSON to stdout"
-)
-def export_dashboards(dashboard_file: str, print_stdout: bool) -> None:
-    """Export dashboards to JSON"""
-    from superset.utils import dashboard_import_export
+        try:
+            with ZipFile(dashboard_file, "w") as bundle:
+                for file_name, file_content in ExportDashboardsCommand(
+                    dashboard_ids
+                ).run():
+                    with bundle.open(f"{root}/{file_name}", "w") as fp:
+                        fp.write(file_content.encode())
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "There was an error when exporting the dashboards, please check "
+                "the exception traceback in the log"
+            )
 
-    data = dashboard_import_export.export_dashboards(db.session)
-    if print_stdout or not dashboard_file:
-        print(data)
-    if dashboard_file:
-        logger.info("Exporting dashboards to %s", dashboard_file)
-        with open(dashboard_file, "w") as data_stream:
-            data_stream.write(data)
-
-
-@superset.command()
-@with_appcontext
-@click.option(
-    "--path",
-    "-p",
-    help="Path to a single YAML file or path containing multiple YAML "
-    "files to import (*.yaml or *.yml)",
-)
-@click.option(
-    "--sync",
-    "-s",
-    "sync",
-    default="",
-    help="comma seperated list of element types to synchronize "
-    'e.g. "metrics,columns" deletes metrics and columns in the DB '
-    "that are not specified in the YAML file",
-)
-@click.option(
-    "--recursive",
-    "-r",
-    is_flag=True,
-    default=False,
-    help="recursively search the path for yaml files",
-)
-def import_datasources(path: str, sync: str, recursive: bool) -> None:
-    """Import datasources from YAML"""
-    from superset.datasets.commands.importers.dispatcher import ImportDatasetsCommand
-
-    sync_array = sync.split(",")
-    sync_columns = "columns" in sync_array
-    sync_metrics = "metrics" in sync_array
-
-    path_object = Path(path)
-    files: List[Path] = []
-    if path_object.is_file():
-        files.append(path_object)
-    elif path_object.exists() and not recursive:
-        files.extend(path_object.glob("*.yaml"))
-        files.extend(path_object.glob("*.yml"))
-    elif path_object.exists() and recursive:
-        files.extend(path_object.rglob("*.yaml"))
-        files.extend(path_object.rglob("*.yml"))
-    contents = {path.name: open(path).read() for path in files}
-    try:
-        ImportDatasetsCommand(contents, sync_columns, sync_metrics).run()
-    except Exception:  # pylint: disable=broad-except
-        logger.exception("Error when importing dataset")
-
-
-@superset.command()
-@with_appcontext
-@click.option(
-    "--datasource-file", "-f", default=None, help="Specify the the file to export to"
-)
-@click.option(
-    "--print_stdout", "-p", is_flag=True, default=False, help="Print YAML to stdout"
-)
-@click.option(
-    "--back-references",
-    "-b",
-    is_flag=True,
-    default=False,
-    help="Include parent back references",
-)
-@click.option(
-    "--include-defaults",
-    "-d",
-    is_flag=True,
-    default=False,
-    help="Include fields containing defaults",
-)
-def export_datasources(
-    print_stdout: bool,
-    datasource_file: str,
-    back_references: bool,
-    include_defaults: bool,
-) -> None:
-    """Export datasources to YAML"""
-    from superset.utils import dict_import_export
-
-    data = dict_import_export.export_to_dict(
-        session=db.session,
-        recursive=True,
-        back_references=back_references,
-        include_defaults=include_defaults,
+    # pylint: disable=too-many-locals
+    @superset.command()
+    @with_appcontext
+    @click.option(
+        "--datasource-file",
+        "-f",
+        default="dataset_export_YYYYMMDDTHHMMSS",
+        help="Specify the the file to export to",
     )
-    if print_stdout or not datasource_file:
-        yaml.safe_dump(data, stdout, default_flow_style=False)
-    if datasource_file:
-        logger.info("Exporting datasources to %s", datasource_file)
-        with open(datasource_file, "w") as data_stream:
-            yaml.safe_dump(data, data_stream, default_flow_style=False)
+    def export_datasources(datasource_file: Optional[str]) -> None:
+        """Export datasources to ZIP file"""
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.datasets.commands.export import ExportDatasetsCommand
+
+        g.user = security_manager.find_user(username="admin")
+
+        dataset_ids = [id_ for (id_,) in db.session.query(SqlaTable.id).all()]
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+        root = f"dataset_export_{timestamp}"
+        datasource_file = datasource_file or f"{root}.zip"
+
+        try:
+            with ZipFile(datasource_file, "w") as bundle:
+                for file_name, file_content in ExportDatasetsCommand(dataset_ids).run():
+                    with bundle.open(f"{root}/{file_name}", "w") as fp:
+                        fp.write(file_content.encode())
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "There was an error when exporting the datasets, please check "
+                "the exception traceback in the log"
+            )
+
+    @superset.command()
+    @with_appcontext
+    @click.option(
+        "--path", "-p", help="Path to a single ZIP file",
+    )
+    @click.option(
+        "--username",
+        "-u",
+        default=None,
+        help="Specify the user name to assign dashboards to",
+    )
+    def import_dashboards(path: str, username: Optional[str]) -> None:
+        """Import dashboards from ZIP file"""
+        from superset.dashboards.commands.importers.dispatcher import (
+            ImportDashboardsCommand,
+        )
+
+        if username is not None:
+            g.user = security_manager.find_user(username=username)
+        contents = {path: open(path).read()}
+        try:
+            ImportDashboardsCommand(contents).run()
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "There was an error when importing the dashboards(s), please check "
+                "the exception traceback in the log"
+            )
+
+    @superset.command()
+    @with_appcontext
+    @click.option(
+        "--path",
+        "-p",
+        help="Path to a single YAML file or path containing multiple YAML "
+        "files to import (*.yaml or *.yml)",
+    )
+    @click.option(
+        "--sync",
+        "-s",
+        "sync",
+        default="",
+        help="comma seperated list of element types to synchronize "
+        'e.g. "metrics,columns" deletes metrics and columns in the DB '
+        "that are not specified in the YAML file",
+    )
+    @click.option(
+        "--recursive",
+        "-r",
+        is_flag=True,
+        default=False,
+        help="recursively search the path for yaml files",
+    )
+    def import_datasources(path: str) -> None:
+        """Import datasources from ZIP file"""
+        from superset.datasets.commands.importers.dispatcher import (
+            ImportDatasetsCommand,
+        )
+
+        contents = {path: open(path).read()}
+        try:
+            ImportDatasetsCommand(contents).run()
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "There was an error when importing the dataset(s), please check the "
+                "exception traceback in the log"
+            )
 
 
-@superset.command()
-@with_appcontext
-@click.option(
-    "--back-references",
-    "-b",
-    is_flag=True,
-    default=False,
-    help="Include parent back references",
-)
-def export_datasource_schema(back_references: bool) -> None:
-    """Export datasource YAML schema to stdout"""
-    from superset.utils import dict_import_export
+else:
 
-    data = dict_import_export.export_schema_to_dict(back_references=back_references)
-    yaml.safe_dump(data, stdout, default_flow_style=False)
+    @superset.command()
+    @with_appcontext
+    @click.option(
+        "--dashboard-file", "-f", default=None, help="Specify the the file to export to"
+    )
+    @click.option(
+        "--print_stdout",
+        "-p",
+        is_flag=True,
+        default=False,
+        help="Print JSON to stdout",
+    )
+    def export_dashboards(
+        dashboard_file: Optional[str], print_stdout: bool = False
+    ) -> None:
+        """Export dashboards to JSON"""
+        from superset.utils import dashboard_import_export
+
+        data = dashboard_import_export.export_dashboards(db.session)
+        if print_stdout or not dashboard_file:
+            print(data)
+        if dashboard_file:
+            logger.info("Exporting dashboards to %s", dashboard_file)
+            with open(dashboard_file, "w") as data_stream:
+                data_stream.write(data)
+
+    # pylint: disable=too-many-locals
+    @superset.command()
+    @with_appcontext
+    @click.option(
+        "--datasource-file",
+        "-f",
+        default=None,
+        help="Specify the the file to export to",
+    )
+    @click.option(
+        "--print_stdout",
+        "-p",
+        is_flag=True,
+        default=False,
+        help="Print YAML to stdout",
+    )
+    @click.option(
+        "--back-references",
+        "-b",
+        is_flag=True,
+        default=False,
+        help="Include parent back references",
+    )
+    @click.option(
+        "--include-defaults",
+        "-d",
+        is_flag=True,
+        default=False,
+        help="Include fields containing defaults",
+    )
+    def export_datasources(
+        datasource_file: Optional[str],
+        print_stdout: bool = False,
+        back_references: bool = False,
+        include_defaults: bool = False,
+    ) -> None:
+        """Export datasources to YAML"""
+        from superset.utils import dict_import_export
+
+        data = dict_import_export.export_to_dict(
+            session=db.session,
+            recursive=True,
+            back_references=back_references,
+            include_defaults=include_defaults,
+        )
+        if print_stdout or not datasource_file:
+            yaml.safe_dump(data, sys.stdout, default_flow_style=False)
+        if datasource_file:
+            logger.info("Exporting datasources to %s", datasource_file)
+            with open(datasource_file, "w") as data_stream:
+                yaml.safe_dump(data, data_stream, default_flow_style=False)
+
+    @superset.command()
+    @with_appcontext
+    @click.option(
+        "--path",
+        "-p",
+        help="Path to a single JSON file or path containing multiple JSON "
+        "files to import (*.json)",
+    )
+    @click.option(
+        "--recursive",
+        "-r",
+        is_flag=True,
+        default=False,
+        help="recursively search the path for json files",
+    )
+    @click.option(
+        "--username",
+        "-u",
+        default=None,
+        help="Specify the user name to assign dashboards to",
+    )
+    def import_dashboards(path: str, recursive: bool, username: str) -> None:
+        """Import dashboards from ZIP file"""
+        from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
+
+        path_object = Path(path)
+        files: List[Path] = []
+        if path_object.is_file():
+            files.append(path_object)
+        elif path_object.exists() and not recursive:
+            files.extend(path_object.glob("*.json"))
+        elif path_object.exists() and recursive:
+            files.extend(path_object.rglob("*.json"))
+        if username is not None:
+            g.user = security_manager.find_user(username=username)
+        contents = {path.name: open(path).read() for path in files}
+        try:
+            ImportDashboardsCommand(contents).run()
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("Error when importing dashboard")
+
+    @superset.command()
+    @with_appcontext
+    @click.option(
+        "--path",
+        "-p",
+        help="Path to a single YAML file or path containing multiple YAML "
+        "files to import (*.yaml or *.yml)",
+    )
+    @click.option(
+        "--sync",
+        "-s",
+        "sync",
+        default="",
+        help="comma seperated list of element types to synchronize "
+        'e.g. "metrics,columns" deletes metrics and columns in the DB '
+        "that are not specified in the YAML file",
+    )
+    @click.option(
+        "--recursive",
+        "-r",
+        is_flag=True,
+        default=False,
+        help="recursively search the path for yaml files",
+    )
+    def import_datasources(path: str, sync: str, recursive: bool) -> None:
+        """Import datasources from YAML"""
+        from superset.datasets.commands.importers.v0 import ImportDatasetsCommand
+
+        sync_array = sync.split(",")
+        sync_columns = "columns" in sync_array
+        sync_metrics = "metrics" in sync_array
+
+        path_object = Path(path)
+        files: List[Path] = []
+        if path_object.is_file():
+            files.append(path_object)
+        elif path_object.exists() and not recursive:
+            files.extend(path_object.glob("*.yaml"))
+            files.extend(path_object.glob("*.yml"))
+        elif path_object.exists() and recursive:
+            files.extend(path_object.rglob("*.yaml"))
+            files.extend(path_object.rglob("*.yml"))
+        contents = {path.name: open(path).read() for path in files}
+        try:
+            ImportDatasetsCommand(contents, sync_columns, sync_metrics).run()
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("Error when importing dataset")
+
+    @superset.command()
+    @with_appcontext
+    @click.option(
+        "--back-references",
+        "-b",
+        is_flag=True,
+        default=False,
+        help="Include parent back references",
+    )
+    def export_datasource_schema(back_references: bool) -> None:
+        """Export datasource YAML schema to stdout"""
+        from superset.utils import dict_import_export
+
+        data = dict_import_export.export_schema_to_dict(back_references=back_references)
+        yaml.safe_dump(data, sys.stdout, default_flow_style=False)
 
 
 @superset.command()

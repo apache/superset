@@ -25,16 +25,19 @@ from marshmallow import ValidationError
 from superset.commands.utils import populate_owners
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.databases.dao import DatabaseDAO
+from superset.exceptions import SupersetSecurityException
 from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.reports.commands.base import BaseReportScheduleCommand
 from superset.reports.commands.exceptions import (
     DatabaseNotFoundValidationError,
+    ReportScheduleForbiddenError,
     ReportScheduleInvalidError,
     ReportScheduleNameUniquenessValidationError,
     ReportScheduleNotFoundError,
     ReportScheduleUpdateFailedError,
 )
 from superset.reports.dao import ReportScheduleDAO
+from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +95,12 @@ class UpdateReportScheduleCommand(BaseReportScheduleCommand):
             self._properties["validator_config_json"] = json.dumps(
                 self._properties["validator_config_json"]
             )
+
+        # Check ownership
+        try:
+            check_ownership(self._model)
+        except SupersetSecurityException:
+            raise ReportScheduleForbiddenError()
 
         # Validate/Populate owner
         if owner_ids is None:
