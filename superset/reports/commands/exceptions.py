@@ -21,6 +21,7 @@ from superset.commands.exceptions import (
     CommandInvalidError,
     CreateFailedError,
     DeleteFailedError,
+    ForbiddenError,
     ValidationError,
 )
 
@@ -172,3 +173,7 @@ class ReportScheduleStateNotFoundError(CommandException):
 
 class ReportScheduleUnexpectedError(CommandException):
     message = _("Report schedule unexpected error")
+
+
+class ReportScheduleForbiddenError(ForbiddenError):
+    message = _("Changing this report is forbidden")
