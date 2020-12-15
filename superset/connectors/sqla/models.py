@@ -58,6 +58,7 @@ from superset.constants import NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
+from superset.extensions import event_logger
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -1475,17 +1476,21 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         extra = self.extra_dict
         # force re-run health check, or health check is updated
-        if force or not extra.get("health_check", {}).get("version") == check.version:
-            message = check(self)
-            if message:
-                extra["health_check"] = {"version": check.version, "message": message}
-            else:
-                extra.pop("health_check", None)
-            self.extra = json.dumps(extra)
+        if force or extra.get("health_check", {}).get("version") != check.version:
+            with event_logger.log_context(action="dataset_health_check"):
+                message = check(self)
+                if message:
+                    extra["health_check"] = {
+                        "version": check.version,
+                        "message": message,
+                    }
+                else:
+                    extra.pop("health_check", None)
+                self.extra = json.dumps(extra)
 
-            db.session.merge(self)
-            if commit:
-                db.session.commit()
+                db.session.merge(self)
+                if commit:
+                    db.session.commit()
 
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)
