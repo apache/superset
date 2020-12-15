@@ -64,7 +64,7 @@ from superset.charts.schemas import (
 )
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import remove_root
-from superset.constants import RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger
 from superset.models.slice import Slice
@@ -104,7 +104,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "viz_types",
         "favorite_status",
     }
-    class_permission_name = "SliceModelView"
+    class_permission_name = "Chart"
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     show_columns = [
         "cache_timeout",
         "dashboards.dashboard_title",
