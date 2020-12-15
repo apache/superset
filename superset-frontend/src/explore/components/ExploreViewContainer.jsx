@@ -398,6 +398,12 @@ class ExploreViewContainer extends React.Component {
             }
             body > div {
               flex: 1 1 auto;
+              &#app-menu {
+                flex-shrink: 0;
+              }
+              &.controls-column {
+                flex-basis: 100%;
+              }
             }
           `}
         />

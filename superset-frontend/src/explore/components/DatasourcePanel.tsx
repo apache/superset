@@ -32,7 +32,7 @@ interface DatasourceControl {
   type: ControlType;
   label: string;
   datasource?: any;
-};
+}
 
 interface Props {
   datasource: {
@@ -76,10 +76,11 @@ const DatasourceContainer = styled.div`
   .header {
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
     margin-left: ${({ theme }) => theme.gridUnit * -2}px;
-  .ant-collapse-content-box > div > span {
-    margin-left:  ${({ theme }) => theme.gridUnit * -3}px;
   }
-  .ant-collapse-content-box > div > div {
+  .column {
+    margin-left:  ${({ theme }) => theme.gridUnit * -3}px !important;
+  }
+  .metric {
     margin-left ${({ theme }) => theme.gridUnit * -6}px;
   }
 `;
@@ -138,7 +139,7 @@ const DataSourcePanel = ({
             key="column"
           >
             {lists.columns.slice(0, maxNumColumns).map(col => (
-              <div key={col.column_name}>
+              <div key={col.column_name} className="column">
                 <ColumnOption showType column={col} />
               </div>
             ))}
@@ -153,7 +154,7 @@ const DataSourcePanel = ({
             key="metrics"
           >
             {lists.metrics.slice(0, maxNumColumns).map(m => (
-              <div key={m.metric_name}>
+              <div key={m.metric_name} className="metric">
                 <MetricOption metric={m} showType />
               </div>
             ))}
