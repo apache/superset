@@ -522,7 +522,7 @@ def parse_human_timedelta(
     """
     Returns ``datetime.timedelta`` from natural language time deltas
 
-    >>> parse_human_datetime('now') == timedelta(0)
+    >>> parse_human_timedelta('1 day') == timedelta(days=1)
     True
     """
     cal = parsedatetime.Calendar()

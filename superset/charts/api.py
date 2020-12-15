@@ -56,10 +56,10 @@ from superset.charts.schemas import (
     get_delete_ids_schema,
     get_export_ids_schema,
     get_fav_star_ids_schema,
+    get_time_range_schema,
     openapi_spec_methods_override,
     screenshot_query_schema,
     thumbnail_query_schema,
-    get_time_range_schema,
 )
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import remove_root
@@ -70,8 +70,8 @@ from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils.core import (
     ChartDataResultFormat,
-    json_int_dttm_ser,
     get_since_until,
+    json_int_dttm_ser,
 )
 from superset.utils.screenshots import ChartScreenshot
 from superset.utils.urls import get_url_path
