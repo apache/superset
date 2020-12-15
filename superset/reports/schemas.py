@@ -199,6 +199,7 @@ class ReportSchedulePutSchema(Schema):
         description=sql_description,
         example="SELECT value FROM time_series_table",
         required=False,
+        allow_none=True,
     )
     chart = fields.Integer(required=False)
     dashboard = fields.Integer(required=False)
@@ -209,6 +210,7 @@ class ReportSchedulePutSchema(Schema):
         validate=validate.OneOf(
             choices=tuple(key.value for key in ReportScheduleValidatorType)
         ),
+        allow_none=True,
         required=False,
     )
     validator_config_json = fields.Nested(ValidatorConfigJSONSchema, required=False)
@@ -219,6 +221,9 @@ class ReportSchedulePutSchema(Schema):
         description=grace_period_description, example=60 * 60 * 4, required=False
     )
     working_timeout = fields.Integer(
-        description=working_timeout_description, example=60 * 60 * 1, required=False
+        description=working_timeout_description,
+        example=60 * 60 * 1,
+        allow_none=True,
+        required=False,
     )
     recipients = fields.List(fields.Nested(ReportRecipientSchema), required=False)

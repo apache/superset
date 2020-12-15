@@ -16,31 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
-import { Select as BaseSelect } from 'src/common/components';
+import Owner from './Owner';
 
-const StyledSelect = styled(BaseSelect)`
-  &.ant-select-single {
-    .ant-select-selector {
-      height: 36px;
-      padding: 0 11px;
-      background-color: ${({ theme }) => theme.colors.grayscale.light3};
-      border: none;
-
-      .ant-select-selection-search-input {
-        height: 100%;
-      }
-
-      .ant-select-selection-item,
-      .ant-select-selection-placeholder {
-        line-height: 35px;
-        color: ${({ theme }) => theme.colors.grayscale.dark1};
-      }
-    }
-  }
-`;
-const StyledOption = BaseSelect.Option;
-
-export const Select = Object.assign(StyledSelect, {
-  Option: StyledOption,
-});
+export default interface Dataset {
+  changed_by_name: string;
+  changed_by_url: string;
+  changed_by: string;
+  changed_on_delta_humanized: string;
+  database: {
+    id: string;
+    database_name: string;
+  };
+  kind: string;
+  explore_url: string;
+  id: number;
+  owners: Array<Owner>;
+  schema: string;
+  table_name: string;
+}
