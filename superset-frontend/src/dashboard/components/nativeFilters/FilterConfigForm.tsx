@@ -70,7 +70,7 @@ const StyledContainer = styled.div`
 
 const StyledFormItem = styled(Form.Item)`
   width: 49%;
-  margin-bottom: 40px;
+  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
 const StyledFormCheckbox = styled(Form.Item)`
@@ -86,6 +86,7 @@ const StyledLabel = styled.span`
 const StyledScopingInfo = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
+
 export interface FilterConfigFormProps {
   filterId: string;
   filterToEdit?: Filter;
@@ -150,108 +151,100 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
 
   return (
     <>
-      <Form layout="vertical">
-        <StyledContainer>
-          <StyledFormItem
-            name={['filters', filterId, 'name']}
-            label={<StyledLabel>{t('Filter Name')}</StyledLabel>}
-            initialValue={filterToEdit?.name}
-            rules={[{ required: !removed, message: t('Name is required') }]}
-            data-test="name-input"
-          >
-            <Input />
-          </StyledFormItem>
-
-          <StyledFormItem
-            name={['filters', filterId, 'dataset']}
-            label={<StyledLabel>{t('Datasource')}</StyledLabel>}
-            rules={[
-              { required: !removed, message: t('Datasource is required') },
-            ]}
-            data-test="datasource-input"
-          >
-            <SupersetResourceSelect
-              initialId={filterToEdit?.targets[0].datasetId}
-              resource="dataset"
-              searchColumn="table_name"
-              transformItem={datasetToSelectOption}
-              isMulti={false}
-              onChange={setDataset}
-              onError={onDatasetSelectError}
-            />
-          </StyledFormItem>
-        </StyledContainer>
-
+      <Typography.Title level={5}>{t('Settings')}</Typography.Title>
+      <StyledContainer>
         <StyledFormItem
-          // don't show the column select unless we have a dataset
-          // style={{ display: datasetId == null ? undefined : 'none' }}
-          name={['filters', filterId, 'column']}
-          initialValue={filterToEdit?.targets[0]?.column?.name}
-          label={<StyledLabel>{t('Field')}</StyledLabel>}
-          rules={[{ required: !removed, message: t('Field is required') }]}
-          data-test="field-input"
-        >
-          <ColumnSelect
-            form={form}
-            filterId={filterId}
-            datasetId={dataset?.value}
-          />
-        </StyledFormItem>
-
-        <StyledFormItem
-          name={['filters', filterId, 'defaultValue']}
-          label={<StyledLabel>{t('Default Value')}</StyledLabel>}
-          initialValue={filterToEdit?.defaultValue}
+          name={['filters', filterId, 'name']}
+          label={<StyledLabel>{t('Filter Name')}</StyledLabel>}
+          initialValue={filterToEdit?.name}
+          rules={[{ required: !removed, message: t('Name is required') }]}
+          data-test="name-input"
         >
           <Input />
         </StyledFormItem>
 
         <StyledFormItem
-          name={['filters', filterId, 'parentFilter']}
-          label={<StyledLabel>{t('Parent Filter')}</StyledLabel>}
-          initialValue={parentFilterOptions.find(
-            ({ value }) => value === filterToEdit?.cascadeParentIds[0],
-          )}
-          labelCol={{ flex: 'flex-direction: column' }}
+          name={['filters', filterId, 'dataset']}
+          label={<StyledLabel>{t('Datasource')}</StyledLabel>}
+          rules={[{ required: !removed, message: t('Datasource is required') }]}
+          data-test="datasource-input"
         >
-          <Select options={parentFilterOptions} isClearable />
+          <SupersetResourceSelect
+            initialId={filterToEdit?.targets[0].datasetId}
+            resource="dataset"
+            searchColumn="table_name"
+            transformItem={datasetToSelectOption}
+            isMulti={false}
+            onChange={setDataset}
+            onError={onDatasetSelectError}
+          />
         </StyledFormItem>
-      </Form>
+      </StyledContainer>
+      <StyledFormItem
+        // don't show the column select unless we have a dataset
+        // style={{ display: datasetId == null ? undefined : 'none' }}
+        name={['filters', filterId, 'column']}
+        initialValue={filterToEdit?.targets[0]?.column?.name}
+        label={<StyledLabel>{t('Field')}</StyledLabel>}
+        rules={[{ required: !removed, message: t('Field is required') }]}
+        data-test="field-input"
+      >
+        <ColumnSelect
+          form={form}
+          filterId={filterId}
+          datasetId={dataset?.value}
+        />
+      </StyledFormItem>
+
+      <StyledFormItem
+        name={['filters', filterId, 'defaultValue']}
+        label={<StyledLabel>{t('Default Value')}</StyledLabel>}
+        initialValue={filterToEdit?.defaultValue}
+      >
+        <Input />
+      </StyledFormItem>
+
+      <StyledFormItem
+        name={['filters', filterId, 'parentFilter']}
+        label={<StyledLabel>{t('Parent Filter')}</StyledLabel>}
+        initialValue={parentFilterOptions.find(
+          ({ value }) => value === filterToEdit?.cascadeParentIds[0],
+        )}
+      >
+        <Select options={parentFilterOptions} isClearable />
+      </StyledFormItem>
+
       <StyledFormCheckbox
         name={['filters', filterId, 'isInstant']}
-        label={t('Apply changes instantly')}
         initialValue={filterToEdit?.isInstant}
         valuePropName="checked"
         colon={false}
       >
-        <Checkbox />
+        <Checkbox>{t('Apply changes instantly')}</Checkbox>
       </StyledFormCheckbox>
       <StyledFormCheckbox
         name={['filters', filterId, 'allowsMultipleValues']}
-        label={t('Allow multiple selections')}
         initialValue={filterToEdit?.allowsMultipleValues}
         valuePropName="checked"
         colon={false}
       >
-        <Checkbox />
+        <Checkbox>{t('Allow multiple selections')}</Checkbox>
       </StyledFormCheckbox>
       <StyledFormCheckbox
         name={['filters', filterId, 'inverseSelection']}
-        label={t('Inverse selection')}
         initialValue={filterToEdit?.inverseSelection}
         valuePropName="checked"
         colon={false}
       >
-        <Checkbox />
+        <Checkbox>{t('Inverse selection')}</Checkbox>
       </StyledFormCheckbox>
       <StyledFormCheckbox
         name={['filters', filterId, 'isRequired']}
-        label={t('Required')}
         initialValue={filterToEdit?.isRequired}
         valuePropName="checked"
         colon={false}
       >
-        <Checkbox />
+        <Checkbox>{t('Required')}</Checkbox>
       </StyledFormCheckbox>
       <Typography.Title level={5}>{t('Scoping')}</Typography.Title>
       <StyledFormCheckbox

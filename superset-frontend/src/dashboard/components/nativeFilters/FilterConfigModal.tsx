@@ -24,6 +24,7 @@ import { DeleteFilled, PlusOutlined } from '@ant-design/icons';
 import { styled, t } from '@superset-ui/core';
 import { Form } from 'src/common/components';
 import { StyledModal } from 'src/common/components/Modal';
+import Button from 'src/components/Button';
 import { LineEditableTabs } from 'src/common/components/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { usePrevious } from 'src/common/hooks/usePrevious';
@@ -400,20 +401,38 @@ export function FilterConfigModal({
     validateForm,
   ]);
 
+  const handleCancel = () => {
+    resetForm();
+    onCancel();
+  };
+
   return (
     <StyledModal
       visible={isOpen}
       title={t('Filter Configuration and Scoping')}
       width="55%"
-      onCancel={() => {
-        resetForm();
-        onCancel();
-      }}
+      onCancel={handleCancel}
       onOk={onOk}
-      okText={t('Save')}
-      cancelText={t('Cancel')}
       centered
       data-test="filter-modal"
+      footer={[
+        <Button
+          key="cancel"
+          buttonStyle="secondary"
+          buttonSize="medium"
+          onClick={handleCancel}
+        >
+          {t('Cancel')}
+        </Button>,
+        <Button
+          key="submit"
+          buttonStyle="primary"
+          buttonSize="medium"
+          onClick={onOk}
+        >
+          {t('Save')}
+        </Button>,
+      ]}
     >
       <ErrorBoundary>
         <StyledModalBody>
@@ -430,8 +449,8 @@ export function FilterConfigModal({
                 setFormValues(values);
               }
             }}
+            layout="vertical"
           >
-            <h5>{t('Filters')}</h5>
             <FilterTabs
               tabPosition="left"
               onChange={setCurrentFilterId}
