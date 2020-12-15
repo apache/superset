@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { action } from '@storybook/addon-actions';
 import { withKnobs, boolean, select } from '@storybook/addon-knobs';
 import Button from 'src/components/Button';
@@ -24,8 +24,8 @@ import Modal from './Modal';
 import Tabs, { EditableTabs } from './Tabs';
 import AntdPopover from './Popover';
 import { Tooltip as AntdTooltip } from './Tooltip';
-import { Menu } from '.';
 import { Switch as AntdSwitch } from './Switch';
+import { Menu, Input, Divider } from '.';
 import { Dropdown } from './Dropdown';
 import InfoTooltip from './InfoTooltip';
 import {
@@ -35,6 +35,7 @@ import {
 import Badge from './Badge';
 import ProgressBar from './ProgressBar';
 import Collapse from './Collapse';
+import { CronPicker, CronError } from './CronPicker';
 
 export default {
   title: 'Common Components',
@@ -321,3 +322,43 @@ export const CollapseTextLight = () => (
     </Collapse.Panel>
   </Collapse>
 );
+export function StyledCronPicker() {
+  const inputRef = useRef<Input>(null);
+  const defaultValue = '30 5 * * 1,6';
+  const [value, setValue] = useState(defaultValue);
+  const customSetValue = useCallback(
+    (newValue: string) => {
+      setValue(newValue);
+      inputRef.current?.setValue(newValue);
+    },
+    [inputRef],
+  );
+  const [error, onError] = useState<CronError>();
+
+  return (
+    <div>
+      <Input
+        ref={inputRef}
+        onBlur={event => {
+          setValue(event.target.value);
+        }}
+        onPressEnter={() => {
+          setValue(inputRef.current?.input.value || '');
+        }}
+      />
+
+      <Divider />
+
+      <CronPicker
+        clearButton={false}
+        value={value}
+        setValue={customSetValue}
+        onError={onError}
+      />
+
+      <p style={{ marginTop: 20 }}>
+        Error: {error ? error.description : 'undefined'}
+      </p>
+    </div>
+  );
+}

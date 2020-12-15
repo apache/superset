@@ -17,7 +17,9 @@
 """A collection of ORM sqlalchemy models for Superset"""
 import enum
 
+from cron_descriptor import get_description
 from flask_appbuilder import Model
+from flask_appbuilder.models.decorators import renders
 from sqlalchemy import (
     Boolean,
     Column,
@@ -130,6 +132,10 @@ class ReportSchedule(Model, AuditMixinNullable):
 
     def __repr__(self) -> str:
         return str(self.name)
+
+    @renders("crontab")
+    def crontab_humanized(self) -> str:
+        return get_description(self.crontab)
 
 
 class ReportRecipients(
