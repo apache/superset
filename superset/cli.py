@@ -243,10 +243,18 @@ if feature_flags.get("VERSIONED_EXPORT"):
         root = f"dashboard_export_{timestamp}"
         dashboard_file = dashboard_file or f"{root}.zip"
 
-        with ZipFile(dashboard_file, "w") as bundle:
-            for file_name, file_content in ExportDashboardsCommand(dashboard_ids).run():
-                with bundle.open(f"{root}/{file_name}", "w") as fp:
-                    fp.write(file_content.encode())
+        try:
+            with ZipFile(dashboard_file, "w") as bundle:
+                for file_name, file_content in ExportDashboardsCommand(
+                    dashboard_ids
+                ).run():
+                    with bundle.open(f"{root}/{file_name}", "w") as fp:
+                        fp.write(file_content.encode())
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "There was an error when exporting the dashboards, please check "
+                "the exception traceback in the log"
+            )
 
     # pylint: disable=too-many-locals
     @superset.command()
@@ -269,10 +277,16 @@ if feature_flags.get("VERSIONED_EXPORT"):
         root = f"dataset_export_{timestamp}"
         datasource_file = datasource_file or f"{root}.zip"
 
-        with ZipFile(datasource_file, "w") as bundle:
-            for file_name, file_content in ExportDatasetsCommand(dataset_ids).run():
-                with bundle.open(f"{root}/{file_name}", "w") as fp:
-                    fp.write(file_content.encode())
+        try:
+            with ZipFile(datasource_file, "w") as bundle:
+                for file_name, file_content in ExportDatasetsCommand(dataset_ids).run():
+                    with bundle.open(f"{root}/{file_name}", "w") as fp:
+                        fp.write(file_content.encode())
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "There was an error when exporting the datasets, please check "
+                "the exception traceback in the log"
+            )
 
     @superset.command()
     @with_appcontext
@@ -297,7 +311,10 @@ if feature_flags.get("VERSIONED_EXPORT"):
         try:
             ImportDashboardsCommand(contents).run()
         except Exception:  # pylint: disable=broad-except
-            logger.exception("Error when importing dashboard")
+            logger.exception(
+                "There was an error when importing the dashboards(s), please check "
+                "the exception traceback in the log"
+            )
 
     @superset.command()
     @with_appcontext
@@ -333,7 +350,10 @@ if feature_flags.get("VERSIONED_EXPORT"):
         try:
             ImportDatasetsCommand(contents).run()
         except Exception:  # pylint: disable=broad-except
-            logger.exception("Error when importing dataset")
+            logger.exception(
+                "There was an error when importing the dataset(s), please check the "
+                "exception traceback in the log"
+            )
 
 
 else:
