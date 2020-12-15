@@ -21,8 +21,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { styled, logging, t, supersetTheme } from '@superset-ui/core';
-
+import { styled, logging, t, supersetTheme, css } from '@superset-ui/core';
+import { Global } from '@emotion/core';
 import Icon from 'src/components/Icon';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
@@ -59,14 +59,11 @@ const propTypes = {
 };
 
 const Styles = styled.div`
-    /* &.light { */
   background: ${({ theme }) => theme.colors.grayscale.light5};
-    /* } */
-  height: ${({ height }) => height};
-  min-height: ${({ height }) => height};
   text-align: left;
   position: relative;
   width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
@@ -378,7 +375,22 @@ class ExploreViewContainer extends React.Component {
       return this.renderChartContainer();
     }
     return (
-      <Styles id="explore-container" height={this.state.height}>
+      <Styles id="explore-container">
+        <Global
+          styles={css`
+            .navbar {
+              margin-bottom: 0;
+            }
+            body {
+              max-height: 100vh;
+              overflow: hidden;
+            }
+            body > div {
+              flex: 1 1 auto;
+              overflow: hidden;
+            }
+          `}
+        />
         {this.state.showModal && (
           <SaveModal
             onHide={this.toggleModal}
@@ -387,7 +399,6 @@ class ExploreViewContainer extends React.Component {
             sliceName={this.props.sliceName}
           />
         )}
-
         <div className={collapse ? 'no-show' : 'data-tab control-pane'}>
           <div className="title-container">
             <span className="horizontal-text">Datasource</span>
