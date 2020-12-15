@@ -17,24 +17,38 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 import CopyToClipboard from './CopyToClipboard';
 import { getShortUrl } from '../utils/common';
 import withToasts from '../messageToasts/enhancers/withToasts';
 import ModalTrigger from './ModalTrigger';
 
-const propTypes = {
-  url: PropTypes.string,
-  emailSubject: PropTypes.string,
-  emailContent: PropTypes.string,
-  addDangerToast: PropTypes.func.isRequired,
-  title: PropTypes.string,
-  triggerNode: PropTypes.node.isRequired,
+type URLShortLinkModalProps = {
+  url: string;
+  emailSubject: string;
+  emailContent: string;
+  title?: string;
+  addDangerToast: (msg: string) => void;
+  triggerNode: JSX.Element;
 };
 
-class URLShortLinkModal extends React.Component {
-  constructor(props) {
+type URLShortLinkModalState = {
+  shortUrl: string;
+};
+
+class URLShortLinkModal extends React.Component<
+  URLShortLinkModalProps,
+  URLShortLinkModalState
+> {
+  static defaultProps = {
+    url: window.location.href.substring(window.location.origin.length),
+    emailSubject: '',
+    emailContent: '',
+  };
+
+  modal: ModalTrigger | null;
+
+  constructor(props: URLShortLinkModalProps) {
     super(props);
     this.state = {
       shortUrl: '',
@@ -45,11 +59,11 @@ class URLShortLinkModal extends React.Component {
     this.getCopyUrl = this.getCopyUrl.bind(this);
   }
 
-  onShortUrlSuccess(shortUrl) {
+  onShortUrlSuccess(shortUrl: string) {
     this.setState(() => ({ shortUrl }));
   }
 
-  setModalRef(ref) {
+  setModalRef(ref: ModalTrigger | null) {
     this.modal = ref;
   }
 
@@ -87,13 +101,5 @@ class URLShortLinkModal extends React.Component {
     );
   }
 }
-
-URLShortLinkModal.defaultProps = {
-  url: window.location.href.substring(window.location.origin.length),
-  emailSubject: '',
-  emailContent: '',
-};
-
-URLShortLinkModal.propTypes = propTypes;
 
 export default withToasts(URLShortLinkModal);
