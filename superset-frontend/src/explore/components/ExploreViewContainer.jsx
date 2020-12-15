@@ -72,21 +72,21 @@ const Styles = styled.div`
   flex-wrap: nowrap;
   align-items: stretch;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  .control-pane {
+  .control-pane, .data-source-selection {
     border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     display: flex;
     flex-direction: column;
-    padding: ${({ theme }) => 2 * theme.gridUnit}px;
+    padding: ${({ theme }) => 2 * theme.gridUnit}px 0;
     max-height: 100%;
-    &.bg {
-      background-color: ${({ theme }) => theme.colors.grayscale.light4};
-    }
+  }
+  .control-pane {
+    background-color: ${({ theme }) => theme.colors.grayscale.light4};
   }
   .title-container {
     position: relative;
     display: flex;
     flex-direction: row;
-    margin-bottom: ${({ theme }) => 2 * theme.gridUnit}px;
+    padding: 0 ${({ theme }) => 2 * theme.gridUnit}px;
     justify-content: space-between;
     .horizontal-text {
       text-transform: uppercase;
@@ -388,7 +388,7 @@ class ExploreViewContainer extends React.Component {
           />
         )}
 
-        <div className={collapse ? 'no-show' : 'data-tab control-pane bg'}>
+        <div className={collapse ? 'no-show' : 'data-tab control-pane'}>
           <div className="title-container">
             <span className="horizontal-text">Datasource</span>
             <span
@@ -429,11 +429,7 @@ class ExploreViewContainer extends React.Component {
             <Icon name="dataset-physical" width={16} />
           </div>
         ) : null}
-        <div
-          className={
-            collapse ? 'col-sm-3 control-pane' : 'col-sm-3 control-pane'
-          }
-        >
+        <div className='col-sm-3 data-source-selection'>
           <QueryAndSaveBtns
             canAdd={!!(this.props.can_add || this.props.can_overwrite)}
             onQuery={this.onQuery}

@@ -46,6 +46,9 @@ interface Props {
 
 const DatasourceContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light4};
+  .field-selections {
+    padding: 0 ${({ theme }) => 2 * theme.gridUnit}px;
+  }
   .ant-collapse
     > .ant-collapse-item
     > .ant-collapse-header
@@ -72,7 +75,6 @@ const DatasourceContainer = styled.div`
   .header {
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
     margin-left: ${({ theme }) => theme.gridUnit * -2}px;
-  }
   .ant-collapse-content-box > div > span {
     margin-left:  ${({ theme }) => theme.gridUnit * -3}px;
   }
@@ -118,46 +120,48 @@ const DataSourcePanel = ({
         actions={actions}
         formData={datasourceControl.mapStateToProps}
       />
-      <input
-        type="text"
-        onChange={search}
-        className="form-control input-sm"
-        placeholder={t('Search Metrics & Columns')}
-      />
-      <Collapse
-        accordion
-        bordered={false}
-        defaultActiveKey={['column', 'metrics']}
-      >
-        <Collapse.Panel
-          header={<span className="header">Columns</span>}
-          key="column"
+      <div className="field-selections">
+        <input
+          type="text"
+          onChange={search}
+          className="form-control input-sm"
+          placeholder={t('Search Metrics & Columns')}
+        />
+        <Collapse
+          accordion
+          bordered={false}
+          defaultActiveKey={['column', 'metrics']}
         >
-          {lists.columns.slice(0, maxNumColumns).map(col => (
-            <div key={col.column_name}>
-              <ColumnOption showType column={col} />
-            </div>
-          ))}
-          {datasource.columns.length > maxNumColumns && (
-            <div className="and-more">...</div>
-          )}
-        </Collapse.Panel>
-      </Collapse>
-      <Collapse accordion bordered={false}>
-        <Collapse.Panel
-          header={<span className="header">Metrics</span>}
-          key="metrics"
-        >
-          {lists.metrics.slice(0, maxNumColumns).map(m => (
-            <div key={m.metric_name}>
-              <MetricOption metric={m} showType />
-            </div>
-          ))}
-          {datasource.columns.length > maxNumColumns && (
-            <div className="and-more">...</div>
-          )}
-        </Collapse.Panel>
-      </Collapse>
+          <Collapse.Panel
+            header={<span className="header">Columns</span>}
+            key="column"
+          >
+            {lists.columns.slice(0, maxNumColumns).map(col => (
+              <div key={col.column_name}>
+                <ColumnOption showType column={col} />
+              </div>
+            ))}
+            {datasource.columns.length > maxNumColumns && (
+              <div className="and-more">...</div>
+            )}
+          </Collapse.Panel>
+        </Collapse>
+        <Collapse accordion bordered={false}>
+          <Collapse.Panel
+            header={<span className="header">Metrics</span>}
+            key="metrics"
+          >
+            {lists.metrics.slice(0, maxNumColumns).map(m => (
+              <div key={m.metric_name}>
+                <MetricOption metric={m} showType />
+              </div>
+            ))}
+            {datasource.columns.length > maxNumColumns && (
+              <div className="and-more">...</div>
+            )}
+          </Collapse.Panel>
+        </Collapse>
+      </div>
     </DatasourceContainer>
   );
 };

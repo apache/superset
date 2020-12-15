@@ -58,6 +58,7 @@ const Styles = styled.div`
   flex-shrink: 0;
   flex-direction: row;
   align-items: center;
+  padding: 0px ${({ theme }) => 2 * theme.gridUnit}px;
   .btn {
     /* just to make sure buttons don't jiggle */
     width: 100px;
