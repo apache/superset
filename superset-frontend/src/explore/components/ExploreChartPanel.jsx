@@ -84,25 +84,6 @@ const Styles = styled.div`
   }
 
   .ant-collapse {
-    height: 100%;
-    background-color: ${({ theme }) => theme.colors.grayscale.light5};
-    .ant-collapse-item {
-      height: 100%;
-      border: 0;
-    }
-    .ant-collapse-content,
-    .ant-collapse-content-box {
-      height: 100%;
-    }
-    .ant-collapse-header {
-      background-color: ${({ theme }) => theme.colors.grayscale.light5};
-      padding-top: 0;
-      padding-bottom: 0;
-      font-weight: ${({ theme }) => theme.typography.weights.bold};
-      & > .ant-collapse-arrow {
-        top: 5px; // not a theme variable, override necessary after setting paddings to 0 to center arrow
-      }
-    }
     .ant-tabs {
       height: 100%;
       .ant-tabs-nav {

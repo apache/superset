@@ -99,12 +99,10 @@ const StyledHeader = styled.header`
     padding-left: 12px;
   }
 
-  .navbar-nav > li > a {
+  .navbar-inverse .navbar-nav > li > a {
     color: ${({ theme }) => theme.colors.grayscale.dark1};
     border-bottom: none;
-    &:focus {
-      border-bottom: none;
-    }
+    transition: background-color ${({ theme }) => theme.transitionTiming}s;
     &:after {
       content: '';
       position: absolute;
@@ -115,19 +113,22 @@ const StyledHeader = styled.header`
       opacity: 0;
       transform: translateX(-50%);
       transition: all ${({ theme }) => theme.transitionTiming}s;
+      background-color: ${({ theme }) => theme.colors.primary.base};
     }
-
+    &:focus {
+      border-bottom: none;
+      background-color: transparent;
+      /* background-color: ${({ theme }) => theme.colors.primary.light5}; */
+    }
     &:hover {
       color: ${({ theme }) => theme.colors.grayscale.dark1};
+      background-color: ${({ theme }) => theme.colors.primary.light5};
       border-bottom: none;
+      margin: 0;
       &:after {
         opacity: 1;
         width: 100%;
       }
-    }
-    &:hover,
-    &:focus {
-      margin: 0;
     }
   }
 

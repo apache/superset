@@ -17,7 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { mount, ReactWrapper } from 'enzyme';
+import { ReactWrapper } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import { act } from 'react-dom/test-utils';
 
 import MetricsControl from 'src/explore/components/controls/MetricsControl';

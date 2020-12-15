@@ -238,7 +238,7 @@ def pivot(  # pylint: disable=too-many-arguments
            Default to 'All'.
     :param flatten_columns: Convert column names to strings
     :return: A pivot table
-    :raises ChartDataValidationError: If the request in incorrect
+    :raises QueryObjectValidationError: If the request in incorrect
     """
     if not index:
         raise QueryObjectValidationError(
@@ -293,7 +293,7 @@ def aggregate(
     :param groupby: columns to aggregate
     :param aggregates: A mapping from metric column to the function used to
            aggregate values.
-    :raises ChartDataValidationError: If the request in incorrect
+    :raises QueryObjectValidationError: If the request in incorrect
     """
     aggregates = aggregates or {}
     aggregate_funcs = _get_aggregate_funcs(df, aggregates)
@@ -313,7 +313,7 @@ def sort(df: DataFrame, columns: Dict[str, bool]) -> DataFrame:
     :param columns: columns by by which to sort. The key specifies the column name,
            value specifies if sorting in ascending order.
     :return: Sorted DataFrame
-    :raises ChartDataValidationError: If the request in incorrect
+    :raises QueryObjectValidationError: If the request in incorrect
     """
     return df.sort_values(by=list(columns.keys()), ascending=list(columns.values()))
 
@@ -348,7 +348,7 @@ def rolling(  # pylint: disable=too-many-arguments
     :param min_periods: The minimum amount of periods required for a row to be included
                         in the result set.
     :return: DataFrame with the rolling columns
-    :raises ChartDataValidationError: If the request in incorrect
+    :raises QueryObjectValidationError: If the request in incorrect
     """
     rolling_type_options = rolling_type_options or {}
     df_rolling = df[columns.keys()]
@@ -408,7 +408,7 @@ def select(
                    For instance, `{'y': 'y2'}` will rename the column `y` to
                    `y2`.
     :return: Subset of columns in original DataFrame
-    :raises ChartDataValidationError: If the request in incorrect
+    :raises QueryObjectValidationError: If the request in incorrect
     """
     df_select = df.copy(deep=False)
     if columns:
@@ -433,7 +433,7 @@ def diff(df: DataFrame, columns: Dict[str, str], periods: int = 1,) -> DataFrame
            unchanged.
     :param periods: periods to shift for calculating difference.
     :return: DataFrame with diffed columns
-    :raises ChartDataValidationError: If the request in incorrect
+    :raises QueryObjectValidationError: If the request in incorrect
     """
     df_diff = df[columns.keys()]
     df_diff = df_diff.diff(periods=periods)
