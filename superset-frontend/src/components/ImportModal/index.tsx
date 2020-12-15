@@ -20,7 +20,7 @@ import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 
 import Icon from 'src//components/Icon';
-import Modal from 'src/common/components/Modal';
+import StyledModal from 'src/common/components/Modal';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
 
@@ -29,7 +29,12 @@ export const StyledIcon = styled(Icon)`
 `;
 
 const StyledInputContainer = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-top: ${({ theme }) => theme.gridUnit * 2}px;
+
+  & > div {
+    margin: ${({ theme }) => theme.gridUnit}px 0;
+  }
 
   &.extra-container {
     padding-top: 8px;
@@ -100,7 +105,6 @@ const StyledInputContainer = styled.div`
 export interface ImportModelsModalProps {
   resourceName: ImportResourceName;
   resourceLabel: string;
-  icon: React.ReactNode;
   passwordsNeededMessage: string;
   confirmOverwriteMessage: string;
   addDangerToast: (msg: string) => void;
@@ -115,7 +119,6 @@ export interface ImportModelsModalProps {
 const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   resourceName,
   resourceLabel,
-  icon,
   passwordsNeededMessage,
   confirmOverwriteMessage,
   addDangerToast,
@@ -167,6 +170,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   const hide = () => {
     setIsHidden(true);
     onHide();
+    clearModal();
   };
 
   const onUpload = () => {
@@ -256,7 +260,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   }
 
   return (
-    <Modal
+    <StyledModal
       name="model"
       className="import-model-modal"
       disablePrimaryButton={
@@ -268,12 +272,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       primaryButtonType={needsOverwriteConfirm ? 'danger' : 'primary'}
       width="750px"
       show={show}
-      title={
-        <h4>
-          {icon}
-          {t('Import %s', resourceLabel)}
-        </h4>
-      }
+      title={<h4>{t('Import %s', resourceLabel)}</h4>}
     >
       <StyledInputContainer>
         <div className="control-label">
@@ -294,7 +293,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       </StyledInputContainer>
       {renderPasswordFields()}
       {renderOverwriteConfirmation()}
-    </Modal>
+    </StyledModal>
   );
 };
 
