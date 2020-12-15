@@ -122,7 +122,7 @@ Improvements to cache handling #74 ([Roadmap](https://github.com/apache-superset
 <img src="media/10966.gif" style="max-width:50%; border:1px solid grey;">
 
 - feat: implement cache invalidation api  (#[10761](https://github.com/apache/incubator-superset/pull/10761))
-- feature: Adding extra_filters to warm_up_cache  (#[10675](https://github.com/apache/incubator-superset/pull/10675))
+- feat: Adding extra_filters to warm_up_cache  (#[10675](https://github.com/apache/incubator-superset/pull/10675))
 
 
 [SIP-34] Proposal to establish a new design direction, system, and process for Superset ([SIP](https://github.com/apache/incubator-superset/issues/8976))
@@ -147,7 +147,7 @@ Other features
 
 
 **SQL LAB**
-- Feat: Adding table comment and columns comment for SQLLab  (#[10844](https://github.com/apache/incubator-superset/pull/10844))
+- feat: Adding table comment and columns comment for SQLLab  (#[10844](https://github.com/apache/incubator-superset/pull/10844))
 
 
 **SYSTEM, OTHER**
