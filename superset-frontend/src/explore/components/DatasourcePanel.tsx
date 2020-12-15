@@ -60,6 +60,9 @@ const DatasourceContainer = styled.div`
   }
   .ant-collapse-item {
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
+      .anticon.anticon-right.ant-collapse-arrow > svg {
+        transform: rotate(90deg) !important;
+      }
   }
   .ant-collapse-item.ant-collapse-item-active {
     .anticon.anticon-right.ant-collapse-arrow > svg {
