@@ -96,6 +96,7 @@ jobs:
           path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots
   Cypress:
     if: ${{ always() }}
+    name: Cypress (chrome)
     runs-on: ubuntu-18.04
     needs: cypress-matrix
     steps:
