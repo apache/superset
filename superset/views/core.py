@@ -1752,13 +1752,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @expose("/dashboard/<dashboard_id_or_slug>/")
-    @event_logger.log_manually
+    @event_logger.log_this_with_extra_payload
     def dashboard(  # pylint: disable=too-many-locals
         self,
         dashboard_id_or_slug: str,
-        # this parameter is added by `log_manually`,
+        # this parameter is added by `log_this_with_manual_updates`,
         # set a default value to appease pylint
-        update_log_payload: Callable[..., None] = lambda **kwargs: None,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
     ) -> FlaskResponse:
         """Server side rendering for a dashboard"""
         session = db.session()
@@ -1807,7 +1807,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             request.args.get(utils.ReservedUrlParameters.EDIT_MODE.value) == "true"
         )
 
-        update_log_payload(
+        add_extra_log_payload(
             dashboard_id=dash.id,
             dashboard_version="v2",
             dash_edit_perm=dash_edit_perm,
