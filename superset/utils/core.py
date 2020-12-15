@@ -1437,8 +1437,8 @@ def datetime_eval(datetime_expression: Optional[str] = None) -> Optional[datetim
     if datetime_expression:
         try:
             return datetime_parser().parseString(datetime_expression)[0].eval()
-        except ParseException as e:
-            raise ValueError(e)
+        except ParseException as error:
+            raise ValueError(error)
     return None
 
 

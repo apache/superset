@@ -32,6 +32,7 @@ export {
   Avatar,
   Button,
   Card,
+  Col,
   DatePicker,
   Divider,
   Dropdown,
@@ -40,16 +41,13 @@ export {
   Modal,
   Popover,
   Radio,
+  Row,
   Select,
   Skeleton,
   Switch,
   Tabs,
   Tooltip,
-  Col,
-  Divider,
   InputNumber,
-  Radio,
-  Row,
 } from 'antd';
 
 export { default as Collapse } from './Collapse';

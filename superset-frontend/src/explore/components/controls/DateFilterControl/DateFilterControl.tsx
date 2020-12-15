@@ -30,7 +30,7 @@ import {
   formatTimeRange,
   SEPARATOR,
 } from 'src/explore/dateFilterUtils';
-import getClientErrorObject from 'src/utils/getClientErrorObject';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Label from 'src/components/Label';
 import Modal from 'src/common/components/Modal';

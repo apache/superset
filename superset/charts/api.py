@@ -99,6 +99,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "bulk_delete",  # not using RouteMethod since locally defined
         "data",
         "favorite_status",
+        "time_range",
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -902,9 +903,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_500(message=str(exc))
 
     @expose("/time_range/", methods=["GET"])
+    @protect()
     @safe
     @rison(get_time_range_schema)
-    def get_time_range(self, **kwargs: Any) -> Response:
+    def time_range(self, **kwargs: Any) -> Response:
         time_range = kwargs["rison"]
         try:
             since, until = get_since_until(time_range)
@@ -914,5 +916,5 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 "timeRange": time_range,
             }
             return self.response(200, result=result)
-        except ValueError as e:
-            return self.response_400(f"Unexpected timeRange: {e}")
+        except ValueError as error:
+            return self.response_400(f"Unexpected time range: {error}")
