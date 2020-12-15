@@ -24,9 +24,12 @@ import configureStore from 'redux-mock-store';
 import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
 
 describe('SupersetResourceSelect', () => {
+  const NOOP = () => {};
   it('is a valid element', () => {
     // @ts-ignore
-    expect(React.isValidElement(<SupersetResourceSelect />)).toBe(true);
+    expect(
+      React.isValidElement(<SupersetResourceSelect onError={NOOP} />),
+    ).toBe(true);
   });
   it('take in props', () => {
     const mockStore = configureStore([thunk]);
@@ -36,6 +39,7 @@ describe('SupersetResourceSelect', () => {
       searchColumn: 'table_name',
       transformItem: jest.fn(),
       isMulti: false,
+      onError: NOOP,
     };
     const wrapper = mount(
       <Provider store={store}>

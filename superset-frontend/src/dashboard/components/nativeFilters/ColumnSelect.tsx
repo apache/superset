@@ -22,7 +22,7 @@ import { SupersetClient, t } from '@superset-ui/core';
 import { useChangeEffect } from 'src/common/hooks/useChangeEffect';
 import { AsyncSelect } from 'src/components/Select';
 import { useToasts } from 'src/messageToasts/enhancers/withToasts';
-import getClientErrorObject from 'src/utils/getClientErrorObject';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { NativeFiltersForm } from './types';
 
 type ColumnSelectValue = {

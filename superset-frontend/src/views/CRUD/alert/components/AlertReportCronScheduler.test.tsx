@@ -49,6 +49,7 @@ describe('AlertReportCronScheduler', () => {
     const changeValue = '1,7 * * * *';
 
     wrapper.find(CronPicker).props().setValue(changeValue);
+    // @ts-ignore
     expect(wrapper.find(Input).state().value).toEqual(changeValue);
   });
 

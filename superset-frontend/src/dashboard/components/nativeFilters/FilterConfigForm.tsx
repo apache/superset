@@ -16,12 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { FormInstance } from 'antd/lib/form';
 import { styled, t } from '@superset-ui/core';
-import SupersetResourceSelect, {
-  Value,
-} from 'src/components/SupersetResourceSelect';
+import { FormInstance } from 'antd/lib/form';
+import React, { useCallback, useState } from 'react';
 import {
   Button,
   Checkbox,
@@ -31,9 +28,14 @@ import {
   Typography,
 } from 'src/common/components';
 import { Select } from 'src/components/Select/SupersetStyledSelect';
-import { Filter, NativeFiltersForm, Scope, Scoping } from './types';
-import ScopingTree from './ScopingTree';
+import SupersetResourceSelect, {
+  Value,
+} from 'src/components/SupersetResourceSelect';
+import { addDangerToast } from 'src/messageToasts/actions';
+import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ColumnSelect } from './ColumnSelect';
+import ScopingTree from './ScopingTree';
+import { Filter, NativeFiltersForm, Scoping } from './types';
 
 type DatasetSelectValue = {
   value: number;
@@ -85,10 +87,24 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
     Scoping.all,
   );
   const [dataset, setDataset] = useState<Value<number> | undefined>();
-  const [, setFilterScope] = useState<Scope>({
-    rootPath: [],
-    excluded: [],
-  }); // TODO: when connect to store read from there
+
+  const onDatasetSelectError = useCallback(
+    ({ error, message }: ClientErrorObject) => {
+      let errorText = message || error || t('An error has occurred');
+      if (message === 'Forbidden') {
+        errorText = t('You do not have permission to edit this dashboard');
+      }
+      addDangerToast(errorText);
+    },
+    [],
+  );
+
+  const setFilterScope = useCallback(
+    value => {
+      form.setFields([{ name: ['filters', filterId, 'scope'], value }]);
+    },
+    [form, filterId],
+  );
 
   if (removed) {
     return (
@@ -132,6 +148,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
           transformItem={datasetToSelectOption}
           isMulti={false}
           onChange={setDataset}
+          onError={onDatasetSelectError}
         />
       </Form.Item>
       <Form.Item

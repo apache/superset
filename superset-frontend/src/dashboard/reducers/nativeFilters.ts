@@ -30,9 +30,6 @@ import {
 export function getInitialFilterState(id: string): FilterState {
   return {
     id,
-    optionsStatus: 'loading',
-    isDirty: false, // TODO set this to true when appropriate
-    options: null,
     extraFormData: {},
   };
 }

@@ -17,7 +17,6 @@
  * under the License.
  */
 import { ExtraFormData, QueryObjectFilterClause } from '@superset-ui/core';
-import componentTypes from 'src/dashboard/util/componentTypes';
 
 export enum Scoping {
   all,
@@ -26,7 +25,7 @@ export enum Scoping {
 
 interface NativeFiltersFormItem {
   scoping: Scoping;
-  filterScope: Scope;
+  scope: Scope;
   name: string;
   dataset: {
     value: number;
@@ -102,14 +101,7 @@ export type SelectedValues = string[] | null;
 /** Current state of the filter, stored in `nativeFilters` in redux */
 export type FilterState = {
   id: string; // ties this filter state to the config object
-  optionsStatus: 'loading' | 'success' | 'fail';
-  options: string[] | null;
   extraFormData?: ExtraFormData;
-  /**
-   * If the config changes, the current options/values may no longer be valid.
-   * isDirty indicates that state.
-   */
-  isDirty: boolean;
 };
 
 export type AllFilterState = {
@@ -119,47 +111,6 @@ export type AllFilterState = {
   id: string;
   selectedValues: SelectedValues;
   filterClause?: QueryObjectFilterClause;
-};
-
-/** Chart state of redux */
-export type Chart = {
-  id: number;
-  slice_id: 2107;
-  formData: {
-    viz_type: string;
-  };
-};
-
-/** Root state of redux */
-export type RootState = {
-  charts: { [key: string]: Chart };
-  dashboardLayout: { present: { [key: string]: LayoutItem } };
-  dashboardFilters: {};
-};
-
-/** State of dashboardLayout in redux */
-export type Layout = { [key: string]: LayoutItem };
-
-/** State of charts in redux */
-export type Charts = { [key: number]: Chart };
-
-type ComponentTypesKeys = keyof typeof componentTypes;
-export type ComponentType = typeof componentTypes[ComponentTypesKeys];
-
-/** State of dashboardLayout item in redux */
-export type LayoutItem = {
-  children: string[];
-  parents: string[];
-  type: ComponentType;
-  id: string;
-  meta: {
-    chartId: number;
-    height: number;
-    sliceName?: string;
-    text?: string;
-    uuid: string;
-    width: number;
-  };
 };
 
 /** UI Ant tree type */

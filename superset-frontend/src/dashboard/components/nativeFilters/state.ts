@@ -21,14 +21,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setExtraFormData } from 'src/dashboard/actions/nativeFilters';
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { ExtraFormData, t } from '@superset-ui/core';
+import { Charts, Layout, RootState } from 'src/dashboard/types';
 import {
-  Charts,
   Filter,
   FilterConfiguration,
   FilterState,
-  Layout,
   NativeFiltersState,
-  RootState,
   TreeItem,
 } from './types';
 import { DASHBOARD_ROOT_ID } from '../../util/constants';
@@ -101,7 +99,7 @@ export function useCascadingFilters(id: string) {
     const { nativeFilters }: { nativeFilters: NativeFiltersState } = state;
     const { filters, filtersState } = nativeFilters;
     const filter = filters[id];
-    const { cascadeParentIds = [] } = filter;
+    const cascadeParentIds = filter?.cascadeParentIds ?? [];
     let cascadedFilters = {};
     cascadeParentIds.forEach(parentId => {
       const parentState = filtersState[parentId] || {};
