@@ -93,6 +93,340 @@
       }
     },
     "schemas": {
+      "AnnotationLayer": {
+        "properties": {
+          "annotationType": {
+            "description": "Type of annotation layer",
+            "enum": [
+              "FORMULA",
+              "INTERVAL",
+              "EVENT",
+              "TIME_SERIES"
+            ],
+            "type": "string"
+          },
+          "color": {
+            "description": "Layer color",
+            "nullable": true,
+            "type": "string"
+          },
+          "descriptionColumns": {
+            "description": "Columns to use as the description. If none are provided, all will be shown.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "hideLine": {
+            "description": "Should line be hidden. Only applies to line annotations",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "intervalEndColumn": {
+            "description": "Column containing end of interval. Only applies to interval layers",
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Name of layer",
+            "type": "string"
+          },
+          "opacity": {
+            "description": "Opacity of layer",
+            "enum": [
+              "",
+              "opacityLow",
+              "opacityMedium",
+              "opacityHigh"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "overrides": {
+            "additionalProperties": {
+              "nullable": true
+            },
+            "description": "which properties should be overridable",
+            "nullable": true,
+            "type": "object"
+          },
+          "show": {
+            "description": "Should the layer be shown",
+            "type": "boolean"
+          },
+          "showMarkers": {
+            "description": "Should markers be shown. Only applies to line annotations.",
+            "type": "boolean"
+          },
+          "sourceType": {
+            "description": "Type of source for annotation data",
+            "enum": [
+              "",
+              "line",
+              "NATIVE",
+              "table"
+            ],
+            "type": "string"
+          },
+          "style": {
+            "description": "Line style. Only applies to time-series annotations",
+            "enum": [
+              "dashed",
+              "dotted",
+              "solid",
+              "longDashed"
+            ],
+            "type": "string"
+          },
+          "timeColumn": {
+            "description": "Column with event date or interval start date",
+            "nullable": true,
+            "type": "string"
+          },
+          "titleColumn": {
+            "description": "Column with title",
+            "nullable": true,
+            "type": "string"
+          },
+          "value": {
+            "description": "For formula annotations, this contains the formula. For other types, this is the primary key of the source object."
+          },
+          "width": {
+            "description": "Width of annotation line",
+            "format": "float",
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "show",
+          "showMarkers",
+          "value"
+        ],
+        "type": "object"
+      },
+      "AnnotationLayerRestApi.get": {
+        "properties": {
+          "descr": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AnnotationLayerRestApi.get_list": {
+        "properties": {
+          "changed_by": {
+            "$ref": "#/components/schemas/Meta4"
+          },
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "changed_on_delta_humanized": {
+            "readOnly": true
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/Meta3"
+          },
+          "created_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "descr": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AnnotationLayerRestApi.post": {
+        "properties": {
+          "descr": {
+            "description": "Give a description for this annotation layer",
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "The annotation layer name",
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AnnotationLayerRestApi.put": {
+        "properties": {
+          "descr": {
+            "description": "Give a description for this annotation layer",
+            "type": "string"
+          },
+          "name": {
+            "description": "The annotation layer name",
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AnnotationRestApi.get": {
+        "properties": {
+          "end_dttm": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "json_metadata": {
+            "nullable": true,
+            "type": "string"
+          },
+          "layer": {
+            "$ref": "#/components/schemas/Meta2"
+          },
+          "long_descr": {
+            "nullable": true,
+            "type": "string"
+          },
+          "short_descr": {
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          },
+          "start_dttm": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer"
+        ],
+        "type": "object"
+      },
+      "AnnotationRestApi.get_list": {
+        "properties": {
+          "changed_by": {
+            "$ref": "#/components/schemas/Meta1"
+          },
+          "changed_on_delta_humanized": {
+            "readOnly": true
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "end_dttm": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "long_descr": {
+            "nullable": true,
+            "type": "string"
+          },
+          "short_descr": {
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          },
+          "start_dttm": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AnnotationRestApi.post": {
+        "properties": {
+          "end_dttm": {
+            "description": "The annotation end date time",
+            "format": "date-time",
+            "type": "string"
+          },
+          "json_metadata": {
+            "description": "JSON metadata",
+            "nullable": true,
+            "type": "string"
+          },
+          "long_descr": {
+            "description": "A long description",
+            "nullable": true,
+            "type": "string"
+          },
+          "short_descr": {
+            "description": "A short description",
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "start_dttm": {
+            "description": "The annotation start date time",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AnnotationRestApi.put": {
+        "properties": {
+          "end_dttm": {
+            "description": "The annotation end date time",
+            "format": "date-time",
+            "type": "string"
+          },
+          "json_metadata": {
+            "description": "JSON metadata",
+            "type": "string"
+          },
+          "long_descr": {
+            "description": "A long description",
+            "type": "string"
+          },
+          "short_descr": {
+            "description": "A short description",
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "start_dttm": {
+            "description": "The annotation start date time",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "CacheInvalidationRequestSchema": {
         "properties": {
           "datasource_uids": {
@@ -233,6 +567,70 @@
             "type": "object"
           }
         },
+        "type": "object"
+      },
+      "ChartDataAsyncResponseSchema": {
+        "properties": {
+          "channel_id": {
+            "description": "Unique session async channel ID",
+            "type": "string"
+          },
+          "job_id": {
+            "description": "Unique async job ID",
+            "type": "string"
+          },
+          "result_url": {
+            "description": "Unique result URL for fetching async query data",
+            "type": "string"
+          },
+          "status": {
+            "description": "Status value for async job",
+            "type": "string"
+          },
+          "user_id": {
+            "description": "Requesting user ID",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChartDataBoxplotOptionsSchema": {
+        "properties": {
+          "groupby": {
+            "items": {
+              "description": "Columns by which to group the query.",
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "metrics": {
+            "description": "Aggregate expressions. Metrics can be passed as both references to datasource metrics (strings), or ad-hoc metricswhich are defined only within the query object. See `ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
+            "items": {},
+            "type": "array"
+          },
+          "percentiles": {
+            "description": "Upper and lower percentiles for percentile whisker type.",
+            "example": [
+              1,
+              99
+            ]
+          },
+          "whisker_type": {
+            "description": "Whisker type. Any numpy function will work.",
+            "enum": [
+              "tukey",
+              "min/max",
+              "percentile"
+            ],
+            "example": "tukey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "whisker_type"
+        ],
         "type": "object"
       },
       "ChartDataColumn": {
@@ -527,6 +925,7 @@
             "description": "Post processing operation type",
             "enum": [
               "aggregate",
+              "boxplot",
               "contribution",
               "cum",
               "geodetic_parse",
@@ -570,6 +969,64 @@
         ],
         "type": "object"
       },
+      "ChartDataProphetOptionsSchema": {
+        "properties": {
+          "confidence_interval": {
+            "description": "Width of predicted confidence interval",
+            "example": 0.8,
+            "format": "float",
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "monthly_seasonality": {
+            "description": "Should monthly seasonality be applied. An integer value will specify Fourier order of seasonality, `None` will automatically detect seasonality.",
+            "example": false
+          },
+          "periods": {
+            "example": 7,
+            "format": "int32",
+            "type": "integer"
+          },
+          "time_grain": {
+            "description": "Time grain used to specify time period increments in prediction. Supports [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
+            "enum": [
+              "PT1S",
+              "PT1M",
+              "PT5M",
+              "PT10M",
+              "PT15M",
+              "PT0.5H",
+              "PT1H",
+              "P1D",
+              "P1W",
+              "P1M",
+              "P0.25Y",
+              "P1Y",
+              "1969-12-28T00:00:00Z/P1W",
+              "1969-12-29T00:00:00Z/P1W",
+              "P1W/1970-01-03T00:00:00Z",
+              "P1W/1970-01-04T00:00:00Z"
+            ],
+            "example": "P1D",
+            "type": "string"
+          },
+          "weekly_seasonality": {
+            "description": "Should weekly seasonality be applied. An integer value will specify Fourier order of seasonality, `None` will automatically detect seasonality.",
+            "example": false
+          },
+          "yearly_seasonality": {
+            "description": "Should yearly seasonality be applied. An integer value will specify Fourier order of seasonality, `None` will automatically detect seasonality.",
+            "example": false
+          }
+        },
+        "required": [
+          "confidence_interval",
+          "periods",
+          "time_grain"
+        ],
+        "type": "object"
+      },
       "ChartDataQueryContextSchema": {
         "properties": {
           "datasource": {
@@ -608,6 +1065,21 @@
       },
       "ChartDataQueryObject": {
         "properties": {
+          "annotation_layers": {
+            "description": "Annotation layers to apply to chart",
+            "items": {
+              "$ref": "#/components/schemas/AnnotationLayer"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "applied_time_extras": {
+            "description": "A mapping of temporal extras that have been applied to the query",
+            "example": {
+              "__time_range": "1 year ago : now"
+            },
+            "type": "object"
+          },
           "columns": {
             "description": "Columns which to select in the query.",
             "items": {
@@ -615,6 +1087,11 @@
             },
             "nullable": true,
             "type": "array"
+          },
+          "druid_time_origin": {
+            "description": "Starting point for time grain counting on legacy Druid datasources. Used to change e.g. Monday/Sunday first-day-of-week. This field is deprecated and should be passed to `extras` as `druid_time_origin`.",
+            "nullable": true,
+            "type": "string"
           },
           "extras": {
             "allOf": [
@@ -730,6 +1207,15 @@
             "description": "Metric used to limit timeseries queries by.",
             "nullable": true
           },
+          "url_params": {
+            "additionalProperties": {
+              "description": "The value of the query parameter",
+              "type": "string"
+            },
+            "description": "Optional query parameters passed to a dashboard or Explore view",
+            "nullable": true,
+            "type": "object"
+          },
           "where": {
             "description": "WHERE clause to be added to queries using AND operator.This field is deprecated and should be passed to `extras`.",
             "type": "string"
@@ -739,6 +1225,24 @@
       },
       "ChartDataResponseResult": {
         "properties": {
+          "annotation_data": {
+            "description": "All requested annotation data",
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "applied_filters": {
+            "description": "A list with applied filters",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
           "cache_key": {
             "description": "Unique cache key for query object",
             "nullable": true,
@@ -774,6 +1278,13 @@
           "query": {
             "description": "The executed query statement",
             "type": "string"
+          },
+          "rejected_filters": {
+            "description": "A list with rejected filters",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
           },
           "rowcount": {
             "description": "Amount of rows in result set",
@@ -848,6 +1359,7 @@
               "nanmax",
               "nanmean",
               "nanmedian",
+              "nanpercentile",
               "min",
               "percentile",
               "prod",
@@ -965,6 +1477,20 @@
         ],
         "type": "object"
       },
+      "ChartFavStarResponseResult": {
+        "properties": {
+          "id": {
+            "description": "The Chart id",
+            "format": "int32",
+            "type": "integer"
+          },
+          "value": {
+            "description": "The FaveStar value",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
       "ChartGetDatasourceObjectDataResponse": {
         "properties": {
           "datasource_id": {
@@ -1013,14 +1539,14 @@
             "type": "integer"
           },
           "dashboards": {
-            "$ref": "#/components/schemas/Meta5"
+            "$ref": "#/components/schemas/Meta10"
           },
           "description": {
             "nullable": true,
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta4"
+            "$ref": "#/components/schemas/Meta9"
           },
           "params": {
             "nullable": true,
@@ -1047,7 +1573,7 @@
             "type": "integer"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/Meta3"
+            "$ref": "#/components/schemas/Meta6"
           },
           "changed_by_name": {
             "readOnly": true
@@ -1062,7 +1588,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta2"
+            "$ref": "#/components/schemas/Meta5"
           },
           "datasource_id": {
             "format": "int32",
@@ -1084,12 +1610,18 @@
             "nullable": true,
             "type": "string"
           },
+          "description_markeddown": {
+            "readOnly": true
+          },
+          "edit_url": {
+            "readOnly": true
+          },
           "id": {
             "format": "int32",
             "type": "integer"
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta"
+            "$ref": "#/components/schemas/Meta8"
           },
           "params": {
             "nullable": true,
@@ -1101,7 +1633,7 @@
             "type": "string"
           },
           "table": {
-            "$ref": "#/components/schemas/Meta1"
+            "$ref": "#/components/schemas/Meta7"
           },
           "thumbnail_url": {
             "readOnly": true
@@ -1272,7 +1804,7 @@
       "CssTemplateRestApi.get": {
         "properties": {
           "created_by": {
-            "$ref": "#/components/schemas/Meta7"
+            "$ref": "#/components/schemas/Meta13"
           },
           "css": {
             "nullable": true,
@@ -1292,11 +1824,14 @@
       },
       "CssTemplateRestApi.get_list": {
         "properties": {
+          "changed_by": {
+            "$ref": "#/components/schemas/Meta12"
+          },
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta6"
+            "$ref": "#/components/schemas/Meta11"
           },
           "created_on": {
             "format": "date-time",
@@ -1350,7 +1885,7 @@
       "DashboardRestApi.get": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/Meta11"
+            "$ref": "#/components/schemas/Meta18"
           },
           "changed_by_name": {
             "readOnly": true
@@ -1384,7 +1919,7 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta12"
+            "$ref": "#/components/schemas/Meta17"
           },
           "position_json": {
             "nullable": true,
@@ -1414,7 +1949,7 @@
       "DashboardRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/Meta8"
+            "$ref": "#/components/schemas/Meta16"
           },
           "changed_by_name": {
             "readOnly": true
@@ -1429,7 +1964,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta10"
+            "$ref": "#/components/schemas/Meta14"
           },
           "css": {
             "nullable": true,
@@ -1449,7 +1984,7 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta9"
+            "$ref": "#/components/schemas/Meta15"
           },
           "position_json": {
             "nullable": true,
@@ -1763,7 +2298,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta13"
+            "$ref": "#/components/schemas/Meta19"
           },
           "database_name": {
             "maxLength": 250,
@@ -1994,6 +2529,10 @@
             "minLength": 1,
             "type": "string"
           },
+          "uuid": {
+            "nullable": true,
+            "type": "string"
+          },
           "verbose_name": {
             "nullable": true,
             "type": "string"
@@ -2131,10 +2670,10 @@
             "type": "integer"
           },
           "columns": {
-            "$ref": "#/components/schemas/Meta19"
+            "$ref": "#/components/schemas/Meta25"
           },
           "database": {
-            "$ref": "#/components/schemas/Meta20"
+            "$ref": "#/components/schemas/Meta26"
           },
           "datasource_type": {
             "readOnly": true
@@ -2144,6 +2683,10 @@
             "type": "string"
           },
           "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "extra": {
             "nullable": true,
             "type": "string"
           },
@@ -2170,7 +2713,7 @@
             "type": "string"
           },
           "metrics": {
-            "$ref": "#/components/schemas/Meta18"
+            "$ref": "#/components/schemas/Meta23"
           },
           "offset": {
             "format": "int32",
@@ -2178,7 +2721,7 @@
             "type": "integer"
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta17"
+            "$ref": "#/components/schemas/Meta24"
           },
           "schema": {
             "maxLength": 255,
@@ -2212,7 +2755,7 @@
       "DatasetRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/Meta14"
+            "$ref": "#/components/schemas/Meta21"
           },
           "changed_by_name": {
             "readOnly": true
@@ -2227,7 +2770,7 @@
             "readOnly": true
           },
           "database": {
-            "$ref": "#/components/schemas/Meta16"
+            "$ref": "#/components/schemas/Meta22"
           },
           "default_endpoint": {
             "nullable": true,
@@ -2235,6 +2778,10 @@
           },
           "explore_url": {
             "readOnly": true
+          },
+          "extra": {
+            "nullable": true,
+            "type": "string"
           },
           "id": {
             "format": "int32",
@@ -2244,7 +2791,7 @@
             "readOnly": true
           },
           "owners": {
-            "$ref": "#/components/schemas/Meta15"
+            "$ref": "#/components/schemas/Meta20"
           },
           "schema": {
             "maxLength": 255,
@@ -2309,11 +2856,19 @@
             },
             "type": "array"
           },
+          "database_id": {
+            "format": "int32",
+            "type": "integer"
+          },
           "default_endpoint": {
             "nullable": true,
             "type": "string"
           },
           "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "extra": {
             "nullable": true,
             "type": "string"
           },
@@ -2430,6 +2985,18 @@
         },
         "type": "object"
       },
+      "GetFavStarIdsSchema": {
+        "properties": {
+          "result": {
+            "description": "A list of results for each corresponding chart in the request",
+            "items": {
+              "$ref": "#/components/schemas/ChartFavStarResponseResult"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "LogRestApi.get": {
         "properties": {
           "action": {
@@ -2467,7 +3034,7 @@
             "type": "integer"
           },
           "user": {
-            "$ref": "#/components/schemas/Meta29"
+            "$ref": "#/components/schemas/Meta35"
           },
           "user_id": {
             "format": "int32",
@@ -2514,7 +3081,7 @@
             "type": "integer"
           },
           "user": {
-            "$ref": "#/components/schemas/Meta28"
+            "$ref": "#/components/schemas/Meta34"
           },
           "user_id": {
             "format": "int32",
@@ -2564,40 +3131,44 @@
           "id": {
             "format": "int32",
             "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
           }
         },
         "required": [
-          "first_name",
-          "last_name",
-          "username"
+          "first_name"
         ],
         "type": "object"
       },
       "Meta1": {
         "properties": {
-          "default_endpoint": {
-            "nullable": true,
+          "first_name": {
+            "maxLength": 64,
             "type": "string"
           },
-          "table_name": {
-            "maxLength": 250,
-            "type": "string"
+          "id": {
+            "format": "int32",
+            "type": "integer"
           }
         },
         "required": [
-          "table_name"
+          "first_name"
         ],
         "type": "object"
       },
       "Meta10": {
+        "properties": {
+          "dashboard_title": {
+            "maxLength": 500,
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "Meta11": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -2618,20 +3189,31 @@
         ],
         "type": "object"
       },
-      "Meta11": {
-        "properties": {
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "username"
-        ],
-        "type": "object"
-      },
       "Meta12": {
         "properties": {
+          "active": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "created_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "fail_login_count": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
           "first_name": {
             "maxLength": 64,
             "type": "string"
@@ -2640,8 +3222,23 @@
             "format": "int32",
             "type": "integer"
           },
+          "last_login": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
           "last_name": {
             "maxLength": 64,
+            "type": "string"
+          },
+          "login_count": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "password": {
+            "maxLength": 256,
+            "nullable": true,
             "type": "string"
           },
           "username": {
@@ -2650,6 +3247,7 @@
           }
         },
         "required": [
+          "email",
           "first_name",
           "last_name",
           "username"
@@ -2661,6 +3259,10 @@
           "first_name": {
             "maxLength": 64,
             "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
           },
           "last_name": {
             "maxLength": 64,
@@ -2679,14 +3281,18 @@
             "maxLength": 64,
             "type": "string"
           },
-          "username": {
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
             "maxLength": 64,
             "type": "string"
           }
         },
         "required": [
           "first_name",
-          "username"
+          "last_name"
         ],
         "type": "object"
       },
@@ -2718,17 +3324,27 @@
       },
       "Meta16": {
         "properties": {
-          "database_name": {
-            "maxLength": 250,
+          "first_name": {
+            "maxLength": 64,
             "type": "string"
           },
           "id": {
             "format": "int32",
             "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
           }
         },
         "required": [
-          "database_name"
+          "first_name",
+          "last_name",
+          "username"
         ],
         "type": "object"
       },
@@ -2759,6 +3375,108 @@
         "type": "object"
       },
       "Meta18": {
+        "properties": {
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "username"
+        ],
+        "type": "object"
+      },
+      "Meta19": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "Meta2": {
+        "properties": {
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Meta20": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "Meta21": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "Meta22": {
+        "properties": {
+          "database_name": {
+            "maxLength": 250,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "database_name"
+        ],
+        "type": "object"
+      },
+      "Meta23": {
         "properties": {
           "changed_on": {
             "format": "date-time",
@@ -2799,6 +3517,11 @@
             "nullable": true,
             "type": "string"
           },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "verbose_name": {
             "maxLength": 1024,
             "nullable": true,
@@ -2815,7 +3538,33 @@
         ],
         "type": "object"
       },
-      "Meta19": {
+      "Meta24": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "Meta25": {
         "properties": {
           "changed_on": {
             "format": "date-time",
@@ -2869,6 +3618,11 @@
             "nullable": true,
             "type": "string"
           },
+          "uuid": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "verbose_name": {
             "maxLength": 1024,
             "nullable": true,
@@ -2880,131 +3634,19 @@
         ],
         "type": "object"
       },
-      "Meta2": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta20": {
-        "properties": {
-          "database_name": {
-            "maxLength": 250,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "database_name"
-        ],
-        "type": "object"
-      },
-      "Meta21": {
-        "properties": {
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "username"
-        ],
-        "type": "object"
-      },
-      "Meta22": {
-        "properties": {
-          "database_name": {
-            "maxLength": 250,
-            "type": "string"
-          }
-        },
-        "required": [
-          "database_name"
-        ],
-        "type": "object"
-      },
-      "Meta23": {
-        "properties": {
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "type": "object"
-      },
-      "Meta24": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta25": {
-        "properties": {
-          "database_name": {
-            "maxLength": 250,
-            "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "database_name"
-        ],
-        "type": "object"
-      },
       "Meta26": {
         "properties": {
-          "first_name": {
-            "maxLength": 64,
+          "database_name": {
+            "maxLength": 250,
             "type": "string"
           },
           "id": {
             "format": "int32",
             "type": "integer"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
           }
         },
         "required": [
-          "first_name",
-          "last_name"
+          "database_name"
         ],
         "type": "object"
       },
@@ -3013,10 +3655,6 @@
           "database_name": {
             "maxLength": 250,
             "type": "string"
-          },
-          "id": {
-            "format": "int32",
-            "type": "integer"
           }
         },
         "required": [
@@ -3025,47 +3663,6 @@
         "type": "object"
       },
       "Meta28": {
-        "properties": {
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "username"
-        ],
-        "type": "object"
-      },
-      "Meta29": {
-        "properties": {
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "username"
-        ],
-        "type": "object"
-      },
-      "Meta3": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "Meta4": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -3091,13 +3688,8 @@
         ],
         "type": "object"
       },
-      "Meta5": {
+      "Meta29": {
         "properties": {
-          "dashboard_title": {
-            "maxLength": 500,
-            "nullable": true,
-            "type": "string"
-          },
           "id": {
             "format": "int32",
             "type": "integer"
@@ -3105,7 +3697,24 @@
         },
         "type": "object"
       },
-      "Meta6": {
+      "Meta3": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "Meta30": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -3126,7 +3735,23 @@
         ],
         "type": "object"
       },
-      "Meta7": {
+      "Meta31": {
+        "properties": {
+          "database_name": {
+            "maxLength": 250,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "database_name"
+        ],
+        "type": "object"
+      },
+      "Meta32": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -3144,6 +3769,117 @@
         "required": [
           "first_name",
           "last_name"
+        ],
+        "type": "object"
+      },
+      "Meta33": {
+        "properties": {
+          "database_name": {
+            "maxLength": 250,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "database_name"
+        ],
+        "type": "object"
+      },
+      "Meta34": {
+        "properties": {
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "username"
+        ],
+        "type": "object"
+      },
+      "Meta35": {
+        "properties": {
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "username"
+        ],
+        "type": "object"
+      },
+      "Meta4": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "Meta5": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "Meta6": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "Meta7": {
+        "properties": {
+          "default_endpoint": {
+            "nullable": true,
+            "type": "string"
+          },
+          "table_name": {
+            "maxLength": 250,
+            "type": "string"
+          }
+        },
+        "required": [
+          "table_name"
         ],
         "type": "object"
       },
@@ -3211,7 +3947,7 @@
             "type": "string"
           },
           "database": {
-            "$ref": "#/components/schemas/Meta23"
+            "$ref": "#/components/schemas/Meta29"
           },
           "end_result_backend_time": {
             "nullable": true,
@@ -3228,6 +3964,10 @@
           "executed_sql": {
             "nullable": true,
             "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
           },
           "limit": {
             "format": "int32",
@@ -3316,12 +4056,42 @@
       },
       "QueryRestApi.get_list": {
         "properties": {
+          "changed_on": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
           "database": {
-            "$ref": "#/components/schemas/Meta22"
+            "$ref": "#/components/schemas/Meta27"
           },
           "end_time": {
             "nullable": true,
             "type": "number"
+          },
+          "executed_sql": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "rows": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "schema": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "sql": {
+            "nullable": true,
+            "type": "string"
+          },
+          "sql_tables": {
+            "readOnly": true
           },
           "start_time": {
             "nullable": true,
@@ -3332,8 +4102,22 @@
             "nullable": true,
             "type": "string"
           },
+          "tab_name": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "tmp_table_name": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "tracking_url": {
+            "nullable": true,
+            "type": "string"
+          },
           "user": {
-            "$ref": "#/components/schemas/Meta21"
+            "$ref": "#/components/schemas/Meta28"
           }
         },
         "required": [
@@ -3392,10 +4176,10 @@
       "SavedQueryRestApi.get": {
         "properties": {
           "created_by": {
-            "$ref": "#/components/schemas/Meta26"
+            "$ref": "#/components/schemas/Meta32"
           },
           "database": {
-            "$ref": "#/components/schemas/Meta27"
+            "$ref": "#/components/schemas/Meta33"
           },
           "description": {
             "nullable": true,
@@ -3431,7 +4215,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/Meta24"
+            "$ref": "#/components/schemas/Meta30"
           },
           "created_on": {
             "format": "date-time",
@@ -3439,7 +4223,7 @@
             "type": "string"
           },
           "database": {
-            "$ref": "#/components/schemas/Meta25"
+            "$ref": "#/components/schemas/Meta31"
           },
           "db_id": {
             "format": "int32",
@@ -3458,6 +4242,14 @@
             "maxLength": 256,
             "nullable": true,
             "type": "string"
+          },
+          "last_run_delta_humanized": {
+            "readOnly": true
+          },
+          "rows": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
           },
           "schema": {
             "maxLength": 128,
@@ -3713,6 +4505,12 @@
         },
         "type": "array"
       },
+      "get_fav_star_ids_schema": {
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
       "get_info_schema": {
         "properties": {
           "add_columns": {
@@ -3924,6 +4722,1072 @@
   },
   "openapi": "3.0.2",
   "paths": {
+    "/annotation_layer/": {
+      "delete": {
+        "description": "Deletes multiple annotation layers in a bulk operation.",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_delete_ids_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "CSS templates bulk delete"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Annotation Layers"
+        ]
+      },
+      "get": {
+        "description": "Get a list of Annotation layers, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "ids": {
+                      "description": "A list of item ids, useful when you don't know the column id",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "list_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "list_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "List Items",
+                      "type": "string"
+                    },
+                    "order_columns": {
+                      "description": "A list of allowed columns to sort",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Annotation Layers"
+        ]
+      },
+      "post": {
+        "description": "Create an Annotation layer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnnotationLayerRestApi.post"
+              }
+            }
+          },
+          "description": "Annotation Layer schema",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/AnnotationLayerRestApi.post"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Annotation added"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Annotation Layers"
+        ]
+      }
+    },
+    "/annotation_layer/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Annotation Layers"
+        ]
+      }
+    },
+    "/annotation_layer/related/{column_name}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "column_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_related_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelatedResponseSchema"
+                }
+              }
+            },
+            "description": "Related column data"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Annotation Layers"
+        ]
+      }
+    },
+    "/annotation_layer/{pk}": {
+      "delete": {
+        "description": "Delete Annotation layer",
+        "parameters": [
+          {
+            "description": "The annotation layer pk for this annotation",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Annotation Layers"
+        ]
+      },
+      "get": {
+        "description": "Get an Annotation layer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_item_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "id": {
+                      "description": "The item id",
+                      "type": "string"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/AnnotationLayerRestApi.get"
+                    },
+                    "show_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "show_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "Show Item Details",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Annotation Layers"
+        ]
+      },
+      "put": {
+        "description": "Update an Annotation layer",
+        "parameters": [
+          {
+            "description": "The annotation layer pk for this annotation",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnnotationLayerRestApi.put"
+              }
+            }
+          },
+          "description": "Annotation schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/AnnotationLayerRestApi.put"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Annotation changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Annotation Layers"
+        ]
+      }
+    },
+    "/annotation_layer/{pk}/annotation/": {
+      "delete": {
+        "description": "Deletes multiple annotation in a bulk operation.",
+        "parameters": [
+          {
+            "description": "The annotation layer pk for this annotation",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_delete_ids_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Annotations bulk delete"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Annotation Layers"
+        ]
+      },
+      "get": {
+        "description": "Get a list of Annotation layers, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
+        "parameters": [
+          {
+            "description": "The annotation layer id for this annotation",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "ids": {
+                      "description": "A list of annotation ids",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/AnnotationRestApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Annotations"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Annotation Layers"
+        ]
+      },
+      "post": {
+        "description": "Create an Annotation layer",
+        "parameters": [
+          {
+            "description": "The annotation layer pk for this annotation",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnnotationRestApi.post"
+              }
+            }
+          },
+          "description": "Annotation schema",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/AnnotationRestApi.post"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Annotation added"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Annotation Layers"
+        ]
+      }
+    },
+    "/annotation_layer/{pk}/annotation/{annotation_id}": {
+      "delete": {
+        "description": "Delete Annotation layer",
+        "parameters": [
+          {
+            "description": "The annotation layer pk for this annotation",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The annotation pk for this annotation",
+            "in": "path",
+            "name": "annotation_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Annotation Layers"
+        ]
+      },
+      "get": {
+        "description": "Get an Annotation layer",
+        "parameters": [
+          {
+            "description": "The annotation layer pk for this annotation",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The annotation pk",
+            "in": "path",
+            "name": "annotation_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_item_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "description": "The item id",
+                      "type": "string"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/AnnotationRestApi.get"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Annotation Layers"
+        ]
+      },
+      "put": {
+        "description": "Update an Annotation layer",
+        "parameters": [
+          {
+            "description": "The annotation layer pk for this annotation",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The annotation pk for this annotation",
+            "in": "path",
+            "name": "annotation_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnnotationRestApi.put"
+              }
+            }
+          },
+          "description": "Annotation schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/AnnotationRestApi.put"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Annotation changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Annotation Layers"
+        ]
+      }
+    },
+    "/async_event/": {
+      "get": {
+        "description": "Reads off of the Redis events stream, using the user's JWT token and optional query params for last event received.",
+        "parameters": [
+          {
+            "description": "Last ID received by the client",
+            "in": "query",
+            "name": "last_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "items": {
+                        "properties": {
+                          "channel_id": {
+                            "type": "string"
+                          },
+                          "errors": {
+                            "items": {
+                              "type": "object"
+                            },
+                            "type": "array"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "job_id": {
+                            "type": "string"
+                          },
+                          "result_url": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "user_id": {
+                            "type": "integer"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Async event results"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "AsyncEventsRestApi"
+        ]
+      }
+    },
     "/cachekey/invalidate": {
       "post": {
         "description": "Takes a list of datasources, finds the associated cache records and invalidates them and removes the database records",
@@ -4289,8 +6153,235 @@
             },
             "description": "Query result"
           },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChartDataAsyncResponseSchema"
+                }
+              }
+            },
+            "description": "Async job details"
+          },
           "400": {
             "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Charts"
+        ]
+      }
+    },
+    "/chart/data/{cache_key}": {
+      "get": {
+        "description": "Takes a query context cache key and returns payload data response for the given query.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cache_key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChartDataResponseSchema"
+                }
+              }
+            },
+            "description": "Query result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Charts"
+        ]
+      }
+    },
+    "/chart/export/": {
+      "get": {
+        "description": "Exports multiple charts and downloads them as YAML files",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_export_ids_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "A zip file with chart(s), dataset(s) and database(s) as YAML"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Charts"
+        ]
+      }
+    },
+    "/chart/favorite_status/": {
+      "get": {
+        "description": "Check favorited dashboards for current user",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_fav_star_ids_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetFavStarIdsSchema"
+                }
+              }
+            },
+            "description": "None"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Charts"
+        ]
+      }
+    },
+    "/chart/import/": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "formData": {
+                    "format": "binary",
+                    "type": "string"
+                  },
+                  "overwrite": {
+                    "type": "bool"
+                  },
+                  "passwords": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Chart import result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
           },
           "500": {
             "$ref": "#/components/responses/500"
@@ -5070,6 +7161,63 @@
         ]
       }
     },
+    "/css_template/related/{column_name}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "column_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_related_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelatedResponseSchema"
+                }
+              }
+            },
+            "description": "Related column data"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "CSS Templates"
+        ]
+      }
+    },
     "/css_template/{pk}": {
       "delete": {
         "description": "Delete CSS template",
@@ -5626,6 +7774,119 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
+    "/dashboard/favorite_status/": {
+      "get": {
+        "description": "Check favorited dashboards for current user",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_fav_star_ids_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetFavStarIdsSchema"
+                }
+              }
+            },
+            "description": "None"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
+    "/dashboard/import/": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "formData": {
+                    "format": "binary",
+                    "type": "string"
+                  },
+                  "overwrite": {
+                    "type": "bool"
+                  },
+                  "passwords": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Dashboard import result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
           },
           "422": {
             "$ref": "#/components/responses/422"
@@ -6262,6 +8523,117 @@
         ]
       }
     },
+    "/database/export/": {
+      "get": {
+        "description": "Download database(s) and associated dataset(s) as a zip file",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_export_ids_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "A zip file with database(s) and dataset(s) as YAML"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/database/import/": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "formData": {
+                    "format": "binary",
+                    "type": "string"
+                  },
+                  "overwrite": {
+                    "type": "bool"
+                  },
+                  "passwords": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Database import result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Database"
+        ]
+      }
+    },
     "/database/test_connection": {
       "post": {
         "description": "Tests a database connection",
@@ -6862,6 +9234,65 @@
       }
     },
     "/dataset/": {
+      "delete": {
+        "description": "Deletes multiple Datasets in a bulk operation.",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_delete_ids_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Dataset bulk delete"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Datasets"
+        ]
+      },
       "get": {
         "description": "Get a list of models",
         "parameters": [
@@ -7175,10 +9606,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "type": "integer"
-                  },
-                  "type": "array"
+                  "$ref": "#/components/schemas/get_export_ids_schema"
                 }
               }
             },
@@ -7205,6 +9633,69 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Datasets"
+        ]
+      }
+    },
+    "/dataset/import/": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "formData": {
+                    "format": "binary",
+                    "type": "string"
+                  },
+                  "overwrite": {
+                    "type": "bool"
+                  },
+                  "passwords": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Dataset import result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
           },
           "500": {
             "$ref": "#/components/responses/500"
@@ -7440,6 +9931,14 @@
             "required": true,
             "schema": {
               "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "override_columns",
+            "required": true,
+            "schema": {
+              "type": "bool"
             }
           }
         ],
@@ -8076,6 +10575,120 @@
         ]
       }
     },
+    "/query/distinct/{column_name}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "column_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_related_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DistincResponseSchema"
+                }
+              }
+            },
+            "description": "Distinct field data"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Queries"
+        ]
+      }
+    },
+    "/query/related/{column_name}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "column_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_related_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelatedResponseSchema"
+                }
+              }
+            },
+            "description": "Related column data"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Queries"
+        ]
+      }
+    },
     "/query/{pk}": {
       "get": {
         "description": "Get query detail information.",
@@ -8513,6 +11126,57 @@
               }
             },
             "description": "Distinct field data"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Queries"
+        ]
+      }
+    },
+    "/saved_query/export/": {
+      "get": {
+        "description": "Exports multiple saved queries and downloads them as YAML files",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_export_ids_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "A zip file with saved query(ies) and database(s) as YAML"
           },
           "400": {
             "$ref": "#/components/responses/400"
