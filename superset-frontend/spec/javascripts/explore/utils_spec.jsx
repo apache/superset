@@ -23,6 +23,7 @@ import {
   buildV1ChartDataPayload,
   getExploreUrl,
   getExploreLongUrl,
+  getSamplesPageSize,
   shouldUseLegacyApi,
 } from 'src/explore/exploreUtils';
 import {
@@ -199,6 +200,13 @@ describe('exploreUtils', () => {
       );
     });
   });
+
+  describe('getSamplesPageSize', () => {
+    it('generates samples table', () => {
+      let pageSize = getSamplesPageSize(500);
+      expect(pageSize).toEqual(20);
+    })
+  })
 
   describe('buildV1ChartDataPayload', () => {
     it('generate valid request payload despite no registered buildQuery', () => {
