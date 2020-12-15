@@ -19,7 +19,7 @@
 /* eslint camelcase: 0 */
 import React from 'react';
 import { Alert, FormControl, FormGroup, Radio } from 'react-bootstrap';
-import { JsonResponse, t } from '@superset-ui/core';
+import { JsonObject, t } from '@superset-ui/core';
 import ReactMarkdown from 'react-markdown';
 import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
@@ -124,14 +124,14 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
 
     this.props.actions
       .saveSlice(this.props.form_data, sliceParams)
-      .then(({ json }: JsonResponse) => {
-        if (json.dashboard_id === null) {
+      .then(({data}: JsonObject) => {
+        if (data.dashboard_id === null) {
           sessionStorage.removeItem(SK_DASHBOARD_ID);
         } else {
-          sessionStorage.setItem(SK_DASHBOARD_ID, json.dashboard_id);
+          sessionStorage.setItem(SK_DASHBOARD_ID, data.dashboard_id);
         }
         // Go to new slice url or dashboard url
-        const url = gotodash ? json.dashboard_url : json.slice.slice_url;
+        const url = gotodash ? data.dashboard_url : data.slice.slice_url;
         window.location.assign(url);
       });
     this.props.onHide();
