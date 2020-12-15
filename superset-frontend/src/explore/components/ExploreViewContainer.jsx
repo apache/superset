@@ -69,15 +69,23 @@ const Styles = styled.div`
   flex-wrap: nowrap;
   align-items: stretch;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  .control-pane, .data-source-selection {
-    border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  .explore-column {
     display: flex;
     flex-direction: column;
     padding: ${({ theme }) => 2 * theme.gridUnit}px 0;
     max-height: 100%;
   }
-  .control-pane {
+  .data-source-selection {
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
+    padding: ${({ theme }) => 2 * theme.gridUnit}px 0;
+    border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  }
+  .main-explore-content  {
+    border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  }
+  .controls-column {
+    align-self: flex-start;
+    padding: 0;
   }
   .title-container {
     position: relative;
@@ -385,6 +393,9 @@ class ExploreViewContainer extends React.Component {
               max-height: 100vh;
               overflow: hidden;
             }
+            #app {
+              flex-basis: 100%;
+            }
             body > div {
               flex: 1 1 auto;
             }
@@ -398,7 +409,7 @@ class ExploreViewContainer extends React.Component {
             sliceName={this.props.sliceName}
           />
         )}
-        <div className={collapse ? 'no-show' : 'data-tab control-pane'}>
+        <div className={collapse ? 'no-show' : 'data-tab explore-column data-source-selection'}>
           <div className="title-container">
             <span className="horizontal-text">Datasource</span>
             <span
@@ -440,7 +451,7 @@ class ExploreViewContainer extends React.Component {
             <Icon name="dataset-physical" width={16} />
           </div>
         ) : null}
-        <div className='col-sm-3 data-source-selection'>
+        <div className='col-sm-3 explore-column controls-column'>
           <QueryAndSaveBtns
             canAdd={!!(this.props.can_add || this.props.can_overwrite)}
             onQuery={this.onQuery}
@@ -459,7 +470,7 @@ class ExploreViewContainer extends React.Component {
             isDatasourceMetaLoading={this.props.isDatasourceMetaLoading}
           />
         </div>
-        <div className={collapse ? 'col-sm-9' : 'col-sm-7'}>
+        <div className={`main-explore-content ${collapse ? 'col-sm-9' : 'col-sm-7'}`}>
           {this.renderChartContainer()}
         </div>
       </Styles>
