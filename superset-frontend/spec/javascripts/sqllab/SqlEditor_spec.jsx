@@ -29,7 +29,7 @@ import SqlEditor from 'src/SqlLab/components/SqlEditor';
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 import { Dropdown } from 'src/common/components';
 
-import { defaultQueryEditor, initialState, queries, table } from './fixtures';
+import { initialState, queries, table } from './fixtures';
 
 const MOCKED_SQL_EDITOR_HEIGHT = 500;
 
