@@ -108,7 +108,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
         # TODO (betodealmeida): move this logic to export_to_dict once this
         # becomes the default export endpoint
         for key, new_name in JSON_KEYS.items():
-            if key in payload:
+            if payload.get(key):
                 value = payload.pop(key)
                 try:
                     payload[new_name] = json.loads(value)
