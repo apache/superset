@@ -24,8 +24,9 @@ import { Nav, Navbar } from 'react-bootstrap';
 import Button, { OnClickHandler } from 'src/components/Button';
 
 const StyledHeader = styled.header`
+  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
   .navbar {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+    margin-bottom: 0;
   }
   .navbar-header .navbar-brand {
     font-weight: ${({ theme }) => theme.typography.weights.bold};
@@ -108,7 +109,6 @@ export interface SubMenuProps {
   buttons?: Array<ButtonProps>;
   name?: string | ReactNode;
   tabs?: MenuChild[];
-  children?: MenuChild[];
   activeChild?: MenuChild['name'];
   /* If usesRouter is true, a react-router <Link> component will be used instead of href.
    *  ONLY set usesRouter to true if SubMenu is wrapped in a react-router <Router>;
@@ -174,6 +174,7 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
           ))}
         </Nav>
       </Navbar>
+      {props.children}
     </StyledHeader>
   );
 };
