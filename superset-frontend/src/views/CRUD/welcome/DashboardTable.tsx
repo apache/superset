@@ -162,7 +162,10 @@ function DashboardTable({
             name: 'View All »',
             buttonStyle: 'link',
             onClick: () => {
-              window.location.href = '/dashboard/list/';
+              window.location.href =
+                dashboardFilter === 'Favorite'
+                  ? '/dashboard/list/?filters=(favorite:!t)'
+                  : '/dashboard/list/';
             },
           },
         ]}

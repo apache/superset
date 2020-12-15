@@ -155,7 +155,10 @@ function ChartTable({
             name: 'View All »',
             buttonStyle: 'link',
             onClick: () => {
-              window.location.href = '/chart/list';
+              window.location.href =
+                chartFilter === 'Favorite'
+                  ? '/chart/list/?filters=(favorite:!t)'
+                  : '/chart/list/';
             },
           },
         ]}

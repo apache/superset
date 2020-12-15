@@ -445,6 +445,18 @@ function ChartList(props: ChartListProps) {
       paginate: false,
     },
     {
+      Header: t('Favorite'),
+      id: 'favorite',
+      col: 'id',
+      input: 'select',
+      operator: 'chart_is_fav',
+      unfilteredLabel: 'Any',
+      selects: [
+        { label: t('Yes'), value: true },
+        { label: t('No'), value: false },
+      ],
+    },
+    {
       Header: t('Search'),
       id: 'slice_name',
       input: 'search',

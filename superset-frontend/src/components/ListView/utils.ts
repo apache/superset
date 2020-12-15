@@ -80,10 +80,10 @@ type QueryFilterState = {
 };
 
 function mergeCreateFilterValues(list: Filter[], updateObj: QueryFilterState) {
-  return list.map(({ id, operator }) => {
+  return list.map(({ id, operator, col }) => {
     const update = updateObj[id];
 
-    return { id, operator, value: update };
+    return { id, col, operator, value: update };
   });
 }
 
@@ -97,7 +97,7 @@ export function convertFilters(fts: InternalFilter[]): FilterValue[] {
           (Array.isArray(f.value) && !f.value.length)
         ),
     )
-    .map(({ value, operator, id }) => {
+    .map(({ value, operator, id, col }) => {
       // handle between filter using 2 api filters
       if (operator === 'between' && Array.isArray(value)) {
         return [
@@ -105,11 +105,13 @@ export function convertFilters(fts: InternalFilter[]): FilterValue[] {
             value: value[0],
             operator: 'gt',
             id,
+            col,
           },
           {
             value: value[1],
             operator: 'lt',
             id,
+            col,
           },
         ];
       }
@@ -117,6 +119,7 @@ export function convertFilters(fts: InternalFilter[]): FilterValue[] {
         value,
         operator,
         id,
+        col,
       };
     })
     .flat();
@@ -147,6 +150,7 @@ export function convertFiltersRison(
 
     if (filter) {
       filter.operator = value.operator;
+      filter.col = value.col;
     }
   });
 
@@ -318,6 +322,7 @@ export function useListViewState({
         : 'replace';
 
     setQuery(queryParams, method);
+
     fetchData({ pageIndex, pageSize, sortBy, filters });
   }, [fetchData, pageIndex, pageSize, sortBy, filters, viewMode]);
 

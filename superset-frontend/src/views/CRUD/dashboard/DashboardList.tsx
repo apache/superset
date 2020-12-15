@@ -405,8 +405,9 @@ function DashboardList(props: DashboardListProps) {
     {
       Header: t('Favorite'),
       id: 'favorite',
+      col: 'id',
       input: 'select',
-      operator: 'eq',
+      operator: 'dashboard_is_fav',
       unfilteredLabel: 'Any',
       selects: [
         { label: t('Yes'), value: true },
