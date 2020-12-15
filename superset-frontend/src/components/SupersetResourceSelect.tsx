@@ -20,8 +20,9 @@ import React, { useEffect } from 'react';
 import rison from 'rison';
 import { SupersetClient } from '@superset-ui/core';
 import { AsyncSelect } from 'src/components/Select';
-import getClientErrorObject, {
+import {
   ClientErrorObject,
+  getClientErrorObject,
 } from 'src/utils/getClientErrorObject';
 
 export type Value<V> = { value: V; label: string };

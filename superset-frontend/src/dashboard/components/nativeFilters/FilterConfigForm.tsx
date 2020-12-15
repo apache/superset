@@ -33,7 +33,7 @@ import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ColumnSelect } from './ColumnSelect';
 import ScopingTree from './ScopingTree';
-import { Filter, NativeFiltersForm, Scope, Scoping } from './types';
+import { Filter, NativeFiltersForm, Scoping } from './types';
 
 type DatasetSelectValue = {
   value: number;
