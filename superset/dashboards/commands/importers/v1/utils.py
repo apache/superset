@@ -17,7 +17,7 @@
 
 import json
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Set
 
 from sqlalchemy.orm import Session
 
@@ -27,6 +27,10 @@ logger = logging.getLogger(__name__)
 
 
 JSON_KEYS = {"position": "position_json", "metadata": "json_metadata"}
+
+
+def find_chart_uuids(position: Dict[str, Any]) -> Set[str]:
+    return set(build_uuid_to_id_map(position))
 
 
 def build_uuid_to_id_map(position: Dict[str, Any]) -> Dict[str, int]:
@@ -43,9 +47,6 @@ def build_uuid_to_id_map(position: Dict[str, Any]) -> Dict[str, int]:
 
 def update_id_refs(config: Dict[str, Any], chart_ids: Dict[str, int]) -> Dict[str, Any]:
     """Update dashboard metadata to use new IDs"""
-    if not config.get("metadata"):
-        return config
-
     fixed = config.copy()
 
     # build map old_id => new_id
