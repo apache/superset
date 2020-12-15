@@ -14,10 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""security_converge_annotations
+"""security converge annotations
 
 Revision ID: c25cb2c78727
-Revises: 811494c0cc23
+Revises: ccb74baaa89b
 Create Date: 2020-12-11 17:02:21.213046
 
 """
@@ -36,7 +36,7 @@ from superset.migrations.shared.security_converge import (
 )
 
 revision = "c25cb2c78727"
-down_revision = "5daced1f0e76"
+down_revision = "ccb74baaa89b"
 
 
 NEW_PVMS = {"Annotation": ("can_read", "can_write",)}
