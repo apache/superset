@@ -26,6 +26,7 @@ import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
 import { CreatableSelect } from 'src/components/Select/SupersetStyledSelect';
 import { connect } from 'react-redux';
+import { ValueType } from 'react-select';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -240,7 +241,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               autoSize={false}
               value={
                 (this.state.saveToDashboardId ||
-                  this.state.newDashboardName) as any
+                  this.state.newDashboardName) as ValueType<Record<string, any>>
               }
               placeholder={
                 // Using markdown to allow for good i18n
