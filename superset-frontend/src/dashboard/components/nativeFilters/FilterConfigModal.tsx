@@ -54,8 +54,15 @@ const FilterTabs = styled(LineEditableTabs)`
   &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
     min-width: 200px;
     margin-left: 0;
-    padding: 0;
-    padding-bottom: ${({ theme }) => theme.gridUnit}px;
+    padding: 0 ${({ theme }) => theme.gridUnit * 2}px
+      ${({ theme }) => theme.gridUnit}px;
+
+    &:hover,
+    &-active {
+      color: ${({ theme }) => theme.colors.grayscale.dark1};
+      border-radius: ${({ theme }) => theme.borderRadius}px;
+      background-color: ${({ theme }) => theme.colors.grayscale.light2};
+    }
   }
 
   .ant-tabs-tab-btn {
@@ -80,7 +87,7 @@ const FilterTabTitle = styled.span`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  padding: ${({ theme }) => theme.gridUnit * 2}px
+  padding: ${({ theme }) => theme.gridUnit}px
     ${({ theme }) => theme.gridUnit * 2}px 0 0;
 
   &.removed {
