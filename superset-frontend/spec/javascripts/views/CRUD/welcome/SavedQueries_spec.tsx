@@ -109,6 +109,6 @@ describe('SavedQueries', () => {
     expect(wrapper.find('button')).toHaveLength(2);
     clickTab(0);
     await waitForComponentToPaint(wrapper);
-    expect(fetchMock.calls(/saved_query\/\?q/)).toHaveLength(1);
+    expect(fetchMock.calls(/saved_query\/\?q/)).toHaveLength(2);
   });
 });
