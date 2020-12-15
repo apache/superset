@@ -1349,6 +1349,7 @@ class EvalHolidayFunc:  # pylint: disable=too-few-public-methods
         raise ValueError(_("Unable to find such a holiday: [{}]").format(holiday))
 
 
+@memoized()
 def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
     (  # pylint: disable=invalid-name
         DATETIME,
