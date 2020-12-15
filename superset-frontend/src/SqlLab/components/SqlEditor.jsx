@@ -32,6 +32,7 @@ import Checkbox from 'src/components/Checkbox';
 import Timer from 'src/components/Timer';
 import Hotkeys from 'src/components/Hotkeys';
 import { Dropdown, Menu as AntdMenu } from 'src/common/components';
+import Icon from 'src/components/Icon';
 
 import TemplateParamsEditor from './TemplateParamsEditor';
 import ConnectedSouthPane from './SouthPane';
