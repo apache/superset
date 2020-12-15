@@ -99,7 +99,7 @@ export function useCascadingFilters(id: string) {
     const { nativeFilters }: { nativeFilters: NativeFiltersState } = state;
     const { filters, filtersState } = nativeFilters;
     const filter = filters[id];
-    const { cascadeParentIds = [] } = filter;
+    const cascadeParentIds = filter?.cascadeParentIds ?? [];
     let cascadedFilters = {};
     cascadeParentIds.forEach(parentId => {
       const parentState = filtersState[parentId] || {};
