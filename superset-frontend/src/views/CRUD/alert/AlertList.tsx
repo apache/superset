@@ -97,9 +97,9 @@ function AlertList({
     setAlertModalOpen(true);
   }
 
-  const canEdit = hasPerm('can_edit');
-  const canDelete = hasPerm('can_delete');
-  const canCreate = hasPerm('can_add');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
+  const canCreate = hasPerm('can_write');
 
   const initialSort = [{ id: 'name', desc: true }];
 
