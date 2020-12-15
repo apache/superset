@@ -171,7 +171,7 @@ class PropertiesModal extends React.PureComponent<
     this.updateFormState('colorScheme', value);
   }
 
-  onOwnersChange(value: any) {
+  onOwnersChange(value: Record<string, any>) {
     this.updateFormState('owners', value);
   }
 
@@ -218,7 +218,7 @@ class PropertiesModal extends React.PureComponent<
     }, handleErrorResponse);
   }
 
-  updateFormState(name: string, value: string) {
+  updateFormState(name: string, value: Record<string, any> | string) {
     this.setState(state => ({
       values: {
         ...state.values,
