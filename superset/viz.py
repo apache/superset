@@ -246,6 +246,7 @@ class BaseViz:
             {
                 "groupby": [],
                 "metrics": [],
+                "orderby": [],
                 "row_limit": config["SAMPLES_ROW_LIMIT"],
                 "columns": [o.column_name for o in self.datasource.columns],
             }
