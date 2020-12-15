@@ -332,14 +332,14 @@ class ExploreViewContainer extends React.Component {
 
     return (
       <Styles id="explore-container" height={this.state.height}>
-        {this.state.showModal && (
+        {/*{this.state.showModal && (*/}
           <SaveModal
             onHide={this.toggleModal}
             actions={this.props.actions}
             form_data={this.props.form_data}
             sliceName={this.props.sliceName}
           />
-        )}
+        {/*)}*/}
         <div className="col-sm-4 control-pane">
           <QueryAndSaveBtns
             canAdd={!!(this.props.can_add || this.props.can_overwrite)}

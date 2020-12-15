@@ -18,14 +18,14 @@
  */
 /* eslint camelcase: 0 */
 import React from 'react';
-import { connect } from 'react-redux';
 import { Alert, FormControl, FormGroup, Radio } from 'react-bootstrap';
-import { t } from '@superset-ui/core';
+import { JsonResponse, t } from '@superset-ui/core';
 import ReactMarkdown from 'react-markdown';
 import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
 import { CreatableSelect } from 'src/components/Select/SupersetStyledSelect';
+import { connect } from 'react-redux';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -34,7 +34,7 @@ const SELECT_PLACEHOLDER = t('**Select** a dashboard OR **create** a new one');
 type SaveModalProps = {
   can_overwrite?: boolean;
   onHide: () => void;
-  actions: any;
+  actions: Record<string, any>;
   form_data?: Record<string, any>;
   userId: string;
   dashboards: Array<any>;
@@ -98,7 +98,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.setState({ saveToDashboardId, newDashboardName });
   }
 
-  changeAction(action: any) {
+  changeAction(action: ActionType) {
     this.setState({ action });
   }
 
@@ -123,14 +123,14 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
 
     this.props.actions
       .saveSlice(this.props.form_data, sliceParams)
-      .then(({ data }: any) => {
-        if (data.dashboard_id === null) {
+      .then(({json}: JsonResponse) => {
+        if (json.dashboard_id === null) {
           sessionStorage.removeItem(SK_DASHBOARD_ID);
         } else {
-          sessionStorage.setItem(SK_DASHBOARD_ID, data.dashboard_id);
+          sessionStorage.setItem(SK_DASHBOARD_ID, json.dashboard_id);
         }
         // Go to new slice url or dashboard url
-        const url = gotodash ? data.dashboard_url : data.slice.slice_url;
+        const url = gotodash ? json.dashboard_url : json.slice.slice_url;
         window.location.assign(url);
       });
     this.props.onHide();
