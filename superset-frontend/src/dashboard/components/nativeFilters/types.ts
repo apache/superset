@@ -17,7 +17,6 @@
  * under the License.
  */
 import { ExtraFormData, QueryObjectFilterClause } from '@superset-ui/core';
-import componentTypes from 'src/dashboard/util/componentTypes';
 
 export enum Scoping {
   all,
@@ -103,46 +102,6 @@ export type AllFilterState = {
   id: string;
   selectedValues: SelectedValues;
   filterClause?: QueryObjectFilterClause;
-};
-
-/** Chart state of redux */
-export type Chart = {
-  id: number;
-  formData: {
-    viz_type: string;
-  };
-};
-
-/** Root state of redux */
-export type RootState = {
-  charts: { [key: string]: Chart };
-  dashboardLayout: { present: { [key: string]: LayoutItem } };
-  dashboardFilters: {};
-};
-
-/** State of dashboardLayout in redux */
-export type Layout = { [key: string]: LayoutItem };
-
-/** State of charts in redux */
-export type Charts = { [key: number]: Chart };
-
-type ComponentTypesKeys = keyof typeof componentTypes;
-export type ComponentType = typeof componentTypes[ComponentTypesKeys];
-
-/** State of dashboardLayout item in redux */
-export type LayoutItem = {
-  children: string[];
-  parents: string[];
-  type: ComponentType;
-  id: string;
-  meta: {
-    chartId: number;
-    height: number;
-    sliceName?: string;
-    text?: string;
-    uuid: string;
-    width: number;
-  };
 };
 
 /** UI Ant tree type */
