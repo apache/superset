@@ -490,6 +490,8 @@ export default class ResultSet extends React.PureComponent<
       return <Alert bsStyle="warning">Query was stopped</Alert>;
     }
     if (query.state === 'failed') {
+      // TODO (betodealmeida): handle this logic through the error component
+      // registry
       const title =
         query?.errors?.[0].error_type ===
         ErrorTypeEnum.MISSING_TEMPLATE_PARAMS_ERROR
