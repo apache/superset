@@ -213,13 +213,8 @@ class DatasourceControl extends React.PureComponent {
       </Menu>
     );
 
-    let healthCheckMessage = '';
-    const { extra: rawExtra } = datasource;
-    if (rawExtra) {
-      const extra = JSON.parse(rawExtra) || {};
-      // eslint-disable-next-line camelcase
-      healthCheckMessage = extra?.health_check?.message;
-    }
+    // eslint-disable-next-line camelcase
+    const { health_check_message: healthCheckMessage } = datasource;
 
     return (
       <Styles className="DatasourceControl">

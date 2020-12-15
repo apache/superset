@@ -687,6 +687,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         )
 
     @property
+    def health_check_message(self) -> Optional[str]:
+        return self.extra_dict.get("health_check", {}).get("message")
+
+    @property
     def data(self) -> Dict[str, Any]:
         data_ = super().data
         if self.type == "table":
@@ -699,7 +703,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             data_["fetch_values_predicate"] = self.fetch_values_predicate
             data_["template_params"] = self.template_params
             data_["is_sqllab_view"] = self.is_sqllab_view
-            data_["extra"] = self.extra
+            data_["health_check_message"] = self.health_check_message
         return data_
 
     @property
