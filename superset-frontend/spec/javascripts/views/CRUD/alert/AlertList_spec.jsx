@@ -75,7 +75,7 @@ fetchMock.get(alertsEndpoint, {
   count: 3,
 });
 fetchMock.get(alertsInfoEndpoint, {
-  permissions: ['can_delete', 'can_edit'],
+  permissions: ['can_write'],
 });
 fetchMock.get(alertsCreatedByEndpoint, { result: [] });
 fetchMock.put(alertEndpoint, { ...mockalerts[0], active: false });
