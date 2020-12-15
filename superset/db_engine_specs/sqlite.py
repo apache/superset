@@ -31,6 +31,7 @@ class SqliteEngineSpec(BaseEngineSpec):
     engine = "sqlite"
     engine_name = "SQLite"
 
+    # pylint: disable=line-too-long
     _time_grain_expressions = {
         None: "{col}",
         "PT1S": "DATETIME(STRFTIME('%Y-%m-%dT%H:%M:%S', {col}))",
@@ -39,6 +40,14 @@ class SqliteEngineSpec(BaseEngineSpec):
         "P1D": "DATE({col})",
         "P1W": "DATE({col}, -strftime('%W', {col}) || ' days')",
         "P1M": "DATE({col}, -strftime('%d', {col}) || ' days', '+1 day')",
+        "P0.25Y": (
+            "DATETIME(STRFTIME('%Y-', {col}) || "  # year
+            "SUBSTR('00' || "  # pad with zeros to 2 chars
+            "((CAST(STRFTIME('%m', {col}) AS INTEGER)) - "  # month as integer
+            "(((CAST(STRFTIME('%m', {col}) AS INTEGER)) - 1) % 3)), "  # month in quarter
+            "-2) || "  # close pad
+            "'-01T00:00:00')"
+        ),
         "P1Y": "DATETIME(STRFTIME('%Y-01-01T00:00:00', {col}))",
         "P1W/1970-01-03T00:00:00Z": "DATE({col}, 'weekday 6')",
         "1969-12-28T00:00:00Z/P1W": "DATE({col}, 'weekday 0', '-7 days')",

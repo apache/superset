@@ -22,7 +22,7 @@ from typing import Any, Dict
 from urllib import request
 
 import pandas as pd
-from sqlalchemy import Date, Float, String
+from sqlalchemy import BigInteger, Date, DateTime, Float, String, Text
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.visitors import VisitableType
 
@@ -36,12 +36,20 @@ VARCHAR = re.compile(r"VARCHAR\((\d+)\)", re.IGNORECASE)
 JSON_KEYS = {"params", "template_params", "extra"}
 
 
-def get_sqla_type(native_type: str) -> VisitableType:
-    if native_type.upper() == "DATE":
-        return Date()
+type_map = {
+    "BIGINT": BigInteger(),
+    "FLOAT": Float(),
+    "DATE": Date(),
+    "DOUBLE PRECISION": Float(precision=32),
+    "TEXT": Text(),
+    "TIMESTAMP WITHOUT TIME ZONE": DateTime(timezone=False),
+    "TIMESTAMP WITH TIME ZONE": DateTime(timezone=True),
+}
 
-    if native_type.upper() == "FLOAT":
-        return Float()
+
+def get_sqla_type(native_type: str) -> VisitableType:
+    if native_type.upper() in type_map:
+        return type_map[native_type.upper()]
 
     match = VARCHAR.match(native_type)
     if match:
@@ -102,7 +110,7 @@ def import_dataset(
 
         # convert temporal columns
         for column_name, sqla_type in dtype.items():
-            if isinstance(sqla_type, Date):
+            if isinstance(sqla_type, (Date, DateTime)):
                 df[column_name] = pd.to_datetime(df[column_name])
 
         df.to_sql(
