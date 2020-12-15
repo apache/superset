@@ -205,6 +205,7 @@ export function FilterConfigModal({
           isRequired: !!formInputs.isRequired,
         };
       });
+
     await save(newFilterConfig);
     resetForm();
   }, [

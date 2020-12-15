@@ -25,7 +25,7 @@ export enum Scoping {
 
 interface NativeFiltersFormItem {
   scoping: Scoping;
-  filterScope: Scope;
+  scope: Scope;
   name: string;
   dataset: {
     value: number;
