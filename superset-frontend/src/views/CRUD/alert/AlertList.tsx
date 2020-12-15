@@ -215,7 +215,7 @@ function AlertList({
           },
         }: any) => (
           <Tooltip title={crontab_humanized} placement="topLeft">
-            <span>{crontab_humanized}</span>,
+            <span>{crontab_humanized}</span>
           </Tooltip>
         ),
       },
