@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable jsx-a11y/anchor-is-valid */
+/* eslint-disable jsx-a11y/no-static-element-interactions */
 import React from 'react';
 import { CSSTransition } from 'react-transition-group';
 import PropTypes from 'prop-types';
@@ -420,7 +422,10 @@ class SqlEditor extends React.PureComponent {
       <AntdMenu>
         {LIMIT_DROPDOWN.map(limit => (
           <AntdMenu.Item onClick={() => this.setQueryLimit(limit)}>
-            <a>{limit.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')}</a>
+            {/* // eslint-disable-line no-use-before-define */}
+            <a role="button" styling="link">
+              {limit.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')}
+            </a>{' '}
             <Icon name="more-horiz" />
           </AntdMenu.Item>
         ))}
