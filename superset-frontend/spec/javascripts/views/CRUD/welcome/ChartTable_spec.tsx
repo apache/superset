@@ -66,7 +66,7 @@ describe('ChartTable', () => {
     act(() => {
       const handler = wrapper.find('li.no-router a').at(0).prop('onClick');
       if (handler) {
-        handler({} as any);
+        handler({} as React.MouseEvent);
       }
     });
     await waitForComponentToPaint(wrapper);

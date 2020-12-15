@@ -32,6 +32,7 @@ import { commonMenuData } from 'src/views/CRUD/data/common';
 import ImportModelsModal, {
   StyledIcon,
 } from 'src/components/ImportModal/index';
+import { CellType } from 'src/views/CRUD/types';
 import DatabaseModal from './DatabaseModal';
 import { DatabaseObject } from './types';
 
@@ -214,7 +215,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { allow_run_async: allowRunAsync },
           },
-        }: any) => <BooleanDisplay value={allowRunAsync} />,
+        }: CellType) => <BooleanDisplay value={allowRunAsync} />,
         size: 'md',
       },
       {
@@ -232,7 +233,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { allow_dml: allowDML },
           },
-        }: any) => <BooleanDisplay value={allowDML} />,
+        }: CellType) => <BooleanDisplay value={allowDML} />,
         size: 'md',
       },
       {
@@ -242,7 +243,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { allow_csv_upload: allowCSVUpload },
           },
-        }: any) => <BooleanDisplay value={allowCSVUpload} />,
+        }: CellType) => <BooleanDisplay value={allowCSVUpload} />,
         size: 'xl',
       },
       {
@@ -252,7 +253,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { expose_in_sqllab: exposeInSqllab },
           },
-        }: any) => <BooleanDisplay value={exposeInSqllab} />,
+        }: CellType) => <BooleanDisplay value={exposeInSqllab} />,
         size: 'xxl',
       },
       {
@@ -263,7 +264,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { created_by: createdBy },
           },
-        }: any) =>
+        }: CellType) =>
           createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
         size: 'xl',
       },
@@ -272,13 +273,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { changed_on_delta_humanized: changedOn },
           },
-        }: any) => changedOn,
+        }: CellType) => changedOn,
         Header: t('Last Modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: CellType) => {
           const handleEdit = () => handleDatabaseEdit(original);
           const handleDelete = () => openDatabaseDeleteModal(original);
           const handleExport = () => handleDatabaseExport(original);

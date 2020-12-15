@@ -76,7 +76,7 @@ describe('DashboardTable', () => {
     act(() => {
       const handler = wrapper.find('li.no-router a').at(1).prop('onClick');
       if (handler) {
-        handler({} as any);
+        handler({} as React.MouseEvent);
       }
     });
     await waitForComponentToPaint(wrapper);

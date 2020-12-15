@@ -34,6 +34,7 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { IconName } from 'src/components/Icon';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
+import { CellType } from 'src/views/CRUD/types';
 
 import { AnnotationObject } from './types';
 import AnnotationModal from './AnnotationModal';
@@ -49,7 +50,7 @@ function AnnotationList({
   addDangerToast,
   addSuccessToast,
 }: AnnotationListProps) {
-  const { annotationLayerId }: any = useParams();
+  const { annotationLayerId } = useParams<Record<string, string>>();
   const {
     state: {
       loading,
@@ -157,7 +158,7 @@ function AnnotationList({
           row: {
             original: { start_dttm: startDttm },
           },
-        }: any) => moment(new Date(startDttm)).format('ll'),
+        }: CellType) => moment(new Date(startDttm)).format('ll'),
         Header: t('Start'),
         accessor: 'start_dttm',
       },
@@ -166,12 +167,12 @@ function AnnotationList({
           row: {
             original: { end_dttm: endDttm },
           },
-        }: any) => moment(new Date(endDttm)).format('ll'),
+        }: CellType) => moment(new Date(endDttm)).format('ll'),
         Header: t('End'),
         accessor: 'end_dttm',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: CellType) => {
           const handleEdit = () => handleAnnotationEdit(original);
           const handleDelete = () => setAnnotationCurrentlyDeleting(original);
           const actions = [

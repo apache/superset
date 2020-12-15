@@ -89,7 +89,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   useEffect(() => {
     getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
       .then(res => {
-        const data: any = {
+        const data: Record<string, unknown> = {
           Created: [
             ...res.createdByChart,
             ...res.createdByDash,

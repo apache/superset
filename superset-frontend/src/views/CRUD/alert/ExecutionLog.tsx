@@ -30,6 +30,7 @@ import {
   useListViewResource,
   useSingleViewResource,
 } from 'src/views/CRUD/hooks';
+import { CellType } from 'src/views/CRUD/types';
 import { AlertObject, LogObject } from './types';
 
 const PAGE_SIZE = 25;
@@ -54,7 +55,7 @@ interface ExecutionLogProps {
 }
 
 function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
-  const { alertId }: any = useParams();
+  const { alertId } = useParams<Record<string, any>>();
   const {
     state: { loading, resourceCount: logCount, resourceCollection: logs },
     fetchData,
@@ -87,7 +88,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
           row: {
             original: { state },
           },
-        }: any) => <AlertStatusIcon state={state} />,
+        }: CellType) => <AlertStatusIcon state={state} />,
         accessor: 'state',
         Header: t('State'),
         size: 'xs',
@@ -102,7 +103,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
           row: {
             original: { start_dttm: startDttm },
           },
-        }: any) => moment(new Date(startDttm)).format('ll'),
+        }: CellType) => moment(new Date(startDttm)).format('ll'),
         Header: t('Start At'),
         accessor: 'start_dttm',
       },
@@ -111,7 +112,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
           row: {
             original: { start_dttm: startDttm, end_dttm: endDttm },
           },
-        }: any) =>
+        }: CellType) =>
           fDuration(new Date(startDttm).getTime(), new Date(endDttm).getTime()),
         Header: t('Duration'),
         disableSortBy: true,

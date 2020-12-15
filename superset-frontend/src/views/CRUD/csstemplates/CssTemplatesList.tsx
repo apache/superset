@@ -32,6 +32,7 @@ import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import { IconName } from 'src/components/Icon';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import ListView, { ListViewProps, Filters } from 'src/components/ListView';
+import { CellType } from 'src/views/CRUD/types';
 import CssTemplateModal from './CssTemplateModal';
 import { TemplateObject } from './types';
 
@@ -138,7 +139,7 @@ function CssTemplatesList({
               changed_by: changedBy,
             },
           },
-        }: any) => {
+        }: CellType) => {
           let name = 'null';
 
           if (changedBy) {
@@ -165,7 +166,7 @@ function CssTemplatesList({
           row: {
             original: { created_on: createdOn },
           },
-        }: any) => {
+        }: CellType) => {
           const date = new Date(createdOn);
           const utc = new Date(
             Date.UTC(
@@ -194,12 +195,12 @@ function CssTemplatesList({
           row: {
             original: { created_by: createdBy },
           },
-        }: any) =>
+        }: CellType) =>
           createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
         size: 'xl',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: CellType) => {
           const handleEdit = () => handleCssTemplateEdit(original);
           const handleDelete = () => setTemplateCurrentlyDeleting(original);
 

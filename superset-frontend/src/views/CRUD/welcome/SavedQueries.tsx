@@ -42,7 +42,6 @@ const PAGE_SIZE = 3;
 
 interface Query {
   id?: number;
-  sql_tables?: Array<any>;
   database?: {
     database_name: string;
   };

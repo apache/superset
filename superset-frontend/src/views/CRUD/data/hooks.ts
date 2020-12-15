@@ -21,13 +21,13 @@ import { useState, useEffect } from 'react';
 type BaseQueryObject = {
   id: number;
 };
-export function useQueryPreviewState<D extends BaseQueryObject = any>({
+export function useQueryPreviewState<D extends BaseQueryObject>({
   queries,
   fetchData,
   currentQueryId,
 }: {
   queries: D[];
-  fetchData: (id: number) => any;
+  fetchData: (id: number) => void;
   currentQueryId: number;
 }) {
   const index = queries.findIndex(query => query.id === currentQueryId);

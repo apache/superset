@@ -95,7 +95,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   onHide,
   show,
 }) => {
-  const [filter, setFilter] = useState<any>(undefined);
+  const [filter, setFilter] = useState<string | undefined>(undefined);
   const [confirmChange, setConfirmChange] = useState(false);
   const [confirmedDataset, setConfirmedDataset] = useState<Datasource>();
   let searchRef = useRef<HTMLInputElement>(null);

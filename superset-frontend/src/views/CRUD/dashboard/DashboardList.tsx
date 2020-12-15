@@ -42,6 +42,7 @@ import ImportModelsModal, {
 } from 'src/components/ImportModal/index';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
+import { CellType } from 'src/views/CRUD/types';
 import DashboardCard from './DashboardCard';
 
 const PAGE_SIZE = 25;
@@ -178,7 +179,7 @@ function DashboardList(props: DashboardListProps) {
           row: {
             original: { id },
           },
-        }: any) => (
+        }: CellType) => (
           <FaveStar
             itemId={id}
             saveFaveStar={saveFavoriteStatus}
@@ -195,7 +196,7 @@ function DashboardList(props: DashboardListProps) {
           row: {
             original: { url, dashboard_title: dashboardTitle },
           },
-        }: any) => <a href={url}>{dashboardTitle}</a>,
+        }: CellType) => <a href={url}>{dashboardTitle}</a>,
         Header: t('Title'),
         accessor: 'dashboard_title',
       },
@@ -208,7 +209,7 @@ function DashboardList(props: DashboardListProps) {
               changed_by_url: changedByUrl,
             },
           },
-        }: any) => <a href={changedByUrl}>{changedByName}</a>,
+        }: CellType) => <a href={changedByUrl}>{changedByName}</a>,
         Header: t('Modified By'),
         accessor: 'changed_by.first_name',
         size: 'xl',
@@ -218,7 +219,7 @@ function DashboardList(props: DashboardListProps) {
           row: {
             original: { published },
           },
-        }: any) => (published ? t('Published') : t('Draft')),
+        }: CellType) => (published ? t('Published') : t('Draft')),
         Header: t('Status'),
         accessor: 'published',
         size: 'xl',
@@ -228,7 +229,7 @@ function DashboardList(props: DashboardListProps) {
           row: {
             original: { changed_on_delta_humanized: changedOn },
           },
-        }: any) => <span className="no-wrap">{changedOn}</span>,
+        }: CellType) => <span className="no-wrap">{changedOn}</span>,
         Header: t('Modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
@@ -238,7 +239,7 @@ function DashboardList(props: DashboardListProps) {
           row: {
             original: { created_by: createdBy },
           },
-        }: any) =>
+        }: CellType) =>
           createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
         Header: t('Created By'),
         accessor: 'created_by',
@@ -250,14 +251,14 @@ function DashboardList(props: DashboardListProps) {
           row: {
             original: { owners = [] },
           },
-        }: any) => <FacePile users={owners} />,
+        }: CellType) => <FacePile users={owners} />,
         Header: t('Owners'),
         accessor: 'owners',
         disableSortBy: true,
         size: 'xl',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: CellType) => {
           const handleDelete = () =>
             handleDashboardDelete(
               original,

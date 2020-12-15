@@ -48,6 +48,7 @@ import ImportModelsModal, {
 } from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
 import TooltipWrapper from 'src/components/TooltipWrapper';
+import { CellType } from 'src/views/CRUD/types';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
@@ -184,7 +185,7 @@ function ChartList(props: ChartListProps) {
           row: {
             original: { id },
           },
-        }: any) => (
+        }: CellType) => (
           <FaveStar
             itemId={id}
             saveFaveStar={saveFavoriteStatus}
@@ -201,7 +202,7 @@ function ChartList(props: ChartListProps) {
           row: {
             original: { url, slice_name: sliceName },
           },
-        }: any) => <a href={url}>{sliceName}</a>,
+        }: CellType) => <a href={url}>{sliceName}</a>,
         Header: t('Chart'),
         accessor: 'slice_name',
       },
@@ -210,7 +211,7 @@ function ChartList(props: ChartListProps) {
           row: {
             original: { viz_type: vizType },
           },
-        }: any) => vizType,
+        }: CellType) => vizType,
         Header: t('Visualization Type'),
         accessor: 'viz_type',
         size: 'xxl',
@@ -223,7 +224,7 @@ function ChartList(props: ChartListProps) {
               datasource_url: dsUrl,
             },
           },
-        }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
+        }: CellType) => <a href={dsUrl}>{dsNameTxt}</a>,
         Header: t('Dataset'),
         accessor: 'datasource_id',
         disableSortBy: true,
@@ -237,7 +238,7 @@ function ChartList(props: ChartListProps) {
               changed_by_url: changedByUrl,
             },
           },
-        }: any) => <a href={changedByUrl}>{changedByName}</a>,
+        }: CellType) => <a href={changedByUrl}>{changedByName}</a>,
         Header: t('Modified By'),
         accessor: 'changed_by.first_name',
         size: 'xl',
@@ -247,7 +248,7 @@ function ChartList(props: ChartListProps) {
           row: {
             original: { changed_on_delta_humanized: changedOn },
           },
-        }: any) => <span className="no-wrap">{changedOn}</span>,
+        }: CellType) => <span className="no-wrap">{changedOn}</span>,
         Header: t('Last Modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
@@ -262,7 +263,7 @@ function ChartList(props: ChartListProps) {
           row: {
             original: { created_by: createdBy },
           },
-        }: any) =>
+        }: CellType) =>
           createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
         Header: t('Created By'),
         accessor: 'created_by',
@@ -270,7 +271,7 @@ function ChartList(props: ChartListProps) {
         size: 'xl',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: CellType) => {
           const handleDelete = () =>
             handleChartDelete(
               original,

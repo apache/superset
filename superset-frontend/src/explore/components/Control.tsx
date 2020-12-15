@@ -58,7 +58,7 @@ export default class Control extends React.PureComponent<
     this.onMouseLeave = this.setHover.bind(this, false);
   }
 
-  onChange(value: any, errors: any[]) {
+  onChange(value: string | number, errors: Array<string>) {
     this.props.actions.setControlValue(this.props.name, value, errors);
   }
 

@@ -83,7 +83,7 @@ describe('SavedQueries', () => {
     act(() => {
       const handler = wrapper.find('li.no-router a').at(idx).prop('onClick');
       if (handler) {
-        handler({} as any);
+        handler({} as React.MouseEvent);
       }
     });
   };

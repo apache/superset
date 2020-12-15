@@ -41,7 +41,7 @@ interface ChartTableProps {
   search: string;
   chartFilter?: string;
   user?: User;
-  mine: Array<any>;
+  mine: Array<Chart>;
 }
 
 function ChartTable({

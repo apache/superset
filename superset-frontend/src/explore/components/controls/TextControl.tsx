@@ -26,7 +26,7 @@ interface TextControlProps {
   disabled?: boolean;
   isFloat?: boolean;
   isInt?: boolean;
-  onChange?: (value: any, errors: any) => {};
+  onChange?: (value: string | number, errors: Array<string>) => {};
   onFocus?: () => {};
   placeholder?: string;
   value?: string | number;
@@ -86,8 +86,8 @@ export default class TextControl extends React.Component<
     this.props.onChange?.(parsedValue, errors);
   };
 
-  onChangeWrapper = (event: any) => {
-    const { value } = event.target;
+  onChangeWrapper = (event: React.FormEvent<FormControl>) => {
+    const { value } = event.target as HTMLInputElement;
     this.setState({ value });
 
     // use debounce when change takes effect immediately after user starts typing

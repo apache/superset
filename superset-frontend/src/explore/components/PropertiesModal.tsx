@@ -32,6 +32,7 @@ import rison from 'rison';
 import { t, SupersetClient } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import FormLabel from 'src/components/FormLabel';
+import Owner from 'src/types/Owner';
 import { getClientErrorObject } from '../../utils/getClientErrorObject';
 
 type PropertiesModalProps = {
@@ -82,7 +83,7 @@ export default function PropertiesModal({
         });
         const chart = response.json.result;
         setOwners(
-          chart.owners.map((owner: any) => ({
+          chart.owners.map((owner: Owner) => ({
             value: owner.id,
             label: `${owner.first_name} ${owner.last_name}`,
           })),

@@ -22,7 +22,7 @@ import { ThemeProvider } from '@superset-ui/core';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 
-export function ProviderWrapper(props: any) {
+export function ProviderWrapper(props: Record<string, string>) {
   const { children, theme } = props;
 
   return (

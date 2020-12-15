@@ -60,6 +60,10 @@ export type SavedQueryObject = {
   sql_tables?: { catalog?: string; schema: string; table: string }[];
 };
 
+export type CellType = {
+  row: Record<'original' | 'id', any>;
+};
+
 export interface QueryObject {
   id: number;
   changed_on: string;

@@ -532,7 +532,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
     });
 
-    const data: any = {
+    const data: Record<string, any> = {
       ...currentAlert,
       chart: contentType === 'chart' ? currentAlert?.chart?.value : undefined,
       dashboard:
@@ -591,7 +591,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       endpoint: `/api/v1/dashboard/related/owners?q=${query}`,
     }).then(
       response => {
-        return response.json.result.map((item: any) => ({
+        return response.json.result.map((item: Record<string, string>) => ({
           value: item.value,
           label: item.text,
         }));
@@ -608,10 +608,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       endpoint: `/api/v1/dataset/related/database?q=${query}`,
     }).then(
       response => {
-        const list = response.json.result.map((item: any) => ({
-          value: item.value,
-          label: item.text,
-        }));
+        const list = response.json.result.map(
+          (item: Record<string, string>) => ({
+            value: item.value,
+            label: item.text,
+          }),
+        );
 
         setSourceOptions(list);
 
@@ -657,10 +659,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       endpoint: `/api/v1/dashboard?q=${query}`,
     }).then(
       response => {
-        const list = response.json.result.map((item: any) => ({
-          value: item.id,
-          label: item.dashboard_title,
-        }));
+        const list = response.json.result.map(
+          (item: Record<string, string>) => ({
+            value: item.id,
+            label: item.dashboard_title,
+          }),
+        );
 
         setDashboardOptions(list);
 
@@ -706,10 +710,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       endpoint: `/api/v1/chart?q=${query}`,
     }).then(
       response => {
-        const list = response.json.result.map((item: any) => ({
-          value: item.id,
-          label: item.slice_name,
-        }));
+        const list = response.json.result.map(
+          (item: Record<string, string>) => ({
+            value: item.id,
+            label: item.slice_name,
+          }),
+        );
 
         setChartOptions(list);
 

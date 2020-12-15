@@ -49,12 +49,12 @@ interface CRUDCollectionState {
 }
 
 function createKeyedCollection(arr: Array<object>) {
-  const newArr = arr.map((o: any) => ({
+  const newArr = arr.map((o: Record<string, string>) => ({
     ...o,
     id: o.id || shortid.generate(),
   }));
   const map = {};
-  newArr.forEach((o: any) => {
+  newArr.forEach((o: Record<string, string>) => {
     map[o.id] = o;
   });
   return map;
@@ -110,14 +110,14 @@ export default class CRUDCollection extends React.PureComponent<
     }
   }
 
-  onFieldsetChange(item: any) {
+  onFieldsetChange(item: Record<string, string>) {
     this.changeCollection({
       ...this.state.collection,
       [item.id]: item,
     });
   }
 
-  getLabel(col: any) {
+  getLabel(col: string) {
     const { columnLabels } = this.props;
     let label = columnLabels && columnLabels[col] ? columnLabels[col] : col;
     if (label.startsWith('__')) {

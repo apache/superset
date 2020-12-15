@@ -48,7 +48,13 @@ const createFetchResourceMethod = (method: string) => (
       endpoint: `${resourceEndpoint}?q=${queryParams}`,
     });
     const data = json?.result?.map(
-      ({ text: label, value }: { text: string; value: any }) => ({
+      ({
+        text: label,
+        value,
+      }: {
+        text: string;
+        value: Record<string, any>;
+      }) => ({
         label,
         value,
       }),
@@ -64,9 +70,9 @@ const createFetchResourceMethod = (method: string) => (
 export const getRecentAcitivtyObjs = (
   userId: string | number,
   recent: string,
-  addDangerToast: (arg1: string, arg2: any) => any,
+  addDangerToast: (arg1: string, arg2: Record<string, any>) => void,
 ) => {
-  const getParams = (filters?: Array<any>) => {
+  const getParams = (filters?: Array<Record<string, any>>) => {
     const params = {
       order_column: 'changed_on_delta_humanized',
       order_direction: 'desc',
@@ -122,7 +128,7 @@ export const getRecentAcitivtyObjs = (
       createdByChart,
       createdByQuery,
     ]) => {
-      const res: any = {
+      const res: Record<string, any> = {
         editedDash: editedDash.json?.result.slice(0, 3),
         editedChart: editedChart.json?.result.slice(0, 3),
         createdByDash: createdByDash.json?.result.slice(0, 3),

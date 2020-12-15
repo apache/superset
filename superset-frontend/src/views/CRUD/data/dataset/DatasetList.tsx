@@ -49,6 +49,7 @@ import ImportModelsModal, {
   StyledIcon,
 } from 'src/components/ImportModal/index';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { CellType } from 'src/views/CRUD/types';
 import AddDatasetModal from './AddDatasetModal';
 
 const PAGE_SIZE = 25;
@@ -154,7 +155,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         endpoint: `/api/v1/dataset/${id}`,
       })
         .then(({ json = {} }) => {
-          const owners = json.result.owners.map((owner: any) => owner.id);
+          const owners = json.result.owners.map((owner: Owner) => owner.id);
           setDatasetCurrentlyEditing({ ...json.result, owners });
         })
         .catch(() => {
@@ -193,7 +194,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { kind },
           },
-        }: any) => {
+        }: CellType) => {
           if (kind === 'physical') {
             return (
               <TooltipWrapper
@@ -227,7 +228,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               explore_url: exploreURL,
             },
           },
-        }: any) => {
+        }: CellType) => {
           const titleLink = <a href={exploreURL}>{datasetTitle}</a>;
           try {
             const parsedExtra = JSON.parse(extra);
@@ -254,7 +255,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { kind },
           },
-        }: any) => kind[0]?.toUpperCase() + kind.slice(1),
+        }: CellType) => kind[0]?.toUpperCase() + kind.slice(1),
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,
@@ -275,7 +276,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { changed_on_delta_humanized: changedOn },
           },
-        }: any) => <span className="no-wrap">{changedOn}</span>,
+        }: CellType) => <span className="no-wrap">{changedOn}</span>,
         Header: t('Modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
@@ -285,7 +286,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { changed_by_name: changedByName },
           },
-        }: any) => changedByName,
+        }: CellType) => changedByName,
         Header: t('Modified By'),
         accessor: 'changed_by.first_name',
         size: 'xl',
@@ -300,7 +301,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { owners = [], table_name: tableName },
           },
-        }: any) => <FacePile users={owners} />,
+        }: CellType) => <FacePile users={owners} />,
         Header: t('Owners'),
         id: 'owners',
         disableSortBy: true,
@@ -312,7 +313,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         disableSortBy: true,
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: CellType) => {
           const handleEdit = () => openDatasetEditModal(original);
           const handleDelete = () => openDatasetDeleteModal(original);
           const handleExport = () => handleBulkDatasetExport([original]);
