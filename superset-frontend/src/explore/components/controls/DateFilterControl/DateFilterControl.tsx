@@ -284,7 +284,7 @@ const fetchTimeRange = async (
   const endpoint = `/api/v1/chart/time_range/?q=${query}`;
 
   try {
-    const response = await SupersetClient.get({endpoint});
+    const response = await SupersetClient.get({ endpoint });
     const timeRangeString = buildTimeRangeString(
       response?.json?.result?.since || '',
       response?.json?.result?.until || '',
@@ -295,8 +295,8 @@ const fetchTimeRange = async (
   } catch (response) {
     const clientError = await getClientErrorObject(response);
     return {
-      error: clientError.message || clientError.error
-    }
+      error: clientError.message || clientError.error,
+    };
   }
 };
 
@@ -510,16 +510,15 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
 
   function onValidate() {
     const value = getCurrentValue();
-    fetchTimeRange(value, endpoints)
-      .then(({ value, error }) => {
-        if (error) {
-          setEvalTimeRange(error || '');
-          setValidAdvancedRange(false);
-        } else {
-          setEvalTimeRange(value || '');
-          setValidAdvancedRange(true);
-        }
-      })
+    fetchTimeRange(value, endpoints).then(({ value, error }) => {
+      if (error) {
+        setEvalTimeRange(error || '');
+        setValidAdvancedRange(false);
+      } else {
+        setEvalTimeRange(value || '');
+        setValidAdvancedRange(true);
+      }
+    });
   }
 
   function renderCommon() {
