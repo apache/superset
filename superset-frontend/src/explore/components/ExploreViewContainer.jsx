@@ -105,7 +105,7 @@ const Styles = styled.div`
     height: 100%;
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
     padding: ${({ theme }) => 2 * theme.gridUnit}px;
-    width: ${({ theme }) => 10 * theme.gridUnit}px;
+    width: ${({ theme }) => 8 * theme.gridUnit}px;
   }
   .data-tab {
     min-width: 288px;
