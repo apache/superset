@@ -387,7 +387,6 @@ class ExploreViewContainer extends React.Component {
             }
             body > div {
               flex: 1 1 auto;
-              overflow: hidden;
             }
           `}
         />
@@ -429,6 +428,7 @@ class ExploreViewContainer extends React.Component {
               tabIndex={0}
               className="action-button"
               onClick={this.handleCollapse}
+              data-test="open-datasource-tab"
             >
               <Icon
                 name="collapse"

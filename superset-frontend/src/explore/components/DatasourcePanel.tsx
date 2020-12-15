@@ -26,11 +26,12 @@ import {
 } from '@superset-ui/chart-controls';
 import Control from './Control';
 
-type DatasourceControl = {
+interface DatasourceControl {
   validationErrors: any;
   mapStateToProps: QueryFormData;
   type: ControlType;
   label: string;
+  datasource?: any;
 };
 
 interface Props {

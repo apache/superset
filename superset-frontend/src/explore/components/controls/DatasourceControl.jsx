@@ -44,7 +44,6 @@ const defaultProps = {
 };
 
 const Styles = styled.div`
-
   .data-container {
     display: flex;
     justify-content: space-between;
@@ -163,7 +162,6 @@ class DatasourceControl extends React.PureComponent {
   render() {
     const { showChangeDatasourceModal, showEditDatasourceModal } = this.state;
     const { datasource, onChange } = this.props;
-
     const datasourceMenu = (
       <Menu onClick={this.handleMenuItemClick}>
         {this.props.isEditable && (
@@ -206,7 +204,7 @@ class DatasourceControl extends React.PureComponent {
           )}
           <Dropdown
             overlay={datasourceMenu}
-            trigger={['click']}
+            trigger={['click', 'hover']}
             data-test="datasource-menu"
           >
             <Tooltip title={t('More dataset related options')}>
