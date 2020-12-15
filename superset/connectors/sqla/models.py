@@ -1474,7 +1474,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         return extra_cache_keys
 
     def health_check(self, commit: bool = False, force: bool = False) -> None:
-        check = config["DATASET_HEALTH_CHECK"]
+        check = config.get("DATASET_HEALTH_CHECK")
         if check is None:
             return
 
