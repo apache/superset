@@ -16,12 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import { FormInstance } from 'antd/lib/form';
 import { styled, t } from '@superset-ui/core';
-import SupersetResourceSelect, {
-  Value,
-} from 'src/components/SupersetResourceSelect';
+import { FormInstance } from 'antd/lib/form';
+import React, { useCallback, useState } from 'react';
 import {
   Checkbox,
   Form,
@@ -29,9 +26,14 @@ import {
   Radio,
   Typography,
 } from 'src/common/components';
-import { Filter, NativeFiltersForm, Scope, Scoping } from './types';
-import ScopingTree from './ScopingTree';
+import SupersetResourceSelect, {
+  Value,
+} from 'src/components/SupersetResourceSelect';
+import { addDangerToast } from 'src/messageToasts/actions';
+import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ColumnSelect } from './ColumnSelect';
+import ScopingTree from './ScopingTree';
+import { Filter, NativeFiltersForm, Scope, Scoping } from './types';
 
 type DatasetSelectValue = {
   value: number;
@@ -83,6 +85,17 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
     excluded: [],
   }); // TODO: when connect to store read from there
 
+  const onDatasetSelectError = useCallback(
+    ({ error, message }: ClientErrorObject) => {
+      let errorText = message || error || t('An error has occurred');
+      if (message === 'Forbidden') {
+        errorText = t('You do not have permission to edit this dashboard');
+      }
+      addDangerToast(errorText);
+    },
+    [],
+  );
+
   if (removed) {
     return (
       <RemovedContent>
@@ -117,6 +130,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
           transformItem={datasetToSelectOption}
           isMulti={false}
           onChange={setDataset}
+          onError={onDatasetSelectError}
         />
       </Form.Item>
       <Form.Item

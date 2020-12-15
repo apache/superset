@@ -18,10 +18,11 @@
  */
 import React, { useEffect } from 'react';
 import rison from 'rison';
-import { t, SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
 import { AsyncSelect } from 'src/components/Select';
-import { useToasts } from 'src/messageToasts/enhancers/withToasts';
-import getClientErrorObject from 'src/utils/getClientErrorObject';
+import getClientErrorObject, {
+  ClientErrorObject,
+} from 'src/utils/getClientErrorObject';
 
 export type Value<V> = { value: V; label: string };
 
@@ -33,6 +34,7 @@ export interface SupersetResourceSelectProps<T = unknown, V = string> {
   searchColumn?: string;
   resource?: string; // e.g. "dataset", "dashboard/related/owners"
   transformItem?: (item: T) => Value<V>;
+  onError: (error: ClientErrorObject) => void;
 }
 
 /**
@@ -40,13 +42,14 @@ export interface SupersetResourceSelectProps<T = unknown, V = string> {
  * items from one of the standard Superset resource APIs.
  * Such as selecting a datasource, a chart, or users.
  *
- * If you're selecting a "related" resource, leave the searchColumn prop unset.
+ * If you're selecting a "related" resource (such as dashboard/related/owners),
+ * leave the searchColumn prop unset.
  * The api doesn't do columns on related resources for some reason.
  *
  * If you're doing anything more complex than selecting a standard resource,
  * we'll all be better off if you use AsyncSelect directly instead.
  */
-export default function SupersetResourceSelect<T = unknown, V = string>({
+export default function SupersetResourceSelect<T, V>({
   value,
   initialId,
   onChange,
@@ -54,9 +57,8 @@ export default function SupersetResourceSelect<T = unknown, V = string>({
   resource,
   searchColumn,
   transformItem,
+  onError,
 }: SupersetResourceSelectProps<T, V>) {
-  const { addDangerToast } = useToasts();
-
   useEffect(() => {
     if (initialId == null) return;
     SupersetClient.get({
@@ -83,12 +85,7 @@ export default function SupersetResourceSelect<T = unknown, V = string>({
           .sort((a: Value<V>, b: Value<V>) => a.label.localeCompare(b.label));
       },
       async badResponse => {
-        const { error, message } = await getClientErrorObject(badResponse);
-        let errorText = message || error || t('An error has occurred');
-        if (message === 'Forbidden') {
-          errorText = t('You do not have permission to edit this dashboard');
-        }
-        addDangerToast(errorText);
+        onError(await getClientErrorObject(badResponse));
         return [];
       },
     );
