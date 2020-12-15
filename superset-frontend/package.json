@@ -92,6 +92,7 @@
     "@superset-ui/plugin-chart-echarts": "^0.15.17",
     "@superset-ui/plugin-chart-table": "^0.15.17",
     "@superset-ui/plugin-chart-word-cloud": "^0.15.17",
+    "@superset-ui/plugin-filter-antd": "^0.15.17",
     "@superset-ui/preset-chart-xy": "^0.15.17",
     "@vx/responsive": "^0.0.195",
     "abortcontroller-polyfill": "^1.1.9",
