@@ -23,6 +23,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { styled, logging, t, supersetTheme, css } from '@superset-ui/core';
 import { Global } from '@emotion/core';
+import { Tooltip } from 'src/common/components/Tooltip';
 import Icon from 'src/components/Icon';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
@@ -439,20 +440,22 @@ class ExploreViewContainer extends React.Component {
           />
         </div>
         {collapse ? (
-          <div className="sidebar">
-            <span
-              role="button"
-              tabIndex={0}
-              className="action-button"
-              onClick={this.handleCollapse}
-              data-test="open-datasource-tab"
-            >
-              <Icon
-                name="collapse"
-                color={supersetTheme.colors.primary.base}
-                className="collapse-icon"
-                width={16}
-              />
+          <div
+            className="sidebar"
+            onClick={this.handleCollapse}
+            data-test="open-datasource-tab"
+            role="button"
+            tabIndex={0}
+          >
+            <span role="button" tabIndex={0} className="action-button">
+              <Tooltip title="Open Datasource Tab">
+                <Icon
+                  name="collapse"
+                  color={supersetTheme.colors.primary.base}
+                  className="collapse-icon"
+                  width={16}
+                />
+              </Tooltip>
             </span>
             <Icon name="dataset-physical" width={16} />
           </div>
