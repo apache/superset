@@ -15,11 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import json
+import logging
 from typing import Any, Dict
 
 from sqlalchemy.orm import Session
 
 from superset.connectors.sqla.models import SqlaTable
+
+logger = logging.getLogger(__name__)
+
+JSON_KEYS = {"params", "template_params", "extra"}
 
 
 def import_dataset(
@@ -30,6 +36,21 @@ def import_dataset(
         if not overwrite:
             return existing
         config["id"] = existing.id
+
+    # TODO (betodealmeida): move this logic to import_from_dict
+    config = config.copy()
+    for key in JSON_KEYS:
+        if config.get(key):
+            try:
+                config[key] = json.dumps(config[key])
+            except TypeError:
+                logger.info("Unable to encode `%s` field: %s", key, config[key])
+    for metric in config.get("metrics", []):
+        if metric.get("extra"):
+            try:
+                metric["extra"] = json.dumps(metric["extra"])
+            except TypeError:
+                logger.info("Unable to encode `extra` field: %s", metric["extra"])
 
     # should we delete columns and metrics not present in the current import?
     sync = ["columns", "metrics"] if overwrite else []

@@ -109,8 +109,8 @@ def import_dashboard(
             value = config.pop(key)
             try:
                 config[new_name] = json.dumps(value)
-            except json.decoder.JSONDecodeError:
-                logger.info("Unable to decode `%s` field: %s", key, value)
+            except TypeError:
+                logger.info("Unable to encode `%s` field: %s", key, value)
 
     dashboard = Dashboard.import_from_dict(session, config, recursive=False)
     if dashboard.id is None:
