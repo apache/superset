@@ -33,9 +33,9 @@ import {
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Label from 'src/components/Label';
 import Modal from 'src/common/components/Modal';
-import { DatePicker, Input } from 'src/common/components';
+import { DatePicker, Input, Button } from 'src/common/components';
 import { Select } from 'src/components/Select';
-import { Col, InputNumber, Radio, Row } from 'antd';
+import { Col, Divider, InputNumber, Radio, Row } from 'antd';
 import {
   TimeRangeFrameType,
   CommonRangeType,
@@ -281,11 +281,44 @@ const fetchActualTimeRange = async (
   return formatTimeRange(timeRangeString, endpoints);
 };
 
-const Styles = styled.div`
+const StyledModalContainer = styled.div`
   .ant-row {
-    margin-top: 5px;
+    margin-top: 8px;
+  }
+  
+  .ant-divider-horizontal {
+    margin: 16px 0;
+  }
+  
+  .control-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #B2B2B2;
+    line-height: 16px;
+    text-transform: uppercase;
+    margin: 8px 0;
+  }
+  
+  .vertical-radio {
+    display: block;
+    height: 40px;
+    line-height: 40px;
+  }
+
+  .section-title {
+    font-style: normal;
+    font-weight: 500;
+    font-size: 15px;
+    line-height: 24px;
+    margin-bottom: 8px;
   }
 `;
+
+const StyledValidateBtn = styled.span`
+  .validate-btn {
+    float: left;
+  }
+`
 
 interface DateFilterLabelProps {
   animation?: boolean;
@@ -306,7 +339,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
     guessTimeRangeFrame(value),
   );
   const [show, setShow] = useState<boolean>(false);
-  const [actualTimeRange, setActualTimeRange] = useState<string>('');
+  const [actualTimeRange, setActualTimeRange] = useState<string>(value);
   const [commonRange, setCommonRange] = useState<CommonRangeType>('Last week');
   const [calendarRange, setCalendarRange] = useState<CalendarRangeType>(
     PreviousCalendarWeek,
@@ -314,9 +347,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   const [customRange, setCustomRange] = useState<CustomRangeType>(
     customTimeRangeDecode(value).customRange,
   );
-  const [advancedRange, setAdvancedRange] = useState<string>(
-    `Last week${SEPARATOR}today`,
-  );
+  const [advancedRange, setAdvancedRange] = useState<string>(value);
 
   useEffect(() => {
     fetchActualTimeRange(value, endpoints).then(value => {
@@ -343,48 +374,6 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
     setShow(false);
   }
 
-  function renderCommon() {
-    const currentValue =
-      COMMON_RANGE_OPTIONS.find(_ => _.value === commonRange)?.value ||
-      commonRange;
-    return (
-      <>
-        {t('COMMON DATETIME')}
-        <Radio.Group
-          value={currentValue}
-          onChange={(e: any) => setCommonRange(e.target.value)}
-        >
-          {COMMON_RANGE_OPTIONS.map(_ => (
-            <Radio key={_.value} value={_.value}>
-              {_.label}
-            </Radio>
-          ))}
-        </Radio.Group>
-      </>
-    );
-  }
-
-  function renderCalendar() {
-    const currentValue =
-      CALENDAR_RANGE_OPTIONS.find(_ => _.value === calendarRange)?.value ||
-      calendarRange;
-    return (
-      <>
-        {t('PREVIOUS CALENDAR DATETIME')}
-        <Radio.Group
-          value={currentValue}
-          onChange={(e: any) => setCalendarRange(e.target.value)}
-        >
-          {CALENDAR_RANGE_OPTIONS.map(_ => (
-            <Radio key={_.value} value={_.value}>
-              {_.label}
-            </Radio>
-          ))}
-        </Radio.Group>
-      </>
-    );
-  }
-
   function onAdvancedRangeChange(control: 'since' | 'until', value: string) {
     const [since, until] = [...advancedRange.split(SEPARATOR)];
     if (control === 'since') {
@@ -392,22 +381,6 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
     } else {
       setAdvancedRange(`${since}${SEPARATOR}${value}`);
     }
-  }
-
-  function renderAdvanced() {
-    const [since, until] = [...advancedRange.split(SEPARATOR)];
-    return (
-      <>
-        <Input
-          value={since}
-          onChange={e => onAdvancedRangeChange('since', e.target.value)}
-        />
-        <Input
-          value={until}
-          onChange={e => onAdvancedRangeChange('until', e.target.value)}
-        />
-      </>
-    );
   }
 
   function onCustomRangeChange(
@@ -437,6 +410,98 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
     }
   }
 
+  function showValidateBtn(): boolean {
+    return timeRangeFrame === 'Advanced' || timeRangeFrame === 'Custom';
+  }
+
+  function onValidate() {
+    let value = "";
+    if (timeRangeFrame === 'Custom') {
+      value = customTimeRangeEncode(customRange);
+    }
+    if (timeRangeFrame === 'Advanced') {
+      value = advancedRange;
+    }
+    fetchActualTimeRange(value, endpoints).then(value => {
+      console.log(value)
+    });
+  }
+
+  function renderCommon() {
+    const currentValue =
+      COMMON_RANGE_OPTIONS.find(_ => _.value === commonRange)?.value ||
+      commonRange;
+    return (
+      <>
+        <div className="section-title">{t('Configure Time Range: Last...')}</div>
+        <Radio.Group
+          value={currentValue}
+          onChange={(e: any) => setCommonRange(e.target.value)}
+        >
+          {COMMON_RANGE_OPTIONS.map(_ => (
+            <Radio key={_.value} value={_.value} className="vertical-radio">
+              {_.label}
+            </Radio>
+          ))}
+        </Radio.Group>
+      </>
+    );
+  }
+
+  function renderCalendar() {
+    const currentValue =
+      CALENDAR_RANGE_OPTIONS.find(_ => _.value === calendarRange)?.value ||
+      calendarRange;
+    return (
+      <>
+        <div className="section-title">{t('Configure Time Range: Previous...')}</div>
+        <Radio.Group
+          value={currentValue}
+          onChange={(e: any) => setCalendarRange(e.target.value)}
+        >
+          {CALENDAR_RANGE_OPTIONS.map(_ => (
+            <Radio key={_.value} value={_.value} className="vertical-radio">
+              {_.label}
+            </Radio>
+          ))}
+        </Radio.Group>
+      </>
+    );
+  }
+
+  function renderAdvanced() {
+    let since: string = "";
+    let until: string = "";
+    if (advancedRange.includes(SEPARATOR)) {
+      [since, until] = [...advancedRange.split(SEPARATOR)];
+    }
+    if (!advancedRange.includes(SEPARATOR) && advancedRange.startsWith('Last')) {
+      since = advancedRange;
+      until = "today";
+    }
+    if (!advancedRange.includes(SEPARATOR) && advancedRange.startsWith('Next')) {
+      since = "today";
+      until = advancedRange;
+    }
+    return (
+      <>
+        <div className="section-title">{t('Configure Advanced Time Range')}</div>
+        <div className="control-label">{t('START')}</div>
+        <Input
+          key="since"
+          value={since}
+          onChange={e => onAdvancedRangeChange('since', e.target.value)}
+        />
+        <div className="control-label">{t('END')}</div>
+        <Input
+          key="until"
+          value={until}
+          onChange={e => onAdvancedRangeChange('until', e.target.value)}
+        />
+      </>
+    );
+  }
+
   function renderCustom() {
     const {
       sinceDatetime,
@@ -453,9 +518,10 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
 
     return (
       <>
+        <div className="section-title">{t('Configure Custom Time Range')}</div>
         <Row gutter={8}>
           <Col span={12}>
-            {t('START')}
+            <div className="control-label">{t('START')}</div>
             <Select
               name="select-start-type"
               options={SINCE_MODE_OPTIONS}
@@ -511,7 +577,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
             )}
           </Col>
           <Col span={12}>
-            {t('END')}
+            <div className="control-label">{t('END')}</div>
             <Select
               options={UNTIL_MODE_OPTIONS}
               value={UNTIL_MODE_OPTIONS.filter(
@@ -567,7 +633,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
         </Row>
         {sinceMode === 'relative' && untilMode === 'relative' && (
           <>
-            <Row>{t('ANCHOR RELATIVE TO')}</Row>
+            <div className="control-label">{t('ANCHOR RELATIVE TO')}</div>
             <Row align="middle">
               <Radio.Group
                 onChange={onCustomRangeChangeAnchorMode}
@@ -612,31 +678,48 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
       >
         {actualTimeRange}
       </Label>
-
       <Modal
-        title="Range"
+        title={t('Edit Time Range')}
         show={show}
         onHide={() => setShow(false)}
-        onHandledPrimaryAction={onSave}
-        primaryButtonName={t('APPLY')}
-        primaryButtonType="primary"
+        footer={[
+          <Button key="cancel" onClick={() => setShow(false)}>
+            {t('CANCEL')}
+          </Button>,
+          <Button key="apply" type="primary" onClick={onSave}>
+            {t('APPLY')}
+          </Button>,
+          showValidateBtn() && (
+            <StyledValidateBtn>
+              <Button className="validate-btn"
+                      key="validate"
+                      type="default"
+                      onClick={onValidate}>
+                {t('Validate')}
+              </Button>
+            </StyledValidateBtn>),
+        ]}
       >
-        <Styles>
-          <div>
-            {t('RANGE TYPE')}
-            <Select
-              options={RANGE_FRAME_OPTIONS}
-              value={RANGE_FRAME_OPTIONS.filter(
-                _ => _.value === timeRangeFrame,
-              )}
-              onChange={(_: any) => setTimeRangeFrame(_.value)}
-            />
-          </div>
+        <StyledModalContainer>
+          <div className="control-label">{t('RANGE TYPE')}</div>
+          <Select
+            options={RANGE_FRAME_OPTIONS}
+            value={RANGE_FRAME_OPTIONS.filter(
+              _ => _.value === timeRangeFrame,
+            )}
+            onChange={(_: any) => setTimeRangeFrame(_.value)}
+          />
+          {timeRangeFrame !== 'No Filter' && <Divider />}
           {timeRangeFrame === 'Common' && renderCommon()}
           {timeRangeFrame === 'Calendar' && renderCalendar()}
           {timeRangeFrame === 'Advanced' && renderAdvanced()}
           {timeRangeFrame === 'Custom' && renderCustom()}
-        </Styles>
+          <Divider />
+          <div>
+            <div className="section-title">{t('Actual Time Range')}</div>
+            <div>{actualTimeRange}</div>
+          </div>
+        </StyledModalContainer>
       </Modal>
     </>
   );

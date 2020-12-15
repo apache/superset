@@ -86,6 +86,7 @@ from pyparsing import (
     pyparsing_common,
     quotedString,
     Suppress,
+    ParseException,
 )
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
@@ -1434,7 +1435,10 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
 
 def datetime_eval(datetime_expression: Optional[str] = None) -> Optional[datetime]:
     if datetime_expression:
-        return datetime_parser().parseString(datetime_expression)[0].eval()
+        try:
+            return datetime_parser().parseString(datetime_expression)[0].eval()
+        except ParseException as e:
+            raise ValueError(e)
     return None
 
 

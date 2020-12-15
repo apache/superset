@@ -59,6 +59,7 @@ from superset.charts.schemas import (
     openapi_spec_methods_override,
     screenshot_query_schema,
     thumbnail_query_schema,
+    get_time_range_schema,
 )
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import remove_root
@@ -67,7 +68,11 @@ from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
-from superset.utils.core import ChartDataResultFormat, json_int_dttm_ser
+from superset.utils.core import (
+    ChartDataResultFormat,
+    json_int_dttm_ser,
+    get_since_until,
+)
 from superset.utils.screenshots import ChartScreenshot
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (
@@ -895,3 +900,19 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except Exception as exc:  # pylint: disable=broad-except
             logger.exception("Import chart failed")
             return self.response_500(message=str(exc))
+
+    @expose("/time_range/", methods=["GET"])
+    @safe
+    @rison(get_time_range_schema)
+    def get_time_range(self, **kwargs: Any) -> Response:
+        time_range = kwargs["rison"]
+        try:
+            since, until = get_since_until(time_range)
+            result = {
+                "since": since.isoformat() if since else None,
+                "until": until.isoformat() if until else None,
+                "timeRange": time_range,
+            }
+            return self.response(200, result=result)
+        except ValueError as e:
+            return self.response_400(f"Invalid datetime: {e}")
