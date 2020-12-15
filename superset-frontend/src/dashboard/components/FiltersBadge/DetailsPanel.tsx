@@ -117,9 +117,6 @@ const DetailsPanelPopover = ({
                 padding-bottom: 0;
               }
             }
-            .ant-collapse-item:last-of-type.ant-collapse-item-active {
-              padding-bottom: ${theme.gridUnit * 3}px;
-            }
             &.ant-popover-placement-bottom,
             &.ant-popover-placement-bottomLeft,
             &.ant-popover-placement-bottomRight {
@@ -155,15 +152,13 @@ const DetailsPanelPopover = ({
             &.ant-popover {
               color: ${theme.colors.grayscale.light4};
             }
-            .ant-collapse-arrow svg {
-              color: ${theme.colors.grayscale.light4};
-            }
           }
         `}
       />
       <Reset>
         <Collapse
           ghost
+          light
           activeKey={activePanels}
           onChange={handleActivePanelChange}
         >

@@ -19,6 +19,7 @@
 import React from 'react';
 import { FormGroup, FormControl } from 'react-bootstrap';
 import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
+import debounce from 'lodash/debounce';
 import ControlHeader from '../ControlHeader';
 
 interface TextControlProps {
@@ -30,10 +31,12 @@ interface TextControlProps {
   placeholder?: string;
   value?: string | number;
   controlId?: string;
+  renderTrigger?: boolean;
 }
 
 interface TextControlState {
   controlId: string;
+  value?: string | number;
 }
 
 const generateControlId = (controlId?: string) =>
@@ -43,42 +46,59 @@ export default class TextControl extends React.Component<
   TextControlProps,
   TextControlState
 > {
+  debouncedOnChange = debounce((inputValue: string) => {
+    this.onChange(inputValue);
+  }, 500);
+
   constructor(props: TextControlProps) {
     super(props);
-    this.onChange = this.onChange.bind(this);
+
     // if there's no control id provided, generate a random
     // number to prevent rendering elements with same ids
     this.state = {
       controlId: generateControlId(props.controlId),
+      value: props.value,
     };
   }
 
-  onChange(event: any) {
-    let { value } = event.target;
-
+  onChange = (inputValue: string) => {
+    let parsedValue: string | number = inputValue;
     // Validation & casting
     const errors = [];
-    if (value !== '' && this.props.isFloat) {
-      const error = legacyValidateNumber(value);
+    if (inputValue !== '' && this.props.isFloat) {
+      const error = legacyValidateNumber(inputValue);
       if (error) {
         errors.push(error);
       } else {
-        value = value.match(/.*([.0])$/g) ? value : parseFloat(value);
+        parsedValue = inputValue.match(/.*([.0])$/g)
+          ? inputValue
+          : parseFloat(inputValue);
       }
     }
-    if (value !== '' && this.props.isInt) {
-      const error = legacyValidateInteger(value);
+    if (inputValue !== '' && this.props.isInt) {
+      const error = legacyValidateInteger(inputValue);
       if (error) {
         errors.push(error);
       } else {
-        value = parseInt(value, 10);
+        parsedValue = parseInt(inputValue, 10);
       }
     }
-    this.props.onChange?.(value, errors);
-  }
+    this.props.onChange?.(parsedValue, errors);
+  };
 
-  render() {
-    const { value: rawValue } = this.props;
+  onChangeWrapper = (event: any) => {
+    const { value } = event.target;
+    this.setState({ value });
+
+    // use debounce when change takes effect immediately after user starts typing
+    const onChange = this.props.renderTrigger
+      ? this.debouncedOnChange
+      : this.onChange;
+    onChange(value);
+  };
+
+  render = () => {
+    const { value: rawValue } = this.state;
     const value =
       typeof rawValue !== 'undefined' && rawValue !== null
         ? rawValue.toString()
@@ -92,7 +112,7 @@ export default class TextControl extends React.Component<
             type="text"
             data-test="inline-name"
             placeholder={this.props.placeholder}
-            onChange={this.onChange}
+            onChange={this.onChangeWrapper}
             onFocus={this.props.onFocus}
             value={value}
             disabled={this.props.disabled}
@@ -100,5 +120,5 @@ export default class TextControl extends React.Component<
         </FormGroup>
       </div>
     );
-  }
+  };
 }
