@@ -21,7 +21,7 @@ under the License.
 
 ## What's new
 - [New features](#new-features)
-- [Bugfixes](#Bugfixes)
+- [Bugfixes](#bugfixes)
 - [Breaking Changes](#breaking-changes)
 - [Complete Changelog](#complete-changelog)
 
@@ -48,7 +48,8 @@ Database CRUD screen refactor/redesign ([Roadmap](https://github.com/apache-supe
 
 Database list view refactor/redesign ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/55))
 - feat: database delete warning  (#[10800](https://github.com/apache/incubator-superset/pull/10800))
-![10800](media/10800.gif)
+<img src="media/10800.gif" style="max-width:50%; border:1px solid grey;">
+
 - feat: filters for database list view  (#[10772](https://github.com/apache/incubator-superset/pull/10772))
 - feat: SIP-34 table list view for databases  (#[10705](https://github.com/apache/incubator-superset/pull/10705))
 
@@ -58,26 +59,29 @@ Database list view refactor/redesign #55 ([Roadmap](https://github.com/apache-su
 - feat(database): POST, PUT, DELETE API endpoints  (#[10741](https://github.com/apache/incubator-superset/pull/10741))
 - feat(databases): test connection api  (#[10723](https://github.com/apache/incubator-superset/pull/10723))
 
+
 Datasets CRUD screen refactor/redesign ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/13))
 - feat: dataset editor improvements  (#[10444](https://github.com/apache/incubator-superset/pull/10444))
-![10444](media/10444.gif)
+<img src="media/10444.gif" style="max-width:50%; border:1px solid grey;">
 
 
 Datasets CRUD screen refactor/redesign #13 ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/13))
 - feat(datasource): remove deleted columns and update column type on metadata refresh  (#[10619](https://github.com/apache/incubator-superset/pull/10619))
-![10619](media/10619.png)
+<img src="media/10619.png" style="max-width:50%; border:1px solid grey;">
 
 
 Datasets list view refactor/redesign #12 ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/12))
 - feat: update dataset editor modal  (#[10347](https://github.com/apache/incubator-superset/pull/10347))
-![10347](media/10347.gif)
+<img src="media/10347.gif" style="max-width:50%; border:1px solid grey;">
+
 - feat(datasets): REST API bulk delete  (#[11237](https://github.com/apache/incubator-superset/pull/11237))
 
 
 Saved queries CRUD screen + list view refactor/redesign #15 ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/15))
 - feat: CRUD REST API for saved queries  (#[10777](https://github.com/apache/incubator-superset/pull/10777))
 - feat: saved query list actions  (#[11109](https://github.com/apache/incubator-superset/pull/11109))
-![11109](media/11109.gif)
+<img src="media/11109.gif" style="max-width:50%; border:1px solid grey;">
+
 - feat: saved query list view + sort/filters  (#[11005](https://github.com/apache/incubator-superset/pull/11005))
 - feat: SavedQuery REST API for bulk delete and new API fields  (#[10793](https://github.com/apache/incubator-superset/pull/10793))
 - feat: update saved query backend routing + add savedquery list  (#[10922](https://github.com/apache/incubator-superset/pull/10922))
@@ -92,12 +96,12 @@ Other features
 
 [SIP-40] Proposal for Custom Error Messages #9194 ([SIP](https://github.com/apache/incubator-superset/issues/9194))
 - feat: add download as image button to explore  (#[10297](https://github.com/apache/incubator-superset/pull/10297))
-![10297](media/10297.gif)
+<img src="media/10297.gif" style="max-width:50%; border:1px solid grey;">
 
 
 [SIP-34] Proposal to establish a new design direction, system, and process for Superset ([SIP](https://github.com/apache/incubator-superset/issues/8976))
 - feat: SIP-34 explore save modal  (#[10355](https://github.com/apache/incubator-superset/pull/10355))
-![10355](media/10355.gif)
+<img src="media/10355.gif" style="max-width:50%; border:1px solid grey;">
 
 
 Charts list view refactor/redesign ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/47))
@@ -106,24 +110,27 @@ Charts list view refactor/redesign ([Roadmap](https://github.com/apache-superset
 
 Echarts integration ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/48))
 - feat: add linear color scale to sunburst chart  (#[10474](https://github.com/apache/incubator-superset/pull/10474))
-![10474](media/10474.gif)
+<img src="media/10474.gif" style="max-width:50%; border:1px solid grey;">
+
 - feat: add optional prophet forecasting functionality to chart data api  (#[10324](https://github.com/apache/incubator-superset/pull/10324))
 - feat(viz): add ECharts Timeseries chart  (#[10752](https://github.com/apache/incubator-superset/pull/10752))
-![10752](media/10752.gif)
+<img src="media/10752.gif" style="max-width:50%; border:1px solid grey;">
 
 
 Improvements to cache handling #74 ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/74))
 - feat: add ECharts Pie chart  (#[10966](https://github.com/apache/incubator-superset/pull/10966))
-![10966](media/10966.gif)
+<img src="media/10966.gif" style="max-width:50%; border:1px solid grey;">
+
 - feat: implement cache invalidation api  (#[10761](https://github.com/apache/incubator-superset/pull/10761))
 - feature: Adding extra_filters to warm_up_cache  (#[10675](https://github.com/apache/incubator-superset/pull/10675))
 
 
 [SIP-34] Proposal to establish a new design direction, system, and process for Superset ([SIP](https://github.com/apache/incubator-superset/issues/8976))
 - feat: add favorite star to dashboard and chart lists  (#[10510](https://github.com/apache/incubator-superset/pull/10510))
-![10510](media/10510.png)
+<img src="media/10510.png" style="max-width:50%; border:1px solid grey;">
+
 - feat: use svg for checkbox component  (#[10799](https://github.com/apache/incubator-superset/pull/10799))
-![10799](media/10799.gif)
+<img src="media/10799.gif" style="max-width:50%; border:1px solid grey;">
 
 
 Other features
@@ -131,21 +138,19 @@ Other features
 
 
 - feat: adding dashboard toggle fullscreen button  (#[10840](https://github.com/apache/incubator-superset/pull/10840))
-![10840](media/10840.png)
+<img src="media/10840.png" style="max-width:50%; border:1px solid grey;">
+
 - feat: enable ETag header for dashboard GET requests  (#[10963](https://github.com/apache/incubator-superset/pull/10963))
-
-
 - feat: move ace-editor and mathjs to async modules  (#[10837](https://github.com/apache/incubator-superset/pull/10837))
 - feat: server side dashboard css for less repaint  (#[10850](https://github.com/apache/incubator-superset/pull/10850))
 - feat: use shorten url in standalone iframe  (#[10651](https://github.com/apache/incubator-superset/pull/10651))
 
 
-**SQL LAB **
+**SQL LAB**
 - Feat: Adding table comment and columns comment for SQLLab  (#[10844](https://github.com/apache/incubator-superset/pull/10844))
 
 
 **SYSTEM, OTHER**
-Other
 - feat: add TXT as default CSV extension  (#[10371](https://github.com/apache/incubator-superset/pull/10371))
 
 
@@ -185,8 +190,6 @@ Superset Component library - Phase 1 ([Roadmap](https://github.com/apache-supers
 
 Other
 - feat: Allow tests files in  /src (plus Label component tests)  (#[10634](https://github.com/apache/incubator-superset/pull/10634))
-
-
 - feat: Getting fancier with Storybook  (#[10647](https://github.com/apache/incubator-superset/pull/10647))
 
 
