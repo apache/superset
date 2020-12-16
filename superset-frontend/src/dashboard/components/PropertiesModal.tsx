@@ -17,7 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { Row, Col, FormControl, Button as BootstrapButton } from 'react-bootstrap';
+import {
+  Row,
+  Col,
+  FormControl,
+  Button as BootstrapButton,
+} from 'react-bootstrap';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
 import { AsyncSelect } from 'src/components/Select';
@@ -177,7 +182,7 @@ class PropertiesModal extends React.PureComponent<
     this.updateFormState('json_metadata', metadata);
   }
 
-  onChange(e: React.FormEvent<FormControl> & { target: HTMLInputElement}) {
+  onChange(e: React.FormEvent<FormControl> & { target: HTMLInputElement }) {
     const { name, value } = e.target;
     this.updateFormState(name, value);
   }
@@ -231,7 +236,9 @@ class PropertiesModal extends React.PureComponent<
     }));
   }
 
-  submit(event: React.FormEvent<HTMLFormElement> | React.MouseEvent<BootstrapButton>) {
+  submit(
+    event: React.FormEvent<HTMLFormElement> | React.MouseEvent<BootstrapButton>,
+  ) {
     event.preventDefault();
     event.stopPropagation();
     const {
@@ -245,7 +252,7 @@ class PropertiesModal extends React.PureComponent<
     } = this.state;
     const { onlyApply } = this.props;
     const owners = ownersValue.map((o: Record<string, any>) => o.value);
-    let metadataColorScheme: string | undefined = undefined;
+    let metadataColorScheme: string | undefined;
 
     // update color scheme to match metadata
     if (jsonMetadata?.length) {
