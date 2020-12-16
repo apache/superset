@@ -120,9 +120,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     GAMMA_READ_ONLY_MODEL_VIEWS = {
-        "SqlMetricInlineView",
-        "TableColumnInlineView",
-        "TableModelView",
+        "Dataset",
         "DruidColumnInlineView",
         "DruidDatasourceModelView",
         "DruidMetricInlineView",
@@ -160,7 +158,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "all_query_access",
     }
 
-    READ_ONLY_PERMISSION = {"can_show", "can_list", "can_get", "can_external_metadata"}
+    READ_ONLY_PERMISSION = {
+        "can_show",
+        "can_list",
+        "can_get",
+        "can_external_metadata",
+        "can_read",
+    }
 
     ALPHA_ONLY_PERMISSIONS = {
         "muldelete",

@@ -46,7 +46,7 @@ from superset.annotation_layers.schemas import (
     get_delete_ids_schema,
     openapi_spec_methods_override,
 )
-from superset.constants import RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
 from superset.models.annotations import AnnotationLayer
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
@@ -61,7 +61,9 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
     }
-    class_permission_name = "AnnotationLayerModelView"
+    class_permission_name = "Annotation"
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+
     resource_name = "annotation_layer"
     allow_browser_login = True
 
