@@ -923,7 +923,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         )
 
         arguments = {
-            "filters": [{"col": "id", "opr": "chart_is_fav", "value": True}],
+            "filters": [{"col": "id", "opr": "chart_is_favorite", "value": True}],
             "order_column": "slice_name",
             "order_direction": "asc",
             "keys": ["none"],

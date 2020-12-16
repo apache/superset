@@ -90,7 +90,7 @@ function ChartTable({
     } else {
       filters.push({
         id: 'id',
-        operator: 'chart_is_fav',
+        operator: 'chart_is_favorite',
         value: true,
       });
     }
