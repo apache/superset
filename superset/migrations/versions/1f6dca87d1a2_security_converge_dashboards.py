@@ -17,14 +17,14 @@
 """security converge dashboards
 
 Revision ID: 1f6dca87d1a2
-Revises: 5daced1f0e76
+Revises: 45731db65d9c
 Create Date: 2020-12-11 11:45:25.051084
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "1f6dca87d1a2"
-down_revision = "5daced1f0e76"
+down_revision = "45731db65d9c"
 
 
 from alembic import op
