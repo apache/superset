@@ -16,29 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
+import React, { ReactNode } from 'react';
 import Popover from 'src/common/components/Popover';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/AdhocMetricEditPopoverTitle';
 import AdhocMetricEditPopover from './AdhocMetricEditPopover';
 import AdhocMetric from '../AdhocMetric';
 import columnType from '../propTypes/columnType';
-import { OptionControlLabel } from './OptionControls';
 
-const propTypes = {
-  adhocMetric: PropTypes.instanceOf(AdhocMetric),
-  onMetricEdit: PropTypes.func.isRequired,
-  onRemoveMetric: PropTypes.func,
-  columns: PropTypes.arrayOf(columnType),
-  datasourceType: PropTypes.string,
+export type AdhocMetricPopoverTriggerProps = {
+  adhocMetric: AdhocMetric;
+  onMetricEdit: () => void;
+  columns: typeof columnType[];
+  datasourceType: string;
+  children: ReactNode;
 };
 
-class AdhocMetricOption extends React.PureComponent {
-  constructor(props) {
+export type AdhocMetricPopoverTriggerState = {
+  popoverVisible?: boolean;
+  title: { label: string; hasCustomLabel: boolean };
+};
+
+class AdhocMetricPopoverTrigger extends React.PureComponent<
+  AdhocMetricPopoverTriggerProps,
+  AdhocMetricPopoverTriggerState
+> {
+  constructor(props: AdhocMetricPopoverTriggerProps) {
     super(props);
     this.onPopoverResize = this.onPopoverResize.bind(this);
     this.onLabelChange = this.onLabelChange.bind(this);
-    this.onRemoveMetric = this.onRemoveMetric.bind(this);
     this.closePopover = this.closePopover.bind(this);
     this.togglePopover = this.togglePopover.bind(this);
     this.state = {
@@ -57,7 +62,7 @@ class AdhocMetricOption extends React.PureComponent {
     this.props.adhocMetric.isNew = false;
   }
 
-  onLabelChange(e) {
+  onLabelChange(e: any) {
     const label = e.target.value;
     this.setState({
       title: {
@@ -65,11 +70,6 @@ class AdhocMetricOption extends React.PureComponent {
         hasCustomLabel: !!label,
       },
     });
-  }
-
-  onRemoveMetric(e) {
-    e.stopPropagation();
-    this.props.onRemoveMetric();
   }
 
   onPopoverResize() {
@@ -80,7 +80,7 @@ class AdhocMetricOption extends React.PureComponent {
     this.togglePopover(false);
   }
 
-  togglePopover(visible) {
+  togglePopover(visible: boolean) {
     this.setState(({ popoverVisible }) => {
       this.props.adhocMetric.isNew = false;
       return {
@@ -113,26 +113,28 @@ class AdhocMetricOption extends React.PureComponent {
     );
 
     return (
-      <Popover
-        placement="right"
-        trigger="click"
-        disabled
-        content={overlayContent}
-        defaultVisible={this.state.popoverVisible || adhocMetric.isNew}
-        visible={this.state.popoverVisible}
-        onVisibleChange={this.togglePopover}
-        title={popoverTitle}
+      <div
+        className="metric-option"
+        data-test="metric-option"
+        role="button"
+        tabIndex={0}
+        onMouseDown={e => e.stopPropagation()}
+        onKeyDown={e => e.stopPropagation()}
       >
-        <OptionControlLabel
-          label={adhocMetric.label}
-          onRemove={this.onRemoveMetric}
-          isAdhoc
-        />
-      </Popover>
+        <Popover
+          placement="right"
+          trigger="click"
+          content={overlayContent}
+          defaultVisible={this.state.popoverVisible || adhocMetric.isNew}
+          visible={this.state.popoverVisible}
+          onVisibleChange={this.togglePopover}
+          title={popoverTitle}
+        >
+          {this.props.children}
+        </Popover>
+      </div>
     );
   }
 }
 
-export default AdhocMetricOption;
-
-AdhocMetricOption.propTypes = propTypes;
+export default AdhocMetricPopoverTrigger;

@@ -197,14 +197,18 @@ export default class AdhocMetricEditPopover extends React.Component {
       })),
     );
 
+    const columnValue =
+      (adhocMetric.column && adhocMetric.column.column_name) ||
+      adhocMetric.inferSqlExpressionColumn();
+
+    // autofocus on column if there's no value in column; otherwise autofocus on aggregate
     const columnSelectProps = {
       placeholder: t('%s column(s)', columns.length),
-      value:
-        (adhocMetric.column && adhocMetric.column.column_name) ||
-        adhocMetric.inferSqlExpressionColumn(),
+      value: columnValue,
       onChange: this.onColumnChange,
       allowClear: true,
       showSearch: true,
+      autoFocus: !columnValue,
       filterOption: (input, option) =>
         option.filterBy.toLowerCase().indexOf(input.toLowerCase()) >= 0,
     };
@@ -214,7 +218,7 @@ export default class AdhocMetricEditPopover extends React.Component {
       value: adhocMetric.aggregate || adhocMetric.inferSqlExpressionAggregate(),
       onChange: this.onAggregateChange,
       allowClear: true,
-      autoFocus: true,
+      autoFocus: !!columnValue,
       showSearch: true,
     };
 
