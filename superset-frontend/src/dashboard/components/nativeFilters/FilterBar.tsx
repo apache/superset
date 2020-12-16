@@ -170,7 +170,7 @@ const StyledFilterControlTitleBox = styled.div`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 1.5}px;
+  margin-bottom: ${({ theme }) => theme.gridUnit}px;
 `;
 
 const StyledFilterControlContainer = styled.div`

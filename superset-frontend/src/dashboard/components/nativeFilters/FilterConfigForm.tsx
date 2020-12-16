@@ -72,7 +72,7 @@ const StyledFormItem = styled(Form.Item)`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
-const StyledFormCheckbox = styled(Form.Item)`
+const StyledCheckboxFormItem = styled(Form.Item)`
   margin-bottom: 0;
 `;
 
@@ -205,43 +205,47 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
           ({ value }) => value === filterToEdit?.cascadeParentIds[0],
         )}
       >
-        <Select options={parentFilterOptions} isClearable />
+        <Select
+          placeholder={t('None')}
+          options={parentFilterOptions}
+          isClearable
+        />
       </StyledFormItem>
 
-      <StyledFormCheckbox
+      <StyledCheckboxFormItem
         name={['filters', filterId, 'isInstant']}
         initialValue={filterToEdit?.isInstant}
         valuePropName="checked"
         colon={false}
       >
         <Checkbox>{t('Apply changes instantly')}</Checkbox>
-      </StyledFormCheckbox>
-      <StyledFormCheckbox
+      </StyledCheckboxFormItem>
+      <StyledCheckboxFormItem
         name={['filters', filterId, 'allowsMultipleValues']}
         initialValue={filterToEdit?.allowsMultipleValues}
         valuePropName="checked"
         colon={false}
       >
         <Checkbox>{t('Allow multiple selections')}</Checkbox>
-      </StyledFormCheckbox>
-      <StyledFormCheckbox
+      </StyledCheckboxFormItem>
+      <StyledCheckboxFormItem
         name={['filters', filterId, 'inverseSelection']}
         initialValue={filterToEdit?.inverseSelection}
         valuePropName="checked"
         colon={false}
       >
         <Checkbox>{t('Inverse selection')}</Checkbox>
-      </StyledFormCheckbox>
-      <StyledFormCheckbox
+      </StyledCheckboxFormItem>
+      <StyledCheckboxFormItem
         name={['filters', filterId, 'isRequired']}
         initialValue={filterToEdit?.isRequired}
         valuePropName="checked"
         colon={false}
       >
         <Checkbox>{t('Required')}</Checkbox>
-      </StyledFormCheckbox>
+      </StyledCheckboxFormItem>
       <Typography.Title level={5}>{t('Scoping')}</Typography.Title>
-      <StyledFormCheckbox
+      <StyledCheckboxFormItem
         name={['filters', filterId, 'scoping']}
         initialValue={advancedScopingOpen}
       >
@@ -255,7 +259,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
             {t('Apply to specific panels')}
           </Radio>
         </Radio.Group>
-      </StyledFormCheckbox>
+      </StyledCheckboxFormItem>
       <>
         <ScopingTreeNote>
           <Typography.Text type="secondary">
