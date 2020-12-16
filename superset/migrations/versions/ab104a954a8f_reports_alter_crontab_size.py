@@ -33,7 +33,6 @@ from alembic import op
 def upgrade():
     with op.batch_alter_table("report_schedule") as batch_op:
         batch_op.alter_column(
-            "report_schedule",
             "crontab",
             existing_type=sa.VARCHAR(length=50),
             type_=sa.VARCHAR(length=1000),
@@ -44,7 +43,6 @@ def upgrade():
 def downgrade():
     with op.batch_alter_table("report_schedule") as batch_op:
         batch_op.alter_column(
-            "report_schedule",
             "crontab",
             existing_type=sa.VARCHAR(length=1000),
             type_=sa.VARCHAR(length=50),
