@@ -240,8 +240,8 @@ class TestImportDatasetsCommand(SupersetTestCase):
             "state",
             "gender",
             "name",
-            "sum_boys",
-            "sum_girls",
+            "num_boys",
+            "num_girls",
             "num",
         ]
 
@@ -276,8 +276,8 @@ class TestImportDatasetsCommand(SupersetTestCase):
             "state",
             "gender",
             "name",
-            "sum_boys",
-            "sum_girls",
+            "num_boys",
+            "num_girls",
             "num",
         }
 
