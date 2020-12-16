@@ -20,10 +20,11 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { keyframes } from '@emotion/react';
 import { findLastIndex, uniq } from 'lodash';
 import shortid from 'shortid';
-import { DeleteFilled } from '@ant-design/icons';
+import { DeleteFilled, PlusOutlined } from '@ant-design/icons';
 import { styled, t } from '@superset-ui/core';
 import { Form } from 'src/common/components';
 import { StyledModal } from 'src/common/components/Modal';
+import Button from 'src/components/Button';
 import { LineEditableTabs } from 'src/common/components/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { usePrevious } from 'src/common/hooks/usePrevious';
@@ -53,8 +54,15 @@ const FilterTabs = styled(LineEditableTabs)`
   &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
     min-width: 200px;
     margin-left: 0;
-    padding: 0;
-    padding-bottom: ${({ theme }) => theme.gridUnit}px;
+    padding: 0 ${({ theme }) => theme.gridUnit * 2}px
+      ${({ theme }) => theme.gridUnit}px;
+
+    &:hover,
+    &-active {
+      color: ${({ theme }) => theme.colors.grayscale.dark1};
+      border-radius: ${({ theme }) => theme.borderRadius}px;
+      background-color: ${({ theme }) => theme.colors.grayscale.light2};
+    }
   }
 
   .ant-tabs-tab-btn {
@@ -79,11 +87,26 @@ const FilterTabTitle = styled.span`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  padding: ${({ theme }) => theme.gridUnit}px
+    ${({ theme }) => theme.gridUnit * 2}px 0 0;
 
   &.removed {
     color: ${({ theme }) => theme.colors.warning.dark1};
     transform-origin: top;
     animation: ${tabTitleRemovalAnimation} ${REMOVAL_DELAY_SECS}s;
+  }
+`;
+
+const StyledAddFilterBox = styled.div`
+  color: ${({ theme }) => theme.colors.primary.dark1};
+  text-align: left;
+  padding: ${({ theme }) => theme.gridUnit * 2}px 0;
+  margin: ${({ theme }) => theme.gridUnit * 3}px 0 0
+    ${({ theme }) => -theme.gridUnit * 2}px;
+  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light1};
+
+  &:hover {
+    color: ${({ theme }) => theme.colors.primary.base};
   }
 `;
 
@@ -385,20 +408,28 @@ export function FilterConfigModal({
     validateForm,
   ]);
 
+  const handleCancel = () => {
+    resetForm();
+    onCancel();
+  };
+
   return (
     <StyledModal
       visible={isOpen}
       title={t('Filter Configuration and Scoping')}
       width="55%"
-      onCancel={() => {
-        resetForm();
-        onCancel();
-      }}
+      onCancel={handleCancel}
       onOk={onOk}
-      okText={t('Save')}
-      cancelText={t('Cancel')}
       centered
       data-test="filter-modal"
+      footer={[
+        <Button key="cancel" buttonStyle="secondary" onClick={handleCancel}>
+          {t('Cancel')}
+        </Button>,
+        <Button key="submit" buttonStyle="primary" onClick={onOk}>
+          {t('Save')}
+        </Button>,
+      ]}
     >
       <ErrorBoundary>
         <StyledModalBody>
@@ -415,12 +446,18 @@ export function FilterConfigModal({
                 setFormValues(values);
               }
             }}
+            layout="vertical"
           >
             <FilterTabs
               tabPosition="left"
               onChange={setCurrentFilterId}
               activeKey={currentFilterId}
               onEdit={onTabEdit}
+              addIcon={
+                <StyledAddFilterBox>
+                  <PlusOutlined /> <span>{t('Add Filter')}</span>
+                </StyledAddFilterBox>
+              }
             >
               {filterIds.map(id => (
                 <LineEditableTabs.TabPane

@@ -60,6 +60,13 @@ const StyledIcon = styled(Icon)`
   width: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
+const StyledPill = styled(Pill)`
+  padding: ${({ theme }) => theme.gridUnit}px
+    ${({ theme }) => theme.gridUnit * 2}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  background: ${({ theme }) => theme.colors.grayscale.light1};
+`;
+
 const CascadePopover: React.FC<CascadePopoverProps> = ({
   filter,
   visible,
@@ -138,7 +145,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
       onVisibleChange={onVisibleChange}
       placement="rightTop"
       id={filter.id}
-      overlayStyle={{ minWidth: '400px' }}
+      overlayStyle={{ minWidth: '400px', maxWidth: '600px' }}
     >
       <div>
         {activeFilters.map(activeFilter => (
@@ -149,9 +156,9 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
             icon={
               <>
                 {filter.cascadeChildren.length !== 0 && (
-                  <Pill onClick={() => onVisibleChange(true)}>
+                  <StyledPill onClick={() => onVisibleChange(true)}>
                     <Icon name="filter" /> {totalChildren}
-                  </Pill>
+                  </StyledPill>
                 )}
               </>
             }

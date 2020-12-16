@@ -159,7 +159,7 @@ const StyledCascadeChildrenList = styled.ul`
 `;
 
 const StyledFilterControlTitle = styled.h4`
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   margin: 0;
   text-transform: uppercase;
@@ -170,7 +170,19 @@ const StyledFilterControlTitleBox = styled.div`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-bottom: ${({ theme }) => theme.gridUnit}px;
+`;
+
+const StyledFilterControlContainer = styled.div`
+  width: 100%;
+`;
+
+const StyledFilterControlBox = styled.div`
+  display: flex;
+`;
+
+const StyledCaretIcon = styled(Icon)`
+  margin-top: ${({ theme }) => -theme.gridUnit}px;
 `;
 
 interface FilterProps {
@@ -266,7 +278,7 @@ export const FilterControl: React.FC<FilterProps> = ({
 }) => {
   const { name = '<undefined>' } = filter;
   return (
-    <>
+    <StyledFilterControlContainer>
       <StyledFilterControlTitleBox>
         <StyledFilterControlTitle>{name}</StyledFilterControlTitle>
         <div>{icon}</div>
@@ -275,7 +287,7 @@ export const FilterControl: React.FC<FilterProps> = ({
         filter={filter}
         onExtraFormDataChange={onExtraFormDataChange}
       />
-    </>
+    </StyledFilterControlContainer>
   );
 };
 
@@ -289,11 +301,15 @@ export const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
   onExtraFormDataChange,
 }) => {
   return (
-    <div>
-      <FilterControl
-        filter={filter}
-        onExtraFormDataChange={onExtraFormDataChange}
-      />
+    <>
+      <StyledFilterControlBox>
+        <StyledCaretIcon name="caret-down" />
+        <FilterControl
+          filter={filter}
+          onExtraFormDataChange={onExtraFormDataChange}
+        />
+      </StyledFilterControlBox>
+
       <StyledCascadeChildrenList>
         {filter.cascadeChildren?.map(childFilter => (
           <li>
@@ -304,7 +320,7 @@ export const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
           </li>
         ))}
       </StyledCascadeChildrenList>
-    </div>
+    </>
   );
 };
 
@@ -401,6 +417,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           <Icon name="expand" onClick={toggleFiltersBar} />
         </TitleArea>
         <ActionButtons>
+          <Button buttonStyle="secondary" buttonSize="sm">
+            {t('Reset All')}
+          </Button>
           <Button
             buttonStyle="primary"
             type="submit"
@@ -408,9 +427,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             onClick={handleApply}
           >
             {t('Apply')}
-          </Button>
-          <Button buttonStyle="secondary" buttonSize="sm">
-            {t('Reset All')}
           </Button>
         </ActionButtons>
         <FilterControls>
