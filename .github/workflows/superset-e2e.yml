@@ -1,11 +1,6 @@
 name: E2E
 
-on:
-  push:
-    branches:
-      - master
-  pull_request:
-  pull_request_target:
+on: [push, pull_request, pull_request_target]
 
 jobs:
   cypress-matrix:
@@ -44,10 +39,10 @@ jobs:
         uses: styfle/cancel-workflow-action@0.6.0
         with:
           access_token: ${{ github.token }}
-      - name: Checkout code (master)
+      - name: Checkout code (push)
         if: github.event_name == 'push'
         uses: actions/checkout@v2
-      - name: Checkout code (PR)
+      - name: Checkout code (pull_request)
         if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
         uses: actions/checkout@v2
         with:
