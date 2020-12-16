@@ -88,8 +88,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     });
   }
 
-  onSliceNameChange(event: React.FormEvent<FormControl>) {
-    this.setState({ newSliceName: (event.target as HTMLInputElement).value });
+  onSliceNameChange(event: React.FormEvent<FormControl> & { target: HTMLInputElement }) {
+    this.setState({ newSliceName: event.target.value });
   }
 
   onDashboardSelectChange(event: Record<string, any>) {
@@ -143,8 +143,10 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     }
     this.setState({ alert: null });
   }
-
+  
   render() {
+    console.log('this.state.saveToDashboardId', this.state.saveToDashboardId);
+    console.log('this.state.newDashboardName', this.state.newDashboardName);
     return (
       <Modal
         show
@@ -258,7 +260,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   }
 }
 
-function mapStateToProps({ explore, saveModal }: Record<string, any>) {
+function mapStateToProps({ explore, saveModal }: Record<string, any>): Partial<SaveModalProps> {
   return {
     datasource: explore.datasource,
     slice: explore.slice,
@@ -266,7 +268,7 @@ function mapStateToProps({ explore, saveModal }: Record<string, any>) {
     userId: explore.user_id,
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,
-  } as Partial<SaveModalProps>;
+  };
 }
 
 export default connect(mapStateToProps, () => ({}))(SaveModal);
