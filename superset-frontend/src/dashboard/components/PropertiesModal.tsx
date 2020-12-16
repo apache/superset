@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { Row, Col, FormControl } from 'react-bootstrap';
+import { Row, Col, FormControl, Button as ButtonType } from 'react-bootstrap';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
 import { AsyncSelect } from 'src/components/Select';
@@ -89,7 +89,6 @@ type PropertiesModalProps = {
   show: boolean;
   onHide: () => void;
   colorScheme?: string;
-  setColorSchemeAndUnsavedChanges: () => void;
   onSubmit: (data: Record<string, any>) => void;
   addSuccessToast: (msg: string) => void;
   onlyApply: boolean;
@@ -108,7 +107,6 @@ class PropertiesModal extends React.PureComponent<
 > {
   static defaultProps = {
     onHide: () => {},
-    setColorSchemeAndUnsavedChanges: () => {},
     onSubmit: () => {},
     show: false,
     colorScheme: undefined,
@@ -179,8 +177,8 @@ class PropertiesModal extends React.PureComponent<
     this.updateFormState('json_metadata', metadata);
   }
 
-  onChange(e: React.FormEvent<FormControl>) {
-    const { name, value } = e.target as HTMLInputElement;
+  onChange(e: React.FormEvent<FormControl> & { target: HTMLInputElement}) {
+    const { name, value } = e.target;
     this.updateFormState(name, value);
   }
 
@@ -233,9 +231,9 @@ class PropertiesModal extends React.PureComponent<
     }));
   }
 
-  submit(e: any) {
-    e.preventDefault();
-    e.stopPropagation();
+  submit(event: React.FormEvent<HTMLFormElement> | React.MouseEvent<ButtonType>) {
+    event.preventDefault();
+    event.stopPropagation();
     const {
       values: {
         json_metadata: jsonMetadata,
