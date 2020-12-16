@@ -23,7 +23,7 @@ import {
   buildV1ChartDataPayload,
   getExploreUrl,
   getExploreLongUrl,
-  columnCount,
+  getDataTablePageSize,
   shouldUseLegacyApi,
 } from 'src/explore/exploreUtils';
 import {
@@ -201,21 +201,16 @@ describe('exploreUtils', () => {
     });
   });
 
-  describe('columnCount', () => {
-    it('divides samples data into pages of 20', () => {
-      const pageSize = columnCount(500);
+  describe('getDataTablePageSize', () => {
+    it('divides samples data into pages dynamically', () => {
+      let pageSize;
+      pageSize = getDataTablePageSize(500);
       expect(pageSize).toEqual(20);
-    });
-    it('divides samples data into pages of 20', () => {
-      const pageSize = columnCount(0);
+      pageSize = getDataTablePageSize(0);
       expect(pageSize).toEqual(50);
-    });
-    it('divides samples data into pages of 20', () => {
-      const pageSize = columnCount(1);
+      pageSize = getDataTablePageSize(1);
       expect(pageSize).toEqual(10000);
-    });
-    it('divides samples data into pages of 20', () => {
-      const pageSize = columnCount(1000000);
+      pageSize = getDataTablePageSize(1000000);
       expect(pageSize).toEqual(5);
     });
   });
