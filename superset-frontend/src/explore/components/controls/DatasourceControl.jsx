@@ -73,6 +73,10 @@ const Styles = styled.div`
     vertical-align: middle;
     cursor: pointer;
   }
+
+  .datasource-controls {
+    display: flex;
+  }
 `;
 
 /**
@@ -219,7 +223,7 @@ class DatasourceControl extends React.PureComponent {
     return (
       <Styles className="DatasourceControl">
         <ControlHeader {...this.props} />
-        <div style={{ display: 'flex' }}>
+        <div className="datasource-controls">
           <Tooltip title={t('Expand/collapse dataset configuration')}>
             <Label
               style={{ textTransform: 'none' }}
