@@ -23,8 +23,8 @@ import ModalTrigger from 'src/components/ModalTrigger';
 
 type CodeModalProps = {
   triggerNode: JSX.Element;
-  code?: string;
-  codeCallback: () => string;
+  code: string;
+  codeCallback: () => void;
 };
 
 type CodeModalState = {
