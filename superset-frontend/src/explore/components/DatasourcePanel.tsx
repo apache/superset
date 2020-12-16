@@ -19,7 +19,7 @@
 import React, { useEffect, useState } from 'react';
 import { styled, t, QueryFormData } from '@superset-ui/core';
 import { Collapse } from 'src/common/components';
-import { FixedSizeList as List } from 'react-window';
+import { FixedSizeList as List, ListChildComponentProps } from 'react-window';
 import {
   ColumnOption,
   MetricOption,
@@ -94,39 +94,48 @@ const DataSourcePanel = ({
   controls: { datasource: datasourceControl },
   actions,
 }: Props) => {
+  const { columns, metrics } = datasource;
   const [lists, setColList] = useState({
-    columns: datasource.columns,
-    metrics: datasource.metrics,
+    columns,
+    metrics,
   });
   const search = ({ target: { value } }: { target: { value: string } }) => {
-    const columns = datasource.columns.filter(
+    const filteredColumns = lists.columns.filter(
       obj => obj.column_name.indexOf(value) !== -1,
     );
-    const metrics = lists.metrics.filter(
+    const filteredMetrics = lists.metrics.filter(
       objs => objs.metric_name.indexOf(value) !== -1,
     );
     if (value === '') {
-      setColList({ columns: datasource.columns, metrics: datasource.metrics });
-    } else setColList({ columns, metrics });
+      setColList({ columns, metrics });
+    } else setColList({ columns: filteredColumns, metrics: filteredMetrics });
   };
   useEffect(() => {
     setColList({
-      columns: datasource.columns,
-      metrics: datasource.metrics,
+      columns,
+      metrics,
     });
   }, [datasource]);
 
-  const Metrics = ({ index }: number) => {
+  const Metrics = ({ index, style }: ListChildComponentProps) => {
     return (
-      <div key={lists.metrics[index].metric_name} className="metric">
+      <div
+        key={lists.metrics[index].metric_name}
+        className="metric"
+        style={style}
+      >
         <MetricOption metric={lists.metrics[index]} showType />
       </div>
     );
   };
 
-  const Columns = ({ index }: number) => {
+  const Columns = ({ index, style }: ListChildComponentProps) => {
     return (
-      <div key={lists.columns[index].column_name} className="column">
+      <div
+        key={lists.columns[index].column_name}
+        className="column"
+        style={style}
+      >
         <ColumnOption column={lists.columns[index]} showType />
       </div>
     );

@@ -22,37 +22,27 @@ import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import DatasourcePanel from 'src/explore/components/DatasourcePanel';
 
 describe('datasourcepanel', () => {
-  const props = {
-    datasource: {
-      name: 'birth_names',
-      type: 'table',
-      uid: '1__table',
-      id: 1,
-      columns: [],
-      metrics: [],
-      database: {
-        backend: 'mysql',
-        name: 'main',
-      },
+  const datasource = {
+    name: 'birth_names',
+    type: 'table',
+    uid: '1__table',
+    id: 1,
+    columns: [],
+    metrics: [],
+    database: {
+      backend: 'mysql',
+      name: 'main',
     },
+  };
+  const props = {
+    datasource,
     controls: {
       datasource: {
         validationErrors: null,
         mapStateToProps: () => null,
         type: 'DatasourceControl',
         label: 'hello',
-        datasource: {
-          name: 'birth_names',
-          type: 'table',
-          uid: '1__table',
-          id: 1,
-          columns: [],
-          metrics: [],
-          database: {
-            backend: 'mysql',
-            name: 'main',
-          },
-        },
+        datasource,
       },
     },
     actions: null,
