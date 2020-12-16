@@ -46,6 +46,10 @@ const StyledInputContainer = styled.div`
     padding-top: 8px;
   }
 
+  .confirm-overwrite {
+    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+
   .input-container {
     display: flex;
     align-items: center;
@@ -230,11 +234,9 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     return (
       <>
         <StyledInputContainer>
-          <div>{confirmOverwriteMessage}</div>
+          <div className="confirm-overwrite">{confirmOverwriteMessage}</div>
           <div className="control-label">
-            <label htmlFor="overwrite">
-              {t('Type "%s" to confirm', t('OVERWRITE'))}
-            </label>
+            {t('Type "%s" to confirm', t('OVERWRITE'))}
           </div>
           <input
             data-test="overwrite-modal-input"
