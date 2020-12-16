@@ -45,9 +45,7 @@ import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import FacePile from 'src/components/FacePile';
 import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
-import ImportModelsModal, {
-  StyledIcon,
-} from 'src/components/ImportModal/index';
+import ImportModelsModal from 'src/components/ImportModal/index';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import AddDatasetModal from './AddDatasetModal';
 
@@ -58,6 +56,11 @@ const PASSWORDS_NEEDED_MESSAGE = t(
     '"Secure Extra" and "Certificate" sections of ' +
     'the database configuration are not present in export files, and ' +
     'should be added manually after the import if they are needed.',
+);
+const CONFIRM_OVERWRITE_MESSAGE = t(
+  'You are importing one or more datasets that already exist. ' +
+    'Overwriting might cause you to lose some of your work. Are you ' +
+    'sure you want to overwrite?',
 );
 
 const FlexRowContainer = styled.div`
@@ -659,11 +662,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       <ImportModelsModal
         resourceName="dataset"
         resourceLabel={t('dataset')}
-        icon={<StyledIcon name="table" />}
         passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
-        confirmOverwriteMessage={t(
-          'One or more datasets to be imported already exist.',
-        )}
+        confirmOverwriteMessage={CONFIRM_OVERWRITE_MESSAGE}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         onModelImport={handleDatasetImport}
