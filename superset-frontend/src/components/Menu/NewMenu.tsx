@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { t, styled } from '@superset-ui/core';
 import { Menu } from 'src/common/components';
 import NavDropdown from 'src/components/NavDropdown';
@@ -43,8 +43,16 @@ const StyledI = styled.div`
 `;
 
 export default function NewMenu() {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
   return (
-    <NavDropdown id="new-dropdown" title={<StyledI className="fa fa-plus" />}>
+    <NavDropdown
+      id="new-dropdown"
+      title={<StyledI className="fa fa-plus" />}
+      onMouseEnter={() => setDropdownOpen(true)}
+      onMouseLeave={() => setDropdownOpen(false)}
+      open={dropdownOpen}
+    >
       <Menu>
         {dropdownItems.map((menu, i) => (
           <Menu.Item key={i}>

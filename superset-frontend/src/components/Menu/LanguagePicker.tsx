@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { Menu } from 'src/common/components';
 import NavDropdown from 'src/components/NavDropdown';
 
@@ -37,8 +37,13 @@ export default function LanguagePicker({
   locale,
   languages,
 }: LanguagePickerProps) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
   return (
     <NavDropdown
+      onMouseEnter={() => setDropdownOpen(true)}
+      onMouseLeave={() => setDropdownOpen(false)}
+      open={dropdownOpen}
       id="locale-dropdown"
       title={
         <span className="f16">

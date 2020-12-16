@@ -58,7 +58,7 @@ const mockUser = {
 };
 
 fetchMock.get(datasetsInfoEndpoint, {
-  permissions: ['can_list', 'can_edit', 'can_add', 'can_delete'],
+  permissions: ['can_read', 'can_write'],
 });
 fetchMock.get(datasetsOwnersEndpoint, {
   result: [],
