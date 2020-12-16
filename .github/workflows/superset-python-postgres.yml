@@ -33,6 +33,7 @@ jobs:
         uses: apache-superset/cancel-workflow-runs@953e057
         with:
           token: ${{ github.token }}
+          selfPreservation: false
       - uses: actions/checkout@v2
       - name: Setup Python
         uses: actions/setup-python@v2

@@ -44,6 +44,7 @@ jobs:
         uses: apache-superset/cancel-workflow-runs@953e057
         with:
           token: ${{ github.token }}
+          selfPreservation: false
       - uses: actions/checkout@v2
       - name: Setup Python
         uses: actions/setup-python@v2
@@ -98,6 +99,7 @@ jobs:
         uses: apache-superset/cancel-workflow-runs@953e057
         with:
           token: ${{ github.token }}
+          selfPreservation: false
       - uses: actions/checkout@v2
       - name: Create csv upload directory
         run: sudo mkdir -p /tmp/.superset/uploads
