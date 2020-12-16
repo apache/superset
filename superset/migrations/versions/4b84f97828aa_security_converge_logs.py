@@ -17,7 +17,7 @@
 """security converge logs
 
 Revision ID: 4b84f97828aa
-Revises: ccb74baaa89b
+Revises: c25cb2c78727
 Create Date: 2020-12-14 13:40:46.492449
 
 """
@@ -35,7 +35,7 @@ from superset.migrations.shared.security_converge import (
 )
 
 revision = "4b84f97828aa"
-down_revision = "ccb74baaa89b"
+down_revision = "c25cb2c78727"
 
 NEW_PVMS = {"Log": ("can_read", "can_write",)}
 PVM_MAP = {
