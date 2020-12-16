@@ -7,9 +7,9 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
+        uses: apache-superset/cancel-workflow-runs@953e057
         with:
-          access_token: ${{ github.token }}
+          token: ${{ github.token }}
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Install dependencies
