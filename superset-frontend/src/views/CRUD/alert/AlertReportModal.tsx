@@ -74,6 +74,10 @@ const CONDITIONS = [
     label: t('!= (Is Not Equal)'),
     value: '!=',
   },
+  {
+    label: t('Not Null'),
+    value: 'not null',
+  },
 ];
 
 const RETENTION_OPTIONS = [
@@ -213,6 +217,10 @@ export const StyledInputContainer = styled.div`
   .Select,
   .ant-select {
     flex: 1 1 auto;
+  }
+
+  input[disabled] {
+    color: ${({ theme }) => theme.colors.grayscale.base};
   }
 
   textarea {
@@ -453,7 +461,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [currentAlert, setCurrentAlert] = useState<AlertObject | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [contentType, setContentType] = useState<string>('dashboard');
+
   // Dropdown options
+  const [conditionNotNull, setConditionNotNull] = useState<boolean>(false);
   const [sourceOptions, setSourceOptions] = useState<MetaObject[]>([]);
   const [dashboardOptions, setDashboardOptions] = useState<MetaObject[]>([]);
   const [chartOptions, setChartOptions] = useState<MetaObject[]>([]);
@@ -534,6 +544,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     const data: any = {
       ...currentAlert,
+      validator_type: conditionNotNull ? 'not null' : 'operator',
+      validator_config_json: conditionNotNull
+        ? {}
+        : currentAlert?.validator_config_json,
       chart: contentType === 'chart' ? currentAlert?.chart?.value : undefined,
       dashboard:
         contentType === 'dashboard'
@@ -565,6 +579,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         delete data.last_value_row_json;
 
         updateResource(update_id, data).then(() => {
+          if (fetchError) {
+            return;
+          }
+
           if (onAdd) {
             onAdd();
           }
@@ -785,6 +803,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onConditionChange = (op: Operator) => {
+    setConditionNotNull(op === 'not null');
+
     const config = {
       op,
       threshold: currentAlert
@@ -849,8 +869,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       } else if (
         !!currentAlert.database &&
         currentAlert.sql?.length &&
-        !!currentAlert.validator_config_json?.op &&
-        currentAlert.validator_config_json?.threshold !== undefined
+        (conditionNotNull || !!currentAlert.validator_config_json?.op) &&
+        (conditionNotNull ||
+          currentAlert.validator_config_json?.threshold !== undefined)
       ) {
         setDisableSave(false);
       } else {
@@ -888,6 +909,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           setNotificationSettings(settings);
           setContentType(resource.chart ? 'chart' : 'dashboard');
 
+          const validatorConfig =
+            typeof resource.validator_config_json === 'string'
+              ? JSON.parse(resource.validator_config_json)
+              : resource.validator_config_json;
+
+          setConditionNotNull(resource.validator_type === 'not null');
+
           setCurrentAlert({
             ...resource,
             chart: resource.chart
@@ -911,9 +939,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             })),
             // @ts-ignore: Type not assignable
             validator_config_json:
-              typeof resource.validator_config_json === 'string'
-                ? JSON.parse(resource.validator_config_json)
-                : resource.validator_config_json,
+              resource.validator_type === 'not null'
+                ? {
+                    op: 'not null',
+                  }
+                : validatorConfig,
           });
         }
       });
@@ -933,7 +963,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       sql: '',
       type: isReport ? 'Report' : 'Alert',
       validator_config_json: {},
-      validator_type: 'not null',
+      validator_type: '',
     });
 
     setNotificationSettings([]);
@@ -958,6 +988,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           currentAlert.chart,
           contentType,
           notificationSettings,
+          conditionNotNull,
         ]
       : [],
   );
@@ -1136,6 +1167,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     <input
                       type="number"
                       name="threshold"
+                      disabled={conditionNotNull}
                       value={
                         currentAlert && currentAlert.validator_config_json
                           ? currentAlert.validator_config_json.threshold || ''

@@ -38,7 +38,7 @@ export type MetaObject = {
   value?: number | string;
 };
 
-export type Operator = '<' | '>' | '<=' | '>=' | '==' | '!=';
+export type Operator = '<' | '>' | '<=' | '>=' | '==' | '!=' | 'not null';
 
 export type AlertObject = {
   active?: boolean;
