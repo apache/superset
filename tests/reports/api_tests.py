@@ -36,7 +36,7 @@ from superset.models.reports import (
     ReportExecutionLog,
     ReportScheduleType,
     ReportRecipientType,
-    ReportLogState,
+    ReportState,
 )
 
 from tests.base_tests import SupersetTestCase
@@ -70,7 +70,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                     logs.append(
                         ReportExecutionLog(
                             scheduled_dttm=datetime(2020, 1, 1),
-                            state=ReportLogState.ERROR,
+                            state=ReportState.ERROR,
                             error_message=f"Error {cy}",
                         )
                     )
@@ -94,6 +94,26 @@ class TestReportSchedulesApi(SupersetTestCase):
             # rollback changes (assuming cascade delete)
             for report_schedule in report_schedules:
                 db.session.delete(report_schedule)
+            db.session.commit()
+
+    @pytest.fixture()
+    def create_alpha_users(self):
+        with self.create_app().app_context():
+
+            users = [
+                self.create_user(
+                    "alpha1", "password", "Alpha", email="alpha1@superset.org"
+                ),
+                self.create_user(
+                    "alpha2", "password", "Alpha", email="alpha2@superset.org"
+                ),
+            ]
+
+            yield users
+
+            # rollback changes (assuming cascade delete)
+            for user in users:
+                db.session.delete(user)
             db.session.commit()
 
     @pytest.mark.usefixtures("create_report_schedules")
@@ -159,6 +179,20 @@ class TestReportSchedulesApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "info")
         assert rv.status_code == 200
 
+    def test_info_security_report(self):
+        """
+        ReportSchedule API: Test info security
+        """
+        self.login(username="admin")
+        params = {"keys": ["permissions"]}
+        uri = f"api/v1/report/_info?q={prison.dumps(params)}"
+        rv = self.get_assert_metric(uri, "info")
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert "can_read" in data["permissions"]
+        assert "can_write" in data["permissions"]
+        assert len(data["permissions"]) == 2
+
     @pytest.mark.usefixtures("create_report_schedules")
     def test_get_report_schedule_not_found(self):
         """
@@ -187,6 +221,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "created_by",
             "created_on",
             "crontab",
+            "crontab_humanized",
             "id",
             "last_eval_dttm",
             "last_state",
@@ -656,6 +691,26 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert data == {"message": {"dashboard": "Dashboard does not exist"}}
 
     @pytest.mark.usefixtures("create_report_schedules")
+    @pytest.mark.usefixtures("create_alpha_users")
+    def test_update_report_not_owned(self):
+        """
+        ReportSchedule API: Test update report not owned
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+
+        self.login(username="alpha2", password="password")
+        report_schedule_data = {
+            "active": False,
+        }
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
+        self.assertEqual(rv.status_code, 403)
+
+    @pytest.mark.usefixtures("create_report_schedules")
     def test_delete_report_schedule(self):
         """
         ReportSchedule Api: Test update report schedule
@@ -698,6 +753,23 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert rv.status_code == 404
 
     @pytest.mark.usefixtures("create_report_schedules")
+    @pytest.mark.usefixtures("create_alpha_users")
+    def test_delete_report_not_owned(self):
+        """
+        ReportSchedule API: Test delete try not owned
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+
+        self.login(username="alpha2", password="password")
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 403)
+
+    @pytest.mark.usefixtures("create_report_schedules")
     def test_bulk_delete_report_schedule(self):
         """
         ReportSchedule Api: Test bulk delete report schedules
@@ -735,6 +807,24 @@ class TestReportSchedulesApi(SupersetTestCase):
         uri = f"api/v1/report/?q={prison.dumps(report_schedules_ids)}"
         rv = self.client.delete(uri)
         assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    @pytest.mark.usefixtures("create_alpha_users")
+    def test_bulk_delete_report_not_owned(self):
+        """
+        ReportSchedule API: Test bulk delete try not owned
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one_or_none()
+        )
+        report_schedules_ids = [report_schedule.id]
+
+        self.login(username="alpha2", password="password")
+        uri = f"api/v1/report/?q={prison.dumps(report_schedules_ids)}"
+        rv = self.client.delete(uri)
+        self.assertEqual(rv.status_code, 403)
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_get_list_report_schedule_logs(self):
@@ -796,7 +886,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         self.login(username="admin")
         arguments = {
             "columns": ["name"],
-            "filters": [{"col": "state", "opr": "eq", "value": ReportLogState.SUCCESS}],
+            "filters": [{"col": "state", "opr": "eq", "value": ReportState.SUCCESS}],
         }
         uri = f"api/v1/report/{report_schedule.id}/log/?q={prison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
@@ -816,7 +906,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             .one_or_none()
         )
 
-        data = {"state": ReportLogState.ERROR, "error_message": "New error changed"}
+        data = {"state": ReportState.ERROR, "error_message": "New error changed"}
 
         self.login(username="admin")
         uri = f"api/v1/report/{report_schedule.id}/log/"

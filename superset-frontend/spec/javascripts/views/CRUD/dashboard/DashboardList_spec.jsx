@@ -20,6 +20,7 @@ import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
+import { Provider } from 'react-redux';
 import * as featureFlags from 'src/featureFlags';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
@@ -92,9 +93,11 @@ describe('DashboardList', () => {
   });
 
   const mockedProps = {};
-  const wrapper = mount(<DashboardList {...mockedProps} user={mockUser} />, {
-    context: { store },
-  });
+  const wrapper = mount(
+    <Provider store={store}>
+      <DashboardList {...mockedProps} user={mockUser} />
+    </Provider>,
+  );
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);

@@ -23,7 +23,7 @@ import Tabs from 'src/common/components/Tabs';
 import Loading from 'src/components/Loading';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { getChartDataRequest } from 'src/chart/chartAction';
-import getClientErrorObject from 'src/utils/getClientErrorObject';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { getDataTablePageSize } from 'src/explore/exploreUtils';
 import {
   CopyToClipboardButton,
@@ -227,7 +227,13 @@ export const DataTablesPane = ({
     <SouthPane>
       {displayBackground && <SouthPaneBackground />}
       <TabsWrapper contentHeight={tableSectionHeight}>
-        <Collapse accordion bordered={false} onChange={handleCollapseChange}>
+        <Collapse
+          accordion
+          bordered={false}
+          onChange={handleCollapseChange}
+          bold
+          ghost
+        >
           <Collapse.Panel header={t('Data')} key="data">
             <Tabs
               fullWidth={false}
