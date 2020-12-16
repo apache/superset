@@ -126,6 +126,7 @@ export default class SupersetClientClass {
     url,
     headers,
     timeout,
+    fetchRetryOptions,
     ...rest
   }: RequestConfig & { parseMethod?: T }) {
     await this.ensureAuth();
@@ -136,6 +137,7 @@ export default class SupersetClientClass {
       url: this.getUrl({ endpoint, host, url }),
       headers: { ...this.headers, ...headers },
       timeout: timeout ?? this.timeout,
+      fetchRetryOptions: fetchRetryOptions ?? this.fetchRetryOptions,
     });
   }
 
