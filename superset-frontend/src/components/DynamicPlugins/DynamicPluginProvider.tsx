@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useReducer } from 'react';
-import { SupersetClient, JsonObject } from '@superset-ui/connection';
+import { SupersetClient, JsonObject } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
   PluginContext,
@@ -77,9 +77,9 @@ function pluginContextReducer(
   switch (action.type) {
     case 'begin': {
       const plugins = { ...state.plugins };
-      for (const key of action.keys) {
+      action.keys.forEach(key => {
         plugins[key] = { key, error: null, loading: true };
-      }
+      });
       return {
         ...state,
         loading: true,
@@ -125,16 +125,9 @@ export default function DynamicPluginProvider({ children }: Props) {
         react: import('react'),
         lodash: import('lodash'),
         'react-dom': import('react-dom'),
-        '@superset-ui/chart': import('@superset-ui/chart'),
         '@superset-ui/chart-controls': import('@superset-ui/chart-controls'),
-        '@superset-ui/connection': import('@superset-ui/connection'),
         '@superset-ui/color': import('@superset-ui/color'),
         '@superset-ui/core': import('@superset-ui/core'),
-        '@superset-ui/dimension': import('@superset-ui/dimension'),
-        '@superset-ui/query': import('@superset-ui/query'),
-        '@superset-ui/style': import('@superset-ui/style'),
-        '@superset-ui/translation': import('@superset-ui/translation'),
-        '@superset-ui/validator': import('@superset-ui/validator'),
       });
       const response = await SupersetClient.get({
         endpoint: '/dynamic-plugins/api/read',
