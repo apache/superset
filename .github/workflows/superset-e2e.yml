@@ -39,6 +39,7 @@ jobs:
         uses: apache-superset/cancel-workflow-runs@953e057
         with:
           token: ${{ github.token }}
+          selfPreservation: false
       - name: Checkout code (push)
         if: github.event_name == 'push'
         uses: actions/checkout@v2
