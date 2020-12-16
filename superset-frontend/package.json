@@ -289,7 +289,7 @@
     "url-loader": "^1.0.1",
     "webpack": "^4.42.0",
     "webpack-bundle-analyzer": "^3.6.1",
-    "webpack-cli": "^3.3.11",
+    "webpack-cli": "^4.2.0",
     "webpack-dev-server": "^3.11.0",
     "webpack-manifest-plugin": "^2.2.0",
     "webpack-sources": "^1.4.3",
