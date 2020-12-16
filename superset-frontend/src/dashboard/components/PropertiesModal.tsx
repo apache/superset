@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { Row, Col, FormControl, Button as ButtonType } from 'react-bootstrap';
+import { Row, Col, FormControl, Button as BootstrapButton } from 'react-bootstrap';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
 import { AsyncSelect } from 'src/components/Select';
@@ -231,7 +231,7 @@ class PropertiesModal extends React.PureComponent<
     }));
   }
 
-  submit(event: React.FormEvent<HTMLFormElement> | React.MouseEvent<ButtonType>) {
+  submit(event: React.FormEvent<HTMLFormElement> | React.MouseEvent<BootstrapButton>) {
     event.preventDefault();
     event.stopPropagation();
     const {
