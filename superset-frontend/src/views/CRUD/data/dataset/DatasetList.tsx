@@ -661,6 +661,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         resourceLabel={t('dataset')}
         icon={<StyledIcon name="table" />}
         passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
+        confirmOverwriteMessage={t(
+          'One or more datasets to be imported already exist.',
+        )}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         onModelImport={handleDatasetImport}

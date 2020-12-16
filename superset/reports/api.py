@@ -24,7 +24,7 @@ from flask_babel import ngettext
 from marshmallow import ValidationError
 
 from superset.charts.filters import ChartFilter
-from superset.constants import RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.filters import DashboardFilter
 from superset.models.reports import ReportSchedule
 from superset.reports.commands.bulk_delete import BulkDeleteReportScheduleCommand
@@ -34,6 +34,7 @@ from superset.reports.commands.exceptions import (
     ReportScheduleBulkDeleteFailedError,
     ReportScheduleCreateFailedError,
     ReportScheduleDeleteFailedError,
+    ReportScheduleForbiddenError,
     ReportScheduleInvalidError,
     ReportScheduleNotFoundError,
     ReportScheduleUpdateFailedError,
@@ -59,6 +60,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "bulk_delete",  # not using RouteMethod since locally defined
     }
     class_permission_name = "ReportSchedule"
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     resource_name = "report"
     allow_browser_login = True
 
@@ -87,6 +89,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "recipients.id",
         "recipients.type",
         "recipients.recipient_config_json",
+        "sql",
         "working_timeout",
     ]
     show_select_columns = show_columns + [
@@ -103,6 +106,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "created_by.last_name",
         "created_on",
         "crontab",
+        "crontab_humanized",
         "id",
         "last_eval_dttm",
         "last_state",
@@ -144,8 +148,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "changed_on",
         "changed_on_delta_humanized",
         "created_on",
+        "crontab",
         "name",
         "type",
+        "crontab_humanized",
     ]
     search_columns = ["name", "active", "created_by", "type", "last_state"]
     search_filters = {"name": [ReportScheduleAllTextFilter]}
@@ -189,6 +195,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                     properties:
                       message:
                         type: string
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -199,8 +207,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         try:
             DeleteReportScheduleCommand(g.user, pk).run()
             return self.response(200, message="OK")
-        except ReportScheduleNotFoundError as ex:
+        except ReportScheduleNotFoundError:
             return self.response_404()
+        except ReportScheduleForbiddenError:
+            return self.response_403()
         except ReportScheduleDeleteFailedError as ex:
             logger.error(
                 "Error deleting report schedule %s: %s",
@@ -275,7 +285,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @permission_name("put")
-    def put(self, pk: int) -> Response:
+    def put(self, pk: int) -> Response:  # pylint: disable=too-many-return-statements
         """Updates an Report Schedule
         ---
         put:
@@ -310,6 +320,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             500:
@@ -329,6 +341,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except ReportScheduleInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
+        except ReportScheduleForbiddenError:
+            return self.response_403()
         except ReportScheduleUpdateFailedError as ex:
             logger.error(
                 "Error updating report %s: %s", self.__class__.__name__, str(ex)
@@ -365,6 +379,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                         type: string
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -385,5 +401,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             )
         except ReportScheduleNotFoundError:
             return self.response_404()
+        except ReportScheduleForbiddenError:
+            return self.response_403()
         except ReportScheduleBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))

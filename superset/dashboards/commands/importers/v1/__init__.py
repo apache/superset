@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Dict, Iterator, List, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session
@@ -25,7 +25,11 @@ from superset.charts.commands.importers.v1.utils import import_chart
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.dashboards.commands.exceptions import DashboardImportError
-from superset.dashboards.commands.importers.v1.utils import import_dashboard
+from superset.dashboards.commands.importers.v1.utils import (
+    find_chart_uuids,
+    import_dashboard,
+    update_id_refs,
+)
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.commands.importers.v1.utils import import_database
@@ -35,23 +39,13 @@ from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.models.dashboard import dashboard_slices
 
 
-def find_chart_uuids(position: Dict[str, Any]) -> Iterator[str]:
-    """Find all chart UUIDs in a dashboard"""
-    for child in position.values():
-        if (
-            isinstance(child, dict)
-            and child["type"] == "CHART"
-            and "uuid" in child["meta"]
-        ):
-            yield child["meta"]["uuid"]
-
-
 class ImportDashboardsCommand(ImportModelsCommand):
 
     """Import dashboards"""
 
     dao = DashboardDAO
     model_name = "dashboard"
+    prefix = "dashboards/"
     schemas: Dict[str, Schema] = {
         "charts/": ImportV1ChartSchema(),
         "dashboards/": ImportV1DashboardSchema(),
@@ -63,7 +57,9 @@ class ImportDashboardsCommand(ImportModelsCommand):
     # TODO (betodealmeida): refactor to use code from other commands
     # pylint: disable=too-many-branches, too-many-locals
     @staticmethod
-    def _import(session: Session, configs: Dict[str, Any]) -> None:
+    def _import(
+        session: Session, configs: Dict[str, Any], overwrite: bool = False
+    ) -> None:
         # discover charts associated with dashboards
         chart_uuids: Set[str] = set()
         for file_name, config in configs.items():
@@ -125,8 +121,8 @@ class ImportDashboardsCommand(ImportModelsCommand):
         dashboard_chart_ids: List[Tuple[int, int]] = []
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
-                dashboard = import_dashboard(session, config, overwrite=True)
-
+                config = update_id_refs(config, chart_ids)
+                dashboard = import_dashboard(session, config, overwrite=overwrite)
                 for uuid in find_chart_uuids(config["position"]):
                     chart_id = chart_ids[uuid]
                     if (dashboard.id, chart_id) not in existing_relationships:

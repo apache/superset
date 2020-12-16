@@ -186,6 +186,8 @@ class DatasetDAO(BaseDAO):
             super().update(model, properties, commit=commit)
             properties["columns"] = original_properties
 
+        super().update(model, properties, commit=False)
+        model.health_check(force=True, commit=False)
         return super().update(model, properties, commit=commit)
 
     @classmethod

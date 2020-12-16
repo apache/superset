@@ -48,7 +48,7 @@ from .dashboard_utils import (
 from .fixtures.energy_dashboard import load_energy_table_with_slice
 from .fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 
-NEW_SECURITY_CONVERGE_VIEWS = ("CssTemplate", "SavedQuery", "Dataset")
+NEW_SECURITY_CONVERGE_VIEWS = ("Dataset", "CssTemplate", "Chart", "SavedQuery")
 
 
 def get_perm_tuples(role_name):
@@ -647,7 +647,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_read("Dataset", perm_set)
 
         # make sure that user can create slices and dashboards
-        self.assert_can_all("SliceModelView", perm_set)
+        self.assert_can_all("Chart", perm_set)
         self.assert_can_all("DashboardModelView", perm_set)
 
         self.assertIn(("can_add_slices", "Superset"), perm_set)
@@ -838,7 +838,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_read("Dataset", gamma_perm_set)
 
         # make sure that user can create slices and dashboards
-        self.assert_can_all("SliceModelView", gamma_perm_set)
+        self.assert_can_all("Chart", gamma_perm_set)
         self.assert_can_all("DashboardModelView", gamma_perm_set)
 
         self.assert_cannot_write("UserDBModelView", gamma_perm_set)

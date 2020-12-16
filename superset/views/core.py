@@ -14,7 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=comparison-with-callable
+# pylint: disable=comparison-with-callable, line-too-long, too-many-branches
+import dataclasses
 import logging
 import re
 from contextlib import closing
@@ -28,10 +29,15 @@ import simplejson as json
 from flask import abort, flash, g, Markup, redirect, render_template, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_appbuilder.security.decorators import has_access, has_access_api
+from flask_appbuilder.security.decorators import (
+    has_access,
+    has_access_api,
+    permission_name,
+)
 from flask_appbuilder.security.sqla import models as ab_models
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import gettext as __, lazy_gettext as _, ngettext
 from jinja2.exceptions import TemplateError
+from jinja2.meta import find_undeclared_variables
 from sqlalchemy import and_, or_
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError, DBAPIError, NoSuchModuleError, SQLAlchemyError
@@ -65,7 +71,9 @@ from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    CacheLoadError,
     CertificateException,
     DatabaseNotFound,
     SerializationError,
@@ -73,6 +81,7 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetTimeoutException,
 )
+from superset.extensions import async_query_manager, cache_manager
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database, FavStar, Log
 from superset.models.dashboard import Dashboard
@@ -87,8 +96,10 @@ from superset.security.analytics_db_safety import (
 )
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
+from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
+from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
 from superset.utils.dates import now_as_float
 from superset.views.base import (
@@ -113,6 +124,7 @@ from superset.views.utils import (
     apply_display_max_row_limit,
     bootstrap_user_data,
     check_datasource_perms,
+    check_explore_cache_perms,
     check_slice_perms,
     get_cta_schema_name,
     get_dashboard_extra_filters,
@@ -148,6 +160,11 @@ DATABASE_KEYS = [
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
+PARAMETER_MISSING_ERR = (
+    "Please check your template parameters for syntax errors and make sure "
+    "they match across your SQL query and Set Parameters. Then, try running "
+    "your query again."
+)
 
 
 class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
@@ -484,6 +501,43 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         payload = viz_obj.get_payload()
         return data_payload_response(*viz_obj.payload_json_and_has_error(payload))
 
+    @event_logger.log_this
+    @api
+    @has_access_api
+    @handle_api_exception
+    @permission_name("explore_json")
+    @expose("/explore_json/data/<cache_key>", methods=["GET"])
+    @etag_cache(check_perms=check_explore_cache_perms)
+    def explore_json_data(self, cache_key: str) -> FlaskResponse:
+        """Serves cached result data for async explore_json calls
+
+        `self.generate_json` receives this input and returns different
+        payloads based on the request args in the first block
+
+        TODO: form_data should not be loaded twice from cache
+          (also loaded in `check_explore_cache_perms`)
+        """
+        try:
+            cached = cache_manager.cache.get(cache_key)
+            if not cached:
+                raise CacheLoadError("Cached data not found")
+
+            form_data = cached.get("form_data")
+            response_type = cached.get("response_type")
+
+            datasource_id, datasource_type = get_datasource_info(None, None, form_data)
+
+            viz_obj = get_viz(
+                datasource_type=cast(str, datasource_type),
+                datasource_id=datasource_id,
+                form_data=form_data,
+                force_cached=True,
+            )
+
+            return self.generate_json(viz_obj, response_type)
+        except SupersetException as ex:
+            return json_error_response(utils.error_msg_from_exception(ex), 400)
+
     EXPLORE_JSON_METHODS = ["POST"]
     if not is_feature_enabled("ENABLE_EXPLORE_JSON_CSRF_PROTECTION"):
         EXPLORE_JSON_METHODS.append("GET")
@@ -528,11 +582,31 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 datasource_id, datasource_type, form_data
             )
 
+            force = request.args.get("force") == "true"
+
+            # TODO: support CSV, SQL query and other non-JSON types
+            if (
+                is_feature_enabled("GLOBAL_ASYNC_QUERIES")
+                and response_type == utils.ChartDataResultFormat.JSON
+            ):
+                try:
+                    async_channel_id = async_query_manager.parse_jwt_from_request(
+                        request
+                    )["channel"]
+                    job_metadata = async_query_manager.init_job(async_channel_id)
+                    load_explore_json_into_cache.delay(
+                        job_metadata, form_data, response_type, force
+                    )
+                except AsyncQueryTokenException:
+                    return json_error_response("Not authorized", 401)
+
+                return json_success(json.dumps(job_metadata), status=202)
+
             viz_obj = get_viz(
                 datasource_type=cast(str, datasource_type),
                 datasource_id=datasource_id,
                 form_data=form_data,
-                force=request.args.get("force") == "true",
+                force=force,
             )
 
             return self.generate_json(viz_obj, response_type)
@@ -651,16 +725,18 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 f"datasource_id={datasource_id}&"
             )
 
+        # if feature enabled, run some health check rules for sqla datasource
+        if hasattr(datasource, "health_check"):
+            datasource.health_check()
+
         viz_type = form_data.get("viz_type")
         if not viz_type and datasource.default_endpoint:
             return redirect(datasource.default_endpoint)
 
         # slc perms
-        slice_add_perm = security_manager.can_access("can_add", "SliceModelView")
+        slice_add_perm = security_manager.can_access("can_write", "Chart")
         slice_overwrite_perm = is_owner(slc, g.user) if slc else False
-        slice_download_perm = security_manager.can_access(
-            "can_download", "SliceModelView"
-        )
+        slice_download_perm = security_manager.can_access("can_read", "Chart")
 
         form_data["datasource"] = str(datasource_id) + "__" + cast(str, datasource_type)
 
@@ -1688,13 +1764,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @expose("/dashboard/<dashboard_id_or_slug>/")
-    @event_logger.log_manually
+    @event_logger.log_this_with_extra_payload
     def dashboard(  # pylint: disable=too-many-locals
         self,
         dashboard_id_or_slug: str,
-        # this parameter is added by `log_manually`,
+        # this parameter is added by `log_this_with_manual_updates`,
         # set a default value to appease pylint
-        update_log_payload: Callable[..., None] = lambda **kwargs: None,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
     ) -> FlaskResponse:
         """Server side rendering for a dashboard"""
         session = db.session()
@@ -1743,7 +1819,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             request.args.get(utils.ReservedUrlParameters.EDIT_MODE.value) == "true"
         )
 
-        update_log_payload(
+        add_extra_log_payload(
             dashboard_id=dash.id,
             dashboard_version="v2",
             dash_edit_perm=dash_edit_perm,
@@ -2439,6 +2515,28 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(
                 f"Query {query_id}: Template syntax error: {error_msg}"
             )
+
+        # pylint: disable=protected-access
+        if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
+            ast = template_processor._env.parse(rendered_query)
+            undefined = find_undeclared_variables(ast)  # type: ignore
+            if undefined:
+                error = SupersetError(
+                    message=ngettext(
+                        "There's an error with the parameter %(parameters)s.",
+                        "There's an error with the parameters %(parameters)s.",
+                        len(undefined),
+                        parameters=utils.format_list(undefined),
+                    )
+                    + " "
+                    + PARAMETER_MISSING_ERR,
+                    level=ErrorLevel.ERROR,
+                    error_type=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
+                    extra={"missing_parameters": list(undefined)},
+                )
+                return json_error_response(
+                    payload={"errors": [dataclasses.asdict(error)]},
+                )
 
         # Limit is not applied to the CTA queries if SQLLAB_CTAS_NO_LIMIT flag is set
         # to True.

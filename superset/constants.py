@@ -99,4 +99,10 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "refresh": "read",
     "related_objects": "read",
     "import_": "write",
+    "favorite_status": "write",
+    "cache_screenshot": "read",
+    "screenshot": "read",
+    "data": "read",
+    "thumbnail": "read",
+    "data_from_cache": "read",
 }

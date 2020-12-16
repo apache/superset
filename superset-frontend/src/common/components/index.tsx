@@ -32,23 +32,24 @@ export {
   Avatar,
   Button,
   Card,
-  Collapse,
   DatePicker,
+  Divider,
   Dropdown,
   Empty,
   Input,
   Modal,
   Popover,
+  Radio,
   Select,
   Skeleton,
   Switch,
-  Radio,
   Tabs,
   Tooltip,
 } from 'antd';
 
-export { default as Badge } from 'src/common/components/Badge';
-export { default as Progress } from 'src/common/components/ProgressBar';
+export { default as Collapse } from './Collapse';
+export { default as Badge } from './Badge';
+export { default as Progress } from './ProgressBar';
 
 export const MenuItem = styled(AntdMenu.Item)`
   > a {
