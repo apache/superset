@@ -160,6 +160,11 @@ DATABASE_KEYS = [
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
+PARAMETER_MISSING_ERR = (
+    "Please check your template parameters for syntax errors and make sure "
+    "they match across your SQL query and Set Parameters. Then, try running "
+    "your query again."
+)
 
 
 class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
@@ -2516,17 +2521,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             if undefined:
                 error = SupersetError(
                     message=ngettext(
-                        "There's an error with the parameter %(parameters)s. Please check "
-                        "your template parameters for syntax errors and make sure they "
-                        "match across your SQL query and Set Parameters. Then, try "
-                        "running your query again.",
-                        "There's an error with the parameters %(parameters)s. Please check "
-                        "your template parameters for syntax errors and make sure they "
-                        "match across your SQL query and Set Parameters. Then, try "
-                        "running your query again.",
+                        "There's an error with the parameter %(parameters)s.",
+                        "There's an error with the parameters %(parameters)s.",
                         len(undefined),
                         parameters=utils.format_list(undefined),
-                    ),
+                    )
+                    + " "
+                    + PARAMETER_MISSING_ERR,
                     level=ErrorLevel.ERROR,
                     error_type=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
                     extra={"missing_parameters": list(undefined)},
