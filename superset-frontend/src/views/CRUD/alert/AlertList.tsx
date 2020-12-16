@@ -409,7 +409,10 @@ function AlertList({
         buttons={subMenuButtons}
       >
         <RefreshContainer>
-          <LastUpdated updatedAt={lastFetched || ''} update={refreshData} />
+          <LastUpdated
+            updatedAt={lastFetched || ''}
+            update={() => refreshData()}
+          />
         </RefreshContainer>
       </SubMenu>
       <AlertReportModal
