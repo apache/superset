@@ -37,8 +37,18 @@ import {
   useSingleViewResource,
 } from 'src/views/CRUD/hooks';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
+import Owner from 'src/types/Owner';
 import AlertReportModal from './AlertReportModal';
-import { AlertObject, AlertState } from './types';
+import { AlertObject, AlertState, Recipient } from './types';
+
+type AlertCellType = {
+  row: {
+    original: Required<AlertObject> & {
+      owners: Array<Owner>;
+      crontab_humanized: string;
+    };
+  };
+};
 
 const PAGE_SIZE = 25;
 
@@ -123,7 +133,7 @@ function AlertList({
           row: {
             original: { last_state: lastState },
           },
-        }: any) => <AlertStatusIcon state={lastState} />,
+        }: AlertCellType) => <AlertStatusIcon state={lastState} />,
         accessor: 'last_state',
         size: 'xs',
         disableSortBy: true,
@@ -137,8 +147,8 @@ function AlertList({
           row: {
             original: { recipients },
           },
-        }: any) =>
-          recipients.map((r: any) => (
+        }: AlertCellType): React.ReactElement[] =>
+          recipients.map((r: Recipient) => (
             <RecipientIcon key={r.id} type={r.type} />
           )),
         accessor: 'recipients',
@@ -154,7 +164,7 @@ function AlertList({
           row: {
             original: { crontab_humanized = '' },
           },
-        }: any) => (
+        }: AlertCellType) => (
           <Tooltip title={crontab_humanized} placement="topLeft">
             <span>{crontab_humanized}</span>,
           </Tooltip>
@@ -171,14 +181,14 @@ function AlertList({
           row: {
             original: { owners = [] },
           },
-        }: any) => <FacePile users={owners} />,
+        }: AlertCellType) => <FacePile users={owners} />,
         Header: t('Owners'),
         id: 'owners',
         disableSortBy: true,
         size: 'xl',
       },
       {
-        Cell: ({ row: { original } }: any) => (
+        Cell: ({ row: { original } }: AlertCellType) => (
           <Switch
             data-test="toggle-active"
             checked={original.active}

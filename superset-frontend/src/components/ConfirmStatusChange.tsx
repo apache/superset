@@ -18,8 +18,9 @@
  */
 import React, { useState } from 'react';
 import DeleteModal from 'src/components/DeleteModal';
+import { $anyType } from 'src/constants';
 
-type Callback = (...args: any[]) => void;
+type Callback = (...args: $anyType[]) => void;
 interface ConfirmStatusChangeProps {
   title: React.ReactNode;
   description: React.ReactNode;
@@ -34,9 +35,11 @@ export default function ConfirmStatusChange({
   children,
 }: ConfirmStatusChangeProps) {
   const [open, setOpen] = useState(false);
-  const [currentCallbackArgs, setCurrentCallbackArgs] = useState<any[]>([]);
+  const [currentCallbackArgs, setCurrentCallbackArgs] = useState<$anyType[]>(
+    [],
+  );
 
-  const showConfirm = (...callbackArgs: any[]) => {
+  const showConfirm = (...callbackArgs: $anyType[]) => {
     // check if any args are DOM events, if so, call persist
     callbackArgs.forEach(arg => {
       if (!arg) {

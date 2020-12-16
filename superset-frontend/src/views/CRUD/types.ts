@@ -57,11 +57,15 @@ export type SavedQueryObject = {
   label: string;
   schema: string;
   sql: string | null;
+  changed_on_delta_humanized?: string;
+  created_on: string | number | Date;
   sql_tables?: { catalog?: string; schema: string; table: string }[];
 };
 
 export type CellType = {
-  row: Record<'original' | 'id', unknown>;
+  row: {
+    original: Record<string, unknown>;
+  };
 };
 
 export interface QueryObject {
@@ -94,6 +98,8 @@ export interface QueryObject {
   rows: number;
   tmp_table_name: string;
   tracking_url: string;
+  created_on: string | number | Date;
+  changed_on_delta_humanized: string;
 }
 
 export enum QueryObjectColumns {

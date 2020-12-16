@@ -50,7 +50,7 @@ export function useQueryPreviewState<D extends BaseQueryObject>({
     }
   }
 
-  function handleKeyPress(ev: any) {
+  function handleKeyPress(ev: React.KeyboardEvent) {
     if (currentIndex >= 0 && currentIndex < queries.length) {
       if (ev.key === 'ArrowDown' || ev.key === 'k') {
         ev.preventDefault();

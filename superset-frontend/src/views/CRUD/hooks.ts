@@ -28,7 +28,7 @@ import copyTextToClipboard from 'src/utils/copy';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FavoriteStatus, ImportResourceName } from './types';
 
-interface ListViewResourceState<D extends object = any> {
+interface ListViewResourceState<D extends object> {
   loading: boolean;
   collection: D[];
   count: number;
@@ -37,7 +37,7 @@ interface ListViewResourceState<D extends object = any> {
   bulkSelectEnabled: boolean;
 }
 
-export function useListViewResource<D extends object = any>(
+export function useListViewResource<D extends object>(
   resource: string,
   resourceLabel: string, // resourceLabel for translations
   handleErrorMsg: (errorMsg: string) => void,
@@ -182,13 +182,13 @@ export function useListViewResource<D extends object = any>(
 }
 
 // In the same vein as above, a hook for viewing a single instance of a resource (given id)
-interface SingleViewResourceState<D extends object = any> {
+interface SingleViewResourceState<D extends object> {
   loading: boolean;
   resource: D | null;
   error: string | null;
 }
 
-export function useSingleViewResource<D extends object = any>(
+export function useSingleViewResource<D extends object>(
   resourceName: string,
   resourceLabel: string, // resourceLabel for translations
   handleErrorMsg: (errorMsg: string) => void,
@@ -339,13 +339,13 @@ export function useImportResource(
   }
 
   /* eslint-disable no-underscore-dangle */
-  const isNeedsPassword = (payload: Record<string, unknown>) =>
+  const isNeedsPassword = (payload: string | Record<string, unknown>) =>
     typeof payload === 'object' &&
     Array.isArray(payload._schema) &&
     payload._schema.length === 1 &&
     payload._schema[0] === 'Must provide a password for the database';
 
-  const isAlreadyExists = (payload: any) =>
+  const isAlreadyExists = (payload: string | Record<string, unknown>) =>
     typeof payload === 'string' &&
     payload.includes('already exists and `overwrite=true` was not passed');
 

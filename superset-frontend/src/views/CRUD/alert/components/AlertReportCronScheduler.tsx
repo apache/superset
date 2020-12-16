@@ -26,7 +26,7 @@ import { StyledInputContainer } from '../AlertReportModal';
 
 interface AlertReportCronSchedulerProps {
   value?: string;
-  onChange: (change: string) => any;
+  onChange: (change: string) => void;
 }
 
 export const AlertReportCronScheduler: FunctionComponent<AlertReportCronSchedulerProps> = ({

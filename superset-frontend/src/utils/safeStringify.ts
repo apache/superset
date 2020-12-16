@@ -23,7 +23,7 @@
  * been no data present
  * @param object any JSON object to be stringified
  */
-export function safeStringify(object: any): string {
+export function safeStringify(object: Record<string, unknown>): string {
   const cache = new Set();
   return JSON.stringify(object, (key, value) => {
     if (typeof value === 'object' && value !== null) {

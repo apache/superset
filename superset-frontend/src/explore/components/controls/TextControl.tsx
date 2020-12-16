@@ -86,7 +86,9 @@ export default class TextControl extends React.Component<
     this.props.onChange?.(parsedValue, errors);
   };
 
-  onChangeWrapper = (event: React.FormEvent<FormControl> & { target: HTMLInputElement}) => {
+  onChangeWrapper = (
+    event: React.FormEvent<FormControl> & { target: HTMLInputElement },
+  ) => {
     const { value } = event.target;
     this.setState({ value });
 

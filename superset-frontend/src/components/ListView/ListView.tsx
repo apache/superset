@@ -26,6 +26,7 @@ import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import { TableCollection, Pagination } from 'src/components/dataViewCommon';
+import { $anyType } from 'src/constants';
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
@@ -124,10 +125,10 @@ const BulkSelectWrapper = styled(Alert)`
 `;
 
 const bulkSelectColumnConfig = {
-  Cell: ({ row }: any) => (
+  Cell: ({ row }: $anyType) => (
     <IndeterminateCheckbox {...row.getToggleRowSelectedProps()} id={row.id} />
   ),
-  Header: ({ getToggleAllRowsSelectedProps }: any) => (
+  Header: ({ getToggleAllRowsSelectedProps }: $anyType) => (
     <IndeterminateCheckbox
       {...getToggleAllRowsSelectedProps()}
       id="header-toggle-all"
@@ -203,12 +204,12 @@ const ViewModeToggle = ({
   );
 };
 
-export interface ListViewProps<T extends object = any> {
-  columns: any[];
+export interface ListViewProps<T extends object> {
+  columns: $anyType[];
   data: T[];
   count: number;
   pageSize: number;
-  fetchData: (conf: FetchDataConfig) => any;
+  fetchData: (conf: FetchDataConfig) => void;
   loading: boolean;
   className?: string;
   initialSort?: SortColumn[];
@@ -216,12 +217,12 @@ export interface ListViewProps<T extends object = any> {
   bulkActions?: Array<{
     key: string;
     name: React.ReactNode;
-    onSelect: (rows: any[]) => any;
+    onSelect: (rows: $anyType[]) => $anyType;
     type?: 'primary' | 'secondary' | 'danger';
   }>;
   bulkSelectEnabled?: boolean;
   disableBulkSelect?: () => void;
-  renderBulkSelectCopy?: (selects: any[]) => React.ReactNode;
+  renderBulkSelectCopy?: (selects: $anyType[]) => React.ReactNode;
   renderCard?: (row: T & { loading: boolean }) => React.ReactNode;
   cardSortSelectOptions?: Array<CardSortSelectOption>;
   defaultViewMode?: ViewModeType;
@@ -232,7 +233,7 @@ export interface ListViewProps<T extends object = any> {
   };
 }
 
-function ListView<T extends object = any>({
+function ListView<T extends object>({
   columns,
   data,
   count,

@@ -20,12 +20,13 @@ import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { RangePicker } from 'src/common/components/DatePicker';
-import moment from 'moment';
+import moment, { Moment } from 'moment';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 
+import DateType from '@storybook/addon-knobs/dist/components/types/Date';
 import { AnnotationObject } from './types';
 
 interface AnnotationModalProps {

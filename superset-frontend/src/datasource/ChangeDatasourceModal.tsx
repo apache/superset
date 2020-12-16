@@ -148,7 +148,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     show,
   ]);
 
-  const setSearchRef = (ref: any) => {
+  const setSearchRef = (ref: HTMLInputElement) => {
     searchRef = ref;
   };
 

@@ -17,9 +17,10 @@
  * under the License.
  */
 import { ReactNode } from 'react';
+import { $anyType } from 'src/constants';
 
 export interface SortColumn {
-  id: string;
+  id: string | number;
   desc?: boolean;
 }
 
@@ -27,14 +28,14 @@ export type SortColumns = SortColumn[];
 
 export interface SelectOption {
   label: string;
-  value: any;
+  value: $anyType;
 }
 
 export interface CardSortSelectOption {
   desc: boolean;
-  id: any;
+  id: string | number;
   label: string;
-  value: any;
+  value: $anyType;
 }
 
 type FilterOperator =

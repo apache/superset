@@ -20,12 +20,13 @@ import React from 'react';
 import { TableInstance, Row } from 'react-table';
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';
+import { $anyType } from 'src/constants';
 
 interface CardCollectionProps {
   bulkSelectEnabled?: boolean;
   loading: boolean;
   prepareRow: TableInstance['prepareRow'];
-  renderCard?: (row: any) => React.ReactNode;
+  renderCard?: (row: $anyType) => React.ReactNode;
   rows: TableInstance['rows'];
 }
 

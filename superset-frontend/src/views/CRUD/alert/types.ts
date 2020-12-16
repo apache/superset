@@ -26,6 +26,7 @@ type user = {
 };
 
 export type Recipient = {
+  id?: number;
   recipient_config_json: {
     target: string;
   };

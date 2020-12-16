@@ -45,6 +45,12 @@ import SavedQueryPreviewModal from './SavedQueryPreviewModal';
 
 const PAGE_SIZE = 25;
 
+type CellType = {
+  row: {
+    original: SavedQueryObject;
+  };
+};
+
 interface SavedQueryListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -228,8 +234,8 @@ function SavedQueryList({
           row: {
             original: { sql_tables: tables = [] },
           },
-        }: Record<string, unknown>) => {
-          const names = tables.map((table: any) => table.table);
+        }: CellType) => {
+          const names = tables.map(table => table.table);
           const main = names.length > 0 ? names.shift() : '';
 
           if (names.length) {
@@ -266,7 +272,7 @@ function SavedQueryList({
           row: {
             original: { created_on: createdOn },
           },
-        }: any) => {
+        }: CellType) => {
           const date = new Date(createdOn);
           const utc = new Date(
             Date.UTC(
@@ -291,13 +297,13 @@ function SavedQueryList({
           row: {
             original: { changed_on_delta_humanized: changedOn },
           },
-        }: any) => changedOn,
+        }: CellType) => changedOn,
         Header: t('Modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: CellType) => {
           const handlePreview = () => {
             handleSavedQueryPreview(original.id);
           };

@@ -106,20 +106,22 @@ export default function EditableTitle({
   // clicked and is focused/active. for accessibility, when focused the Tab <a /> intercepts
   // the ' ' key (among others, including all arrows) and onChange() doesn't fire. somehow
   // keydown is still called so we can detect this and manually add a ' ' to the current title
-  function handleKeyDown(event: any) {
+  function handleKeyDown(event: React.KeyboardEvent) {
     if (event.key === ' ') {
       event.stopPropagation();
     }
   }
 
-  function handleChange(ev: any) {
+  function handleChange(
+    ev: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) {
     if (!canEdit) {
       return;
     }
     setCurrentTitle(ev.target.value);
   }
 
-  function handleKeyPress(ev: any) {
+  function handleKeyPress(ev: React.KeyboardEvent) {
     if (ev.key === 'Enter') {
       ev.preventDefault();
       handleBlur();

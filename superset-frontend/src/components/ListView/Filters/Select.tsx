@@ -25,13 +25,14 @@ import {
 } from 'src/components/Select';
 import { Filter, SelectOption } from 'src/components/ListView/types';
 import { filterSelectStyles } from 'src/components/ListView/utils';
+import { $anyType } from 'src/constants';
 import { FilterContainer, BaseFilter, FilterTitle } from './Base';
 
 interface SelectFilterProps extends BaseFilter {
   emptyLabel?: string;
   fetchSelects?: Filter['fetchSelects'];
   name?: string;
-  onSelect: (selected: any) => any;
+  onSelect: (selected: $anyType) => $anyType;
   paginate?: boolean;
   selects: Filter['selects'];
   theme: SupersetThemeProps['theme'];

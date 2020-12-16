@@ -18,18 +18,21 @@
  */
 import React, { ReactNode, useState } from 'react';
 import Button from 'src/components/Button';
+import { $anyType } from 'src/constants';
 
 interface Props {
   items: string[] | ReactNode[];
   display?: number;
 }
 
-function intersperse(arr: any[], sep: string | ReactNode) {
+function intersperse(arr: $anyType, sep: string | ReactNode) {
   if (arr.length === 0) {
     return [];
   }
 
-  return arr.slice(1).reduce((xs, x) => xs.concat([sep, x]), [arr[0]]);
+  return arr
+    .slice(1)
+    .reduce((xs: string | ReactNode[], x) => xs.concat([sep, x]), [arr[0]]);
 }
 
 export default function ExpandableList({ items, display = 3 }: Props) {

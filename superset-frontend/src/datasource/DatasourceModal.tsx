@@ -80,7 +80,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   show,
 }) => {
   const [currentDatasource, setCurrentDatasource] = useState(datasource);
-  const [errors, setErrors] = useState<Array<any>>([]);
+  const [errors, setErrors] = useState<Array<unknown>>([]);
   const [isSaving, setIsSaving] = useState(false);
   const dialog = useRef(null);
   const [modal, contextHolder] = Modal.useModal();

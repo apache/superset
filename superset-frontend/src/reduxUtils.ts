@@ -20,6 +20,7 @@ import shortid from 'shortid';
 import { compose } from 'redux';
 import persistState, { StorageAdapter } from 'redux-localstorage';
 import { isEqual } from 'lodash';
+import { $anyType } from './constants';
 
 export function addToObject(
   state: Record<string, any>,
@@ -37,10 +38,10 @@ export function addToObject(
 }
 
 export function alterInObject(
-  state: Record<string, any>,
+  state: Record<string, $anyType>,
   arrKey: string,
-  obj: Record<string, any>,
-  alterations: Record<string, any>,
+  obj: Record<string, $anyType>,
+  alterations: Record<string, $anyType>,
 ) {
   const newObject = { ...state[arrKey] };
   newObject[obj.id] = { ...newObject[obj.id], ...alterations };
@@ -48,16 +49,16 @@ export function alterInObject(
 }
 
 export function alterInArr(
-  state: Record<string, any>,
+  state: Record<string, $anyType>,
   arrKey: string,
-  obj: Record<string, any>,
-  alterations: Record<string, any>,
+  obj: Record<string, $anyType>,
+  alterations: Record<string, unknown>,
   idKey = 'id',
 ) {
   // Finds an item in an array in the state and replaces it with a
   // new object with an altered property
   const newArr: unknown[] = [];
-  state[arrKey].forEach((arrItem: Record<string, any>) => {
+  state[arrKey].forEach((arrItem: Record<string, $anyType>) => {
     if (obj[idKey] === arrItem[idKey]) {
       newArr.push({ ...arrItem, ...alterations });
     } else {
@@ -68,13 +69,13 @@ export function alterInArr(
 }
 
 export function removeFromArr(
-  state: Record<string, any>,
+  state: Record<string, $anyType>,
   arrKey: string,
-  obj: Record<string, any>,
+  obj: Record<string, $anyType>,
   idKey = 'id',
 ) {
   const newArr: unknown[] = [];
-  state[arrKey].forEach((arrItem: Record<string, any>) => {
+  state[arrKey].forEach((arrItem: Record<string, $anyType>) => {
     if (!(obj[idKey] === arrItem[idKey])) {
       newArr.push(arrItem);
     }
@@ -82,7 +83,7 @@ export function removeFromArr(
   return { ...state, [arrKey]: newArr };
 }
 
-export function getFromArr(arr: Record<string, any>[], id: string) {
+export function getFromArr(arr: Record<string, $anyType>[], id: string) {
   let obj;
   arr.forEach(o => {
     if (o.id === id) {
@@ -93,9 +94,9 @@ export function getFromArr(arr: Record<string, any>[], id: string) {
 }
 
 export function addToArr(
-  state: Record<string, any>,
+  state: Record<string, $anyType>,
   arrKey: string,
-  obj: Record<string, any>,
+  obj: Record<string, unknown>,
   prepend = false,
 ) {
   const newObj = { ...obj };
@@ -112,9 +113,9 @@ export function addToArr(
 }
 
 export function extendArr(
-  state: Record<string, any>,
+  state: Record<string, $anyType>,
   arrKey: string,
-  arr: Record<string, any>[],
+  arr: Record<string, unknown>[],
   prepend = false,
 ) {
   const newArr = [...arr];
@@ -170,8 +171,8 @@ export function areArraysShallowEqual(arr1: unknown[], arr2: unknown[]) {
 }
 
 export function areObjectsEqual(
-  obj1: Record<string, any>,
-  obj2: Record<string, any>,
+  obj1: Record<string, unknown>,
+  obj2: Record<string, unknown>,
 ) {
   return isEqual(obj1, obj2);
 }

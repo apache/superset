@@ -128,7 +128,7 @@ export const getRecentAcitivtyObjs = (
       createdByChart,
       createdByQuery,
     ]) => {
-      const res: Record<string, any> = {
+      const res: Record<string, unknown> = {
         editedDash: editedDash.json?.result.slice(0, 3),
         editedChart: editedChart.json?.result.slice(0, 3),
         createdByDash: createdByDash.json?.result.slice(0, 3),

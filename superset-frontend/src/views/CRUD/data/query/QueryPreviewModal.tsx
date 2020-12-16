@@ -83,7 +83,7 @@ interface QueryPreviewModalProps extends ToastProps {
   openInSqlLab: (id: number) => void;
   queries: QueryObject[];
   query: QueryObject;
-  fetchData: (id: number) => any;
+  fetchData: (id: number) => void;
   show: boolean;
 }
 

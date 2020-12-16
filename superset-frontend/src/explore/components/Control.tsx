@@ -37,7 +37,7 @@ export type ControlProps = {
   rightNode?: ReactNode;
   formData?: QueryFormData | null;
   value?: JsonValue;
-  validationErrors?: any[];
+  validationErrors?: Array<Record<string, any>>;
   hidden?: boolean;
   renderTrigger?: boolean;
 };

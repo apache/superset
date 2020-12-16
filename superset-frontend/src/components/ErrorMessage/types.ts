@@ -53,7 +53,7 @@ export type ErrorLevel = 'info' | 'warning' | 'error';
 
 export type ErrorSource = 'dashboard' | 'explore' | 'sqllab';
 
-export type SupersetError<ExtraType = Record<string, any> | null> = {
+export type SupersetError<ExtraType = Record<string, unknown> | null> = {
   error_type: ErrorType;
   extra: ExtraType;
   level: ErrorLevel;
@@ -61,7 +61,7 @@ export type SupersetError<ExtraType = Record<string, any> | null> = {
 };
 
 export type ErrorMessageComponentProps<
-  ExtraType = Record<string, any> | null
+  ExtraType = Record<string, unknown> | null
 > = {
   error: SupersetError<ExtraType>;
   source?: ErrorSource;

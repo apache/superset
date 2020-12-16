@@ -41,11 +41,7 @@ import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
-import {
-  QueryObject,
-  QueryObjectColumns,
-  CellType,
-} from 'src/views/CRUD/types';
+import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 
 import QueryPreviewModal from './QueryPreviewModal';
 
@@ -67,9 +63,16 @@ const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
 `;
 
 interface QueryListProps {
-  addDangerToast: (msg: string, config?: any) => void;
-  addSuccessToast: (msg: string, config?: any) => void;
+  addDangerToast: (msg: string, config?: Record<string, unknown>) => void;
+  addSuccessToast: (msg: string, config?: Record<string, unknown>) => void;
 }
+
+type CellType = {
+  row: {
+    original: QueryObject;
+    id: number;
+  };
+};
 
 const StyledTableLabel = styled.div`
   .count {
@@ -248,7 +251,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
             original: { sql_tables: tables = [] },
           },
         }: CellType) => {
-          const names = tables.map((table: any) => table.table);
+          const names = tables.map(table => table.table);
           const main = names.length > 0 ? names.shift() : '';
 
           if (names.length) {

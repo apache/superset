@@ -29,7 +29,10 @@ import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DeleteModal from 'src/components/DeleteModal';
 import ListView, { ListViewProps } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import {
+  ClientErrorObject,
+  getClientErrorObject,
+} from 'src/utils/getClientErrorObject';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { IconName } from 'src/components/Icon';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -92,7 +95,7 @@ function AnnotationList({
         });
         setAnnotationLayerName(response.json.result.name);
       } catch (response) {
-        await getClientErrorObject(response).then(({ error }: any) => {
+        await getClientErrorObject(response).then(({ error }) => {
           addDangerToast(error.error || error.statusText || error);
         });
       }

@@ -50,7 +50,7 @@ const IndeterminateCheckbox = React.forwardRef(
       onChange,
       title = '',
     }: IndeterminateCheckboxProps,
-    ref: React.MutableRefObject<any>,
+    ref: React.MutableRefObject<HTMLInputElement>,
   ) => {
     const defaultRef = React.useRef<HTMLInputElement>();
     const resolvedRef = ref || defaultRef;

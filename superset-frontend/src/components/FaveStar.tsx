@@ -24,7 +24,7 @@ import Icon from './Icon';
 interface FaveStarProps {
   itemId: number;
   fetchFaveStar?: (id: number) => void;
-  saveFaveStar(id: number, isStarred: boolean): any;
+  saveFaveStar(id: number, isStarred: boolean): void;
   isStarred: boolean;
   showTooltip?: boolean;
 }

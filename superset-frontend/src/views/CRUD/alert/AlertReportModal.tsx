@@ -532,7 +532,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
     });
 
-    const data: Record<string, unknown> = {
+    const data: Record<string, unknown> & { recipients?: Recipient[] } = {
       ...currentAlert,
       chart: contentType === 'chart' ? currentAlert?.chart?.value : undefined,
       dashboard:
@@ -641,7 +641,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       return null;
     }
 
-    let result;
+    let result = null;
 
     // Cycle through source options to find the selected option
     sourceOptions.forEach(source => {
@@ -692,7 +692,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       return null;
     }
 
-    let result;
+    let result = null;
 
     // Cycle through dashboard options to find the selected option
     dashboardOptions.forEach(dash => {
@@ -739,7 +739,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       return null;
     }
 
-    let result;
+    let result = null;
 
     // Cycle through chart options to find the selected option
     chartOptions.forEach(slice => {
@@ -752,7 +752,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   // Updating alert/report state
-  const updateAlertState = (name: string, value: any) => {
+  const updateAlertState = (
+    name: string,
+    value: Record<string, any> | string | null,
+  ) => {
     const data = {
       ...currentAlert,
     };
