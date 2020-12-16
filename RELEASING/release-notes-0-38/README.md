@@ -316,4 +316,4 @@ Other
 [List of backwards incompatible changes](https://github.com/apache/incubator-superset/blob/master/UPDATING.md#0380)
 
 ## Complete Changelog
-For the complete chnagelog please see [apache/incubator-superset/CHANGELOG.md](https://github.com/apache/incubator-superset/blob/master/CHANGELOG.md)
+For the complete changelog please see [apache/incubator-superset/CHANGELOG.md](https://github.com/apache/incubator-superset/blob/master/CHANGELOG.md)
