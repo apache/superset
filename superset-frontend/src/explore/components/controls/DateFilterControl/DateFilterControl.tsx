@@ -314,6 +314,7 @@ const StyledModalContainer = styled.div`
   .ant-picker {
     padding: 4px 17px 4px;
     border-radius: 4px;
+    width: 100%;
   }
 
   .ant-divider-horizontal {
@@ -641,7 +642,6 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           <Col span={12}>
             <div className="control-label">{t('START')}</div>
             <Select
-              name="select-start-type"
               options={SINCE_MODE_OPTIONS}
               value={SINCE_MODE_OPTIONS.filter(
                 option => option.value === sinceMode,
@@ -755,32 +755,36 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           <>
             <div className="control-label">{t('ANCHOR RELATIVE TO')}</div>
             <Row align="middle">
-              <Radio.Group
-                onChange={onCustomRangeChangeAnchorMode}
-                defaultValue="now"
-                value={anchorMode}
-              >
-                <Radio key="now" value="now">
-                  {t('NOW')}
-                </Radio>
-                <Radio key="specific" value="specific">
-                  {t('Date/Time')}
-                </Radio>
-              </Radio.Group>
+              <Col>
+                <Radio.Group
+                  onChange={onCustomRangeChangeAnchorMode}
+                  defaultValue="now"
+                  value={anchorMode}
+                >
+                  <Radio key="now" value="now">
+                    {t('NOW')}
+                  </Radio>
+                  <Radio key="specific" value="specific">
+                    {t('Date/Time')}
+                  </Radio>
+                </Radio.Group>
+              </Col>
               {anchorMode !== 'now' && (
-                <DatePicker
-                  showTime
-                  // @ts-ignore
-                  value={dttmToMoment(anchorValue)}
-                  // @ts-ignore
-                  onChange={(datetime: Moment) =>
-                    onCustomRangeChange(
-                      'anchorValue',
-                      datetime.format(MOMENT_FORMAT),
-                    )
-                  }
-                  allowClear={false}
-                />
+                <Col>
+                  <DatePicker
+                    showTime
+                    // @ts-ignore
+                    value={dttmToMoment(anchorValue)}
+                    // @ts-ignore
+                    onChange={(datetime: Moment) =>
+                      onCustomRangeChange(
+                        'anchorValue',
+                        datetime.format(MOMENT_FORMAT),
+                      )
+                    }
+                    allowClear={false}
+                  />
+                </Col>
               )}
             </Row>
           </>
