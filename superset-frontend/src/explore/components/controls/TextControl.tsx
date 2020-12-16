@@ -86,8 +86,8 @@ export default class TextControl extends React.Component<
     this.props.onChange?.(parsedValue, errors);
   };
 
-  onChangeWrapper = (event: React.FormEvent<FormControl>) => {
-    const { value } = event.target as HTMLInputElement;
+  onChangeWrapper = (event: React.FormEvent<FormControl> & { target: HTMLInputElement}) => {
+    const { value } = event.target;
     this.setState({ value });
 
     // use debounce when change takes effect immediately after user starts typing

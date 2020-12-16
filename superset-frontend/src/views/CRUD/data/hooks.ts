@@ -27,7 +27,7 @@ export function useQueryPreviewState<D extends BaseQueryObject>({
   currentQueryId,
 }: {
   queries: D[];
-  fetchData: (id: number) => void;
+  fetchData: (id: number) => unknown;
   currentQueryId: number;
 }) {
   const index = queries.findIndex(query => query.id === currentQueryId);

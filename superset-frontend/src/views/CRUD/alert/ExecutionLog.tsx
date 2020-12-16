@@ -55,7 +55,7 @@ interface ExecutionLogProps {
 }
 
 function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
-  const { alertId } = useParams<Record<string, any>>();
+  const { alertId } = useParams<Record<string, unknown>>();
   const {
     state: { loading, resourceCount: logCount, resourceCollection: logs },
     fetchData,

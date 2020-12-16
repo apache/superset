@@ -228,7 +228,7 @@ function SavedQueryList({
           row: {
             original: { sql_tables: tables = [] },
           },
-        }: Record<string, any>) => {
+        }: Record<string, unknown>) => {
           const names = tables.map((table: any) => table.table);
           const main = names.length > 0 ? names.shift() : '';
 

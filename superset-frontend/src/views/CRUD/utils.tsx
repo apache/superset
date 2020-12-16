@@ -53,7 +53,7 @@ const createFetchResourceMethod = (method: string) => (
         value,
       }: {
         text: string;
-        value: Record<string, any>;
+        value: Record<string, unknown>;
       }) => ({
         label,
         value,
@@ -70,9 +70,9 @@ const createFetchResourceMethod = (method: string) => (
 export const getRecentAcitivtyObjs = (
   userId: string | number,
   recent: string,
-  addDangerToast: (arg1: string, arg2: Record<string, any>) => void,
+  addDangerToast: (arg1: string, arg2: Record<string, unknown>) => void,
 ) => {
-  const getParams = (filters?: Array<Record<string, any>>) => {
+  const getParams = (filters?: Array<Record<string, unknown>>) => {
     const params = {
       order_column: 'changed_on_delta_humanized',
       order_direction: 'desc',

@@ -61,7 +61,7 @@ export type SavedQueryObject = {
 };
 
 export type CellType = {
-  row: Record<'original' | 'id', any>;
+  row: Record<'original' | 'id', unknown>;
 };
 
 export interface QueryObject {

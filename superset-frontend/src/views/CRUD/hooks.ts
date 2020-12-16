@@ -339,7 +339,7 @@ export function useImportResource(
   }
 
   /* eslint-disable no-underscore-dangle */
-  const isNeedsPassword = (payload: Record<string, any>) =>
+  const isNeedsPassword = (payload: Record<string, unknown>) =>
     typeof payload === 'object' &&
     Array.isArray(payload._schema) &&
     payload._schema.length === 1 &&

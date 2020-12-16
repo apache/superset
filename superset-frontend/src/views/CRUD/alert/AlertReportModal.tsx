@@ -532,7 +532,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
     });
 
-    const data: Record<string, any> = {
+    const data: Record<string, unknown> = {
       ...currentAlert,
       chart: contentType === 'chart' ? currentAlert?.chart?.value : undefined,
       dashboard:
