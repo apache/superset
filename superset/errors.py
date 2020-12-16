@@ -27,6 +27,7 @@ class SupersetErrorType(str, Enum):
     Types of errors that can exist within Superset.
 
     Keep in sync with superset-frontend/src/components/ErrorMessage/types.ts
+    and docs/src/pages/docs/Miscellaneous/issue_codes.mdx
     """
 
     # Frontend errors
@@ -51,6 +52,9 @@ class SupersetErrorType(str, Enum):
 
     # Other errors
     BACKEND_TIMEOUT_ERROR = "BACKEND_TIMEOUT_ERROR"
+
+    # Sql Lab errors
+    MISSING_TEMPLATE_PARAMS_ERROR = "MISSING_TEMPLATE_PARAMS_ERROR"
 
 
 ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
@@ -97,6 +101,15 @@ ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
             "code": 1005,
             "message": _(
                 "Issue 1005 - The table was deleted or renamed in the database."
+            ),
+        },
+    ],
+    SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR: [
+        {
+            "code": 1006,
+            "message": _(
+                "Issue 1006 - One or more parameters specified in the query are "
+                "missing."
             ),
         },
     ],

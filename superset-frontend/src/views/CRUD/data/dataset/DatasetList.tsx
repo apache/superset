@@ -141,10 +141,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     refreshData();
   };
 
-  const canEdit = hasPerm('can_edit');
-  const canDelete = hasPerm('can_delete');
-  const canCreate = hasPerm('can_add');
-  const canExport = hasPerm('can_mulexport');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
+  const canCreate = hasPerm('can_write');
+  const canExport = hasPerm('can_read');
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
@@ -661,6 +661,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         resourceLabel={t('dataset')}
         icon={<StyledIcon name="table" />}
         passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
+        confirmOverwriteMessage={t(
+          'One or more datasets to be imported already exist.',
+        )}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         onModelImport={handleDatasetImport}

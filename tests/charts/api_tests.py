@@ -182,6 +182,20 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             db.session.delete(self.chart)
             db.session.commit()
 
+    def test_info_security_chart(self):
+        """
+        Chart API: Test info security
+        """
+        self.login(username="admin")
+        params = {"keys": ["permissions"]}
+        uri = f"api/v1/chart/_info?q={prison.dumps(params)}"
+        rv = self.get_assert_metric(uri, "info")
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert "can_read" in data["permissions"]
+        assert "can_write" in data["permissions"]
+        assert len(data["permissions"]) == 2
+
     def create_chart_import(self):
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:

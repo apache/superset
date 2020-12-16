@@ -84,6 +84,7 @@ MODEL_VIEW_RW_METHOD_PERMISSION_MAP = {
     "muldelete": "write",
     "show": "read",
     "new": "write",
+    "yaml_export": "read",
 }
 
 MODEL_API_RW_METHOD_PERMISSION_MAP = {
@@ -100,4 +101,10 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "favorite_status": "read",
     "thumbnail": "read",
     "import_": "write",
+    "refresh": "read",
+    "related_objects": "read",
+    "cache_screenshot": "read",
+    "screenshot": "read",
+    "data": "read",
+    "data_from_cache": "read",
 }

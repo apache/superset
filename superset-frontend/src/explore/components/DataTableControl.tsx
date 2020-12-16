@@ -90,7 +90,7 @@ export const useFilteredTableData = (
     const formattedData = applyFormattingToTabularData(data);
     return formattedData.filter((row: Record<string, any>) =>
       Object.values(row).some(value =>
-        value.toString().toLowerCase().includes(filterText.toLowerCase()),
+        value?.toString().toLowerCase().includes(filterText.toLowerCase()),
       ),
     );
   }, [data, filterText]);

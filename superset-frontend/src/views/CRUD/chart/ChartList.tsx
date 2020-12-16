@@ -152,11 +152,11 @@ function ChartList(props: ChartListProps) {
     refreshData();
   };
 
-  const canCreate = hasPerm('can_add');
-  const canEdit = hasPerm('can_edit');
-  const canDelete = hasPerm('can_delete');
+  const canCreate = hasPerm('can_write');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
   const canExport =
-    hasPerm('can_mulexport') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+    hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
@@ -582,6 +582,9 @@ function ChartList(props: ChartListProps) {
         resourceLabel={t('chart')}
         icon={<StyledIcon name="nav-charts" />}
         passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
+        confirmOverwriteMessage={t(
+          'One or more charts to be imported already exist.',
+        )}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         onModelImport={handleChartImport}

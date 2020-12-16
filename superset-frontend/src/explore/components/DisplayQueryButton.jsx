@@ -36,7 +36,6 @@ import { getChartDataRequest } from '../../chart/chartAction';
 import downloadAsImage from '../../utils/downloadAsImage';
 import Loading from '../../components/Loading';
 import ModalTrigger from '../../components/ModalTrigger';
-import PropertiesModal from './PropertiesModal';
 import { sliceUpdated } from '../actions/exploreActions';
 import { CopyButton } from './DataTableControl';
 
@@ -46,6 +45,7 @@ SyntaxHighlighter.registerLanguage('sql', sqlSyntax);
 SyntaxHighlighter.registerLanguage('json', jsonSyntax);
 
 const propTypes = {
+  onOpenPropertiesModal: PropTypes.func,
   onOpenInEditor: PropTypes.func,
   queryResponse: PropTypes.object,
   chartStatus: PropTypes.string,
@@ -76,7 +76,6 @@ export const DisplayQueryButton = props => {
   const [sqlSupported] = useState(
     datasource && datasource.split('__')[1] === 'table',
   );
-  const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
 
   const beforeOpen = resultType => {
@@ -103,20 +102,12 @@ export const DisplayQueryButton = props => {
       });
   };
 
-  const openPropertiesModal = () => {
-    setIsPropertiesModalOpen(true);
-  };
-
-  const closePropertiesModal = () => {
-    setIsPropertiesModalOpen(false);
-  };
-
   const handleMenuClick = ({ key, domEvent }) => {
     const { chartHeight, slice, onOpenInEditor, latestQueryFormData } = props;
     setMenuVisible(false);
     switch (key) {
       case MENU_KEYS.EDIT_PROPERTIES:
-        openPropertiesModal();
+        props.onOpenPropertiesModal();
         break;
       case MENU_KEYS.RUN_IN_SQL_LAB:
         onOpenInEditor(latestQueryFormData);
@@ -182,17 +173,11 @@ export const DisplayQueryButton = props => {
       onToggle={setMenuVisible}
     >
       <Menu onClick={handleMenuClick} selectable={false}>
-        {slice && [
+        {slice && (
           <Menu.Item key={MENU_KEYS.EDIT_PROPERTIES}>
             {t('Edit properties')}
-          </Menu.Item>,
-          <PropertiesModal
-            slice={slice}
-            show={isPropertiesModalOpen}
-            onHide={closePropertiesModal}
-            onSave={props.sliceUpdated}
-          />,
-        ]}
+          </Menu.Item>
+        )}
         <Menu.Item>
           <ModalTrigger
             triggerNode={

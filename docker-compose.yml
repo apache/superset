@@ -24,6 +24,7 @@ x-superset-volumes: &superset-volumes
   - ./superset:/app/superset
   - ./superset-frontend:/app/superset-frontend
   - superset_home:/app/superset_home
+  - ./tests:/app/tests
 
 version: "3.7"
 services:
@@ -57,6 +58,8 @@ services:
     user: "root"
     depends_on: *superset-depends-on
     volumes: *superset-volumes
+    environment:
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
 
   superset-init:
     image: *superset-image
@@ -66,6 +69,8 @@ services:
     depends_on: *superset-depends-on
     user: "root"
     volumes: *superset-volumes
+    environment:
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
 
   superset-node:
     image: node:12
