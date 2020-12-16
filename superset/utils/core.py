@@ -1513,15 +1513,17 @@ def get_since_until(
         since_and_until: List[Optional[str]] = []
         for part in since_and_until_partition:
             if not part:
-                # if since or until is None
+                # if since or until is "", set as None
                 since_and_until.append(None)
                 continue
 
+            # Is it possible to match to time_range_lookup
             matched = False
             for pattern, fn in time_range_lookup:
                 result = re.search(pattern, part, re.IGNORECASE)
                 if result:
                     matched = True
+                    # converted matched time_range to "formal time expressions"
                     since_and_until.append(fn(*result.groups()))  # type: ignore
             if not matched:
                 # default matched case

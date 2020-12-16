@@ -21,9 +21,10 @@ import rison from 'rison';
 import moment, { Moment } from 'moment';
 import {
   SupersetClient,
-  TimeRangeEndpoints,
-  t,
   styled,
+  supersetTheme,
+  t,
+  TimeRangeEndpoints,
 } from '@superset-ui/core';
 import {
   buildTimeRangeString,
@@ -31,19 +32,20 @@ import {
   SEPARATOR,
 } from 'src/explore/dateFilterUtils';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Label from 'src/components/Label';
 import Modal from 'src/common/components/Modal';
 import {
-  DatePicker,
-  Input,
-  Button,
   Col,
+  DatePicker,
   Divider,
+  Input,
   InputNumber,
   Radio,
   Row,
 } from 'src/common/components';
+import Icon from 'src/components/Icon';
 import { Select } from 'src/components/Select';
 import {
   TimeRangeFrameType,
@@ -348,6 +350,21 @@ const StyledValidateBtn = styled.span`
   }
 `;
 
+const IconWrapper = styled.span`
+  svg {
+    margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
+    vertical-align: middle;
+    display: inline-block;
+  }
+  .text {
+    vertical-align: middle;
+    display: inline-block;
+  }
+  .error {
+    color: ${({ theme }) => theme.colors.error.base};
+  }
+`;
+
 interface DateFilterLabelProps {
   name: string;
   onChange: (timeRange: string) => void;
@@ -376,19 +393,31 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   const [advancedRange, setAdvancedRange] = useState<string>(
     getAdvancedRange(value),
   );
-  const [validAdvancedRange, setValidAdvancedRange] = useState<boolean>(false);
+  const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalTimeRange, setEvalTimeRange] = useState<string>(value);
 
   useEffect(() => {
-    fetchTimeRange(value, endpoints).then(({ value }) => {
-      setActualTimeRange(value || '');
+    fetchTimeRange(value, endpoints).then(({ value, error }) => {
+      if (error) {
+        setEvalTimeRange(error || '');
+        setValidTimeRange(false);
+      } else {
+        setActualTimeRange(value || '');
+        setValidTimeRange(true);
+      }
     });
   }, [value]);
 
   useEffect(() => {
     const value = getCurrentValue();
-    fetchTimeRange(value, endpoints).then(({ value }) => {
-      setEvalTimeRange(value || '');
+    fetchTimeRange(value, endpoints).then(({ value, error }) => {
+      if (error) {
+        setEvalTimeRange(error || '');
+        setValidTimeRange(false);
+      } else {
+        setEvalTimeRange(value || '');
+        setValidTimeRange(true);
+      }
     });
   }, [timeRangeFrame, commonRange, calendarRange, customRange]);
 
@@ -449,7 +478,8 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   }
 
   function onAdvancedRangeChange(control: 'since' | 'until', value: string) {
-    setValidAdvancedRange(false);
+    setValidTimeRange(false);
+    setEvalTimeRange(t('Need to verify the time range.'));
     const [since, until] = advancedRange.split(SEPARATOR);
     if (control === 'since') {
       setAdvancedRange(`${value}${SEPARATOR}${until}`);
@@ -513,10 +543,10 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
     fetchTimeRange(value, endpoints).then(({ value, error }) => {
       if (error) {
         setEvalTimeRange(error || '');
-        setValidAdvancedRange(false);
+        setValidTimeRange(false);
       } else {
         setEvalTimeRange(value || '');
-        setValidAdvancedRange(true);
+        setValidTimeRange(true);
       }
     });
   }
@@ -770,26 +800,33 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
         {actualTimeRange}
       </Label>
       <Modal
-        title={t('Edit Time Range')}
+        title={
+          <IconWrapper>
+            <Icon name="edit-alt" />
+            <span className="text">{t('Edit Time Range')}</span>
+          </IconWrapper>
+        }
         show={show}
         onHide={onHide}
         footer={[
-          <Button key="cancel" onClick={onHide}>
+          <Button buttonStyle="secondary" cta key="cancel" onClick={onHide}>
             {t('CANCEL')}
           </Button>,
           <Button
+            buttonStyle="primary"
+            cta
+            disabled={!validTimeRange}
             key="apply"
-            type="primary"
             onClick={onSave}
-            disabled={!validAdvancedRange && timeRangeFrame === 'Advanced'}
           >
             {t('APPLY')}
           </Button>,
           showValidateBtn() && (
             <StyledValidateBtn key="validate">
               <Button
+                buttonStyle="tertiary"
+                cta
                 className="validate-btn"
-                type="default"
                 onClick={onValidate}
               >
                 {t('Validate')}
@@ -813,7 +850,16 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           <Divider />
           <div>
             <div className="section-title">{t('Actual Time Range')}</div>
-            <div>{evalTimeRange}</div>
+            {validTimeRange && <div>{evalTimeRange}</div>}
+            {!validTimeRange && (
+              <IconWrapper className="warning">
+                <Icon
+                  name="error-solid-small"
+                  color={supersetTheme.colors.error.base}
+                />
+                <span className="text error">{evalTimeRange}</span>
+              </IconWrapper>
+            )}
           </div>
         </StyledModalContainer>
       </Modal>
