@@ -24,7 +24,6 @@ import Button from 'src/components/Button';
 
 import ModalTrigger from 'src/components/ModalTrigger';
 import FormLabel from 'src/components/FormLabel';
-import { ValueType } from 'react-select';
 
 export const options = [
   [0, t("Don't refresh")],
@@ -102,7 +101,7 @@ class RefreshIntervalModal extends React.PureComponent<
     const { refreshFrequency = 0 } = this.state;
     const showRefreshWarning =
       !!refreshFrequency && !!refreshWarning && refreshFrequency < refreshLimit;
-    
+
     return (
       <ModalTrigger
         ref={this.modalRef}
@@ -113,7 +112,7 @@ class RefreshIntervalModal extends React.PureComponent<
             <FormLabel>{t('Refresh frequency')}</FormLabel>
             <Select
               options={options}
-              value={options.find(({value}) => value === refreshFrequency)}
+              value={options.find(({ value }) => value === refreshFrequency)}
               onChange={this.handleFrequencyChange}
             />
             {showRefreshWarning && (
