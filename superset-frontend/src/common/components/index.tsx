@@ -38,6 +38,7 @@ export {
   Dropdown,
   Empty,
   Input,
+  InputNumber,
   Modal,
   Popover,
   Radio,
@@ -47,7 +48,6 @@ export {
   Switch,
   Tabs,
   Tooltip,
-  InputNumber,
 } from 'antd';
 
 export { default as Collapse } from './Collapse';
