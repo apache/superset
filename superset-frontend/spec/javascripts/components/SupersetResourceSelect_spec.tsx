@@ -22,15 +22,18 @@ import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 describe('SupersetResourceSelect', () => {
   const NOOP = () => {};
+
   it('is a valid element', () => {
     // @ts-ignore
     expect(
       React.isValidElement(<SupersetResourceSelect onError={NOOP} />),
     ).toBe(true);
   });
+
   it('take in props', () => {
     const mockStore = configureStore([thunk]);
     const store = mockStore({});
@@ -41,12 +44,13 @@ describe('SupersetResourceSelect', () => {
       isMulti: false,
       onError: NOOP,
     };
-    const wrapper = mount(
-      <Provider store={store}>
-        <SupersetResourceSelect {...selectProps} />,
-      </Provider>,
-    );
-    console.log('wrapper', wrapper.instance());
-    // expect(wrapper.props().resource).toEqual('dataset');
+    const wrapper = mount(<SupersetResourceSelect {...selectProps} />, {
+      wrappingComponent: ({ children }) => (
+        <ThemeProvider theme={supersetTheme}>
+          <Provider store={store}>{children}</Provider>
+        </ThemeProvider>
+      ),
+    });
+    expect(wrapper.props().resource).toEqual('dataset');
   });
 });
