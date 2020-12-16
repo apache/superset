@@ -423,20 +423,10 @@ export function FilterConfigModal({
       centered
       data-test="filter-modal"
       footer={[
-        <Button
-          key="cancel"
-          buttonStyle="secondary"
-          buttonSize="medium"
-          onClick={handleCancel}
-        >
+        <Button key="cancel" buttonStyle="secondary" onClick={handleCancel}>
           {t('Cancel')}
         </Button>,
-        <Button
-          key="submit"
-          buttonStyle="primary"
-          buttonSize="medium"
-          onClick={onOk}
-        >
+        <Button key="submit" buttonStyle="primary" onClick={onOk}>
           {t('Save')}
         </Button>,
       ]}
