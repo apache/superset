@@ -14,7 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=comparison-with-callable
+# pylint: disable=comparison-with-callable, line-too-long, too-many-branches
+import dataclasses
 import logging
 import re
 from contextlib import closing
@@ -34,8 +35,9 @@ from flask_appbuilder.security.decorators import (
     permission_name,
 )
 from flask_appbuilder.security.sqla import models as ab_models
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import gettext as __, lazy_gettext as _, ngettext
 from jinja2.exceptions import TemplateError
+from jinja2.meta import find_undeclared_variables
 from sqlalchemy import and_, or_
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError, DBAPIError, NoSuchModuleError, SQLAlchemyError
@@ -69,6 +71,7 @@ from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     CertificateException,
@@ -157,6 +160,11 @@ DATABASE_KEYS = [
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
+PARAMETER_MISSING_ERR = (
+    "Please check your template parameters for syntax errors and make sure "
+    "they match across your SQL query and Set Parameters. Then, try running "
+    "your query again."
+)
 
 
 class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
@@ -2507,6 +2515,28 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(
                 f"Query {query_id}: Template syntax error: {error_msg}"
             )
+
+        # pylint: disable=protected-access
+        if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
+            ast = template_processor._env.parse(rendered_query)
+            undefined = find_undeclared_variables(ast)  # type: ignore
+            if undefined:
+                error = SupersetError(
+                    message=ngettext(
+                        "There's an error with the parameter %(parameters)s.",
+                        "There's an error with the parameters %(parameters)s.",
+                        len(undefined),
+                        parameters=utils.format_list(undefined),
+                    )
+                    + " "
+                    + PARAMETER_MISSING_ERR,
+                    level=ErrorLevel.ERROR,
+                    error_type=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
+                    extra={"missing_parameters": list(undefined)},
+                )
+                return json_error_response(
+                    payload={"errors": [dataclasses.asdict(error)]},
+                )
 
         # Limit is not applied to the CTA queries if SQLLAB_CTAS_NO_LIMIT flag is set
         # to True.
