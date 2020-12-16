@@ -394,17 +394,15 @@ class ExploreViewContainer extends React.Component {
               max-height: 100vh;
               overflow: hidden;
             }
+            #app-menu, #app {
+              flex: 1 1 auto;
+              overflow: hidden;
+            }
             #app {
               flex-basis: 100%;
             }
-            body > div {
-              flex: 1 1 auto;
-              &#app-menu {
-                flex-shrink: 0;
-              }
-              &.controls-column {
-                flex-basis: 100%;
-              }
+            #app-menu {
+              flex-shrink: 0;
             }
           `}
         />
