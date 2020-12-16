@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from flask_babel import gettext as _
 
@@ -25,7 +25,9 @@ class SupersetException(Exception):
     status = 500
     message = ""
 
-    def __init__(self, message: str = "", exception: Optional[Exception] = None):
+    def __init__(
+        self, message: str = "", exception: Optional[Exception] = None,
+    ) -> None:
         if message:
             self.message = message
         self._exception = exception
@@ -63,6 +65,14 @@ class SupersetSecurityException(SupersetException):
         self.payload = payload
 
 
+class SupersetVizException(SupersetException):
+    status = 400
+
+    def __init__(self, errors: List[SupersetError]) -> None:
+        super(SupersetVizException, self).__init__(str(errors))
+        self.errors = errors
+
+
 class NoDataException(SupersetException):
     status = 400
 
@@ -89,6 +99,10 @@ class DatabaseNotFound(SupersetException):
 
 class QueryObjectValidationError(SupersetException):
     status = 400
+
+
+class CacheLoadError(SupersetException):
+    status = 404
 
 
 class DashboardImportException(SupersetException):

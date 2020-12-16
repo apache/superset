@@ -23,6 +23,7 @@ import configureStore from 'redux-mock-store';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import Link from 'src/components/Link';
+import Fade from 'src/common/components/Fade';
 import TableElement from 'src/SqlLab/components/TableElement';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
 
@@ -62,6 +63,14 @@ describe('TableElement', () => {
         },
       },
     );
+  });
+  it('fades table', () => {
+    const wrapper = shallow(<TableElement {...mockedProps} />);
+    expect(wrapper.state().hovered).toBe(false);
+    expect(wrapper.find(Fade).props().hovered).toBe(false);
+    wrapper.find('div.TableElement').simulate('mouseEnter');
+    expect(wrapper.state().hovered).toBe(true);
+    expect(wrapper.find(Fade).props().hovered).toBe(true);
   });
   it('sorts columns', () => {
     const wrapper = shallow(<TableElement {...mockedProps} />);

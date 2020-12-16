@@ -45,7 +45,10 @@ from .dashboard_utils import (
     create_slice,
     create_dashboard,
 )
+from .fixtures.energy_dashboard import load_energy_table_with_slice
 from .fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
+
+NEW_SECURITY_CONVERGE_VIEWS = ("CssTemplate", "SavedQuery", "Chart")
 
 
 def get_perm_tuples(role_name):
@@ -611,18 +614,27 @@ class TestRolePermission(SupersetTestCase):
         self.logout()
 
     def assert_can_read(self, view_menu, permissions_set):
-        self.assertIn(("can_list", view_menu), permissions_set)
+        if view_menu in NEW_SECURITY_CONVERGE_VIEWS:
+            self.assertIn(("can_read", view_menu), permissions_set)
+        else:
+            self.assertIn(("can_list", view_menu), permissions_set)
 
     def assert_can_write(self, view_menu, permissions_set):
-        self.assertIn(("can_add", view_menu), permissions_set)
-        self.assertIn(("can_delete", view_menu), permissions_set)
-        self.assertIn(("can_edit", view_menu), permissions_set)
+        if view_menu in NEW_SECURITY_CONVERGE_VIEWS:
+            self.assertIn(("can_write", view_menu), permissions_set)
+        else:
+            self.assertIn(("can_add", view_menu), permissions_set)
+            self.assertIn(("can_delete", view_menu), permissions_set)
+            self.assertIn(("can_edit", view_menu), permissions_set)
 
     def assert_cannot_write(self, view_menu, permissions_set):
-        self.assertNotIn(("can_add", view_menu), permissions_set)
-        self.assertNotIn(("can_delete", view_menu), permissions_set)
-        self.assertNotIn(("can_edit", view_menu), permissions_set)
-        self.assertNotIn(("can_save", view_menu), permissions_set)
+        if view_menu in NEW_SECURITY_CONVERGE_VIEWS:
+            self.assertNotIn(("can_write", view_menu), permissions_set)
+        else:
+            self.assertNotIn(("can_add", view_menu), permissions_set)
+            self.assertNotIn(("can_delete", view_menu), permissions_set)
+            self.assertNotIn(("can_edit", view_menu), permissions_set)
+            self.assertNotIn(("can_save", view_menu), permissions_set)
 
     def assert_can_all(self, view_menu, permissions_set):
         self.assert_can_read(view_menu, permissions_set)
@@ -635,7 +647,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_read("TableModelView", perm_set)
 
         # make sure that user can create slices and dashboards
-        self.assert_can_all("SliceModelView", perm_set)
+        self.assert_can_all("Chart", perm_set)
         self.assert_can_all("DashboardModelView", perm_set)
 
         self.assertIn(("can_add_slices", "Superset"), perm_set)
@@ -661,7 +673,7 @@ class TestRolePermission(SupersetTestCase):
 
     def assert_can_alpha(self, perm_set):
         self.assert_can_all("AnnotationLayerModelView", perm_set)
-        self.assert_can_all("CssTemplateModelView", perm_set)
+        self.assert_can_all("CssTemplate", perm_set)
         self.assert_can_all("TableModelView", perm_set)
         self.assert_can_read("QueryView", perm_set)
         self.assertIn(("can_import_dashboards", "Superset"), perm_set)
@@ -820,37 +832,19 @@ class TestRolePermission(SupersetTestCase):
         self.assert_cannot_alpha(granter_set)
 
     def test_gamma_permissions(self):
-        def assert_can_read(view_menu):
-            self.assertIn(("can_list", view_menu), gamma_perm_set)
-
-        def assert_can_write(view_menu):
-            self.assertIn(("can_add", view_menu), gamma_perm_set)
-            self.assertIn(("can_delete", view_menu), gamma_perm_set)
-            self.assertIn(("can_edit", view_menu), gamma_perm_set)
-
-        def assert_cannot_write(view_menu):
-            self.assertNotIn(("can_add", view_menu), gamma_perm_set)
-            self.assertNotIn(("can_delete", view_menu), gamma_perm_set)
-            self.assertNotIn(("can_edit", view_menu), gamma_perm_set)
-            self.assertNotIn(("can_save", view_menu), gamma_perm_set)
-
-        def assert_can_all(view_menu):
-            assert_can_read(view_menu)
-            assert_can_write(view_menu)
-
         gamma_perm_set = set()
         for perm in security_manager.find_role("Gamma").permissions:
             gamma_perm_set.add((perm.permission.name, perm.view_menu.name))
 
         # check read only perms
-        assert_can_read("TableModelView")
+        self.assert_can_read("TableModelView", gamma_perm_set)
 
         # make sure that user can create slices and dashboards
-        assert_can_all("SliceModelView")
-        assert_can_all("DashboardModelView")
+        self.assert_can_all("Chart", gamma_perm_set)
+        self.assert_can_all("DashboardModelView", gamma_perm_set)
 
-        assert_cannot_write("UserDBModelView")
-        assert_cannot_write("RoleModelView")
+        self.assert_cannot_write("UserDBModelView", gamma_perm_set)
+        self.assert_cannot_write("RoleModelView", gamma_perm_set)
 
         self.assertIn(("can_add_slices", "Superset"), gamma_perm_set)
         self.assertIn(("can_copy_dash", "Superset"), gamma_perm_set)
@@ -1117,6 +1111,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         session.delete(self.get_user("NoRlsRoleUser"))
         session.commit()
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_rls_filter_alters_energy_query(self):
         g.user = self.get_user(username="alpha")
         tbl = self.get_table_by_name("energy_usage")
@@ -1124,6 +1119,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         assert tbl.get_extra_cache_keys(self.query_obj) == [1]
         assert "value > 1" in sql
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_rls_filter_doesnt_alter_energy_query(self):
         g.user = self.get_user(
             username="admin"

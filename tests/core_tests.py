@@ -26,6 +26,7 @@ import logging
 from typing import Dict, List
 from urllib.parse import quote
 
+import pytest
 import pytz
 import random
 import re
@@ -36,7 +37,9 @@ import pandas as pd
 import sqlalchemy as sqla
 
 from superset.models.cache import CacheKey
-from tests.test_app import app  # isort:skip
+from superset.utils.core import get_example_database
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
+from tests.test_app import app
 import superset.views.utils
 from superset import (
     dataframe,
@@ -49,6 +52,7 @@ from superset import (
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
+from superset.extensions import async_query_manager
 from superset.models import core as models
 from superset.models.annotations import Annotation, AnnotationLayer
 from superset.models.dashboard import Dashboard
@@ -155,7 +159,7 @@ class TestCore(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 200)
 
-        expeted_response = {
+        expected_response = {
             "options": [
                 {
                     "label": "ab_role",
@@ -163,11 +167,12 @@ class TestCore(SupersetTestCase):
                     "title": "ab_role",
                     "type": "table",
                     "value": "ab_role",
+                    "extra": None,
                 }
             ],
             "tableLength": 1,
         }
-        self.assertEqual(response, expeted_response)
+        self.assertEqual(response, expected_response)
 
     def test_get_superset_tables_not_found(self):
         self.login(username="admin")
@@ -234,6 +239,7 @@ class TestCore(SupersetTestCase):
         assert_admin_view_menus_in("Alpha", self.assertNotIn)
         assert_admin_view_menus_in("Gamma", self.assertNotIn)
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_save_slice(self):
         self.login(username="admin")
         slice_name = f"Energy Sankey"
@@ -300,6 +306,7 @@ class TestCore(SupersetTestCase):
             db.session.delete(slc)
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_filter_endpoint(self):
         self.login(username="admin")
         slice_name = "Energy Sankey"
@@ -318,7 +325,7 @@ class TestCore(SupersetTestCase):
         # Changing name
         resp = self.get_resp(url.format(tbl_id, slice_id))
         assert len(resp) > 0
-        assert "Carbon Dioxide" in resp
+        assert "energy_target0" in resp
 
     def test_slice_data(self):
         # slice data should have some required attributes
@@ -331,6 +338,7 @@ class TestCore(SupersetTestCase):
         assert "modified" in slc_data_attributes
         assert "owners" in slc_data_attributes
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_slices(self):
         # Testing by hitting the two supported end points for all slices
         self.login(username="admin")
@@ -407,6 +415,7 @@ class TestCore(SupersetTestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_slices_V2(self):
         # Add explore-v2-beta role to admin user
         # Test all slice urls as user with with explore-v2-beta role
@@ -568,6 +577,7 @@ class TestCore(SupersetTestCase):
         database.allow_run_async = False
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_warm_up_cache(self):
         self.login()
         slc = self.get_slice("Girls", db.session)
@@ -593,10 +603,13 @@ class TestCore(SupersetTestCase):
         ) == [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
 
     def test_cache_logging(self):
+        store_cache_keys = app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]
+        app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = True
         girls_slice = self.get_slice("Girls", db.session)
         self.get_json_resp("/superset/warm_up_cache?slice_id={}".format(girls_slice.id))
         ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
         assert ck.datasource_uid == f"{girls_slice.table.id}__table"
+        app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = store_cache_keys
 
     def test_shortner(self):
         self.login(username="admin")
@@ -816,7 +829,9 @@ class TestCore(SupersetTestCase):
         clean_query = "SELECT '/* val 1 */' as c1, '-- val 2' as c2 FROM tbl"
         commented_query = "/* comment 1 */" + clean_query + "-- comment 2"
         table = SqlaTable(
-            table_name="test_comments_in_sqlatable_query_table", sql=commented_query
+            table_name="test_comments_in_sqlatable_query_table",
+            sql=commented_query,
+            database=get_example_database(),
         )
         rendered_query = str(table.get_from_clause())
         self.assertEqual(clean_query, rendered_query)
@@ -829,6 +844,191 @@ class TestCore(SupersetTestCase):
             data["errors"][0]["message"],
             "The datasource associated with this chart no longer exists",
         )
+
+    def test_explore_json(self):
+        tbl_id = self.table_ids.get("birth_names")
+        form_data = {
+            "queryFields": {
+                "metrics": "metrics",
+                "groupby": "groupby",
+                "columns": "groupby",
+            },
+            "datasource": f"{tbl_id}__table",
+            "viz_type": "dist_bar",
+            "time_range_endpoints": ["inclusive", "exclusive"],
+            "granularity_sqla": "ds",
+            "time_range": "No filter",
+            "metrics": ["count"],
+            "adhoc_filters": [],
+            "groupby": ["gender"],
+            "row_limit": 100,
+        }
+        self.login(username="admin")
+        rv = self.client.post(
+            "/superset/explore_json/", data={"form_data": json.dumps(form_data)},
+        )
+        data = json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(data["rowcount"], 2)
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        GLOBAL_ASYNC_QUERIES=True,
+    )
+    def test_explore_json_async(self):
+        tbl_id = self.table_ids.get("birth_names")
+        form_data = {
+            "queryFields": {
+                "metrics": "metrics",
+                "groupby": "groupby",
+                "columns": "groupby",
+            },
+            "datasource": f"{tbl_id}__table",
+            "viz_type": "dist_bar",
+            "time_range_endpoints": ["inclusive", "exclusive"],
+            "granularity_sqla": "ds",
+            "time_range": "No filter",
+            "metrics": ["count"],
+            "adhoc_filters": [],
+            "groupby": ["gender"],
+            "row_limit": 100,
+        }
+        async_query_manager.init_app(app)
+        self.login(username="admin")
+        rv = self.client.post(
+            "/superset/explore_json/", data={"form_data": json.dumps(form_data)},
+        )
+        data = json.loads(rv.data.decode("utf-8"))
+        keys = list(data.keys())
+
+        self.assertEqual(rv.status_code, 202)
+        self.assertCountEqual(
+            keys, ["channel_id", "job_id", "user_id", "status", "errors", "result_url"]
+        )
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        GLOBAL_ASYNC_QUERIES=True,
+    )
+    def test_explore_json_async_results_format(self):
+        tbl_id = self.table_ids.get("birth_names")
+        form_data = {
+            "queryFields": {
+                "metrics": "metrics",
+                "groupby": "groupby",
+                "columns": "groupby",
+            },
+            "datasource": f"{tbl_id}__table",
+            "viz_type": "dist_bar",
+            "time_range_endpoints": ["inclusive", "exclusive"],
+            "granularity_sqla": "ds",
+            "time_range": "No filter",
+            "metrics": ["count"],
+            "adhoc_filters": [],
+            "groupby": ["gender"],
+            "row_limit": 100,
+        }
+        async_query_manager.init_app(app)
+        self.login(username="admin")
+        rv = self.client.post(
+            "/superset/explore_json/?results=true",
+            data={"form_data": json.dumps(form_data)},
+        )
+        self.assertEqual(rv.status_code, 200)
+
+    @mock.patch(
+        "superset.utils.cache_manager.CacheManager.cache",
+        new_callable=mock.PropertyMock,
+    )
+    @mock.patch("superset.viz.BaseViz.force_cached", new_callable=mock.PropertyMock)
+    def test_explore_json_data(self, mock_force_cached, mock_cache):
+        tbl_id = self.table_ids.get("birth_names")
+        form_data = dict(
+            {
+                "form_data": {
+                    "queryFields": {
+                        "metrics": "metrics",
+                        "groupby": "groupby",
+                        "columns": "groupby",
+                    },
+                    "datasource": f"{tbl_id}__table",
+                    "viz_type": "dist_bar",
+                    "time_range_endpoints": ["inclusive", "exclusive"],
+                    "granularity_sqla": "ds",
+                    "time_range": "No filter",
+                    "metrics": ["count"],
+                    "adhoc_filters": [],
+                    "groupby": ["gender"],
+                    "row_limit": 100,
+                }
+            }
+        )
+
+        class MockCache:
+            def get(self, key):
+                return form_data
+
+            def set(self):
+                return None
+
+        mock_cache.return_value = MockCache()
+        mock_force_cached.return_value = False
+
+        self.login(username="admin")
+        rv = self.client.get("/superset/explore_json/data/valid-cache-key")
+        data = json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(data["rowcount"], 2)
+
+    @mock.patch(
+        "superset.utils.cache_manager.CacheManager.cache",
+        new_callable=mock.PropertyMock,
+    )
+    def test_explore_json_data_no_login(self, mock_cache):
+        tbl_id = self.table_ids.get("birth_names")
+        form_data = dict(
+            {
+                "form_data": {
+                    "queryFields": {
+                        "metrics": "metrics",
+                        "groupby": "groupby",
+                        "columns": "groupby",
+                    },
+                    "datasource": f"{tbl_id}__table",
+                    "viz_type": "dist_bar",
+                    "time_range_endpoints": ["inclusive", "exclusive"],
+                    "granularity_sqla": "ds",
+                    "time_range": "No filter",
+                    "metrics": ["count"],
+                    "adhoc_filters": [],
+                    "groupby": ["gender"],
+                    "row_limit": 100,
+                }
+            }
+        )
+
+        class MockCache:
+            def get(self, key):
+                return form_data
+
+            def set(self):
+                return None
+
+        mock_cache.return_value = MockCache()
+
+        rv = self.client.get("/superset/explore_json/data/valid-cache-key")
+        self.assertEqual(rv.status_code, 401)
+
+    def test_explore_json_data_invalid_cache_key(self):
+        self.login(username="admin")
+        cache_key = "invalid-cache-key"
+        rv = self.client.get(f"/superset/explore_json/data/{cache_key}")
+        data = json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(rv.status_code, 404)
+        self.assertEqual(data["error"], "Cached data not found")
 
     @mock.patch(
         "superset.security.SupersetSecurityManager.get_schemas_accessible_by_user"
@@ -862,7 +1062,7 @@ class TestCore(SupersetTestCase):
 
     def test_get_select_star_not_allowed(self):
         """
-            Database API: Test get select star not allowed
+        Database API: Test get select star not allowed
         """
         self.login(username="gamma")
         example_db = utils.get_example_database()

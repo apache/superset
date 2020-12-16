@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from datetime import datetime
 from io import BytesIO
@@ -29,6 +30,8 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
 from superset import is_feature_enabled, thumbnail_cache
+from superset.commands.exceptions import CommandInvalidError
+from superset.commands.importers.v1.utils import remove_root
 from superset.constants import RouteMethod
 from superset.dashboards.commands.bulk_delete import BulkDeleteDashboardCommand
 from superset.dashboards.commands.create import CreateDashboardCommand
@@ -38,11 +41,13 @@ from superset.dashboards.commands.exceptions import (
     DashboardCreateFailedError,
     DashboardDeleteFailedError,
     DashboardForbiddenError,
+    DashboardImportError,
     DashboardInvalidError,
     DashboardNotFoundError,
     DashboardUpdateFailedError,
 )
 from superset.dashboards.commands.export import ExportDashboardsCommand
+from superset.dashboards.commands.importers.dispatcher import ImportDashboardsCommand
 from superset.dashboards.commands.update import UpdateDashboardCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.filters import (
@@ -60,6 +65,7 @@ from superset.dashboards.schemas import (
     openapi_spec_methods_override,
     thumbnail_query_schema,
 )
+from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.utils.screenshots import DashboardScreenshot
@@ -79,6 +85,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Dashboard)
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
+        RouteMethod.IMPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
         "favorite_status",
@@ -205,6 +212,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def post(self) -> Response:
         """Creates a new Dashboard
         ---
@@ -263,6 +271,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def put(self, pk: int) -> Response:
         """Changes a Dashboard
         ---
@@ -333,6 +342,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def delete(self, pk: int) -> Response:
         """Deletes a Dashboard
         ---
@@ -383,6 +393,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_delete_ids_schema)
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Delete bulk Dashboards
         ---
@@ -440,6 +451,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_export_ids_schema)
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def export(self, **kwargs: Any) -> Response:
         """Export dashboards
         ---
@@ -515,6 +527,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @rison(thumbnail_query_schema)
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def thumbnail(
         self, pk: int, digest: str, **kwargs: Dict[str, bool]
     ) -> WerkzeugResponse:
@@ -602,6 +615,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_fav_star_ids_schema)
+    @event_logger.log_this_with_context(log_to_statsd=False)
     def favorite_status(self, **kwargs: Any) -> Response:
         """Favorite Stars for Dashboards
         ---
@@ -641,3 +655,73 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             for request_id in requested_ids
         ]
         return self.response(200, result=res)
+
+    @expose("/import/", methods=["POST"])
+    @protect()
+    @safe
+    @statsd_metrics
+    def import_(self) -> Response:
+        """Import dashboard(s) with associated charts/datasets/databases
+        ---
+        post:
+          requestBody:
+            required: true
+            content:
+              multipart/form-data:
+                schema:
+                  type: object
+                  properties:
+                    formData:
+                      type: string
+                      format: binary
+                    passwords:
+                      type: string
+                    overwrite:
+                      type: bool
+          responses:
+            200:
+              description: Dashboard import result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        upload = request.files.get("formData")
+        if not upload:
+            return self.response_400()
+        with ZipFile(upload) as bundle:
+            contents = {
+                remove_root(file_name): bundle.read(file_name).decode()
+                for file_name in bundle.namelist()
+            }
+
+        passwords = (
+            json.loads(request.form["passwords"])
+            if "passwords" in request.form
+            else None
+        )
+        overwrite = request.form.get("overwrite") == "true"
+
+        command = ImportDashboardsCommand(
+            contents, passwords=passwords, overwrite=overwrite
+        )
+        try:
+            command.run()
+            return self.response(200, message="OK")
+        except CommandInvalidError as exc:
+            logger.warning("Import dashboard failed")
+            return self.response_422(message=exc.normalized_messages())
+        except DashboardImportError as exc:
+            logger.exception("Import dashboard failed")
+            return self.response_500(message=str(exc))

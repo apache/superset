@@ -64,6 +64,7 @@ interface DatabaseSelectorProps {
   onDbChange?: (db: any) => void;
   onSchemaChange?: (arg0?: any) => {};
   onSchemasLoad?: (schemas: Array<object>) => void;
+  readOnly?: boolean;
   schema?: string;
   sqlLabMode?: boolean;
   onChange?: ({
@@ -87,6 +88,7 @@ export default function DatabaseSelector({
   onDbChange,
   onSchemaChange,
   onSchemasLoad,
+  readOnly = false,
   schema,
   sqlLabMode = false,
 }: DatabaseSelectorProps) {
@@ -237,7 +239,7 @@ export default function DatabaseSelector({
         mutator={dbMutator}
         placeholder={t('Select a database')}
         autoSelect
-        isDisabled={!isDatabaseSelectEnabled}
+        isDisabled={!isDatabaseSelectEnabled || readOnly}
       />,
       null,
     );
@@ -245,7 +247,7 @@ export default function DatabaseSelector({
 
   function renderSchemaSelect() {
     const value = schemaOptions.filter(({ value }) => currentSchema === value);
-    const refresh = !formMode && (
+    const refresh = !formMode && !readOnly && (
       <RefreshLabel
         onClick={() => changeDataBase({ id: dbId }, true)}
         tooltipContent={t('Force refresh schema list')}
@@ -266,6 +268,7 @@ export default function DatabaseSelector({
         isLoading={schemaLoading}
         autosize={false}
         onChange={item => changeSchema(item)}
+        isDisabled={readOnly}
       />,
       refresh,
     );

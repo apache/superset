@@ -41,18 +41,19 @@ class ImportDatabasesCommand(BaseCommand):
     # pylint: disable=unused-argument
     def __init__(self, contents: Dict[str, str], *args: Any, **kwargs: Any):
         self.contents = contents
+        self.args = args
+        self.kwargs = kwargs
 
     def run(self) -> None:
         # iterate over all commands until we find a version that can
         # handle the contents
         for version in command_versions:
-            command = version(self.contents)
+            command = version(self.contents, *self.args, **self.kwargs)
             try:
                 command.run()
                 return
             except IncorrectVersionError:
-                # file is not handled by this command, skip
-                pass
+                logger.debug("File not handled by command, skipping")
             except (CommandInvalidError, ValidationError) as exc:
                 # found right version, but file is invalid
                 logger.info("Command failed validation")

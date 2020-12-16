@@ -24,11 +24,11 @@ import Chart from 'src/dashboard/components/gridComponents/Chart';
 import SliceHeader from 'src/dashboard/components/SliceHeader';
 import ChartContainer from 'src/chart/ChartContainer';
 
-import mockDatasource from '../../../../fixtures/mockDatasource';
-import { sliceEntitiesForChart as sliceEntities } from '../../fixtures/mockSliceEntities';
+import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
+import mockDatasource from 'spec/fixtures/mockDatasource';
 import chartQueries, {
   sliceId as queryId,
-} from '../../fixtures/mockChartQueries';
+} from 'spec/fixtures/mockChartQueries';
 
 describe('Chart', () => {
   const props = {

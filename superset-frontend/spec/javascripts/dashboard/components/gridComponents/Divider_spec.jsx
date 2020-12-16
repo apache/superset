@@ -30,7 +30,7 @@ import {
   DASHBOARD_GRID_TYPE,
 } from 'src/dashboard/util/componentTypes';
 
-import WithDragDropContext from '../../helpers/WithDragDropContext';
+import WithDragDropContext from 'spec/helpers/WithDragDropContext';
 
 describe('Divider', () => {
   const props = {

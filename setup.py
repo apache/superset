@@ -22,9 +22,6 @@ import sys
 
 from setuptools import find_packages, setup
 
-if sys.version_info < (3, 6):
-    sys.exit("Sorry, Python < 3.6 is not supported")
-
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 PACKAGE_JSON = os.path.join(BASE_DIR, "superset-frontend", "package.json")
@@ -75,6 +72,7 @@ setup(
         "colorama",
         "contextlib2",
         "croniter>=0.3.28",
+        "cron-descriptor",
         "cryptography>=3.2.1",
         "flask>=1.1.0, <2.0.0",
         "flask-appbuilder>=3.1.1, <4.0.0",
@@ -92,6 +90,7 @@ setup(
         "pandas>=1.1.2, <1.2",
         "parsedatetime",
         "pathlib2",
+        "pgsanity",
         "polyline",
         "python-dateutil",
         "python-dotenv",
@@ -109,7 +108,11 @@ setup(
     ],
     extras_require={
         "athena": ["pyathena>=1.10.8,<1.11"],
-        "bigquery": ["pandas_gbq>=0.10.0", "pybigquery>=0.4.10"],
+        "bigquery": [
+            "pandas_gbq>=0.10.0",
+            "pybigquery>=0.4.10",
+            "google-cloud-bigquery>=2.4.0",
+        ],
         "clickhouse": ["clickhouse-sqlalchemy>= 0.1.4, <0.2"],
         "cockroachdb": ["cockroachdb>=0.3.5, <0.4"],
         "cors": ["flask-cors>=2.0.0"],
@@ -138,7 +141,7 @@ setup(
         "thumbnails": ["Pillow>=7.0.0, <8.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
     },
-    python_requires="~=3.6",
+    python_requires="~=3.7",
     author="Apache Software Foundation",
     author_email="dev@superset.incubator.apache.org",
     url="https://superset.apache.org/",

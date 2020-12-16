@@ -16,21 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { action } from '@storybook/addon-actions';
 import { withKnobs, boolean, select } from '@storybook/addon-knobs';
 import Button from 'src/components/Button';
 import Modal from './Modal';
 import Tabs, { EditableTabs } from './Tabs';
 import AntdPopover from './Popover';
-import AntdTooltip from './Tooltip';
-import { Menu } from '.';
+import { Tooltip as AntdTooltip } from './Tooltip';
+import { Switch as AntdSwitch } from './Switch';
+import { Menu, Input, Divider } from '.';
 import { Dropdown } from './Dropdown';
 import InfoTooltip from './InfoTooltip';
 import {
   DatePicker as AntdDatePicker,
   RangePicker as AntdRangePicker,
 } from './DatePicker';
+import Badge from './Badge';
+import ProgressBar from './ProgressBar';
+import Collapse from './Collapse';
+import { CronPicker, CronError } from './CronPicker';
 
 export default {
   title: 'Common Components',
@@ -237,3 +242,123 @@ export const DateRangePicker = () => (
     use12Hours
   />
 );
+
+export const Progress = () => <ProgressBar percent={90} />;
+export const ProgressStriped = () => <ProgressBar percent={90} striped />;
+export const ProgressSuccess = () => <ProgressBar percent={100} />;
+
+export const Switch = () => (
+  <>
+    <AntdSwitch defaultChecked />
+    <br />
+    <AntdSwitch size="small" defaultChecked />
+  </>
+);
+
+export const BadgeDefault = () => <Badge count={100} />;
+export const BadgeColored = () => <Badge color="blue" text="Blue" />;
+export const BadgeTextColored = () => (
+  <Badge textColor="yellow" color="red" text="yellow" />
+);
+export const BadgeSuccess = () => <Badge status="success" text="Success" />;
+export const BadgeError = () => <Badge status="error" text="Error" />;
+export const BadgeSmall = () => <Badge count={100} size="small" />;
+
+export const CollapseDefault = () => (
+  <Collapse defaultActiveKey={['1']}>
+    <Collapse.Panel header="Hi! I am a header" key="1">
+      Hi! I am a sample content
+    </Collapse.Panel>
+    <Collapse.Panel header="Hi! I am another header" key="2">
+      Hi! I am another sample content
+    </Collapse.Panel>
+  </Collapse>
+);
+export const CollapseGhost = () => (
+  <Collapse defaultActiveKey={['1']} ghost>
+    <Collapse.Panel header="Hi! I am a header" key="1">
+      Hi! I am a sample content
+    </Collapse.Panel>
+    <Collapse.Panel header="Hi! I am another header" key="2">
+      Hi! I am another sample content
+    </Collapse.Panel>
+  </Collapse>
+);
+export const CollapseBold = () => (
+  <Collapse defaultActiveKey={['1']} bold>
+    <Collapse.Panel header="Hi! I am a header" key="1">
+      Hi! I am a sample content
+    </Collapse.Panel>
+    <Collapse.Panel header="Hi! I am another header" key="2">
+      Hi! I am another sample content
+    </Collapse.Panel>
+  </Collapse>
+);
+export const CollapseBigger = () => (
+  <Collapse defaultActiveKey={['1']} bigger>
+    <Collapse.Panel header="Hi! I am a header" key="1">
+      Hi! I am a sample content
+    </Collapse.Panel>
+    <Collapse.Panel header="Hi! I am another header" key="2">
+      Hi! I am another sample content
+    </Collapse.Panel>
+  </Collapse>
+);
+export const CollapseTextLight = () => (
+  <Collapse defaultActiveKey={['1']} light>
+    <Collapse.Panel
+      header="Hi! I am a header"
+      key="1"
+      style={{ background: '#BBB' }}
+    >
+      Hi! I am a sample content
+    </Collapse.Panel>
+    <Collapse.Panel
+      header="Hi! I am another header"
+      key="2"
+      style={{ background: '#BBB' }}
+    >
+      Hi! I am another sample content
+    </Collapse.Panel>
+  </Collapse>
+);
+export function StyledCronPicker() {
+  const inputRef = useRef<Input>(null);
+  const defaultValue = '30 5 * * 1,6';
+  const [value, setValue] = useState(defaultValue);
+  const customSetValue = useCallback(
+    (newValue: string) => {
+      setValue(newValue);
+      inputRef.current?.setValue(newValue);
+    },
+    [inputRef],
+  );
+  const [error, onError] = useState<CronError>();
+
+  return (
+    <div>
+      <Input
+        ref={inputRef}
+        onBlur={event => {
+          setValue(event.target.value);
+        }}
+        onPressEnter={() => {
+          setValue(inputRef.current?.input.value || '');
+        }}
+      />
+
+      <Divider />
+
+      <CronPicker
+        clearButton={false}
+        value={value}
+        setValue={customSetValue}
+        onError={onError}
+      />
+
+      <p style={{ marginTop: 20 }}>
+        Error: {error ? error.description : 'undefined'}
+      </p>
+    </div>
+  );
+}

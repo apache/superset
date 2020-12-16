@@ -22,6 +22,7 @@ from superset.commands.exceptions import (
     CommandInvalidError,
     CreateFailedError,
     DeleteFailedError,
+    ImportFailedError,
     UpdateFailedError,
 )
 from superset.security.analytics_db_safety import DBSecurityException
@@ -112,5 +113,13 @@ class DatabaseDeleteFailedError(DeleteFailedError):
     message = _("Database could not be deleted.")
 
 
+class DatabaseDeleteFailedReportsExistError(DatabaseDeleteFailedError):
+    message = _("There are associated alerts or reports")
+
+
 class DatabaseSecurityUnsafeError(DBSecurityException):
     message = _("Stopped an unsafe database connection")
+
+
+class DatabaseImportError(ImportFailedError):
+    message = _("Import database failed for an unknown reason")

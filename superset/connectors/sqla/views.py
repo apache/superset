@@ -481,9 +481,9 @@ class TableModelView(  # pylint: disable=too-many-ancestors
 
     @expose("/edit/<pk>", methods=["GET", "POST"])
     @has_access
-    def edit(self, pk: int) -> FlaskResponse:
+    def edit(self, pk: str) -> FlaskResponse:
         """Simple hack to redirect to explore view after saving"""
-        resp = super(TableModelView, self).edit(pk)
+        resp = super().edit(pk)
         if isinstance(resp, str):
             return resp
         return redirect("/superset/explore/table/{}/".format(pk))

@@ -279,6 +279,8 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "version",
         ]
 
+
+class TestImportDatabasesCommand(SupersetTestCase):
     def test_import_v1_database(self):
         """Test that a database can be imported"""
         contents = {
@@ -312,7 +314,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
         }
-        command = ImportDatabasesCommand(contents)
+        command = ImportDatabasesCommand(contents, overwrite=True)
 
         # import twice
         command.run()
@@ -330,7 +332,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "databases/imported_database.yaml": yaml.safe_dump(new_config),
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
         }
-        command = ImportDatabasesCommand(contents)
+        command = ImportDatabasesCommand(contents, overwrite=True)
         command.run()
 
         database = (
@@ -387,7 +389,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "datasets/imported_dataset.yaml": yaml.safe_dump(new_config),
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
         }
-        command = ImportDatabasesCommand(contents)
+        command = ImportDatabasesCommand(contents, overwrite=True)
         command.run()
 
         # the underlying dataset should not be modified by the second import, since
@@ -450,6 +452,26 @@ class TestExportDatabasesCommand(SupersetTestCase):
             }
         }
 
+    def test_import_v1_database_masked_password(self):
+        """Test that database imports with masked passwords are rejected"""
+        masked_database_config = database_config.copy()
+        masked_database_config[
+            "sqlalchemy_uri"
+        ] = "postgresql://username:XXXXXXXXXX@host:12345/db"
+        contents = {
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(masked_database_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        with pytest.raises(CommandInvalidError) as excinfo:
+            command.run()
+        assert str(excinfo.value) == "Error importing database"
+        assert excinfo.value.normalized_messages() == {
+            "databases/imported_database.yaml": {
+                "_schema": ["Must provide a password for the database"]
+            }
+        }
+
     @patch("superset.databases.commands.importers.v1.import_dataset")
     def test_import_v1_rollback(self, mock_import_dataset):
         """Test than on an exception everything is rolled back"""
@@ -467,7 +489,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
         command = ImportDatabasesCommand(contents)
         with pytest.raises(Exception) as excinfo:
             command.run()
-        assert str(excinfo.value) == "A wild exception appears!"
+        assert str(excinfo.value) == "Import database failed for an unknown reason"
 
         # verify that the database was not added
         new_num_databases = db.session.query(Database).count()

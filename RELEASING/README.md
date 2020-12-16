@@ -77,23 +77,23 @@ Usage (ZSH):
 
 Example:
 ```bash
-    source set_release_env.sh 0.37.0rc1 myid@apache.org
+    source set_release_env.sh 0.38.0rc1 myid@apache.org
 ```
 
-The script will output the exported variables. Here's example for 0.37.0rc1:
+The script will output the exported variables. Here's example for 0.38.0rc1:
 
 ```
     Set Release env variables
-    SUPERSET_VERSION=0.37.0
+    SUPERSET_VERSION=0.38.0
     SUPERSET_RC=1
-    SUPERSET_GITHUB_BRANCH=0.37
+    SUPERSET_GITHUB_BRANCH=0.38
     SUPERSET_PGP_FULLNAME=myid@apache.org
-    SUPERSET_VERSION_RC=0.37.0rc1
-    SUPERSET_RELEASE=apache-superset-incubating-0.37.0
-    SUPERSET_RELEASE_RC=apache-superset-incubating-0.37.0rc1
-    SUPERSET_RELEASE_TARBALL=apache-superset-incubating-0.37.0-source.tar.gz
-    SUPERSET_RELEASE_RC_TARBALL=apache-superset-incubating-0.37.0rc1-source.tar.gz
-    SUPERSET_TMP_ASF_SITE_PATH=/tmp/incubator-superset-site-0.37.0
+    SUPERSET_VERSION_RC=0.38.0rc1
+    SUPERSET_RELEASE=apache-superset-incubating-0.38.0
+    SUPERSET_RELEASE_RC=apache-superset-incubating-0.38.0rc1
+    SUPERSET_RELEASE_TARBALL=apache-superset-incubating-0.38.0-source.tar.gz
+    SUPERSET_RELEASE_RC_TARBALL=apache-superset-incubating-0.38.0rc1-source.tar.gz
+    SUPERSET_TMP_ASF_SITE_PATH=/tmp/incubator-superset-site-0.38.0
 ```
 
 ## Crafting a source release
@@ -130,7 +130,7 @@ section for the new release.
 Finally bump the version number on `superset-frontend/package.json` (replace with whichever version is being released excluding the RC version):
 
 ```json
-    "version": "0.36.0"
+    "version": "0.38.0"
 ```
 
 Commit the change with the version number, then git tag the version with the release candidate and push to the branch:
@@ -329,23 +329,3 @@ Finally, so the Github UI reflects the latest release, you should create a relea
 tag corresponding with the new version. Go to https://github.com/apache/incubator-superset/tags,
 click the 3-dot icon and select `Create Release`, paste the content of the ANNOUNCE thread in the
 release notes, and publish the new release.
-
-## Post release
-
-#### Refresh documentation website
-
-Every once in a while we want to compile the documentation and publish it.
-Here's how to do it.
-
-```bash
-./make_docs.sh
-```
-
-Superset documentation site is ready at http://localhost:5002
-
-```
-$ cd /tmp/incubator-superset-site-${SUPERSET_VERSION}
-$ git add .
-$ git commit -a -m "New doc version ${SUPERSET_VERSION}"
-$ git push origin asf-site
-```

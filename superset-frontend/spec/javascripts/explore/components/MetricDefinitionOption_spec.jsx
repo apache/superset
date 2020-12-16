@@ -29,9 +29,7 @@ describe('MetricDefinitionOption', () => {
   const store = mockStore({});
 
   function setup(props) {
-    return shallow(<MetricDefinitionOption {...props} />, {
-      context: { store },
-    }).dive();
+    return shallow(<MetricDefinitionOption store={store} {...props} />).dive();
   }
 
   it('renders a MetricOption given a saved metric', () => {

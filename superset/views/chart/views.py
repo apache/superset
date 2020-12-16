@@ -22,7 +22,7 @@ from flask_babel import lazy_gettext as _
 
 from superset import db, is_feature_enabled
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.constants import RouteMethod
+from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.slice import Slice
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
@@ -45,6 +45,8 @@ class SliceModelView(
         RouteMethod.API_READ,
         RouteMethod.API_DELETE,
     }
+    class_permission_name = "Chart"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 
     def pre_add(self, item: "SliceModelView") -> None:
         utils.validate_json(item.params)

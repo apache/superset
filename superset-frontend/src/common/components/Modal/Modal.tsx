@@ -84,6 +84,7 @@ const StyledModal = styled(BaseModal)<StyledModalProps>`
 
   .ant-modal-body {
     padding: ${({ theme }) => theme.gridUnit * 4}px;
+    overflow: auto;
   }
 
   .ant-modal-footer {
@@ -104,6 +105,10 @@ const StyledModal = styled(BaseModal)<StyledModalProps>`
   // styling for Tabs component
   .ant-tabs {
     margin-top: -${({ theme }) => theme.gridUnit * 4}px;
+  }
+
+  &.no-content-padding .ant-modal-body {
+    padding: 0;
   }
 `;
 

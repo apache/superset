@@ -85,15 +85,11 @@ class ImportExportMixin:
     # The names of the attributes
     # that are available for import and export
 
-    __mapper__: Mapper
+    extra_import_fields: List[str] = []
+    # Additional fields that should be imported,
+    # even though they were not exported
 
-    @classmethod
-    def _parent_foreign_key_mappings(cls) -> Dict[str, str]:
-        """Get a mapping of foreign name to the local name of foreign keys"""
-        parent_rel = cls.__mapper__.relationships.get(cls.export_parent)
-        if parent_rel:
-            return {l.name: r.name for (l, r) in parent_rel.local_remote_pairs}
-        return {}
+    __mapper__: Mapper
 
     @classmethod
     def _unique_constrains(cls) -> List[Set[str]]:
@@ -163,7 +159,12 @@ class ImportExportMixin:
         if sync is None:
             sync = []
         parent_refs = cls.parent_foreign_key_mappings()
-        export_fields = set(cls.export_fields) | set(parent_refs.keys()) | {"uuid"}
+        export_fields = (
+            set(cls.export_fields)
+            | set(cls.extra_import_fields)
+            | set(parent_refs.keys())
+            | {"uuid"}
+        )
         new_children = {c: dict_rep[c] for c in cls.export_children if c in dict_rep}
         unique_constrains = cls._unique_constrains()
 
@@ -171,7 +172,7 @@ class ImportExportMixin:
 
         # Remove fields that should not get imported
         for k in list(dict_rep):
-            if k not in export_fields:
+            if k not in export_fields and k not in parent_refs:
                 del dict_rep[k]
 
         if not parent:

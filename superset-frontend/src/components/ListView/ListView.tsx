@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, styled } from '@superset-ui/core';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Alert } from 'react-bootstrap';
 import { Empty } from 'src/common/components';
 import { ReactComponent as EmptyImage } from 'images/empty.svg';
@@ -34,6 +34,7 @@ import {
   Filters,
   SortColumn,
   CardSortSelectOption,
+  ViewModeType,
 } from './types';
 import { ListViewError, useListViewState } from './utils';
 
@@ -43,12 +44,14 @@ const ListViewStyles = styled.div`
   .superset-list-view {
     text-align: left;
     border-radius: 4px 0;
-    margin: 0 16px;
+    margin: 0 ${({ theme }) => theme.gridUnit * 4}px;
 
     .header {
       display: flex;
+      padding-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 
       .header-left {
+        display: flex;
         flex: 5;
       }
       .header-right {
@@ -90,24 +93,25 @@ const BulkSelectWrapper = styled(Alert)`
   margin-bottom: 0;
   padding-top: 0;
   padding-bottom: 0;
-  padding-right: 36px;
+  padding-right: ${({ theme }) => theme.gridUnit * 9}px;
   color: #3d3d3d;
   background-color: ${({ theme }) => theme.colors.primary.light4};
 
   .selectedCopy {
     display: inline-block;
-    padding: 16px 0;
+    padding: ${({ theme }) => theme.gridUnit * 4}px 0;
   }
 
   .deselect-all {
     color: #1985a0;
-    margin-left: 16px;
+    margin-left: ${({ theme }) => theme.gridUnit * 4}px;
   }
 
   .divider {
-    margin: -8px 0 -8px 16px;
+    margin: ${({ theme: { gridUnit } }) =>
+      `${-gridUnit * 2}px 0 ${-gridUnit * 2}px ${gridUnit * 4}px`};
     width: 1px;
-    height: 32px;
+    height: ${({ theme }) => theme.gridUnit * 8}px;
     box-shadow: inset -1px 0px 0px #dadada;
     display: inline-flex;
     vertical-align: middle;
@@ -115,7 +119,7 @@ const BulkSelectWrapper = styled(Alert)`
   }
 
   .close {
-    margin: 16px 0;
+    margin: ${({ theme }) => theme.gridUnit * 4}px 0;
   }
 `;
 
@@ -134,11 +138,8 @@ const bulkSelectColumnConfig = {
 };
 
 const ViewModeContainer = styled.div`
-  padding: 0 ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 8}px 0;
+  padding-right: ${({ theme }) => theme.gridUnit * 4}px;
   display: inline-block;
-  position: relative;
-  top: 8px;
 
   .toggle-button {
     display: inline-block;
@@ -202,7 +203,6 @@ const ViewModeToggle = ({
   );
 };
 
-type ViewModeType = 'card' | 'table';
 export interface ListViewProps<T extends object = any> {
   columns: any[];
   data: T[];
@@ -263,7 +263,8 @@ function ListView<T extends object = any>({
     applyFilterValue,
     selectedFlatRows,
     toggleAllRowsSelected,
-    state: { pageIndex, pageSize, internalFilters },
+    setViewMode,
+    state: { pageIndex, pageSize, internalFilters, viewMode },
   } = useListViewState({
     bulkSelectColumnConfig,
     bulkSelectMode: bulkSelectEnabled && Boolean(bulkActions.length),
@@ -274,6 +275,8 @@ function ListView<T extends object = any>({
     initialPageSize,
     initialSort,
     initialFilters: filters,
+    renderCard: Boolean(renderCard),
+    defaultViewMode,
   });
   const filterable = Boolean(filters.length);
   if (filterable) {
@@ -291,9 +294,6 @@ function ListView<T extends object = any>({
   }
 
   const cardViewEnabled = Boolean(renderCard);
-  const [viewingMode, setViewingMode] = useState<ViewModeType>(
-    cardViewEnabled ? defaultViewMode : 'table',
-  );
 
   useEffect(() => {
     // discard selections if bulk select is disabled
@@ -306,7 +306,7 @@ function ListView<T extends object = any>({
         <div className="header">
           <div className="header-left">
             {cardViewEnabled && (
-              <ViewModeToggle mode={viewingMode} setMode={setViewingMode} />
+              <ViewModeToggle mode={viewMode} setMode={setViewMode} />
             )}
             {filterable && (
               <FilterControls
@@ -317,7 +317,7 @@ function ListView<T extends object = any>({
             )}
           </div>
           <div className="header-right">
-            {viewingMode === 'card' && cardSortSelectOptions && (
+            {viewMode === 'card' && cardSortSelectOptions && (
               <CardSortSelect
                 initialSort={initialSort}
                 onChange={fetchData}
@@ -367,7 +367,7 @@ function ListView<T extends object = any>({
               )}
             </BulkSelectWrapper>
           )}
-          {viewingMode === 'card' && (
+          {viewMode === 'card' && (
             <CardCollection
               bulkSelectEnabled={bulkSelectEnabled}
               prepareRow={prepareRow}
@@ -376,7 +376,7 @@ function ListView<T extends object = any>({
               loading={loading}
             />
           )}
-          {viewingMode === 'table' && (
+          {viewMode === 'table' && (
             <TableCollection
               getTableProps={getTableProps}
               getTableBodyProps={getTableBodyProps}
@@ -389,7 +389,7 @@ function ListView<T extends object = any>({
             />
           )}
           {!loading && rows.length === 0 && (
-            <EmptyWrapper className={viewingMode}>
+            <EmptyWrapper className={viewMode}>
               <Empty
                 image={<EmptyImage />}
                 description={emptyState.message || 'No Data'}
