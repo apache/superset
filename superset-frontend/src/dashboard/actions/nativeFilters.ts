@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ExtraFormData, SupersetClient } from '@superset-ui/core';
+import { ExtraFormData, makeApi } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {
   Filter,
@@ -50,6 +50,11 @@ export interface SetFilterState {
   filters: FilterConfiguration;
 }
 
+interface DashboardInfo {
+  id: number;
+  json_metadata: string;
+}
+
 export const setFilterConfiguration = (
   filterConfig: FilterConfiguration,
 ) => async (dispatch: Dispatch, getState: () => any) => {
@@ -58,20 +63,26 @@ export const setFilterConfiguration = (
     filterConfig,
   });
   const { id, metadata } = getState().dashboardInfo;
+
+  // TODO extract this out when makeApi supports url parameters
+  const updateDashboard = makeApi<
+    Partial<DashboardInfo>,
+    { result: DashboardInfo }
+  >({
+    method: 'PUT',
+    endpoint: `/api/v1/dashboard/${id}`,
+  });
+
   try {
-    const response = await SupersetClient.put({
-      endpoint: `/api/v1/dashboard/${id}`,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        json_metadata: JSON.stringify({
-          ...metadata,
-          filter_configuration: filterConfig,
-        }),
+    const response = await updateDashboard({
+      json_metadata: JSON.stringify({
+        ...metadata,
+        filter_configuration: filterConfig,
       }),
     });
     dispatch(
       dashboardInfoChanged({
-        metadata: JSON.parse(response.json.result.json_metadata),
+        metadata: JSON.parse(response.result.json_metadata),
       }),
     );
     dispatch({

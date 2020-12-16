@@ -59,10 +59,10 @@ const simpleCustomFilter = new AdhocFilter({
 });
 
 const options = [
-  { type: 'VARCHAR(255)', column_name: 'source' },
-  { type: 'VARCHAR(255)', column_name: 'target' },
-  { type: 'DOUBLE', column_name: 'value' },
-  { saved_metric_name: 'my_custom_metric' },
+  { type: 'VARCHAR(255)', column_name: 'source', id: 1 },
+  { type: 'VARCHAR(255)', column_name: 'target', id: 2 },
+  { type: 'DOUBLE', column_name: 'value', id: 3 },
+  { saved_metric_name: 'my_custom_metric', id: 4 },
   sumValueAdhocMetric,
 ];
 
@@ -91,9 +91,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
 
   it('passes the new adhocFilter to onChange after onSubjectChange', () => {
     const { wrapper, onChange } = setup();
-    wrapper
-      .instance()
-      .onSubjectChange({ type: 'VARCHAR(255)', column_name: 'source' });
+    wrapper.instance().onSubjectChange(1);
     expect(onChange.calledOnce).toBe(true);
     expect(onChange.lastCall.args[0]).toEqual(
       simpleAdhocFilter.duplicateWith({ subject: 'source' }),
@@ -102,7 +100,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
 
   it('may alter the clause in onSubjectChange if the old clause is not appropriate', () => {
     const { wrapper, onChange } = setup();
-    wrapper.instance().onSubjectChange(sumValueAdhocMetric);
+    wrapper.instance().onSubjectChange(sumValueAdhocMetric.optionName);
     expect(onChange.calledOnce).toBe(true);
     expect(onChange.lastCall.args[0]).toEqual(
       simpleAdhocFilter.duplicateWith({

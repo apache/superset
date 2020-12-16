@@ -59,7 +59,7 @@ const mockUser = {
 };
 
 fetchMock.get(chartsInfoEndpoint, {
-  permissions: ['can_list', 'can_edit', 'can_delete'],
+  permissions: ['can_read', 'can_write'],
 });
 
 fetchMock.get(chartssOwnersEndpoint, {
