@@ -245,7 +245,7 @@ class PropertiesModal extends React.PureComponent<
     } = this.state;
     const { onlyApply } = this.props;
     const owners = ownersValue.map((o: Record<string, any>) => o.value);
-    const metadataColorScheme: string | undefined = undefined;
+    let metadataColorScheme: string | undefined = undefined;
 
     // update color scheme to match metadata
     if (jsonMetadata?.length) {

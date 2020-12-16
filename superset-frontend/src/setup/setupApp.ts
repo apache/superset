@@ -33,7 +33,7 @@ function showApiMessage(resp: ClientErrorObject) {
   const severity = resp.severity || 'info';
   $(template)
     .addClass(`alert-${severity}`)
-    .append((resp.message || '') as string)
+    .append(resp.message ? String(resp.message) : '')
     .appendTo($('#alert-container'));
 }
 
