@@ -48,7 +48,13 @@ from .dashboard_utils import (
 from .fixtures.energy_dashboard import load_energy_table_with_slice
 from .fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 
-NEW_SECURITY_CONVERGE_VIEWS = ("CssTemplate", "SavedQuery", "Chart", "Annotation")
+NEW_SECURITY_CONVERGE_VIEWS = (
+    "Annotation",
+    "Dataset",
+    "CssTemplate",
+    "Chart",
+    "SavedQuery",
+)
 
 
 def get_perm_tuples(role_name):
@@ -644,7 +650,7 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("menu_access", view_menu), permissions_set)
 
     def assert_can_gamma(self, perm_set):
-        self.assert_can_read("TableModelView", perm_set)
+        self.assert_can_read("Dataset", perm_set)
 
         # make sure that user can create slices and dashboards
         self.assert_can_all("Chart", perm_set)
@@ -674,7 +680,7 @@ class TestRolePermission(SupersetTestCase):
     def assert_can_alpha(self, perm_set):
         self.assert_can_all("Annotation", perm_set)
         self.assert_can_all("CssTemplate", perm_set)
-        self.assert_can_all("TableModelView", perm_set)
+        self.assert_can_all("Dataset", perm_set)
         self.assert_can_read("QueryView", perm_set)
         self.assertIn(("can_import_dashboards", "Superset"), perm_set)
         self.assertIn(("can_this_form_post", "CsvToDatabaseView"), perm_set)
@@ -711,7 +717,7 @@ class TestRolePermission(SupersetTestCase):
     def test_is_admin_only(self):
         self.assertFalse(
             security_manager._is_admin_only(
-                security_manager.find_permission_view_menu("can_list", "TableModelView")
+                security_manager.find_permission_view_menu("can_read", "Dataset")
             )
         )
         self.assertFalse(
@@ -759,15 +765,13 @@ class TestRolePermission(SupersetTestCase):
     def test_is_alpha_only(self):
         self.assertFalse(
             security_manager._is_alpha_only(
-                security_manager.find_permission_view_menu("can_list", "TableModelView")
+                security_manager.find_permission_view_menu("can_read", "Dataset")
             )
         )
 
         self.assertTrue(
             security_manager._is_alpha_only(
-                security_manager.find_permission_view_menu(
-                    "muldelete", "TableModelView"
-                )
+                security_manager.find_permission_view_menu("can_write", "Dataset")
             )
         )
         self.assertTrue(
@@ -788,7 +792,7 @@ class TestRolePermission(SupersetTestCase):
     def test_is_gamma_pvm(self):
         self.assertTrue(
             security_manager._is_gamma_pvm(
-                security_manager.find_permission_view_menu("can_list", "TableModelView")
+                security_manager.find_permission_view_menu("can_read", "Dataset")
             )
         )
 
@@ -837,7 +841,7 @@ class TestRolePermission(SupersetTestCase):
             gamma_perm_set.add((perm.permission.name, perm.view_menu.name))
 
         # check read only perms
-        self.assert_can_read("TableModelView", gamma_perm_set)
+        self.assert_can_read("Dataset", gamma_perm_set)
 
         # make sure that user can create slices and dashboards
         self.assert_can_all("Chart", gamma_perm_set)
