@@ -305,8 +305,6 @@ export function useSingleViewResource<D extends object = any>(
             ),
           );
 
-          console.log('error', errMsg);
-
           updateState({
             error: errMsg,
           });
