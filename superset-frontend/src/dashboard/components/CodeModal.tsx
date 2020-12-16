@@ -24,7 +24,7 @@ import ModalTrigger from 'src/components/ModalTrigger';
 type CodeModalProps = {
   triggerNode: JSX.Element;
   code: string;
-  codeCallback: () => void;
+  codeCallback?: () => string;
 };
 
 type CodeModalState = {
@@ -36,7 +36,6 @@ export default class CodeModal extends React.PureComponent<
   CodeModalState
 > {
   static defaultProps = {
-    codeCallback: () => {},
     code: '',
   };
 
