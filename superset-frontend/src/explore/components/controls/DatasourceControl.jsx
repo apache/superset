@@ -204,7 +204,7 @@ class DatasourceControl extends React.PureComponent {
           )}
           <Dropdown
             overlay={datasourceMenu}
-            trigger={['click', 'hover']}
+            trigger={['click']}
             data-test="datasource-menu"
           >
             <Tooltip title={t('More dataset related options')}>

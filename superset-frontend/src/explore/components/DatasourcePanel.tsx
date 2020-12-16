@@ -19,6 +19,7 @@
 import React, { useEffect, useState } from 'react';
 import { styled, t, QueryFormData } from '@superset-ui/core';
 import { Collapse } from 'src/common/components';
+import { FixedSizeList as List } from 'react-window';
 import {
   ColumnOption,
   MetricOption,
@@ -64,9 +65,9 @@ const DatasourceContainer = styled.div`
   }
   .ant-collapse-item {
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
-      .anticon.anticon-right.ant-collapse-arrow > svg {
-        transform: rotate(90deg) !important;
-      }
+    .anticon.anticon-right.ant-collapse-arrow > svg {
+      transform: rotate(90deg) !important;
+    }
   }
   .ant-collapse-item.ant-collapse-item-active {
     .anticon.anticon-right.ant-collapse-arrow > svg {
@@ -77,15 +78,16 @@ const DatasourceContainer = styled.div`
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
     margin-left: ${({ theme }) => theme.gridUnit * -2}px;
   }
-  .column {
-    margin-left:  ${({ theme }) => theme.gridUnit * -3}px !important;
+  .ant-collapse-content-box > div {
+    margin-left: -14px;
   }
-  .metric {
-    margin-left ${({ theme }) => theme.gridUnit * -6}px;
+  .type-label {
+    text-align: left;
+  }
+  .metric-option .option-label {
+    margin-left: -20px;
   }
 `;
-
-const maxNumColumns = 50;
 
 const DataSourcePanel = ({
   datasource,
@@ -113,6 +115,22 @@ const DataSourcePanel = ({
       metrics: datasource.metrics,
     });
   }, [datasource]);
+
+  const Metrics = ({ index }: number) => {
+    return (
+      <div key={lists.metrics[index].metric_name} className="metric">
+        <MetricOption metric={lists.metrics[index]} showType />
+      </div>
+    );
+  };
+
+  const Columns = ({ index }: number) => {
+    return (
+      <div key={lists.columns[index].column_name} className="column">
+        <ColumnOption column={lists.columns[index]} showType />
+      </div>
+    );
+  };
   return (
     <DatasourceContainer>
       <Control
@@ -138,14 +156,14 @@ const DataSourcePanel = ({
             header={<span className="header">Columns</span>}
             key="column"
           >
-            {lists.columns.slice(0, maxNumColumns).map(col => (
-              <div key={col.column_name} className="column">
-                <ColumnOption showType column={col} />
-              </div>
-            ))}
-            {datasource.columns.length > maxNumColumns && (
-              <div className="and-more">...</div>
-            )}
+            <List
+              height={100}
+              itemCount={lists.columns.length}
+              itemSize={35}
+              width={250}
+            >
+              {Columns}
+            </List>
           </Collapse.Panel>
         </Collapse>
         <Collapse accordion bordered={false}>
@@ -153,14 +171,14 @@ const DataSourcePanel = ({
             header={<span className="header">Metrics</span>}
             key="metrics"
           >
-            {lists.metrics.slice(0, maxNumColumns).map(m => (
-              <div key={m.metric_name} className="metric">
-                <MetricOption metric={m} showType />
-              </div>
-            ))}
-            {datasource.columns.length > maxNumColumns && (
-              <div className="and-more">...</div>
-            )}
+            <List
+              height={100}
+              itemCount={lists.metrics.length}
+              itemSize={35}
+              width={250}
+            >
+              {Metrics}
+            </List>
           </Collapse.Panel>
         </Collapse>
       </div>
