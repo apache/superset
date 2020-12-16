@@ -254,6 +254,7 @@ export function useSingleViewResource<D extends object = any>(
         ({ json = {} }) => {
           updateState({
             resource: json.result,
+            error: null,
           });
           return json.id;
         },
@@ -291,6 +292,7 @@ export function useSingleViewResource<D extends object = any>(
         ({ json = {} }) => {
           updateState({
             resource: json.result,
+            error: null,
           });
           return json.result;
         },
@@ -303,9 +305,13 @@ export function useSingleViewResource<D extends object = any>(
             ),
           );
 
+          console.log('error', errMsg);
+
           updateState({
             error: errMsg,
           });
+
+          return errMsg;
         }),
       )
       .finally(() => {

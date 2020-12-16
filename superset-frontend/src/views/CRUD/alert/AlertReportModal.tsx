@@ -578,8 +578,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         delete data.last_value;
         delete data.last_value_row_json;
 
-        updateResource(update_id, data).then(() => {
-          if (fetchError) {
+        updateResource(update_id, data).then(result => {
+          if (!result) {
             return;
           }
 
