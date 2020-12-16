@@ -88,7 +88,9 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     });
   }
 
-  onSliceNameChange(event: React.FormEvent<FormControl> & { target: HTMLInputElement }) {
+  onSliceNameChange(
+    event: React.FormEvent<FormControl> & { target: HTMLInputElement },
+  ) {
     this.setState({ newSliceName: event.target.value });
   }
 
@@ -143,7 +145,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     }
     this.setState({ alert: null });
   }
-  
+
   render() {
     console.log('this.state.saveToDashboardId', this.state.saveToDashboardId);
     console.log('this.state.newDashboardName', this.state.newDashboardName);
@@ -260,7 +262,10 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   }
 }
 
-function mapStateToProps({ explore, saveModal }: Record<string, any>): Partial<SaveModalProps> {
+function mapStateToProps({
+  explore,
+  saveModal,
+}: Record<string, any>): Partial<SaveModalProps> {
   return {
     datasource: explore.datasource,
     slice: explore.slice,
