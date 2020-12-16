@@ -28,6 +28,12 @@ export const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
 
+const HelperMessage = styled.div`
+  display: block;
+  color: ${({ theme }) => theme.colors.grayscale.base};
+  font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+`;
+
 const StyledInputContainer = styled.div`
   padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
   padding-top: ${({ theme }) => theme.gridUnit * 2}px;
@@ -38,19 +44,6 @@ const StyledInputContainer = styled.div`
 
   &.extra-container {
     padding-top: 8px;
-  }
-
-  .helper {
-    display: block;
-    padding: ${({ theme }) => theme.gridUnit}px 0;
-    color: ${({ theme }) => theme.colors.grayscale.base};
-    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
-    text-align: left;
-
-    .required {
-      margin-left: ${({ theme }) => theme.gridUnit / 2}px;
-      color: ${({ theme }) => theme.colors.error.base};
-    }
   }
 
   .input-container {
@@ -143,6 +136,8 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     setUploadFile(null);
     setPasswordFields([]);
     setPasswords({});
+    setNeedsOverwriteConfirm(false);
+    setConfirmedOverwrite(false);
     if (fileInputRef && fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -164,7 +159,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
 
   useEffect(() => {
     setNeedsOverwriteConfirm(alreadyExists.length > 0);
-  }, [alreadyExists]);
+  }, [alreadyExists, setNeedsOverwriteConfirm]);
 
   // Functions
   const hide = () => {
@@ -205,9 +200,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     return (
       <>
         <h5>Database passwords</h5>
-        <StyledInputContainer>
-          <div className="helper">{passwordsNeededMessage}</div>
-        </StyledInputContainer>
+        <HelperMessage>{passwordsNeededMessage}</HelperMessage>
         {passwordFields.map(fileName => (
           <StyledInputContainer key={`password-for-${fileName}`}>
             <div className="control-label">
@@ -230,7 +223,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   };
 
   const renderOverwriteConfirmation = () => {
-    if (alreadyExists.length === 0) {
+    if (!needsOverwriteConfirm) {
       return null;
     }
 
