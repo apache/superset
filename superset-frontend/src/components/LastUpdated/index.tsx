@@ -23,11 +23,11 @@ import Icon from 'src/components/Icon';
 
 const REFRESH_INTERVAL = 60000; // every minute
 
-interface RefreshTimerProps {
+interface LastUpdatedProps {
   updatedAt: string | Date | number;
-  update: () => any;
+  update?: React.MouseEventHandler<SVGSVGElement>;
 }
-moment.locale('en', {
+moment.updateLocale('en', {
   calendar: {
     lastDay: '[Yesterday at] LTS',
     sameDay: '[Today at] LTS',
@@ -52,7 +52,7 @@ const Refresh = styled(Icon)`
   cursor: pointer;
 `;
 
-export const RefreshTimer: FunctionComponent<RefreshTimerProps> = ({
+export const LastUpdated: FunctionComponent<LastUpdatedProps> = ({
   updatedAt,
   update,
 }) => {
@@ -72,9 +72,9 @@ export const RefreshTimer: FunctionComponent<RefreshTimerProps> = ({
   return (
     <TextStyles>
       {t('Last Updated %s', timeSince.isValid() ? timeSince.calendar() : '--')}
-      <Refresh name="refresh" onClick={() => update()} />
+      {update && <Refresh name="refresh" onClick={update} />}
     </TextStyles>
   );
 };
 
-export default RefreshTimer;
+export default LastUpdated;

@@ -37,7 +37,7 @@ import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import RecipientIcon from 'src/views/CRUD/alert/components/RecipientIcon';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DeleteModal from 'src/components/DeleteModal';
-import RefreshTimer from 'src/components/RefreshTimer';
+import LastUpdated from 'src/components/LastUpdated';
 
 import {
   useListViewResource,
@@ -409,7 +409,7 @@ function AlertList({
         buttons={subMenuButtons}
       >
         <RefreshContainer>
-          <RefreshTimer updatedAt={lastFetched || ''} update={refreshData} />
+          <LastUpdated updatedAt={lastFetched || ''} update={refreshData} />
         </RefreshContainer>
       </SubMenu>
       <AlertReportModal
