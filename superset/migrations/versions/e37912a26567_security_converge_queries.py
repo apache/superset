@@ -38,7 +38,7 @@ from superset.migrations.shared.security_converge import (
     Pvm,
 )
 
-NEW_PVMS = {"Query": ("can_read")}
+NEW_PVMS = {"Query": ("can_read",)}
 PVM_MAP = {
     Pvm("QueryView", "can_list"): (Pvm("Query", "can_read"),),
     Pvm("QueryView", "can_show"): (Pvm("Query", "can_read"),),
