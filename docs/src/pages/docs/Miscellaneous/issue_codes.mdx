@@ -73,3 +73,14 @@ The table was deleted or renamed in the database.
 Your query failed because it is referencing a table that no longer exists in
 the underlying database. You should modify your query to reference the correct
 table.
+
+## Issue 1006
+
+```
+One or more parameters specified in the query are missing.
+```
+
+Your query was not submitted to the database because it's missing one or more
+parameters. You should define all the parameters referenced in the query in a
+valid JSON document. Check that the parameters are spelled correctly and that
+the document has a valid syntax.
