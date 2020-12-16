@@ -103,12 +103,6 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       name: 'select-column',
       showSearch: true,
     };
-
-    this.menuPortalProps = {
-      menuPortalTarget: props.popoverRef,
-      menuPosition: 'fixed',
-      menuPlacement: 'bottom',
-    };
   }
 
   UNSAFE_componentWillMount() {
@@ -288,6 +282,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       ),
       filterOption: (input, option) =>
         option.filterBy.toLowerCase().indexOf(input.toLowerCase()) >= 0,
+      autoFocus: !subject,
     };
 
     if (datasource.type === 'druid') {
@@ -313,6 +308,22 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       onChange: this.onOperatorChange,
       filterOption: (input, option) =>
         option.value.toLowerCase().indexOf(input.toLowerCase()) >= 0,
+      autoFocus: !!subjectSelectProps.value && !operator,
+    };
+
+    const comparatorSelectProps = {
+      allowClear: true,
+      showSearch: true,
+      mode: MULTI_OPERATORS.has(operator) && 'tags',
+      tokenSeparators: [',', ' ', ';'],
+      loading: this.state.loading,
+      value: comparator,
+      onChange: this.onComparatorChange,
+      notFoundContent: t('type a value here'),
+      disabled: DISABLE_INPUT_OPERATORS.includes(operator),
+      placeholder: this.createSuggestionsPlaceholder(),
+      labelText: comparator?.length > 0 && this.createSuggestionsPlaceholder(),
+      autoFocus: !!subjectSelectProps.value && !!operatorSelectProps.value,
     };
 
     return (
@@ -354,23 +365,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         <FormGroup data-test="adhoc-filter-simple-value">
           {MULTI_OPERATORS.has(operator) ||
           this.state.suggestions.length > 0 ? (
-            <SelectWithLabel
-              name="filter-value"
-              autoFocus
-              allowClear
-              showSearch
-              mode={MULTI_OPERATORS.has(operator) && 'tags'}
-              tokenSeparators={[',', ' ', ';']}
-              loading={this.state.loading}
-              value={comparator}
-              onChange={this.onComparatorChange}
-              notFoundContent={t('type a value here')}
-              disabled={DISABLE_INPUT_OPERATORS.includes(operator)}
-              placeholder={this.createSuggestionsPlaceholder()}
-              labelText={
-                comparator?.length > 0 && this.createSuggestionsPlaceholder()
-              }
-            >
+            <SelectWithLabel name="filter-value" {...comparatorSelectProps}>
               {this.state.suggestions.map(suggestion => (
                 <Select.Option value={suggestion} key={suggestion}>
                   {suggestion}
