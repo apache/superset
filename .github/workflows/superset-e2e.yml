@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+  pull_request:
   pull_request_target:
 
 jobs:
@@ -44,10 +45,10 @@ jobs:
         with:
           access_token: ${{ github.token }}
       - name: Checkout code (master)
-        if: github.event_name == "push"
+        if: github.event_name == 'push'
         uses: actions/checkout@v2
       - name: Checkout code (PR)
-        if: github.event_name == "pull_request_target"
+        if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
         uses: actions/checkout@v2
         with:
           ref: ${{github.event.pull_request.head.ref}}
