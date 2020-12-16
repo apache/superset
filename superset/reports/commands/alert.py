@@ -64,7 +64,8 @@ class AlertCommand(BaseCommand):
         self._validate_result(rows)
         self._result = rows[0][1]
 
-    def _validate_result(self, rows: np.recarray) -> None:
+    @staticmethod
+    def _validate_result(rows: np.recarray) -> None:
         # check if query return more then one row
         if len(rows) > 1:
             raise AlertQueryMultipleRowsError(
