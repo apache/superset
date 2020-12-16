@@ -409,7 +409,6 @@ describe('ListView', () => {
         Object {
           "filters": Array [
             Object {
-              "col": undefined,
               "id": "id",
               "operator": "eq",
               "value": "bar",
@@ -432,13 +431,11 @@ describe('ListView', () => {
         Object {
           "filters": Array [
             Object {
-              "col": undefined,
               "id": "id",
               "operator": "eq",
               "value": "bar",
             },
             Object {
-              "col": undefined,
               "id": "name",
               "operator": "ct",
               "value": "something",

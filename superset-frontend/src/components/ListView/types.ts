@@ -62,7 +62,7 @@ type FilterOperator =
 export interface Filter {
   Header: ReactNode;
   id: string;
-  col?: string;
+  urlDisplay?: string;
   operator?: FilterOperator;
   input?:
     | 'text'
@@ -88,7 +88,7 @@ export type ViewModeType = 'card' | 'table';
 
 export interface FilterValue {
   id: string;
-  col?: string;
+  urlDisplay?: string;
   operator?: string;
   value: string | boolean | number | null | undefined | string[] | number[];
 }

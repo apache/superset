@@ -80,10 +80,10 @@ type QueryFilterState = {
 };
 
 function mergeCreateFilterValues(list: Filter[], updateObj: QueryFilterState) {
-  return list.map(({ id, operator, col }) => {
+  return list.map(({ id, urlDisplay, operator }) => {
     const update = updateObj[id];
 
-    return { id, col, operator, value: update };
+    return { id, urlDisplay, operator, value: update };
   });
 }
 
@@ -97,7 +97,7 @@ export function convertFilters(fts: InternalFilter[]): FilterValue[] {
           (Array.isArray(f.value) && !f.value.length)
         ),
     )
-    .map(({ value, operator, id, col }) => {
+    .map(({ value, operator, id }) => {
       // handle between filter using 2 api filters
       if (operator === 'between' && Array.isArray(value)) {
         return [
@@ -105,13 +105,11 @@ export function convertFilters(fts: InternalFilter[]): FilterValue[] {
             value: value[0],
             operator: 'gt',
             id,
-            col,
           },
           {
             value: value[1],
             operator: 'lt',
             id,
-            col,
           },
         ];
       }
@@ -119,7 +117,6 @@ export function convertFilters(fts: InternalFilter[]): FilterValue[] {
         value,
         operator,
         id,
-        col,
       };
     })
     .flat();
@@ -132,7 +129,7 @@ export function convertFiltersRison(
 ): FilterValue[] {
   const filters: FilterValue[] = [];
   const refs = {};
-
+  
   Object.keys(filterObj).forEach(id => {
     const filter: FilterValue = {
       id,
@@ -146,11 +143,12 @@ export function convertFiltersRison(
 
   // Add operators from filter list
   list.forEach(value => {
-    const filter = refs[value.id];
+    const currFilterId = value.urlDisplay || value.id;
+    const filter = refs[currFilterId];
 
     if (filter) {
       filter.operator = value.operator;
-      filter.col = value.col;
+      filter.id = value.id;
     }
   });
 
@@ -298,7 +296,8 @@ export function useListViewState({
         filter.value !== undefined &&
         (typeof filter.value !== 'string' || filter.value.length > 0)
       ) {
-        filterObj[filter.id] = filter.value;
+        const queryFilterId = filter.urlDisplay || filter.id;
+        filterObj[queryFilterId] = filter.value;
       }
     });
 
@@ -338,12 +337,14 @@ export function useListViewState({
       if (currentInternalFilters[index].value === value) {
         return currentInternalFilters;
       }
+
       const update = { ...currentInternalFilters[index], value };
       const updatedFilters = updateInList(
         currentInternalFilters,
         index,
         update,
       );
+
       setAllFilters(convertFilters(updatedFilters));
       gotoPage(0); // clear pagination on filter
       return updatedFilters;
