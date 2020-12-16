@@ -45,7 +45,6 @@ from sqlalchemy import (
     Table,
     Text,
 )
-from sqlalchemy.exc import CompileError
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
@@ -58,6 +57,7 @@ from superset.constants import NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
+from superset.extensions import event_logger
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -438,6 +438,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     type = "table"
     query_language = "sql"
     is_rls_supported = True
+    columns: List[TableColumn] = []
+    metrics: List[SqlMetric] = []
     metric_class = SqlMetric
     column_class = TableColumn
     owner_class = security_manager.user_model
@@ -625,7 +627,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             engine = self.database.get_sqla_engine(schema=self.schema)
             sql = self.get_template_processor().process_template(self.sql)
             parsed_query = ParsedQuery(sql)
-            if not parsed_query.is_readonly():
+            if not db_engine_spec.is_readonly_query(parsed_query):
                 raise SupersetSecurityException(
                     SupersetError(
                         error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
@@ -664,7 +666,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         col["type"] = db_engine_spec.column_datatype_to_string(
                             col["type"], db_dialect
                         )
-                except CompileError:
+                # Broad exception catch, because there are multiple possible exceptions
+                # from different drivers that fall outside CompileError
+                except Exception:  # pylint: disable=broad-except
                     col["type"] = "UNKNOWN"
         return cols
 
@@ -684,6 +688,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         )
 
     @property
+    def health_check_message(self) -> Optional[str]:
+        return self.extra_dict.get("health_check", {}).get("message")
+
+    @property
     def data(self) -> Dict[str, Any]:
         data_ = super().data
         if self.type == "table":
@@ -696,7 +704,15 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             data_["fetch_values_predicate"] = self.fetch_values_predicate
             data_["template_params"] = self.template_params
             data_["is_sqllab_view"] = self.is_sqllab_view
+            data_["health_check_message"] = self.health_check_message
         return data_
+
+    @property
+    def extra_dict(self) -> Dict[str, Any]:
+        try:
+            return json.loads(self.extra)
+        except (TypeError, json.JSONDecodeError):
+            return {}
 
     def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
         """Runs query against sqla to retrieve some
@@ -790,7 +806,11 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     _("Virtual dataset query cannot consist of multiple statements")
                 )
             parsed_query = ParsedQuery(from_sql)
-            if not (parsed_query.is_unknown() or parsed_query.is_readonly()):
+            db_engine_spec = self.database.db_engine_spec
+            if not (
+                parsed_query.is_unknown()
+                or db_engine_spec.is_readonly_query(parsed_query)
+            ):
                 raise QueryObjectValidationError(
                     _("Virtual dataset query must be read-only")
                 )
@@ -875,14 +895,14 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         template_kwargs = {
-            "from_dttm": from_dttm,
+            "from_dttm": from_dttm.isoformat() if from_dttm else None,
             "groupby": groupby,
             "metrics": metrics,
             "row_limit": row_limit,
             "row_offset": row_offset,
-            "to_dttm": to_dttm,
+            "to_dttm": to_dttm.isoformat() if to_dttm else None,
             "filter": filter,
-            "columns": {col.column_name: col for col in self.columns},
+            "columns": [col.column_name for col in self.columns],
         }
         is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
         template_kwargs.update(self.template_params_dict)
@@ -1333,7 +1353,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         db_engine_spec = self.database.db_engine_spec
         old_columns = db.session.query(TableColumn).filter(TableColumn.table == self)
 
-        old_columns_by_name = {col.column_name: col for col in old_columns}
+        old_columns_by_name: Dict[str, TableColumn] = {
+            col.column_name: col for col in old_columns
+        }
         results = MetadataResult(
             removed=[
                 col
@@ -1345,7 +1367,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         # clear old columns before adding modified columns back
         self.columns = []
         for col in new_columns:
-            old_column = old_columns_by_name.get(col["name"], None)
+            old_column = old_columns_by_name.pop(col["name"], None)
             if not old_column:
                 results.added.append(col["name"])
                 new_column = TableColumn(
@@ -1358,11 +1380,15 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 if new_column.type != col["type"]:
                     results.modified.append(col["name"])
                 new_column.type = col["type"]
+                new_column.expression = ""
             new_column.groupby = True
             new_column.filterable = True
             self.columns.append(new_column)
             if not any_date_col and new_column.is_temporal:
                 any_date_col = col["name"]
+        self.columns.extend(
+            [col for col in old_columns_by_name.values() if col.expression]
+        )
         metrics.append(
             SqlMetric(
                 metric_name="count",
@@ -1447,6 +1473,26 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             sqla_query = self.get_sqla_query(**query_obj)
             extra_cache_keys += sqla_query.extra_cache_keys
         return extra_cache_keys
+
+    def health_check(self, commit: bool = False, force: bool = False) -> None:
+        check = config.get("DATASET_HEALTH_CHECK")
+        if check is None:
+            return
+
+        extra = self.extra_dict
+        # force re-run health check, or health check is updated
+        if force or extra.get("health_check", {}).get("version") != check.version:
+            with event_logger.log_context(action="dataset_health_check"):
+                message = check(self)
+                extra["health_check"] = {
+                    "version": check.version,
+                    "message": message,
+                }
+                self.extra = json.dumps(extra)
+
+                db.session.merge(self)
+                if commit:
+                    db.session.commit()
 
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)

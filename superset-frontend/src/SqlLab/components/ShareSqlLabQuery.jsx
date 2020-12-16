@@ -25,7 +25,7 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import Button from 'src/components/Button';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { storeQuery } from '../../utils/common';
-import getClientErrorObject from '../../utils/getClientErrorObject';
+import { getClientErrorObject } from '../../utils/getClientErrorObject';
 import withToasts from '../../messageToasts/enhancers/withToasts';
 
 const propTypes = {

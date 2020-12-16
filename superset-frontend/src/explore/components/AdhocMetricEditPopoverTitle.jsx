@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { FormControl, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { FormControl } from 'react-bootstrap';
+import { Tooltip } from 'src/common/components/Tooltip';
 
 const propTypes = {
   title: PropTypes.shape({
@@ -70,10 +71,6 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
   render() {
     const { title, onChange } = this.props;
 
-    const editPrompt = (
-      <Tooltip id="edit-metric-label-tooltip">Click to edit label</Tooltip>
-    );
-
     return this.state.isEditable ? (
       <FormControl
         className="metric-edit-popover-label-input"
@@ -86,18 +83,16 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
         data-test="AdhocMetricEditTitle#input"
       />
     ) : (
-      <OverlayTrigger
-        placement="top"
-        overlay={editPrompt}
-        onMouseOver={this.onMouseOver}
-        onMouseOut={this.onMouseOut}
-        onClick={this.onClick}
-        onBlur={this.onBlur}
-        className="AdhocMetricEditPopoverTitle"
-      >
+      <Tooltip placement="top" title="Click to edit label">
         <span
-          className="inline-editable"
+          className="AdhocMetricEditPopoverTitle inline-editable"
           data-test="AdhocMetricEditTitle#trigger"
+          onMouseOver={this.onMouseOver}
+          onMouseOut={this.onMouseOut}
+          onClick={this.onClick}
+          onBlur={this.onBlur}
+          role="button"
+          tabIndex={0}
         >
           {title.hasCustomLabel ? title.label : 'My Metric'}
           &nbsp;
@@ -106,7 +101,7 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
             style={{ color: this.state.isHovered ? 'black' : 'grey' }}
           />
         </span>
-      </OverlayTrigger>
+      </Tooltip>
     );
   }
 }

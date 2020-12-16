@@ -102,18 +102,15 @@ export default class SelectControl extends React.PureComponent {
   // Beware: This is acting like an on-click instead of an on-change
   // (firing every time user chooses vs firing only if a new option is chosen).
   onChange(opt) {
-    let optionValue = null;
+    let optionValue = this.props.multi ? [] : null;
     if (opt) {
       if (this.props.multi) {
-        optionValue = [];
         opt.forEach(o => {
           // select all options
           if (o.meta === true) {
-            this.props.onChange(
-              this.getOptions(this.props)
-                .filter(x => !x.meta)
-                .map(x => x[this.props.valueKey]),
-            );
+            optionValue = this.getOptions(this.props)
+              .filter(x => !x.meta)
+              .map(x => x[this.props.valueKey]);
             return;
           }
           optionValue.push(o[this.props.valueKey] || o);

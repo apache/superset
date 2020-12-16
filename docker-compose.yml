@@ -14,21 +14,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-x-superset-build: &superset-build
-  args:
-    NPM_BUILD_CMD: build-dev
-  context: ./
-  dockerfile: Dockerfile-dev
+x-superset-image: &superset-image apache/incubator-superset:latest-dev
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
 x-superset-volumes: &superset-volumes
   # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
-  - ./docker/docker-init.sh:/app/docker-init.sh
-  - ./docker/pythonpath_dev:/app/pythonpath
+  - ./docker:/app/docker
   - ./superset:/app/superset
   - ./superset-frontend:/app/superset-frontend
   - superset_home:/app/superset_home
+  - ./tests:/app/tests
 
 version: "3.7"
 services:
@@ -53,44 +49,51 @@ services:
 
   superset:
     env_file: docker/.env
-    build: *superset-build
+    image: *superset-image
     container_name: superset_app
-    command: ["flask", "run", "-p", "8088", "--with-threads", "--reload", "--debugger", "--host=0.0.0.0"]
+    command: ["/app/docker/docker-bootstrap.sh", "app"]
     restart: unless-stopped
     ports:
       - 8088:8088
+    user: "root"
     depends_on: *superset-depends-on
     volumes: *superset-volumes
+    environment:
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
 
   superset-init:
-    build: *superset-build
+    image: *superset-image
     container_name: superset_init
-    command: ["/app/docker-init.sh"]
+    command: ["/app/docker/docker-init.sh"]
     env_file: docker/.env
     depends_on: *superset-depends-on
+    user: "root"
     volumes: *superset-volumes
+    environment:
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
 
   superset-node:
     image: node:12
     container_name: superset_node
-    command: ["bash", "-c", "cd /app/superset-frontend && npm install -f --no-optional --global webpack webpack-cli && npm install -f --no-optional && npm run dev"]
+    command: ["/app/docker/docker-frontend.sh"]
     env_file: docker/.env
     depends_on: *superset-depends-on
     volumes: *superset-volumes
 
   superset-worker:
-    build: *superset-build
+    image: *superset-image
     container_name: superset_worker
-    command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair", "-l", "INFO"]
+    command: ["/app/docker/docker-bootstrap.sh", "worker"]
     env_file: docker/.env
     restart: unless-stopped
     depends_on: *superset-depends-on
+    user: "root"
     volumes: *superset-volumes
 
   superset-tests-worker:
-    build: *superset-build
+    image: *superset-image
     container_name: superset_tests_worker
-    command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair", "-l", "INFO"]
+    command: ["/app/docker/docker-bootstrap.sh", "worker"]
     env_file: docker/.env
     environment:
       DATABASE_HOST: localhost
@@ -100,6 +103,7 @@ services:
       REDIS_HOST: localhost
     network_mode: host
     depends_on: *superset-depends-on
+    user: "root"
     volumes: *superset-volumes
 
 volumes:

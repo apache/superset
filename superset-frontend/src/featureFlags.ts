@@ -19,6 +19,7 @@
 // We can codegen the enum definition based on a list of supported flags that we
 // check into source control. We're hardcoding the supported flags for now.
 export enum FeatureFlag {
+  ALLOW_DASHBOARD_DOMAIN_SHARDING = 'ALLOW_DASHBOARD_DOMAIN_SHARDING',
   OMNIBAR = 'OMNIBAR',
   CLIENT_CACHE = 'CLIENT_CACHE',
   SCHEDULED_QUERIES = 'SCHEDULED_QUERIES',
@@ -29,10 +30,12 @@ export enum FeatureFlag {
   THUMBNAILS = 'THUMBNAILS',
   LISTVIEWS_DEFAULT_CARD_VIEW = 'LISTVIEWS_DEFAULT_CARD_VIEW',
   ENABLE_REACT_CRUD_VIEWS = 'ENABLE_REACT_CRUD_VIEWS',
+  DISABLE_DATASET_SOURCE_EDIT = 'DISABLE_DATASET_SOURCE_EDIT',
   DISPLAY_MARKDOWN_HTML = 'DISPLAY_MARKDOWN_HTML',
   ESCAPE_MARKDOWN_HTML = 'ESCAPE_MARKDOWN_HTML',
   VERSIONED_EXPORT = 'VERSIONED_EXPORT',
-  SIP_34_QUERY_SEARCH_UI = 'SIP_34_QUERY_SEARCH_UI',
+  GLOBAL_ASYNC_QUERIES = 'GLOBAL_ASYNC_QUERIES',
+  ENABLE_TEMPLATE_PROCESSING = 'ENABLE_TEMPLATE_PROCESSING',
 }
 
 export type FeatureFlagMap = {
@@ -49,7 +52,9 @@ declare global {
 }
 
 export function initFeatureFlags(featureFlags: FeatureFlagMap) {
-  window.featureFlags = featureFlags || {};
+  if (!window.featureFlags) {
+    window.featureFlags = featureFlags || {};
+  }
 }
 
 export function isFeatureEnabled(feature: FeatureFlag) {

@@ -34,10 +34,12 @@ from superset import app, dataframe, db, is_feature_enabled, result_set
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    CacheLoadError,
     SerializationError,
     SupersetException,
     SupersetSecurityException,
 )
+from superset.extensions import cache_manager
 from superset.legacy import update_time_range
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -108,13 +110,19 @@ def get_permissions(
 
 
 def get_viz(
-    form_data: FormData, datasource_type: str, datasource_id: int, force: bool = False
+    form_data: FormData,
+    datasource_type: str,
+    datasource_id: int,
+    force: bool = False,
+    force_cached: bool = False,
 ) -> BaseViz:
     viz_type = form_data.get("viz_type", "table")
     datasource = ConnectorRegistry.get_datasource(
         datasource_type, datasource_id, db.session
     )
-    viz_obj = viz.viz_types[viz_type](datasource, form_data=form_data, force=force)
+    viz_obj = viz.viz_types[viz_type](
+        datasource, form_data=form_data, force=force, force_cached=force_cached
+    )
     return viz_obj
 
 
@@ -422,10 +430,26 @@ def is_owner(obj: Union[Dashboard, Slice], user: User) -> bool:
     return obj and user in obj.owners
 
 
+def check_explore_cache_perms(_self: Any, cache_key: str) -> None:
+    """
+    Loads async explore_json request data from cache and performs access check
+
+    :param _self: the Superset view instance
+    :param cache_key: the cache key passed into /explore_json/data/
+    :raises SupersetSecurityException: If the user cannot access the resource
+    """
+    cached = cache_manager.cache.get(cache_key)
+    if not cached:
+        raise CacheLoadError("Cached data not found")
+
+    check_datasource_perms(_self, form_data=cached["form_data"])
+
+
 def check_datasource_perms(
     _self: Any,
     datasource_type: Optional[str] = None,
     datasource_id: Optional[int] = None,
+    **kwargs: Any
 ) -> None:
     """
     Check if user can access a cached response from explore_json.
@@ -438,7 +462,7 @@ def check_datasource_perms(
     :raises SupersetSecurityException: If the user cannot access the resource
     """
 
-    form_data = get_form_data()[0]
+    form_data = kwargs["form_data"] if "form_data" in kwargs else get_form_data()[0]
 
     try:
         datasource_id, datasource_type = get_datasource_info(

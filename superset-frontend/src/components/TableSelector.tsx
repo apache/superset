@@ -29,6 +29,7 @@ import FormLabel from 'src/components/FormLabel';
 
 import DatabaseSelector from './DatabaseSelector';
 import RefreshLabel from './RefreshLabel';
+import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
@@ -65,7 +66,14 @@ const TableSelectorWrapper = styled.div`
 `;
 
 const TableLabel = styled.span`
+  align-items: center;
+  display: flex;
   white-space: nowrap;
+
+  > svg,
+  > small {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
 `;
 
 interface TableSelectorProps {
@@ -89,6 +97,7 @@ interface TableSelectorProps {
   onSchemasLoad?: () => void;
   onTableChange?: (tableName: string, schema: string) => void;
   onTablesLoad?: (options: Array<any>) => {};
+  readOnly?: boolean;
   schema?: string;
   sqlLabMode?: boolean;
   tableName?: string;
@@ -108,6 +117,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   onSchemasLoad,
   onTableChange,
   onTablesLoad,
+  readOnly = false,
   schema,
   sqlLabMode = true,
   tableName,
@@ -146,6 +156,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
             label: o.label,
             title: o.title,
             type: o.type,
+            extra: o?.extra,
           }));
           setTableLoading(false);
           setTableOptions(options);
@@ -244,13 +255,16 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   function renderTableOption(option: any) {
     return (
       <TableLabel title={option.label}>
-        <span className="m-r-5">
-          <small className="text-muted">
-            <i
-              className={`fa fa-${option.type === 'view' ? 'eye' : 'table'}`}
-            />
-          </small>
-        </span>
+        <small className="text-muted">
+          <i className={`fa fa-${option.type === 'view' ? 'eye' : 'table'}`} />
+        </small>
+        {option.extra?.certification && (
+          <CertifiedIconWithTooltip
+            certifiedBy={option.extra.certification.certified_by}
+            details={option.extra.certification.details}
+            size={20}
+          />
+        )}
         {option.label}
       </TableLabel>
     );
@@ -274,28 +288,22 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         getTableList={fetchTables}
         handleError={handleError}
         onChange={onSelectionChange}
-        onDbChange={onDbChange}
-        onSchemaChange={onSchemaChange}
+        onDbChange={readOnly ? undefined : onDbChange}
+        onSchemaChange={readOnly ? undefined : onSchemaChange}
         onSchemasLoad={onSchemasLoad}
         schema={currentSchema}
         sqlLabMode={sqlLabMode}
-        isDatabaseSelectEnabled={isDatabaseSelectEnabled}
+        isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
+        readOnly={readOnly}
       />
     );
   }
 
   function renderTableSelect() {
-    let tableSelectPlaceholder;
-    let tableSelectDisabled = false;
-    if (database && database.allow_multi_schema_metadata_fetch) {
-      tableSelectPlaceholder = t('Type to search ...');
-    } else {
-      tableSelectPlaceholder = t('Select table ');
-      tableSelectDisabled = true;
-    }
     const options = tableOptions;
     let select = null;
     if (currentSchema && !formMode) {
+      // dataset editor
       select = (
         <Select
           name="select-table"
@@ -308,6 +316,8 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
           // @ts-ignore
           value={currentTableName}
           optionRenderer={renderTableOption}
+          valueRenderer={renderTableOption}
+          isDisabled={readOnly}
         />
       );
     } else if (formMode) {
@@ -326,6 +336,15 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         />
       );
     } else {
+      // sql lab
+      let tableSelectPlaceholder;
+      let tableSelectDisabled = false;
+      if (database && database.allow_multi_schema_metadata_fetch) {
+        tableSelectPlaceholder = t('Type to search ...');
+      } else {
+        tableSelectPlaceholder = t('Select table ');
+        tableSelectDisabled = true;
+      }
       select = (
         <AsyncSelect
           name="async-select-table"
@@ -340,7 +359,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         />
       );
     }
-    const refresh = !formMode && (
+    const refresh = !formMode && !readOnly && (
       <RefreshLabel
         onClick={() => changeSchema({ value: schema }, true)}
         tooltipContent={t('Force refresh table list')}

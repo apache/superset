@@ -31,7 +31,7 @@ from marshmallow import fields, Schema
 from sqlalchemy import and_, distinct, func
 from sqlalchemy.orm.query import Query
 
-from superset.extensions import db, security_manager
+from superset.extensions import db, event_logger, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -125,9 +125,11 @@ class BaseSupersetModelRestApi(ModelRestApi):
     method_permission_name = {
         "bulk_delete": "delete",
         "data": "list",
+        "data_from_cache": "list",
         "delete": "delete",
         "distinct": "list",
         "export": "mulexport",
+        "import_": "add",
         "get": "show",
         "get_list": "list",
         "info": "list",
@@ -307,6 +309,11 @@ class BaseSupersetModelRestApi(ModelRestApi):
         if time_delta:
             self.timing_stats("time", key, time_delta)
 
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.info",
+        object_ref=False,
+        log_to_statsd=False,
+    )
     def info_headless(self, **kwargs: Any) -> Response:
         """
         Add statsd metrics to builtin FAB _info endpoint
@@ -315,6 +322,11 @@ class BaseSupersetModelRestApi(ModelRestApi):
         self.send_stats_metrics(response, self.info.__name__, duration)
         return response
 
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
+        object_ref=False,
+        log_to_statsd=False,
+    )
     def get_headless(self, pk: int, **kwargs: Any) -> Response:
         """
         Add statsd metrics to builtin FAB GET endpoint
@@ -323,6 +335,11 @@ class BaseSupersetModelRestApi(ModelRestApi):
         self.send_stats_metrics(response, self.get.__name__, duration)
         return response
 
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_list",
+        object_ref=False,
+        log_to_statsd=False,
+    )
     def get_list_headless(self, **kwargs: Any) -> Response:
         """
         Add statsd metrics to builtin FAB GET list endpoint
@@ -331,6 +348,11 @@ class BaseSupersetModelRestApi(ModelRestApi):
         self.send_stats_metrics(response, self.get_list.__name__, duration)
         return response
 
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
+        object_ref=False,
+        log_to_statsd=False,
+    )
     def post_headless(self) -> Response:
         """
         Add statsd metrics to builtin FAB POST endpoint
@@ -339,6 +361,11 @@ class BaseSupersetModelRestApi(ModelRestApi):
         self.send_stats_metrics(response, self.post.__name__, duration)
         return response
 
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
+        object_ref=False,
+        log_to_statsd=False,
+    )
     def put_headless(self, pk: int) -> Response:
         """
         Add statsd metrics to builtin FAB PUT endpoint
@@ -347,6 +374,11 @@ class BaseSupersetModelRestApi(ModelRestApi):
         self.send_stats_metrics(response, self.put.__name__, duration)
         return response
 
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
+        object_ref=False,
+        log_to_statsd=False,
+    )
     def delete_headless(self, pk: int) -> Response:
         """
         Add statsd metrics to builtin FAB DELETE endpoint

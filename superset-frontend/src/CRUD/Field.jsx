@@ -18,14 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import {
-  FormGroup,
-  HelpBlock,
-  FormControl,
-  OverlayTrigger,
-  Tooltip,
-} from 'react-bootstrap';
+import { FormGroup, HelpBlock, FormControl } from 'react-bootstrap';
 
+import { Tooltip } from 'src/common/components/Tooltip';
 import FormLabel from 'src/components/FormLabel';
 import './crud.less';
 
@@ -72,16 +67,9 @@ export default class Field extends React.PureComponent {
         <FormLabel className="m-r-5">
           {label || fieldKey}
           {compact && description && (
-            <OverlayTrigger
-              placement="right"
-              overlay={
-                <Tooltip id="field-descr" bsSize="lg">
-                  {description}
-                </Tooltip>
-              }
-            >
+            <Tooltip id="field-descr" placement="right" title={description}>
               <i className="fa fa-info-circle m-l-5" />
-            </OverlayTrigger>
+            </Tooltip>
           )}
         </FormLabel>{' '}
         {hookedControl}

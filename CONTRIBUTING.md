@@ -607,7 +607,7 @@ tox -e <environment> -- tests/test_file.py
 or for a specific test via,
 
 ```bash
-tox -e <environment> -- tests/test_file.py:TestClassName.test_method_name
+tox -e <environment> -- tests/test_file.py::TestClassName::test_method_name
 ```
 
 Note that the test environment uses a temporary directory for defining the
@@ -621,6 +621,11 @@ We use [Jest](https://jestjs.io/) and [Enzyme](https://airbnb.io/enzyme/) to tes
 ```bash
 cd superset-frontend
 npm run test
+```
+
+To run a single test file:
+```bash
+npm run test -- path/to/file.js
 ```
 
 ### Integration Testing
@@ -666,6 +671,28 @@ CYPRESS_BASE_URL=<your url> npm run cypress open
 ```
 
 See [`superset-frontend/cypress_build.sh`](https://github.com/apache/incubator-superset/blob/master/superset-frontend/cypress_build.sh).
+
+As an alternative you can use docker-compose environment for testing:
+
+Make sure you have added below line to your /etc/hosts file:
+```127.0.0.1 db```
+
+If you already have launched Docker environment please use the following command to assure a fresh database instance:
+```docker-compose down -v```
+
+Launch environment:
+
+```CYPRESS_CONFIG=true docker-compose up```
+
+It will serve backend and frontend on port 8088.
+
+Run Cypress tests:
+
+```bash
+cd cypress-base
+npm install
+npm run cypress open
+```
 
 ### Storybook
 

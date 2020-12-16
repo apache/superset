@@ -29,10 +29,10 @@ import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 
-import { mockStore } from '../../fixtures/mockStore';
-import { sliceId } from '../../fixtures/mockChartQueries';
-import { dashboardLayout as mockLayout } from '../../fixtures/mockDashboardLayout';
-import WithDragDropContext from '../../helpers/WithDragDropContext';
+import { mockStore } from 'spec/fixtures/mockStore';
+import { sliceId } from 'spec/fixtures/mockChartQueries';
+import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
+import WithDragDropContext from 'spec/helpers/WithDragDropContext';
 
 describe('ChartHolder', () => {
   const props = {

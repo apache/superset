@@ -27,7 +27,7 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 
 type DatasetAddObject = {
   id: number;
-  databse: number;
+  database: number;
   schema: string;
   table_name: string;
 };

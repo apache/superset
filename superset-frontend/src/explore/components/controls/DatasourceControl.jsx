@@ -19,11 +19,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Col, Collapse, Row, Well } from 'react-bootstrap';
-import { t, styled } from '@superset-ui/core';
+import { t, styled, supersetTheme } from '@superset-ui/core';
 import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
 
 import { Dropdown, Menu } from 'src/common/components';
-import Tooltip from 'src/common/components/Tooltip';
+import { Tooltip } from 'src/common/components/Tooltip';
 import Icon from 'src/components/Icon';
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import DatasourceModal from 'src/datasource/DatasourceModal';
@@ -72,6 +72,10 @@ const Styles = styled.div`
     color: ${({ theme }) => theme.colors.primary.base};
     vertical-align: middle;
     cursor: pointer;
+  }
+
+  .datasource-controls {
+    display: flex;
   }
 `;
 
@@ -213,10 +217,13 @@ class DatasourceControl extends React.PureComponent {
       </Menu>
     );
 
+    // eslint-disable-next-line camelcase
+    const { health_check_message: healthCheckMessage } = datasource;
+
     return (
       <Styles className="DatasourceControl">
         <ControlHeader {...this.props} />
-        <div>
+        <div className="datasource-controls">
           <Tooltip title={t('Expand/collapse dataset configuration')}>
             <Label
               style={{ textTransform: 'none' }}
@@ -230,6 +237,14 @@ class DatasourceControl extends React.PureComponent {
               />
             </Label>
           </Tooltip>
+          {healthCheckMessage && (
+            <Tooltip title={healthCheckMessage}>
+              <Icon
+                name="alert-solid"
+                color={supersetTheme.colors.warning.base}
+              />
+            </Tooltip>
+          )}
           <Dropdown
             overlay={datasourceMenu}
             trigger={['click']}

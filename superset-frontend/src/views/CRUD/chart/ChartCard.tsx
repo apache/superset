@@ -59,10 +59,10 @@ export default function ChartCard({
   chartFilter,
   userId,
 }: ChartCardProps) {
-  const canEdit = hasPerm('can_edit');
-  const canDelete = hasPerm('can_delete');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
   const canExport =
-    hasPerm('can_mulexport') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+    hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
 
   const menu = (
     <Menu>
@@ -133,7 +133,7 @@ export default function ChartCard({
         title={chart.slice_name}
         url={bulkSelectEnabled ? undefined : chart.url}
         imgURL={chart.thumbnail_url || ''}
-        imgFallbackURL="/static/assets/images/chart-card-fallback.png"
+        imgFallbackURL="/static/assets/images/chart-card-fallback.svg"
         description={t('Last modified %s', chart.changed_on_delta_humanized)}
         coverLeft={<FacePile users={chart.owners || []} />}
         coverRight={

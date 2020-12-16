@@ -37,7 +37,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
-from superset import app, cache, is_feature_enabled, security_manager
+from superset import app, cache_manager, is_feature_enabled, security_manager
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetTemplateException
@@ -111,7 +111,7 @@ def get_children(column: Dict[str, str]) -> List[Dict[str, str]]:
     raise Exception(f"Unknown type {type_}!")
 
 
-class PrestoEngineSpec(BaseEngineSpec):
+class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-methods
     engine = "presto"
     engine_name = "Presto"
 
@@ -930,7 +930,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return None
 
     @classmethod
-    @cache.memoize(timeout=60)
+    @cache_manager.data_cache.memoize(timeout=60)
     def latest_partition(
         cls,
         table_name: str,
@@ -1030,7 +1030,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return df.to_dict()[field_to_return][0]
 
     @classmethod
-    @cache.memoize()
+    @cache_manager.data_cache.memoize()
     def get_function_names(cls, database: "Database") -> List[str]:
         """
         Get a list of function names that are able to be called on the database.
@@ -1090,3 +1090,8 @@ class PrestoEngineSpec(BaseEngineSpec):
                 )
             )
         ]
+
+    @classmethod
+    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
+        """Pessimistic readonly, 100% sure statement won't mutate anything"""
+        return super().is_readonly_query(parsed_query) or parsed_query.is_show()

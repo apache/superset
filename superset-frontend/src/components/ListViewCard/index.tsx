@@ -20,6 +20,7 @@ import React from 'react';
 import { styled } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 import { Card, Skeleton, ThinSkeleton } from 'src/common/components';
+import { Tooltip } from 'src/common/components/Tooltip';
 import ImageLoader, { BackgroundPosition } from './ImageLoader';
 
 const MenuIcon = styled(Icon)`
@@ -144,7 +145,7 @@ const SkeletonActions = styled(Skeleton.Button)`
 
 const paragraphConfig = { rows: 1, width: 150 };
 interface CardProps {
-  title: React.ReactNode;
+  title?: React.ReactNode;
   url?: string;
   imgURL?: string;
   imgFallbackURL?: string;
@@ -154,7 +155,7 @@ interface CardProps {
   titleRight?: React.ReactNode;
   coverLeft?: React.ReactNode;
   coverRight?: React.ReactNode;
-  actions: React.ReactNode | null;
+  actions?: React.ReactNode | null;
   rows?: number | string;
   avatar?: string;
   cover?: React.ReactNode | null;
@@ -229,15 +230,15 @@ function ListViewCard({
       {!loading && (
         <Card.Meta
           title={
-            <>
-              <TitleContainer>
+            <TitleContainer>
+              <Tooltip title={title}>
                 <TitleLink href={url}>{title}</TitleLink>
-                {titleRight && <div className="title-right"> {titleRight}</div>}
-                <div className="card-actions" data-test="card-actions">
-                  {actions}
-                </div>
-              </TitleContainer>
-            </>
+              </Tooltip>
+              {titleRight && <div className="title-right"> {titleRight}</div>}
+              <div className="card-actions" data-test="card-actions">
+                {actions}
+              </div>
+            </TitleContainer>
           }
           description={description}
           // @ts-ignore

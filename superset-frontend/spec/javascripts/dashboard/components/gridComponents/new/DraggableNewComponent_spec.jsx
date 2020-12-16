@@ -26,7 +26,7 @@ import {
   NEW_COMPONENT_SOURCE_TYPE,
   CHART_TYPE,
 } from 'src/dashboard/util/componentTypes';
-import WithDragDropContext from '../../../helpers/WithDragDropContext';
+import WithDragDropContext from 'spec/helpers/WithDragDropContext';
 
 describe('DraggableNewComponent', () => {
   const props = {

@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'src/components/Select';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import { Alert } from 'react-bootstrap';
 import Button from 'src/components/Button';
 
@@ -52,6 +52,10 @@ export const options = [
   [43200, t('12 hours')],
   [86400, t('24 hours')],
 ].map(o => ({ value: o[0], label: o[1] }));
+
+const RefreshWarningContainer = styled.div`
+  margin-top: ${({ theme }) => theme.gridUnit * 6}px;
+`;
 
 class RefreshIntervalModal extends React.PureComponent {
   constructor(props) {
@@ -104,13 +108,13 @@ class RefreshIntervalModal extends React.PureComponent {
               onChange={this.handleFrequencyChange}
             />
             {showRefreshWarning && (
-              <div className="refresh-warning-container">
+              <RefreshWarningContainer>
                 <Alert bsStyle="warning">
                   <div>{refreshWarning}</div>
                   <br />
                   <strong>{t('Are you sure you want to proceed?')}</strong>
                 </Alert>
-              </div>
+              </RefreshWarningContainer>
             )}
           </div>
         }

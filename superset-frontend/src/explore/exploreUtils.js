@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import { useCallback, useEffect } from 'react';
 /* eslint camelcase: 0 */
 import URI from 'urijs';
 import {
@@ -283,4 +285,18 @@ export const exploreChart = formData => {
     allowDomainSharding: false,
   });
   postForm(url, formData);
+};
+
+export const useDebouncedEffect = (effect, delay) => {
+  const callback = useCallback(effect, [effect]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      callback();
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [callback, delay]);
 };

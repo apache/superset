@@ -84,6 +84,7 @@ export const UnsetPill = styled(Pill)`
 
 export interface TitleProps {
   bold?: boolean;
+  color?: string;
 }
 
 export const Title = styled.span<TitleProps>`
@@ -92,6 +93,7 @@ export const Title = styled.span<TitleProps>`
   font-weight: ${({ bold, theme }) => {
     return bold ? theme.typography.weights.bold : 'auto';
   }};
+  color: ${({ color, theme }) => color || theme.colors.grayscale.light5};
 `;
 
 export const ItemIcon = styled.i`
@@ -145,4 +147,5 @@ export const FilterValue = styled.div`
   max-width: 100%;
   flex-grow: 1;
   overflow: auto;
+  color: ${({ theme }) => theme.colors.grayscale.light5};
 `;

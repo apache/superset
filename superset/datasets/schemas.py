@@ -75,6 +75,7 @@ class DatasetPostSchema(Schema):
 
 class DatasetPutSchema(Schema):
     table_name = fields.String(allow_none=True, validate=Length(1, 250))
+    database_id = fields.Integer()
     sql = fields.String(allow_none=True)
     filter_select_enabled = fields.Boolean(allow_none=True)
     fetch_values_predicate = fields.String(allow_none=True, validate=Length(0, 1000))
@@ -122,3 +123,49 @@ class DatasetRelatedDashboards(Schema):
 class DatasetRelatedObjectsResponse(Schema):
     charts = fields.Nested(DatasetRelatedCharts)
     dashboards = fields.Nested(DatasetRelatedDashboards)
+
+
+class ImportV1ColumnSchema(Schema):
+    column_name = fields.String(required=True)
+    verbose_name = fields.String(allow_none=True)
+    is_dttm = fields.Boolean()
+    is_active = fields.Boolean(allow_none=True)
+    type = fields.String(allow_none=True)
+    groupby = fields.Boolean()
+    filterable = fields.Boolean()
+    expression = fields.String(allow_none=True)
+    description = fields.String(allow_none=True)
+    python_date_format = fields.String(allow_none=True)
+
+
+class ImportV1MetricSchema(Schema):
+    metric_name = fields.String(required=True)
+    verbose_name = fields.String(allow_none=True)
+    metric_type = fields.String(allow_none=True)
+    expression = fields.String(required=True)
+    description = fields.String(allow_none=True)
+    d3format = fields.String(allow_none=True)
+    extra = fields.Dict(allow_none=True)
+    warning_text = fields.String(allow_none=True)
+
+
+class ImportV1DatasetSchema(Schema):
+    table_name = fields.String(required=True)
+    main_dttm_col = fields.String(allow_none=True)
+    description = fields.String(allow_none=True)
+    default_endpoint = fields.String(allow_none=True)
+    offset = fields.Integer()
+    cache_timeout = fields.Integer(allow_none=True)
+    schema = fields.String(allow_none=True)
+    sql = fields.String(allow_none=True)
+    params = fields.Dict(allow_none=True)
+    template_params = fields.Dict(allow_none=True)
+    filter_select_enabled = fields.Boolean()
+    fetch_values_predicate = fields.String(allow_none=True)
+    extra = fields.Dict(allow_none=True)
+    uuid = fields.UUID(required=True)
+    columns = fields.List(fields.Nested(ImportV1ColumnSchema))
+    metrics = fields.List(fields.Nested(ImportV1MetricSchema))
+    version = fields.String(required=True)
+    database_uuid = fields.UUID(required=True)
+    data = fields.URL()

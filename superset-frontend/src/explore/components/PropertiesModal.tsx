@@ -32,7 +32,7 @@ import rison from 'rison';
 import { t, SupersetClient } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import FormLabel from 'src/components/FormLabel';
-import getClientErrorObject from '../../utils/getClientErrorObject';
+import { getClientErrorObject } from '../../utils/getClientErrorObject';
 
 type PropertiesModalProps = {
   slice: Slice;

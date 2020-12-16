@@ -45,9 +45,20 @@ import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import FacePile from 'src/components/FacePile';
 import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
+import ImportModelsModal, {
+  StyledIcon,
+} from 'src/components/ImportModal/index';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import AddDatasetModal from './AddDatasetModal';
 
 const PAGE_SIZE = 25;
+const PASSWORDS_NEEDED_MESSAGE = t(
+  'The passwords for the databases below are needed in order to ' +
+    'import them together with the datasets. Please note that the ' +
+    '"Secure Extra" and "Certificate" sections of ' +
+    'the database configuration are not present in export files, and ' +
+    'should be added manually after the import if they are needed.',
+);
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -78,11 +89,15 @@ type Dataset = {
 interface DatasetListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
+  user: {
+    userId: string | number;
+  };
 }
 
 const DatasetList: FunctionComponent<DatasetListProps> = ({
   addDangerToast,
   addSuccessToast,
+  user,
 }) => {
   const {
     state: {
@@ -109,6 +124,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     datasetCurrentlyEditing,
     setDatasetCurrentlyEditing,
   ] = useState<Dataset | null>(null);
+
+  const [importingDataset, showImportModal] = useState<boolean>(false);
+  const [passwordFields, setPasswordFields] = useState<string[]>([]);
+
+  const openDatasetImportModal = () => {
+    showImportModal(true);
+  };
+
+  const closeDatasetImportModal = () => {
+    showImportModal(false);
+  };
+
+  const handleDatasetImport = () => {
+    showImportModal(false);
+    refreshData();
+  };
 
   const canEdit = hasPerm('can_edit');
   const canDelete = hasPerm('can_delete');
@@ -163,7 +194,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             original: { kind },
           },
         }: any) => {
-          if (kind === 'physical')
+          if (kind === 'physical') {
             return (
               <TooltipWrapper
                 label="physical-dataset"
@@ -172,6 +203,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 <Icon name="dataset-physical" />
               </TooltipWrapper>
             );
+          }
 
           return (
             <TooltipWrapper
@@ -366,6 +398,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               errMsg,
             ),
           ),
+          user.userId,
         ),
         paginate: true,
       },
@@ -444,6 +477,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       ),
       onClick: () => setDatasetAddModalOpen(true),
       buttonStyle: 'primary',
+    });
+  }
+
+  if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+    buttonArr.push({
+      name: <Icon name="import" />,
+      buttonStyle: 'link',
+      onClick: openDatasetImportModal,
     });
   }
 
@@ -577,8 +618,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 const { virtualCount, physicalCount } = selected.reduce(
                   (acc, e) => {
                     if (e.original.kind === 'physical') acc.physicalCount += 1;
-                    else if (e.original.kind === 'virtual')
+                    else if (e.original.kind === 'virtual') {
                       acc.virtualCount += 1;
+                    }
                     return acc;
                   },
                   { virtualCount: 0, physicalCount: 0 },
@@ -613,6 +655,23 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           );
         }}
       </ConfirmStatusChange>
+
+      <ImportModelsModal
+        resourceName="dataset"
+        resourceLabel={t('dataset')}
+        icon={<StyledIcon name="table" />}
+        passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
+        confirmOverwriteMessage={t(
+          'One or more datasets to be imported already exist.',
+        )}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onModelImport={handleDatasetImport}
+        show={importingDataset}
+        onHide={closeDatasetImportModal}
+        passwordFields={passwordFields}
+        setPasswordFields={setPasswordFields}
+      />
     </>
   );
 };

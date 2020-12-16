@@ -24,6 +24,9 @@ import { Nav, Navbar } from 'react-bootstrap';
 import Button, { OnClickHandler } from 'src/components/Button';
 
 const StyledHeader = styled.header`
+  .navbar {
+    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  }
   .navbar-header .navbar-brand {
     font-weight: ${({ theme }) => theme.typography.weights.bold};
   }

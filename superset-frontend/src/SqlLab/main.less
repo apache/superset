@@ -239,10 +239,6 @@ div.Workspace {
   .SouthPane {
     height: 100%;
   }
-
-  .scrollbar-container {
-    overflow: auto;
-  }
 }
 
 .SqlEditorTabs li {
@@ -314,8 +310,8 @@ div.Workspace {
   padding: 10px;
 
   .schemaPane {
-    flex: 0 0 300px;
-    max-width: 300px;
+    flex: 0 0 400px;
+    max-width: 400px;
     transition: transform @timing-normal ease-in-out;
   }
 
@@ -371,11 +367,6 @@ div.Workspace {
     border-bottom: 1px solid @gray-bg;
     margin: 15px 0;
   }
-
-  .scrollbar-container {
-    flex: 1 1 auto;
-    overflow: auto;
-  }
 }
 
 .popover {
@@ -418,7 +409,8 @@ div.tablePopover {
   margin-top: 48px;
 }
 
-.ace_editor {
+.ace_editor.ace_editor {
+  //double class is better than !important
   border: 1px solid @gray-light;
   font-feature-settings: @font-feature-settings;
   font-family: @font-family-monospace;
@@ -459,6 +451,24 @@ div.tablePopover {
 
   .ws-el-controls {
     margin-right: -0.3em;
+    display: flex;
+  }
+
+  .header-container {
+    display: flex;
+
+    .table-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 16px;
+    }
+
+    .header-right-side {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+    }
   }
 }
 
@@ -481,19 +491,6 @@ a.Link {
 .QueryTable .well {
   padding: 3px 5px;
   margin: 3px 5px;
-}
-
-.tooltip pre {
-  background: transparent;
-  border: none;
-  text-align: left;
-  color: @lightest;
-  font-size: @font-size-xs;
-}
-
-.tooltip-inner {
-  max-width: 500px;
-  word-wrap: break-word;
 }
 
 .SouthPane {

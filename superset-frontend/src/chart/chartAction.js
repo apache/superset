@@ -38,7 +38,7 @@ import {
 import { addDangerToast } from '../messageToasts/actions';
 import { logEvent } from '../logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
-import getClientErrorObject from '../utils/getClientErrorObject';
+import { getClientErrorObject } from '../utils/getClientErrorObject';
 import { allowCrossDomain as domainShardingEnabled } from '../utils/hostNamesConfig';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
@@ -64,6 +64,11 @@ export function chartUpdateStopped(key) {
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
 export function chartUpdateFailed(queryResponse, key) {
   return { type: CHART_UPDATE_FAILED, queryResponse, key };
+}
+
+export const CHART_UPDATE_QUEUED = 'CHART_UPDATE_QUEUED';
+export function chartUpdateQueued(asyncJobMeta, key) {
+  return { type: CHART_UPDATE_QUEUED, asyncJobMeta, key };
 }
 
 export const CHART_RENDERING_FAILED = 'CHART_RENDERING_FAILED';
@@ -152,9 +157,14 @@ const v1ChartDataRequest = async (
   });
 
   // The dashboard id is added to query params for tracking purposes
-  const qs = requestParams.dashboard_id
-    ? { dashboard_id: requestParams.dashboard_id }
-    : {};
+  const { slice_id: sliceId } = formData;
+  const { dashboard_id: dashboardId } = requestParams;
+
+  const qs = {};
+  if (sliceId !== undefined) qs.form_data = `{"slice_id":${sliceId}}`;
+  if (dashboardId !== undefined) qs.dashboard_id = dashboardId;
+  if (force !== false) qs.force = force;
+
   const allowDomainSharding =
     // eslint-disable-next-line camelcase
     domainShardingEnabled && requestParams?.dashboard_id;
@@ -351,6 +361,12 @@ export function exploreJSON(
 
     const chartDataRequestCaught = chartDataRequest
       .then(response => {
+        if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+          // deal with getChartDataRequest transforming the response data
+          const result = 'result' in response ? response.result[0] : response;
+          return dispatch(chartUpdateQueued(result, key));
+        }
+
         // new API returns an object with an array of restults
         // problem: response holds a list of results, when before we were just getting one result.
         // How to make the entire app compatible with multiple results?
@@ -407,7 +423,10 @@ export function exploreJSON(
         });
       });
 
-    const annotationLayers = formData.annotation_layers || [];
+    // only retrieve annotations when calling the legacy API
+    const annotationLayers = shouldUseLegacyApi(formData)
+      ? formData.annotation_layers || []
+      : [];
     const isDashboardRequest = dashboardId > 0;
 
     return Promise.all([

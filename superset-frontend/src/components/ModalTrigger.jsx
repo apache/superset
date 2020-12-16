@@ -76,6 +76,7 @@ export default class ModalTrigger extends React.Component {
         title={this.props.modalTitle}
         footer={this.props.modalFooter}
         hideFooter={!this.props.modalFooter}
+        width={this.props.width}
         maxWidth={this.props.maxWidth}
         responsive={this.props.responsive}
       >
@@ -102,9 +103,9 @@ export default class ModalTrigger extends React.Component {
     /* eslint-disable jsx-a11y/interactive-supports-focus */
     return (
       <>
-        <div onClick={this.open} role="button">
+        <span onClick={this.open} role="button">
           {this.props.triggerNode}
-        </div>
+        </span>
         {this.renderModal()}
       </>
     );

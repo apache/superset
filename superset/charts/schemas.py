@@ -23,6 +23,7 @@ from marshmallow.validate import Length, Range
 from superset.common.query_context import QueryContext
 from superset.utils import schema as utils
 from superset.utils.core import (
+    AnnotationType,
     FilterOperator,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
@@ -783,9 +784,7 @@ class ChartDataExtrasSchema(Schema):
 class AnnotationLayerSchema(Schema):
     annotationType = fields.String(
         description="Type of annotation layer",
-        validate=validate.OneOf(
-            choices=("EVENT", "FORMULA", "INTERVAL", "TIME_SERIES",)
-        ),
+        validate=validate.OneOf(choices=[ann.value for ann in AnnotationType]),
     )
     color = fields.String(description="Layer color", allow_none=True,)
     descriptionColumns = fields.List(
@@ -1106,6 +1105,18 @@ class ChartDataResponseSchema(Schema):
     )
 
 
+class ChartDataAsyncResponseSchema(Schema):
+    channel_id = fields.String(
+        description="Unique session async channel ID", allow_none=False,
+    )
+    job_id = fields.String(description="Unique async job ID", allow_none=False,)
+    user_id = fields.String(description="Requesting user ID", allow_none=True,)
+    status = fields.String(description="Status value for async job", allow_none=False,)
+    result_url = fields.String(
+        description="Unique result URL for fetching async query data", allow_none=False,
+    )
+
+
 class ChartFavStarResponseResult(Schema):
     id = fields.Integer(description="The Chart id")
     value = fields.Boolean(description="The FaveStar value")
@@ -1118,9 +1129,20 @@ class GetFavStarIdsSchema(Schema):
     )
 
 
+class ImportV1ChartSchema(Schema):
+    slice_name = fields.String(required=True)
+    viz_type = fields.String(required=True)
+    params = fields.Dict()
+    cache_timeout = fields.Integer(allow_none=True)
+    uuid = fields.UUID(required=True)
+    version = fields.String(required=True)
+    dataset_uuid = fields.UUID(required=True)
+
+
 CHART_SCHEMAS = (
     ChartDataQueryContextSchema,
     ChartDataResponseSchema,
+    ChartDataAsyncResponseSchema,
     # TODO: These should optimally be included in the QueryContext schema as an `anyOf`
     #  in ChartDataPostPricessingOperation.options, but since `anyOf` is not
     #  by Marshmallow<3, this is not currently possible.
