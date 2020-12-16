@@ -23,6 +23,7 @@ import { useChangeEffect } from 'src/common/hooks/useChangeEffect';
 import { AsyncSelect } from 'src/components/Select';
 import { useToasts } from 'src/messageToasts/enhancers/withToasts';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { cacheWrapper } from 'src/utils/cacheWrapper';
 import { NativeFiltersForm } from './types';
 
 type ColumnSelectValue = {
@@ -37,6 +38,14 @@ interface ColumnSelectProps {
   value?: ColumnSelectValue | null;
   onChange?: (value: ColumnSelectValue | null) => void;
 }
+
+const localCache = new Map<string, any>();
+
+const cachedSupersetGet = cacheWrapper(
+  SupersetClient.get,
+  localCache,
+  ({ endpoint }) => endpoint || '',
+);
 
 /** Special purpose AsyncSelect that selects a column from a dataset */
 // eslint-disable-next-line import/prefer-default-export
@@ -61,7 +70,7 @@ export function ColumnSelect({
 
   function loadOptions() {
     if (datasetId == null) return [];
-    return SupersetClient.get({
+    return cachedSupersetGet({
       endpoint: `/api/v1/dataset/${datasetId}`,
     }).then(
       ({ json: { result } }) => {

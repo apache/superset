@@ -24,6 +24,7 @@ import {
   ClientErrorObject,
   getClientErrorObject,
 } from 'src/utils/getClientErrorObject';
+import { cacheWrapper } from 'src/utils/cacheWrapper';
 
 export type Value<V> = { value: V; label: string };
 
@@ -50,6 +51,15 @@ export interface SupersetResourceSelectProps<T = unknown, V = string> {
  * If you're doing anything more complex than selecting a standard resource,
  * we'll all be better off if you use AsyncSelect directly instead.
  */
+
+const localCache = new Map<string, any>();
+
+const cachedSupersetGet = cacheWrapper(
+  SupersetClient.get,
+  localCache,
+  ({ endpoint }) => endpoint || '',
+);
+
 export default function SupersetResourceSelect<T, V>({
   value,
   initialId,
@@ -62,7 +72,7 @@ export default function SupersetResourceSelect<T, V>({
 }: SupersetResourceSelectProps<T, V>) {
   useEffect(() => {
     if (initialId == null) return;
-    SupersetClient.get({
+    cachedSupersetGet({
       endpoint: `/api/v1/${resource}/${initialId}`,
     }).then(response => {
       const { result } = response.json;
@@ -77,7 +87,7 @@ export default function SupersetResourceSelect<T, V>({
           filters: [{ col: searchColumn, opr: 'ct', value: input }],
         })
       : rison.encode({ filter: value });
-    return SupersetClient.get({
+    return cachedSupersetGet({
       endpoint: `/api/v1/${resource}/?q=${query}`,
     }).then(
       response => {
