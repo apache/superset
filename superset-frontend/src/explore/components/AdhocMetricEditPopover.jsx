@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
 import Tabs from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
-import Select from 'src/components/Select';
+import { Select } from 'src/common/components/Select';
 import { styled, t } from '@superset-ui/core';
 import { ColumnOption } from '@superset-ui/chart-controls';
 
@@ -70,25 +70,10 @@ export default class AdhocMetricEditPopover extends React.Component {
     this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
     this.refreshAceEditor = this.refreshAceEditor.bind(this);
 
-    this.popoverRef = React.createRef();
-
     this.state = {
       adhocMetric: this.props.adhocMetric,
       width: startingWidth,
       height: startingHeight,
-    };
-
-    this.selectProps = {
-      labelKey: 'label',
-      isMulti: false,
-      autosize: false,
-      clearable: true,
-    };
-
-    this.menuPortalProps = {
-      menuPosition: 'fixed',
-      menuPlacement: 'bottom',
-      menuPortalTarget: this.popoverRef.current,
     };
 
     document.addEventListener('mouseup', this.onMouseUp);
@@ -118,7 +103,8 @@ export default class AdhocMetricEditPopover extends React.Component {
     this.props.onClose();
   }
 
-  onColumnChange(column) {
+  onColumnChange(columnId) {
+    const column = this.props.columns.find(column => column.id === columnId);
     this.setState(prevState => ({
       adhocMetric: prevState.adhocMetric.duplicateWith({
         column,
@@ -213,20 +199,23 @@ export default class AdhocMetricEditPopover extends React.Component {
 
     const columnSelectProps = {
       placeholder: t('%s column(s)', columns.length),
-      options: columns,
       value:
         (adhocMetric.column && adhocMetric.column.column_name) ||
         adhocMetric.inferSqlExpressionColumn(),
       onChange: this.onColumnChange,
-      optionRenderer: this.renderColumnOption,
-      valueKey: 'column_name',
+      allowClear: true,
+      showSearch: true,
+      filterOption: (input, option) =>
+        option.filterBy.toLowerCase().indexOf(input.toLowerCase()) >= 0,
     };
 
     const aggregateSelectProps = {
       placeholder: t('%s aggregates(s)', AGGREGATES_OPTIONS.length),
-      options: AGGREGATES_OPTIONS,
       value: adhocMetric.aggregate || adhocMetric.inferSqlExpressionAggregate(),
       onChange: this.onAggregateChange,
+      allowClear: true,
+      autoFocus: true,
+      showSearch: true,
     };
 
     if (this.props.datasourceType === 'druid') {
@@ -241,7 +230,6 @@ export default class AdhocMetricEditPopover extends React.Component {
       <div
         id="metrics-edit-popover"
         data-test="metrics-edit-popover"
-        ref={this.popoverRef}
         {...popoverProps}
       >
         <Tabs
@@ -261,24 +249,29 @@ export default class AdhocMetricEditPopover extends React.Component {
               <FormLabel>
                 <strong>column</strong>
               </FormLabel>
-              <Select
-                name="select-column"
-                {...this.selectProps}
-                {...this.menuPortalProps}
-                {...columnSelectProps}
-              />
+              <Select name="select-column" {...columnSelectProps}>
+                {columns.map(column => (
+                  <Select.Option
+                    value={column.id}
+                    filterBy={column.verbose_name || column.column_name}
+                    key={column.id}
+                  >
+                    {this.renderColumnOption(column)}
+                  </Select.Option>
+                ))}
+              </Select>
             </FormGroup>
             <FormGroup>
               <FormLabel>
                 <strong>aggregate</strong>
               </FormLabel>
-              <Select
-                name="select-aggregate"
-                {...this.selectProps}
-                {...this.menuPortalProps}
-                {...aggregateSelectProps}
-                autoFocus
-              />
+              <Select name="select-aggregate" {...aggregateSelectProps}>
+                {AGGREGATES_OPTIONS.map(option => (
+                  <Select.Option value={option} key={option}>
+                    {option}
+                  </Select.Option>
+                ))}
+              </Select>
             </FormGroup>
           </Tabs.TabPane>
           <Tabs.TabPane

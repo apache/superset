@@ -24,7 +24,7 @@ from flask_babel import ngettext
 from marshmallow import ValidationError
 
 from superset.charts.filters import ChartFilter
-from superset.constants import RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.filters import DashboardFilter
 from superset.models.reports import ReportSchedule
 from superset.reports.commands.bulk_delete import BulkDeleteReportScheduleCommand
@@ -60,6 +60,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "bulk_delete",  # not using RouteMethod since locally defined
     }
     class_permission_name = "ReportSchedule"
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     resource_name = "report"
     allow_browser_login = True
 

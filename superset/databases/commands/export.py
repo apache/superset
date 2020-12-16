@@ -50,7 +50,7 @@ class ExportDatabasesCommand(ExportModelsCommand):
         )
         # TODO (betodealmeida): move this logic to export_to_dict once this
         # becomes the default export endpoint
-        if "extra" in payload:
+        if payload.get("extra"):
             try:
                 payload["extra"] = json.loads(payload["extra"])
             except json.decoder.JSONDecodeError:

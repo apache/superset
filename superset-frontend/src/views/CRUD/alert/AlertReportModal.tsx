@@ -24,7 +24,7 @@ import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
 import { Switch } from 'src/common/components/Switch';
-import { Select } from 'src/common/components/Select';
+import { GraySelect as Select } from 'src/common/components/Select';
 import { Radio } from 'src/common/components/Radio';
 import { AsyncSelect } from 'src/components/Select';
 import withToasts from 'src/messageToasts/enhancers/withToasts';

@@ -49,7 +49,6 @@ get_related_schema = {
         "filter": {"type": "string"},
     },
 }
-log_context = event_logger.log_context
 
 
 class RelatedResultResponseSchema(Schema):
@@ -310,65 +309,83 @@ class BaseSupersetModelRestApi(ModelRestApi):
         if time_delta:
             self.timing_stats("time", key, time_delta)
 
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.info",
+        object_ref=False,
+        log_to_statsd=False,
+    )
     def info_headless(self, **kwargs: Any) -> Response:
         """
         Add statsd metrics to builtin FAB _info endpoint
         """
-        ref = f"{self.__class__.__name__}.info"
-        with log_context(ref, ref, log_to_statsd=False):
-            duration, response = time_function(super().info_headless, **kwargs)
-            self.send_stats_metrics(response, self.info.__name__, duration)
-            return response
+        duration, response = time_function(super().info_headless, **kwargs)
+        self.send_stats_metrics(response, self.info.__name__, duration)
+        return response
 
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
+        object_ref=False,
+        log_to_statsd=False,
+    )
     def get_headless(self, pk: int, **kwargs: Any) -> Response:
         """
         Add statsd metrics to builtin FAB GET endpoint
         """
-        ref = f"{self.__class__.__name__}.get"
-        with log_context(ref, ref, log_to_statsd=False):
-            duration, response = time_function(super().get_headless, pk, **kwargs)
-            self.send_stats_metrics(response, self.get.__name__, duration)
-            return response
+        duration, response = time_function(super().get_headless, pk, **kwargs)
+        self.send_stats_metrics(response, self.get.__name__, duration)
+        return response
 
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_list",
+        object_ref=False,
+        log_to_statsd=False,
+    )
     def get_list_headless(self, **kwargs: Any) -> Response:
         """
         Add statsd metrics to builtin FAB GET list endpoint
         """
-        ref = f"{self.__class__.__name__}.get_list"
-        with log_context(ref, ref, log_to_statsd=False):
-            duration, response = time_function(super().get_list_headless, **kwargs)
-            self.send_stats_metrics(response, self.get_list.__name__, duration)
-            return response
+        duration, response = time_function(super().get_list_headless, **kwargs)
+        self.send_stats_metrics(response, self.get_list.__name__, duration)
+        return response
 
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
+        object_ref=False,
+        log_to_statsd=False,
+    )
     def post_headless(self) -> Response:
         """
         Add statsd metrics to builtin FAB POST endpoint
         """
-        ref = f"{self.__class__.__name__}.post"
-        with log_context(ref, ref, log_to_statsd=False):
-            duration, response = time_function(super().post_headless)
-            self.send_stats_metrics(response, self.post.__name__, duration)
-            return response
+        duration, response = time_function(super().post_headless)
+        self.send_stats_metrics(response, self.post.__name__, duration)
+        return response
 
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
+        object_ref=False,
+        log_to_statsd=False,
+    )
     def put_headless(self, pk: int) -> Response:
         """
         Add statsd metrics to builtin FAB PUT endpoint
         """
-        ref = f"{self.__class__.__name__}.put"
-        with log_context(ref, ref, log_to_statsd=False):
-            duration, response = time_function(super().put_headless, pk)
-            self.send_stats_metrics(response, self.put.__name__, duration)
-            return response
+        duration, response = time_function(super().put_headless, pk)
+        self.send_stats_metrics(response, self.put.__name__, duration)
+        return response
 
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
+        object_ref=False,
+        log_to_statsd=False,
+    )
     def delete_headless(self, pk: int) -> Response:
         """
         Add statsd metrics to builtin FAB DELETE endpoint
         """
-        ref = f"{self.__class__.__name__}.delete"
-        with log_context(ref, ref, log_to_statsd=False):
-            duration, response = time_function(super().delete_headless, pk)
-            self.send_stats_metrics(response, self.delete.__name__, duration)
-            return response
+        duration, response = time_function(super().delete_headless, pk)
+        self.send_stats_metrics(response, self.delete.__name__, duration)
+        return response
 
     @expose("/related/<column_name>", methods=["GET"])
     @protect()

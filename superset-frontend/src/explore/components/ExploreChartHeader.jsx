@@ -94,7 +94,7 @@ export class ExploreChartHeader extends React.PureComponent {
     this.state = {
       isPropertiesModalOpen: false,
     };
-    this.openProperiesModal = this.openProperiesModal.bind(this);
+    this.openPropertiesModal = this.openPropertiesModal.bind(this);
     this.closePropertiesModal = this.closePropertiesModal.bind(this);
   }
 
@@ -111,7 +111,7 @@ export class ExploreChartHeader extends React.PureComponent {
     );
   }
 
-  openProperiesModal() {
+  openPropertiesModal() {
     this.setState({
       isPropertiesModalOpen: true,
     });
@@ -167,7 +167,7 @@ export class ExploreChartHeader extends React.PureComponent {
                   role="button"
                   tabIndex={0}
                   className="edit-desc-icon"
-                  onClick={this.openProperiesModal}
+                  onClick={this.openPropertiesModal}
                 >
                   <i className="fa fa-edit" />
                 </span>
@@ -202,7 +202,10 @@ export class ExploreChartHeader extends React.PureComponent {
             status={CHART_STATUS_MAP[chartStatus]}
           />
           <ExploreActionButtons
-            actions={this.props.actions}
+            actions={{
+              ...this.props.actions,
+              openPropertiesModal: this.openPropertiesModal,
+            }}
             slice={this.props.slice}
             canDownload={this.props.can_download}
             chartStatus={chartStatus}
