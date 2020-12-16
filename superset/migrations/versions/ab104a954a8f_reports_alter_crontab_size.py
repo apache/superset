@@ -24,27 +24,29 @@ Create Date: 2020-12-15 09:07:24.730545
 
 # revision identifiers, used by Alembic.
 revision = "ab104a954a8f"
-down_revision = "ccb74baaa89b"
+down_revision = "c25cb2c78727"
 
 import sqlalchemy as sa
 from alembic import op
 
 
 def upgrade():
-    op.alter_column(
-        "report_schedule",
-        "crontab",
-        existing_type=sa.VARCHAR(length=50),
-        type_=sa.VARCHAR(length=1000),
-        existing_nullable=False,
-    )
+    with op.batch_alter_table("report_schedule") as batch_op:
+        batch_op.alter_column(
+            "report_schedule",
+            "crontab",
+            existing_type=sa.VARCHAR(length=50),
+            type_=sa.VARCHAR(length=1000),
+            existing_nullable=False,
+        )
 
 
 def downgrade():
-    op.alter_column(
-        "report_schedule",
-        "crontab",
-        existing_type=sa.VARCHAR(length=1000),
-        type_=sa.VARCHAR(length=50),
-        existing_nullable=False,
-    )
+    with op.batch_alter_table("report_schedule") as batch_op:
+        batch_op.alter_column(
+            "report_schedule",
+            "crontab",
+            existing_type=sa.VARCHAR(length=1000),
+            type_=sa.VARCHAR(length=50),
+            existing_nullable=False,
+        )
