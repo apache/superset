@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
-import Select from 'src/components/Select';
+import { Select } from 'src/common/components/Select';
 import { t } from '@superset-ui/core';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
@@ -51,11 +51,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
     this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
 
     this.selectProps = {
-      isMulti: false,
       name: 'select-column',
-      labelKey: 'label',
-      autosize: false,
-      clearable: false,
     };
   }
 
@@ -94,7 +90,6 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
 
     const clauseSelectProps = {
       placeholder: t('choose WHERE or HAVING...'),
-      options: Object.keys(CLAUSES),
       value: adhocFilter.clause,
       onChange: this.onSqlExpressionClauseChange,
     };
@@ -121,7 +116,13 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
             {...this.selectProps}
             {...clauseSelectProps}
             className="filter-edit-clause-dropdown"
-          />
+          >
+            {Object.keys(CLAUSES).map(clause => (
+              <Select.Option value={clause} key={clause}>
+                {clause}
+              </Select.Option>
+            ))}
+          </Select>
           <span className="filter-edit-clause-info">
             <strong>WHERE</strong> {t('filters by columns')}
             <br />
