@@ -30,9 +30,9 @@ jobs:
           - 16379:6379
     steps:
       - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
+        uses: apache-superset/cancel-workflow-runs@953e057
         with:
-          access_token: ${{ github.token }}
+          token: ${{ github.token }}
       - uses: actions/checkout@v2
       - name: Setup Python
         uses: actions/setup-python@v2
