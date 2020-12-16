@@ -43,9 +43,7 @@ import ListView, {
 } from 'src/components/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
-import ImportModelsModal, {
-  StyledIcon,
-} from 'src/components/ImportModal/index';
+import ImportModelsModal from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import ChartCard from './ChartCard';
@@ -57,6 +55,11 @@ const PASSWORDS_NEEDED_MESSAGE = t(
     '"Secure Extra" and "Certificate" sections of ' +
     'the database configuration are not present in export files, and ' +
     'should be added manually after the import if they are needed.',
+);
+const CONFIRM_OVERWRITE_MESSAGE = t(
+  'You are importing one or more charts that already exist. ' +
+    'Overwriting might cause you to lose some of your work. Are you ' +
+    'sure you want to overwrite?',
 );
 
 const createFetchDatasets = (handleError: (err: Response) => void) => async (
@@ -580,11 +583,8 @@ function ChartList(props: ChartListProps) {
       <ImportModelsModal
         resourceName="chart"
         resourceLabel={t('chart')}
-        icon={<StyledIcon name="nav-charts" />}
         passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
-        confirmOverwriteMessage={t(
-          'One or more charts to be imported already exist.',
-        )}
+        confirmOverwriteMessage={CONFIRM_OVERWRITE_MESSAGE}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         onModelImport={handleChartImport}

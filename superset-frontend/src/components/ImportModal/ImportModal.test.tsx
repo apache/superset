@@ -23,7 +23,7 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import { ReactWrapper } from 'enzyme';
 
 import { ImportResourceName } from 'src/views/CRUD/types';
-import ImportModelsModal, { StyledIcon } from 'src/components/ImportModal';
+import ImportModelsModal from 'src/components/ImportModal';
 import Modal from 'src/common/components/Modal';
 
 const mockStore = configureStore([thunk]);
@@ -32,7 +32,6 @@ const store = mockStore({});
 const requiredProps = {
   resourceName: 'database' as ImportResourceName,
   resourceLabel: 'database',
-  icon: <StyledIcon name="database" />,
   passwordsNeededMessage: 'Passwords are needed',
   confirmOverwriteMessage: 'Database exists',
   addDangerToast: () => {},
