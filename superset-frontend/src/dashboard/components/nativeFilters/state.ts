@@ -38,7 +38,7 @@ const defaultFilterConfiguration: Filter[] = [];
 export function useFilterConfiguration() {
   return useSelector<any, FilterConfiguration>(
     state =>
-      state.dashboardInfo.metadata.filter_configuration ||
+      state.dashboardInfo?.metadata?.filter_configuration ||
       defaultFilterConfiguration,
   );
 }
