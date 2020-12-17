@@ -58,77 +58,42 @@ const RunQueryActionButton = ({
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
 
-  const commonBtnProps: ButtonProps = {
-    buttonSize: 'small',
-    buttonStyle: btnStyle,
-    disabled: !dbId,
-  };
-
   if (shouldShowStopBtn) {
     return (
-      <>
-        {/* <Button {...commonBtnProps} cta onClick={stopQuery}>
-        <i className="fa fa-stop" /> {t('Stop')}
-      </Button> */}
       <Dropdown.Button
-          onClick={stopQuery}
-          icon={<Icon color="#00000" name="caret-down" />}
-          type="primary"
-          overlay={overlayCreateAsMenu}
-          disabled={!sql.trim()}
-        >
-          <i className="fa fa-stop" /> {t('Stop')}
-        </Dropdown.Button>
-      </>
-    );
-  }
-  if (allowAsync) {
-    return (
-      <>
-        {/* <Button
-          {...commonBtnProps}
-          cta
-          onClick={() => runQuery(true)}
-          key="run-async-btn"
-          tooltip={t('Run query asynchronously (Ctrl + ↵)')}
-          disabled={!sql.trim()}
-        >
-          <i className="fa fa-bolt" /> {runBtnText}
-        </Button> */}
-        <Dropdown.Button
-          onClick={() => runQuery(true)}
-          icon={<Icon color="#00000" name="caret-down" />}
-          type="primary"
-          overlay={overlayCreateAsMenu}
-          disabled={!sql.trim()}
-        >
-          <i className="fa fa-bolt" /> {runBtnText}
-        </Dropdown.Button>
-      </>
-    );
-  }
-  return (
-    <>
-      {/* <Button
-        {...commonBtnProps}
-        cta
-        onClick={() => runQuery(false)}
-        key="run-btn"
-        tooltip={t('Run query synchronously (Ctrl + ↵)')}
-        disabled={!sql.trim()}
-      >
-        <i className="fa fa-refresh" /> {runBtnText}
-      </Button> */}
-      <Dropdown.Button
-        onClick={() => runQuery(false)}
+        onClick={stopQuery}
         icon={<Icon color="#00000" name="caret-down" />}
         type="primary"
         overlay={overlayCreateAsMenu}
         disabled={!sql.trim()}
       >
-        <i className="fa fa-refresh" /> {runBtnText}
+        <i className="fa fa-stop" /> {t('Stop')}
       </Dropdown.Button>
-    </>
+    );
+  }
+  if (allowAsync) {
+    return (
+      <Dropdown.Button
+        onClick={() => runQuery(true)}
+        icon={<Icon color="#00000" name="caret-down" />}
+        type="primary"
+        overlay={overlayCreateAsMenu}
+        disabled={!sql.trim()}
+      >
+        <i className="fa fa-bolt" /> {runBtnText}
+      </Dropdown.Button>
+    );
+  }
+  return (
+    <Dropdown.Button
+      onClick={() => runQuery(false)}
+      icon={<Icon color="#00000" name="caret-down" />}
+      type="primary"
+      overlay={overlayCreateAsMenu}
+      disabled={!sql.trim()}
+    >
+      <i className="fa fa-refresh" /> {runBtnText}
+    </Dropdown.Button>
   );
 };
 
