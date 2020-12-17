@@ -112,7 +112,7 @@ class RefreshIntervalModal extends React.PureComponent<
             <FormLabel>{t('Refresh frequency')}</FormLabel>
             <Select
               options={options}
-              value={options.find(({ value }) => value === refreshFrequency)}
+              value={{ value: refreshFrequency }}
               onChange={this.handleFrequencyChange}
             />
             {showRefreshWarning && (
