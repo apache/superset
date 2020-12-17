@@ -23,7 +23,6 @@ import chrono from 'chrono-node';
 import { Col, FormControl, FormGroup, Row } from 'react-bootstrap';
 import { t, styled } from '@superset-ui/core';
 
-import Button from 'src/components/Button';
 import ModalTrigger from 'src/components/ModalTrigger';
 import FormLabel from 'src/components/FormLabel';
 import './ScheduleQueryButton.less';
@@ -37,7 +36,6 @@ const validators = {
 
 function getJSONSchema() {
   const jsonSchema = window.featureFlags.SCHEDULED_QUERIES.JSONSCHEMA;
-  console.log('json schema', jsonSchema);
   // parse date-time into usable value (eg, 'today' => `new Date()`)
   Object.entries(jsonSchema.properties).forEach(([key, properties]) => {
     if (properties.default && properties.format === 'date-time') {
