@@ -97,8 +97,8 @@ describe('DatasourceControl', () => {
 
   it('should render health check message', () => {
     const wrapper = setup();
-    const alert = wrapper.find(Icon).first();
-    expect(alert.prop('name')).toBe('alert-solid');
+    const alert = wrapper.find(Icon);
+    expect(alert.at(1).prop('name')).toBe('alert-solid');
     const tooltip = wrapper.find(Tooltip).at(1);
     expect(tooltip.prop('title')).toBe(
       defaultProps.datasource.health_check_message,
