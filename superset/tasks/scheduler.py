@@ -20,6 +20,7 @@ from typing import Iterator
 
 import croniter
 
+from superset import app
 from superset.commands.exceptions import CommandException
 from superset.extensions import celery_app
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
@@ -30,7 +31,8 @@ from superset.utils.celery import session_scope
 logger = logging.getLogger(__name__)
 
 
-def cron_schedule_window(cron: str, window_size: int = 10) -> Iterator[datetime]:
+def cron_schedule_window(cron: str) -> Iterator[datetime]:
+    window_size = app.config["ALERT_REPORTS_CRON_WINDOW_SIZE"]
     utc_now = datetime.utcnow()
     start_at = utc_now - timedelta(seconds=1)
     stop_at = utc_now + timedelta(seconds=window_size)

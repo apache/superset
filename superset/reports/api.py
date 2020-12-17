@@ -26,6 +26,7 @@ from marshmallow import ValidationError
 from superset.charts.filters import ChartFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.filters import DashboardFilter
+from superset.databases.filters import DatabaseFilter
 from superset.models.reports import ReportSchedule
 from superset.reports.commands.bulk_delete import BulkDeleteReportScheduleCommand
 from superset.reports.commands.create import CreateReportScheduleCommand
@@ -47,7 +48,12 @@ from superset.reports.schemas import (
     ReportSchedulePostSchema,
     ReportSchedulePutSchema,
 )
-from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
+from superset.views.base_api import (
+    BaseSupersetModelRestApi,
+    RelatedFieldFilter,
+    statsd_metrics,
+)
+from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -155,12 +161,23 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     ]
     search_columns = ["name", "active", "created_by", "type", "last_state"]
     search_filters = {"name": [ReportScheduleAllTextFilter]}
-    allowed_rel_fields = {"created_by", "chart", "dashboard"}
+    allowed_rel_fields = {"owners", "chart", "dashboard", "database"}
     filter_rel_fields = {
         "chart": [["id", ChartFilter, lambda: []]],
         "dashboard": [["id", DashboardFilter, lambda: []]],
+        "database": [["id", DatabaseFilter, lambda: []]],
     }
-    text_field_rel_fields = {"dashboard": "dashboard_title"}
+    text_field_rel_fields = {
+        "dashboard": "dashboard_title",
+        "chart": "slice_name",
+        "database": "database_name",
+    }
+    related_field_filters = {
+        "dashboard": "dashboard_title",
+        "chart": "slice_name",
+        "database": "database_name",
+        "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
+    }
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
