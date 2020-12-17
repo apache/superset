@@ -81,7 +81,8 @@ type QueryFilterState = {
 
 function mergeCreateFilterValues(list: Filter[], updateObj: QueryFilterState) {
   return list.map(({ id, urlDisplay, operator }) => {
-    const update = updateObj[id];
+    const currentFilterId = urlDisplay || id;
+    const update = updateObj[currentFilterId];
 
     return { id, urlDisplay, operator, value: update };
   });
@@ -129,7 +130,7 @@ export function convertFiltersRison(
 ): FilterValue[] {
   const filters: FilterValue[] = [];
   const refs = {};
-  
+
   Object.keys(filterObj).forEach(id => {
     const filter: FilterValue = {
       id,
@@ -143,8 +144,8 @@ export function convertFiltersRison(
 
   // Add operators from filter list
   list.forEach(value => {
-    const currFilterId = value.urlDisplay || value.id;
-    const filter = refs[currFilterId];
+    const currentFilterId = value.urlDisplay || value.id;
+    const filter = refs[currentFilterId];
 
     if (filter) {
       filter.operator = value.operator;
@@ -296,8 +297,8 @@ export function useListViewState({
         filter.value !== undefined &&
         (typeof filter.value !== 'string' || filter.value.length > 0)
       ) {
-        const queryFilterId = filter.urlDisplay || filter.id;
-        filterObj[queryFilterId] = filter.value;
+        const currentFilterId = filter.urlDisplay || filter.id;
+        filterObj[currentFilterId] = filter.value;
       }
     });
 
