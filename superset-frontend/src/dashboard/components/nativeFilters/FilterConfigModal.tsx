@@ -35,7 +35,7 @@ const StyledModalBody = styled.div`
   display: flex;
   flex-direction: row;
   .filters-list {
-    width: 200px;
+    width: ${({ theme }) => theme.gridUnit * 50}px;
     overflow: auto;
   }
 `;
