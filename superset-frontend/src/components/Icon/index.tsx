@@ -81,6 +81,7 @@ import { ReactComponent as FilterIcon } from 'images/icons/filter.svg';
 import { ReactComponent as FilterSmallIcon } from 'images/icons/filter_small.svg';
 import { ReactComponent as FolderIcon } from 'images/icons/folder.svg';
 import { ReactComponent as FullIcon } from 'images/icons/full.svg';
+import { ReactComponent as FunctionIcon } from 'images/icons/function_x.svg';
 import { ReactComponent as GearIcon } from 'images/icons/gear.svg';
 import { ReactComponent as GridIcon } from 'images/icons/grid.svg';
 import { ReactComponent as ImageIcon } from 'images/icons/image.svg';
@@ -205,6 +206,7 @@ export type IconName =
   | 'filter-small'
   | 'folder'
   | 'full'
+  | 'function'
   | 'gear'
   | 'grid'
   | 'image'
@@ -357,6 +359,7 @@ export const iconsRegistry: Record<
   filter: FilterIcon,
   folder: FolderIcon,
   full: FullIcon,
+  function: FunctionIcon,
   gear: GearIcon,
   grid: GridIcon,
   image: ImageIcon,

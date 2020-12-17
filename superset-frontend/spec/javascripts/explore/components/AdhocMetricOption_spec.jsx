@@ -22,7 +22,6 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
 import Popover from 'src/common/components/Popover';
-import Label from 'src/components/Label';
 import AdhocMetric from 'src/explore/AdhocMetric';
 import AdhocMetricOption from 'src/explore/components/AdhocMetricOption';
 import { AGGREGATES } from 'src/explore/constants';
@@ -54,7 +53,7 @@ describe('AdhocMetricOption', () => {
   it('renders an overlay trigger wrapper for the label', () => {
     const { wrapper } = setup();
     expect(wrapper.find(Popover)).toExist();
-    expect(wrapper.find(Label)).toExist();
+    expect(wrapper.find('OptionControlLabel')).toExist();
   });
 
   it('overlay should open if metric is new', () => {
