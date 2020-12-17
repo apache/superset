@@ -126,10 +126,14 @@ export const OptionControlLabel = ({
       data-test="option-label"
       {...props}
     >
-      <CloseContainer role="button" onClick={onRemove}>
+      <CloseContainer
+        role="button"
+        data-test="remove-control-button"
+        onClick={onRemove}
+      >
         <Icon name="x-small" color={theme.colors.grayscale.light1} />
       </CloseContainer>
-      <Label>
+      <Label data-test="control-label">
         {isFunction && <Icon name="function" viewBox="0 0 16 11" />}
         {label}
       </Label>

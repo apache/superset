@@ -315,7 +315,7 @@ class AdhocFilterControl extends React.Component {
         <HeaderContainer>
           <ControlHeader {...this.props} />
           {this.addNewFilterPopoverTrigger(
-            <AddIconButton>
+            <AddIconButton data-test="add-filter-button">
               <Icon
                 name="plus-large"
                 width={theme.gridUnit * 3}

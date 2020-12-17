@@ -330,7 +330,10 @@ class MetricsControl extends React.PureComponent {
         <HeaderContainer>
           <ControlHeader {...this.props} />
           {this.addNewMetricPopoverTrigger(
-            <AddIconButton disabled={this.isAddNewMetricDisabled()}>
+            <AddIconButton
+              disabled={this.isAddNewMetricDisabled()}
+              data-test="add-metric-button"
+            >
               <Icon
                 name="plus-large"
                 width={theme.gridUnit * 3}
