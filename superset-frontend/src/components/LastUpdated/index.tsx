@@ -17,14 +17,14 @@
  * under the License.
  */
 import React, { useEffect, useState, FunctionComponent } from 'react';
-import moment from 'moment';
+import moment, { Moment, MomentInput } from 'moment';
 import { t, styled } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 
 const REFRESH_INTERVAL = 60000; // every minute
 
 interface LastUpdatedProps {
-  updatedAt: string | Date | number;
+  updatedAt: MomentInput;
   update?: React.MouseEventHandler<SVGSVGElement>;
 }
 moment.updateLocale('en', {
@@ -56,7 +56,7 @@ export const LastUpdated: FunctionComponent<LastUpdatedProps> = ({
   updatedAt,
   update,
 }) => {
-  const [timeSince, setTimeSince] = useState<moment.Moment>(moment(updatedAt));
+  const [timeSince, setTimeSince] = useState<Moment>(moment(updatedAt));
 
   useEffect(() => {
     setTimeSince(() => moment(updatedAt));
