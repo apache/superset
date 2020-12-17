@@ -23,7 +23,7 @@ import {
   Filter,
   FilterConfiguration,
   SelectedValues,
-} from '../components/nativeFilters/types';
+} from 'src/dashboard/components/nativeFilters/types';
 import { dashboardInfoChanged } from './dashboardInfo';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';

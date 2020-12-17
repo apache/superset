@@ -48,7 +48,6 @@ const FiltersList = ({ setEditFilter, setDataset }: FiltersListProps) => {
             setEditFilter({ filter, index: i });
             setDataset(filter.targets[0].datasetId);
           }}
-          role="button"
         >
           {filter.name}
         </Button>

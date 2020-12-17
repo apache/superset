@@ -23,7 +23,7 @@ import {
   DASHBOARD_ROOT_TYPE,
   TABS_TYPE,
   TAB_TYPE,
-} from '../../util/componentTypes';
+} from 'src/dashboard/util/componentTypes';
 import { NativeFiltersState, Scope, TreeItem } from './types';
 
 export const isShowTypeInTree = ({ type, meta }: LayoutItem, charts?: Charts) =>

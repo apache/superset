@@ -292,7 +292,6 @@ class DashboardBuilder extends React.Component {
                 />
               </ErrorBoundary>
             </StickyVerticalBar>
-            // <FilterBar />
           )}
           <div className="grid-container" data-test="grid-container">
             <ParentSize>

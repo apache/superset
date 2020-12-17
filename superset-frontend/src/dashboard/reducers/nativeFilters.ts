@@ -20,12 +20,12 @@ import {
   SET_EXTRA_FORM_DATA,
   AnyFilterAction,
   SET_FILTER_CONFIG_COMPLETE,
-} from '../actions/nativeFilters';
+} from 'src/dashboard/actions/nativeFilters';
 import {
   FilterConfiguration,
   FilterState,
   NativeFiltersState,
-} from '../components/nativeFilters/types';
+} from 'src/dashboard/components/nativeFilters/types';
 
 export function getInitialFilterState(id: string): FilterState {
   return {
