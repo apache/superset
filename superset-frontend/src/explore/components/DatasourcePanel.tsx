@@ -188,7 +188,7 @@ const DataSourcePanel = ({
             key="metrics"
           >
             <div className="field-length">
-              {t(`Showing ${metricSlice.length} of ${metrics.length}`)}
+              {t(`Showing %s of %s`,metricSlice.length, metrics.length)}
             </div>
             {metricSlice.map(m => (
               <div key={m.column_name} className="column">
