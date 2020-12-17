@@ -26,7 +26,7 @@ describe('LastUpdated', () => {
   let wrapper: ReactWrapper;
   const updatedAt = new Date('Sat Dec 12 2020 00:00:00 GMT-0800');
 
-  it('renders the base component (no refres)', () => {
+  it('renders the base component (no refresh)', () => {
     const wrapper = mount(<LastUpdated updatedAt={updatedAt} />);
     expect(/^Last Updated .+$/.test(wrapper.text())).toBe(true);
   });
