@@ -95,10 +95,4 @@ describe('SqlEditor', () => {
     const wrapper = shallow(<SqlEditor {...updatedProps} />);
     expect(wrapper.find(Dropdown)).toExist();
   });
-  it('allows toggling autocomplete', () => {
-    const wrapper = shallow(<SqlEditor {...mockedProps} />);
-    expect(wrapper.find(AceEditorWrapper).props().autocomplete).toBe(true);
-    wrapper.find('[data-test="autocomplete"]').simulate('click');
-    expect(wrapper.find(AceEditorWrapper).props().autocomplete).toBe(false);
-  });
 });

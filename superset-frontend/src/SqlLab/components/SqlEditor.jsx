@@ -30,12 +30,15 @@ import throttle from 'lodash/throttle';
 import { Tooltip } from 'src/common/components/Tooltip';
 import Label from 'src/components/Label';
 import Button from 'src/components/Button';
-import Checkbox from 'src/components/Checkbox';
 import Timer from 'src/components/Timer';
 import Hotkeys from 'src/components/Hotkeys';
-import { Dropdown, Menu as AntdMenu } from 'src/common/components';
+import {
+  Dropdown,
+  Menu as AntdMenu,
+  Menu,
+  Switch,
+} from 'src/common/components';
 import Icon from 'src/components/Icon';
-
 import TemplateParamsEditor from './TemplateParamsEditor';
 import ConnectedSouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
@@ -133,6 +136,8 @@ class SqlEditor extends React.PureComponent {
       this.handleWindowResize.bind(this),
       WINDOW_RESIZE_THROTTLE_MS,
     );
+
+    this.renderDropdown = this.renderDropdown.bind(this);
   }
 
   UNSAFE_componentWillMount() {
@@ -417,6 +422,54 @@ class SqlEditor extends React.PureComponent {
     );
   }
 
+  renderDropdown() {
+    const qe = this.props.queryEditor;
+    const successful =
+      this.props.latestQuery && this.props.latestQuery.state === 'success';
+    const scheduleToolTip = successful
+      ? t('Schedule the query periodically')
+      : t('You must run the query successfully first');
+
+    return (
+      <Menu onClick={this.handleMenuClick}>
+        <Menu.Item>
+          {' '}
+          <span>Autocomplete</span>{' '}
+          <Switch
+            checked={this.state.autocompleteEnabled}
+            onChange={this.handleToggleAutocompleteEnabled}
+            name="autocomplete-switch"
+          />{' '}
+        </Menu.Item>
+        {isFeatureEnabled(FeatureFlag.ENABLE_TEMPLATE_PROCESSING) && (
+          <Menu.Item>
+            <TemplateParamsEditor
+              language="json"
+              onChange={params => {
+                this.props.actions.queryEditorSetTemplateParams(qe, params);
+              }}
+              code={qe.templateParams}
+            />
+          </Menu.Item>
+        )}
+        {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) && (
+          <Menu.Item>
+            <ScheduleQueryButton
+              defaultLabel={qe.title}
+              sql={qe.sql}
+              onSchedule={this.props.actions.scheduleQuery}
+              schema={qe.schema}
+              dbId={qe.dbId}
+              scheduleQueryWarning={this.props.scheduleQueryWarning}
+              tooltip={scheduleToolTip}
+              disabled={!successful}
+            />
+          </Menu.Item>
+        )}
+      </Menu>
+    );
+  }
+
   renderQueryLimit() {
     const menuDropdown = (
       <AntdMenu>
@@ -501,11 +554,6 @@ class SqlEditor extends React.PureComponent {
         </Tooltip>
       );
     }
-    const successful =
-      this.props.latestQuery && this.props.latestQuery.state === 'success';
-    const scheduleToolTip = successful
-      ? t('Schedule the query periodically')
-      : t('You must run the query successfully first');
     return (
       <div className="sql-toolbar" id="js-sql-toolbar">
         <div className="leftItems">
@@ -542,20 +590,6 @@ class SqlEditor extends React.PureComponent {
                   />
                 </span>
               )}
-            {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) && (
-              <span>
-                <ScheduleQueryButton
-                  defaultLabel={qe.title}
-                  sql={qe.sql}
-                  onSchedule={this.props.actions.scheduleQuery}
-                  schema={qe.schema}
-                  dbId={qe.dbId}
-                  scheduleQueryWarning={this.props.scheduleQueryWarning}
-                  tooltip={scheduleToolTip}
-                  disabled={!successful}
-                />
-              </span>
-            )}
             <span>
               <SaveQuery
                 query={qe}
@@ -587,23 +621,6 @@ class SqlEditor extends React.PureComponent {
           </Form>
         </div>
         <div className="rightItems">
-          <Button
-            data-test="autocomplete"
-            buttonSize="small"
-            onClick={this.handleToggleAutocompleteEnabled}
-          >
-            <Checkbox checked={this.state.autocompleteEnabled} />{' '}
-            {t('Autocomplete')}
-          </Button>{' '}
-          {isFeatureEnabled(FeatureFlag.ENABLE_TEMPLATE_PROCESSING) && (
-            <TemplateParamsEditor
-              language="json"
-              onChange={params => {
-                this.props.actions.queryEditorSetTemplateParams(qe, params);
-              }}
-              code={qe.templateParams}
-            />
-          )}
           {limitWarning}
           {this.props.latestQuery && (
             <Timer
@@ -613,6 +630,9 @@ class SqlEditor extends React.PureComponent {
               isRunning={this.props.latestQuery.state === 'running'}
             />
           )}
+          <Dropdown overlay={this.renderDropdown()} arrow>
+            <Icon name="more-horiz" />
+          </Dropdown>
         </div>
       </div>
     );
