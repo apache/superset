@@ -17,14 +17,14 @@
 """security converge queries
 
 Revision ID: e37912a26567
-Revises: 45731db65d9c
+Revises: 42b4c9e01447
 Create Date: 2020-12-16 12:15:28.291777
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "e37912a26567"
-down_revision = "45731db65d9c"
+down_revision = "42b4c9e01447"
 
 from alembic import op
 from sqlalchemy.exc import SQLAlchemyError
