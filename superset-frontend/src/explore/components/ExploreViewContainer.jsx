@@ -141,7 +141,7 @@ class ExploreViewContainer extends React.Component {
     this.onQuery = this.onQuery.bind(this);
     this.toggleModal = this.toggleModal.bind(this);
     this.handleKeydown = this.handleKeydown.bind(this);
-    this.handleCollapse = this.handleCollapse.bind(this);
+    this.toggleCollapse = this.toggleCollapse.bind(this);
   }
 
   componentDidMount() {
@@ -308,7 +308,7 @@ class ExploreViewContainer extends React.Component {
     }
   }
 
-  handleCollapse() {
+  toggleCollapse() {
     this.setState(prevState => ({ collapse: !prevState.collapse }));
   }
 
@@ -394,7 +394,8 @@ class ExploreViewContainer extends React.Component {
               max-height: 100vh;
               overflow: hidden;
             }
-            #app-menu, #app {
+            #app-menu,
+            #app {
               flex: 1 1 auto;
               overflow: hidden;
             }
@@ -421,7 +422,7 @@ class ExploreViewContainer extends React.Component {
               role="button"
               tabIndex={0}
               className="action-button"
-              onClick={this.handleCollapse}
+              onClick={this.toggleCollapse}
             >
               <Icon
                 name="expand"
@@ -440,7 +441,7 @@ class ExploreViewContainer extends React.Component {
         {collapse ? (
           <div
             className="sidebar"
-            onClick={this.handleCollapse}
+            onClick={this.toggleCollapse}
             data-test="open-datasource-tab"
             role="button"
             tabIndex={0}

@@ -24,6 +24,7 @@ import {
   MetricOption,
   ControlType,
 } from '@superset-ui/chart-controls';
+import { ExploreActions } from '../actions/exploreActions';
 import Control from './Control';
 
 interface DatasourceControl {
@@ -42,7 +43,7 @@ interface Props {
   controls: {
     datasource: DatasourceControl;
   };
-  actions: any;
+  actions: Partial<ExploreActions> & Pick<ExploreActions, 'setControlValue'>;
 }
 
 const DatasourceContainer = styled.div`
