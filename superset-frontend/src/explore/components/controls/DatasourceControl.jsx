@@ -83,7 +83,7 @@ const Styles = styled.div`
   .title-select {
     width: ${({ theme }) => theme.gridUnit * 52}px;
     display: inline-block;
-    background-color: #f0f0f0;
+    background-color: ${({ theme }) => theme.colors.grayscale.light3};
     padding: ${({ theme }) => theme.gridUnit * 2}px;
     border-radius: ${({ theme }) => theme.borderRadius}px;
     text-align: center;

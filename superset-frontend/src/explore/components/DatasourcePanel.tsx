@@ -60,6 +60,7 @@ const DatasourceContainer = styled.div`
   }
   .ant-collapse > .ant-collapse-item > .ant-collapse-header {
     padding-left: 10px;
+    padding-bottom: 0px;
   }
   .form-control.input-sm {
     margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
@@ -86,7 +87,7 @@ const DatasourceContainer = styled.div`
     text-align: left;
   }
   .metric-option .option-label {
-    margin-left: -20px;
+    margin-left: ${({ theme }) => theme.gridUnit * -5}px;
   }
   .field-selections {
     position: absolute;
@@ -96,6 +97,12 @@ const DatasourceContainer = styled.div`
     right: 0;
     overflow: auto;
   }
+  .field-length {
+    margin-top: -3px;
+    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+  }
 `;
 
 const DataSourcePanel = ({
@@ -104,27 +111,32 @@ const DataSourcePanel = ({
   actions,
 }: Props) => {
   const { columns, metrics } = datasource;
-  const [lists, setColList] = useState({
+  const [lists, setList] = useState({
     columns,
     metrics,
   });
   const search = ({ target: { value } }: { target: { value: string } }) => {
+    if (value === '') {
+      setList({ columns, metrics });
+      return;
+    }
     const filteredColumns = lists.columns.filter(
       column => column.column_name.indexOf(value) !== -1,
     );
     const filteredMetrics = lists.metrics.filter(
       metric => metric.metric_name.indexOf(value) !== -1,
     );
-    if (value === '') {
-      setColList({ columns, metrics });
-    } else setColList({ columns: filteredColumns, metrics: filteredMetrics });
+    setList({ columns: filteredColumns, metrics: filteredMetrics });
   };
   useEffect(() => {
-    setColList({
+    setList({
       columns,
       metrics,
     });
   }, [datasource]);
+
+  const metricSlice = lists.metrics.slice(0, 50);
+  const columnSlice = lists.columns.slice(0, 50);
 
   return (
     <DatasourceContainer>
@@ -151,7 +163,10 @@ const DataSourcePanel = ({
             header={<span className="header">{t('Columns')}</span>}
             key="column"
           >
-            {lists.columns.slice(0, 50).map(col => (
+            <div className="field-length">
+              {`Showing ${columnSlice.length} of ${columns.length}`}
+            </div>
+            {columnSlice.map(col => (
               <div key={col.column_name} className="column">
                 <ColumnOption column={col} showType />
               </div>
@@ -163,7 +178,10 @@ const DataSourcePanel = ({
             header={<span className="header">{t('Metrics')}</span>}
             key="metrics"
           >
-            {lists.metrics.slice(0, 50).map(m => (
+            <div className="field-length">
+              {`Showing ${metricSlice.length} of ${metrics.length}`}
+            </div>
+            {metricSlice.map(m => (
               <div key={m.column_name} className="column">
                 <MetricOption metric={m} showType />
               </div>
