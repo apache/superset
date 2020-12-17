@@ -17,11 +17,12 @@
  * under the License.
  */
 import React, { useEffect, useReducer } from 'react';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { defineSharedModules } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
+  dummyPluginContext,
   PluginContext,
   PluginContextType,
-  dummyPluginContext,
 } from './PluginContext';
 
 // the plugin returned from the API
@@ -31,73 +32,6 @@ type Plugin = {
   bundle_url: string;
   id: number;
 };
-
-type Module = any;
-
-/**
- * This is where packages are stored. We use window, because it plays well with Webpack.
- * To avoid
- * Have to amend the type of window, because window's usual type doesn't describe these fields.
- */
-interface ModuleReferencer {
-  [packageKey: string]: Promise<Module>;
-}
-
-declare const window: Window & typeof globalThis & ModuleReferencer;
-
-const modulePromises: { [key: string]: Promise<Module> } = {};
-
-/**
- * Dependency management using global variables, because for the life of me
- * I can't figure out how to hook into UMD from a dynamically imported package.
- *
- * This defines a dynamically imported js module that can be used to import from
- * multiple different plugins.
- *
- * When importing a common module (such as react or lodash or superset-ui)
- * from a plugin, the plugin's build config will be able to
- * reference these globals instead of rebuilding them.
- *
- * @param name the module's name (should match name in package.json)
- * @param promise the promise resulting from a call to `import(name)`
- */
-export async function defineSharedModule(
-  name: string,
-  fetchModule: () => Promise<Module>,
-) {
-  // this field on window is used by dynamic plugins to reference the module
-  const moduleKey = `__superset__/${name}`;
-
-  if (!window[moduleKey] && !modulePromises[name]) {
-    // if the module has not been loaded, load it
-    const modulePromise = fetchModule();
-    modulePromises[name] = modulePromise;
-    // wait for the module to load, and attach the result to window
-    window[moduleKey] = await modulePromise;
-  }
-
-  // we always return a reference to the promise.
-  // Multiple consumers can `.then()` or `await` the same promise,
-  // even long after it has completed,
-  // and it will always call back with the same reference.
-  return modulePromises[name];
-}
-
-/**
- * Define multiple shared modules at once, using a map of name -> `import(name)`
- *
- * @see defineSharedModule
- * @param moduleMap
- */
-export async function defineSharedModules(moduleMap: {
-  [key: string]: () => Promise<Module>;
-}) {
-  return Promise.all(
-    Object.entries(moduleMap).map(([name, fetchModule]) => {
-      return defineSharedModule(name, fetchModule);
-    }),
-  );
-}
 
 type CompleteAction = {
   type: 'complete';
