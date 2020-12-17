@@ -91,9 +91,6 @@ const DatasourceContainer = styled.div`
       margin-left: -14px;
     }
   }
-  .type-label {
-    text-align: left;
-  }
   .metric-option .option-label {
     margin-left: ${({ theme }) => theme.gridUnit * -5}px;
   }
@@ -113,6 +110,11 @@ const DatasourceContainer = styled.div`
   }
   .form-control.input-sm {
     margin-bottom: 0;
+  }
+  .type-label {
+    font-weight: ${({ theme }) => theme.typography.weights.light};
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
+    color: ${({ theme }) => theme.colors.grayscale.base};
   }
 `;
 
