@@ -22,7 +22,6 @@ import Badge from 'src/common/components/Badge';
 import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
-import Button from 'src/components/Button';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { ConfigEditor } from 'src/components/AsyncAceEditor';
 
