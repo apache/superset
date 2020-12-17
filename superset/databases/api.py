@@ -38,7 +38,7 @@ from sqlalchemy.exc import (
 from superset import event_logger
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import remove_root
-from superset.constants import RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.commands.create import CreateDatabaseCommand
 from superset.databases.commands.delete import DeleteDatabaseCommand
 from superset.databases.commands.exceptions import (
@@ -92,8 +92,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "test_connection",
         "related_objects",
     }
-    class_permission_name = "DatabaseView"
     resource_name = "database"
+    class_permission_name = "Database"
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     allow_browser_login = True
     base_filters = [["id", DatabaseFilter, lambda: []]]
     show_columns = [
