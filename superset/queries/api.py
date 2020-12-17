@@ -18,7 +18,7 @@ import logging
 
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from superset.constants import RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
 from superset.models.sql_lab import Query
 from superset.queries.filters import QueryFilter
@@ -33,6 +33,10 @@ class QueryRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Query)
 
     resource_name = "query"
+
+    class_permission_name = "Query"
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+
     allow_browser_login = True
     include_route_methods = {
         RouteMethod.GET,
@@ -41,7 +45,6 @@ class QueryRestApi(BaseSupersetModelRestApi):
         RouteMethod.DISTINCT,
     }
 
-    class_permission_name = "QueryView"
     list_columns = [
         "id",
         "changed_on",
