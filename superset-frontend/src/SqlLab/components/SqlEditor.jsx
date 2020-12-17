@@ -621,9 +621,6 @@ class SqlEditor extends React.PureComponent {
           </Form>
         </div>
         <div className="rightItems">
-          <Dropdown overlay={this.renderDropdown()} arrow>
-            <Icon name="more-horiz" />
-          </Dropdown>
           {limitWarning}
           {this.props.latestQuery && (
             <Timer
@@ -633,6 +630,9 @@ class SqlEditor extends React.PureComponent {
               isRunning={this.props.latestQuery.state === 'running'}
             />
           )}
+          <Dropdown overlay={this.renderDropdown()} arrow>
+            <Icon name="more-horiz" />
+          </Dropdown>
         </div>
       </div>
     );
