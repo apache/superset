@@ -426,7 +426,6 @@ class SqlEditor extends React.PureComponent {
             <a role="button" styling="link">
               {limit.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')}
             </a>{' '}
-            <Icon name="more-horiz" />
           </AntdMenu.Item>
         ))}
       </AntdMenu>
