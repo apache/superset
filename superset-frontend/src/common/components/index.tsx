@@ -84,7 +84,7 @@ export const Input = styled(AntdInput)`
   &[type='text'],
   &[type='textarea'] {
     border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
-    border-radius: ${({ theme }) => theme.gridUnit}px;
+    border-radius: ${({ theme }) => theme.borderRadius}px;
   }
 `;
 
