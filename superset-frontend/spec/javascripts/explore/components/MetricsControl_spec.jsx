@@ -23,8 +23,9 @@ import { shallow } from 'enzyme';
 
 import MetricsControl from 'src/explore/components/controls/MetricsControl';
 import { AGGREGATES } from 'src/explore/constants';
-import Select from 'src/components/Select';
 import AdhocMetric, { EXPRESSION_TYPES } from 'src/explore/AdhocMetric';
+import { LabelsContainer } from 'src/explore/components/OptionControls';
+import { supersetTheme } from '@superset-ui/core';
 
 const defaultProps = {
   name: 'metrics',
@@ -47,11 +48,13 @@ function setup(overrides) {
   const onChange = sinon.spy();
   const props = {
     onChange,
+    theme: supersetTheme,
     ...defaultProps,
     ...overrides,
   };
   const wrapper = shallow(<MetricsControl {...props} />);
-  return { wrapper, onChange };
+  const component = wrapper.dive().shallow();
+  return { wrapper, component, onChange };
 }
 
 const valueColumn = { type: 'DOUBLE', column_name: 'value' };
@@ -64,14 +67,14 @@ const sumValueAdhocMetric = new AdhocMetric({
 
 describe('MetricsControl', () => {
   it('renders Select', () => {
-    const { wrapper } = setup();
-    expect(wrapper.find(Select)).toExist();
+    const { component } = setup();
+    expect(component.find(LabelsContainer)).toExist();
   });
 
   describe('constructor', () => {
     it('unifies options for the dropdown select with aggregates', () => {
-      const { wrapper } = setup();
-      expect(wrapper.state('options')).toEqual([
+      const { component } = setup();
+      expect(component.state('options')).toEqual([
         {
           optionName: '_col_source',
           type: 'VARCHAR(255)',
@@ -101,8 +104,8 @@ describe('MetricsControl', () => {
     });
 
     it('does not show aggregates in options if no columns', () => {
-      const { wrapper } = setup({ columns: [] });
-      expect(wrapper.state('options')).toEqual([
+      const { component } = setup({ columns: [] });
+      expect(component.state('options')).toEqual([
         {
           optionName: 'sum__value',
           metric_name: 'sum__value',
@@ -117,7 +120,7 @@ describe('MetricsControl', () => {
     });
 
     it('coerces Adhoc Metrics from form data into instances of the AdhocMetric class and leaves saved metrics', () => {
-      const { wrapper } = setup({
+      const { component } = setup({
         value: [
           {
             expressionType: EXPRESSION_TYPES.SIMPLE,
@@ -130,10 +133,10 @@ describe('MetricsControl', () => {
         ],
       });
 
-      const adhocMetric = wrapper.state('value')[0];
+      const adhocMetric = component.state('value')[0];
       expect(adhocMetric instanceof AdhocMetric).toBe(true);
       expect(adhocMetric.optionName.length).toBeGreaterThan(10);
-      expect(wrapper.state('value')).toEqual([
+      expect(component.state('value')).toEqual([
         {
           expressionType: EXPRESSION_TYPES.SIMPLE,
           column: { type: 'double', column_name: 'value' },
@@ -150,97 +153,23 @@ describe('MetricsControl', () => {
   });
 
   describe('onChange', () => {
-    it('handles saved metrics being selected', () => {
-      const { wrapper, onChange } = setup();
-      const select = wrapper.find(Select);
-      select.simulate('change', [{ metric_name: 'sum__value' }]);
+    it('handles creating a new metric', () => {
+      const { component, onChange } = setup();
+      component.instance().onNewMetric({ metric_name: 'sum__value' });
       expect(onChange.lastCall.args).toEqual([['sum__value']]);
-    });
-
-    it('handles columns being selected', () => {
-      const { wrapper, onChange } = setup();
-      const select = wrapper.find(Select);
-      select.simulate('change', [valueColumn]);
-
-      const adhocMetric = onChange.lastCall.args[0][0];
-      expect(adhocMetric).toBeInstanceOf(AdhocMetric);
-      expect(adhocMetric.isNew).toBe(true);
-      expect(onChange.lastCall.args).toEqual([
-        [
-          {
-            expressionType: EXPRESSION_TYPES.SIMPLE,
-            column: valueColumn,
-            aggregate: AGGREGATES.SUM,
-            label: 'SUM(value)',
-            hasCustomLabel: false,
-            optionName: adhocMetric.optionName,
-            sqlExpression: null,
-            isNew: true,
-          },
-        ],
-      ]);
-    });
-
-    it('handles aggregates being selected', () => {
-      return new Promise(done => {
-        const { wrapper, onChange } = setup();
-        const select = wrapper.find(Select);
-
-        // mock out the Select ref
-        const instance = wrapper.instance();
-        const handleInputChangeSpy = jest.fn();
-        const focusInputSpy = jest.fn();
-        // simulate react-select StateManager
-        instance.selectRef({
-          select: {
-            handleInputChange: handleInputChangeSpy,
-            inputRef: { value: '' },
-            focusInput: focusInputSpy,
-          },
-        });
-
-        select.simulate('change', [
-          { aggregate_name: 'SUM', optionName: 'SUM' },
-        ]);
-
-        expect(instance.select.inputRef.value).toBe('SUM()');
-        expect(handleInputChangeSpy).toHaveBeenCalledWith({
-          currentTarget: { value: 'SUM()' },
-        });
-        expect(onChange.calledOnceWith([])).toBe(true);
-        expect(focusInputSpy).toHaveBeenCalledTimes(0);
-        setTimeout(() => {
-          expect(focusInputSpy).toHaveBeenCalledTimes(1);
-          expect(instance.select.inputRef.selectionStart).toBe(4);
-          expect(instance.select.inputRef.selectionEnd).toBe(4);
-          done();
-        });
-      });
-    });
-
-    it('preserves existing selected AdhocMetrics', () => {
-      const { wrapper, onChange } = setup();
-      const select = wrapper.find(Select);
-      select.simulate('change', [
-        { metric_name: 'sum__value' },
-        sumValueAdhocMetric,
-      ]);
-      expect(onChange.lastCall.args).toEqual([
-        ['sum__value', sumValueAdhocMetric],
-      ]);
     });
   });
 
   describe('onMetricEdit', () => {
     it('accepts an edited metric from an AdhocMetricEditPopover', () => {
-      const { wrapper, onChange } = setup({
+      const { component, onChange } = setup({
         value: [sumValueAdhocMetric],
       });
 
       const editedMetric = sumValueAdhocMetric.duplicateWith({
         aggregate: AGGREGATES.AVG,
       });
-      wrapper.instance().onMetricEdit(editedMetric);
+      component.instance().onMetricEdit(editedMetric);
 
       expect(onChange.lastCall.args).toEqual([[editedMetric]]);
     });
@@ -248,40 +177,28 @@ describe('MetricsControl', () => {
 
   describe('checkIfAggregateInInput', () => {
     it('handles an aggregate in the input', () => {
-      const { wrapper } = setup();
+      const { component } = setup();
 
-      expect(wrapper.state('aggregateInInput')).toBeNull();
-      wrapper.instance().checkIfAggregateInInput('AVG(');
-      expect(wrapper.state('aggregateInInput')).toBe(AGGREGATES.AVG);
+      expect(component.state('aggregateInInput')).toBeNull();
+      component.instance().checkIfAggregateInInput('AVG(');
+      expect(component.state('aggregateInInput')).toBe(AGGREGATES.AVG);
     });
 
     it('handles no aggregate in the input', () => {
-      const { wrapper } = setup();
+      const { component } = setup();
 
-      expect(wrapper.state('aggregateInInput')).toBeNull();
-      wrapper.instance().checkIfAggregateInInput('colu');
-      expect(wrapper.state('aggregateInInput')).toBeNull();
-    });
-
-    it('handles an aggregate in the input when paste event fires', () => {
-      const { wrapper } = setup();
-      expect(wrapper.state('aggregateInInput')).toBeNull();
-
-      const mEvent = {
-        clipboardData: { getData: jest.fn().mockReturnValueOnce('AVG(') },
-      };
-      const select = wrapper.find(Select);
-      select.simulate('paste', mEvent);
-      expect(wrapper.state('aggregateInInput')).toBe(AGGREGATES.AVG);
+      expect(component.state('aggregateInInput')).toBeNull();
+      component.instance().checkIfAggregateInInput('colu');
+      expect(component.state('aggregateInInput')).toBeNull();
     });
   });
 
   describe('option filter', () => {
     it('includes user defined metrics', () => {
-      const { wrapper } = setup({ datasourceType: 'druid' });
+      const { component } = setup({ datasourceType: 'druid' });
 
       expect(
-        !!wrapper.instance().selectFilterOption(
+        !!component.instance().selectFilterOption(
           {
             data: {
               metric_name: 'a_metric',
@@ -295,10 +212,10 @@ describe('MetricsControl', () => {
     });
 
     it('includes auto generated avg metrics for druid', () => {
-      const { wrapper } = setup({ datasourceType: 'druid' });
+      const { component } = setup({ datasourceType: 'druid' });
 
       expect(
-        !!wrapper.instance().selectFilterOption(
+        !!component.instance().selectFilterOption(
           {
             data: {
               metric_name: 'avg__metric',
@@ -312,10 +229,10 @@ describe('MetricsControl', () => {
     });
 
     it('includes columns and aggregates', () => {
-      const { wrapper } = setup();
+      const { component } = setup();
 
       expect(
-        !!wrapper.instance().selectFilterOption(
+        !!component.instance().selectFilterOption(
           {
             data: {
               type: 'VARCHAR(255)',
@@ -328,7 +245,7 @@ describe('MetricsControl', () => {
       ).toBe(true);
 
       expect(
-        !!wrapper
+        !!component
           .instance()
           .selectFilterOption(
             { data: { aggregate_name: 'AVG', optionName: '_aggregate_AVG' } },
@@ -338,10 +255,10 @@ describe('MetricsControl', () => {
     });
 
     it('includes columns based on verbose_name', () => {
-      const { wrapper } = setup();
+      const { component } = setup();
 
       expect(
-        !!wrapper.instance().selectFilterOption(
+        !!component.instance().selectFilterOption(
           {
             data: {
               metric_name: 'sum__num',
@@ -355,10 +272,10 @@ describe('MetricsControl', () => {
     });
 
     it('excludes auto generated avg metrics for sqla', () => {
-      const { wrapper } = setup();
+      const { component } = setup();
 
       expect(
-        !!wrapper.instance().selectFilterOption(
+        !!component.instance().selectFilterOption(
           {
             data: {
               metric_name: 'avg__metric',
@@ -372,10 +289,10 @@ describe('MetricsControl', () => {
     });
 
     it('includes custom made simple saved metrics', () => {
-      const { wrapper } = setup();
+      const { component } = setup();
 
       expect(
-        !!wrapper.instance().selectFilterOption(
+        !!component.instance().selectFilterOption(
           {
             data: {
               metric_name: 'my_fancy_sum_metric',
@@ -389,10 +306,10 @@ describe('MetricsControl', () => {
     });
 
     it('excludes auto generated metrics', () => {
-      const { wrapper } = setup();
+      const { component } = setup();
 
       expect(
-        !!wrapper.instance().selectFilterOption(
+        !!component.instance().selectFilterOption(
           {
             data: {
               metric_name: 'sum__value',
@@ -405,7 +322,7 @@ describe('MetricsControl', () => {
       ).toBe(false);
 
       expect(
-        !!wrapper.instance().selectFilterOption(
+        !!component.instance().selectFilterOption(
           {
             data: {
               metric_name: 'sum__value',
@@ -419,11 +336,11 @@ describe('MetricsControl', () => {
     });
 
     it('filters out metrics if the input begins with an aggregate', () => {
-      const { wrapper } = setup();
-      wrapper.setState({ aggregateInInput: true });
+      const { component } = setup();
+      component.setState({ aggregateInInput: true });
 
       expect(
-        !!wrapper.instance().selectFilterOption(
+        !!component.instance().selectFilterOption(
           {
             data: { metric_name: 'metric', expression: 'SUM(FANCY(metric))' },
           },
@@ -433,11 +350,11 @@ describe('MetricsControl', () => {
     });
 
     it('includes columns if the input begins with an aggregate', () => {
-      const { wrapper } = setup();
-      wrapper.setState({ aggregateInInput: true });
+      const { component } = setup();
+      component.setState({ aggregateInInput: true });
 
       expect(
-        !!wrapper
+        !!component
           .instance()
           .selectFilterOption(
             { data: { type: 'DOUBLE', column_name: 'value' } },
@@ -447,7 +364,7 @@ describe('MetricsControl', () => {
     });
 
     it('Removes metrics if savedMetrics changes', () => {
-      const { props, wrapper, onChange } = setup({
+      const { props, component, onChange } = setup({
         value: [
           {
             expressionType: EXPRESSION_TYPES.SIMPLE,
@@ -458,14 +375,14 @@ describe('MetricsControl', () => {
           },
         ],
       });
-      expect(wrapper.state('value')).toHaveLength(1);
+      expect(component.state('value')).toHaveLength(1);
 
-      wrapper.setProps({ ...props, columns: [] });
+      component.setProps({ ...props, columns: [] });
       expect(onChange.lastCall.args).toEqual([[]]);
     });
 
     it('Does not remove custom sql metric if savedMetrics changes', () => {
-      const { props, wrapper, onChange } = setup({
+      const { props, component, onChange } = setup({
         value: [
           {
             expressionType: EXPRESSION_TYPES.SQL,
@@ -475,17 +392,17 @@ describe('MetricsControl', () => {
           },
         ],
       });
-      expect(wrapper.state('value')).toHaveLength(1);
+      expect(component.state('value')).toHaveLength(1);
 
-      wrapper.setProps({ ...props, columns: [] });
+      component.setProps({ ...props, columns: [] });
       expect(onChange.calledOnce).toEqual(false);
     });
     it('Does not fail if no columns or savedMetrics are passed', () => {
-      const { wrapper } = setup({
+      const { component } = setup({
         savedMetrics: null,
         columns: null,
       });
-      expect(wrapper.exists('.metrics-select')).toEqual(true);
+      expect(component.exists('.metrics-select')).toEqual(true);
     });
   });
 });
