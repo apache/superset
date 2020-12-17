@@ -921,7 +921,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         elif new_dashboard_name:
             # Creating and adding to a new dashboard
             # check create dashboard permissions
-            dash_add_perm = security_manager.can_access("can_add", "DashboardModelView")
+            dash_add_perm = security_manager.can_access("can_write", "Dashboard")
             if not dash_add_perm:
                 return json_error_response(
                     _("You don't have the rights to ")

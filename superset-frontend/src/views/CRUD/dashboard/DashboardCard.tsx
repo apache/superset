@@ -61,9 +61,9 @@ function DashboardCard({
   favoriteStatus,
   saveFavoriteStatus,
 }: DashboardCardProps) {
-  const canEdit = hasPerm('can_edit');
-  const canDelete = hasPerm('can_delete');
-  const canExport = hasPerm('can_mulexport');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
+  const canExport = hasPerm('can_read');
 
   const menu = (
     <Menu>
