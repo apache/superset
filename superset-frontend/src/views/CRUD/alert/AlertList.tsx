@@ -19,18 +19,25 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
-import { t } from '@superset-ui/core';
+import { t, SupersetClient, makeApi, styled } from '@superset-ui/core';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import Button from 'src/components/Button';
 import FacePile from 'src/components/FacePile';
 import { IconName } from 'src/components/Icon';
 import { Tooltip } from 'src/common/components/Tooltip';
-import ListView, { FilterOperators, Filters } from 'src/components/ListView';
+import ListView, {
+  FilterOperators,
+  Filters,
+  ListViewProps,
+} from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import { Switch } from 'src/common/components/Switch';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import RecipientIcon from 'src/views/CRUD/alert/components/RecipientIcon';
+import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import DeleteModal from 'src/components/DeleteModal';
+import LastUpdated from 'src/components/LastUpdated';
 
 import {
   useListViewResource,
@@ -50,13 +57,27 @@ interface AlertListProps {
     userId: string | number;
   };
 }
+const deleteAlerts = makeApi<number[], { message: string }>({
+  requestType: 'rison',
+  method: 'DELETE',
+  endpoint: '/api/v1/report/',
+});
+
+const RefreshContainer = styled.div`
+  width: 100%;
+  padding: 0 ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 3}px;
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+`;
 
 function AlertList({
   addDangerToast,
   isReportEnabled = false,
   user,
+  addSuccessToast,
 }: AlertListProps) {
   const title = isReportEnabled ? t('report') : t('alert');
+  const titlePlural = isReportEnabled ? t('reports') : t('alerts');
   const pathName = isReportEnabled ? 'Reports' : 'Alerts';
   const initalFilters = useMemo(
     () => [
@@ -69,10 +90,17 @@ function AlertList({
     [isReportEnabled],
   );
   const {
-    state: { loading, resourceCount: alertsCount, resourceCollection: alerts },
+    state: {
+      loading,
+      resourceCount: alertsCount,
+      resourceCollection: alerts,
+      bulkSelectEnabled,
+      lastFetched,
+    },
     hasPerm,
     fetchData,
     refreshData,
+    toggleBulkSelect,
   } = useListViewResource<AlertObject>(
     'report',
     t('reports'),
@@ -82,14 +110,20 @@ function AlertList({
     initalFilters,
   );
 
-  const { updateResource } = useSingleViewResource<AlertObject>(
+  const { updateResource } = useSingleViewResource<Partial<AlertObject>>(
     'report',
     t('reports'),
     addDangerToast,
   );
 
   const [alertModalOpen, setAlertModalOpen] = useState<boolean>(false);
-  const [currentAlert, setCurrentAlert] = useState<AlertObject | null>(null);
+  const [currentAlert, setCurrentAlert] = useState<Partial<AlertObject> | null>(
+    null,
+  );
+  const [
+    currentAlertDeleting,
+    setCurrentAlertDeleting,
+  ] = useState<AlertObject | null>(null);
 
   // Actions
   function handleAlertEdit(alert: AlertObject | null) {
@@ -100,6 +134,41 @@ function AlertList({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canCreate = hasPerm('can_write');
+
+  const handleAlertDelete = ({ id, name }: AlertObject) => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/report/${id}`,
+    }).then(
+      () => {
+        refreshData();
+        setCurrentAlertDeleting(null);
+        addSuccessToast(t('Deleted: %s', name));
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(t('There was an issue deleting %s: %s', name, errMsg)),
+      ),
+    );
+  };
+
+  const handleBulkAlertDelete = async (alertsToDelete: AlertObject[]) => {
+    try {
+      const { message } = await deleteAlerts(
+        alertsToDelete.map(({ id }) => id),
+      );
+      refreshData();
+      addSuccessToast(message);
+    } catch (e) {
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t(
+            'There was an issue deleting the selected %s: %s',
+            titlePlural,
+            errMsg,
+          ),
+        ),
+      )(e);
+    }
+  };
 
   const initialSort = [{ id: 'name', desc: true }];
 
@@ -156,7 +225,7 @@ function AlertList({
           },
         }: any) => (
           <Tooltip title={crontab_humanized} placement="topLeft">
-            <span>{crontab_humanized}</span>,
+            <span>{crontab_humanized}</span>
           </Tooltip>
         ),
       },
@@ -195,7 +264,7 @@ function AlertList({
         Cell: ({ row: { original } }: any) => {
           const history = useHistory();
           const handleEdit = () => handleAlertEdit(original);
-          const handleDelete = () => {}; // setAlertCurrentlyDeleting(original);
+          const handleDelete = () => setCurrentAlertDeleting(original);
           const handleGotoExecutionLog = () =>
             history.push(`/${original.type.toLowerCase()}/${original.id}/log`);
 
@@ -227,7 +296,7 @@ function AlertList({
                   onClick: handleDelete,
                 }
               : null,
-          ].filter(item => !!item);
+          ].filter(item => item !== null);
 
           return <ActionsBar actions={actions as ActionProps[]} />;
         },
@@ -256,6 +325,14 @@ function AlertList({
       },
     });
   }
+  if (canDelete) {
+    subMenuButtons.push({
+      name: t('Bulk Select'),
+      onClick: toggleBulkSelect,
+      buttonStyle: 'secondary',
+      'data-test': 'bulk-select-toggle',
+    });
+  }
 
   const EmptyStateButton = (
     <Button buttonStyle="primary" onClick={() => handleAlertEdit(null)}>
@@ -264,7 +341,7 @@ function AlertList({
   );
 
   const emptyState = {
-    message: t('No %s yet', title),
+    message: t('No %s yet', titlePlural),
     slot: canCreate ? EmptyStateButton : null,
   };
 
@@ -330,7 +407,11 @@ function AlertList({
           },
         ]}
         buttons={subMenuButtons}
-      />
+      >
+        <RefreshContainer>
+          <LastUpdated updatedAt={lastFetched} update={() => refreshData()} />
+        </RefreshContainer>
+      </SubMenu>
       <AlertReportModal
         alert={currentAlert}
         addDangerToast={addDangerToast}
@@ -342,18 +423,60 @@ function AlertList({
         show={alertModalOpen}
         isReport={isReportEnabled}
       />
-      <ListView<AlertObject>
-        className="alerts-list-view"
-        columns={columns}
-        count={alertsCount}
-        data={alerts}
-        emptyState={emptyState}
-        fetchData={fetchData}
-        filters={filters}
-        initialSort={initialSort}
-        loading={loading}
-        pageSize={PAGE_SIZE}
-      />
+      {currentAlertDeleting && (
+        <DeleteModal
+          description={t(
+            'This action will permanently delete %s.',
+            currentAlertDeleting.name,
+          )}
+          onConfirm={() => {
+            if (currentAlertDeleting) {
+              handleAlertDelete(currentAlertDeleting);
+            }
+          }}
+          onHide={() => setCurrentAlertDeleting(null)}
+          open
+          title={t('Delete %s?', title)}
+        />
+      )}
+      <ConfirmStatusChange
+        title={t('Please confirm')}
+        description={t(
+          'Are you sure you want to delete the selected %s?',
+          titlePlural,
+        )}
+        onConfirm={handleBulkAlertDelete}
+      >
+        {confirmDelete => {
+          const bulkActions: ListViewProps['bulkActions'] = canDelete
+            ? [
+                {
+                  key: 'delete',
+                  name: t('Delete'),
+                  onSelect: confirmDelete,
+                  type: 'danger',
+                },
+              ]
+            : [];
+          return (
+            <ListView<AlertObject>
+              className="alerts-list-view"
+              columns={columns}
+              count={alertsCount}
+              data={alerts}
+              emptyState={emptyState}
+              fetchData={fetchData}
+              filters={filters}
+              initialSort={initialSort}
+              loading={loading}
+              bulkActions={bulkActions}
+              bulkSelectEnabled={bulkSelectEnabled}
+              disableBulkSelect={toggleBulkSelect}
+              pageSize={PAGE_SIZE}
+            />
+          );
+        }}
+      </ConfirmStatusChange>
     </>
   );
 }

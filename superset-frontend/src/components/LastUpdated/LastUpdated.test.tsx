@@ -16,24 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import React from 'react';
-import { mount } from 'enzyme';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { ReactWrapper } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
+import LastUpdated from '.';
 
-import CodeModal from 'src/dashboard/components/CodeModal';
+describe('LastUpdated', () => {
+  let wrapper: ReactWrapper;
+  const updatedAt = new Date('Sat Dec 12 2020 00:00:00 GMT-0800');
 
-describe('CodeModal', () => {
-  const mockedProps = {
-    triggerNode: <i className="fa fa-edit" />,
-  };
-  it('is valid', () => {
-    expect(React.isValidElement(<CodeModal {...mockedProps} />)).toBe(true);
+  it('renders the base component (no refresh)', () => {
+    const wrapper = mount(<LastUpdated updatedAt={updatedAt} />);
+    expect(/^Last Updated .+$/.test(wrapper.text())).toBe(true);
   });
-  it('renders the trigger node', () => {
-    const wrapper = mount(<CodeModal {...mockedProps} />, {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: { theme: supersetTheme },
-    });
-    expect(wrapper.find('.fa-edit')).toExist();
+
+  it('renders a refresh action', () => {
+    const mockAction = jest.fn();
+    wrapper = mount(<LastUpdated updatedAt={updatedAt} update={mockAction} />);
+    const props = wrapper.find('[data-test="refresh"]').props();
+    if (props.onClick) {
+      props.onClick({} as React.MouseEvent);
+    }
+    expect(mockAction).toHaveBeenCalled();
   });
 });
