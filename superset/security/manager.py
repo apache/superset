@@ -133,7 +133,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Refresh Druid Metadata",
         "ResetPasswordView",
         "RoleModelView",
-        "LogModelView",
+        "Log",
         "Security",
         "Row Level Security",
         "Row Level Security Filters",
