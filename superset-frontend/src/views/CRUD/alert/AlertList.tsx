@@ -65,8 +65,8 @@ const deleteAlerts = makeApi<number[], { message: string }>({
 
 const RefreshContainer = styled.div`
   width: 100%;
-  padding: ${({ theme }) => theme.gridUnit * 2}px
-    ${({ theme }) => theme.gridUnit * 4}px;
+  padding: 0 ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 3}px;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
 `;
 
