@@ -18,6 +18,7 @@
 import json
 import os
 import textwrap
+from typing import List
 
 import pandas as pd
 from sqlalchemy import DateTime, String
@@ -29,6 +30,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import core as utils
 
+from ..connectors.base.models import BaseDatasource
 from .helpers import (
     config,
     EXAMPLES_FOLDER,
@@ -105,6 +107,32 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     db.session.commit()
     tbl.fetch_metadata()
 
+    slices = create_slices(tbl)
+    misc_dash_slices.add(slices[-1].slice_name)
+    for slc in slices:
+        merge_slice(slc)
+
+    print("Creating a World's Health Bank dashboard")
+    dash_name = "World Bank's Data"
+    slug = "world_health"
+    dash = db.session.query(Dashboard).filter_by(slug=slug).first()
+
+    if not dash:
+        dash = Dashboard()
+    dash.published = True
+    pos = json.loads(dashboard_positions)
+    update_slice_ids(pos, slices)
+
+    dash.dashboard_title = dash_name
+    dash.position_json = json.dumps(pos, indent=4)
+    dash.slug = slug
+
+    dash.slices = slices[:-1]
+    db.session.merge(dash)
+    db.session.commit()
+
+
+def create_slices(tbl: BaseDatasource) -> List[Slice]:
     metric = "sum__SP_POP_TOTL"
     metrics = ["sum__SP_POP_TOTL"]
     secondary_metric = {
@@ -118,7 +146,6 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
         "hasCustomLabel": True,
         "label": "Rural Population",
     }
-
     defaults = {
         "compare_lag": "10",
         "compare_suffix": "o10Y",
@@ -136,8 +163,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
         "show_bubbles": True,
     }
 
-    print("Creating slices")
-    slices = [
+    return [
         Slice(
             slice_name="Region Filter",
             viz_type="filter_box",
@@ -340,20 +366,10 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
             ),
         ),
     ]
-    misc_dash_slices.add(slices[-1].slice_name)
-    for slc in slices:
-        merge_slice(slc)
 
-    print("Creating a World's Health Bank dashboard")
-    dash_name = "World Bank's Data"
-    slug = "world_health"
-    dash = db.session.query(Dashboard).filter_by(slug=slug).first()
 
-    if not dash:
-        dash = Dashboard()
-    dash.published = True
-    js = textwrap.dedent(
-        """\
+dashboard_positions = textwrap.dedent(
+    """\
 {
     "CHART-36bfc934": {
         "children": [],
@@ -570,14 +586,4 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     "DASHBOARD_VERSION_KEY": "v2"
 }
     """
-    )
-    pos = json.loads(js)
-    update_slice_ids(pos, slices)
-
-    dash.dashboard_title = dash_name
-    dash.position_json = json.dumps(pos, indent=4)
-    dash.slug = slug
-
-    dash.slices = slices[:-1]
-    db.session.merge(dash)
-    db.session.commit()
+)

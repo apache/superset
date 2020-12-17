@@ -42,7 +42,6 @@ def setup_sample_data() -> Any:
         from superset import examples
 
         examples.load_css_templates()
-        examples.load_world_bank_health_n_pop(sample=True)
 
     yield
 
