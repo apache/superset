@@ -340,7 +340,6 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
     "SIP_34_ALERTS_UI": False,
- more work on making it work, + feature flag
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.

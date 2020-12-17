@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useEffect, useReducer } from 'react';
-import { SupersetClient, JsonObject } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
   PluginContext,
@@ -126,7 +125,6 @@ export default function DynamicPluginProvider({ children }: Props) {
         lodash: import('lodash'),
         'react-dom': import('react-dom'),
         '@superset-ui/chart-controls': import('@superset-ui/chart-controls'),
-        '@superset-ui/color': import('@superset-ui/color'),
         '@superset-ui/core': import('@superset-ui/core'),
       });
       const response = await SupersetClient.get({
