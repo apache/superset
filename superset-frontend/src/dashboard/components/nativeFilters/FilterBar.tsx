@@ -397,7 +397,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>
       <CollapsedBar
         className={cx({ open: !filtersOpen })}
-        onClick={toggleFiltersBar}
+        onClick={() => toggleFiltersBar(true)}
       >
         <Icon name="filter" />
         <Icon name="collapse" />
@@ -414,7 +414,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
               <Icon name="edit" data-test="create-filter" />
             </FilterConfigurationLink>
           )}
-          <Icon name="expand" onClick={toggleFiltersBar} />
+          <Icon name="expand" onClick={() => toggleFiltersBar(false)} />
         </TitleArea>
         <ActionButtons>
           <Button buttonStyle="secondary" buttonSize="sm">
