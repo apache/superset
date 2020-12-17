@@ -429,6 +429,8 @@ class SqlEditor extends React.PureComponent {
     const scheduleToolTip = successful
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
+
+    console.log(isFeatureEnabled(FeatureFlag.ENABLE_TEMPLATE_PROCESSING));
     const menu = (
       <Menu onClick={this.handleMenuClick}>
         <Menu.Item>
