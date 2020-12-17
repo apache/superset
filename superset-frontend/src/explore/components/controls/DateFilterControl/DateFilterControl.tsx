@@ -658,9 +658,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
               <Row>
                 <DatePicker
                   showTime
-                  // @ts-ignore
                   value={dttmToMoment(sinceDatetime)}
-                  // @ts-ignore
                   onChange={(datetime: Moment) =>
                     onCustomRangeChange(
                       'sinceDatetime',
@@ -714,9 +712,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
               <Row>
                 <DatePicker
                   showTime
-                  // @ts-ignore
                   value={dttmToMoment(untilDatetime)}
-                  // @ts-ignore
                   onChange={(datetime: Moment) =>
                     onCustomRangeChange(
                       'untilDatetime',
@@ -777,9 +773,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
                 <Col>
                   <DatePicker
                     showTime
-                    // @ts-ignore
                     value={dttmToMoment(anchorValue)}
-                    // @ts-ignore
                     onChange={(datetime: Moment) =>
                       onCustomRangeChange(
                         'anchorValue',
@@ -802,12 +796,13 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
       <ControlHeader {...props} />
       <Label
         className="pointer"
-        data-test="popover-trigger"
+        data-test="time-range-trigger"
         onClick={() => setShow(true)}
       >
         {actualTimeRange}
       </Label>
       <Modal
+        name="time-range" // data-test=time-range-modal
         title={
           <IconWrapper>
             <Icon name="edit-alt" />
@@ -817,7 +812,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
         show={show}
         onHide={onHide}
         footer={[
-          <Button buttonStyle="secondary" cta key="cancel" onClick={onHide}>
+          <Button buttonStyle="secondary" cta key="cancel" onClick={onHide} data-test="modal-cancel-button">
             {t('CANCEL')}
           </Button>,
           <Button
