@@ -28,8 +28,6 @@ export type PluginContextType = {
     };
   };
   fetchAll: () => void;
-  // TODO: implement this
-  // fetchByKeys: (keys: string[]) => void;
 };
 
 export const dummyPluginContext: PluginContextType = {
