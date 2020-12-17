@@ -69,6 +69,8 @@ const defaultProps = {
 };
 
 class Dashboard extends React.PureComponent {
+  static contextType = PluginContext;
+
   static onBeforeUnload(hasChanged) {
     if (hasChanged) {
       window.addEventListener('beforeunload', Dashboard.unload);
@@ -183,8 +185,6 @@ class Dashboard extends React.PureComponent {
   getAllCharts() {
     return Object.values(this.props.charts);
   }
-
-  static contextType = PluginContext;
 
   applyFilters() {
     const { appliedFilters } = this;
