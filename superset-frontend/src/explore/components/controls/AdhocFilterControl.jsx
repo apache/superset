@@ -132,6 +132,7 @@ class AdhocFilterControl extends React.Component {
                     datasource={this.props.datasource}
                     partitionColumn={partitionColumn}
                     onRemoveFilter={() => this.onRemoveFilter(index)}
+                    key={index}
                   />
                 );
               }

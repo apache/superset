@@ -20,16 +20,16 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
+import { supersetTheme } from '@superset-ui/core';
 
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
 } from 'src/explore/AdhocFilter';
 import AdhocFilterControl from 'src/explore/components/controls/AdhocFilterControl';
+import { LabelsContainer } from 'src/explore/components/OptionControls';
 import AdhocMetric from 'src/explore/AdhocMetric';
 import { AGGREGATES, OPERATORS } from 'src/explore/constants';
-import { supersetTheme } from '@superset-ui/core';
-import { LabelsContainer } from '../../../../src/explore/components/OptionControls';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
