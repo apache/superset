@@ -85,7 +85,7 @@ const Styles = styled.div`
     display: inline-block;
     background-color: #f0f0f0;
     padding: ${({ theme }) => theme.gridUnit * 2}px;
-    border-radius: 3px;
+    border-radius: ${({ theme }) => theme.borderRadius}px;
     text-align: center;
     text-overflow: ellipsis;
     white-space: nowrap;
