@@ -76,6 +76,10 @@ const StyledHeader = styled.header`
       }
     }
   }
+
+  .btn-link {
+    padding: 10px 0;
+  }
 `;
 
 type MenuChild = {

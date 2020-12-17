@@ -17,4 +17,3 @@
 -r base.in
 gevent
 psycopg2-binary
-redis

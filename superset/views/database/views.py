@@ -30,7 +30,7 @@ from wtforms.validators import ValidationError
 import superset.models.core as models
 from superset import app, db, is_feature_enabled
 from superset.connectors.sqla.models import SqlaTable
-from superset.constants import RouteMethod
+from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import CertificateException
 from superset.sql_parse import Table
 from superset.typing import FlaskResponse
@@ -81,6 +81,10 @@ class DatabaseView(
     DatabaseMixin, SupersetModelView, DeleteMixin, YamlExportMixin
 ):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.Database)
+
+    class_permission_name = "Database"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
+
     include_route_methods = RouteMethod.CRUD_SET
 
     add_template = "superset/models/database/add.html"

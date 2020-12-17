@@ -50,7 +50,9 @@ from .fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 
 NEW_SECURITY_CONVERGE_VIEWS = (
     "Annotation",
+    "Database",
     "Dataset",
+    "Dashboard",
     "CssTemplate",
     "Chart",
     "Query",
@@ -654,8 +656,8 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_read("Dataset", perm_set)
 
         # make sure that user can create slices and dashboards
+        self.assert_can_all("Dashboard", perm_set)
         self.assert_can_all("Chart", perm_set)
-        self.assert_can_all("DashboardModelView", perm_set)
 
         self.assertIn(("can_add_slices", "Superset"), perm_set)
         self.assertIn(("can_copy_dash", "Superset"), perm_set)
@@ -701,7 +703,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_cannot_write("UserDBModelView", perm_set)
 
     def assert_can_admin(self, perm_set):
-        self.assert_can_all("DatabaseView", perm_set)
+        self.assert_can_all("Database", perm_set)
         self.assert_can_all("RoleModelView", perm_set)
         self.assert_can_all("UserDBModelView", perm_set)
 
@@ -729,13 +731,11 @@ class TestRolePermission(SupersetTestCase):
             )
         )
 
-        log_permissions = ["can_list", "can_show"]
+        log_permissions = ["can_read"]
         for log_permission in log_permissions:
             self.assertTrue(
                 security_manager._is_admin_only(
-                    security_manager.find_permission_view_menu(
-                        log_permission, "LogModelView"
-                    )
+                    security_manager.find_permission_view_menu(log_permission, "Log")
                 )
             )
 
@@ -842,11 +842,13 @@ class TestRolePermission(SupersetTestCase):
             gamma_perm_set.add((perm.permission.name, perm.view_menu.name))
 
         # check read only perms
+
+        # make sure that user can create slices and dashboards
+        self.assert_can_all("Dashboard", gamma_perm_set)
         self.assert_can_read("Dataset", gamma_perm_set)
 
         # make sure that user can create slices and dashboards
         self.assert_can_all("Chart", gamma_perm_set)
-        self.assert_can_all("DashboardModelView", gamma_perm_set)
 
         self.assert_cannot_write("UserDBModelView", gamma_perm_set)
         self.assert_cannot_write("RoleModelView", gamma_perm_set)
