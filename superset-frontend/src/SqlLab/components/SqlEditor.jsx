@@ -95,6 +95,13 @@ const defaultProps = {
   scheduleQueryWarning: null,
 };
 
+const runMenuBtn = (
+  <Menu onClick={() => console.log('clicked menu')}>
+    <Menu.Item key="1">Create As Table</Menu.Item>
+    <Menu.Item key="2">Create As View</Menu.Item>
+  </Menu>
+);
+
 class SqlEditor extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -559,6 +566,13 @@ class SqlEditor extends React.PureComponent {
         <div className="leftItems">
           <Form inline>
             <span>
+              <Dropdown.Button
+                icon={<Icon color="#00000" name="caret-down" />}
+                type="primary"
+                overlay={runMenuBtn}
+              >
+                Run
+              </Dropdown.Button>
               <RunQueryActionButton
                 allowAsync={
                   this.props.database
@@ -575,6 +589,15 @@ class SqlEditor extends React.PureComponent {
                 sql={this.state.sql}
               />
             </span>
+            {limitWarning}
+            {this.props.latestQuery && (
+              <Timer
+                startTime={this.props.latestQuery.startDttm}
+                endTime={this.props.latestQuery.endDttm}
+                state={STATE_BSSTYLE_MAP[this.props.latestQuery.state]}
+                isRunning={this.props.latestQuery.state === 'running'}
+              />
+            )}
             {isFeatureEnabled(FeatureFlag.ESTIMATE_QUERY_COST) &&
               this.props.database &&
               this.props.database.allows_cost_estimate && (
@@ -621,15 +644,6 @@ class SqlEditor extends React.PureComponent {
           </Form>
         </div>
         <div className="rightItems">
-          {limitWarning}
-          {this.props.latestQuery && (
-            <Timer
-              startTime={this.props.latestQuery.startDttm}
-              endTime={this.props.latestQuery.endDttm}
-              state={STATE_BSSTYLE_MAP[this.props.latestQuery.state]}
-              isRunning={this.props.latestQuery.state === 'running'}
-            />
-          )}
           <Dropdown overlay={this.renderDropdown()} arrow>
             <Icon name="more-horiz" />
           </Dropdown>
