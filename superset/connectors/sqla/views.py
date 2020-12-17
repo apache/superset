@@ -33,7 +33,7 @@ from wtforms.validators import Regexp
 from superset import app, db, is_feature_enabled
 from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.sqla import models
-from superset.constants import RouteMethod
+from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
@@ -55,6 +55,8 @@ class TableColumnInlineView(  # pylint: disable=too-many-ancestors
 ):
     datamodel = SQLAInterface(models.TableColumn)
     # TODO TODO, review need for this on related_views
+    class_permission_name = "Dataset"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
     include_route_methods = RouteMethod.RELATED_VIEW_SET | RouteMethod.API_SET
 
     list_title = _("Columns")
@@ -174,6 +176,8 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
     CompactCRUDMixin, SupersetModelView
 ):
     datamodel = SQLAInterface(models.SqlMetric)
+    class_permission_name = "Dataset"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
     include_route_methods = RouteMethod.RELATED_VIEW_SET | RouteMethod.API_SET
 
     list_title = _("Metrics")
@@ -327,6 +331,8 @@ class TableModelView(  # pylint: disable=too-many-ancestors
     DatasourceModelView, DeleteMixin, YamlExportMixin
 ):
     datamodel = SQLAInterface(models.SqlaTable)
+    class_permission_name = "Dataset"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
     include_route_methods = RouteMethod.CRUD_SET
 
     list_title = _("Tables")

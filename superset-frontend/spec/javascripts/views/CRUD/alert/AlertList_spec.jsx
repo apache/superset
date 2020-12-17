@@ -27,6 +27,8 @@ import { Switch } from 'src/common/components/Switch';
 import ListView from 'src/components/ListView';
 import SubMenu from 'src/components/Menu/SubMenu';
 import AlertList from 'src/views/CRUD/alert/AlertList';
+import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
+import { act } from 'react-dom/test-utils';
 
 // store needed for withToasts(AlertList)
 const mockStore = configureStore([thunk]);
@@ -73,11 +75,13 @@ fetchMock.get(alertsEndpoint, {
   count: 3,
 });
 fetchMock.get(alertsInfoEndpoint, {
-  permissions: ['can_delete', 'can_edit'],
+  permissions: ['can_write'],
 });
 fetchMock.get(alertsCreatedByEndpoint, { result: [] });
 fetchMock.put(alertEndpoint, { ...mockalerts[0], active: false });
 fetchMock.put(alertsEndpoint, { ...mockalerts[0], active: false });
+fetchMock.delete(alertEndpoint, {});
+fetchMock.delete(alertsEndpoint, {});
 
 describe('AlertList', () => {
   const wrapper = mount(
@@ -104,5 +108,43 @@ describe('AlertList', () => {
 
   it('renders switches', async () => {
     expect(wrapper.find(Switch)).toHaveLength(3);
+  });
+
+  it('deletes', async () => {
+    act(() => {
+      wrapper.find('[data-test="delete-action"]').first().props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+
+    act(() => {
+      wrapper
+        .find('#delete')
+        .first()
+        .props()
+        .onChange({ target: { value: 'DELETE' } });
+    });
+    await waitForComponentToPaint(wrapper);
+    act(() => {
+      wrapper
+        .find('[data-test="modal-confirm-button"]')
+        .last()
+        .props()
+        .onClick();
+    });
+
+    await waitForComponentToPaint(wrapper);
+
+    expect(fetchMock.calls(/report\/0/, 'DELETE')).toHaveLength(1);
+  });
+
+  it('shows/hides bulk actions when bulk actions is clicked', async () => {
+    const button = wrapper.find('[data-test="bulk-select-toggle"]').first();
+    act(() => {
+      button.props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(IndeterminateCheckbox)).toHaveLength(
+      mockalerts.length + 1, // 1 for each row and 1 for select all
+    );
   });
 });

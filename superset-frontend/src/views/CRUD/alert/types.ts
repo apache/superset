@@ -39,7 +39,7 @@ export type MetaObject = {
   value?: number | string;
 };
 
-export type Operator = '<' | '>' | '<=' | '>=' | '==' | '!=';
+export type Operator = '<' | '>' | '<=' | '>=' | '==' | '!=' | 'not null';
 
 export type AlertObject = {
   active?: boolean;
@@ -53,7 +53,7 @@ export type AlertObject = {
   database?: MetaObject;
   description?: string;
   grace_period?: number;
-  id?: number;
+  id: number;
   last_eval_dttm?: number;
   last_state?: 'Success' | 'Working' | 'Error' | 'Not triggered' | 'On Grace';
   log_retention?: number;

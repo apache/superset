@@ -552,7 +552,6 @@ class TestSqlLab(SupersetTestCase):
 
         url = "/api/v1/query/"
         data = self.get_json_resp(url)
-        admin = security_manager.find_user("admin")
         self.assertEqual(3, len(data["result"]))
 
     def test_api_database(self):
@@ -576,3 +575,23 @@ class TestSqlLab(SupersetTestCase):
             {r.get("database_name") for r in self.get_json_resp(url)["result"]},
         )
         self.delete_fake_db()
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"ENABLE_TEMPLATE_PROCESSING": True},
+        clear=True,
+    )
+    def test_sql_json_parameter_error(self):
+        self.login("admin")
+
+        data = self.run_sql(
+            "SELECT * FROM birth_names WHERE state = '{{ state }}' LIMIT 10",
+            "1",
+            template_params=json.dumps({"state": "CA"}),
+        )
+        assert data["status"] == "success"
+
+        data = self.run_sql(
+            "SELECT * FROM birth_names WHERE state = '{{ state }}' LIMIT 10", "2"
+        )
+        assert data["errors"][0]["error_type"] == "MISSING_TEMPLATE_PARAMS_ERROR"

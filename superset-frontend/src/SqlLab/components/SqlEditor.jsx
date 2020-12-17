@@ -566,13 +566,15 @@ class SqlEditor extends React.PureComponent {
             <Checkbox checked={this.state.autocompleteEnabled} />{' '}
             {t('Autocomplete')}
           </Button>{' '}
-          <TemplateParamsEditor
-            language="json"
-            onChange={params => {
-              this.props.actions.queryEditorSetTemplateParams(qe, params);
-            }}
-            code={qe.templateParams}
-          />
+          {isFeatureEnabled(FeatureFlag.ENABLE_TEMPLATE_PROCESSING) && (
+            <TemplateParamsEditor
+              language="json"
+              onChange={params => {
+                this.props.actions.queryEditorSetTemplateParams(qe, params);
+              }}
+              code={qe.templateParams}
+            />
+          )}
           {limitWarning}
           {this.props.latestQuery && (
             <Timer

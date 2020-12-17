@@ -32,17 +32,17 @@ from .base_tests import SupersetTestCase
 class Model1Api(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Dashboard)
     allow_browser_login = True
-    class_permission_name = "DashboardModelView"
+    class_permission_name = "Dashboard"
     method_permission_name = {
-        "get_list": "list",
-        "get": "show",
-        "export": "mulexport",
-        "post": "add",
-        "put": "edit",
-        "delete": "delete",
-        "bulk_delete": "delete",
-        "info": "list",
-        "related": "list",
+        "get_list": "read",
+        "get": "read",
+        "export": "read",
+        "post": "write",
+        "put": "write",
+        "delete": "write",
+        "bulk_delete": "write",
+        "info": "read",
+        "related": "read",
     }
 
 

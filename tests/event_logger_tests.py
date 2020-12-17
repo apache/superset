@@ -17,26 +17,23 @@
 import logging
 import time
 import unittest
-from datetime import datetime
 from unittest.mock import patch
 
-from superset.utils.log import (
-    AbstractEventLogger,
-    DBEventLogger,
-    get_event_logger_from_cfg_value,
-)
+from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 from tests.test_app import app
 
 
 class TestEventLogger(unittest.TestCase):
-    def test_returns_configured_object_if_correct(self):
-        # test that assignment of concrete AbstractBaseClass impl returns unmodified object
+    def test_correct_config_object(self):
+        # test that assignment of concrete AbstractBaseClass impl returns
+        # unmodified object
         obj = DBEventLogger()
         res = get_event_logger_from_cfg_value(obj)
-        self.assertTrue(obj is res)
+        self.assertIs(obj, res)
 
-    def test_event_logger_config_class_deprecation(self):
-        # test that assignment of a class object to EVENT_LOGGER is correctly deprecated
+    def test_config_class_deprecation(self):
+        # test that assignment of a class object to EVENT_LOGGER is correctly
+        # deprecated
         res = None
 
         # print warning if a class is assigned to EVENT_LOGGER
@@ -46,13 +43,14 @@ class TestEventLogger(unittest.TestCase):
         # class is instantiated and returned
         self.assertIsInstance(res, DBEventLogger)
 
-    def test_raises_typerror_if_not_abc_impl(self):
-        # test that assignment of non AbstractEventLogger derived type raises TypeError
+    def test_raises_typerror_if_not_abc(self):
+        # test that assignment of non AbstractEventLogger derived type raises
+        # TypeError
         with self.assertRaises(TypeError):
             get_event_logger_from_cfg_value(logging.getLogger())
 
     @patch.object(DBEventLogger, "log")
-    def test_log_this_decorator(self, mock_log):
+    def test_log_this(self, mock_log):
         logger = DBEventLogger()
 
         @logger.log_this
@@ -60,27 +58,46 @@ class TestEventLogger(unittest.TestCase):
             time.sleep(0.05)
             return 1
 
-        with app.test_request_context():
+        with app.test_request_context("/superset/dashboard/1/?myparam=foo"):
             result = test_func()
+            payload = mock_log.call_args[1]
             self.assertEqual(result, 1)
-            assert mock_log.call_args[1]["duration_ms"] >= 50
+            self.assertEqual(
+                payload["records"],
+                [
+                    {
+                        "myparam": "foo",
+                        "path": "/superset/dashboard/1/",
+                        "url_rule": "/superset/dashboard/<dashboard_id_or_slug>/",
+                        "object_ref": test_func.__qualname__,
+                    }
+                ],
+            )
+            self.assertGreaterEqual(payload["duration_ms"], 50)
 
     @patch.object(DBEventLogger, "log")
-    def test_log_manually_decorator(self, mock_log):
+    def test_log_this_with_extra_payload(self, mock_log):
         logger = DBEventLogger()
 
-        @logger.log_manually
-        def test_func(arg1, update_log_payload, karg1=1):
+        @logger.log_this_with_extra_payload
+        def test_func(arg1, add_extra_log_payload, karg1=1):
             time.sleep(0.1)
-            update_log_payload(foo="bar")
+            add_extra_log_payload(foo="bar")
             return arg1 * karg1
 
         with app.test_request_context():
             result = test_func(1, karg1=2)  # pylint: disable=no-value-for-parameter
+            payload = mock_log.call_args[1]
             self.assertEqual(result, 2)
-            # should contain only manual payload
             self.assertEqual(
-                mock_log.call_args[1]["records"],
-                [{"foo": "bar", "path": "/", "path_no_param": "/", "ref": None}],
+                payload["records"],
+                [
+                    {
+                        "foo": "bar",
+                        "path": "/",
+                        "karg1": 2,
+                        "object_ref": test_func.__qualname__,
+                    }
+                ],
             )
-            assert mock_log.call_args[1]["duration_ms"] >= 100
+            self.assertGreaterEqual(payload["duration_ms"], 100)
