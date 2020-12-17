@@ -41,9 +41,9 @@ export const COMMON_RANGE_OPTIONS: SelectOptionType[] = [
 ];
 
 export const CALENDAR_RANGE_OPTIONS: SelectOptionType[] = [
-  { value: PreviousCalendarWeek, label: t('Previsous Calendar week') },
-  { value: PreviousCalendarMonth, label: t('Previsous Calendar month') },
-  { value: PreviousCalendarYear, label: t('Previsous Calendar year') },
+  { value: PreviousCalendarWeek, label: t('Previous Calendar week') },
+  { value: PreviousCalendarMonth, label: t('Previous Calendar month') },
+  { value: PreviousCalendarYear, label: t('Previous Calendar year') },
 ];
 
 const GRAIN_OPTIONS = [
@@ -77,4 +77,4 @@ export const SINCE_MODE_OPTIONS: SelectOptionType[] = [
   { value: 'today', label: t('Midnight') },
 ];
 
-export const UNTIL_MODE_OPTIONS: SelectOptionType[] = [...SINCE_MODE_OPTIONS];
+export const UNTIL_MODE_OPTIONS: SelectOptionType[] = SINCE_MODE_OPTIONS.slice();

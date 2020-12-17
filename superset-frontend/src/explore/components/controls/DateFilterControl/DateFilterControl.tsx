@@ -76,51 +76,70 @@ const DEFAULT_SINCE = moment()
   .format(MOMENT_FORMAT);
 const DEFAULT_UNTIL = moment().utc().startOf('day').format(MOMENT_FORMAT);
 
+/**
+ * RegExp to test a string for a full ISO 8601 Date
+ * Does not do any sort of date validation, only checks if the string is according to the ISO 8601 spec.
+ *  YYYY-MM-DDThh:mm:ss
+ *  YYYY-MM-DDThh:mm:ssTZD
+ *  YYYY-MM-DDThh:mm:ss.sTZD
+ * @see: https://www.w3.org/TR/NOTE-datetime
+ */
+const iso8601 = String.raw`\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:(?:[+-]\d\d:\d\d)|Z)?`;
+const datetimeConstant = String.raw`TODAY|NOW`;
+const grainValue = String.raw`[+-]?[1-9][0-9]*`;
+const grain = String.raw`YEAR|QUARTER|MONTH|WEEK|DAY|HOUR|MINUTE|SECOND`;
+const CUSTOM_RANGE_EXPRESSION = RegExp(
+  String.raw`^DATEADD\(DATETIME\("(${iso8601}|${datetimeConstant})"\),\s(${grainValue}),\s(${grain})\)$`,
+  'i',
+);
+export const ISO8601_AND_CONSTANT = RegExp(
+  String.raw`^${iso8601}$|^${datetimeConstant}$`,
+  'i',
+);
+
+const DATETIME_CONSTANT = ['now', 'today'];
+const defaultCustomRange: CustomRangeType = {
+  sinceDatetime: DEFAULT_SINCE,
+  sinceMode: 'relative',
+  sinceGrain: 'day',
+  sinceGrainValue: -7,
+  untilDatetime: DEFAULT_UNTIL,
+  untilMode: 'specific',
+  untilGrain: 'day',
+  untilGrainValue: 7,
+  anchorMode: 'now',
+  anchorValue: 'now',
+};
+const SPECIFIC_MODE = ['specific', 'today', 'now'];
+
+const COMMON_RANGE_OPTIONS_SET = new Set(
+  COMMON_RANGE_OPTIONS.map(({ value }) => value),
+);
+const CALENDAR_RANGE_OPTIONS_SET = new Set(
+  CALENDAR_RANGE_OPTIONS.map(({ value }) => value),
+);
+
+const commonRangeSet: Set<CommonRangeType> = new Set([
+  'Last day',
+  'Last week',
+  'Last month',
+  'Last quarter',
+  'Last year',
+]);
+const CalendarRangeSet: Set<CalendarRangeType> = new Set([
+  PreviousCalendarWeek,
+  PreviousCalendarMonth,
+  PreviousCalendarYear,
+]);
+
 const customTimeRangeDecode = (timeRange: string): CustomRangeDecodeType => {
   const splitDateRange = timeRange.split(SEPARATOR);
-  const DATETIME_CONSTANT = ['now', 'today'];
-  const defaultCustomRange: CustomRangeType = {
-    sinceDatetime: DEFAULT_SINCE,
-    sinceMode: 'relative',
-    sinceGrain: 'day',
-    sinceGrainValue: -7,
-    untilDatetime: DEFAULT_UNTIL,
-    untilMode: 'specific',
-    untilGrain: 'day',
-    untilGrainValue: 7,
-    anchorMode: 'now',
-    anchorValue: 'now',
-  };
-
-  /**
-   * RegExp to test a string for a full ISO 8601 Date
-   * Does not do any sort of date validation, only checks if the string is according to the ISO 8601 spec.
-   *  YYYY-MM-DDThh:mm:ss
-   *  YYYY-MM-DDThh:mm:ssTZD
-   *  YYYY-MM-DDThh:mm:ss.sTZD
-   * @see: https://www.w3.org/TR/NOTE-datetime
-   */
-  const iso8601 = String.raw`\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:(?:[+-]\d\d:\d\d)|Z)?`;
-  const datetimeConstant = String.raw`TODAY|NOW`;
-  const grainValue = String.raw`[+-]?[1-9][0-9]*`;
-  const grain = String.raw`YEAR|QUARTER|MONTH|WEEK|DAY|HOUR|MINUTE|SECOND`;
-  const CUSTOM_RANGE_EXPRESSION = RegExp(
-    String.raw`^DATEADD\(DATETIME\("(${iso8601}|${datetimeConstant})"\),\s(${grainValue}),\s(${grain})\)$`,
-    'i',
-  );
-  const ISO8601_AND_CONSTANT = RegExp(
-    String.raw`^${iso8601}$|^${datetimeConstant}$`,
-    'i',
-  );
 
   if (splitDateRange.length === 2) {
-    const [since, until] = [...splitDateRange];
+    const [since, until] = splitDateRange;
 
     // specific : specific
-    if (
-      since.match(ISO8601_AND_CONSTANT) &&
-      until.match(ISO8601_AND_CONSTANT)
-    ) {
+    if (ISO8601_AND_CONSTANT.test(since) && ISO8601_AND_CONSTANT.test(until)) {
       const sinceMode = DATETIME_CONSTANT.includes(since) ? since : 'specific';
       const untilMode = DATETIME_CONSTANT.includes(until) ? until : 'specific';
       return {
@@ -139,10 +158,10 @@ const customTimeRangeDecode = (timeRange: string): CustomRangeDecodeType => {
     const sinceCapturedGroup = since.match(CUSTOM_RANGE_EXPRESSION);
     if (
       sinceCapturedGroup &&
-      until.match(ISO8601_AND_CONSTANT) &&
+      ISO8601_AND_CONSTANT.test(until) &&
       since.includes(until)
     ) {
-      const [dttm, grainValue, grain] = [...sinceCapturedGroup.slice(1)];
+      const [dttm, grainValue, grain] = sinceCapturedGroup.slice(1);
       const untilMode = DATETIME_CONSTANT.includes(until) ? until : 'specific';
       return {
         customRange: {
@@ -160,7 +179,7 @@ const customTimeRangeDecode = (timeRange: string): CustomRangeDecodeType => {
     // specific : relative
     const untilCapturedGroup = until.match(CUSTOM_RANGE_EXPRESSION);
     if (
-      since.match(ISO8601_AND_CONSTANT) &&
+      ISO8601_AND_CONSTANT.test(since) &&
       untilCapturedGroup &&
       until.includes(since)
     ) {
@@ -213,7 +232,6 @@ const customTimeRangeDecode = (timeRange: string): CustomRangeDecodeType => {
 };
 
 const customTimeRangeEncode = (customRange: CustomRangeType): string => {
-  const SPECIFIC_MODE = ['specific', 'today', 'now'];
   const {
     sinceDatetime,
     sinceMode,
@@ -253,10 +271,10 @@ const customTimeRangeEncode = (customRange: CustomRangeType): string => {
 };
 
 const guessTimeRangeFrame = (timeRange: string): TimeRangeFrameType => {
-  if (COMMON_RANGE_OPTIONS.map(_ => _.value).indexOf(timeRange) > -1) {
+  if (COMMON_RANGE_OPTIONS_SET.has(timeRange)) {
     return 'Common';
   }
-  if (CALENDAR_RANGE_OPTIONS.map(_ => _.value).indexOf(timeRange) > -1) {
+  if (CALENDAR_RANGE_OPTIONS_SET.has(timeRange)) {
     return 'Calendar';
   }
   if (timeRange === 'No filter') {
@@ -444,38 +462,24 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   }
 
   function getDefaultOrCommonRange(value: any): CommonRangeType {
-    const commonRange: CommonRangeType[] = [
-      'Last day',
-      'Last week',
-      'Last month',
-      'Last quarter',
-      'Last year',
-    ];
-    return commonRange.includes(value) ? value : 'Last week';
+    return commonRangeSet.has(value) ? value : 'Last week';
   }
 
   function getDefaultOrCalendarRange(value: any): CalendarRangeType {
-    const CalendarRange: CalendarRangeType[] = [
-      PreviousCalendarWeek,
-      PreviousCalendarMonth,
-      PreviousCalendarYear,
-    ];
-    return CalendarRange.includes(value) ? value : PreviousCalendarWeek;
+    return CalendarRangeSet.has(value) ? value : PreviousCalendarWeek;
   }
 
   function getAdvancedRange(value: string): string {
-    let since = '';
-    let until = '';
     if (value.includes(SEPARATOR)) {
-      [since, until] = [...value.split(SEPARATOR)];
+      return value;
     }
-    if (!value.includes(SEPARATOR) && value.startsWith('Last')) {
-      since = value;
+    if (value.startsWith('Last')) {
+      return [value, ''].join(SEPARATOR);
     }
-    if (!value.includes(SEPARATOR) && value.startsWith('Next')) {
-      until = value;
+    if (value.startsWith('Next')) {
+      return ['', value].join(SEPARATOR);
     }
-    return `${since}${SEPARATOR}${until}`;
+    return SEPARATOR;
   }
 
   function onAdvancedRangeChange(control: 'since' | 'until', value: string) {
@@ -554,7 +558,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
 
   function renderCommon() {
     const commonRangeValue =
-      COMMON_RANGE_OPTIONS.find(_ => _.value === commonRange)?.value ||
+      COMMON_RANGE_OPTIONS.find(({ value }) => value === commonRange)?.value ||
       'Last week';
     return (
       <>
@@ -565,9 +569,9 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           value={commonRangeValue}
           onChange={(e: any) => setCommonRange(e.target.value)}
         >
-          {COMMON_RANGE_OPTIONS.map(_ => (
-            <Radio key={_.value} value={_.value} className="vertical-radio">
-              {_.label}
+          {COMMON_RANGE_OPTIONS.map(({ value, label }) => (
+            <Radio key={value} value={value} className="vertical-radio">
+              {label}
             </Radio>
           ))}
         </Radio.Group>
@@ -577,8 +581,8 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
 
   function renderCalendar() {
     const currentValue =
-      CALENDAR_RANGE_OPTIONS.find(_ => _.value === calendarRange)?.value ||
-      PreviousCalendarWeek;
+      CALENDAR_RANGE_OPTIONS.find(({ value }) => value === calendarRange)
+        ?.value || PreviousCalendarWeek;
     return (
       <>
         <div className="section-title">
@@ -588,9 +592,9 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           value={currentValue}
           onChange={(e: any) => setCalendarRange(e.target.value)}
         >
-          {CALENDAR_RANGE_OPTIONS.map(_ => (
-            <Radio key={_.value} value={_.value} className="vertical-radio">
-              {_.label}
+          {CALENDAR_RANGE_OPTIONS.map(({ value, label }) => (
+            <Radio key={value} value={value} className="vertical-radio">
+              {label}
             </Radio>
           ))}
         </Radio.Group>
@@ -843,7 +847,9 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           <div className="control-label">{t('RANGE TYPE')}</div>
           <Select
             options={RANGE_FRAME_OPTIONS}
-            value={RANGE_FRAME_OPTIONS.filter(_ => _.value === timeRangeFrame)}
+            value={RANGE_FRAME_OPTIONS.filter(
+              ({ value }) => value === timeRangeFrame,
+            )}
             onChange={(_: any) => setTimeRangeFrame(_.value)}
           />
           {timeRangeFrame !== 'No Filter' && <Divider />}
