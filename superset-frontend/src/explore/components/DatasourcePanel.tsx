@@ -53,11 +53,8 @@ const DatasourceContainer = styled.div`
   .field-selections {
     padding: 0 ${({ theme }) => 2 * theme.gridUnit}px;
   }
-  .ant-collapse
-    > .ant-collapse-item
-    > .ant-collapse-header
-    .ant-collapse-arrow {
-    right: ${({ theme }) => theme.gridUnit * -50}px;
+  .ant-collapse {
+    height: auto;
   }
   .ant-collapse > .ant-collapse-item > .ant-collapse-header {
     padding-left: 10px;
@@ -159,6 +156,7 @@ const DataSourcePanel = ({
           accordion
           bordered={false}
           defaultActiveKey={['column', 'metrics']}
+          expandIconPosition="right"
         >
           <Collapse.Panel
             header={<span className="header">{t('Columns')}</span>}
@@ -174,7 +172,7 @@ const DataSourcePanel = ({
             ))}
           </Collapse.Panel>
         </Collapse>
-        <Collapse accordion bordered={false}>
+        <Collapse accordion bordered={false} expandIconPosition="right">
           <Collapse.Panel
             header={<span className="header">{t('Metrics')}</span>}
             key="metrics"

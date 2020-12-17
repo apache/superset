@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, styled } from '@superset-ui/core';
+import { t, styled, supersetTheme } from '@superset-ui/core';
 
 import { Dropdown, Menu } from 'src/common/components';
 import { Tooltip } from 'src/common/components/Tooltip';
@@ -59,26 +59,19 @@ const Styles = styled.div`
       box-shadow: none;
     }
   }
-
   .btn-group .open .dropdown-toggle {
     box-shadow: none;
     &.button-default {
       background: none;
     }
   }
-
   i.angle {
     color: ${({ theme }) => theme.colors.primary.base};
   }
-
   svg.datasource-modal-trigger {
     color: ${({ theme }) => theme.colors.primary.base};
     vertical-align: ${({ theme }) => theme.gridUnit + 2}px;
     cursor: pointer;
-  }
-
-  .datasource-controls {
-    display: flex;
   }
   .title-select {
     width: ${({ theme }) => theme.gridUnit * 52}px;
@@ -179,20 +172,10 @@ class DatasourceControl extends React.PureComponent {
 
     return (
       <Styles className="DatasourceControl">
-        <ControlHeader {...this.props} />
-        <div className="datasource-controls">
-          <Tooltip title={t('Expand/collapse dataset configuration')}>
-            <Label
-              style={{ textTransform: 'none' }}
-              onClick={this.toggleShowDatasource}
-            >
-              {datasource.name}{' '}
-              <i
-                className={`angle fa fa-angle-${
-                  showDatasource ? 'up' : 'down'
-                }`}
-              />
-            </Label>
+        <div className="data-container">
+          <Icon name="dataset-physical" className="dataset-svg" />
+          <Tooltip title={datasource.name}>
+            <span className="title-select">{datasource.name}</span>
           </Tooltip>
           {healthCheckMessage && (
             <Tooltip title={healthCheckMessage}>
