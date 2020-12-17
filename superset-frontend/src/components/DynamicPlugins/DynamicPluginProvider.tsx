@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useReducer } from 'react';
-import { defineSharedModules } from '@superset-ui/core';
+import { defineSharedModules, SupersetClient } from '@superset-ui/core';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   dummyPluginContext,
@@ -104,18 +104,18 @@ export default function DynamicPluginProvider({ children }: Props) {
   async function fetchAll() {
     try {
       await defineSharedModules(sharedModules);
-      // const response = await SupersetClient.get({
-      //   endpoint: '/dynamic-plugins/api/read',
-      // });
-      // const plugins: Plugin[] = (response.json as JsonObject).result;
-      const plugins: Plugin[] = [
-        {
-          name: 'Hello World',
-          key: 'superset-chart-hello-world',
-          id: 0,
-          bundle_url: 'http://127.0.0.1:8080/main.js',
-        },
-      ];
+      const response = await SupersetClient.get({
+        endpoint: '/dynamic-plugins/api/read',
+      });
+      const plugins: Plugin[] = response.json.result;
+      // const plugins: Plugin[] = [
+      //   {
+      //     name: 'Hello World',
+      //     key: 'superset-chart-hello-world',
+      //     id: 0,
+      //     bundle_url: 'http://127.0.0.1:8080/main.js',
+      //   },
+      // ];
       dispatch({ type: 'begin', keys: plugins.map(plugin => plugin.key) });
       await Promise.all(
         plugins.map(async plugin => {
