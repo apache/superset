@@ -17,8 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { styledMount as mount } from 'spec/helpers/theming';
 import { act } from 'react-dom/test-utils';
 import { Provider } from 'react-redux';
 import { FilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterConfigModal';
@@ -52,15 +51,9 @@ describe('FiltersConfigModal', () => {
       <Provider store={mockStore}>
         <FilterConfigModal {...{ ...mockedProps, ...overridesProps }} />
       </Provider>,
-      {
-        wrappingComponent: ThemeProvider,
-        wrappingComponentProps: {
-          theme: supersetTheme,
-        },
-      },
     );
   }
-  it('should be a valid', () => {
+  it('should be a valid react element', () => {
     expect(React.isValidElement(<FilterConfigModal {...mockedProps} />)).toBe(
       true,
     );

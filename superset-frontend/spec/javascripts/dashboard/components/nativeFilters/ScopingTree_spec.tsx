@@ -19,8 +19,7 @@
 import React from 'react';
 import { Provider } from 'react-redux';
 import ScopingTree from 'src/dashboard/components/nativeFilters/ScopingTree';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { mount } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import { mockStore } from 'spec/fixtures/mockStore';
 
 describe('ScopingTree', () => {
@@ -29,12 +28,6 @@ describe('ScopingTree', () => {
     <Provider store={mockStore}>
       <ScopingTree setFilterScope={mock} />
     </Provider>,
-    {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: {
-        theme: supersetTheme,
-      },
-    },
   );
   it('is valid', () => {
     const mock = () => null;

@@ -17,9 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import { Provider } from 'react-redux';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import { mockStore } from 'spec/fixtures/mockStore';
 
@@ -33,12 +32,6 @@ describe('FilterBar', () => {
     <Provider store={mockStore}>
       <FilterBar {...props} />
     </Provider>,
-    {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: {
-        theme: supersetTheme,
-      },
-    },
   );
 
   it('is a valid', () => {
