@@ -812,7 +812,13 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
         show={show}
         onHide={onHide}
         footer={[
-          <Button buttonStyle="secondary" cta key="cancel" onClick={onHide} data-test="modal-cancel-button">
+          <Button
+            buttonStyle="secondary"
+            cta
+            key="cancel"
+            onClick={onHide}
+            data-test="modal-cancel-button"
+          >
             {t('CANCEL')}
           </Button>,
           <Button

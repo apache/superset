@@ -138,15 +138,20 @@ describe('Time range filter', () => {
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
-    cy.get('[data-test=time-range-trigger]').click().then(() => {
-      cy.get('.ant-modal-footer').find('button').its('length').should('eq', 3)
-      cy.get('.ant-modal-body').within(() => {
-        cy.get('input[value="100 years ago"]');
-        cy.get('input[value="now"]');
+    cy.get('[data-test=time-range-trigger]')
+      .click()
+      .then(() => {
+        cy.get('.ant-modal-footer')
+          .find('button')
+          .its('length')
+          .should('eq', 3);
+        cy.get('.ant-modal-body').within(() => {
+          cy.get('input[value="100 years ago"]');
+          cy.get('input[value="now"]');
+        });
+        cy.get('[data-test=modal-cancel-button]').click();
+        cy.get('[data-test=time-range-modal]').should('not.be.visible');
       });
-      cy.get('[data-test=modal-cancel-button]').click();
-      cy.get('[data-test=time-range-modal]').should('not.be.visible');
-    });
   });
 });
 
