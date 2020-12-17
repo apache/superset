@@ -566,13 +566,6 @@ class SqlEditor extends React.PureComponent {
         <div className="leftItems">
           <Form inline>
             <span>
-              <Dropdown.Button
-                icon={<Icon color="#00000" name="caret-down" />}
-                type="primary"
-                overlay={runMenuBtn}
-              >
-                Run
-              </Dropdown.Button>
               <RunQueryActionButton
                 allowAsync={
                   this.props.database
@@ -587,6 +580,7 @@ class SqlEditor extends React.PureComponent {
                 selectedText={qe.selectedText}
                 stopQuery={this.stopQuery}
                 sql={this.state.sql}
+                overlayCreateAsMenu={runMenuBtn}
               />
             </span>
             {limitWarning}

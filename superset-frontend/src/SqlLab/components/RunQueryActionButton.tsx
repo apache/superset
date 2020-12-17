@@ -20,6 +20,15 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 
 import Button, { ButtonProps } from 'src/components/Button';
+import { Dropdown, Menu } from 'src/common/components';
+import Icon from 'src/components/Icon';
+
+const runMenuBtn = (
+  <Menu onClick={() => console.log('clicked menu')}>
+    <Menu.Item key="1">Create As Table</Menu.Item>
+    <Menu.Item key="2">Create As View</Menu.Item>
+  </Menu>
+);
 
 const NO_OP = () => undefined;
 
@@ -31,6 +40,7 @@ interface Props {
   selectedText?: string;
   stopQuery: () => void;
   sql: string;
+  overlayCreateAsMenu: typeof Menu;
 }
 
 const RunQueryActionButton = ({
@@ -41,6 +51,7 @@ const RunQueryActionButton = ({
   selectedText,
   stopQuery = NO_OP,
   sql = '',
+  overlayCreateAsMenu,
 }: Props) => {
   const runBtnText = selectedText ? t('Run Selection') : t('Run');
   const btnStyle = selectedText ? 'warning' : 'primary';
@@ -62,29 +73,47 @@ const RunQueryActionButton = ({
   }
   if (allowAsync) {
     return (
-      <Button
-        {...commonBtnProps}
-        cta
-        onClick={() => runQuery(true)}
-        key="run-async-btn"
-        tooltip={t('Run query asynchronously (Ctrl + ↵)')}
-        disabled={!sql.trim()}
-      >
-        <i className="fa fa-bolt" /> {runBtnText}
-      </Button>
+      <>
+        <Button
+          {...commonBtnProps}
+          cta
+          onClick={() => runQuery(true)}
+          key="run-async-btn"
+          tooltip={t('Run query asynchronously (Ctrl + ↵)')}
+          disabled={!sql.trim()}
+        >
+          <i className="fa fa-bolt" /> {runBtnText}
+        </Button>
+        <Dropdown.Button
+          icon={<Icon color="#00000a" name="caret-down" />}
+          type="primary"
+          overlay={overlayCreateAsMenu}
+        >
+          Run
+        </Dropdown.Button>
+      </>
     );
   }
   return (
-    <Button
-      {...commonBtnProps}
-      cta
-      onClick={() => runQuery(false)}
-      key="run-btn"
-      tooltip={t('Run query synchronously (Ctrl + ↵)')}
-      disabled={!sql.trim()}
-    >
-      <i className="fa fa-refresh" /> {runBtnText}
-    </Button>
+    <>
+      <Button
+        {...commonBtnProps}
+        cta
+        onClick={() => runQuery(false)}
+        key="run-btn"
+        tooltip={t('Run query synchronously (Ctrl + ↵)')}
+        disabled={!sql.trim()}
+      >
+        <i className="fa fa-refresh" /> {runBtnText}
+      </Button>
+      <Dropdown.Button
+        icon={<Icon color="#00000" name="caret-down" />}
+        type="primary"
+        overlay={overlayCreateAsMenu}
+      >
+        Run
+      </Dropdown.Button>
+    </>
   );
 };
 
