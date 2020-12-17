@@ -803,6 +803,10 @@ ENABLE_SCHEDULED_EMAIL_REPORTS = False
 # if it meets the criteria
 ENABLE_ALERTS = False
 
+# Used for Alerts/Reports (Feature flask ALERT_REPORTS) to set the size for the
+# sliding cron window size, should be synced with the celery beat config minus 1 second
+ALERT_REPORTS_CRON_WINDOW_SIZE = 59
+
 # Slack API token for the superset reports
 SLACK_API_TOKEN = None
 SLACK_PROXY = None
