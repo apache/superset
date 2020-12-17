@@ -37,6 +37,7 @@ const validators = {
 
 function getJSONSchema() {
   const jsonSchema = window.featureFlags.SCHEDULED_QUERIES.JSONSCHEMA;
+  console.log('json schema', jsonSchema);
   // parse date-time into usable value (eg, 'today' => `new Date()`)
   Object.entries(jsonSchema.properties).forEach(([key, properties]) => {
     if (properties.default && properties.format === 'date-time') {
@@ -202,14 +203,15 @@ class ScheduleQueryButton extends React.PureComponent {
           modalTitle={t('Schedule Query')}
           modalBody={this.renderModalBody()}
           triggerNode={
-            <Button
+            <div
+              role="button"
               buttonSize="small"
               onClick={this.toggleSchedule}
               disabled={this.props.disabled}
               tooltip={this.props.tooltip}
             >
-              <i className="fa fa-calendar" /> {t('Schedule')}
-            </Button>
+              {t('Schedule')}
+            </div>
           }
         />
       </span>
