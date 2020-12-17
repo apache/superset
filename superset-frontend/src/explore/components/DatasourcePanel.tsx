@@ -19,7 +19,6 @@
 import React, { useEffect, useState } from 'react';
 import { styled, t, QueryFormData } from '@superset-ui/core';
 import { Collapse } from 'src/common/components';
-import { FixedSizeList as List, ListChildComponentProps } from 'react-window';
 import {
   ColumnOption,
   MetricOption,
@@ -32,7 +31,7 @@ interface DatasourceControl {
   mapStateToProps: QueryFormData;
   type: ControlType;
   label: string;
-  datasource?: any;
+  datasource?: DatasourceControl;
 }
 
 interface Props {
@@ -48,6 +47,8 @@ interface Props {
 
 const DatasourceContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light4};
+  position: relative;
+  height: 100%;
   .field-selections {
     padding: 0 ${({ theme }) => 2 * theme.gridUnit}px;
   }
@@ -87,6 +88,14 @@ const DatasourceContainer = styled.div`
   .metric-option .option-label {
     margin-left: -20px;
   }
+  .field-selections {
+    position: absolute;
+    top: ${({ theme }) => theme.gridUnit * 15}px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    overflow: auto;
+  }
 `;
 
 const DataSourcePanel = ({
@@ -101,10 +110,10 @@ const DataSourcePanel = ({
   });
   const search = ({ target: { value } }: { target: { value: string } }) => {
     const filteredColumns = lists.columns.filter(
-      obj => obj.column_name.indexOf(value) !== -1,
+      column => column.column_name.indexOf(value) !== -1,
     );
     const filteredMetrics = lists.metrics.filter(
-      objs => objs.metric_name.indexOf(value) !== -1,
+      metric => metric.metric_name.indexOf(value) !== -1,
     );
     if (value === '') {
       setColList({ columns, metrics });
@@ -117,29 +126,6 @@ const DataSourcePanel = ({
     });
   }, [datasource]);
 
-  const Metrics = ({ index, style }: ListChildComponentProps) => {
-    return (
-      <div
-        key={lists.metrics[index].metric_name}
-        className="metric"
-        style={style}
-      >
-        <MetricOption metric={lists.metrics[index]} showType />
-      </div>
-    );
-  };
-
-  const Columns = ({ index, style }: ListChildComponentProps) => {
-    return (
-      <div
-        key={lists.columns[index].column_name}
-        className="column"
-        style={style}
-      >
-        <ColumnOption column={lists.columns[index]} showType />
-      </div>
-    );
-  };
   return (
     <DatasourceContainer>
       <Control
@@ -162,32 +148,26 @@ const DataSourcePanel = ({
           defaultActiveKey={['column', 'metrics']}
         >
           <Collapse.Panel
-            header={<span className="header">Columns</span>}
+            header={<span className="header">{t('Columns')}</span>}
             key="column"
           >
-            <List
-              height={100}
-              itemCount={lists.columns.length}
-              itemSize={35}
-              width={250}
-            >
-              {Columns}
-            </List>
+            {lists.columns.slice(0, 50).map(col => (
+              <div key={col.column_name} className="column">
+                <ColumnOption column={col} showType />
+              </div>
+            ))}
           </Collapse.Panel>
         </Collapse>
         <Collapse accordion bordered={false}>
           <Collapse.Panel
-            header={<span className="header">Metrics</span>}
+            header={<span className="header">{t('Metrics')}</span>}
             key="metrics"
           >
-            <List
-              height={100}
-              itemCount={lists.metrics.length}
-              itemSize={35}
-              width={250}
-            >
-              {Metrics}
-            </List>
+            {lists.metrics.slice(0, 50).map(m => (
+              <div key={m.column_name} className="column">
+                <MetricOption metric={m} showType />
+              </div>
+            ))}
           </Collapse.Panel>
         </Collapse>
       </div>

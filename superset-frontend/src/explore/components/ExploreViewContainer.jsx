@@ -446,7 +446,7 @@ class ExploreViewContainer extends React.Component {
             tabIndex={0}
           >
             <span role="button" tabIndex={0} className="action-button">
-              <Tooltip title="Open Datasource Tab">
+              <Tooltip title={t('Open Datasource Tab')}>
                 <Icon
                   name="collapse"
                   color={supersetTheme.colors.primary.base}
