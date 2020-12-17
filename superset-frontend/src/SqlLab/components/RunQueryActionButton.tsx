@@ -74,7 +74,7 @@ const RunQueryActionButton = ({
   if (allowAsync) {
     return (
       <>
-        <Button
+        {/* <Button
           {...commonBtnProps}
           cta
           onClick={() => runQuery(true)}
@@ -83,7 +83,7 @@ const RunQueryActionButton = ({
           disabled={!sql.trim()}
         >
           <i className="fa fa-bolt" /> {runBtnText}
-        </Button>
+        </Button> */}
         <Dropdown.Button
           icon={<Icon color="#00000a" name="caret-down" />}
           type="primary"
@@ -96,7 +96,7 @@ const RunQueryActionButton = ({
   }
   return (
     <>
-      <Button
+      {/* <Button
         {...commonBtnProps}
         cta
         onClick={() => runQuery(false)}
@@ -105,7 +105,7 @@ const RunQueryActionButton = ({
         disabled={!sql.trim()}
       >
         <i className="fa fa-refresh" /> {runBtnText}
-      </Button>
+      </Button> */}
       <Dropdown.Button
         icon={<Icon color="#00000" name="caret-down" />}
         type="primary"
