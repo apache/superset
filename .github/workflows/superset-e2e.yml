@@ -1,6 +1,16 @@
 name: E2E
 
-on: [push, pull_request_target]
+on:
+  push:
+    branches:
+      - "!dependabot/**/docs/**"
+    paths:
+      - "docs/**"
+  pull_request_target:
+    branches:
+      - "!dependabot/**/docs/**"
+    paths:
+      - "docs/**"
 
 jobs:
   cypress-matrix:
