@@ -1,12 +1,12 @@
 name: Docker
 
 on:
-  push:
-    branches:
-      - 'master'
-  pull_request:
-    types: [opened, synchronize, reopened]
-
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'The git tag to build'
+        required: true
+        default: '0.38.0'
 jobs:
   build:
     name: build
@@ -14,10 +14,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-
+        with:
+          ref: ${{ github.event.inputs.tag }}
       - shell: bash
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          GITHUB_REF: ${{ github.event.inputs.tag }}
         run: |
-          .github/workflows/docker_build_push.sh
+          cat GITHUB_REF
+          git rev-parse HEAD
