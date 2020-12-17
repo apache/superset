@@ -23,9 +23,9 @@ import { isEqual } from 'lodash';
 import { $anyType } from './constants';
 
 export function addToObject(
-  state: Record<string, any>,
+  state: Record<string, $anyType>,
   arrKey: string,
-  obj: Record<string, any>,
+  obj: Record<string, $anyType>,
 ) {
   const newObject = { ...state[arrKey] };
   const copiedObject = { ...obj };

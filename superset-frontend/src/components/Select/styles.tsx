@@ -30,6 +30,7 @@ import { Props as SelectProps } from 'react-select/src/Select';
 import { colors as reactSelectColors } from 'react-select/src/theme';
 import { DeepNonNullable } from 'react-select/src/components';
 import { OptionType } from 'antd/lib/select';
+import { $anyType } from 'src/constants';
 import { SupersetStyledSelectProps } from './SupersetStyledSelect';
 
 export const DEFAULT_CLASS_NAME = 'Select';
@@ -111,7 +112,7 @@ export const defaultTheme: (
 type CSSStyles = CSSProperties | SerializedStyles;
 type styleFnWithSerializedStyles = (
   base: CSSProperties,
-  state: any,
+  state: $anyType,
 ) => CSSStyles | CSSStyles[];
 
 export type StylesConfig = {
@@ -289,7 +290,7 @@ const INPUT_TAG_BASE_STYLES = {
 };
 
 export type SelectComponentsType = Omit<
-  SelectComponentsConfig<any>,
+  SelectComponentsConfig<$anyType>,
   'Input'
 > & {
   Input: ComponentType<InputProps>;

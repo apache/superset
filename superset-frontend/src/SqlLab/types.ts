@@ -17,6 +17,7 @@
  * under the License.
  */
 import { SupersetError } from 'src/components/ErrorMessage/types';
+import { $anyType } from 'src/constants';
 import { CtasEnum } from 'src/SqlLab/actions/sqlLab';
 
 export type Column = {
@@ -59,5 +60,5 @@ export type Query = {
   tempSchema: string | null;
   tempTable: string;
   trackingUrl: string | null;
-  templateParams: any;
+  templateParams: $anyType;
 };

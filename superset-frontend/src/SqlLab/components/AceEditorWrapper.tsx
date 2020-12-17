@@ -30,6 +30,7 @@ import {
   AceCompleterKeyword,
   FullSQLEditor as AceEditor,
 } from 'src/components/AsyncAceEditor';
+import { $anyType } from 'src/constants';
 
 type HotKey = {
   key: string;
@@ -40,17 +41,17 @@ type HotKey = {
 
 interface Props {
   actions: {
-    queryEditorSetSelectedText: (edit: any, text: null | string) => void;
-    addTable: (queryEditor: any, value: any, schema: any) => void;
+    queryEditorSetSelectedText: (edit: $anyType, text: null | string) => void;
+    addTable: (queryEditor: $anyType, value: string, schema: $anyType) => void;
   };
   autocomplete: boolean;
   onBlur: (sql: string) => void;
   sql: string;
-  schemas: any[];
-  tables: any[];
+  schemas: $anyType[];
+  tables: $anyType[];
   functionNames: string[];
-  extendedTables: Array<{ name: string; columns: any[] }>;
-  queryEditor: any;
+  extendedTables: Array<{ name: string; columns: $anyType[] }>;
+  queryEditor: $anyType;
   height: string;
   hotkeys: HotKey[];
   onChange: (sql: string) => void;
@@ -112,7 +113,7 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
     this.props.onBlur(this.state.sql);
   }
 
-  onEditorLoad(editor: any) {
+  onEditorLoad(editor: $anyType) {
     editor.commands.addCommand({
       name: 'runQuery',
       bindKey: { win: 'Alt-enter', mac: 'Alt-enter' },
@@ -191,7 +192,7 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
     }));
 
     const completer = {
-      insertMatch: (editor: Editor, data: any) => {
+      insertMatch: (editor: Editor, data: $anyType) => {
         if (data.meta === 'table') {
           this.props.actions.addTable(
             this.props.queryEditor,
@@ -225,7 +226,7 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
     const { validationResult } = this.props.queryEditor;
     const resultIsReady = validationResult && validationResult.completed;
     if (resultIsReady && validationResult.errors.length > 0) {
-      const errors = validationResult.errors.map((err: any) => ({
+      const errors = validationResult.errors.map((err: $anyType) => ({
         type: 'error',
         row: err.line_number - 1,
         column: err.start_column - 1,

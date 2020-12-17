@@ -21,6 +21,7 @@ import { styled, t } from '@superset-ui/core';
 import { useFilters, usePagination, useSortBy, useTable } from 'react-table';
 import { Empty } from 'src/common/components';
 import { TableCollection, Pagination } from 'src/components/dataViewCommon';
+import { $anyType } from 'src/constants';
 import { SortColumns } from './types';
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -31,8 +32,8 @@ export enum EmptyWrapperType {
 }
 
 export interface TableViewProps {
-  columns: any[];
-  data: any[];
+  columns: $anyType[];
+  data: $anyType[];
   pageSize?: number;
   initialPageIndex?: number;
   initialSortBy?: SortColumns;
@@ -108,11 +109,11 @@ const TableView = ({
   let EmptyWrapperComponent;
   switch (emptyWrapperType) {
     case EmptyWrapperType.Small:
-      EmptyWrapperComponent = ({ children }: any) => <>{children}</>;
+      EmptyWrapperComponent = ({ children }: $anyType) => <>{children}</>;
       break;
     case EmptyWrapperType.Default:
     default:
-      EmptyWrapperComponent = ({ children }: any) => (
+      EmptyWrapperComponent = ({ children }: $anyType) => (
         <EmptyWrapper>{children}</EmptyWrapper>
       );
   }

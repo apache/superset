@@ -40,6 +40,7 @@ import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
 import Owner from 'src/types/Owner';
 import AlertReportModal from './AlertReportModal';
 import { AlertObject, AlertState, Recipient } from './types';
+import { CellType } from '../types';
 
 type AlertCellType = {
   row: {
@@ -202,7 +203,7 @@ function AlertList({
         size: 'xl',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: CellType) => {
           const history = useHistory();
           const handleEdit = () => handleAlertEdit(original);
           const handleDelete = () => {}; // setAlertCurrentlyDeleting(original);

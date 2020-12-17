@@ -26,6 +26,7 @@ import {
   prepareCopyToClipboardTabularData,
 } from 'src/utils/common';
 import CopyToClipboard from 'src/components/CopyToClipboard';
+import { $anyType } from 'src/constants';
 import RowCountLabel from './RowCountLabel';
 
 export const CopyButton = styled(Button)`
@@ -44,7 +45,7 @@ export const CopyButton = styled(Button)`
 export const CopyToClipboardButton = ({
   data,
 }: {
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }) => (
   <CopyToClipboard
     text={data ? prepareCopyToClipboardTabularData(data) : ''}
@@ -67,7 +68,9 @@ export const FilterInput = ({
     <FormControl
       placeholder={t('Search')}
       bsSize="sm"
-      onChange={(event: any) => {
+      onChange={(
+        event: React.ChangeEvent<FormControl> & { target: HTMLInputElement },
+      ) => {
         const filterText = event.target.value;
         debouncedChangeHandler(filterText);
       }}
@@ -75,27 +78,27 @@ export const FilterInput = ({
   );
 };
 
-export const RowCount = ({ data }: { data?: Record<string, any>[] }) => (
+export const RowCount = ({ data }: { data?: Record<string, $anyType>[] }) => (
   <RowCountLabel rowcount={data?.length ?? 0} suffix={t('rows retrieved')} />
 );
 
 export const useFilteredTableData = (
   filterText: string,
-  data?: Record<string, any>[],
+  data?: Record<string, unknown>[],
 ) =>
   useMemo(() => {
     if (!data?.length) {
       return [];
     }
     const formattedData = applyFormattingToTabularData(data);
-    return formattedData.filter((row: Record<string, any>) =>
+    return formattedData.filter((row: Record<string, $anyType>) =>
       Object.values(row).some(value =>
         value.toString().toLowerCase().includes(filterText.toLowerCase()),
       ),
     );
   }, [data, filterText]);
 
-export const useTableColumns = (data?: Record<string, any>[]) =>
+export const useTableColumns = (data?: Record<string, $anyType>[]) =>
   useMemo(
     () =>
       data?.length

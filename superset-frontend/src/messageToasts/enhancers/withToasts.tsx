@@ -36,7 +36,7 @@ export interface ToastProps {
 }
 
 // To work properly the redux state must have a `messageToasts` subtree
-export default function withToasts(BaseComponent: ComponentType<any>) {
+export default function withToasts(BaseComponent: ComponentType<unknown>) {
   return connect(null, dispatch =>
     bindActionCreators(
       {
@@ -47,7 +47,7 @@ export default function withToasts(BaseComponent: ComponentType<any>) {
       },
       dispatch,
     ),
-  )(BaseComponent) as any;
+  )(BaseComponent);
   // Redux has some confusing typings that cause problems for consumers of this function.
   // If someone can fix the types, great, but for now it's just any.
 }

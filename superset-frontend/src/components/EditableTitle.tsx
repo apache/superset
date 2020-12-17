@@ -19,6 +19,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import cx from 'classnames';
 import { t } from '@superset-ui/core';
+import { $anyType } from 'src/constants';
 import TooltipWrapper from './TooltipWrapper';
 
 interface EditableTitleProps {
@@ -53,7 +54,9 @@ export default function EditableTitle({
   ] = useState<DOMRect | null>(null);
   // Used so we can access the DOM element if a user clicks on this component.
 
-  const contentRef = useRef<any | HTMLInputElement | HTMLTextAreaElement>();
+  const contentRef = useRef<
+    $anyType | HTMLInputElement | HTMLTextAreaElement
+  >();
 
   useEffect(() => {
     if (title !== currentTitle) {

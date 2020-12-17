@@ -41,7 +41,7 @@ if (defaultView != null) {
   });
 }
 
-const g = global as any;
+const g = global as $anyType;
 
 g.window = g.window || {};
 g.window.location = { href: 'about:blank' };

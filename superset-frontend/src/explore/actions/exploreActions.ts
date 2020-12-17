@@ -25,6 +25,7 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { Dispatch } from 'redux';
+import { $anyType } from 'src/constants';
 import { addDangerToast, toastActions } from 'src/messageToasts/actions';
 import { Slice } from 'src/types/Chart';
 
@@ -103,8 +104,8 @@ export function saveFaveStar(sliceId: string, isStarred: boolean) {
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
 export function setControlValue(
   controlName: string,
-  value: any,
-  validationErrors: Array<Record<string, unknown>>,
+  value: $anyType,
+  validationErrors: Array<Record<string, unknown>> | Array<string>,
 ) {
   return { type: SET_FIELD_VALUE, controlName, value, validationErrors };
 }

@@ -63,7 +63,7 @@ export default function PropertiesModal({
   );
   const [owners, setOwners] = useState<OptionsType<OwnerOption> | null>(null);
 
-  function showError({ error, statusText, message }: any) {
+  function showError({ error, statusText, message }: $anyType) {
     let errorText = error || statusText || t('An error has occurred');
     if (message === 'Forbidden') {
       errorText = t('You do not have permission to edit this chart');
@@ -110,7 +110,7 @@ export default function PropertiesModal({
     }).then(
       response => {
         const { result } = response.json;
-        return result.map((item: any) => ({
+        return result.map((item: $anyType) => ({
           value: item.value,
           label: item.text,
         }));
@@ -126,7 +126,7 @@ export default function PropertiesModal({
     event.stopPropagation();
     event.preventDefault();
     setSubmitting(true);
-    const payload: { [key: string]: any } = {
+    const payload: { [key: string]: $anyType } = {
       slice_name: name || null,
       description: description || null,
       cache_timeout: cacheTimeout || null,

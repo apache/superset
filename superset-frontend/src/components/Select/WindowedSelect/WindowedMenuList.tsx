@@ -33,6 +33,7 @@ import {
   OptionProps,
   MenuListComponentProps,
 } from 'react-select';
+import { $anyType } from 'src/constants';
 import { ThemeConfig } from '../styles';
 
 export type WindowedMenuListProps = {
@@ -74,7 +75,7 @@ const DEFAULT_OPTION_HEIGHT = 30;
 /**
  * Get the index of the last selected option.
  */
-function getLastSelected(children: MenuListPropsChildren<any>) {
+function getLastSelected(children: MenuListPropsChildren<$anyType>) {
   return Array.isArray(children)
     ? children.findIndex(
         ({ props: { isFocused = false } = {} }) => isFocused,

@@ -74,7 +74,7 @@ module.exports = {
         '@typescript-eslint/ban-ts-comment': 0, // disabled temporarily
         '@typescript-eslint/ban-types': 0, // disabled temporarily
         '@typescript-eslint/no-empty-function': 0,
-        '@typescript-eslint/no-explicit-any': 2,
+        '@typescript-eslint/no-explicit-any': 1,
         '@typescript-eslint/no-use-before-define': 1, // disabled temporarily
         '@typescript-eslint/explicit-function-return-type': 0,
         '@typescript-eslint/explicit-module-boundary-types': 0, // re-enable up for discussion

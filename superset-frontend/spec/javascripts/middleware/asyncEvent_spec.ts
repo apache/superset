@@ -18,6 +18,7 @@
  */
 import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
+import { $anyType } from 'src/constants';
 import * as featureFlags from 'src/featureFlags';
 import initAsyncEvents from 'src/middleware/asyncEvent';
 
@@ -68,7 +69,7 @@ describe('asyncEvent middleware', () => {
     GLOBAL_ASYNC_QUERIES_TRANSPORT: 'polling',
     GLOBAL_ASYNC_QUERIES_POLLING_DELAY: 500,
   };
-  let featureEnabledStub: any;
+  let featureEnabledStub: $anyType;
 
   function setup() {
     const getPendingComponents = sinon.stub();

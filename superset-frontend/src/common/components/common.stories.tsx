@@ -186,7 +186,7 @@ export const Tooltip = () => (
   </AntdTooltip>
 );
 
-export const StyledInfoTooltip = (args: any) => {
+export const StyledInfoTooltip = (args: Record<string, unknown>) => {
   const styles = {
     padding: '100px 0 0 200px',
   };

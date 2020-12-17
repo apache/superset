@@ -21,6 +21,7 @@ import { t, styled } from '@superset-ui/core';
 import { Nav, Navbar, NavItem } from 'react-bootstrap';
 import NavDropdown from 'src/components/NavDropdown';
 import { Menu as DropdownMenu } from 'src/common/components';
+import { $anyType } from 'src/constants';
 import MenuObject, {
   MenuObjectProps,
   MenuObjectChildProps,
@@ -287,7 +288,7 @@ export default function MenuWrapper({ data }: MenuProps) {
   // Cycle through menu.menu to build out cleanedMenu and settings
   const cleanedMenu: MenuObjectProps[] = [];
   const settings: MenuObjectProps[] = [];
-  newMenuData.menu.forEach((item: any) => {
+  newMenuData.menu.forEach((item: $anyType) => {
     if (!item) {
       return;
     }

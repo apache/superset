@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { CSSProperties, useEffect, useState, RefObject } from 'react';
+import { $anyType } from 'src/constants';
 import Loading from './Loading';
 
 export type PlaceholderProps = {
@@ -25,7 +26,7 @@ export type PlaceholderProps = {
   height?: string | number;
   placeholderStyle?: CSSProperties;
 } & {
-  [key: string]: any;
+  [key: string]: $anyType;
 };
 
 function DefaultPlaceholder({

@@ -17,6 +17,9 @@
  * under the License.
  */
 // We can codegen the enum definition based on a list of supported flags that we
+
+import { $anyType } from './constants';
+
 // check into source control. We're hardcoding the supported flags for now.
 export enum FeatureFlag {
   ALLOW_DASHBOARD_DOMAIN_SHARDING = 'ALLOW_DASHBOARD_DOMAIN_SHARDING',
@@ -45,8 +48,8 @@ export type FeatureFlagMap = {
 declare global {
   interface Window {
     featureFlags: FeatureFlagMap;
-    $: any;
-    jQuery: any;
+    $: $anyType;
+    jQuery: $anyType;
   }
 }
 

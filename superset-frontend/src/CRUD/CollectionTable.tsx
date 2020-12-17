@@ -20,6 +20,7 @@ import React, { ReactNode } from 'react';
 import shortid from 'shortid';
 import { t } from '@superset-ui/core';
 import Button from 'src/components/Button';
+import { $anyType } from 'src/constants';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
 import './crud.less';
@@ -32,15 +33,15 @@ interface CRUDCollectionProps {
   emptyMessage?: ReactNode;
   expandFieldset?: ReactNode;
   extraButtons?: ReactNode;
-  itemGenerator?: () => any;
+  itemGenerator?: () => $anyType;
   itemRenderers?: ((
     val: unknown,
     onChange: () => void,
     label: string,
-    record: any,
+    record: Record<string, unknown>,
   ) => ReactNode)[];
-  onChange?: (arg0: any) => void;
-  tableColumns: Array<any>;
+  onChange?: (arg0: $anyType) => void;
+  tableColumns: Array<string>;
 }
 
 interface CRUDCollectionState {
@@ -127,7 +128,7 @@ export default class CRUDCollection extends React.PureComponent<
     return label;
   }
 
-  changeCollection(collection: any) {
+  changeCollection(collection: $anyType) {
     this.setState({ collection });
     if (this.props.onChange) {
       this.props.onChange(Object.keys(collection).map(k => collection[k]));
@@ -148,7 +149,7 @@ export default class CRUDCollection extends React.PureComponent<
     return expandFieldset ? ['__expand'].concat(cols) : cols;
   }
 
-  toggleExpand(id: any) {
+  toggleExpand(id: number) {
     this.onCellChange(id, '__expanded', false);
     this.setState(prevState => ({
       expandedColumns: {
@@ -177,7 +178,7 @@ export default class CRUDCollection extends React.PureComponent<
     );
   }
 
-  renderExpandableSection(item: any) {
+  renderExpandableSection(item: Record<string, unknown>) {
     const propsGenerator = () => ({ item, onChange: this.onFieldsetChange });
     return recurseReactClone(
       this.props.expandFieldset,
@@ -186,14 +187,14 @@ export default class CRUDCollection extends React.PureComponent<
     );
   }
 
-  renderCell(record: any, col: any) {
+  renderCell(record: $anyType, col: string) {
     const renderer = this.props.itemRenderers && this.props.itemRenderers[col];
     const val = record[col];
     const onChange = this.onCellChange.bind(this, record.id, col);
     return renderer ? renderer(val, onChange, this.getLabel(col), record) : val;
   }
 
-  renderItem(record: any) {
+  renderItem(record: $anyType) {
     const {
       allowAddItem,
       allowDeletes,

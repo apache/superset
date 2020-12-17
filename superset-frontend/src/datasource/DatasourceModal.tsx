@@ -27,6 +27,7 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import { $anyType } from 'src/constants';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
 
@@ -53,9 +54,9 @@ const StyledDatasourceModal = styled(Modal)`
 
 interface DatasourceModalProps {
   addSuccessToast: (msg: string) => void;
-  datasource: any;
+  datasource: $anyType;
   onChange: () => {};
-  onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
+  onDatasourceSave: (datasource: object, errors?: Array<$anyType>) => {};
   onHide: () => {};
   show: boolean;
 }
@@ -127,7 +128,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       });
   };
 
-  const onDatasourceChange = (data: Record<string, any>, err: Array<any>) => {
+  const onDatasourceChange = (
+    data: Record<string, $anyType>,
+    err: Array<$anyType>,
+  ) => {
     setCurrentDatasource({
       ...data,
       metrics: data?.metrics.map((metric: Record<string, unknown>) => ({

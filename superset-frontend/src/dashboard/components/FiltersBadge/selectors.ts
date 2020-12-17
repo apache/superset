@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { $anyType } from 'src/constants';
 import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
 import { TIME_FILTER_MAP } from '../../../visualizations/FilterBox/FilterBox';
 
@@ -37,7 +38,7 @@ type Datasource = {
 type Filter = {
   chartId: number;
   columns: { [key: string]: string | string[] };
-  scopes: { [key: string]: any };
+  scopes: { [key: string]: $anyType };
   labels: { [key: string]: string };
   isDateFilter: boolean;
   directPathToFilter: string[];
@@ -123,7 +124,7 @@ export const selectIndicatorsForChart = (
   chartId: number,
   filters: { [key: number]: Filter },
   datasources: { [key: string]: Datasource },
-  charts: any,
+  charts: $anyType,
 ): Indicator[] => {
   const chart = charts[chartId];
   // no indicators if chart is loading
@@ -133,12 +134,12 @@ export const selectIndicatorsForChart = (
   // so grab the columns from the applied/rejected filters
   const appliedColumns: Set<string> = new Set(
     (chart?.queryResponse?.applied_filters || []).map(
-      (filter: any) => filter.column,
+      (filter: Record<string, $anyType>) => filter.column,
     ),
   );
   const rejectedColumns: Set<string> = new Set(
     (chart?.queryResponse?.rejected_filters || []).map(
-      (filter: any) => filter.column,
+      (filter: Record<string, $anyType>) => filter.column,
     ),
   );
   const indicators = Object.values(filters)

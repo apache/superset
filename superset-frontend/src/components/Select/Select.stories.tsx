@@ -95,10 +95,10 @@ SelectGallery.args = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const InteractiveSelect = (args: any) => {
+export const InteractiveSelect = (args: Record<string, string>) => {
   const [{ value, multi, clearable, placeholder }, updateArgs] = useArgs();
   const onSelect = (selection: {}) => {
-    const { value }: { value?: any } = selection || {};
+    const { value }: { value?: Record<string, string> } = selection || {};
     if (multi) {
       updateArgs({ value: selection });
       return;

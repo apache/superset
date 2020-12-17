@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { $anyType } from 'src/constants';
 import { User } from 'src/types/bootstrapTypes';
 import Owner from 'src/types/Owner';
 
@@ -64,7 +65,7 @@ export type SavedQueryObject = {
 
 export type CellType = {
   row: {
-    original: Record<string, unknown>;
+    original: Record<string, $anyType>;
   };
 };
 

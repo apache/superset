@@ -25,11 +25,11 @@ import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
 import { Switch } from 'src/common/components/Switch';
 import { Select } from 'src/common/components/Select';
-import { Radio } from 'src/common/components/Radio';
 import { AsyncSelect } from 'src/components/Select';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Owner from 'src/types/Owner';
 
+import { Radio } from 'react-bootstrap';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { AlertObject, Operator, Recipient, MetaObject } from './types';
 
@@ -754,7 +754,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   // Updating alert/report state
   const updateAlertState = (
     name: string,
-    value: Record<string, any> | string | null,
+    value:
+      | Record<string, unknown>
+      | string
+      | null
+      | boolean
+      | Array<Owner>
+      | number,
   ) => {
     const data = {
       ...currentAlert,
@@ -819,7 +825,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('log_retention', retention);
   };
 
-  const onContentTypeChange = (event: any) => {
+  const onContentTypeChange = (
+    event: React.ChangeEvent<Radio> & { target: HTMLInputElement },
+  ) => {
     const { target } = event;
 
     setContentType(target.value);

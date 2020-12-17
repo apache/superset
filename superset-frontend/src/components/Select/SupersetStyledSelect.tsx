@@ -41,6 +41,7 @@ import {
 import arrayMove from 'array-move';
 import { Props as SelectProps } from 'react-select/src/Select';
 import { useTheme } from '@superset-ui/core';
+import { $anyType } from 'src/constants';
 import {
   WindowedSelectComponentType,
   WindowedSelectProps,
@@ -245,7 +246,7 @@ function styled<
     // To get the real `Select` component, keep tap into `obj.select`:
     //   - for normal <Select /> component: StateManager -> Select,
     //   - for <Creatable />: StateManager -> Creatable -> Select
-    const setRef = (instance: any) => {
+    const setRef = (instance: $anyType) => {
       stateManager =
         shouldAllowSort && instance && 'refs' in instance
           ? instance.refs.wrappedInstance // obtain StateManger from SortableContainer

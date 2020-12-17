@@ -24,6 +24,7 @@ import {
   IndicatorStatus,
 } from 'src/dashboard/components/FiltersBadge/selectors';
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
+import { $anyType } from 'src/constants';
 
 export interface FiltersBadgeProps {
   chartId: number;
@@ -39,7 +40,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => {
 };
 
 const mapStateToProps = (
-  { datasources, dashboardFilters, charts }: any,
+  { datasources, dashboardFilters, charts }: $anyType,
   { chartId }: FiltersBadgeProps,
 ) => {
   const indicators = selectIndicatorsForChart(
