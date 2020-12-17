@@ -85,6 +85,7 @@ const RunQueryActionButton = ({
           <i className="fa fa-bolt" /> {runBtnText}
         </Button> */}
         <Dropdown.Button
+          onClick={() => runQuery(true)}
           icon={<Icon color="#00000a" name="caret-down" />}
           type="primary"
           overlay={overlayCreateAsMenu}
@@ -107,6 +108,7 @@ const RunQueryActionButton = ({
         <i className="fa fa-refresh" /> {runBtnText}
       </Button> */}
       <Dropdown.Button
+        onClick={() => runQuery(false)}
         icon={<Icon color="#00000" name="caret-down" />}
         type="primary"
         overlay={overlayCreateAsMenu}
