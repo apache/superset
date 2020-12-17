@@ -23,7 +23,7 @@ import { controls } from '../explore/controls';
 
 const memoizedControls = memoize((vizType, controlPanel) => {
   const controlsMap = {};
-  controlPanel.controlPanelSections.forEach(section => {
+  (controlPanel?.controlPanelSections || []).forEach(section => {
     section.controlSetRows.forEach(row => {
       row.forEach(control => {
         if (!control) return;
