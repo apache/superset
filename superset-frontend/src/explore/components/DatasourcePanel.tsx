@@ -111,6 +111,9 @@ const DatasourceContainer = styled.div`
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
     color: ${({ theme }) => theme.colors.grayscale.light1};
   }
+  .form-control.input-sm {
+    margin-bottom: 0;
+  }
 `;
 
 const DataSourcePanel = ({
