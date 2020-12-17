@@ -22,13 +22,10 @@ import { expandControlConfig } from '@superset-ui/chart-controls';
 import * as SECTIONS from './controlPanels/sections';
 
 export function getFormDataFromControls(controlsState) {
-  const formData = { queryFields: {} };
+  const formData = {};
   Object.keys(controlsState).forEach(controlName => {
     const control = controlsState[controlName];
     formData[controlName] = control.value;
-    if (control.hasOwnProperty('queryField')) {
-      formData.queryFields[controlName] = control.queryField;
-    }
   });
   return formData;
 }

@@ -198,18 +198,6 @@ describe('controlUtils', () => {
     });
   });
 
-  describe('queryFields', () => {
-    it('in formData', () => {
-      const controlsState = getAllControlsState('table', 'table', {}, {});
-      const formData = getFormDataFromControls(controlsState);
-      expect(formData.queryFields).toEqual({
-        all_columns: 'columns',
-        metric: 'metrics',
-        metrics: 'metrics',
-      });
-    });
-  });
-
   describe('findControlItem', () => {
     it('find control as a string', () => {
       const controlItem = findControlItem(
