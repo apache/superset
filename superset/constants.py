@@ -95,4 +95,11 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "post": "write",
     "put": "write",
     "related": "read",
+    "favorite_status": "write",
+    "import_": "write",
+    "cache_screenshot": "read",
+    "screenshot": "read",
+    "data": "read",
+    "thumbnail": "read",
+    "data_from_cache": "read",
 }

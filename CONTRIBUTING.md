@@ -682,19 +682,17 @@ If you already have launched Docker environment please use the following command
 
 Launch environment:
 
-CYPRESS_CONFIG=true docker-compose up
+```CYPRESS_CONFIG=true docker-compose up```
 
 It will serve backend and frontend on port 8088.
 
-Run Cypres tests:
+Run Cypress tests:
 
 ```bash
 cd cypress-base
 npm install
+npm run cypress open
 ```
-
-# run tests via headless Chrome browser (requires Chrome 64+)
-npm run cypress-run-chrome
 
 ### Storybook
 

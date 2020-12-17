@@ -57,7 +57,7 @@ class ExportChartsCommand(ExportModelsCommand):
         # becomes the default export endpoint
         for key in REMOVE_KEYS:
             del payload[key]
-        if "params" in payload:
+        if payload.get("params"):
             try:
                 payload["params"] = json.loads(payload["params"])
             except json.decoder.JSONDecodeError:

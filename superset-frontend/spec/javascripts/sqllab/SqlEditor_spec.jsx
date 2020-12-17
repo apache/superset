@@ -24,12 +24,12 @@ import {
   SQL_TOOLBAR_HEIGHT,
 } from 'src/SqlLab/constants';
 import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
-import LimitControl from 'src/SqlLab/components/LimitControl';
 import ConnectedSouthPane from 'src/SqlLab/components/SouthPane';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
+import { Dropdown } from 'src/common/components';
 
-import { defaultQueryEditor, initialState, queries, table } from './fixtures';
+import { initialState, queries, table } from './fixtures';
 
 const MOCKED_SQL_EDITOR_HEIGHT = 500;
 
@@ -89,21 +89,11 @@ describe('SqlEditor', () => {
       SQL_EDITOR_GUTTER_HEIGHT;
     expect(totalSize).toEqual(450);
   });
-  it('render a LimitControl with default limit', () => {
+  it('render a Limit Dropdown', () => {
     const defaultQueryLimit = 101;
     const updatedProps = { ...mockedProps, defaultQueryLimit };
     const wrapper = shallow(<SqlEditor {...updatedProps} />);
-    expect(wrapper.find(LimitControl)).toExist();
-    expect(wrapper.find(LimitControl).props().value).toEqual(defaultQueryLimit);
-  });
-  it('render a LimitControl with existing limit', () => {
-    const queryEditor = { ...defaultQueryEditor, queryLimit: 101 };
-    const updatedProps = { ...mockedProps, queryEditor };
-    const wrapper = shallow(<SqlEditor {...updatedProps} />);
-    expect(wrapper.find(LimitControl)).toExist();
-    expect(wrapper.find(LimitControl).props().value).toEqual(
-      queryEditor.queryLimit,
-    );
+    expect(wrapper.find(Dropdown)).toExist();
   });
   it('allows toggling autocomplete', () => {
     const wrapper = shallow(<SqlEditor {...mockedProps} />);

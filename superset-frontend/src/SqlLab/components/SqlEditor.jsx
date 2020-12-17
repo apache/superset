@@ -16,23 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable jsx-a11y/anchor-is-valid */
+/* eslint-disable jsx-a11y/no-static-element-interactions */
 import React from 'react';
 import { CSSTransition } from 'react-transition-group';
 import PropTypes from 'prop-types';
 import { FormGroup, InputGroup, Form, FormControl } from 'react-bootstrap';
 import Split from 'react-split';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 
 import { Tooltip } from 'src/common/components/Tooltip';
 import Label from 'src/components/Label';
 import Button from 'src/components/Button';
-import Checkbox from 'src/components/Checkbox';
 import Timer from 'src/components/Timer';
 import Hotkeys from 'src/components/Hotkeys';
-
-import LimitControl from './LimitControl';
+import {
+  Dropdown,
+  Menu as AntdMenu,
+  Menu,
+  Switch,
+} from 'src/common/components';
+import Icon from 'src/components/Icon';
 import TemplateParamsEditor from './TemplateParamsEditor';
 import ConnectedSouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
@@ -51,15 +57,20 @@ import RunQueryActionButton from './RunQueryActionButton';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 import { CtasEnum } from '../actions/sqlLab';
 
-import { Menu, Dropdown, message, Space, Switch } from 'antd';
-import Icon from 'src/components/Icon';
-
+const LIMIT_DROPDOWN = [10, 100, 1000, 10000, 100000];
 const SQL_EDITOR_PADDING = 10;
 const INITIAL_NORTH_PERCENT = 30;
 const INITIAL_SOUTH_PERCENT = 70;
 const SET_QUERY_EDITOR_SQL_DEBOUNCE_MS = 2000;
 const VALIDATION_DEBOUNCE_MS = 600;
 const WINDOW_RESIZE_THROTTLE_MS = 100;
+
+const LimitSelectStyled = styled.span`
+  .ant-dropdown-trigger {
+    color: black;
+    text-decoration: none;
+  }
+`;
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -111,6 +122,7 @@ class SqlEditor extends React.PureComponent {
       SET_QUERY_EDITOR_SQL_DEBOUNCE_MS,
     );
     this.queryPane = this.queryPane.bind(this);
+    this.renderQueryLimit = this.renderQueryLimit.bind(this);
     this.getAceEditorAndSouthPaneHeights = this.getAceEditorAndSouthPaneHeights.bind(
       this,
     );
@@ -125,7 +137,6 @@ class SqlEditor extends React.PureComponent {
       WINDOW_RESIZE_THROTTLE_MS,
     );
 
-    this.handleMenuClick = this.handleMenuClick.bind(this);
     this.renderDropdown = this.renderDropdown.bind(this);
   }
 
@@ -411,35 +422,69 @@ class SqlEditor extends React.PureComponent {
     );
   }
 
-  handleMenuClick() {
-    console.log('pressed a menu item');
-  }
-
   renderDropdown() {
     const qe = this.props.queryEditor;
+    const successful =
+      this.props.latestQuery && this.props.latestQuery.state === 'success';
+    const scheduleToolTip = successful
+      ? t('Schedule the query periodically')
+      : t('You must run the query successfully first');
     const menu = (
       <Menu onClick={this.handleMenuClick}>
         <Menu.Item>
           {' '}
-          <label for="autocomplete-switch">Autocomplete</label>{' '}
+          <span>Autocomplete</span>{' '}
           <Switch
             checked={this.state.autocompleteEnabled}
             onChange={this.handleToggleAutocompleteEnabled}
             name="autocomplete-switch"
           />{' '}
         </Menu.Item>
-        <Menu.Item>
-          <TemplateParamsEditor
-            language="json"
-            onChange={params => {
-              this.props.actions.queryEditorSetTemplateParams(qe, params);
-            }}
-            code={qe.templateParams}
-          /></Menu.Item>
-        <Menu.Item>Schedule Run</Menu.Item>
+        {isFeatureEnabled(FeatureFlag.ENABLE_TEMPLATE_PROCESSING) && (
+          <Menu.Item>
+            <TemplateParamsEditor
+              language="json"
+              onChange={params => {
+                this.props.actions.queryEditorSetTemplateParams(qe, params);
+              }}
+              code={qe.templateParams}
+            />
+          </Menu.Item>
+        )}
+        {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) && (
+          <Menu.Item>
+            <ScheduleQueryButton
+              defaultLabel={qe.title}
+              sql={qe.sql}
+              onSchedule={this.props.actions.scheduleQuery}
+              schema={qe.schema}
+              dbId={qe.dbId}
+              scheduleQueryWarning={this.props.scheduleQueryWarning}
+              tooltip={scheduleToolTip}
+              disabled={!successful}
+            />
+          </Menu.Item>
+        )}
       </Menu>
     );
     return menu;
+  }
+
+  renderQueryLimit() {
+    const menuDropdown = (
+      <AntdMenu>
+        {LIMIT_DROPDOWN.map(limit => (
+          <AntdMenu.Item onClick={() => this.setQueryLimit(limit)}>
+            {/* // eslint-disable-line no-use-before-define */}
+            <a role="button" styling="link">
+              {limit.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')}
+            </a>{' '}
+          </AntdMenu.Item>
+        ))}
+      </AntdMenu>
+    );
+
+    return menuDropdown;
   }
 
   renderEditorBottomBar(hotkeys) {
@@ -509,11 +554,6 @@ class SqlEditor extends React.PureComponent {
         </Tooltip>
       );
     }
-    const successful =
-      this.props.latestQuery && this.props.latestQuery.state === 'success';
-    const scheduleToolTip = successful
-      ? t('Schedule the query periodically')
-      : t('You must run the query successfully first');
     return (
       <div className="sql-toolbar" id="js-sql-toolbar">
         <div className="leftItems">
@@ -550,20 +590,6 @@ class SqlEditor extends React.PureComponent {
                   />
                 </span>
               )}
-            {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) && (
-              <span>
-                <ScheduleQueryButton
-                  defaultLabel={qe.title}
-                  sql={qe.sql}
-                  onSchedule={this.props.actions.scheduleQuery}
-                  schema={qe.schema}
-                  dbId={qe.dbId}
-                  scheduleQueryWarning={this.props.scheduleQueryWarning}
-                  tooltip={scheduleToolTip}
-                  disabled={!successful}
-                />
-              </span>
-            )}
             <span>
               <SaveQuery
                 query={qe}
@@ -578,16 +604,16 @@ class SqlEditor extends React.PureComponent {
             </span>
             {ctasControls && <span>{ctasControls}</span>}
             <span>
-              <LimitControl
-                value={
-                  this.props.queryEditor.queryLimit !== undefined
-                    ? this.props.queryEditor.queryLimit
-                    : this.props.defaultQueryLimit
-                }
-                defaultQueryLimit={this.props.defaultQueryLimit}
-                maxRow={this.props.maxRow}
-                onChange={this.setQueryLimit.bind(this)}
-              />
+              <LimitSelectStyled>
+                <Dropdown overlay={this.renderQueryLimit()}>
+                  <a onClick={e => e.preventDefault()}>
+                    <b>LIMIT:</b>{' '}
+                    {this.props.queryEditor.queryLimit !== undefined
+                      ? this.props.queryEditor.queryLimit
+                      : this.props.defaultQueryLimit}
+                  </a>
+                </Dropdown>
+              </LimitSelectStyled>
             </span>
             <span>
               <Hotkeys header={t('Keyboard shortcuts')} hotkeys={hotkeys} />

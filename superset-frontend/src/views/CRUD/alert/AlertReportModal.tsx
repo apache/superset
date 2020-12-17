@@ -28,8 +28,9 @@ import { Select } from 'src/common/components/Select';
 import { Radio } from 'src/common/components/Radio';
 import { AsyncSelect } from 'src/components/Select';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-
 import Owner from 'src/types/Owner';
+
+import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { AlertObject, Operator, Recipient, MetaObject } from './types';
 
 type SelectValue = {
@@ -121,7 +122,7 @@ const StyledSectionContainer = styled.div`
 
     .column {
       flex: 1 1 auto;
-      min-width: 33.33%;
+      min-width: calc(33.33% - ${({ theme }) => theme.gridUnit * 8}px);
       padding: ${({ theme }) => theme.gridUnit * 4}px;
 
       .async-select {
@@ -142,6 +143,9 @@ const StyledSectionContainer = styled.div`
     display: flex;
     flex-direction: row;
     align-items: center;
+    &.wrap {
+      flex-wrap: wrap;
+    }
 
     > div {
       flex: 1 1 auto;
@@ -180,7 +184,7 @@ const StyledSwitchContainer = styled.div`
   }
 `;
 
-const StyledInputContainer = styled.div`
+export const StyledInputContainer = styled.div`
   flex: 1 1 auto;
   margin: ${({ theme }) => theme.gridUnit * 2}px;
   margin-top: 0;
@@ -449,10 +453,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [currentAlert, setCurrentAlert] = useState<AlertObject | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [contentType, setContentType] = useState<string>('dashboard');
-  const [scheduleFormat, setScheduleFormat] = useState<string>(
-    'dropdown-format',
-  );
-
   // Dropdown options
   const [sourceOptions, setSourceOptions] = useState<MetaObject[]>([]);
   const [dashboardOptions, setDashboardOptions] = useState<MetaObject[]>([]);
@@ -806,12 +806,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('validator_config_json', config);
   };
 
-  const onScheduleFormatChange = (event: any) => {
-    const { target } = event;
-
-    setScheduleFormat(target.value);
-  };
-
   const onLogRetentionChange = (retention: number) => {
     updateAlertState('log_retention', retention);
   };
@@ -976,12 +970,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   // Dropdown options
   const conditionOptions = CONDITIONS.map(condition => {
     return (
-      <Select.Option value={condition.value}>{condition.label}</Select.Option>
+      <Select.Option key={condition.value} value={condition.value}>
+        {condition.label}
+      </Select.Option>
     );
   });
 
   const retentionOptions = RETENTION_OPTIONS.map(option => {
-    return <Select.Option value={option.value}>{option.label}</Select.Option>;
+    return (
+      <Select.Option key={option.value} value={option.value}>
+        {option.label}
+      </Select.Option>
+    );
   });
 
   return (
@@ -1102,7 +1102,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   />
                 </div>
               </StyledInputContainer>
-              <div className="inline-container">
+              <div className="inline-container wrap">
                 <StyledInputContainer>
                   <div className="control-label">
                     {t('Alert If...')}
@@ -1153,32 +1153,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             <StyledSectionTitle>
               <h4>{t('Alert Condition Schedule')}</h4>
             </StyledSectionTitle>
-            <Radio.Group
-              onChange={onScheduleFormatChange}
-              value={scheduleFormat}
-            >
-              <div className="inline-container add-margin">
-                <Radio value="dropdown-format" />
-                <span className="input-label">
-                  Every x Minutes (should be set of dropdown options)
-                </span>
-              </div>
-              <div className="inline-container add-margin">
-                <Radio value="cron-format" />
-                <span className="input-label">CRON Schedule</span>
-                <StyledInputContainer className="styled-input">
-                  <div className="input-container">
-                    <input
-                      type="text"
-                      name="crontab"
-                      value={currentAlert ? currentAlert.crontab || '' : ''}
-                      placeholder={t('CRON Expression')}
-                      onChange={onTextChange}
-                    />
-                  </div>
-                </StyledInputContainer>
-              </div>
-            </Radio.Group>
+            <AlertReportCronScheduler
+              value={(currentAlert && currentAlert.crontab) || undefined}
+              onChange={newVal => updateAlertState('crontab', newVal)}
+            />
             <StyledSectionTitle>
               <h4>{t('Schedule Settings')}</h4>
             </StyledSectionTitle>

@@ -111,7 +111,8 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
           row: {
             original: { start_dttm: startDttm, end_dttm: endDttm },
           },
-        }: any) => fDuration(endDttm - startDttm),
+        }: any) =>
+          fDuration(new Date(startDttm).getTime(), new Date(endDttm).getTime()),
         Header: t('Duration'),
         disableSortBy: true,
       },
