@@ -37,9 +37,7 @@ import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import TooltipWrapper from 'src/components/TooltipWrapper';
-import ImportModelsModal, {
-  StyledIcon,
-} from 'src/components/ImportModal/index';
+import ImportModelsModal from 'src/components/ImportModal/index';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
 import DashboardCard from './DashboardCard';
@@ -51,6 +49,11 @@ const PASSWORDS_NEEDED_MESSAGE = t(
     '"Secure Extra" and "Certificate" sections of ' +
     'the database configuration are not present in export files, and ' +
     'should be added manually after the import if they are needed.',
+);
+const CONFIRM_OVERWRITE_MESSAGE = t(
+  'You are importing one or more dashboards that already exist. ' +
+    'Overwriting might cause you to lose some of your work. Are you ' +
+    'sure you want to overwrite?',
 );
 
 interface DashboardListProps {
@@ -541,11 +544,8 @@ function DashboardList(props: DashboardListProps) {
       <ImportModelsModal
         resourceName="dashboard"
         resourceLabel={t('dashboard')}
-        icon={<StyledIcon name="nav-dashboard" />}
         passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
-        confirmOverwriteMessage={t(
-          'One or more dashboards to be imported already exist.',
-        )}
+        confirmOverwriteMessage={CONFIRM_OVERWRITE_MESSAGE}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         onModelImport={handleDashboardImport}
