@@ -53,7 +53,7 @@ const Styles = styled.div`
     margin-bottom: ${({ theme }) => 2 * theme.gridUnit}px;
   }
   .ant-dropdown-trigger {
-    margin-left: ${({ theme }) => theme.gridUnit}px;
+    margin-left: ${({ theme }) => 2 * theme.gridUnit}px;
     box-shadow: none;
     &:active {
       box-shadow: none;
@@ -70,7 +70,6 @@ const Styles = styled.div`
   }
   svg.datasource-modal-trigger {
     color: ${({ theme }) => theme.colors.primary.base};
-    vertical-align: ${({ theme }) => theme.gridUnit + 2}px;
     cursor: pointer;
   }
   .title-select {
@@ -85,8 +84,7 @@ const Styles = styled.div`
     overflow: hidden;
   }
   .dataset-svg {
-    vertical-align: ${({ theme }) => theme.gridUnit + 2}px;
-    margin-right: 10px;
+    margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
   }
 `;
 
