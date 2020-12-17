@@ -81,7 +81,7 @@ const Styles = styled.div`
     padding: ${({ theme }) => 2 * theme.gridUnit}px 0;
     border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
-  .main-explore-content  {
+  .main-explore-content {
     border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
   .controls-column {
@@ -397,10 +397,10 @@ class ExploreViewContainer extends React.Component {
             #app-menu,
             #app {
               flex: 1 1 auto;
-              overflow: hidden;
             }
             #app {
               flex-basis: 100%;
+              overflow: hidden;
             }
             #app-menu {
               flex-shrink: 0;
@@ -415,9 +415,15 @@ class ExploreViewContainer extends React.Component {
             sliceName={this.props.sliceName}
           />
         )}
-        <div className={collapse ? 'no-show' : 'data-tab explore-column data-source-selection'}>
+        <div
+          className={
+            collapse
+              ? 'no-show'
+              : 'data-tab explore-column data-source-selection'
+          }
+        >
           <div className="title-container">
-            <span className="horizontal-text">Datasource</span>
+            <span className="horizontal-text">{t('Datasource')}</span>
             <span
               role="button"
               tabIndex={0}
@@ -459,7 +465,7 @@ class ExploreViewContainer extends React.Component {
             <Icon name="dataset-physical" width={16} />
           </div>
         ) : null}
-        <div className='col-sm-3 explore-column controls-column'>
+        <div className="col-sm-3 explore-column controls-column">
           <QueryAndSaveBtns
             canAdd={!!(this.props.can_add || this.props.can_overwrite)}
             onQuery={this.onQuery}
@@ -478,7 +484,11 @@ class ExploreViewContainer extends React.Component {
             isDatasourceMetaLoading={this.props.isDatasourceMetaLoading}
           />
         </div>
-        <div className={`main-explore-content ${collapse ? 'col-sm-9' : 'col-sm-7'}`}>
+        <div
+          className={`main-explore-content ${
+            collapse ? 'col-sm-9' : 'col-sm-7'
+          }`}
+        >
           {this.renderChartContainer()}
         </div>
       </Styles>

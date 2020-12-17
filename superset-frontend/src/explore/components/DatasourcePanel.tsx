@@ -55,6 +55,9 @@ const DatasourceContainer = styled.div`
   }
   .ant-collapse {
     height: auto;
+    border-bottom: 1px solid #cfd8dc;
+    padding-bottom: 8px;
+    background-color: ${({ theme }) => theme.colors.grayscale.light4};
   }
   .ant-collapse > .ant-collapse-item > .ant-collapse-header {
     padding-left: 10px;
@@ -67,19 +70,26 @@ const DatasourceContainer = styled.div`
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
     .anticon.anticon-right.ant-collapse-arrow > svg {
       transform: rotate(90deg) !important;
+      margin-right: ${({ theme }) => theme.gridUnit * -2}px;
     }
   }
   .ant-collapse-item.ant-collapse-item-active {
     .anticon.anticon-right.ant-collapse-arrow > svg {
       transform: rotate(-90deg) !important;
     }
+    .ant-collapse-header {
+      border: 0;
+    }
   }
   .header {
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
     margin-left: ${({ theme }) => theme.gridUnit * -2}px;
   }
-  .ant-collapse-content-box > div {
-    margin-left: -14px;
+  .ant-collapse-content-box {
+    padding-bottom: 0px;
+    & > div {
+      margin-left: -14px;
+    }
   }
   .type-label {
     text-align: left;
@@ -163,7 +173,7 @@ const DataSourcePanel = ({
             key="column"
           >
             <div className="field-length">
-              {`Showing ${columnSlice.length} of ${columns.length}`}
+              {t(`Showing ${columnSlice.length} of ${columns.length}`)}
             </div>
             {columnSlice.map(col => (
               <div key={col.column_name} className="column">
@@ -178,7 +188,7 @@ const DataSourcePanel = ({
             key="metrics"
           >
             <div className="field-length">
-              {`Showing ${metricSlice.length} of ${metrics.length}`}
+              {t(`Showing ${metricSlice.length} of ${metrics.length}`)}
             </div>
             {metricSlice.map(m => (
               <div key={m.column_name} className="column">
