@@ -55,6 +55,7 @@ NEW_SECURITY_CONVERGE_VIEWS = (
     "Dashboard",
     "CssTemplate",
     "Chart",
+    "Query",
     "SavedQuery",
 )
 
@@ -683,7 +684,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_all("Annotation", perm_set)
         self.assert_can_all("CssTemplate", perm_set)
         self.assert_can_all("Dataset", perm_set)
-        self.assert_can_read("QueryView", perm_set)
+        self.assert_can_read("Query", perm_set)
         self.assertIn(("can_import_dashboards", "Superset"), perm_set)
         self.assertIn(("can_this_form_post", "CsvToDatabaseView"), perm_set)
         self.assertIn(("can_this_form_get", "CsvToDatabaseView"), perm_set)
