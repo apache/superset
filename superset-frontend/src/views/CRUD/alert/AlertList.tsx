@@ -19,7 +19,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
-import { t, SupersetClient, makeApi } from '@superset-ui/core';
+import { t, SupersetClient, makeApi, styled } from '@superset-ui/core';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import Button from 'src/components/Button';
 import FacePile from 'src/components/FacePile';
@@ -37,6 +37,8 @@ import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import RecipientIcon from 'src/views/CRUD/alert/components/RecipientIcon';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DeleteModal from 'src/components/DeleteModal';
+import LastUpdated from 'src/components/LastUpdated';
+
 import {
   useListViewResource,
   useSingleViewResource,
@@ -60,6 +62,13 @@ const deleteAlerts = makeApi<number[], { message: string }>({
   method: 'DELETE',
   endpoint: '/api/v1/report/',
 });
+
+const RefreshContainer = styled.div`
+  width: 100%;
+  padding: 0 ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 3}px;
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+`;
 
 function AlertList({
   addDangerToast,
@@ -86,6 +95,7 @@ function AlertList({
       resourceCount: alertsCount,
       resourceCollection: alerts,
       bulkSelectEnabled,
+      lastFetched,
     },
     hasPerm,
     fetchData,
@@ -397,7 +407,11 @@ function AlertList({
           },
         ]}
         buttons={subMenuButtons}
-      />
+      >
+        <RefreshContainer>
+          <LastUpdated updatedAt={lastFetched} update={() => refreshData()} />
+        </RefreshContainer>
+      </SubMenu>
       <AlertReportModal
         alert={currentAlert}
         addDangerToast={addDangerToast}
