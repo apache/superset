@@ -57,7 +57,7 @@ export default function AlertStatusIcon({
   };
   switch (state) {
     case AlertState.success:
-      lastStateConfig.name = isReportEnabled ? 'check' : 'alert-solid';
+      lastStateConfig.name = isReportEnabled ? 'check' : 'alert-solid-small';
       lastStateConfig.label = isReportEnabled
         ? t('Report Sent')
         : t('Alert Triggered, Notification Sent');
@@ -83,7 +83,7 @@ export default function AlertStatusIcon({
       lastStateConfig.status = AlertState.noop;
       break;
     case AlertState.grace:
-      lastStateConfig.name = 'alert-solid';
+      lastStateConfig.name = 'alert-solid-small';
       lastStateConfig.label = t('Alert Triggered, In Grace Period');
       lastStateConfig.status = AlertState.grace;
       break;
@@ -98,6 +98,11 @@ export default function AlertStatusIcon({
         name={lastStateConfig.name as IconName}
         status={lastStateConfig.status}
         isReportEnabled={isReportEnabled}
+        viewBox={
+          lastStateConfig.name === 'alert-solid-small'
+            ? '-6 -6 24 24'
+            : '0 0 24 24'
+        }
       />
     </Tooltip>
   );
