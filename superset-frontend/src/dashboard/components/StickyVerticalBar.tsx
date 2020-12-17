@@ -28,6 +28,8 @@ const Wrapper = styled.div`
   position: relative;
   width: 16px;
   flex: 0 0 16px;
+  /* these animations (which can be enabled with the "animated" class) look glitchy due to chart resizing */
+  /* keeping these for posterity, in case we can improve that resizing performance */
   /* &.animated {
     transition: width 0;
     transition-delay: ${({ theme }) =>
