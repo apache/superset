@@ -93,7 +93,7 @@ export default function AlertStatusIcon({
       lastStateConfig.status = AlertState.noop;
   }
   return (
-    <Tooltip title={lastStateConfig.label} placement="bottom">
+    <Tooltip title={lastStateConfig.label} placement="bottomLeft">
       <StatusIcon
         name={lastStateConfig.name as IconName}
         status={lastStateConfig.status}
