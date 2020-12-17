@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import { useCallback, useEffect } from 'react';
 /* eslint camelcase: 0 */
 import URI from 'urijs';
 import {
@@ -248,6 +250,14 @@ export function postForm(url, payload, target = '_blank') {
   document.body.removeChild(hiddenForm);
 }
 
+export function getDataTablePageSize(columnsLength) {
+  let pageSize;
+  if (columnsLength) {
+    pageSize = Math.ceil(Math.max(5, 10000 / columnsLength));
+  }
+  return pageSize || 50;
+}
+
 export const exportChart = ({
   formData,
   resultFormat = 'json',
@@ -283,4 +293,18 @@ export const exploreChart = formData => {
     allowDomainSharding: false,
   });
   postForm(url, formData);
+};
+
+export const useDebouncedEffect = (effect, delay) => {
+  const callback = useCallback(effect, [effect]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      callback();
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [callback, delay]);
 };

@@ -16,24 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { mount } from 'enzyme';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import Owner from './Owner';
 
-import CodeModal from 'src/dashboard/components/CodeModal';
-
-describe('CodeModal', () => {
-  const mockedProps = {
-    triggerNode: <i className="fa fa-edit" />,
+export default interface Dataset {
+  changed_by_name: string;
+  changed_by_url: string;
+  changed_by: string;
+  changed_on_delta_humanized: string;
+  database: {
+    id: string;
+    database_name: string;
   };
-  it('is valid', () => {
-    expect(React.isValidElement(<CodeModal {...mockedProps} />)).toBe(true);
-  });
-  it('renders the trigger node', () => {
-    const wrapper = mount(<CodeModal {...mockedProps} />, {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: { theme: supersetTheme },
-    });
-    expect(wrapper.find('.fa-edit')).toExist();
-  });
-});
+  kind: string;
+  explore_url: string;
+  id: number;
+  owners: Array<Owner>;
+  schema: string;
+  table_name: string;
+}

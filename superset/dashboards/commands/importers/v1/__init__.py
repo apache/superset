@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Dict, Iterator, List, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session
@@ -26,6 +26,7 @@ from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.dashboards.commands.exceptions import DashboardImportError
 from superset.dashboards.commands.importers.v1.utils import (
+    find_chart_uuids,
     import_dashboard,
     update_id_refs,
 )
@@ -36,17 +37,6 @@ from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.models.dashboard import dashboard_slices
-
-
-def find_chart_uuids(position: Dict[str, Any]) -> Iterator[str]:
-    """Find all chart UUIDs in a dashboard"""
-    for child in position.values():
-        if (
-            isinstance(child, dict)
-            and child["type"] == "CHART"
-            and "uuid" in child["meta"]
-        ):
-            yield child["meta"]["uuid"]
 
 
 class ImportDashboardsCommand(ImportModelsCommand):
