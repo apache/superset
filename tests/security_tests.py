@@ -50,6 +50,7 @@ from .fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 
 NEW_SECURITY_CONVERGE_VIEWS = (
     "Annotation",
+    "Database",
     "Dataset",
     "Dashboard",
     "CssTemplate",
@@ -701,7 +702,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_cannot_write("UserDBModelView", perm_set)
 
     def assert_can_admin(self, perm_set):
-        self.assert_can_all("DatabaseView", perm_set)
+        self.assert_can_all("Database", perm_set)
         self.assert_can_all("RoleModelView", perm_set)
         self.assert_can_all("UserDBModelView", perm_set)
 
