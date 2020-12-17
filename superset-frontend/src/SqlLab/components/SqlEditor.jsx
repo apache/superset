@@ -430,8 +430,7 @@ class SqlEditor extends React.PureComponent {
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
 
-    console.log(isFeatureEnabled(FeatureFlag.ENABLE_TEMPLATE_PROCESSING));
-    const menu = (
+    return (
       <Menu onClick={this.handleMenuClick}>
         <Menu.Item>
           {' '}
@@ -469,7 +468,6 @@ class SqlEditor extends React.PureComponent {
         )}
       </Menu>
     );
-    return menu;
   }
 
   renderQueryLimit() {
