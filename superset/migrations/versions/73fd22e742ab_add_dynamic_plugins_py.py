@@ -17,14 +17,14 @@
 """add_dynamic_plugins.py
 
 Revision ID: 73fd22e742ab
-Revises: f80a3b88324b
+Revises: 0a6f12f60c73
 Create Date: 2020-07-09 17:12:00.686702
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "73fd22e742ab"
-down_revision = "f80a3b88324b"
+down_revision = "0a6f12f60c73"
 
 import sqlalchemy as sa
 from alembic import op
