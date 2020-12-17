@@ -254,18 +254,23 @@ export function useSingleViewResource<D extends object = any>(
         ({ json = {} }) => {
           updateState({
             resource: json.result,
+            error: null,
           });
           return json.id;
         },
-        createErrorHandler(errMsg =>
+        createErrorHandler(errMsg => {
           handleErrorMsg(
             t(
               'An error occurred while creating %ss: %s',
               resourceLabel,
               JSON.stringify(errMsg),
             ),
-          ),
-        ),
+          );
+
+          updateState({
+            error: errMsg,
+          });
+        }),
       )
       .finally(() => {
         updateState({ loading: false });
@@ -287,18 +292,25 @@ export function useSingleViewResource<D extends object = any>(
         ({ json = {} }) => {
           updateState({
             resource: json.result,
+            error: null,
           });
           return json.result;
         },
-        createErrorHandler(errMsg =>
+        createErrorHandler(errMsg => {
           handleErrorMsg(
             t(
               'An error occurred while fetching %ss: %s',
               resourceLabel,
               JSON.stringify(errMsg),
             ),
-          ),
-        ),
+          );
+
+          updateState({
+            error: errMsg,
+          });
+
+          return errMsg;
+        }),
       )
       .finally(() => {
         updateState({ loading: false });

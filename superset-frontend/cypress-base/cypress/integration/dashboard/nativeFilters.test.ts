@@ -44,7 +44,7 @@ describe('Nativefilters', () => {
       .click();
 
     // possible bug with cypress where it is having issue discovering the field input
-    // after it is enable it is enabled
+    // after it is enabled
 
     /* cy.get('.ant-modal')
       .find('[data-test="field-input"]')
