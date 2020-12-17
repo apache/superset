@@ -127,6 +127,7 @@ class AdhocMetricOption extends React.PureComponent {
           label={adhocMetric.label}
           onRemove={this.onRemoveMetric}
           isAdhoc
+          isFunction
         />
       </Popover>
     );

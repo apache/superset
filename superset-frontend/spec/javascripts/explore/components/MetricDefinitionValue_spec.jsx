@@ -36,7 +36,7 @@ describe('MetricDefinitionValue', () => {
     const wrapper = shallow(
       <MetricDefinitionValue option={{ metric_name: 'a_saved_metric' }} />,
     );
-    expect(wrapper.find(MetricOption)).toExist();
+    expect(wrapper.find('OptionControlLabel')).toExist();
   });
 
   it('renders an AdhocMetricOption given an adhoc metric', () => {

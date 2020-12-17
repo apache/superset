@@ -174,7 +174,7 @@ class AdhocFilterControl extends React.Component {
     this.setState(
       prevState => ({
         ...prevState,
-        values: [...prevState.values, new AdhocFilter(newFilter)],
+        values: [...prevState.values, newFilter],
       }),
       () => {
         this.onChange(this.state.values);
