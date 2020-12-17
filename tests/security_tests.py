@@ -728,13 +728,11 @@ class TestRolePermission(SupersetTestCase):
             )
         )
 
-        log_permissions = ["can_list", "can_show"]
+        log_permissions = ["can_read"]
         for log_permission in log_permissions:
             self.assertTrue(
                 security_manager._is_admin_only(
-                    security_manager.find_permission_view_menu(
-                        log_permission, "LogModelView"
-                    )
+                    security_manager.find_permission_view_menu(log_permission, "Log")
                 )
             )
 

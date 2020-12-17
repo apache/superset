@@ -46,7 +46,12 @@ feature_flags.update(config.FEATURE_FLAGS)
 feature_flags_func = config.GET_FEATURE_FLAGS_FUNC
 if feature_flags_func:
     # pylint: disable=not-callable
-    feature_flags = feature_flags_func(feature_flags)
+    try:
+        feature_flags = feature_flags_func(feature_flags)
+    except Exception:  # pylint: disable=broad-except
+        # bypass any feature flags that depend on context
+        # that's not available
+        pass
 
 
 def normalize_token(token_name: str) -> str:
