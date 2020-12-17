@@ -1,6 +1,12 @@
 name: Frontend
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - "!dependabot/**/docs/**"
+  pull_request_target:
+    branches:
+      - "!dependabot/**/docs/**"
 
 jobs:
   build:
