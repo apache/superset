@@ -370,7 +370,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         ReportSchedule Api: Test get releated report schedule
         """
         self.login(username="admin")
-        related_columns = ["created_by", "chart", "dashboard"]
+        related_columns = ["owners", "chart", "dashboard", "database"]
         for related_column in related_columns:
             uri = f"api/v1/report/related/{related_column}"
             rv = self.client.get(uri)

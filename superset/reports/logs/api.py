@@ -22,7 +22,7 @@ from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_appbuilder.api.schemas import get_item_schema, get_list_schema
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from superset.constants import RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.reports import ReportExecutionLog
 from superset.reports.logs.schemas import openapi_spec_methods_override
 from superset.views.base_api import BaseSupersetModelRestApi
@@ -34,6 +34,8 @@ class ReportExecutionLogRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(ReportExecutionLog)
 
     include_route_methods = {RouteMethod.GET, RouteMethod.GET_LIST}
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+
     class_permission_name = "ReportSchedule"
     resource_name = "report"
     allow_browser_login = True

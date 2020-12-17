@@ -42,6 +42,9 @@ export const ErrorTypeEnum = {
 
   // Other errors
   BACKEND_TIMEOUT_ERROR: 'BACKEND_TIMEOUT_ERROR',
+
+  // Sqllab error
+  MISSING_TEMPLATE_PARAMS_ERROR: 'MISSING_TEMPLATE_PARAMS_ERROR',
 } as const;
 
 type ValueOf<T> = T[keyof T];

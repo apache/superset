@@ -62,7 +62,7 @@ const mockUser = {
 };
 
 fetchMock.get(databasesInfoEndpoint, {
-  permissions: ['can_delete'],
+  permissions: ['can_write'],
 });
 fetchMock.get(databasesEndpoint, {
   result: mockdatabases,
