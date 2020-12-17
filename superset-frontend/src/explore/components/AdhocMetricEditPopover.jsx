@@ -97,8 +97,6 @@ export default class AdhocMetricEditPopover extends React.Component {
       ...adhocMetric,
       label,
       hasCustomLabel,
-      // unset isNew here in case save button was clicked when no changes were made
-      isNew: false,
     });
     this.props.onClose();
   }

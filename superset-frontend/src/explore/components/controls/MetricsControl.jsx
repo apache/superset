@@ -315,6 +315,7 @@ class MetricsControl extends React.PureComponent {
         onMetricEdit={this.onNewMetric}
         columns={this.props.columns}
         datasourceType={this.props.datasourceType}
+        createNew
       >
         {trigger}
       </AdhocMetricPopoverTrigger>

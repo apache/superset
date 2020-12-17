@@ -214,7 +214,6 @@ class AdhocFilterControl extends React.Component {
             operator: OPERATORS['>'],
             comparator: 0,
             clause: CLAUSES.HAVING,
-            isNew: true,
           });
         }
         // has a custom label, meaning it's custom column
@@ -231,7 +230,6 @@ class AdhocFilterControl extends React.Component {
             operator: OPERATORS['>'],
             comparator: 0,
             clause: CLAUSES.HAVING,
-            isNew: true,
           });
         }
         // add a new filter item
@@ -303,6 +301,7 @@ class AdhocFilterControl extends React.Component {
         datasource={this.props.datasource}
         options={this.state.options}
         onFilterEdit={this.onNewFilter}
+        createNew
       >
         {trigger}
       </AdhocFilterPopoverTrigger>

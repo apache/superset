@@ -35,10 +35,11 @@ interface AdhocFilterPopoverTriggerProps {
   datasource: Record<string, any>;
   onFilterEdit: () => void;
   partitionColumn?: string;
+  createNew?: boolean;
 }
 
 interface AdhocFilterPopoverTriggerState {
-  popoverVisible?: boolean;
+  popoverVisible: boolean;
 }
 
 class AdhocFilterPopoverTrigger extends React.PureComponent<
@@ -51,16 +52,8 @@ class AdhocFilterPopoverTrigger extends React.PureComponent<
     this.closePopover = this.closePopover.bind(this);
     this.togglePopover = this.togglePopover.bind(this);
     this.state = {
-      // automatically open the popover the the metric is new
-      popoverVisible: !!props.adhocFilter.isNew,
+      popoverVisible: false,
     };
-  }
-
-  componentWillUnmount() {
-    // isNew is used to auto-open the popup. Once popup is viewed, it's not
-    // considered new anymore. We mutate the prop directly because we don't
-    // want excessive rerenderings.
-    this.props.adhocFilter.isNew = false;
   }
 
   onPopoverResize() {
@@ -72,11 +65,8 @@ class AdhocFilterPopoverTrigger extends React.PureComponent<
   }
 
   togglePopover(visible: boolean) {
-    this.setState(({ popoverVisible }) => {
-      this.props.adhocFilter.isNew = false;
-      return {
-        popoverVisible: visible === undefined ? !popoverVisible : visible,
-      };
+    this.setState({
+      popoverVisible: visible,
     });
   }
 
@@ -111,10 +101,11 @@ class AdhocFilterPopoverTrigger extends React.PureComponent<
           placement="right"
           trigger="click"
           content={overlayContent}
-          defaultVisible={this.state.popoverVisible || adhocFilter.isNew}
+          defaultVisible={this.state.popoverVisible}
           visible={this.state.popoverVisible}
-          onVisibleChange={() => this.togglePopover(true)}
+          onVisibleChange={this.togglePopover}
           overlayStyle={{ zIndex: 1 }}
+          destroyTooltipOnHide={this.props.createNew}
         >
           {this.props.children}
         </Popover>

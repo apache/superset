@@ -29,10 +29,11 @@ export type AdhocMetricPopoverTriggerProps = {
   columns: typeof columnType[];
   datasourceType: string;
   children: ReactNode;
+  createNew?: boolean;
 };
 
 export type AdhocMetricPopoverTriggerState = {
-  popoverVisible?: boolean;
+  popoverVisible: boolean;
   title: { label: string; hasCustomLabel: boolean };
 };
 
@@ -47,19 +48,12 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     this.closePopover = this.closePopover.bind(this);
     this.togglePopover = this.togglePopover.bind(this);
     this.state = {
-      popoverVisible: undefined,
+      popoverVisible: false,
       title: {
         label: props.adhocMetric.label,
         hasCustomLabel: props.adhocMetric.hasCustomLabel,
       },
     };
-  }
-
-  componentWillUnmount() {
-    // isNew is used to auto-open the popup. Once popup is viewed, it's not
-    // considered new anymore. We mutate the prop directly because we don't
-    // want excessive rerenderings.
-    this.props.adhocMetric.isNew = false;
   }
 
   onLabelChange(e: any) {
@@ -81,11 +75,8 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
   }
 
   togglePopover(visible: boolean) {
-    this.setState(({ popoverVisible }) => {
-      this.props.adhocMetric.isNew = false;
-      return {
-        popoverVisible: visible === undefined ? !popoverVisible : visible,
-      };
+    this.setState({
+      popoverVisible: visible,
     });
   }
 
@@ -113,26 +104,18 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     );
 
     return (
-      <div
-        className="metric-option"
-        data-test="metric-option"
-        role="button"
-        tabIndex={0}
-        onMouseDown={e => e.stopPropagation()}
-        onKeyDown={e => e.stopPropagation()}
+      <Popover
+        placement="right"
+        trigger="click"
+        content={overlayContent}
+        defaultVisible={this.state.popoverVisible}
+        visible={this.state.popoverVisible}
+        onVisibleChange={this.togglePopover}
+        title={popoverTitle}
+        destroyTooltipOnHide={this.props.createNew}
       >
-        <Popover
-          placement="right"
-          trigger="click"
-          content={overlayContent}
-          defaultVisible={this.state.popoverVisible || adhocMetric.isNew}
-          visible={this.state.popoverVisible}
-          onVisibleChange={this.togglePopover}
-          title={popoverTitle}
-        >
-          {this.props.children}
-        </Popover>
-      </div>
+        {this.props.children}
+      </Popover>
     );
   }
 }

@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
 import { Select } from 'src/common/components/Select';
+import { Input } from 'src/common/components';
 import { t, SupersetClient, styled } from '@superset-ui/core';
 
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
@@ -244,8 +245,8 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     );
   }
 
-  focusComparator(ref) {
-    if (ref) {
+  focusComparator(ref, shouldFocus) {
+    if (ref && shouldFocus) {
       ref.focus();
     }
   }
@@ -311,6 +312,8 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       autoFocus: !!subjectSelectProps.value && !operator,
     };
 
+    const focusComparator =
+      !!subjectSelectProps.value && !!operatorSelectProps.value;
     const comparatorSelectProps = {
       allowClear: true,
       showSearch: true,
@@ -323,7 +326,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       disabled: DISABLE_INPUT_OPERATORS.includes(operator),
       placeholder: this.createSuggestionsPlaceholder(),
       labelText: comparator?.length > 0 && this.createSuggestionsPlaceholder(),
-      autoFocus: !!subjectSelectProps.value && !!operatorSelectProps.value,
+      autoFocus: focusComparator,
     };
 
     return (
@@ -373,13 +376,11 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
               ))}
             </SelectWithLabel>
           ) : (
-            <input
+            <Input
               name="filter-value"
-              ref={this.focusComparator}
-              type="text"
+              ref={ref => this.focusComparator(ref, focusComparator)}
               onChange={this.onInputComparatorChange}
               value={comparator}
-              className="form-control input-sm"
               placeholder={t('Filter value (case sensitive)')}
               disabled={DISABLE_INPUT_OPERATORS.includes(operator)}
             />

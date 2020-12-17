@@ -20,7 +20,7 @@ import React from 'react';
 import { styled, useTheme } from '@superset-ui/core';
 import Icon from '../../components/Icon';
 
-const OptionControlContainer = styled.div<{ isAdhoc: boolean }>`
+const OptionControlContainer = styled.div<{ isAdhoc?: boolean }>`
   display: flex;
   align-items: center;
   width: 100%;
@@ -121,7 +121,11 @@ export const OptionControlLabel = ({
 }) => {
   const theme = useTheme();
   return (
-    <OptionControlContainer isAdhoc data-test="option-label" {...props}>
+    <OptionControlContainer
+      isAdhoc={isAdhoc}
+      data-test="option-label"
+      {...props}
+    >
       <CloseContainer role="button" onClick={onRemove}>
         <Icon name="x-small" color={theme.colors.grayscale.light1} />
       </CloseContainer>
