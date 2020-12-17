@@ -988,7 +988,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         self.login(username="admin")
         humanize_time_range = "100 years ago : now"
-        uri = f"api/v1/chart/time_range/?q={prison.dumps(humanize_time_range)}"
+        uri = f"api/v1/time_range/?q={prison.dumps(humanize_time_range)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 200)

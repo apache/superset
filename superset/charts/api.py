@@ -58,7 +58,6 @@ from superset.charts.schemas import (
     get_delete_ids_schema,
     get_export_ids_schema,
     get_fav_star_ids_schema,
-    get_time_range_schema,
     openapi_spec_methods_override,
     screenshot_query_schema,
     thumbnail_query_schema,
@@ -74,7 +73,6 @@ from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.core import (
     ChartDataResultFormat,
     ChartDataResultType,
-    get_since_until,
     json_int_dttm_ser,
 )
 from superset.utils.screenshots import ChartScreenshot
@@ -105,7 +103,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "data_from_cache",
         "viz_types",
         "favorite_status",
-        "time_range",
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -198,7 +195,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "get_delete_ids_schema": get_delete_ids_schema,
         "get_export_ids_schema": get_export_ids_schema,
         "get_fav_star_ids_schema": get_fav_star_ids_schema,
-        "get_time_range_schema": get_time_range_schema,
     }
     """ Add extra schemas to the OpenAPI components schema section """
     openapi_spec_methods = openapi_spec_methods_override
@@ -1001,56 +997,3 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except Exception as exc:  # pylint: disable=broad-except
             logger.exception("Import chart failed")
             return self.response_500(message=str(exc))
-
-    @expose("/time_range/", methods=["GET"])
-    @protect()
-    @safe
-    @statsd_metrics
-    @rison(get_time_range_schema)
-    def time_range(self, **kwargs: Any) -> Response:
-        """Get actually time range from human readable string or datetime expression
-        ---
-        get:
-          description: >-
-            Get actually time range from human readable string or datetime expression
-          parameters:
-          - in: query
-            name: q
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/get_time_range_schema'
-          responses:
-            200:
-              description: actually time range object
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      since:
-                        type: string
-                      until:
-                        type: string
-                      timeRange:
-                        type: string
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        time_range = kwargs["rison"]
-        try:
-            since, until = get_since_until(time_range)
-            result = {
-                "since": since.isoformat() if since else "",
-                "until": until.isoformat() if until else "",
-                "timeRange": time_range,
-            }
-            return self.response(200, result=result)
-        except ValueError as error:
-            return self.response_400(f"Unexpected time range: {error}")
