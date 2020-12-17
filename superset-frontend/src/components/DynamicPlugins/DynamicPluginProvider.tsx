@@ -32,28 +32,69 @@ type Plugin = {
   id: number;
 };
 
-// TODO: Make this function an export of @superset-ui/chart or some such
-async function defineSharedModule(name: string, promise: Promise<any>) {
-  // dependency management using global variables, because for the life of me
-  // I can't figure out how to hook into UMD from a dynamically imported package.
-  // Maybe someone else can help figure that out.
-  const loadingKey = `__superset__loading__/${name}`;
-  const packageKey = `__superset__/${name}`;
-  if (window[loadingKey]) {
-    await window[loadingKey];
-    return window[packageKey];
-  }
-  window[loadingKey] = promise;
-  const pkg = await promise;
-  window[packageKey] = pkg;
-  return pkg;
+type Module = any;
+
+/**
+ * This is where packages are stored. We use window, because it plays well with Webpack.
+ * To avoid
+ * Have to amend the type of window, because window's usual type doesn't describe these fields.
+ */
+interface ModuleReferencer {
+  [packageKey: string]: Promise<Module>;
 }
 
-async function defineSharedModules(moduleMap: { [key: string]: Promise<any> }) {
+declare const window: Window & typeof globalThis & ModuleReferencer;
+
+const modulePromises: { [key: string]: Promise<Module> } = {};
+
+/**
+ * Dependency management using global variables, because for the life of me
+ * I can't figure out how to hook into UMD from a dynamically imported package.
+ *
+ * This defines a dynamically imported js module that can be used to import from
+ * multiple different plugins.
+ *
+ * When importing a common module (such as react or lodash or superset-ui)
+ * from a plugin, the plugin's build config will be able to
+ * reference these globals instead of rebuilding them.
+ *
+ * @param name the module's name (should match name in package.json)
+ * @param promise the promise resulting from a call to `import(name)`
+ */
+export async function defineSharedModule(
+  name: string,
+  fetchModule: () => Promise<Module>,
+) {
+  // this field on window is used by dynamic plugins to reference the module
+  const moduleKey = `__superset__/${name}`;
+
+  if (!window[moduleKey] && !modulePromises[name]) {
+    // if the module has not been loaded, load it
+    const modulePromise = fetchModule();
+    modulePromises[name] = modulePromise;
+    // wait for the module to load, and attach the result to window
+    window[moduleKey] = await modulePromise;
+  }
+
+  // we always return a reference to the promise.
+  // Multiple consumers can `.then()` or `await` the same promise,
+  // even long after it has completed,
+  // and it will always call back with the same reference.
+  return modulePromises[name];
+}
+
+/**
+ * Define multiple shared modules at once, using a map of name -> `import(name)`
+ *
+ * @see defineSharedModule
+ * @param moduleMap
+ */
+export async function defineSharedModules(moduleMap: {
+  [key: string]: () => Promise<Module>;
+}) {
   return Promise.all(
-    Object.entries(moduleMap).map(([name, promise]) => {
-      defineSharedModule(name, promise);
-      return promise;
+    Object.entries(moduleMap).map(([name, fetchModule]) => {
+      return defineSharedModule(name, fetchModule);
     }),
   );
 }
@@ -108,6 +149,14 @@ function pluginContextReducer(
 
 export type Props = React.PropsWithChildren<{}>;
 
+const sharedModules = {
+  react: () => import('react'),
+  lodash: () => import('lodash'),
+  'react-dom': () => import('react-dom'),
+  '@superset-ui/chart-controls': () => import('@superset-ui/chart-controls'),
+  '@superset-ui/core': () => import('@superset-ui/core'),
+};
+
 export default function DynamicPluginProvider({ children }: Props) {
   const [pluginState, dispatch] = useReducer(pluginContextReducer, {
     // use the dummy plugin context, and override the methods
@@ -120,17 +169,19 @@ export default function DynamicPluginProvider({ children }: Props) {
 
   async function fetchAll() {
     try {
-      await defineSharedModules({
-        react: import('react'),
-        lodash: import('lodash'),
-        'react-dom': import('react-dom'),
-        '@superset-ui/chart-controls': import('@superset-ui/chart-controls'),
-        '@superset-ui/core': import('@superset-ui/core'),
-      });
-      const response = await SupersetClient.get({
-        endpoint: '/dynamic-plugins/api/read',
-      });
-      const plugins: Plugin[] = (response.json as JsonObject).result;
+      await defineSharedModules(sharedModules);
+      // const response = await SupersetClient.get({
+      //   endpoint: '/dynamic-plugins/api/read',
+      // });
+      // const plugins: Plugin[] = (response.json as JsonObject).result;
+      const plugins: Plugin[] = [
+        {
+          name: 'Hello World',
+          key: 'superset-chart-hello-world',
+          id: 0,
+          bundle_url: 'http://127.0.0.1:8080/main.js',
+        },
+      ];
       dispatch({ type: 'begin', keys: plugins.map(plugin => plugin.key) });
       await Promise.all(
         plugins.map(async plugin => {
