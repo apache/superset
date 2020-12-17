@@ -1,0 +1,32 @@
+name: Tags
+on:
+  release:
+    types: [published] # This makes it run only when a new released is published
+
+jobs:
+  latest-release:
+    name: Add/update tag to new release
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Check for latest tag
+      id: latest-tag
+      run: |
+        source ./scripts/tag_latest_release.sh $(echo ${{ github.event.release.tag_name }}) --dry-run
+
+        if ${SKIP_TAG}
+        then
+          echo "::set-env name=skip_tag::true"
+        fi
+
+    - name: Run latest-tag
+      uses: EndBug/latest-tag@latest
+      if: (! env.skip_tag )
+      with:
+        description: Superset latest release
+        tag-name: latest
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
