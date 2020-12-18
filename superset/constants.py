@@ -76,6 +76,7 @@ MODEL_VIEW_RW_METHOD_PERMISSION_MAP = {
     "api_read": "read",
     "api_readvalues": "read",
     "api_update": "write",
+    "annotation": "read",
     "delete": "write",
     "download": "read",
     "download_dashboards": "read",
@@ -86,6 +87,7 @@ MODEL_VIEW_RW_METHOD_PERMISSION_MAP = {
     "show": "read",
     "new": "write",
     "yaml_export": "read",
+    "refresh": "write",
 }
 
 MODEL_API_RW_METHOD_PERMISSION_MAP = {
@@ -107,7 +109,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "favorite_status": "read",
     "thumbnail": "read",
     "import_": "write",
-    "refresh": "read",
+    "refresh": "write",
     "cache_screenshot": "read",
     "screenshot": "read",
     "data": "read",
