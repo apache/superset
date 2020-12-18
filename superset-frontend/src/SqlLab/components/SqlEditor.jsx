@@ -719,18 +719,24 @@ class SqlEditor extends React.PureComponent {
         <StyledModal
           visible={this.state.showCreateAsModal}
           title={t('Create View As')}
+          onHide={() => {
+            this.setState({ showCreateAsModal: false });
+          }}
           footer={<>
               <Button
                 onClick={() => this.setState({ showCreateAsModal: false })}
               >
                 Cancel
               </Button>
-            <Button buttonStyle="primary">Create</Button>
+              <Button buttonStyle="primary">Create</Button>
             </>
           }
         >
           <span>Name</span>
-          <Input placeholder="Specify name to Create View AS schema in: public"/>
+          <Input
+            placeholder="Specify name to Create View AS schema in: public"
+            onChange={this.ctasChanged.bind(this)}
+          />
         </StyledModal>
       </div>
     );
