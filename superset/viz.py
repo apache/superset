@@ -42,7 +42,6 @@ from typing import (
     Union,
 )
 
-import dataclasses  # isort:skip
 import geohash
 import numpy as np
 import pandas as pd
@@ -78,6 +77,9 @@ from superset.utils.core import (
 )
 from superset.utils.dates import datetime_to_epoch
 from superset.utils.hashing import md5_sha_from_str
+
+import dataclasses  # isort:skip
+
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource

@@ -21,7 +21,6 @@ from contextlib import closing
 from datetime import datetime, timedelta
 from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Union
 
-from dataclasses import dataclass, field  # isort:skip
 import pandas as pd
 import sqlalchemy as sa
 import sqlparse
@@ -70,6 +69,9 @@ from superset.result_set import SupersetResultSet
 from superset.sql_parse import ParsedQuery
 from superset.typing import Metric, QueryObjectDict
 from superset.utils import core as utils
+
+from dataclasses import dataclass, field  # isort:skip
+
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member

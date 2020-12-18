@@ -33,7 +33,6 @@ from datetime import datetime, timedelta
 from itertools import product
 from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
-import dataclasses  # isort:skip
 import geohash
 import numpy as np
 import pandas as pd
@@ -64,6 +63,9 @@ from superset.utils.core import (
     merge_extra_filters,
     to_adhoc,
 )
+
+import dataclasses  # isort:skip
+
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource

@@ -18,8 +18,9 @@
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from dataclasses import dataclass  # isort:skip
 from flask_babel import gettext as _
+
+from dataclasses import dataclass  # isort:skip
 
 
 class SupersetErrorType(str, Enum):
