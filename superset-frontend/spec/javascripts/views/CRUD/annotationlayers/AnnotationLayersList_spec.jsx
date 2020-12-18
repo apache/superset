@@ -61,7 +61,7 @@ const mockUser = {
 };
 
 fetchMock.get(layersInfoEndpoint, {
-  permissions: ['can_delete'],
+  permissions: ['can_write'],
 });
 fetchMock.get(layersEndpoint, {
   result: mocklayers,
@@ -156,7 +156,7 @@ describe('AnnotationLayersList', () => {
   });
 
   it('shows/hides bulk actions when bulk actions is clicked', async () => {
-    const button = wrapper.find(Button).at(0);
+    const button = wrapper.find(Button).at(1);
     act(() => {
       button.props().onClick();
     });

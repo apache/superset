@@ -25,7 +25,7 @@ import {
 } from '@superset-ui/core';
 import Chart from 'src/types/Chart';
 import rison from 'rison';
-import getClientErrorObject from 'src/utils/getClientErrorObject';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
 import { Dashboard } from './types';
 

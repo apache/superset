@@ -314,7 +314,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
         }
-        command = ImportDatabasesCommand(contents)
+        command = ImportDatabasesCommand(contents, overwrite=True)
 
         # import twice
         command.run()
@@ -332,7 +332,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
             "databases/imported_database.yaml": yaml.safe_dump(new_config),
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
         }
-        command = ImportDatabasesCommand(contents)
+        command = ImportDatabasesCommand(contents, overwrite=True)
         command.run()
 
         database = (
@@ -389,7 +389,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
             "datasets/imported_dataset.yaml": yaml.safe_dump(new_config),
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
         }
-        command = ImportDatabasesCommand(contents)
+        command = ImportDatabasesCommand(contents, overwrite=True)
         command.run()
 
         # the underlying dataset should not be modified by the second import, since

@@ -1669,3 +1669,8 @@ def get_time_filter_status(  # pylint: disable=too-many-branches
             )
 
     return applied, rejected
+
+
+def format_list(items: Sequence[str], sep: str = ", ", quote: str = '"') -> str:
+    quote_escaped = "\\" + quote
+    return sep.join(f"{quote}{x.replace(quote, quote_escaped)}{quote}" for x in items)

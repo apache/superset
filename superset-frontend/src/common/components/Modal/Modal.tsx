@@ -61,6 +61,8 @@ const StyledModal = styled(BaseModal)<StyledModalProps>`
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
     border-radius: ${({ theme }) => theme.borderRadius}px
       ${({ theme }) => theme.borderRadius}px 0 0;
+    padding-left: ${({ theme }) => theme.gridUnit * 4}px;
+    padding-right: ${({ theme }) => theme.gridUnit * 4}px;
 
     .ant-modal-title h4 {
       display: flex;
@@ -84,6 +86,7 @@ const StyledModal = styled(BaseModal)<StyledModalProps>`
 
   .ant-modal-body {
     padding: ${({ theme }) => theme.gridUnit * 4}px;
+    overflow: auto;
   }
 
   .ant-modal-footer {
@@ -104,6 +107,10 @@ const StyledModal = styled(BaseModal)<StyledModalProps>`
   // styling for Tabs component
   .ant-tabs {
     margin-top: -${({ theme }) => theme.gridUnit * 4}px;
+  }
+
+  &.no-content-padding .ant-modal-body {
+    padding: 0;
   }
 `;
 

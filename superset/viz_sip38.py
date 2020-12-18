@@ -57,13 +57,13 @@ from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.typing import QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils
+from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
     DTTM_ALIAS,
     JS_MAX_INTEGER,
     merge_extra_filters,
     to_adhoc,
 )
-from superset.viz import set_and_log_cache
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -518,10 +518,9 @@ class BaseViz:
 
             if is_loaded and cache_key and self.status != utils.QueryStatus.FAILED:
                 set_and_log_cache(
+                    cache_manager.data_cache,
                     cache_key,
-                    df,
-                    self.query,
-                    cached_dttm,
+                    {"df": df, "query": self.query},
                     self.cache_timeout,
                     self.datasource.uid,
                 )

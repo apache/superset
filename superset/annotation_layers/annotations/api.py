@@ -52,7 +52,7 @@ from superset.annotation_layers.annotations.schemas import (
     openapi_spec_methods_override,
 )
 from superset.annotation_layers.commands.exceptions import AnnotationLayerNotFoundError
-from superset.constants import RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.annotations import Annotation
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
@@ -65,7 +65,9 @@ class AnnotationRestApi(BaseSupersetModelRestApi):
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         "bulk_delete",  # not using RouteMethod since locally defined
     }
-    class_permission_name = "AnnotationLayerModelView"
+    class_permission_name = "Annotation"
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+
     resource_name = "annotation_layer"
     allow_browser_login = True
 

@@ -30,6 +30,7 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import Menu from 'src/components/Menu/Menu';
 import FlashProvider from 'src/components/FlashProvider';
 import AlertList from 'src/views/CRUD/alert/AlertList';
+import ExecutionLog from 'src/views/CRUD/alert/ExecutionLog';
 import AnnotationLayersList from 'src/views/CRUD/annotationlayers/AnnotationLayersList';
 import AnnotationList from 'src/views/CRUD/annotation/AnnotationList';
 import ChartList from 'src/views/CRUD/chart/ChartList';
@@ -71,75 +72,85 @@ const App = () => (
       <FlashProvider common={common}>
         <Router>
           <DynamicPluginProvider>
-            <QueryParamProvider
-              ReactRouterRoute={Route}
-              stringifyOptions={{ encode: false }}
-            >
-              <Menu data={menu} />
-              <Switch>
-                <Route path="/superset/welcome/">
-                  <ErrorBoundary>
-                    <Welcome user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/dashboard/list/">
-                  <ErrorBoundary>
-                    <DashboardList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/chart/list/">
-                  <ErrorBoundary>
-                    <ChartList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/tablemodelview/list/">
-                  <ErrorBoundary>
-                    <DatasetList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/databaseview/list/">
-                  <ErrorBoundary>
-                    <DatabaseList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/savedqueryview/list/">
-                  <ErrorBoundary>
-                    <SavedQueryList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/csstemplatemodelview/list/">
-                  <ErrorBoundary>
-                    <CssTemplatesList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/annotationlayermodelview/list/">
-                  <ErrorBoundary>
-                    <AnnotationLayersList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/annotationmodelview/:annotationLayerId/annotation/">
-                  <ErrorBoundary>
-                    <AnnotationList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/superset/sqllab/history/">
-                  <ErrorBoundary>
-                    <QueryList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/alert/list/">
-                  <ErrorBoundary>
-                    <AlertList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/report/list/">
-                  <ErrorBoundary>
-                    <AlertList user={user} isReportEnabled />
-                  </ErrorBoundary>
-                </Route>
-              </Switch>
-              <ToastPresenter />
-            </QueryParamProvider>
+          <QueryParamProvider
+            ReactRouterRoute={Route}
+            stringifyOptions={{ encode: false }}
+          >
+            <Menu data={menu} />
+            <Switch>
+              <Route path="/superset/welcome/">
+                <ErrorBoundary>
+                  <Welcome user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/dashboard/list/">
+                <ErrorBoundary>
+                  <DashboardList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/chart/list/">
+                <ErrorBoundary>
+                  <ChartList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/tablemodelview/list/">
+                <ErrorBoundary>
+                  <DatasetList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/databaseview/list/">
+                <ErrorBoundary>
+                  <DatabaseList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/savedqueryview/list/">
+                <ErrorBoundary>
+                  <SavedQueryList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/csstemplatemodelview/list/">
+                <ErrorBoundary>
+                  <CssTemplatesList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/annotationlayermodelview/list/">
+                <ErrorBoundary>
+                  <AnnotationLayersList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/annotationmodelview/:annotationLayerId/annotation/">
+                <ErrorBoundary>
+                  <AnnotationList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/superset/sqllab/history/">
+                <ErrorBoundary>
+                  <QueryList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/alert/list/">
+                <ErrorBoundary>
+                  <AlertList user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/report/list/">
+                <ErrorBoundary>
+                  <AlertList user={user} isReportEnabled />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/alert/:alertId/log">
+                <ErrorBoundary>
+                  <ExecutionLog user={user} />
+                </ErrorBoundary>
+              </Route>
+              <Route path="/report/:alertId/log">
+                <ErrorBoundary>
+                  <ExecutionLog user={user} isReportEnabled />
+                </ErrorBoundary>
+              </Route>
+            </Switch>
+            <ToastPresenter />
+          </QueryParamProvider>
           </DynamicPluginProvider>
         </Router>
       </FlashProvider>
