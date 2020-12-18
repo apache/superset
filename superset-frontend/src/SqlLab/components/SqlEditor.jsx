@@ -651,7 +651,7 @@ class SqlEditor extends React.PureComponent {
                   />
                 </span>
               )}
-            {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) && (
+            {/* {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) && (
               <span>
                 <ScheduleQueryButton
                   defaultLabel={qe.title}
@@ -664,8 +664,8 @@ class SqlEditor extends React.PureComponent {
                   disabled={!successful}
                 />
               </span>
-            )}
-            {ctasControls && <span>{ctasControls}</span>}
+            )} */}
+            {/* {ctasControls && <span>{ctasControls}</span>} */}
             <span>
               <LimitSelectStyled>
                 <Dropdown overlay={this.renderQueryLimit()}>
