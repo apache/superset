@@ -35,6 +35,7 @@ describe('Datasource control', () => {
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
+    cy.get('[data-test="open-datasource-tab').click({ force: true });
     cy.get('[data-test="datasource-menu-trigger"]').click();
 
     cy.get('script').then(nodes => {

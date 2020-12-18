@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Panel } from 'react-bootstrap';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { styled } from '@superset-ui/core';
 
 const propTypes = {
   label: PropTypes.string,
@@ -35,6 +36,14 @@ const defaultProps = {
   startExpanded: false,
   hasErrors: false,
 };
+
+const StyledPanelTitle = styled(Panel.Title)`
+  & > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+`;
 
 export default class ControlPanelSection extends React.Component {
   constructor(props) {
@@ -94,7 +103,7 @@ export default class ControlPanelSection extends React.Component {
         onToggle={this.toggleExpand}
       >
         <Panel.Heading>
-          <Panel.Title>{this.renderHeader()}</Panel.Title>
+          <StyledPanelTitle>{this.renderHeader()}</StyledPanelTitle>
         </Panel.Heading>
         <Panel.Collapse>
           <Panel.Body>{this.props.children}</Panel.Body>
