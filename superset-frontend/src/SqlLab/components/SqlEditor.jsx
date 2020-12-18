@@ -20,10 +20,9 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 import React from 'react';
 import { CSSTransition } from 'react-transition-group';
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { connect, bindActionCreators } from 'react-redux';
 import PropTypes from 'prop-types';
-import { FormGroup, InputGroup, Form, FormControl } from 'react-bootstrap';
+import { Form } from 'react-bootstrap';
 import Split from 'react-split';
 import { t, styled } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
@@ -450,6 +449,10 @@ class SqlEditor extends React.PureComponent {
 
   renderDropdown() {
     const qe = this.props.queryEditor;
+    const successful = this.props.latestQuery?.state === 'success';
+    const scheduleToolTip = successful
+      ? t('Schedule the query periodically')
+      : t('You must run the query successfully first');
     return (
       <Menu onClick={this.handleMenuClick}>
         <Menu.Item>
