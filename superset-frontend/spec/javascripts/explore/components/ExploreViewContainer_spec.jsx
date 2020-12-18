@@ -39,12 +39,12 @@ describe.skip('ExploreViewContainer', () => {
   let wrapper;
   let isFeatureEnabledMock;
 
-  jest.spyOn(ReactAll, 'useContext').mockImplementation(() => {
-    return {
-      store,
-      subscription: new Subscription(store),
-    };
-  });
+  // jest.spyOn(ReactAll, 'useContext').mockImplementation(() => {
+  //   return {
+  //     store,
+  //     subscription: new Subscription(store),
+  //   };
+  // });
 
   beforeAll(() => {
     isFeatureEnabledMock = jest
