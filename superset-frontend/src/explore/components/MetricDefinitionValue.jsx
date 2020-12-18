@@ -18,18 +18,20 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { MetricOption } from '@superset-ui/chart-controls';
 
 import AdhocMetricOption from './AdhocMetricOption';
 import AdhocMetric from '../AdhocMetric';
 import columnType from '../propTypes/columnType';
 import savedMetricType from '../propTypes/savedMetricType';
 import adhocMetricType from '../propTypes/adhocMetricType';
+import { OptionControlLabel } from './OptionControls';
 
 const propTypes = {
   option: PropTypes.oneOfType([savedMetricType, adhocMetricType]).isRequired,
   onMetricEdit: PropTypes.func,
+  onRemoveMetric: PropTypes.func,
   columns: PropTypes.arrayOf(columnType),
+  savedMetrics: PropTypes.arrayOf(savedMetricType),
   multi: PropTypes.bool,
   datasourceType: PropTypes.string,
 };
@@ -37,22 +39,40 @@ const propTypes = {
 export default function MetricDefinitionValue({
   option,
   onMetricEdit,
+  onRemoveMetric,
   columns,
-  multi,
+  savedMetrics,
   datasourceType,
 }) {
+  const getSavedMetricByName = metricName =>
+    savedMetrics.find(metric => metric.metric_name === metricName);
+
+  let savedMetric;
   if (option.metric_name) {
-    return <MetricOption metric={option} />;
+    savedMetric = option;
+  } else if (typeof option === 'string') {
+    savedMetric = getSavedMetricByName(option);
   }
-  if (option instanceof AdhocMetric) {
+
+  if (option instanceof AdhocMetric || savedMetric) {
+    const adhocMetric =
+      option instanceof AdhocMetric ? option : new AdhocMetric({});
+
+    const metricOptionProps = {
+      onMetricEdit,
+      onRemoveMetric,
+      columns,
+      savedMetrics,
+      datasourceType,
+      adhocMetric,
+      savedMetric: savedMetric ?? {},
+    };
+
+    return <AdhocMetricOption {...metricOptionProps} />;
+  }
+  if (typeof option === 'string') {
     return (
-      <AdhocMetricOption
-        adhocMetric={option}
-        onMetricEdit={onMetricEdit}
-        columns={columns}
-        multi={multi}
-        datasourceType={datasourceType}
-      />
+      <OptionControlLabel label={option} onRemove={onRemoveMetric} isFunction />
     );
   }
   return null;

@@ -17,7 +17,7 @@
 from typing import Any, Dict
 
 from flask_babel import gettext as _
-from marshmallow import fields, post_load, Schema, validate
+from marshmallow import EXCLUDE, fields, post_load, Schema, validate
 from marshmallow.validate import Length, Range
 
 from superset.common.query_context import QueryContext
@@ -857,6 +857,9 @@ class AnnotationLayerSchema(Schema):
 
 
 class ChartDataQueryObjectSchema(Schema):
+    class Meta:  # pylint: disable=too-few-public-methods
+        unknown = EXCLUDE
+
     annotation_layers = fields.List(
         fields.Nested(AnnotationLayerSchema),
         description="Annotation layers to apply to chart",

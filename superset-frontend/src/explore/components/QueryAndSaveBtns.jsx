@@ -23,7 +23,6 @@ import { t, styled } from '@superset-ui/core';
 
 import { Tooltip } from 'src/common/components/Tooltip';
 import Button from 'src/components/Button';
-import Hotkeys from '../../components/Hotkeys';
 
 const propTypes = {
   canAdd: PropTypes.bool.isRequired,
@@ -40,26 +39,14 @@ const defaultProps = {
   onSave: () => {},
 };
 
-// Prolly need to move this to a global context
-const keymap = {
-  RUN: 'ctrl + r, ctrl + enter',
-  SAVE: 'ctrl + s',
-};
-
-const getHotKeys = () =>
-  Object.keys(keymap).map(k => ({
-    name: k,
-    descr: keymap[k],
-    key: k,
-  }));
-
 const Styles = styled.div`
   display: flex;
   flex-shrink: 0;
   flex-direction: row;
   align-items: center;
-  padding-bottom: ${({ theme }) => 2 * theme.gridUnit}px;
-
+  padding: ${({ theme }) => 2 * theme.gridUnit}px
+    ${({ theme }) => 2 * theme.gridUnit}px 0
+    ${({ theme }) => 4 * theme.gridUnit}px;
   .btn {
     /* just to make sure buttons don't jiggle */
     width: 100px;
@@ -133,13 +120,6 @@ export default function QueryAndSaveBtns({
             </Tooltip>
           </span>
         )}
-      </div>
-      <div className="m-l-5 text-muted">
-        <Hotkeys
-          header="Keyboard shortcuts"
-          hotkeys={getHotKeys()}
-          placement="right"
-        />
       </div>
     </Styles>
   );

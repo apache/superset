@@ -18,19 +18,16 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-
-import Popover from 'src/common/components/Popover';
-import Label from 'src/components/Label';
-import AdhocFilterEditPopover from './AdhocFilterEditPopover';
 import AdhocFilter from '../AdhocFilter';
 import columnType from '../propTypes/columnType';
 import adhocMetricType from '../propTypes/adhocMetricType';
+import AdhocFilterPopoverTrigger from './AdhocFilterPopoverTrigger';
+import { OptionControlLabel } from './OptionControls';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
   onFilterEdit: PropTypes.func.isRequired,
+  onRemoveFilter: PropTypes.func,
   options: PropTypes.arrayOf(
     PropTypes.oneOfType([
       columnType,
@@ -41,92 +38,29 @@ const propTypes = {
   datasource: PropTypes.object,
   partitionColumn: PropTypes.string,
 };
-class AdhocFilterOption extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.onPopoverResize = this.onPopoverResize.bind(this);
-    this.closePopover = this.closePopover.bind(this);
-    this.togglePopover = this.togglePopover.bind(this);
-    this.state = {
-      // automatically open the popover the the metric is new
-      popoverVisible: !!props.adhocFilter.isNew,
-    };
-  }
 
-  componentWillUnmount() {
-    // isNew is used to auto-open the popup. Once popup is viewed, it's not
-    // considered new anymore. We mutate the prop directly because we don't
-    // want excessive rerenderings.
-    this.props.adhocFilter.isNew = false;
-  }
-
-  onPopoverResize() {
-    this.forceUpdate();
-  }
-
-  closePopover() {
-    this.togglePopover(false);
-  }
-
-  togglePopover(visible) {
-    this.setState(({ popoverVisible }) => {
-      this.props.adhocFilter.isNew = false;
-      return {
-        popoverVisible: visible === undefined ? !popoverVisible : visible,
-      };
-    });
-  }
-
-  render() {
-    const { adhocFilter } = this.props;
-    const overlayContent = (
-      <AdhocFilterEditPopover
-        adhocFilter={adhocFilter}
-        options={this.props.options}
-        datasource={this.props.datasource}
-        partitionColumn={this.props.partitionColumn}
-        onResize={this.onPopoverResize}
-        onClose={this.closePopover}
-        onChange={this.props.onFilterEdit}
-      />
-    );
-
-    return (
-      <div
-        role="button"
-        tabIndex={0}
-        onMouseDown={e => e.stopPropagation()}
-        onKeyDown={e => e.stopPropagation()}
-      >
-        {adhocFilter.isExtra && (
-          <InfoTooltipWithTrigger
-            icon="exclamation-triangle"
-            placement="top"
-            className="m-r-5 text-muted"
-            tooltip={t(`
-                This filter was inherited from the dashboard's context.
-                It won't be saved when saving the chart.
-              `)}
-          />
-        )}
-        <Popover
-          placement="right"
-          trigger="click"
-          content={overlayContent}
-          defaultVisible={this.state.popoverVisible || adhocFilter.isNew}
-          visible={this.state.popoverVisible}
-          onVisibleChange={() => this.togglePopover(true)}
-          overlayStyle={{ zIndex: 1 }}
-        >
-          <Label className="option-label adhoc-option adhoc-filter-option">
-            {adhocFilter.getDefaultLabel()}
-            <i className="fa fa-caret-right adhoc-label-arrow" />
-          </Label>
-        </Popover>
-      </div>
-    );
-  }
-}
+const AdhocFilterOption = ({
+  adhocFilter,
+  options,
+  datasource,
+  onFilterEdit,
+  onRemoveFilter,
+  partitionColumn,
+}) => (
+  <AdhocFilterPopoverTrigger
+    adhocFilter={adhocFilter}
+    options={options}
+    datasource={datasource}
+    onFilterEdit={onFilterEdit}
+    partitionColumn={partitionColumn}
+  >
+    <OptionControlLabel
+      label={adhocFilter.getDefaultLabel()}
+      onRemove={onRemoveFilter}
+      isAdhoc
+    />
+  </AdhocFilterPopoverTrigger>
+);
 
 export default AdhocFilterOption;
 

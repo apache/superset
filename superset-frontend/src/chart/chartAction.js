@@ -52,8 +52,8 @@ export function chartUpdateStarted(queryController, latestQueryFormData, key) {
 }
 
 export const CHART_UPDATE_SUCCEEDED = 'CHART_UPDATE_SUCCEEDED';
-export function chartUpdateSucceeded(queryResponse, key) {
-  return { type: CHART_UPDATE_SUCCEEDED, queryResponse, key };
+export function chartUpdateSucceeded(queriesResponse, key) {
+  return { type: CHART_UPDATE_SUCCEEDED, queriesResponse, key };
 }
 
 export const CHART_UPDATE_STOPPED = 'CHART_UPDATE_STOPPED';
@@ -62,8 +62,8 @@ export function chartUpdateStopped(key) {
 }
 
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
-export function chartUpdateFailed(queryResponse, key) {
-  return { type: CHART_UPDATE_FAILED, queryResponse, key };
+export function chartUpdateFailed(queriesResponse, key) {
+  return { type: CHART_UPDATE_FAILED, queriesResponse, key };
 }
 
 export const CHART_UPDATE_QUEUED = 'CHART_UPDATE_QUEUED';
@@ -361,38 +361,35 @@ export function exploreJSON(
 
     const chartDataRequestCaught = chartDataRequest
       .then(response => {
+        const queriesResponse = response.result;
         if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
           // deal with getChartDataRequest transforming the response data
           const result = 'result' in response ? response.result[0] : response;
           return dispatch(chartUpdateQueued(result, key));
         }
 
-        // new API returns an object with an array of restults
-        // problem: response holds a list of results, when before we were just getting one result.
-        // How to make the entire app compatible with multiple results?
-        // For now just use the first result.
-        const result = response.result[0];
-
-        dispatch(
-          logEvent(LOG_ACTIONS_LOAD_CHART, {
-            slice_id: key,
-            applied_filters: result.applied_filters,
-            is_cached: result.is_cached,
-            force_refresh: force,
-            row_count: result.rowcount,
-            datasource: formData.datasource,
-            start_offset: logStart,
-            ts: new Date().getTime(),
-            duration: Logger.getTimestamp() - logStart,
-            has_extra_filters:
-              formData.extra_filters && formData.extra_filters.length > 0,
-            viz_type: formData.viz_type,
-            data_age: result.is_cached
-              ? moment(new Date()).diff(moment.utc(result.cached_dttm))
-              : null,
-          }),
+        queriesResponse.forEach(resultItem =>
+          dispatch(
+            logEvent(LOG_ACTIONS_LOAD_CHART, {
+              slice_id: key,
+              applied_filters: resultItem.applied_filters,
+              is_cached: resultItem.is_cached,
+              force_refresh: force,
+              row_count: resultItem.rowcount,
+              datasource: formData.datasource,
+              start_offset: logStart,
+              ts: new Date().getTime(),
+              duration: Logger.getTimestamp() - logStart,
+              has_extra_filters:
+                formData.extra_filters && formData.extra_filters.length > 0,
+              viz_type: formData.viz_type,
+              data_age: resultItem.is_cached
+                ? moment(new Date()).diff(moment.utc(resultItem.cached_dttm))
+                : null,
+            }),
+          ),
         );
-        return dispatch(chartUpdateSucceeded(result, key));
+        return dispatch(chartUpdateSucceeded(queriesResponse, key));
       })
       .catch(response => {
         const appendErrorLog = (errorDetails, isCached) => {
@@ -419,7 +416,7 @@ export function exploreJSON(
           } else {
             appendErrorLog(parsedResponse.error, parsedResponse.is_cached);
           }
-          return dispatch(chartUpdateFailed(parsedResponse, key));
+          return dispatch(chartUpdateFailed([parsedResponse], key));
         });
       });
 
