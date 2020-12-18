@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Middleware, MiddlewareAPI, Dispatch } from 'redux';
+import { Dispatch, Middleware, MiddlewareAPI } from 'redux';
 import { makeApi, SupersetClient } from '@superset-ui/core';
 import { SupersetError } from 'src/components/ErrorMessage/types';
-import { isFeatureEnabled, FeatureFlag } from '../featureFlags';
+import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
 import {
   getClientErrorObject,
   parseErrorJson,
@@ -151,8 +151,9 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
                   );
                   break;
                 case JOB_STATUS.ERROR:
-                  const errors = [parseErrorJson(asyncEvent)];
-                  store.dispatch(errorAction(componentId, errors));
+                  store.dispatch(
+                    errorAction(componentId, [parseErrorJson(asyncEvent)]),
+                  );
                   break;
                 default:
                   console.warn('received event with status', asyncEvent.status);
