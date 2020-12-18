@@ -127,6 +127,7 @@ class SqlEditor extends React.PureComponent {
       sql: props.queryEditor.sql,
       autocompleteEnabled: true,
       showCreateAsModal: false,
+      createAs: '',
     };
     this.sqlEditorRef = React.createRef();
     this.northPaneRef = React.createRef();
@@ -583,7 +584,7 @@ class SqlEditor extends React.PureComponent {
         {allow_ctas && (
           <Menu.Item
             onClick={() => {
-              this.setState({ showCreateAsModal: true });
+              this.setState({ showCreateAsModal: true, createAs: 'table' });
             }}
             key="1"
           >
@@ -593,12 +594,12 @@ class SqlEditor extends React.PureComponent {
         {allow_cvas && (
           <Menu.Item
             onClick={() => {
-            this.setState({ showCreateAsModal: true });
+              this.setState({ showCreateAsModal: true, createAs: 'view' });
             }}
             key="2"
-        >
-          Create As View
-        </Menu.Item>
+          >
+            Create As View
+          </Menu.Item>
         )}
       </Menu>
     );
@@ -722,13 +723,31 @@ class SqlEditor extends React.PureComponent {
           onHide={() => {
             this.setState({ showCreateAsModal: false });
           }}
-          footer={<>
+          footer={
+            <>
               <Button
                 onClick={() => this.setState({ showCreateAsModal: false })}
               >
                 Cancel
               </Button>
-              <Button buttonStyle="primary">Create</Button>
+              {this.state.createAs === 'table' && (
+                <Button
+                  buttonStyle="primary"
+                  disabled={this.state.ctas.length === 0}
+                  onClick={this.createTableAs.bind(this)}
+                >
+                  Create
+                </Button>
+              )}
+              {this.state.createAs === 'view' && (
+                <Button
+                  buttonStyle="primary"
+                  disabled={this.state.ctas.length === 0}
+                  onClick={this.createViewAs.bind(this)}
+                >
+                  Create
+                </Button>
+              )}
             </>
           }
         >
