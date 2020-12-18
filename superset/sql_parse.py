@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from dataclasses import dataclass  # pylint: disable=wrong-import-order
 from enum import Enum
 from typing import List, Optional, Set
 from urllib import parse
@@ -23,8 +24,6 @@ import sqlparse
 from sqlparse.sql import Identifier, IdentifierList, remove_quotes, Token, TokenList
 from sqlparse.tokens import Keyword, Name, Punctuation, String, Whitespace
 from sqlparse.utils import imt
-
-from dataclasses import dataclass  # isort:skip
 
 RESULT_OPERATIONS = {"UNION", "INTERSECT", "EXCEPT", "SELECT"}
 ON_KEYWORD = "ON"

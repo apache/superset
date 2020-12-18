@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import dataclasses  # pylint: disable=wrong-import-order
 import functools
 import logging
 import traceback
@@ -58,10 +59,6 @@ from superset.typing import FlaskResponse
 from superset.utils import core as utils
 
 from .utils import bootstrap_user_data
-
-# fmt: off
-import dataclasses  # isort:skip
-# fmt: on
 
 if TYPE_CHECKING:
     from superset.connectors.druid.views import (  # pylint: disable=unused-import

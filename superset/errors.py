@@ -15,12 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-few-public-methods,invalid-name
+from dataclasses import dataclass  # pylint: disable=wrong-import-order
 from enum import Enum
 from typing import Any, Dict, Optional
 
 from flask_babel import gettext as _
-
-from dataclasses import dataclass  # isort:skip
 
 
 class SupersetErrorType(str, Enum):

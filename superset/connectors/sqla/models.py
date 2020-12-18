@@ -18,6 +18,7 @@ import json
 import logging
 from collections import defaultdict, OrderedDict
 from contextlib import closing
+from dataclasses import dataclass, field  # pylint: disable=wrong-import-order
 from datetime import datetime, timedelta
 from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Union
 
@@ -69,9 +70,6 @@ from superset.result_set import SupersetResultSet
 from superset.sql_parse import ParsedQuery
 from superset.typing import Metric, QueryObjectDict
 from superset.utils import core as utils
-
-from dataclasses import dataclass, field  # isort:skip
-
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
