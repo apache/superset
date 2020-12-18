@@ -20,8 +20,7 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 import React from 'react';
 import { CSSTransition } from 'react-transition-group';
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { connect, bindActionCreators } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Form } from 'react-bootstrap';
 import Split from 'react-split';
