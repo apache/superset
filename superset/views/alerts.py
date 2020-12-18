@@ -78,7 +78,7 @@ class AlertReportModelView(SupersetModelView):
     def list(self) -> FlaskResponse:
         if not (
             is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
-            and is_feature_enabled("SIP_34_ALERTS_UI")
+            and is_feature_enabled("ALERT_REPORTS")
         ):
             return super().list()
 
@@ -89,7 +89,7 @@ class AlertReportModelView(SupersetModelView):
     def log(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
         if not (
             is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
-            and is_feature_enabled("SIP_34_ALERTS_UI")
+            and is_feature_enabled("ALERT_REPORTS")
         ):
             return super().list()
 
@@ -202,7 +202,7 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     def list(self) -> FlaskResponse:
         if not (
             is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
-            and is_feature_enabled("SIP_34_ALERTS_UI")
+            and is_feature_enabled("ALERT_REPORTS")
         ):
             return super().list()
 
@@ -213,7 +213,7 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     def log(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
         if not (
             is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
-            and is_feature_enabled("SIP_34_ALERTS_UI")
+            and is_feature_enabled("ALERT_REPORTS")
         ):
             return super().list()
 

@@ -151,6 +151,10 @@ class AlertQueryInvalidTypeError(CommandException):
     message = _("Alert query returned a non-number value.")
 
 
+class AlertQueryError(CommandException):
+    message = _("Alert found an error while executing a query.")
+
+
 class ReportScheduleAlertGracePeriodError(CommandException):
     message = _("Alert fired during grace period.")
 

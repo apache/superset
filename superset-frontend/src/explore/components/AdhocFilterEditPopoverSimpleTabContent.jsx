@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
 import { Select } from 'src/common/components/Select';
+import { Input } from 'src/common/components';
 import { t, SupersetClient, styled } from '@superset-ui/core';
 
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
@@ -102,12 +103,6 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     this.selectProps = {
       name: 'select-column',
       showSearch: true,
-    };
-
-    this.menuPortalProps = {
-      menuPortalTarget: props.popoverRef,
-      menuPosition: 'fixed',
-      menuPlacement: 'bottom',
     };
   }
 
@@ -250,8 +245,8 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     );
   }
 
-  focusComparator(ref) {
-    if (ref) {
+  focusComparator(ref, shouldFocus) {
+    if (ref && shouldFocus) {
       ref.focus();
     }
   }
@@ -288,6 +283,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       ),
       filterOption: (input, option) =>
         option.filterBy.toLowerCase().indexOf(input.toLowerCase()) >= 0,
+      autoFocus: !subject,
     };
 
     if (datasource.type === 'druid') {
@@ -313,6 +309,24 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       onChange: this.onOperatorChange,
       filterOption: (input, option) =>
         option.value.toLowerCase().indexOf(input.toLowerCase()) >= 0,
+      autoFocus: !!subjectSelectProps.value && !operator,
+    };
+
+    const focusComparator =
+      !!subjectSelectProps.value && !!operatorSelectProps.value;
+    const comparatorSelectProps = {
+      allowClear: true,
+      showSearch: true,
+      mode: MULTI_OPERATORS.has(operator) && 'tags',
+      tokenSeparators: [',', ' ', ';'],
+      loading: this.state.loading,
+      value: comparator,
+      onChange: this.onComparatorChange,
+      notFoundContent: t('type a value here'),
+      disabled: DISABLE_INPUT_OPERATORS.includes(operator),
+      placeholder: this.createSuggestionsPlaceholder(),
+      labelText: comparator?.length > 0 && this.createSuggestionsPlaceholder(),
+      autoFocus: focusComparator,
     };
 
     return (
@@ -354,23 +368,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         <FormGroup data-test="adhoc-filter-simple-value">
           {MULTI_OPERATORS.has(operator) ||
           this.state.suggestions.length > 0 ? (
-            <SelectWithLabel
-              name="filter-value"
-              autoFocus
-              allowClear
-              showSearch
-              mode={MULTI_OPERATORS.has(operator) && 'tags'}
-              tokenSeparators={[',', ' ', ';']}
-              loading={this.state.loading}
-              value={comparator}
-              onChange={this.onComparatorChange}
-              notFoundContent={t('type a value here')}
-              disabled={DISABLE_INPUT_OPERATORS.includes(operator)}
-              placeholder={this.createSuggestionsPlaceholder()}
-              labelText={
-                comparator?.length > 0 && this.createSuggestionsPlaceholder()
-              }
-            >
+            <SelectWithLabel name="filter-value" {...comparatorSelectProps}>
               {this.state.suggestions.map(suggestion => (
                 <Select.Option value={suggestion} key={suggestion}>
                   {suggestion}
@@ -378,13 +376,11 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
               ))}
             </SelectWithLabel>
           ) : (
-            <input
+            <Input
               name="filter-value"
-              ref={this.focusComparator}
-              type="text"
+              ref={ref => this.focusComparator(ref, focusComparator)}
               onChange={this.onInputComparatorChange}
               value={comparator}
-              className="form-control input-sm"
               placeholder={t('Filter value (case sensitive)')}
               disabled={DISABLE_INPUT_OPERATORS.includes(operator)}
             />

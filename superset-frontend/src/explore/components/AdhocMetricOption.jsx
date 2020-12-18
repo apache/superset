@@ -18,19 +18,18 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-
 import Popover from 'src/common/components/Popover';
-import Label from 'src/components/Label';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/AdhocMetricEditPopoverTitle';
 import AdhocMetricEditPopover from './AdhocMetricEditPopover';
 import AdhocMetric from '../AdhocMetric';
 import columnType from '../propTypes/columnType';
+import { OptionControlLabel } from './OptionControls';
 
 const propTypes = {
   adhocMetric: PropTypes.instanceOf(AdhocMetric),
   onMetricEdit: PropTypes.func.isRequired,
+  onRemoveMetric: PropTypes.func,
   columns: PropTypes.arrayOf(columnType),
-  multi: PropTypes.bool,
   datasourceType: PropTypes.string,
 };
 
@@ -39,6 +38,7 @@ class AdhocMetricOption extends React.PureComponent {
     super(props);
     this.onPopoverResize = this.onPopoverResize.bind(this);
     this.onLabelChange = this.onLabelChange.bind(this);
+    this.onRemoveMetric = this.onRemoveMetric.bind(this);
     this.closePopover = this.closePopover.bind(this);
     this.togglePopover = this.togglePopover.bind(this);
     this.state = {
@@ -65,6 +65,11 @@ class AdhocMetricOption extends React.PureComponent {
         hasCustomLabel: !!label,
       },
     });
+  }
+
+  onRemoveMetric(e) {
+    e.stopPropagation();
+    this.props.onRemoveMetric();
   }
 
   onPopoverResize() {
@@ -108,30 +113,23 @@ class AdhocMetricOption extends React.PureComponent {
     );
 
     return (
-      <div
-        className="metric-option"
-        data-test="metric-option"
-        role="button"
-        tabIndex={0}
-        onMouseDown={e => e.stopPropagation()}
-        onKeyDown={e => e.stopPropagation()}
+      <Popover
+        placement="right"
+        trigger="click"
+        disabled
+        content={overlayContent}
+        defaultVisible={this.state.popoverVisible || adhocMetric.isNew}
+        visible={this.state.popoverVisible}
+        onVisibleChange={this.togglePopover}
+        title={popoverTitle}
       >
-        <Popover
-          placement="right"
-          trigger="click"
-          disabled
-          content={overlayContent}
-          defaultVisible={this.state.popoverVisible || adhocMetric.isNew}
-          visible={this.state.popoverVisible}
-          onVisibleChange={this.togglePopover}
-          title={popoverTitle}
-        >
-          <Label className="option-label adhoc-option" data-test="option-label">
-            {adhocMetric.label}
-            <i className="fa fa-caret-right adhoc-label-arrow" />
-          </Label>
-        </Popover>
-      </div>
+        <OptionControlLabel
+          label={adhocMetric.label}
+          onRemove={this.onRemoveMetric}
+          isAdhoc
+          isFunction
+        />
+      </Popover>
     );
   }
 }
