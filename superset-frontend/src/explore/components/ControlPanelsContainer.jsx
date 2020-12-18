@@ -27,6 +27,7 @@ import { t, styled, getChartControlPanelRegistry } from '@superset-ui/core';
 
 import Tabs from 'src/common/components/Tabs';
 import { PluginContext } from 'src/components/DynamicPlugins';
+import Loading from 'src/components/Loading';
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
 import Control from './Control';
@@ -195,8 +196,7 @@ class ControlPanelsContainer extends React.Component {
       !controlPanelRegistry.has(this.props.form_data.viz_type) &&
       this.context.loading
     ) {
-      // TODO [dynamic-plugins] replace with a snazzy loading spinner
-      return 'loading...';
+      return <Loading />;
     }
 
     const querySectionsToRender = [];
