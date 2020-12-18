@@ -18,7 +18,7 @@
  */
 import { TimeRangeEndpoints } from '@superset-ui/core';
 
-const SEPARATOR = ' : ';
+export const SEPARATOR = ' : ';
 
 export const buildTimeRangeString = (since: string, until: string): string =>
   `${since}${SEPARATOR}${until}`;

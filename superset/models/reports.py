@@ -98,7 +98,7 @@ class ReportSchedule(Model, AuditMixinNullable):
     description = Column(Text)
     context_markdown = Column(Text)
     active = Column(Boolean, default=True, index=True)
-    crontab = Column(String(50), nullable=False)
+    crontab = Column(String(1000), nullable=False)
     sql = Column(Text())
     # (Alerts/Reports) M-O to chart
     chart_id = Column(Integer, ForeignKey("slices.id"), nullable=True)

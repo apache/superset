@@ -85,8 +85,7 @@ export default class AdhocFilterEditPopover extends React.Component {
   }
 
   onSave() {
-    // unset isNew here in case save button was clicked when no changes were made
-    this.props.onChange({ ...this.state.adhocFilter, isNew: false });
+    this.props.onChange(this.state.adhocFilter);
     this.props.onClose();
   }
 

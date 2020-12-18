@@ -35,6 +35,7 @@ interface ListViewResourceState<D extends object = any> {
   permissions: string[];
   lastFetchDataConfig: FetchDataConfig | null;
   bulkSelectEnabled: boolean;
+  lastFetched?: string;
 }
 
 export function useListViewResource<D extends object = any>(
@@ -43,7 +44,7 @@ export function useListViewResource<D extends object = any>(
   handleErrorMsg: (errorMsg: string) => void,
   infoEnable = true,
   defaultCollectionValue: D[] = [],
-  baseFilters: FilterValue[] = [], // must be memoized
+  baseFilters?: FilterValue[], // must be memoized
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,
@@ -112,7 +113,7 @@ export function useListViewResource<D extends object = any>(
         loading: true,
       });
 
-      const filterExps = baseFilters
+      const filterExps = (baseFilters || [])
         .concat(filterValues)
         .map(({ id: col, operator: opr, value }) => ({
           col,
@@ -136,6 +137,7 @@ export function useListViewResource<D extends object = any>(
             updateState({
               collection: json.result,
               count: json.count,
+              lastFetched: new Date().toISOString(),
             });
           },
           createErrorHandler(errMsg =>
@@ -152,7 +154,7 @@ export function useListViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [baseFilters.length ? baseFilters : null],
+    [baseFilters],
   );
 
   return {
@@ -161,6 +163,7 @@ export function useListViewResource<D extends object = any>(
       resourceCount: state.count,
       resourceCollection: state.collection,
       bulkSelectEnabled: state.bulkSelectEnabled,
+      lastFetched: state.lastFetched,
     },
     setResourceCollection: (update: D[]) =>
       updateState({

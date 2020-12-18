@@ -63,6 +63,7 @@ from superset.utils.core import (
     validate_json,
     zlib_compress,
     zlib_decompress,
+    datetime_eval,
 )
 from superset.utils import schema
 from superset.views.utils import (
@@ -154,6 +155,18 @@ class TestUtils(SupersetTestCase):
         self.assertEqual(parse_human_timedelta("1 year"), timedelta(366))
         self.assertEqual(parse_human_timedelta("-1 year"), timedelta(-365))
         self.assertEqual(parse_human_timedelta(None), timedelta(0))
+        self.assertEqual(
+            parse_human_timedelta("1 month", datetime(2019, 4, 1)), timedelta(30),
+        )
+        self.assertEqual(
+            parse_human_timedelta("1 month", datetime(2019, 5, 1)), timedelta(31),
+        )
+        self.assertEqual(
+            parse_human_timedelta("1 month", datetime(2019, 2, 1)), timedelta(28),
+        )
+        self.assertEqual(
+            parse_human_timedelta("-1 month", datetime(2019, 2, 1)), timedelta(-31),
+        )
 
     @patch("superset.utils.core.datetime")
     def test_parse_past_timedelta(self, mock_datetime):
@@ -708,6 +721,10 @@ class TestUtils(SupersetTestCase):
         expected = datetime(2015, 11, 7), datetime(2016, 11, 7)
         self.assertEqual(result, expected)
 
+        result = get_since_until("Last quarter")
+        expected = datetime(2016, 8, 7), datetime(2016, 11, 7)
+        self.assertEqual(result, expected)
+
         result = get_since_until("Last 5 months")
         expected = datetime(2016, 6, 7), datetime(2016, 11, 7)
         self.assertEqual(result, expected)
@@ -746,6 +763,109 @@ class TestUtils(SupersetTestCase):
 
         with self.assertRaises(ValueError):
             get_since_until(time_range="tomorrow : yesterday")
+
+    @patch("superset.utils.core.parse_human_datetime", mock_parse_human_datetime)
+    def test_datetime_eval(self):
+        result = datetime_eval("datetime('now')")
+        expected = datetime(2016, 11, 7, 9, 30, 10)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("datetime('today'  )")
+        expected = datetime(2016, 11, 7)
+        self.assertEqual(result, expected)
+
+        # Parse compact arguments spelling
+        result = datetime_eval("dateadd(datetime('today'),1,year,)")
+        expected = datetime(2017, 11, 7)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("dateadd(datetime('today'), -2, year)")
+        expected = datetime(2014, 11, 7)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("dateadd(datetime('today'), 2, quarter)")
+        expected = datetime(2017, 5, 7)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("dateadd(datetime('today'), 3, month)")
+        expected = datetime(2017, 2, 7)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("dateadd(datetime('today'), -3, week)")
+        expected = datetime(2016, 10, 17)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("dateadd(datetime('today'), 3, day)")
+        expected = datetime(2016, 11, 10)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("dateadd(datetime('now'), 3, hour)")
+        expected = datetime(2016, 11, 7, 12, 30, 10)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("dateadd(datetime('now'), 40, minute)")
+        expected = datetime(2016, 11, 7, 10, 10, 10)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("dateadd(datetime('now'), -11, second)")
+        expected = datetime(2016, 11, 7, 9, 29, 59)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("datetrunc(datetime('now'), year)")
+        expected = datetime(2016, 1, 1, 0, 0, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("datetrunc(datetime('now'), month)")
+        expected = datetime(2016, 11, 1, 0, 0, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("datetrunc(datetime('now'), day)")
+        expected = datetime(2016, 11, 7, 0, 0, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("datetrunc(datetime('now'), week)")
+        expected = datetime(2016, 11, 7, 0, 0, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("datetrunc(datetime('now'), hour)")
+        expected = datetime(2016, 11, 7, 9, 0, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("datetrunc(datetime('now'), minute)")
+        expected = datetime(2016, 11, 7, 9, 30, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("datetrunc(datetime('now'), second)")
+        expected = datetime(2016, 11, 7, 9, 30, 10)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("lastday(datetime('now'), year)")
+        expected = datetime(2016, 12, 31, 0, 0, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("lastday(datetime('today'), month)")
+        expected = datetime(2016, 11, 30, 0, 0, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("holiday('Christmas')")
+        expected = datetime(2016, 12, 25, 0, 0, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval("holiday('Labor day', datetime('2018-01-01T00:00:00'))")
+        expected = datetime(2018, 9, 3, 0, 0, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval(
+            "holiday('Boxing day', datetime('2018-01-01T00:00:00'), 'UK')"
+        )
+        expected = datetime(2018, 12, 26, 0, 0, 0)
+        self.assertEqual(result, expected)
+
+        result = datetime_eval(
+            "lastday(dateadd(datetime('2018-01-01T00:00:00'), 1, month), month)"
+        )
+        expected = datetime(2018, 2, 28, 0, 0, 0)
+        self.assertEqual(result, expected)
 
     @patch("superset.utils.core.to_adhoc", mock_to_adhoc)
     def test_convert_legacy_filters_into_adhoc_where(self):
