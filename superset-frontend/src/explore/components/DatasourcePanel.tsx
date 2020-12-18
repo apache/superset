@@ -88,9 +88,6 @@ const DatasourceContainer = styled.div`
   .ant-collapse-content-box {
     padding: 0px;
   }
-  .metric-option .option-label {
-    margin-left: ${({ theme }) => theme.gridUnit * -5}px;
-  }
   .field-selections {
     padding: ${({ theme }) => 2 * theme.gridUnit}px;
     overflow: auto;
