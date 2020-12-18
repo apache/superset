@@ -92,9 +92,12 @@ export default class AdhocMetric {
 
   translateToSql() {
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
-      return `${this.aggregate || ''}(${
-        (this.column && this.column.column_name) || ''
-      })`;
+      const aggregate = this.aggregate || '';
+      // eslint-disable-next-line camelcase
+      const column = this.column?.column_name
+        ? `(${this.column.column_name})`
+        : '';
+      return aggregate + column;
     }
     if (this.expressionType === EXPRESSION_TYPES.SQL) {
       return this.sqlExpression;
