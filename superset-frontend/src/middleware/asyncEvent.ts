@@ -100,7 +100,7 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
         const { json } = await SupersetClient.get({
           endpoint: asyncEvent.result_url,
         });
-        data = 'result' in json ? json.result[0] : json;
+        data = 'result' in json ? json.result : json;
       } catch (response) {
         status = 'error';
         data = await getClientErrorObject(response);
@@ -151,8 +151,9 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
                   );
                   break;
                 case JOB_STATUS.ERROR:
+                  const errors = [parseErrorJson(asyncEvent)];
                   store.dispatch(
-                    errorAction(componentId, parseErrorJson(asyncEvent)),
+                    errorAction(componentId, errors),
                   );
                   break;
                 default:
@@ -164,10 +165,11 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
 
             const fetchResults = await Promise.all(fetchDataEvents);
             fetchResults.forEach(result => {
+              const data = Array.isArray(result.data) ? result.data : [result.data];
               if (result.status === 'success') {
-                store.dispatch(successAction(result.componentId, result.data));
+                store.dispatch(successAction(result.componentId, data));
               } else {
-                store.dispatch(errorAction(result.componentId, result.data));
+                store.dispatch(errorAction(result.componentId, data));
               }
             });
           }
