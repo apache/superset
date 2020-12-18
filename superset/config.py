@@ -619,7 +619,9 @@ ESTIMATE_QUERY_COST = False
 # running EXPLAIN on them, and compute a histogram of relative costs to present the
 # cost as a percentile:
 #
-# def postgres_query_cost_formatter(result: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+# def postgres_query_cost_formatter(
+#     result: List[Dict[str, Any]]
+# ) -> List[Dict[str, str]]:
 #     # 25, 50, 75% percentiles
 #     percentile_costs = [100.0, 1000.0, 10000.0]
 #
