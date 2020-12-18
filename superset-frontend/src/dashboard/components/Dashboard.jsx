@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 
-import { PluginContext } from 'src/components/DynamicPlugins/PluginContext';
+import { PluginContext } from 'src/components/DynamicPlugins';
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId';
 import DashboardBuilder from '../containers/DashboardBuilder';

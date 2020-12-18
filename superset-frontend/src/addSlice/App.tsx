@@ -21,7 +21,7 @@ import { hot } from 'react-hot-loader/root';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
-import DynamicPluginProvider from '../components/DynamicPlugins/DynamicPluginProvider';
+import { DynamicPluginProvider } from '../components/DynamicPlugins';
 import AddSliceContainer from './AddSliceContainer';
 import { initFeatureFlags } from '../featureFlags';
 

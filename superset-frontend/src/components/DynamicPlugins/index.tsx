@@ -16,18 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useReducer } from 'react';
+import React, { useContext, useEffect, useReducer } from 'react';
 import {
   defineSharedModules,
   logging,
   SupersetClient,
 } from '@superset-ui/core';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import {
-  dummyPluginContext,
-  PluginContext,
-  PluginContextType,
-} from './PluginContext';
+
+export type PluginContextType = {
+  loading: boolean;
+  plugins: {
+    [key: string]: {
+      key: string;
+      loading: boolean;
+      error: null | Error;
+    };
+  };
+  fetchAll: () => void;
+};
 
 // the plugin returned from the API
 type Plugin = {
@@ -47,6 +54,16 @@ type BeginAction = {
   type: 'begin';
   keys: string[];
 };
+
+const dummyPluginContext: PluginContextType = {
+  loading: true,
+  plugins: {},
+  fetchAll: () => {},
+};
+
+export const PluginContext = React.createContext(dummyPluginContext);
+
+export const useDynamicPluginContext = () => useContext(PluginContext);
 
 function pluginContextReducer(
   state: PluginContextType,
@@ -95,7 +112,7 @@ const sharedModules = {
   '@superset-ui/core': () => import('@superset-ui/core'),
 };
 
-export default function DynamicPluginProvider({ children }: Props) {
+export function DynamicPluginProvider({ children }: Props) {
   const [pluginState, dispatch] = useReducer(pluginContextReducer, {
     // use the dummy plugin context, and override the methods
     ...dummyPluginContext,

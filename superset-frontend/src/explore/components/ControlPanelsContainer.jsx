@@ -26,7 +26,7 @@ import { css } from '@emotion/core';
 import { t, styled, getChartControlPanelRegistry } from '@superset-ui/core';
 
 import Tabs from 'src/common/components/Tabs';
-import { PluginContext } from 'src/components/DynamicPlugins/PluginContext';
+import { PluginContext } from 'src/components/DynamicPlugins';
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
 import Control from './Control';

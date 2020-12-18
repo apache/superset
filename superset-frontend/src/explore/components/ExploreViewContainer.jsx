@@ -24,7 +24,7 @@ import { connect } from 'react-redux';
 import { styled, t, supersetTheme, css } from '@superset-ui/core';
 import { debounce } from 'lodash';
 
-import { useDynamicPluginContext } from 'src/components/DynamicPlugins/PluginContext';
+import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/core';
 import { Tooltip } from 'src/common/components/Tooltip';
 import Icon from 'src/components/Icon';

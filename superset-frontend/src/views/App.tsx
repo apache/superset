@@ -25,7 +25,7 @@ import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { initFeatureFlags } from 'src/featureFlags';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import DynamicPluginProvider from 'src/components/DynamicPlugins/DynamicPluginProvider';
+import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Menu from 'src/components/Menu/Menu';
 import FlashProvider from 'src/components/FlashProvider';
