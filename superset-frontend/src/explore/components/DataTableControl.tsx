@@ -21,6 +21,8 @@ import { styled, t } from '@superset-ui/core';
 import { FormControl } from 'react-bootstrap';
 import { Column } from 'react-table';
 import debounce from 'lodash/debounce';
+
+import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
 import Button from 'src/components/Button';
 import {
   applyFormattingToTabularData,
@@ -110,10 +112,10 @@ export const useTableColumns = (
                 Header: key,
                 Cell: ({ value }) => {
                   if (value === true) {
-                    return t('True');
+                    return BOOL_TRUE_DISPLAY;
                   }
                   if (value === false) {
-                    return t('False');
+                    return BOOL_FALSE_DISPLAY;
                   }
                   return String(value);
                 },
