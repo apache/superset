@@ -20,6 +20,7 @@ import React from 'react';
 import { styled, useTheme } from '@superset-ui/core';
 import { ColumnOption } from '@superset-ui/chart-controls';
 import Icon from '../../components/Icon';
+import { savedMetricType } from '../types';
 
 const OptionControlContainer = styled.div<{ isAdhoc?: boolean }>`
   display: flex;
@@ -117,7 +118,7 @@ export const OptionControlLabel = ({
   ...props
 }: {
   label: string | React.ReactNode;
-  savedMetric?: any;
+  savedMetric?: savedMetricType;
   onRemove: () => void;
   isAdhoc?: boolean;
   isFunction?: boolean;
@@ -125,7 +126,8 @@ export const OptionControlLabel = ({
   const theme = useTheme();
   const getLabelContent = () => {
     if (savedMetric?.metric_name) {
-      const column = { ...savedMetric };
+      // add column_name to fix typescript error
+      const column = { ...savedMetric, column_name: '' };
       if (!column.verbose_name) {
         column.verbose_name = column.metric_name;
       }

@@ -21,12 +21,8 @@ import Popover from 'src/common/components/Popover';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/AdhocMetricEditPopoverTitle';
 import AdhocMetricEditPopover from './AdhocMetricEditPopover';
 import AdhocMetric from '../AdhocMetric';
+import { savedMetricType } from '../types';
 
-type savedMetricType = {
-  metric_name: string;
-  verbose_name: string;
-  expression: string;
-};
 export type AdhocMetricPopoverTriggerProps = {
   adhocMetric: AdhocMetric;
   onMetricEdit: () => void;
