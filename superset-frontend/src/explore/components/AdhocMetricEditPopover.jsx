@@ -305,10 +305,10 @@ export default class AdhocMetricEditPopover extends React.Component {
           onChange={this.refreshAceEditor}
           allowOverflow
         >
-          <Tabs.TabPane key={EXPRESSION_TYPES.SIMPLE} tab="Simple">
+          <Tabs.TabPane key={EXPRESSION_TYPES.SIMPLE} tab={t('Simple')}>
             <FormGroup>
               <FormLabel>
-                <strong>column</strong>
+                <strong>{t('column')}</strong>
               </FormLabel>
               <Select name="select-column" {...columnSelectProps}>
                 {columns.map(column => (
@@ -324,7 +324,7 @@ export default class AdhocMetricEditPopover extends React.Component {
             </FormGroup>
             <FormGroup>
               <FormLabel>
-                <strong>aggregate</strong>
+                <strong>{t('aggregate')}</strong>
               </FormLabel>
               <Select name="select-aggregate" {...aggregateSelectProps}>
                 {AGGREGATES_OPTIONS.map(option => (
@@ -335,10 +335,10 @@ export default class AdhocMetricEditPopover extends React.Component {
               </Select>
             </FormGroup>
           </Tabs.TabPane>
-          <Tabs.TabPane key={SAVED_TAB_KEY} tab="Saved">
+          <Tabs.TabPane key={SAVED_TAB_KEY} tab={t('Saved')}>
             <FormGroup>
               <FormLabel>
-                <strong>Saved metric</strong>
+                <strong>{t('Saved metric')}</strong>
               </FormLabel>
               <Select name="select-saved" {...savedSelectProps}>
                 {Array.isArray(savedMetrics) &&
@@ -358,7 +358,7 @@ export default class AdhocMetricEditPopover extends React.Component {
           </Tabs.TabPane>
           <Tabs.TabPane
             key={EXPRESSION_TYPES.SQL}
-            tab="Custom SQL"
+            tab={t('Custom SQL')}
             data-test="adhoc-metric-edit-tab#custom"
           >
             {this.props.datasourceType !== 'druid' ? (
@@ -394,7 +394,7 @@ export default class AdhocMetricEditPopover extends React.Component {
             data-test="AdhocMetricEdit#cancel"
             cta
           >
-            Close
+            {t('Close')}
           </Button>
           <Button
             disabled={!stateIsValid}
@@ -406,7 +406,7 @@ export default class AdhocMetricEditPopover extends React.Component {
             onClick={this.onSave}
             cta
           >
-            Save
+            {t('Save')}
           </Button>
           <ResizeIcon
             role="button"

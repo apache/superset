@@ -155,7 +155,7 @@ export default class AdhocFilterEditPopover extends React.Component {
           <Tabs.TabPane
             className="adhoc-filter-edit-tab"
             key={EXPRESSION_TYPES.SIMPLE}
-            tab="Simple"
+            tab={t('Simple')}
           >
             <AdhocFilterEditPopoverSimpleTabContent
               adhocFilter={this.state.adhocFilter}
@@ -170,7 +170,7 @@ export default class AdhocFilterEditPopover extends React.Component {
           <Tabs.TabPane
             className="adhoc-filter-edit-tab"
             key={EXPRESSION_TYPES.SQL}
-            tab="Custom SQL"
+            tab={t('Custom SQL')}
           >
             {!this.props.datasource ||
             this.props.datasource.type !== 'druid' ? (
