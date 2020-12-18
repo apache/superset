@@ -20,7 +20,6 @@ import traceback
 from datetime import datetime
 from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING, Union
 
-import dataclasses  # isort:skip
 import simplejson as json
 import yaml
 from flask import abort, flash, g, get_flashed_messages, redirect, Response, session
@@ -59,6 +58,10 @@ from superset.typing import FlaskResponse
 from superset.utils import core as utils
 
 from .utils import bootstrap_user_data
+
+# fmt: off
+import dataclasses  # isort:skip
+# fmt: on
 
 if TYPE_CHECKING:
     from superset.connectors.druid.views import (  # pylint: disable=unused-import
