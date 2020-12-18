@@ -216,7 +216,13 @@ class FilterBox extends React.PureComponent {
       const color = 'lightgrey';
       const backgroundImage = `linear-gradient(to right, ${color}, ${color} ${perc}%, rgba(0,0,0,0) ${perc}%`;
       const style = { backgroundImage };
-      return { value: opt.id, label: opt.id, style };
+      let label = opt.id;
+      if (label === true) {
+        label = t('True');
+      } else if (label === false) {
+        label = t('False');
+      }
+      return { value: opt.id, label, style };
     });
   }
 
