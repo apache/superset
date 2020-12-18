@@ -62,6 +62,7 @@ function mapStateToProps(
     colorScheme,
     colorNamespace,
     sliceId: id,
+    nativeFilters,
   });
 
   formData.dashboardId = dashboardInfo.id;
