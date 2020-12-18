@@ -16,14 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable react/jsx-key */
 
 import React from 'react';
 import { t } from '@superset-ui/core';
 import {
+  ControlPanelSectionConfig,
+  CustomControlItem,
   formatSelectOptions,
   D3_TIME_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
+  sections,
 } from '@superset-ui/chart-controls';
 
 /*
@@ -42,7 +46,7 @@ import {
   TimePivotChartPlugin,
 */
 
-export const yAxis2Format = {
+export const yAxis2Format: CustomControlItem = {
   name: 'y_axis_2_format',
   config: {
     type: 'SelectControl',
@@ -54,7 +58,7 @@ export const yAxis2Format = {
   },
 };
 
-export const showMarkers = {
+export const showMarkers: CustomControlItem = {
   name: 'show_markers',
   config: {
     type: 'CheckboxControl',
@@ -65,7 +69,7 @@ export const showMarkers = {
   },
 };
 
-export const leftMargin = {
+export const leftMargin: CustomControlItem = {
   name: 'left_margin',
   config: {
     type: 'SelectControl',
@@ -79,7 +83,7 @@ export const leftMargin = {
   },
 };
 
-export const yAxisShowMinmax = {
+export const yAxisShowMinmax: CustomControlItem = {
   name: 'y_axis_showminmax',
   config: {
     type: 'CheckboxControl',
@@ -90,7 +94,7 @@ export const yAxisShowMinmax = {
   },
 };
 
-export const lineInterpolation = {
+export const lineInterpolation: CustomControlItem = {
   name: 'line_interpolation',
   config: {
     type: 'SelectControl',
@@ -109,7 +113,7 @@ export const lineInterpolation = {
   },
 };
 
-export const showBrush = {
+export const showBrush: CustomControlItem = {
   name: 'show_brush',
   config: {
     type: 'SelectControl',
@@ -126,7 +130,7 @@ export const showBrush = {
   },
 };
 
-export const showLegend = {
+export const showLegend: CustomControlItem = {
   name: 'show_legend',
   config: {
     type: 'CheckboxControl',
@@ -137,7 +141,7 @@ export const showLegend = {
   },
 };
 
-export const showControls = {
+export const showControls: CustomControlItem = {
   name: 'show_controls',
   config: {
     type: 'CheckboxControl',
@@ -152,7 +156,7 @@ export const showControls = {
   },
 };
 
-export const xAxisLabel = {
+export const xAxisLabel: CustomControlItem = {
   name: 'x_axis_label',
   config: {
     type: 'TextControl',
@@ -162,7 +166,7 @@ export const xAxisLabel = {
   },
 };
 
-export const bottomMargin = {
+export const bottomMargin: CustomControlItem = {
   name: 'bottom_margin',
   config: {
     type: 'SelectControl',
@@ -176,7 +180,7 @@ export const bottomMargin = {
   },
 };
 
-export const xTicksLayout = {
+export const xTicksLayout: CustomControlItem = {
   name: 'x_ticks_layout',
   config: {
     type: 'SelectControl',
@@ -189,7 +193,7 @@ export const xTicksLayout = {
   },
 };
 
-export const xAxisFormat = {
+export const xAxisFormat: CustomControlItem = {
   name: 'x_axis_format',
   config: {
     type: 'SelectControl',
@@ -202,7 +206,7 @@ export const xAxisFormat = {
   },
 };
 
-export const yLogScale = {
+export const yLogScale: CustomControlItem = {
   name: 'y_log_scale',
   config: {
     type: 'CheckboxControl',
@@ -213,7 +217,7 @@ export const yLogScale = {
   },
 };
 
-export const yAxisBounds = {
+export const yAxisBounds: CustomControlItem = {
   name: 'y_axis_bounds',
   config: {
     type: 'BoundsControl',
@@ -229,7 +233,7 @@ export const yAxisBounds = {
   },
 };
 
-export const xAxisShowMinmax = {
+export const xAxisShowMinmax: CustomControlItem = {
   name: 'x_axis_showminmax',
   config: {
     type: 'CheckboxControl',
@@ -240,7 +244,7 @@ export const xAxisShowMinmax = {
   },
 };
 
-export const richTooltip = {
+export const richTooltip: CustomControlItem = {
   name: 'rich_tooltip',
   config: {
     type: 'CheckboxControl',
@@ -251,7 +255,7 @@ export const richTooltip = {
   },
 };
 
-export const showBarValue = {
+export const showBarValue: CustomControlItem = {
   name: 'show_bar_value',
   config: {
     type: 'CheckboxControl',
@@ -262,7 +266,7 @@ export const showBarValue = {
   },
 };
 
-export const barStacked = {
+export const barStacked: CustomControlItem = {
   name: 'bar_stacked',
   config: {
     type: 'CheckboxControl',
@@ -273,7 +277,7 @@ export const barStacked = {
   },
 };
 
-export const reduceXTicks = {
+export const reduceXTicks: CustomControlItem = {
   name: 'reduce_x_ticks',
   config: {
     type: 'CheckboxControl',
@@ -290,7 +294,7 @@ export const reduceXTicks = {
   },
 };
 
-export const yAxisLabel = {
+export const yAxisLabel: CustomControlItem = {
   name: 'y_axis_label',
   config: {
     type: 'TextControl',
@@ -300,7 +304,8 @@ export const yAxisLabel = {
   },
 };
 
-export const timeSeriesSection = [
+export const timeSeriesSection: ControlPanelSectionConfig[] = [
+  sections.legacyTimeseriesTime,
   {
     label: t('Query'),
     expanded: true,
@@ -341,7 +346,6 @@ export const timeSeriesSection = [
         'of query results',
     ),
     controlSetRows: [
-      // eslint-disable-next-line react/jsx-key
       [<h1 className="section-header">{t('Rolling Window')}</h1>],
       [
         {
@@ -385,7 +389,6 @@ export const timeSeriesSection = [
           },
         },
       ],
-      // eslint-disable-next-line react/jsx-key
       [<h1 className="section-header">{t('Time Comparison')}</h1>],
       [
         {
@@ -433,9 +436,7 @@ export const timeSeriesSection = [
           },
         },
       ],
-      // eslint-disable-next-line react/jsx-key
       [<h1 className="section-header">{t('Python Functions')}</h1>],
-      // eslint-disable-next-line react/jsx-key
       [<h2 className="section-header">pandas.resample</h2>],
       [
         {

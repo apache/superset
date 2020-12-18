@@ -28,6 +28,7 @@ import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
   sharedControls,
+  sections,
 } from '@superset-ui/chart-controls';
 
 import i18n from './i18n';
@@ -133,6 +134,7 @@ const percent_metrics: typeof sharedControls.metrics = {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
+    sections.legacyTimeseriesTime,
     {
       label: t('Query'),
       expanded: true,
@@ -315,14 +317,6 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  sectionOverrides: {
-    druidTimeSeries: {
-      controlSetRows: [['granularity', 'druid_time_origin'], ['time_range']],
-    },
-    sqlaTimeSeries: {
-      controlSetRows: [['granularity_sqla', 'time_grain_sqla'], ['time_range']],
-    },
-  },
 };
 
 export default config;

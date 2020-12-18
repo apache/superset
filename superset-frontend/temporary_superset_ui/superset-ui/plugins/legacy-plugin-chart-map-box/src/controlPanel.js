@@ -17,10 +17,11 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { formatSelectOptions, columnChoices } from '@superset-ui/chart-controls';
+import { formatSelectOptions, columnChoices, sections } from '@superset-ui/chart-controls';
 
 export default {
   controlPanelSections: [
+    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
