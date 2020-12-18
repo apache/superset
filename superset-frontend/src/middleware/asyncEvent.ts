@@ -152,9 +152,7 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
                   break;
                 case JOB_STATUS.ERROR:
                   const errors = [parseErrorJson(asyncEvent)];
-                  store.dispatch(
-                    errorAction(componentId, errors)
-                  );
+                  store.dispatch(errorAction(componentId, errors));
                   break;
                 default:
                   console.warn('received event with status', asyncEvent.status);
@@ -165,7 +163,9 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
 
             const fetchResults = await Promise.all(fetchDataEvents);
             fetchResults.forEach(result => {
-              const data = Array.isArray(result.data) ? result.data : [result.data];
+              const data = Array.isArray(result.data)
+                ? result.data
+                : [result.data];
               if (result.status === 'success') {
                 store.dispatch(successAction(result.componentId, data));
               } else {
