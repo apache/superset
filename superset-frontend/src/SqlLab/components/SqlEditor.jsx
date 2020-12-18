@@ -687,17 +687,26 @@ class SqlEditor extends React.PureComponent {
         {this.queryPane()}
         <StyledModal
           visible={this.state.showCreateAsModal}
+<<<<<<< HEAD
           title={t(createViewModalTitle)}
           onHide={() => {
             this.setState({ showCreateAsModal: false });
           }}
           footer={
             <>
+=======
+          title={t('Create View As')}
+          onHide={() => {
+            this.setState({ showCreateAsModal: false });
+          }}
+          footer={<>
+>>>>>>> save quite
               <Button
                 onClick={() => this.setState({ showCreateAsModal: false })}
               >
                 Cancel
               </Button>
+<<<<<<< HEAD
               {this.state.createAs === CtasEnum.TABLE && (
                 <Button
                   buttonStyle="primary"
@@ -716,6 +725,9 @@ class SqlEditor extends React.PureComponent {
                   Create
                 </Button>
               )}
+=======
+              <Button buttonStyle="primary">Create</Button>
+>>>>>>> save quite
             </>
           }
         >
