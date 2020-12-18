@@ -81,6 +81,9 @@ class TestQueryContext(SupersetTestCase):
         payload["force"] = True
 
         query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        query_cache_key = query_context.query_cache_key(query_object)
+
         response = query_context.get_payload(cache_query_context=True)
         cache_key = response["cache_key"]
         assert cache_key
@@ -89,11 +92,12 @@ class TestQueryContext(SupersetTestCase):
         assert cached
 
         rehydrated_qc = ChartDataQueryContextSchema().load(cached["data"])
+        rehydrated_qo = rehydrated_qc.queries[0]
+        rehydrated_query_cache_key = rehydrated_qc.query_cache_key(rehydrated_qo)
+
         self.assertEqual(rehydrated_qc.datasource, query_context.datasource)
         self.assertEqual(len(rehydrated_qc.queries), 1)
-        self.assertEqual(
-            rehydrated_qc.queries[0].to_dict(), query_context.queries[0].to_dict()
-        )
+        self.assertEqual(query_cache_key, rehydrated_query_cache_key)
         self.assertEqual(rehydrated_qc.result_type, query_context.result_type)
         self.assertEqual(rehydrated_qc.result_format, query_context.result_format)
         self.assertFalse(rehydrated_qc.force)
