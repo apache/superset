@@ -771,12 +771,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Updating alert/report state
   const updateAlertState = (name: string, value: any) => {
-    const data = {
-      ...currentAlert,
+    setCurrentAlert(currentAlertData => ({
+      ...currentAlertData,
       [name]: value,
-    };
-
-    setCurrentAlert(data);
+    }));
   };
 
   // Handle input/textarea updates
@@ -1047,7 +1045,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         <div className="header-section">
           <StyledInputContainer>
             <div className="control-label">
-              {t('Alert Name')}
+              {isReport ? t('Report Name') : t('Alert Name')}
               <span className="required">*</span>
             </div>
             <div className="input-container">
@@ -1055,7 +1053,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 type="text"
                 name="name"
                 value={currentAlert ? currentAlert.name : ''}
-                placeholder={t('Alert Name')}
+                placeholder={isReport ? t('Report Name') : t('Alert Name')}
                 onChange={onTextChange}
               />
             </div>
@@ -1189,7 +1187,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           )}
           <div className="column schedule">
             <StyledSectionTitle>
-              <h4>{t('Alert Condition Schedule')}</h4>
+              <h4>
+                {isReport
+                  ? t('Report Schedule')
+                  : t('Alert Condition Schedule')}
+              </h4>
             </StyledSectionTitle>
             <AlertReportCronScheduler
               value={(currentAlert && currentAlert.crontab) || undefined}
