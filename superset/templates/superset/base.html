@@ -23,12 +23,12 @@
   {{ super() }}
   <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
   {{ css_bundle("theme") }}
-  <link media="all" rel="stylesheet" href="/static/blotout.css" />
+  <link media="all" rel="stylesheet" href="/static/blotout.css?v=1" />
 {% endblock %}
 
 {% block head_js %}
   {{ super() }}
-  <script src="/static/blotout.js"></script>
+  <script src="/static/blotout.js?v=1"></script>
   {{ js_bundle("theme") }}
 {% endblock %}
 
