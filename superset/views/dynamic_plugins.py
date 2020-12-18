@@ -25,6 +25,18 @@ class DynamicPluginsView(ModelView):
 
     route_base = "/dynamic-plugins"
     datamodel = SQLAInterface(DynamicPlugin)
+    class_permission_name = "DynamicPlugin"
+
+    # set it up so that instead of 6 permissions
+    # we create just two - "can read" and "can write"
+    method_permission_name = {
+        "get_list": "read",
+        "get": "read",
+        "post": "write",
+        "put": "write",
+        "delete": "write",
+        "info": "read",
+    }
 
     add_columns = ["name", "key", "bundle_url"]
     edit_columns = add_columns
