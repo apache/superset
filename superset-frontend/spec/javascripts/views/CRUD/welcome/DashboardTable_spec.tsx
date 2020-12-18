@@ -26,6 +26,7 @@ import { act } from 'react-dom/test-utils';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import DashboardTable from 'src/views/CRUD/welcome/DashboardTable';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
+import { $anyType } from 'src/constants';
 
 // store needed for withToasts(DashboardTable)
 const mockStore = configureStore([thunk]);
@@ -76,7 +77,7 @@ describe('DashboardTable', () => {
     act(() => {
       const handler = wrapper.find('li.no-router a').at(1).prop('onClick');
       if (handler) {
-        handler({} as any);
+        handler({} as $anyType);
       }
     });
     await waitForComponentToPaint(wrapper);

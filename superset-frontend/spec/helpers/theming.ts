@@ -19,12 +19,13 @@
 import { shallow as enzymeShallow, mount as enzymeMount } from 'enzyme';
 import { supersetTheme } from '@superset-ui/core';
 import { ReactElement } from 'react';
+import { $anyType } from 'src/constants';
 import { ProviderWrapper } from './ProviderWrapper';
 
 type optionsType = {
-  wrappingComponentProps?: any;
+  wrappingComponentProps?: $anyType;
   wrappingComponent?: ReactElement;
-  context?: any;
+  context?: $anyType;
 };
 
 export function styledMount(

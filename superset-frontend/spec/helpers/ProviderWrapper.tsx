@@ -21,8 +21,9 @@ import React from 'react';
 import { ThemeProvider } from '@superset-ui/core';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
+import { $anyType } from 'src/constants';
 
-export function ProviderWrapper(props: any) {
+export function ProviderWrapper(props: $anyType) {
   const { children, theme } = props;
 
   return (

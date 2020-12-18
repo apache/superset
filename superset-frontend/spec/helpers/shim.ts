@@ -25,6 +25,7 @@ import { configure } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 import { configure as configureTranslation } from '@superset-ui/core';
 
+import { $anyType } from 'src/constants';
 import setupSupersetClient from './setupSupersetClient';
 
 configure({ adapter: new Adapter() });
@@ -41,7 +42,7 @@ if (defaultView != null) {
   });
 }
 
-const g = global as any;
+const g = global as $anyType;
 
 g.window = g.window || {};
 g.window.location = { href: 'about:blank' };

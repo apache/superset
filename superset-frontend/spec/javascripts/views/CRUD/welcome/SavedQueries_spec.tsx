@@ -26,6 +26,7 @@ import { act } from 'react-dom/test-utils';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import SubMenu from 'src/components/Menu/SubMenu';
 import SavedQueries from 'src/views/CRUD/welcome/SavedQueries';
+import { $anyType } from 'src/constants';
 
 // store needed for withToasts(DashboardTable)
 const mockStore = configureStore([thunk]);
@@ -83,7 +84,7 @@ describe('SavedQueries', () => {
     act(() => {
       const handler = wrapper.find('li.no-router a').at(idx).prop('onClick');
       if (handler) {
-        handler({} as any);
+        handler({} as $anyType);
       }
     });
   };

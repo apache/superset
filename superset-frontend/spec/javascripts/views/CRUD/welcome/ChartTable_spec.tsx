@@ -25,6 +25,7 @@ import configureStore from 'redux-mock-store';
 import { act } from 'react-dom/test-utils';
 import ChartTable from 'src/views/CRUD/welcome/ChartTable';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import { $anyType } from 'src/constants';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -66,7 +67,7 @@ describe('ChartTable', () => {
     act(() => {
       const handler = wrapper.find('li.no-router a').at(0).prop('onClick');
       if (handler) {
-        handler({} as any);
+        handler({} as $anyType);
       }
     });
     await waitForComponentToPaint(wrapper);
