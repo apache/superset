@@ -50,12 +50,12 @@ const DatasourceContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light4};
   position: relative;
   height: 100%;
-  .field-selections {
-    padding: 0 ${({ theme }) => 2 * theme.gridUnit}px;
-  }
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
   .ant-collapse {
     height: auto;
-    border-bottom: 1px solid #cfd8dc;
+    border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     padding-bottom: 8px;
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
   }
@@ -95,11 +95,7 @@ const DatasourceContainer = styled.div`
     margin-left: ${({ theme }) => theme.gridUnit * -5}px;
   }
   .field-selections {
-    position: absolute;
-    top: ${({ theme }) => theme.gridUnit * 15}px;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    padding: ${({ theme }) => 2 * theme.gridUnit}px;
     overflow: auto;
   }
   .field-length {
@@ -115,6 +111,9 @@ const DatasourceContainer = styled.div`
     font-weight: ${({ theme }) => theme.typography.weights.light};
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
     color: ${({ theme }) => theme.colors.grayscale.base};
+  }
+  .Control {
+    padding-bottom: 0;
   }
 `;
 

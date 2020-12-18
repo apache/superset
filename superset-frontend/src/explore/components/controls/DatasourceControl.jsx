@@ -50,7 +50,6 @@ const Styles = styled.div`
     align-items: center;
     border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     padding: ${({ theme }) => 2 * theme.gridUnit}px;
-    margin-bottom: ${({ theme }) => 2 * theme.gridUnit}px;
   }
   .ant-dropdown-trigger {
     margin-left: ${({ theme }) => 2 * theme.gridUnit}px;
