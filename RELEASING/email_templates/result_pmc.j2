@@ -18,10 +18,10 @@
 -#}
 To: {{ receiver_email }}
 From: {{ sender_email }}
-Subject: [RESULT] [VOTE] Release Apache {{ project_name }} (incubating) {{ version }} based on Superset {{ version_rc }}
+Subject: [RESULT] [VOTE] Release Apache {{ project_name }} {{ version }} based on Superset {{ version_rc }}
 
 Thanks to everyone that participated. The vote to release
-Apache {{ project_name }} (incubating) version {{ version }} based on {{ version_rc }} is now closed.
+Apache {{ project_name }} version {{ version }} based on {{ version_rc }} is now closed.
 
 {% if vote_negatives|length > 0 -%}
 The vote did NOT PASS with {{vote_bindings|length}} binding +1, {{ vote_nonbindings|length}} non binding +1 and {{vote_negatives|length}} -1 votes:
@@ -55,4 +55,4 @@ Negative votes:
 We will work to complete the release process.
 
 Thanks,
-The Apache {{ project_name }} (Incubating) Team
+The Apache {{ project_name }} Team
