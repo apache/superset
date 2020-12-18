@@ -25,7 +25,7 @@ import AlertReportModal from 'src/views/CRUD/alert/AlertReportModal';
 import Modal from 'src/common/components/Modal';
 import { AsyncSelect } from 'src/components/Select';
 import { Radio } from 'src/common/components/Radio';
-import { Select } from 'src/common/components/Select';
+import { GraySelect as Select } from 'src/common/components/Select';
 import { Switch } from 'src/common/components/Switch';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
@@ -53,10 +53,10 @@ const mockedProps = {
 };
 
 // Related mocks
-const ownersEndpoint = 'glob:*/api/v1/dashboard/related/owners?*';
-const databaseEndpoint = 'glob:*/api/v1/dataset/related/database?*';
-const dashboardEndpoint = 'glob:*/api/v1/dashboard?*';
-const chartEndpoint = 'glob:*/api/v1/chart?*';
+const ownersEndpoint = 'glob:*/api/v1/alert/related/owners?*';
+const databaseEndpoint = 'glob:*/api/v1/alert/related/database?*';
+const dashboardEndpoint = 'glob:*/api/v1/alert/related/dashboard?*';
+const chartEndpoint = 'glob:*/api/v1/alert/related/chart?*';
 
 fetchMock.get(ownersEndpoint, {
   result: [],
