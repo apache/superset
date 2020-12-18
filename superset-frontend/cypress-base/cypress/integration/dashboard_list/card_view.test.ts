@@ -91,6 +91,7 @@ describe('Dashboard card view', () => {
     // show delete modal
     cy.get('[data-test="more-horiz"]').last().trigger('mouseover');
     cy.get('[data-test="dashboard-card-option-delete-button"]')
+      .trigger('mouseover')
       .should('be.visible')
       .click();
     cy.get('[data-test="modal-confirm-button"]').should(
@@ -110,6 +111,7 @@ describe('Dashboard card view', () => {
     // show edit modal
     cy.get('[data-test="more-horiz"]').last().trigger('mouseover');
     cy.get('[data-test="dashboard-card-option-edit-button"]')
+      .trigger('mouseover')
       .should('be.visible')
       .click();
     cy.get('[data-test="dashboard-edit-properties-form"]').should('be.visible');
