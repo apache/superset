@@ -28,17 +28,43 @@ import { ExploreActions } from '../actions/exploreActions';
 import Control from './Control';
 
 interface DatasourceControl {
-  validationErrors: any;
+  validationErrors: Array<any>;
   mapStateToProps: QueryFormData;
   type: ControlType;
   label: string;
   datasource?: DatasourceControl;
 }
 
+type Columns = {
+  column_name: string;
+  description: string | undefined;
+  expression: string | undefined;
+  filterable: boolean;
+  groupby: string | undefined;
+  id: number;
+  is_dttm: boolean;
+  python_date_format: string;
+  type: string;
+  verbose_name: string;
+};
+
+type Metrics = {
+  certification_details: string | undefined;
+  certified_by: string | undefined;
+  d3format: string | undefined;
+  description: string | undefined;
+  expression: string;
+  id: number;
+  is_certified: boolean;
+  metric_name: string;
+  verbose_name: string;
+  warning_text: string;
+};
+
 interface Props {
   datasource: {
-    columns: Array<any>;
-    metrics: Array<any>;
+    columns: Array<Columns>;
+    metrics: Array<Metrics>;
   };
   controls: {
     datasource: DatasourceControl;
@@ -195,7 +221,7 @@ const DataSourcePanel = ({
               {t(`Showing %s of %s`, metricSlice.length, metrics.length)}
             </div>
             {metricSlice.map(m => (
-              <div key={m.column_name} className="column">
+              <div key={m.metric_name} className="column">
                 <MetricOption metric={m} showType />
               </div>
             ))}
