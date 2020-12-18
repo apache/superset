@@ -86,10 +86,7 @@ const DatasourceContainer = styled.div`
     margin-left: ${({ theme }) => theme.gridUnit * -2}px;
   }
   .ant-collapse-content-box {
-    padding-bottom: 0px;
-    & > div {
-      margin-left: -14px;
-    }
+    padding: 0px;
   }
   .metric-option .option-label {
     margin-left: ${({ theme }) => theme.gridUnit * -5}px;
