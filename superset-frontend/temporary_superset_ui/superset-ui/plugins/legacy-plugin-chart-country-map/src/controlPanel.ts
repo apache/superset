@@ -17,10 +17,16 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { D3_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  D3_FORMAT_OPTIONS,
+  D3_FORMAT_DOCS,
+  sections,
+} from '@superset-ui/chart-controls';
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
+    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -103,3 +109,5 @@ export default {
     },
   },
 };
+
+export default config;

@@ -17,12 +17,13 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { formatSelectOptions, ControlPanelConfig } from '@superset-ui/chart-controls';
+import { ControlPanelConfig, formatSelectOptions, sections } from '@superset-ui/chart-controls';
 import React from 'react';
 import { headerFontSize, subheaderFontSize } from '../sharedControls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
+    sections.legacyTimeseriesTime,
     {
       label: t('Query'),
       expanded: true,
@@ -156,14 +157,6 @@ const config: ControlPanelConfig = {
   controlOverrides: {
     y_axis_format: {
       label: t('Number format'),
-    },
-  },
-  sectionOverrides: {
-    druidTimeSeries: {
-      controlSetRows: [['granularity', 'druid_time_origin'], ['time_range']],
-    },
-    sqlaTimeSeries: {
-      controlSetRows: [['granularity_sqla', 'time_grain_sqla'], ['time_range']],
     },
   },
 };

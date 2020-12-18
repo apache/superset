@@ -23,6 +23,7 @@ describe('columnChoices()', () => {
   it('should convert columns to choices', () => {
     expect(
       columnChoices({
+        id: 1,
         metrics: [],
         type: DatasourceType.Table,
         main_dttm_col: 'test',
@@ -40,6 +41,10 @@ describe('columnChoices()', () => {
             verbose_name: 'bar',
           },
         ],
+        verbose_map: {},
+        column_format: { fiz: 'NUMERIC', about: 'STRING', foo: 'DATE' },
+        datasource_name: 'my_datasource',
+        description: 'this is my datasource',
       }),
     ).toEqual([
       ['foo', 'bar'],
