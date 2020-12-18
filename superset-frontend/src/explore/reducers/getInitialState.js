@@ -72,7 +72,7 @@ export default function getInitialState(bootstrapData) {
         latestQueryFormData: getFormDataFromControls(controls),
         sliceFormData,
         queryController: null,
-        queryResponse: null,
+        queriesResponse: null,
         triggerQuery: false,
         lastRendered: 0,
       },
