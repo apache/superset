@@ -112,14 +112,6 @@ export default function DynamicPluginProvider({ children }: Props) {
         endpoint: '/dynamic-plugins/api/read',
       });
       const plugins: Plugin[] = response.json.result;
-      // const plugins: Plugin[] = [
-      //   {
-      //     name: 'Hello World',
-      //     key: 'superset-chart-hello-world',
-      //     id: 0,
-      //     bundle_url: 'http://127.0.0.1:8080/main.js',
-      //   },
-      // ];
       dispatch({ type: 'begin', keys: plugins.map(plugin => plugin.key) });
       await Promise.all(
         plugins.map(async plugin => {
