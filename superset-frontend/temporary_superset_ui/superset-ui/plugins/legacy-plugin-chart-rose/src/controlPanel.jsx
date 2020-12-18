@@ -23,10 +23,12 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
+  sections,
 } from '@superset-ui/chart-controls';
 
 export default {
   controlPanelSections: [
+    sections.legacyTimeseriesTime,
     {
       label: t('Query'),
       expanded: true,
@@ -248,12 +250,4 @@ export default {
       ],
     },
   ],
-  sectionOverrides: {
-    druidTimeSeries: {
-      controlSetRows: [['granularity', 'druid_time_origin'], ['time_range']],
-    },
-    sqlaTimeSeries: {
-      controlSetRows: [['granularity_sqla', 'time_grain_sqla'], ['time_range']],
-    },
-  },
 };

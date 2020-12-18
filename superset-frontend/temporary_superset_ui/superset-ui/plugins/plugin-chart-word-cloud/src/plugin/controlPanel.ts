@@ -17,13 +17,15 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
+import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
+    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['series'], ['metric'], ['adhoc_filters'], ['row_limit', null]],
+      controlSetRows: [['series'], ['metric'], ['adhoc_filters'], ['row_limit']],
     },
     {
       label: t('Options'),
@@ -85,3 +87,5 @@ export default {
     },
   },
 };
+
+export default config;

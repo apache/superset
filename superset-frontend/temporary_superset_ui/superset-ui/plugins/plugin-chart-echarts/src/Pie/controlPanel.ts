@@ -17,16 +17,17 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
-import { ControlPanelConfig, D3_FORMAT_OPTIONS } from '@superset-ui/chart-controls';
+import { ControlPanelConfig, D3_FORMAT_OPTIONS, sections } from '@superset-ui/chart-controls';
 
 const noopControl = { name: 'noop', config: { type: '', renderTrigger: true } };
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
+    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['groupby'], ['metric'], ['adhoc_filters'], ['row_limit', null]],
+      controlSetRows: [['groupby'], ['metric'], ['adhoc_filters'], ['row_limit']],
     },
     {
       label: t('Chart Options'),
@@ -156,7 +157,6 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-
   controlOverrides: {
     series: {
       validators: [validateNonEmpty],

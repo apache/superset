@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
 const {
@@ -30,6 +30,7 @@ const {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
+    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,

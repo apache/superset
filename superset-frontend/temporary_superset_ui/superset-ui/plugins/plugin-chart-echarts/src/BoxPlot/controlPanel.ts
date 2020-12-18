@@ -17,10 +17,11 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { D3_FORMAT_OPTIONS, formatSelectOptions } from '@superset-ui/chart-controls';
+import { D3_FORMAT_OPTIONS, formatSelectOptions, sections } from '@superset-ui/chart-controls';
 
 export default {
   controlPanelSections: [
+    sections.legacyTimeseriesTime,
     {
       label: t('Query'),
       expanded: true,
@@ -88,14 +89,6 @@ export default {
       ],
     },
   ],
-  sectionOverrides: {
-    druidTimeSeries: {
-      controlSetRows: [['granularity', 'druid_time_origin'], ['time_range']],
-    },
-    sqlaTimeSeries: {
-      controlSetRows: [['granularity_sqla', 'time_grain_sqla'], ['time_range']],
-    },
-  },
   controlOverrides: {
     groupby: {
       label: t('Series'),

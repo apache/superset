@@ -23,12 +23,14 @@ import {
   ColumnOption,
   columnChoices,
   ControlPanelConfig,
+  sections,
   SelectControlConfig,
   ColumnMeta,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
+    sections.legacyRegularTime,
     {
       label: t('Event definition'),
       controlSetRows: [

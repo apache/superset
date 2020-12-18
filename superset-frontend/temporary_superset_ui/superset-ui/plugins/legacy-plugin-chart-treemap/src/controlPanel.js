@@ -17,9 +17,11 @@
  * under the License.
  */
 import { t, D3_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '@superset-ui/core';
+import { sections } from '@superset-ui/chart-controls';
 
 export default {
   controlPanelSections: [
+    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,

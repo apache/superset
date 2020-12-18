@@ -21,6 +21,7 @@ import {
   formatSelectOptions,
   columnChoices,
   formatSelectOptionsForRange,
+  sections,
 } from '@superset-ui/chart-controls';
 
 const sortAxisChoices = [
@@ -32,6 +33,7 @@ const sortAxisChoices = [
 
 export default {
   controlPanelSections: [
+    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,

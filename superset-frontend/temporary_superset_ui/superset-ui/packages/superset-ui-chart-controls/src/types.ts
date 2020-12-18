@@ -69,8 +69,8 @@ export interface DatasourceMeta {
   main_dttm_col: string;
   // eg. ['["ds", true]', 'ds [asc]']
   order_by_choices?: [string, string][] | null;
-  time_grain_sqla: [string, string][];
-  granularity_sqla: [string, string][];
+  time_grain_sqla?: string;
+  granularity_sqla?: string;
   datasource_name: string | null;
   description: string | null;
 }
