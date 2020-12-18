@@ -836,7 +836,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def estimate_query_cost(
         cls, database: "Database", schema: str, sql: str, source: Optional[str] = None
-    ) -> List[Dict[str, str]]:
+    ) -> List[Dict[str, Any]]:
         """
         Estimate the cost of a multiple statement SQL query.
 
@@ -862,7 +862,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                         statement, database, user_name
                     )
                     costs.append(
-                        cls.estimate_statement_cost(processed_statement, cursor,)
+                        cls.estimate_statement_cost(processed_statement, cursor)
                     )
         return costs
 
