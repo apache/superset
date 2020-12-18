@@ -24,9 +24,8 @@ import { Radio } from 'src/common/components/Radio';
 import { CronPicker, CronError } from 'src/common/components/CronPicker';
 import { StyledInputContainer } from '../AlertReportModal';
 
-const DEFAULT_CRON_VALUE = '* * * * *'; // every minute
 interface AlertReportCronSchedulerProps {
-  value?: string;
+  value: string;
   onChange: (change: string) => any;
 }
 
@@ -58,7 +57,7 @@ export const AlertReportCronScheduler: FunctionComponent<AlertReportCronSchedule
           <Radio value="picker" />
           <CronPicker
             clearButton={false}
-            value={value || DEFAULT_CRON_VALUE}
+            value={value}
             setValue={customSetValue}
             disabled={scheduleFormat !== 'picker'}
             displayError={scheduleFormat === 'picker'}

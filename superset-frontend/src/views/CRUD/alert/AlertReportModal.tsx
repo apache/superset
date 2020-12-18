@@ -101,6 +101,7 @@ const RETENTION_OPTIONS = [
 
 const DEFAULT_RETENTION = 90;
 const DEFAULT_WORKING_TIMEOUT = 3600;
+const DEFAULT_CRON_VALUE = '* * * * *'; // every minute
 
 const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
@@ -958,7 +959,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   ) {
     setCurrentAlert({
       active: true,
-      crontab: '',
+      crontab: DEFAULT_CRON_VALUE,
       log_retention: DEFAULT_RETENTION,
       working_timeout: DEFAULT_WORKING_TIMEOUT,
       name: '',
@@ -1194,7 +1195,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </h4>
             </StyledSectionTitle>
             <AlertReportCronScheduler
-              value={(currentAlert && currentAlert.crontab) || undefined}
+              value={
+                (currentAlert && currentAlert.crontab) || DEFAULT_CRON_VALUE
+              }
               onChange={newVal => updateAlertState('crontab', newVal)}
             />
             <StyledSectionTitle>
