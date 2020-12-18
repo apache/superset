@@ -188,6 +188,7 @@ module.exports = {
         ],
         'jest/consistent-test-it': 'error',
         'no-only-tests/no-only-tests': 'error',
+        '@typescript-eslint/no-non-null-assertion': 0,
       },
     },
   ],

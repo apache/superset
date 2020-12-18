@@ -81,12 +81,12 @@ describe('SouthPane', () => {
   let wrapper;
 
   it('should render offline when the state is offline', () => {
-    wrapper = getWrapper();
+    wrapper = getWrapper().dive();
     wrapper.setProps({ offline: true });
     expect(wrapper.childAt(0).text()).toBe(STATUS_OPTIONS.offline);
   });
   it('should pass latest query down to ResultSet component', () => {
-    wrapper = getWrapper();
+    wrapper = getWrapper().dive();
     expect(wrapper.find(ResultSet)).toExist();
     expect(wrapper.find(ResultSet).props().query.id).toEqual(
       mockedProps.latestQueryId,

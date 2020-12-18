@@ -17,48 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { styled, t } from '@superset-ui/core';
-import Alert from 'react-bootstrap/lib/Alert';
+import { t } from '@superset-ui/core';
+import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
-import Icon from 'src/components/Icon';
-
-const StyledAlert = styled(Alert)`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
-`;
-
-const StyledTextContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  text-align: left;
-  margin-right: ${({ theme }) => theme.gridUnit}px;
-`;
-
-const StyledTitleBox = styled.div`
-  display: flex;
-  align-items: center;
-`;
-
-const StyledAlertTitle = styled.span`
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
-`;
-
-const StyledAlertText = styled.p`
-  margin-left: ${({ theme }) => theme.gridUnit * 9}px;
-`;
-
-const StyledButtonsContainer = styled.div`
-  display: flex;
-  flex-direction: row;
-`;
-
-const StyledAlertIcon = styled(Icon)`
-  color: ${({ theme }) => theme.colors.alert.base};
-  margin-right: ${({ theme }) => theme.gridUnit * 3}px;
-`;
 
 export interface ConfirmationAlertProps {
   title: string;
@@ -74,32 +35,35 @@ export function CancelConfirmationAlert({
   children,
 }: ConfirmationAlertProps) {
   return (
-    <StyledAlert bsStyle="warning" key="alert">
-      <StyledTextContainer>
-        <StyledTitleBox>
-          <StyledAlertIcon name="alert-solid" />
-          <StyledAlertTitle>{title}</StyledAlertTitle>
-        </StyledTitleBox>
-        <StyledAlertText>{children}</StyledAlertText>
-      </StyledTextContainer>
-      <StyledButtonsContainer>
-        <Button
-          key="submit"
-          buttonSize="small"
-          buttonStyle="primary"
-          onClick={onConfirm}
-        >
-          {t('Yes, cancel')}
-        </Button>
-        <Button
-          key="cancel"
-          buttonSize="small"
-          buttonStyle="secondary"
-          onClick={onDismiss}
-        >
-          {t('Keep editing')}
-        </Button>
-      </StyledButtonsContainer>
-    </StyledAlert>
+    <Alert
+      type="warning"
+      key="alert"
+      message={title}
+      css={{
+        textAlign: 'left',
+        '& .ant-alert-action': { alignSelf: 'center' },
+      }}
+      description={children}
+      action={
+        <div css={{ display: 'flex' }}>
+          <Button
+            key="submit"
+            buttonSize="small"
+            buttonStyle="primary"
+            onClick={onConfirm}
+          >
+            {t('Yes, cancel')}
+          </Button>
+          <Button
+            key="cancel"
+            buttonSize="small"
+            buttonStyle="secondary"
+            onClick={onDismiss}
+          >
+            {t('Keep editing')}
+          </Button>
+        </div>
+      }
+    />
   );
 }
