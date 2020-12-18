@@ -17,7 +17,11 @@
  * under the License.
  */
 import React, { useEffect, useReducer } from 'react';
-import { defineSharedModules, SupersetClient } from '@superset-ui/core';
+import {
+  defineSharedModules,
+  logging,
+  SupersetClient,
+} from '@superset-ui/core';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   dummyPluginContext,
@@ -123,8 +127,7 @@ export default function DynamicPluginProvider({ children }: Props) {
           try {
             await import(/* webpackIgnore: true */ plugin.bundle_url);
           } catch (err) {
-            // eslint-disable-next-line no-console
-            console.error(
+            logging.error(
               `Failed to load plugin ${plugin.key} with the following error:`,
               err.stack,
             );
@@ -138,8 +141,7 @@ export default function DynamicPluginProvider({ children }: Props) {
         }),
       );
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(error.stack || error);
+      logging.error('failed to load dynamic plugins', error.stack || error);
     }
   }
 
