@@ -153,7 +153,7 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
                 case JOB_STATUS.ERROR:
                   const errors = [parseErrorJson(asyncEvent)];
                   store.dispatch(
-                    errorAction(componentId, errors),
+                    errorAction(componentId, errors)
                   );
                   break;
                 default:
