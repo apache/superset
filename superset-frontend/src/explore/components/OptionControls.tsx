@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { styled, useTheme } from '@superset-ui/core';
+import { ColumnOption } from '@superset-ui/chart-controls';
 import Icon from '../../components/Icon';
 
 const OptionControlContainer = styled.div<{ isAdhoc?: boolean }>`
@@ -109,12 +110,14 @@ export const AddIconButton = styled.button`
 
 export const OptionControlLabel = ({
   label,
+  savedMetric,
   onRemove,
   isAdhoc,
   isFunction,
   ...props
 }: {
   label: string | React.ReactNode;
+  savedMetric?: any;
   onRemove: () => void;
   isAdhoc?: boolean;
   isFunction?: boolean;
@@ -135,7 +138,11 @@ export const OptionControlLabel = ({
       </CloseContainer>
       <Label data-test="control-label">
         {isFunction && <Icon name="function" viewBox="0 0 16 11" />}
-        {label}
+        {savedMetric?.metric_name ? (
+          <ColumnOption column={savedMetric} />
+        ) : (
+          label
+        )}
       </Label>
       {isAdhoc && (
         <CaretContainer>
