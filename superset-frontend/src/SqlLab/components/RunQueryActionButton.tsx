@@ -19,7 +19,7 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 
-import Button, { ButtonProps } from 'src/components/Button';
+import StyledModal from 'src/common/components/Modal';
 import { Dropdown, Menu } from 'src/common/components';
 import Icon from 'src/components/Icon';
 
@@ -34,10 +34,6 @@ interface Props {
   stopQuery: () => void;
   sql: string;
   overlayCreateAsMenu: typeof Menu;
-  createTableAs:
-  createViewAs:
-  allowCTAS:
-  allowCVAS:
 }
 
 const RunQueryActionButton = ({
