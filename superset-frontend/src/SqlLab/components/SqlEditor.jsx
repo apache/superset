@@ -28,12 +28,12 @@ import Split from 'react-split';
 import { t, styled } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
+import Mousetrap from 'mousetrap';
 
 import { Tooltip } from 'src/common/components/Tooltip';
 import Label from 'src/components/Label';
 import Button from 'src/components/Button';
 import Timer from 'src/components/Timer';
-import Hotkeys from 'src/components/Hotkeys';
 import {
   Dropdown,
   Menu as AntdMenu,
@@ -174,6 +174,12 @@ class SqlEditor extends React.PureComponent {
     this.setState({ height: this.getSqlEditorHeight() });
 
     window.addEventListener('resize', this.handleWindowResize);
+
+    // setup hotkeys
+    const hotkeys = this.getHotkeyConfig();
+    hotkeys.forEach(keyConfig => {
+      Mousetrap.bind([keyConfig.key], keyConfig.func);
+    });
   }
 
   componentWillUnmount() {
@@ -503,7 +509,7 @@ class SqlEditor extends React.PureComponent {
     return menuDropdown;
   }
 
-  renderEditorBottomBar(hotkeys) {
+  renderEditorBottomBar() {
     let ctasControls;
     if (
       this.props.database &&
@@ -630,9 +636,6 @@ class SqlEditor extends React.PureComponent {
                   </a>
                 </Dropdown>
               </LimitSelectStyled>
-            </span>
-            <span>
-              <Hotkeys header={t('Keyboard shortcuts')} hotkeys={hotkeys} />
             </span>
           </Form>
         </div>
