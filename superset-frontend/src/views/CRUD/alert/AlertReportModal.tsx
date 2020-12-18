@@ -225,7 +225,7 @@ export const StyledInputContainer = styled.div`
   }
 
   textarea {
-    height: 160px;
+    height: 300px;
     resize: none;
   }
 
@@ -245,6 +245,11 @@ export const StyledInputContainer = styled.div`
     border-style: none;
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     border-radius: ${({ theme }) => theme.gridUnit}px;
+
+    .ant-select-selection-placeholder,
+    .ant-select-selection-item {
+      line-height: 24px;
+    }
 
     &[name='description'] {
       flex: 1 1 auto;
@@ -1023,12 +1028,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   return (
     <Modal
       className="no-content-padding"
+      responsive
       disablePrimaryButton={disableSave}
       onHandledPrimaryAction={onSave}
       onHide={hide}
       primaryButtonName={isEditMode ? t('Save') : t('Add')}
       show={show}
       width="100%"
+      maxWidth="1450px"
       title={
         <h4 data-test="alert-report-modal-title">
           {isEditMode ? (
@@ -1141,7 +1148,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <div className="inline-container wrap">
                 <StyledInputContainer>
                   <div className="control-label">
-                    {t('Alert If...')}
+                    {t('Trigger Alert If...')}
                     <span className="required">*</span>
                   </div>
                   <div className="input-container">
