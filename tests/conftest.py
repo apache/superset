@@ -47,7 +47,7 @@ def setup_sample_data() -> Any:
 
     with app.app_context():
         engine = get_example_database().get_sqla_engine()
-        engine.execute("DROP TABLE wb_health_population")
+
 
         # drop sqlachemy tables
 

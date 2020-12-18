@@ -17,7 +17,7 @@
 import json
 import string
 from random import choice, randint, random, uniform
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import pandas as pd
 import pytest
@@ -26,11 +26,10 @@ from sqlalchemy import DateTime, String, TIMESTAMP
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable
-from superset.examples.helpers import update_slice_ids
-from superset.examples.world_bank import create_slices, dashboard_positions
+from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import Database, get_example_database
+from superset.utils.core import get_example_database
 from tests.dashboard_utils import create_dashboard, create_table_for_dashboard
 from tests.test_app import app
 
@@ -38,25 +37,30 @@ from tests.test_app import app
 @pytest.fixture()
 def load_world_bank_dashboard_with_slices():
     table_name = "wb_health_population"
-    database = get_example_database()
-    df = _get_dataframe(database)
-    dtype = {
-        # todo: check TIMESTAMP type for presto
-        "year": DateTime if database.backend != "presto" else TIMESTAMP,
-        "country_code": String(3),
-        "country_name": String(255),
-        "region": String(255),
-    }
+
     with app.app_context():
+        database = get_example_database()
+        df = _get_dataframe(database)
+        dtype = {
+            # todo: check TIMESTAMP type for presto
+            "year": DateTime if database.backend != "presto" else TIMESTAMP,
+            "country_code": String(3),
+            "country_name": String(255),
+            "region": String(255),
+        }
         table = create_table_for_dashboard(df, table_name, database, dtype)
         slices = _create_world_bank_slices(table)
         dash = _create_world_bank_dashboard(table, slices)
+        slices_ids_to_delete = [slice.id for slice in slices]
+        dash_id_to_delete = dash.id
         yield
 
-        _cleanup(dash, slices)
+        _cleanup(dash_id_to_delete, slices_ids_to_delete)
 
 
 def _create_world_bank_slices(table: SqlaTable) -> List[Slice]:
+    from superset.examples.world_bank import create_slices
+
     slices = create_slices(table)
     _commit_slices(slices)
     return slices
@@ -72,7 +76,11 @@ def _commit_slices(slices: List[Slice]):
 
 
 def _create_world_bank_dashboard(table: SqlaTable, slices: List[Slice]) -> Dashboard:
+    from superset.examples.world_bank import dashboard_positions
+
     pos = json.loads(dashboard_positions)
+    from superset.examples.helpers import update_slice_ids
+
     update_slice_ids(pos, slices)
 
     table.fetch_metadata()
@@ -82,17 +90,17 @@ def _create_world_bank_dashboard(table: SqlaTable, slices: List[Slice]) -> Dashb
     )
 
 
-def _cleanup(dash: Dashboard, slices: List[Slice]) -> None:
+def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
     engine = get_example_database().get_sqla_engine()
     engine.execute("DROP TABLE IF EXISTS wb_health_population")
-    db.session.delete(dash)
-    for slice in slices:
-        slice_object = (
-            db.session.query(Slice).filter_by(slice_name=slice.slice_name).one_or_none()
-        )
-        if slice_object:
-            db.session.delete(slice_object)
+    db.session.query(Dashboard).filter_by(id=dash_id).delete()
+    for slice_id in slices_ids:
+        slice = db.session.query(Slice).filter_by(id=slice_id).first()
+        if slice:
+            db.session.delete(slice)
+            db.session.merge(slice)
     db.session.commit()
+    db.session.flush()
 
 
 def _get_dataframe(database: Database) -> DataFrame:
@@ -107,7 +115,7 @@ def _get_dataframe(database: Database) -> DataFrame:
     return df
 
 
-def _get_world_bank_data() -> List[Dict]:  # type: ignore
+def _get_world_bank_data() -> List[Dict[Any, Any]]:
     data = []
     for _ in range(100):
         data.append(
@@ -125,7 +133,7 @@ def _get_world_bank_data() -> List[Dict]:  # type: ignore
                     for _ in range(randint(3, 10))
                 ),
                 "year": "-".join(
-                    [str(randint(1900, 2020)), str(randint(1, 12)), str(randint(1, 30))]
+                    [str(randint(1900, 2020)), str(randint(1, 12)), str(randint(1, 28))]
                 ),
                 "NY_GNP_PCAP_CD": get_random_float_or_none(0, 100, 0.3),
                 "SE_ADT_1524_LT_FM_ZS": get_random_float_or_none(0, 100, 0.3),
