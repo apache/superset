@@ -26,6 +26,7 @@ import Split from 'react-split';
 import { t, styled } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
+import StyledModal from 'src/common/components/Modal';
 
 import { Tooltip } from 'src/common/components/Tooltip';
 import Label from 'src/components/Label';
@@ -37,6 +38,7 @@ import {
   Menu as AntdMenu,
   Menu,
   Switch,
+  Input,
 } from 'src/common/components';
 import Icon from 'src/components/Icon';
 import TemplateParamsEditor from './TemplateParamsEditor';
@@ -105,6 +107,7 @@ class SqlEditor extends React.PureComponent {
       southPercent: props.queryEditor.southPercent || INITIAL_SOUTH_PERCENT,
       sql: props.queryEditor.sql,
       autocompleteEnabled: true,
+      showCreateAsModal: false,
     };
     this.sqlEditorRef = React.createRef();
     this.northPaneRef = React.createRef();
@@ -560,14 +563,24 @@ class SqlEditor extends React.PureComponent {
     const runMenuBtn = (
       <Menu>
         {allow_ctas && (
-          <Menu.Item onClick={this.createTableAs.bind(this)} key="1">
+          <Menu.Item
+            onClick={() => {
+              this.setState({ showCreateAsModal: true });
+            }}
+            key="1"
+          >
             Create As Table
           </Menu.Item>
         )}
         {allow_cvas && (
-          <Menu.Item onClick={this.createViewAs.bind(this)} key="2">
-            Create As View
-          </Menu.Item>
+          <Menu.Item
+            onClick={() => {
+            this.setState({ showCreateAsModal: true });
+            }}
+            key="2"
+        >
+          Create As View
+        </Menu.Item>
         )}
       </Menu>
     );
@@ -675,6 +688,22 @@ class SqlEditor extends React.PureComponent {
           </div>
         </CSSTransition>
         {this.queryPane()}
+        <StyledModal
+          visible={this.state.showCreateAsModal}
+          title={t('Create View As')}
+          footer={<>
+              <Button
+                onClick={() => this.setState({ showCreateAsModal: false })}
+              >
+                Cancel
+              </Button>
+            <Button buttonStyle="primary">Create</Button>
+            </>
+          }
+        >
+          <span>Name</span>
+          <Input placeholder="Specify name to Create View AS schema in: public"/>
+        </StyledModal>
       </div>
     );
   }
