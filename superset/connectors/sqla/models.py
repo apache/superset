@@ -18,7 +18,6 @@ import json
 import logging
 from collections import defaultdict, OrderedDict
 from contextlib import closing
-from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Union
 
