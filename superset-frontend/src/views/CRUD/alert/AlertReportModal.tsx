@@ -33,6 +33,8 @@ import Owner from 'src/types/Owner';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { AlertObject, Operator, Recipient, MetaObject } from './types';
 
+const SELECT_PAGE_SIZE = 2000; // temporary fix for paginated query
+
 type SelectValue = {
   value: string;
   label: string;
@@ -616,7 +618,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Fetch data to populate form dropdowns
   const loadOwnerOptions = (input = '') => {
-    const query = rison.encode({ filter: input });
+    const query = rison.encode({ filter: input, page_size: SELECT_PAGE_SIZE });
     return SupersetClient.get({
       endpoint: `/api/v1/report/related/owners?q=${query}`,
     }).then(
@@ -633,7 +635,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const loadSourceOptions = (input = '') => {
-    const query = rison.encode({ filter: input });
+    const query = rison.encode({ filter: input, page_size: SELECT_PAGE_SIZE });
     return SupersetClient.get({
       endpoint: `/api/v1/report/related/database?q=${query}`,
     }).then(
@@ -682,7 +684,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const loadDashboardOptions = (input = '') => {
-    const query = rison.encode({ filter: input });
+    const query = rison.encode({ filter: input, page_size: SELECT_PAGE_SIZE });
     return SupersetClient.get({
       endpoint: `/api/v1/report/related/dashboard?q=${query}`,
     }).then(
@@ -731,7 +733,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const loadChartOptions = (input = '') => {
-    const query = rison.encode({ filter: input });
+    const query = rison.encode({ filter: input, page_size: SELECT_PAGE_SIZE });
     return SupersetClient.get({
       endpoint: `/api/v1/report/related/chart?q=${query}`,
     }).then(
