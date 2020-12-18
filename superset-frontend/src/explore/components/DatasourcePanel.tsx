@@ -85,7 +85,10 @@ const DatasourceContainer = styled.div`
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
     margin-left: ${({ theme }) => theme.gridUnit * -2}px;
   }
-  .ant-collapse-content-box {
+  .ant-collapse-borderless
+    > .ant-collapse-item
+    > .ant-collapse-content
+    > .ant-collapse-content-box {
     padding: 0px;
   }
   .field-selections {
@@ -93,7 +96,6 @@ const DatasourceContainer = styled.div`
     overflow: auto;
   }
   .field-length {
-    margin-top: -3px;
     margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
     color: ${({ theme }) => theme.colors.grayscale.light1};
