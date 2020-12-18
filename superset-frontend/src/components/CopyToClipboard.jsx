@@ -46,7 +46,7 @@ class CopyToClipboard extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      hasCopied: false,
+      tooltipText: this.props.tooltipText,
     };
 
     // bindings
@@ -80,13 +80,13 @@ class CopyToClipboard extends React.Component {
   }
 
   resetTooltipText() {
-    this.setState({ hasCopied: false });
+    this.setState({ tooltipText: this.props.tooltipText });
   }
 
   copyToClipboard(textToCopy) {
     copyTextToClipboard(textToCopy)
       .then(() => {
-        this.setState({ hasCopied: true });
+        this.setState({ tooltipText: t('Copied!') });
       })
       .catch(() => {
         this.props.addDangerToast(
@@ -100,20 +100,13 @@ class CopyToClipboard extends React.Component {
       });
   }
 
-  tooltipText() {
-    if (this.state.hasCopied) {
-      return t('Copied!');
-    }
-    return this.props.tooltipText;
-  }
-
   renderNotWrapped() {
     return (
       <Tooltip
         id="copy-to-clipboard-tooltip"
         placement="top"
         style={{ cursor: 'pointer' }}
-        title={this.tooltipText()}
+        title={this.state.tooltipText}
         trigger={['hover']}
         onClick={this.onClick}
         onMouseOut={this.onMouseOut}
@@ -134,7 +127,7 @@ class CopyToClipboard extends React.Component {
         <Tooltip
           id="copy-to-clipboard-tooltip"
           placement="top"
-          title={this.tooltipText()}
+          title={this.state.tooltipText}
           trigger={['hover']}
         >
           {this.getDecoratedCopyNode()}
