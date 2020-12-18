@@ -194,7 +194,7 @@ class TestQueryContext(SupersetTestCase):
 
     def test_sql_injection_via_columns(self):
         """
-        Ensure that calling invalid columns names in columns are caught
+        Ensure that calling invalid column names in columns are caught
         """
         self.login(username="admin")
         payload = get_query_context("birth_names")
@@ -207,7 +207,7 @@ class TestQueryContext(SupersetTestCase):
 
     def test_sql_injection_via_metrics(self):
         """
-        Ensure that calling invalid columns names in filters are caught
+        Ensure that calling invalid column names in filters are caught
         """
         self.login(username="admin")
         payload = get_query_context("birth_names")
