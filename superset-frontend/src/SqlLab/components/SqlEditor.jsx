@@ -651,21 +651,6 @@ class SqlEditor extends React.PureComponent {
                   />
                 </span>
               )}
-            {/* {isFeatureEnabled(FeatureFlag.SCHEDULED_QUERIES) && (
-              <span>
-                <ScheduleQueryButton
-                  defaultLabel={qe.title}
-                  sql={qe.sql}
-                  onSchedule={this.props.scheduleQuery}
-                  schema={qe.schema}
-                  dbId={qe.dbId}
-                  scheduleQueryWarning={this.props.scheduleQueryWarning}
-                  tooltip={scheduleToolTip}
-                  disabled={!successful}
-                />
-              </span>
-            )} */}
-            {/* {ctasControls && <span>{ctasControls}</span>} */}
             <span>
               <LimitSelectStyled>
                 <Dropdown overlay={this.renderQueryLimit()}>
