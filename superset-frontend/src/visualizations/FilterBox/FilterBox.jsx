@@ -24,8 +24,8 @@ import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
 import Button from 'src/components/Button';
 import { t, styled, SupersetClient } from '@superset-ui/core';
 
+import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
 import FormLabel from 'src/components/FormLabel';
-
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import ControlRow from 'src/explore/components/ControlRow';
 import Control from 'src/explore/components/Control';
@@ -216,7 +216,13 @@ class FilterBox extends React.PureComponent {
       const color = 'lightgrey';
       const backgroundImage = `linear-gradient(to right, ${color}, ${color} ${perc}%, rgba(0,0,0,0) ${perc}%`;
       const style = { backgroundImage };
-      return { value: opt.id, label: opt.id, style };
+      let label = opt.id;
+      if (label === true) {
+        label = BOOL_TRUE_DISPLAY;
+      } else if (label === false) {
+        label = BOOL_FALSE_DISPLAY;
+      }
+      return { value: opt.id, label, style };
     });
   }
 
