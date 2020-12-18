@@ -204,7 +204,11 @@ export default class AdhocMetricEditPopover extends React.Component {
   }
 
   renderColumnOption(option) {
-    return <ColumnOption column={option} showType />;
+    const column = { ...option };
+    if (column.metric_name && !column.verbose_name) {
+      column.verbose_name = column.metric_name;
+    }
+    return <ColumnOption column={column} showType />;
   }
 
   render() {
@@ -298,6 +302,7 @@ export default class AdhocMetricEditPopover extends React.Component {
           className="adhoc-metric-edit-tabs"
           style={{ height: this.state.height, width: this.state.width }}
           onChange={this.refreshAceEditor}
+          allowOverflow
         >
           <Tabs.TabPane key={EXPRESSION_TYPES.SIMPLE} tab="Simple">
             <FormGroup>

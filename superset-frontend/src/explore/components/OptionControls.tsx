@@ -123,6 +123,16 @@ export const OptionControlLabel = ({
   isFunction?: boolean;
 }) => {
   const theme = useTheme();
+  const getLabelContent = () => {
+    if (savedMetric?.metric_name) {
+      const column = { ...savedMetric };
+      if (!column.verbose_name) {
+        column.verbose_name = column.metric_name;
+      }
+      return <ColumnOption column={column} />;
+    }
+    return label;
+  };
   return (
     <OptionControlContainer
       isAdhoc={isAdhoc}
@@ -138,11 +148,7 @@ export const OptionControlLabel = ({
       </CloseContainer>
       <Label data-test="control-label">
         {isFunction && <Icon name="function" viewBox="0 0 16 11" />}
-        {savedMetric?.metric_name ? (
-          <ColumnOption column={savedMetric} />
-        ) : (
-          label
-        )}
+        {getLabelContent()}
       </Label>
       {isAdhoc && (
         <CaretContainer>

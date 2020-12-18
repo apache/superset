@@ -150,6 +150,7 @@ export default class AdhocFilterEditPopover extends React.Component {
           className="adhoc-filter-edit-tabs"
           data-test="adhoc-filter-edit-tabs"
           style={{ height: this.state.height, width: this.state.width }}
+          allowOverflow
         >
           <Tabs.TabPane
             className="adhoc-filter-edit-tab"
