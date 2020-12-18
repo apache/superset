@@ -101,6 +101,7 @@ const RETENTION_OPTIONS = [
 
 const DEFAULT_RETENTION = 90;
 const DEFAULT_WORKING_TIMEOUT = 3600;
+const DEFAULT_CRON_VALUE = '* * * * *'; // every minute
 
 const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
@@ -612,7 +613,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const loadOwnerOptions = (input = '') => {
     const query = rison.encode({ filter: input });
     return SupersetClient.get({
-      endpoint: `/api/v1/dashboard/related/owners?q=${query}`,
+      endpoint: `/api/v1/report/related/owners?q=${query}`,
     }).then(
       response => {
         return response.json.result.map((item: any) => ({
@@ -629,7 +630,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const loadSourceOptions = (input = '') => {
     const query = rison.encode({ filter: input });
     return SupersetClient.get({
-      endpoint: `/api/v1/dataset/related/database?q=${query}`,
+      endpoint: `/api/v1/report/related/database?q=${query}`,
     }).then(
       response => {
         const list = response.json.result.map((item: any) => ({
@@ -678,12 +679,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const loadDashboardOptions = (input = '') => {
     const query = rison.encode({ filter: input });
     return SupersetClient.get({
-      endpoint: `/api/v1/dashboard?q=${query}`,
+      endpoint: `/api/v1/report/related/dashboard?q=${query}`,
     }).then(
       response => {
         const list = response.json.result.map((item: any) => ({
-          value: item.id,
-          label: item.dashboard_title,
+          value: item.value,
+          label: item.text,
         }));
 
         setDashboardOptions(list);
@@ -727,12 +728,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const loadChartOptions = (input = '') => {
     const query = rison.encode({ filter: input });
     return SupersetClient.get({
-      endpoint: `/api/v1/chart?q=${query}`,
+      endpoint: `/api/v1/report/related/chart?q=${query}`,
     }).then(
       response => {
         const list = response.json.result.map((item: any) => ({
-          value: item.id,
-          label: item.slice_name,
+          value: item.value,
+          label: item.text,
         }));
 
         setChartOptions(list);
@@ -771,12 +772,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Updating alert/report state
   const updateAlertState = (name: string, value: any) => {
-    const data = {
-      ...currentAlert,
+    setCurrentAlert(currentAlertData => ({
+      ...currentAlertData,
       [name]: value,
-    };
-
-    setCurrentAlert(data);
+    }));
   };
 
   // Handle input/textarea updates
@@ -960,7 +959,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   ) {
     setCurrentAlert({
       active: true,
-      crontab: '',
+      crontab: DEFAULT_CRON_VALUE,
       log_retention: DEFAULT_RETENTION,
       working_timeout: DEFAULT_WORKING_TIMEOUT,
       name: '',
@@ -1047,7 +1046,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         <div className="header-section">
           <StyledInputContainer>
             <div className="control-label">
-              {t('Alert Name')}
+              {isReport ? t('Report Name') : t('Alert Name')}
               <span className="required">*</span>
             </div>
             <div className="input-container">
@@ -1055,7 +1054,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 type="text"
                 name="name"
                 value={currentAlert ? currentAlert.name : ''}
-                placeholder={t('Alert Name')}
+                placeholder={isReport ? t('Report Name') : t('Alert Name')}
                 onChange={onTextChange}
               />
             </div>
@@ -1189,10 +1188,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           )}
           <div className="column schedule">
             <StyledSectionTitle>
-              <h4>{t('Alert Condition Schedule')}</h4>
+              <h4>
+                {isReport
+                  ? t('Report Schedule')
+                  : t('Alert Condition Schedule')}
+              </h4>
             </StyledSectionTitle>
             <AlertReportCronScheduler
-              value={(currentAlert && currentAlert.crontab) || undefined}
+              value={
+                (currentAlert && currentAlert.crontab) || DEFAULT_CRON_VALUE
+              }
               onChange={newVal => updateAlertState('crontab', newVal)}
             />
             <StyledSectionTitle>
