@@ -17,8 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { mount } from 'enzyme';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { styledMount as mount } from 'spec/helpers/theming';
 import { Provider } from 'react-redux';
 import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterConfigurationLink';
 import { mockStore } from 'spec/fixtures/mockStore';
@@ -40,12 +39,6 @@ describe('FilterConfigurationButton', () => {
           <span>Test</span>
         </FilterConfigurationLink>
       </Provider>,
-      {
-        wrappingComponent: ThemeProvider,
-        wrappingComponentProps: {
-          theme: supersetTheme,
-        },
-      },
     );
     expect(wrapper.find('span')).toHaveLength(1);
   });

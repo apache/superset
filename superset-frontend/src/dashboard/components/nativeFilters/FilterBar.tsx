@@ -56,8 +56,6 @@ const Bar = styled.div`
   position: absolute;
   top: 0;
   left: 0;
-  /* bottom: 100%;
-  right: 100%; */
   flex-direction: column;
   flex-grow: 1;
   width: ${barWidth}; // arbitrary...

@@ -22,6 +22,8 @@ import { setExtraFormData } from 'src/dashboard/actions/nativeFilters';
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { ExtraFormData, t } from '@superset-ui/core';
 import { Charts, Layout, RootState } from 'src/dashboard/types';
+import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import { DASHBOARD_ROOT_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   Filter,
   FilterConfiguration,
@@ -29,8 +31,6 @@ import {
   NativeFiltersState,
   TreeItem,
 } from './types';
-import { DASHBOARD_ROOT_ID } from '../../util/constants';
-import { DASHBOARD_ROOT_TYPE } from '../../util/componentTypes';
 import { buildTree, mergeExtraFormData } from './utils';
 
 const defaultFilterConfiguration: Filter[] = [];
@@ -38,7 +38,7 @@ const defaultFilterConfiguration: Filter[] = [];
 export function useFilterConfiguration() {
   return useSelector<any, FilterConfiguration>(
     state =>
-      state.dashboardInfo.metadata.filter_configuration ||
+      state.dashboardInfo?.metadata?.filter_configuration ||
       defaultFilterConfiguration,
   );
 }

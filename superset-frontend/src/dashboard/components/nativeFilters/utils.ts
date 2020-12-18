@@ -30,7 +30,7 @@ import {
   DASHBOARD_ROOT_TYPE,
   TABS_TYPE,
   TAB_TYPE,
-} from '../../util/componentTypes';
+} from 'src/dashboard/util/componentTypes';
 
 export const isShowTypeInTree = ({ type, meta }: LayoutItem, charts?: Charts) =>
   (type === TABS_TYPE ||
