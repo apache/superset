@@ -60,7 +60,7 @@ const DatasourceContainer = styled.div`
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
   }
   .ant-collapse > .ant-collapse-item > .ant-collapse-header {
-    padding-left: 10px;
+    padding-left: ${({ theme }) => theme.gridUnit * 2}px;
     padding-bottom: 0px;
   }
   .form-control.input-sm {
