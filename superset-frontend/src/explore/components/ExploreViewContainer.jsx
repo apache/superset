@@ -44,6 +44,7 @@ import {
 const propTypes = {
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
+  dashboardId: PropTypes.number,
   isDatasourceMetaLoading: PropTypes.bool.isRequired,
   chart: chartPropShape.isRequired,
   slice: PropTypes.object,
@@ -338,6 +339,7 @@ class ExploreViewContainer extends React.Component {
             actions={this.props.actions}
             form_data={this.props.form_data}
             sliceName={this.props.sliceName}
+            dashboardId={this.props.dashboardId}
           />
         )}
         <div className="col-sm-4 control-pane">
@@ -378,6 +380,7 @@ function mapStateToProps(state) {
     datasource: explore.datasource,
     datasource_type: explore.datasource.type,
     datasourceId: explore.datasource_id,
+    dashboardId: explore.form_data ? explore.form_data.dashboardId : undefined,
     controls: explore.controls,
     can_overwrite: !!explore.can_overwrite,
     can_add: !!explore.can_add,
