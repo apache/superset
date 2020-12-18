@@ -577,11 +577,16 @@ class SqlEditor extends React.PureComponent {
       );
     }
 
-    const { allow_ctas, allow_cvas } = this.props.database;
-    const showMenu = allow_ctas && allow_ctas;
+    // eslint-disable-next-line camelcase
+    const {
+      allow_ctas: allowCTAS,
+      allow_cvas: allowCVAS,
+    } = this.props.database;
+
+    const showMenu = allowCTAS && allowCVAS;
     const runMenuBtn = (
       <Menu>
-        {allow_ctas && (
+        {allowCTAS && (
           <Menu.Item
             onClick={() => {
               this.setState({ showCreateAsModal: true, createAs: 'table' });
@@ -591,7 +596,7 @@ class SqlEditor extends React.PureComponent {
             Create As Table
           </Menu.Item>
         )}
-        {allow_cvas && (
+        {allowCVAS && (
           <Menu.Item
             onClick={() => {
               this.setState({ showCreateAsModal: true, createAs: 'view' });
@@ -605,9 +610,6 @@ class SqlEditor extends React.PureComponent {
     );
 
     const successful = this.props.latestQuery?.state === 'success';
-    const scheduleToolTip = successful
-      ? t('Schedule the query periodically')
-      : t('You must run the query successfully first');
     return (
       <div className="sql-toolbar" id="js-sql-toolbar">
         <div className="leftItems">
