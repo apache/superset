@@ -28,12 +28,11 @@ RUN apt-get update -y
 RUN apt-get install -y apt-transport-https apt-utils
 
 # Install superset dependencies
-# https://superset.incubator.apache.org/installation.html#os-dependencies
+# https://superset.apache.org/docs/installation/installing-superset-from-scratch
 RUN apt-get install -y build-essential libssl-dev \
     libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev
 
 # Install nodejs for custom build
-# https://superset.incubator.apache.org/installation.html#making-your-own-build
 # https://nodejs.org/en/download/package-manager/
 RUN curl -sL https://deb.nodesource.com/setup_12.x | bash - \
     && apt-get install -y nodejs
@@ -47,7 +46,7 @@ ARG VERSION
 # Can fetch source from svn or copy tarball from local mounted directory
 RUN svn co https://dist.apache.org/repos/dist/dev/incubator/superset/$VERSION ./
 RUN tar -xvf *.tar.gz
-WORKDIR apache-superset-incubating-$VERSION
+WORKDIR apache-superset-$VERSION
 
 RUN cd superset-frontend \
     && npm ci \
@@ -55,7 +54,7 @@ RUN cd superset-frontend \
     && rm -rf node_modules
 
 
-WORKDIR /home/superset/apache-superset-incubating-$VERSION
+WORKDIR /home/superset/apache-superset-$VERSION
 RUN pip install --upgrade setuptools pip \
     && pip install -r requirements.txt \
     && pip install --no-cache-dir .
