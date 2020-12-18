@@ -50,7 +50,7 @@ export const chartPropShape = PropTypes.shape({
   chartUpdateStartTime: PropTypes.number,
   latestQueryFormData: PropTypes.object,
   queryController: PropTypes.shape({ abort: PropTypes.func }),
-  queryResponse: PropTypes.object,
+  queriesResponse: PropTypes.arrayOf(PropTypes.object),
   triggerQuery: PropTypes.bool,
   lastRendered: PropTypes.number,
 });

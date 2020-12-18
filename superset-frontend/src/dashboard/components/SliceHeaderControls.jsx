@@ -31,9 +31,9 @@ const propTypes = {
   componentId: PropTypes.string.isRequired,
   dashboardId: PropTypes.number.isRequired,
   addDangerToast: PropTypes.func.isRequired,
-  isCached: PropTypes.bool,
+  isCached: PropTypes.arrayOf(PropTypes.bool),
+  cachedDttm: PropTypes.arrayOf(PropTypes.string),
   isExpanded: PropTypes.bool,
-  cachedDttm: PropTypes.string,
   updatedDttm: PropTypes.number,
   supersetCanExplore: PropTypes.bool,
   supersetCanCSV: PropTypes.bool,
@@ -49,9 +49,9 @@ const defaultProps = {
   toggleExpandSlice: () => ({}),
   exploreChart: () => ({}),
   exportCSV: () => ({}),
-  cachedDttm: null,
+  cachedDttm: [],
   updatedDttm: null,
-  isCached: false,
+  isCached: [],
   isExpanded: false,
   supersetCanExplore: false,
   supersetCanCSV: false,
@@ -82,9 +82,14 @@ const VerticalDotsContainer = styled.div`
 `;
 
 const RefreshTooltip = styled.div`
-  height: ${({ theme }) => theme.gridUnit * 4}px;
+  height: auto;
   margin: ${({ theme }) => theme.gridUnit}px 0;
   color: ${({ theme }) => theme.colors.grayscale.base};
+  line-height: ${({ theme }) => theme.typography.sizes.m * 1.5}px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
 `;
 
 const SCREENSHOT_NODE_SELECTOR = '.dashboard-component-chart-holder';
@@ -171,13 +176,26 @@ class SliceHeaderControls extends React.PureComponent {
       addDangerToast,
       isFullSize,
     } = this.props;
-    const cachedWhen = moment.utc(cachedDttm).fromNow();
+    const cachedWhen = cachedDttm.map(itemCachedDttm =>
+      moment.utc(itemCachedDttm).fromNow(),
+    );
     const updatedWhen = updatedDttm ? moment.utc(updatedDttm).fromNow() : '';
-    const refreshTooltip = isCached
-      ? t('Cached %s', cachedWhen)
-      : (updatedWhen && t('Fetched %s', updatedWhen)) || '';
+    const getCachedTitle = itemCached => {
+      return itemCached
+        ? t('Cached %s', cachedWhen)
+        : updatedWhen && t('Fetched %s', updatedWhen);
+    };
+    const refreshTooltipData = isCached.map(getCachedTitle) || '';
+    // If all queries have same cache time we can unit them to one
+    let refreshTooltip = [...new Set(refreshTooltipData)];
+    refreshTooltip = refreshTooltip.map((item, index) => (
+      <div>
+        {refreshTooltip.length > 1
+          ? `${t('Query')} ${index + 1}: ${item}`
+          : item}
+      </div>
+    ));
     const resizeLabel = isFullSize ? t('Minimize Chart') : t('Maximize Chart');
-
     const menu = (
       <Menu
         onClick={this.handleMenuClick}

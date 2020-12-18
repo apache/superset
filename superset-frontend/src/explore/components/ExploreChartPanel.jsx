@@ -189,7 +189,7 @@ const ExploreChartPanel = props => {
               formData={props.form_data}
               onQuery={props.onQuery}
               owners={props?.slice?.owners}
-              queryResponse={chart.queryResponse}
+              queriesResponse={chart.queriesResponse}
               refreshOverlayVisible={props.refreshOverlayVisible}
               setControlValue={props.actions.setControlValue}
               timeout={props.timeout}
