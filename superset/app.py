@@ -270,8 +270,8 @@ class SupersetAppInitializer:
         if feature_flag_manager.is_feature_enabled("DYNAMIC_PLUGINS"):
             appbuilder.add_view(
                 DynamicPluginsView,
-                "Custom Plugins",
-                label=__("Custom Plugins"),
+                "Plugins",
+                label=__("Plugins"),
                 category="Manage",
                 category_label=__("Manage"),
                 icon="fa-puzzle-piece",
