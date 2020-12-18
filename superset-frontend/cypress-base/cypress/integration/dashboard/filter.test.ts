@@ -65,27 +65,21 @@ describe('Dashboard filter', () => {
       cy.wait(aliases);
     });
   });
-  xit('should apply filter', () => {
-    cy.get('.Select__control input[type=text]')
-      .first()
-      .should('be.visible')
-      .focus();
+
+  it('should apply filter', () => {
+    cy.get('.Select__placeholder:first').click();
 
     // should open the filter indicator
-    cy.get('[data-test="filter"]')
-      .should('be.visible', { timeout: 10000 })
+    cy.get('svg[data-test="filter"]')
+      .should('be.visible')
       .should(nodes => {
-        expect(nodes).to.have.length(9); // this part was not working, xit-ed
+        expect(nodes).to.have.length(9);
       });
 
-    cy.get('[data-test="chart-container"]').find('svg').should('be.visible');
-
-    cy.get('.Select__control input[type=text]').first().focus().blur();
-
-    cy.get('.Select__control input[type=text]')
-      .first()
-      .focus()
-      .type('So', { force: true, delay: 100 });
+    cy.get('.Select__control:first input[type=text]').type('So', {
+      force: true,
+      delay: 100,
+    });
 
     cy.get('.Select__menu').first().contains('South Asia').click();
 
