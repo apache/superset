@@ -102,7 +102,7 @@ const Styles = styled.div`
   overflow: visible;
 `;
 
-class FilterBox extends React.Component {
+class FilterBox extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -424,7 +424,6 @@ class FilterBox extends React.Component {
 
   render() {
     const { instantFiltering } = this.props;
-
     return (
       <Styles>
         {this.renderDateFilter()}

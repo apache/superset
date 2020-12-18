@@ -25,10 +25,12 @@ import AdhocMetric from '../AdhocMetric';
 import columnType from '../propTypes/columnType';
 import savedMetricType from '../propTypes/savedMetricType';
 import adhocMetricType from '../propTypes/adhocMetricType';
+import { OptionControlLabel } from './OptionControls';
 
 const propTypes = {
   option: PropTypes.oneOfType([savedMetricType, adhocMetricType]).isRequired,
   onMetricEdit: PropTypes.func,
+  onRemoveMetric: PropTypes.func,
   columns: PropTypes.arrayOf(columnType),
   multi: PropTypes.bool,
   datasourceType: PropTypes.string,
@@ -37,22 +39,33 @@ const propTypes = {
 export default function MetricDefinitionValue({
   option,
   onMetricEdit,
+  onRemoveMetric,
   columns,
-  multi,
   datasourceType,
 }) {
   if (option.metric_name) {
-    return <MetricOption metric={option} />;
+    return (
+      <OptionControlLabel
+        label={<MetricOption metric={option} />}
+        onRemove={onRemoveMetric}
+        isFunction
+      />
+    );
   }
   if (option instanceof AdhocMetric) {
     return (
       <AdhocMetricOption
         adhocMetric={option}
         onMetricEdit={onMetricEdit}
+        onRemoveMetric={onRemoveMetric}
         columns={columns}
-        multi={multi}
         datasourceType={datasourceType}
       />
+    );
+  }
+  if (typeof option === 'string') {
+    return (
+      <OptionControlLabel label={option} onRemove={onRemoveMetric} isFunction />
     );
   }
   return null;
