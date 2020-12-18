@@ -53,12 +53,20 @@ const RunQueryActionButton = ({
 
   if (shouldShowStopBtn) {
     return (
+<<<<<<< HEAD
       <Dropdown.Button
         onClick={stopQuery}
         icon={<Icon color="#00000" name="caret-down" />}
         type={btnStyle}
         overlay={overlayCreateAsMenu}
         disabled={!sql.trim()}
+=======
+      <Button
+        {...commonBtnProps}
+        cta
+        onClick={stopQuery}
+        tooltip={t('Stop running (Ctrl + x)')}
+>>>>>>> feat: move keyboard shortcut hints to tooltips (#12100)
       >
         <i className="fa fa-stop" /> {t('Stop')}
       </Dropdown.Button>
@@ -68,9 +76,14 @@ const RunQueryActionButton = ({
     return (
       <Dropdown.Button
         onClick={() => runQuery(true)}
+<<<<<<< HEAD
         icon={<Icon color="#00000" name="caret-down" />}
         type={btnStyle}
         overlay={overlayCreateAsMenu}
+=======
+        key="run-async-btn"
+        tooltip={t('Run query (Ctrl + Return)')}
+>>>>>>> feat: move keyboard shortcut hints to tooltips (#12100)
         disabled={!sql.trim()}
       >
         <i className="fa fa-bolt" /> {runBtnText}
@@ -80,9 +93,14 @@ const RunQueryActionButton = ({
   return (
     <Dropdown.Button
       onClick={() => runQuery(false)}
+<<<<<<< HEAD
       icon={<Icon color="#00000" name="caret-down" />}
       type={btnStyle}
       overlay={overlayCreateAsMenu}
+=======
+      key="run-btn"
+      tooltip={t('Run query (Ctrl + Return)')}
+>>>>>>> feat: move keyboard shortcut hints to tooltips (#12100)
       disabled={!sql.trim()}
     >
       <i className="fa fa-refresh" /> {runBtnText}
