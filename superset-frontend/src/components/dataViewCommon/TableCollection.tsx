@@ -304,7 +304,7 @@ export default function TableCollection({
                       {...columnCellProps}
                     >
                       <span className={cx({ 'loading-bar': loading })}>
-                        <span data-test="cell-text">{cell.render('Cell')}</span>
+                        <span data-test="cell-text">{typeof cell.value === "boolean" ? cell.value.toString() : cell.render('Cell')}</span>
                       </span>
                     </td>
                   );
