@@ -33,7 +33,7 @@ const propTypes = {
   chartStatus: PropTypes.string,
   chartHeight: PropTypes.string.isRequired,
   latestQueryFormData: PropTypes.object,
-  queryResponse: PropTypes.object,
+  queriesResponse: PropTypes.arrayOf(PropTypes.object),
   slice: PropTypes.object,
 };
 
@@ -43,7 +43,7 @@ export default function ExploreActionButtons({
   chartHeight,
   chartStatus,
   latestQueryFormData,
-  queryResponse,
+  queriesResponse,
   slice,
 }) {
   const exportToCSVClasses = cx('btn btn-default btn-sm', {
@@ -106,7 +106,7 @@ export default function ExploreActionButtons({
       )}
       <ConnectedDisplayQueryButton
         chartHeight={chartHeight}
-        queryResponse={queryResponse}
+        queryResponse={queriesResponse?.[0]}
         latestQueryFormData={latestQueryFormData}
         chartStatus={chartStatus}
         onOpenInEditor={actions.redirectSQLLab}

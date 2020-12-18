@@ -132,12 +132,12 @@ export const selectIndicatorsForChart = (
   // for now we only need to know which columns are compatible/incompatible,
   // so grab the columns from the applied/rejected filters
   const appliedColumns: Set<string> = new Set(
-    (chart?.queryResponse?.applied_filters || []).map(
+    (chart?.queriesResponse?.[0]?.applied_filters || []).map(
       (filter: any) => filter.column,
     ),
   );
   const rejectedColumns: Set<string> = new Set(
-    (chart?.queryResponse?.rejected_filters || []).map(
+    (chart?.queriesResponse?.[0]?.rejected_filters || []).map(
       (filter: any) => filter.column,
     ),
   );
