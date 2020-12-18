@@ -56,11 +56,11 @@ const DatasourceContainer = styled.div`
   .ant-collapse {
     height: auto;
     border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    padding-bottom: 8px;
+    padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
   }
   .ant-collapse > .ant-collapse-item > .ant-collapse-header {
-    padding-left: 10px;
+    padding-left: ${({ theme }) => theme.gridUnit * 2}px;
     padding-bottom: 0px;
   }
   .form-control.input-sm {
