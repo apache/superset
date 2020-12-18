@@ -117,3 +117,20 @@ body > footer {
 .dashboard-component-chart-holder .sankey_loop svg.superset-legacy-chart-sankey-loop:last-of-type {
   display: block;
 }
+
+.filter-scope-header {
+  margin-left: 0;
+}
+
+.filter-scope-container {
+  margin-right: 0;
+}
+
+.filter-scope-modal .ant-modal {
+  width: auto !important;
+  max-width: 1000px;
+}
+
+.filter-scope-container .dashboard-modal-actions-container {
+  margin: 0;
+}
