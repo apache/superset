@@ -21,9 +21,7 @@ import { getChartControlPanelRegistry, t } from '@superset-ui/core';
 import {
   getControlConfig,
   getControlState,
-  getFormDataFromControls,
   applyMapStateToPropsToControl,
-  getAllControlsState,
   findControlItem,
 } from 'src/explore/controlUtils';
 import {
