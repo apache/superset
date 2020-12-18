@@ -18,11 +18,18 @@
  */
 import React, { useState } from 'react';
 import { FormControl, FormGroup, Row, Col } from 'react-bootstrap';
-import { t, styled } from '@superset-ui/core';
+import { t, supersetTheme, styled } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
 import Modal from 'src/common/components/Modal';
+import Icon from 'src/components/Icon';
+
+const Styles = styled.span`
+  svg {
+    vertical-align: -${supersetTheme.gridUnit * 1.25}px;
+  }
+`;
 
 interface SaveQueryProps {
   query: any;
@@ -57,23 +64,6 @@ type QueryPayload = {
   }>;
   title: string;
 };
-
-const StyledRow = styled(Row)`
-  div {
-    display: flex;
-    justify-content: flex-start;
-  }
-
-  button.cta {
-    margin: 0 7px;
-    min-width: 105px;
-    font-size: 12px;
-
-    &:first-of-type {
-      margin-left: 0;
-    }
-  }
-`;
 
 export default function SaveQuery({
   query,
@@ -129,14 +119,9 @@ export default function SaveQuery({
         <Row>
           <Col md={12}>
             <small>
-              <FormLabel htmlFor="embed-height">{t('Label')}</FormLabel>
+              <FormLabel htmlFor="embed-height">{t('Name')}</FormLabel>
             </small>
-            <FormControl
-              type="text"
-              placeholder={t('Label for your query')}
-              value={label}
-              onChange={onLabelChange}
-            />
+            <FormControl type="text" value={label} onChange={onLabelChange} />
           </Col>
         </Row>
         <br />
@@ -146,26 +131,62 @@ export default function SaveQuery({
               <FormLabel htmlFor="embed-height">{t('Description')}</FormLabel>
             </small>
             <FormControl
+              rows={5}
               componentClass="textarea"
-              placeholder={t('Write a description for your query')}
               value={description}
               onChange={onDescriptionChange}
             />
           </Col>
         </Row>
-        <br />
         {saveQueryWarning && (
-          <div>
-            <Row>
-              <Col md={12}>
-                <small>{saveQueryWarning}</small>
-              </Col>
-            </Row>
+          <>
             <br />
-          </div>
+            <div>
+              <Row>
+                <Col md={12}>
+                  <small>{saveQueryWarning}</small>
+                </Col>
+              </Row>
+              <br />
+            </div>
+          </>
         )}
-        <StyledRow>
-          <Col md={12}>
+      </FormGroup>
+    );
+  };
+
+  return (
+    <Styles className="SaveQuery">
+      <Button buttonSize="small" onClick={toggleSave}>
+        <Icon
+          name="save"
+          color={supersetTheme.colors.primary.base}
+          width={20}
+          height={20}
+        />{' '}
+        {isSaved ? t('Save') : t('Save as')}
+      </Button>
+      <Modal
+        className="save-query-modal"
+        onHandledPrimaryAction={onSaveWrapper}
+        onHide={close}
+        primaryButtonName={isSaved ? t('Save') : t('Save as')}
+        width="620px"
+        show={showSave}
+        title={<h4>{t('Save Query')}</h4>}
+        footer={[
+          <>
+            <Button onClick={close} data-test="cancel-query" cta>
+              {t('Cancel')}
+            </Button>
+            <Button
+              buttonStyle={isSaved ? undefined : 'primary'}
+              onClick={onSaveWrapper}
+              className="m-r-3"
+              cta
+            >
+              {isSaved ? t('Save As New') : t('Save')}
+            </Button>
             {isSaved && (
               <Button
                 buttonStyle="primary"
@@ -176,40 +197,11 @@ export default function SaveQuery({
                 {t('Update')}
               </Button>
             )}
-            <Button
-              buttonStyle={isSaved ? undefined : 'primary'}
-              onClick={onSaveWrapper}
-              className="m-r-3"
-              cta
-            >
-              {isSaved ? t('Save New') : t('Save')}
-            </Button>
-            <Button onClick={close} data-test="cancel-query" cta>
-              {t('Cancel')}
-            </Button>
-          </Col>
-        </StyledRow>
-      </FormGroup>
-    );
-  };
-
-  return (
-    <span className="SaveQuery">
-      <Button buttonSize="small" onClick={toggleSave}>
-        <i className="fa fa-save" /> {t('Save')}
-      </Button>
-      <Modal
-        className="save-query-modal"
-        onHandledPrimaryAction={onSaveWrapper}
-        onHide={close}
-        primaryButtonName={isSaved ? t('Save') : t('Add')}
-        width="390px"
-        show={showSave}
-        title={<h4>{t('Save Query')}</h4>}
-        hideFooter
+          </>,
+        ]}
       >
         {renderModalBody()}
       </Modal>
-    </span>
+    </Styles>
   );
 }
