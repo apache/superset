@@ -982,6 +982,18 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             if res["id"] in users_favorite_ids:
                 assert res["value"]
 
+    def test_get_time_range(self):
+        """
+        Chart API: Test get actually time range from human readable string
+        """
+        self.login(username="admin")
+        humanize_time_range = "100 years ago : now"
+        uri = f"api/v1/time_range/?q={prison.dumps(humanize_time_range)}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(len(data["result"]), 3)
+
     @pytest.mark.usefixtures(
         "load_unicode_dashboard_with_slice", "load_energy_table_with_slice"
     )
