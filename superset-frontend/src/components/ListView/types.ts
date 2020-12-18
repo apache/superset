@@ -55,11 +55,14 @@ type FilterOperator =
   | 'all_text'
   | 'chart_all_text'
   | 'dataset_is_null_or_empty'
-  | 'between';
+  | 'between'
+  | 'dashboard_is_fav'
+  | 'chart_is_fav';
 
 export interface Filter {
   Header: ReactNode;
   id: string;
+  urlDisplay?: string;
   operator?: FilterOperator;
   input?:
     | 'text'
@@ -85,6 +88,7 @@ export type ViewModeType = 'card' | 'table';
 
 export interface FilterValue {
   id: string;
+  urlDisplay?: string;
   operator?: string;
   value: string | boolean | number | null | undefined | string[] | number[];
 }
@@ -119,4 +123,6 @@ export enum FilterOperators {
   chartAllText = 'chart_all_text',
   datasetIsNullOrEmpty = 'dataset_is_null_or_empty',
   between = 'between',
+  dashboardIsFav = 'dashboard_is_fav',
+  chartIsFav = 'chart_is_fav',
 }
