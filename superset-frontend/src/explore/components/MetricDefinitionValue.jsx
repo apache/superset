@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { MetricOption } from '@superset-ui/chart-controls';
 
 import AdhocMetricOption from './AdhocMetricOption';
 import AdhocMetric from '../AdhocMetric';
@@ -32,6 +31,7 @@ const propTypes = {
   onMetricEdit: PropTypes.func,
   onRemoveMetric: PropTypes.func,
   columns: PropTypes.arrayOf(columnType),
+  savedMetrics: PropTypes.arrayOf(savedMetricType),
   multi: PropTypes.bool,
   datasourceType: PropTypes.string,
 };
@@ -41,27 +41,34 @@ export default function MetricDefinitionValue({
   onMetricEdit,
   onRemoveMetric,
   columns,
+  savedMetrics,
   datasourceType,
 }) {
+  const getSavedMetricByName = metricName =>
+    savedMetrics.find(metric => metric.metric_name === metricName);
+
+  let savedMetric;
   if (option.metric_name) {
-    return (
-      <OptionControlLabel
-        label={<MetricOption metric={option} />}
-        onRemove={onRemoveMetric}
-        isFunction
-      />
-    );
+    savedMetric = option;
+  } else if (typeof option === 'string') {
+    savedMetric = getSavedMetricByName(option);
   }
-  if (option instanceof AdhocMetric) {
-    return (
-      <AdhocMetricOption
-        adhocMetric={option}
-        onMetricEdit={onMetricEdit}
-        onRemoveMetric={onRemoveMetric}
-        columns={columns}
-        datasourceType={datasourceType}
-      />
-    );
+
+  if (option instanceof AdhocMetric || savedMetric) {
+    const adhocMetric =
+      option instanceof AdhocMetric ? option : new AdhocMetric({});
+
+    const metricOptionProps = {
+      onMetricEdit,
+      onRemoveMetric,
+      columns,
+      savedMetrics,
+      datasourceType,
+      adhocMetric,
+      savedMetric: savedMetric ?? {},
+    };
+
+    return <AdhocMetricOption {...metricOptionProps} />;
   }
   if (typeof option === 'string') {
     return (

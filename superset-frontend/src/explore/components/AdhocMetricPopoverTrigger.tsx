@@ -21,12 +21,14 @@ import Popover from 'src/common/components/Popover';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/AdhocMetricEditPopoverTitle';
 import AdhocMetricEditPopover from './AdhocMetricEditPopover';
 import AdhocMetric from '../AdhocMetric';
-import columnType from '../propTypes/columnType';
+import { savedMetricType } from '../types';
 
 export type AdhocMetricPopoverTriggerProps = {
   adhocMetric: AdhocMetric;
   onMetricEdit: () => void;
-  columns: typeof columnType[];
+  columns: { column_name: string; type: string }[];
+  savedMetrics: savedMetricType[];
+  savedMetric: savedMetricType;
   datasourceType: string;
   children: ReactNode;
   createNew?: boolean;
@@ -88,6 +90,8 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
         adhocMetric={adhocMetric}
         title={this.state.title}
         columns={this.props.columns}
+        savedMetrics={this.props.savedMetrics}
+        savedMetric={this.props.savedMetric}
         datasourceType={this.props.datasourceType}
         onResize={this.onPopoverResize}
         onClose={this.closePopover}
