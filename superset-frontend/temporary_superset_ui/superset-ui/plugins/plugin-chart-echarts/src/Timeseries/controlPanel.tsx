@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { legacyValidateInteger, legacyValidateNumber, t } from '@superset-ui/core';
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
 import {
   DEFAULT_FORM_DATA,
   EchartsTimeseriesContributionType,
@@ -50,6 +50,7 @@ const {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
+    sections.legacyTimeseriesTime,
     {
       label: t('Query'),
       expanded: true,
@@ -358,16 +359,6 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  // Time series charts need to override the `druidTimeSeries` and `sqlaTimeSeries`
-  // sections to add the time grain dropdown.
-  sectionOverrides: {
-    druidTimeSeries: {
-      controlSetRows: [['granularity', 'druid_time_origin'], ['time_range']],
-    },
-    sqlaTimeSeries: {
-      controlSetRows: [['granularity_sqla', 'time_grain_sqla'], ['time_range']],
-    },
-  },
   controlOverrides: {
     row_limit: {
       default: rowLimit,

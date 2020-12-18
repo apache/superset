@@ -17,18 +17,34 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
+import { ControlPanelSectionConfig } from './types';
 
 // A few standard controls sections that are used internally.
 // Not recommended for use in third-party plugins.
 
-export const druidTimeSeries = {
+const baseTimeSection = {
   label: t('Time'),
   expanded: true,
   description: t('Time related form attributes'),
-  controlSetRows: [['time_range']],
 };
 
-export const datasourceAndVizType = {
+export const legacyTimeseriesTime: ControlPanelSectionConfig = {
+  ...baseTimeSection,
+  controlSetRows: [
+    ['granularity'],
+    ['druid_time_origin'],
+    ['granularity_sqla'],
+    ['time_grain_sqla'],
+    ['time_range'],
+  ],
+};
+
+export const legacyRegularTime: ControlPanelSectionConfig = {
+  ...baseTimeSection,
+  controlSetRows: [['granularity_sqla'], ['time_range']],
+};
+
+export const datasourceAndVizType: ControlPanelSectionConfig = {
   label: t('Datasource & Chart Type'),
   expanded: true,
   controlSetRows: [
@@ -75,19 +91,12 @@ export const datasourceAndVizType = {
   ],
 };
 
-export const colorScheme = {
+export const colorScheme: ControlPanelSectionConfig = {
   label: t('Color Scheme'),
   controlSetRows: [['color_scheme', 'label_colors']],
 };
 
-export const sqlaTimeSeries = {
-  label: t('Time'),
-  description: t('Time related form attributes'),
-  expanded: true,
-  controlSetRows: [['granularity_sqla'], ['time_range']],
-};
-
-export const annotations = {
+export const annotations: ControlPanelSectionConfig = {
   label: t('Annotations and Layers'),
   tabOverride: 'data',
   expanded: true,

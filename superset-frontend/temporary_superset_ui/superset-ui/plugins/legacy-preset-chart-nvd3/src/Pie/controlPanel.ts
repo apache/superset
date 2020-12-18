@@ -17,10 +17,10 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { D3_FORMAT_OPTIONS } from '@superset-ui/chart-controls';
+import { ControlPanelConfig, D3_FORMAT_OPTIONS } from '@superset-ui/chart-controls';
 import { showLegend } from '../NVD3Controls';
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
     {
       label: t('Query'),
@@ -113,3 +113,5 @@ export default {
     },
   },
 };
+
+export default config;
