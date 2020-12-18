@@ -73,7 +73,7 @@ describe('Dashboard filter', () => {
     cy.get('svg[data-test="filter"]')
       .should('be.visible')
       .should(nodes => {
-        expect(nodes).to.have.length(9);
+        expect(nodes).to.have.length(10);
       });
 
     cy.get('.Select__control:first input[type=text]').type('So', {
