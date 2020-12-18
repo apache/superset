@@ -20,7 +20,7 @@ import json
 import logging
 import random
 import string
-from typing import Any, Dict, Iterator, List, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import yaml
 from werkzeug.utils import secure_filename
@@ -108,8 +108,8 @@ class ExportDashboardsCommand(ExportModelsCommand):
         # TODO (betodealmeida): move this logic to export_to_dict once this
         # becomes the default export endpoint
         for key, new_name in JSON_KEYS.items():
-            if payload.get(key):
-                value = payload.pop(key)
+            value: Optional[str] = payload.pop(key, None)
+            if value:
                 try:
                     payload[new_name] = json.loads(value)
                 except (TypeError, json.decoder.JSONDecodeError):

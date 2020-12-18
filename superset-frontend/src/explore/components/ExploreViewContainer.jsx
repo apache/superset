@@ -21,14 +21,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, supersetTheme, css } from '@superset-ui/core';
 import { debounce } from 'lodash';
 
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins/PluginContext';
+import { Global } from '@emotion/core';
+import { Tooltip } from 'src/common/components/Tooltip';
+import Icon from 'src/components/Icon';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
+import DataSourcePanel from './DatasourcePanel';
 import { getExploreLongUrl } from '../exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 import { getFormDataFromControls } from '../controlUtils';
@@ -61,20 +65,64 @@ const propTypes = {
 };
 
 const Styles = styled.div`
-  height: ${({ height }) => height};
-  min-height: ${({ height }) => height};
+  background: ${({ theme }) => theme.colors.grayscale.light5};
   text-align: left;
   position: relative;
   width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: stretch;
-  .control-pane {
+  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  .explore-column {
     display: flex;
     flex-direction: column;
-    padding: 0 ${({ theme }) => 2 * theme.gridUnit}px;
+    padding: ${({ theme }) => 2 * theme.gridUnit}px 0;
     max-height: 100%;
+  }
+  .data-source-selection {
+    background-color: ${({ theme }) => theme.colors.grayscale.light4};
+    padding: ${({ theme }) => 2 * theme.gridUnit}px 0;
+    border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  }
+  .main-explore-content {
+    border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  }
+  .controls-column {
+    align-self: flex-start;
+    padding: 0;
+  }
+  .title-container {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    padding: 0 ${({ theme }) => 2 * theme.gridUnit}px;
+    justify-content: space-between;
+    .horizontal-text {
+      text-transform: uppercase;
+      color: ${({ theme }) => theme.colors.grayscale.light1};
+      font-size: ${({ theme }) => 4 * theme.typography.sizes.s};
+    }
+  }
+  .no-show {
+    display: none;
+  }
+  .vertical-text {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+  .sidebar {
+    height: 100%;
+    background-color: ${({ theme }) => theme.colors.grayscale.light4};
+    padding: ${({ theme }) => 2 * theme.gridUnit}px;
+    width: ${({ theme }) => 8 * theme.gridUnit}px;
+  }
+  .data-tab {
+    min-width: 288px;
+  }
+  .callpase-icon > svg {
+    color: ${({ theme }) => theme.colors.primary.base};
   }
 `;
 
@@ -118,6 +166,7 @@ function ExploreViewContainer(props) {
 
   const [showingModal, setShowingModal] = useState(false);
   const [chartIsStale, setChartIsStale] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   const width = `${windowSize.width}px`;
   const navHeight = props.standalone ? 0 : 90;
@@ -200,6 +249,10 @@ function ExploreViewContainer(props) {
 
   function toggleModal() {
     setShowingModal(!showingModal);
+  }
+
+  function toggleCollapse() {
+    setIsCollapsed(!isCollapsed);
   }
 
   // effect to run on mount
@@ -320,6 +373,28 @@ function ExploreViewContainer(props) {
 
   return (
     <Styles id="explore-container" height={height}>
+      <Global
+        styles={css`
+          .navbar {
+            margin-bottom: 0;
+          }
+          body {
+            max-height: 100vh;
+            overflow: hidden;
+          }
+          #app-menu,
+          #app {
+            flex: 1 1 auto;
+          }
+          #app {
+            flex-basis: 100%;
+            overflow: hidden;
+          }
+          #app-menu {
+            flex-shrink: 0;
+          }
+        `}
+      />
       {showingModal && (
         <SaveModal
           onHide={toggleModal}
@@ -328,7 +403,57 @@ function ExploreViewContainer(props) {
           sliceName={props.sliceName}
         />
       )}
-      <div className="col-sm-4 control-pane">
+      <div
+        className={
+          isCollapsed
+            ? 'no-show'
+            : 'data-tab explore-column data-source-selection'
+        }
+      >
+        <div className="title-container">
+          <span className="horizontal-text">{t('Datasource')}</span>
+          <span
+            role="button"
+            tabIndex={0}
+            className="action-button"
+            onClick={toggleCollapse}
+          >
+            <Icon
+              name="expand"
+              color={supersetTheme.colors.primary.base}
+              className="collapse-icon"
+              width={16}
+            />
+          </span>
+        </div>
+        <DataSourcePanel
+          datasource={props.datasource}
+          controls={props.controls}
+          actions={props.actions}
+        />
+      </div>
+      {isCollapsed ? (
+        <div
+          className="sidebar"
+          onClick={toggleCollapse}
+          data-test="open-datasource-tab"
+          role="button"
+          tabIndex={0}
+        >
+          <span role="button" tabIndex={0} className="action-button">
+            <Tooltip title={t('Open Datasource Tab')}>
+              <Icon
+                name="collapse"
+                color={supersetTheme.colors.primary.base}
+                className="collapse-icon"
+                width={16}
+              />
+            </Tooltip>
+          </span>
+          <Icon name="dataset-physical" width={16} />
+        </div>
+      ) : null}
+      <div className="col-sm-3 explore-column controls-column">
         <QueryAndSaveBtns
           canAdd={!!(props.can_add || props.can_overwrite)}
           onQuery={onQuery}
@@ -347,7 +472,13 @@ function ExploreViewContainer(props) {
           isDatasourceMetaLoading={props.isDatasourceMetaLoading}
         />
       </div>
-      <div className="col-sm-8">{renderChartContainer()}</div>
+      <div
+        className={`main-explore-content ${
+          isCollapsed ? 'col-sm-9' : 'col-sm-7'
+        }`}
+      >
+        {renderChartContainer()}
+      </div>
     </Styles>
   );
 }
@@ -359,7 +490,6 @@ function mapStateToProps(state) {
   const form_data = getFormDataFromControls(explore.controls);
   const chartKey = Object.keys(charts)[0];
   const chart = charts[chartKey];
-
   return {
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
     datasource: explore.datasource,

@@ -163,7 +163,11 @@ class ControlPanelsContainer extends React.Component {
                 // When the item is a React element
                 return controlItem;
               }
-              if (controlItem.name && controlItem.config) {
+              if (
+                controlItem.name &&
+                controlItem.config &&
+                controlItem.name !== 'datasource'
+              ) {
                 return this.renderControl(controlItem);
               }
               return null;
@@ -217,7 +221,6 @@ class ControlPanelsContainer extends React.Component {
         displaySectionsToRender.push(section);
       }
     });
-
     const showCustomizeTab = displaySectionsToRender.length > 0;
     return (
       <Styles>
