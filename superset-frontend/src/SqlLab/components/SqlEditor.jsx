@@ -384,10 +384,12 @@ class SqlEditor extends React.PureComponent {
 
   createTableAs() {
     this.startQuery(true, CtasEnum.TABLE);
+    this.setState({ showCreateAsModal: false });
   }
 
   createViewAs() {
     this.startQuery(true, CtasEnum.VIEW);
+    this.setState({ showCreateAsModal: false });
   }
 
   ctasChanged(event) {
