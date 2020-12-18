@@ -23,13 +23,6 @@ import Button, { ButtonProps } from 'src/components/Button';
 import { Dropdown, Menu } from 'src/common/components';
 import Icon from 'src/components/Icon';
 
-const runMenuBtn = (
-  <Menu onClick={() => console.log('clicked menu')}>
-    <Menu.Item key="1">Create As Table</Menu.Item>
-    <Menu.Item key="2">Create As View</Menu.Item>
-  </Menu>
-);
-
 const NO_OP = () => undefined;
 
 interface Props {
@@ -41,6 +34,10 @@ interface Props {
   stopQuery: () => void;
   sql: string;
   overlayCreateAsMenu: typeof Menu;
+  createTableAs:
+  createViewAs:
+  allowCTAS:
+  allowCVAS:
 }
 
 const RunQueryActionButton = ({
@@ -63,7 +60,7 @@ const RunQueryActionButton = ({
       <Dropdown.Button
         onClick={stopQuery}
         icon={<Icon color="#00000" name="caret-down" />}
-        type="primary"
+        type={btnStyle}
         overlay={overlayCreateAsMenu}
         disabled={!sql.trim()}
       >
@@ -76,7 +73,7 @@ const RunQueryActionButton = ({
       <Dropdown.Button
         onClick={() => runQuery(true)}
         icon={<Icon color="#00000" name="caret-down" />}
-        type="primary"
+        type={btnStyle}
         overlay={overlayCreateAsMenu}
         disabled={!sql.trim()}
       >
@@ -88,7 +85,7 @@ const RunQueryActionButton = ({
     <Dropdown.Button
       onClick={() => runQuery(false)}
       icon={<Icon color="#00000" name="caret-down" />}
-      type="primary"
+      type={btnStyle}
       overlay={overlayCreateAsMenu}
       disabled={!sql.trim()}
     >

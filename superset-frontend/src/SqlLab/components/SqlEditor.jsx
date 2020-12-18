@@ -95,13 +95,6 @@ const defaultProps = {
   scheduleQueryWarning: null,
 };
 
-const runMenuBtn = (
-  <Menu onClick={() => console.log('clicked menu')}>
-    <Menu.Item key="1">Create As Table</Menu.Item>
-    <Menu.Item key="2">Create As View</Menu.Item>
-  </Menu>
-);
-
 class SqlEditor extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -561,6 +554,24 @@ class SqlEditor extends React.PureComponent {
         </Tooltip>
       );
     }
+
+    const { allow_ctas, allow_cvas } = this.props.database;
+    const showMenu = allow_ctas && allow_ctas;
+    const runMenuBtn = (
+      <Menu>
+        {allow_ctas && (
+          <Menu.Item onClick={this.createTableAs.bind(this)} key="1">
+            Create As Table
+          </Menu.Item>
+        )}
+        {allow_cvas && (
+          <Menu.Item onClick={this.createViewAs.bind(this)} key="2">
+            Create As View
+          </Menu.Item>
+        )}
+      </Menu>
+    );
+
     return (
       <div className="sql-toolbar" id="js-sql-toolbar">
         <div className="leftItems">
@@ -580,7 +591,7 @@ class SqlEditor extends React.PureComponent {
                 selectedText={qe.selectedText}
                 stopQuery={this.stopQuery}
                 sql={this.state.sql}
-                overlayCreateAsMenu={runMenuBtn}
+                overlayCreateAsMenu={showMenu ? runMenuBtn : <></>}
               />
             </span>
             {limitWarning}
