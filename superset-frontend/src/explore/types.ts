@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
-
-export default PropTypes.shape({
-  metric_name: PropTypes.string.isRequired,
-  verbose_name: PropTypes.string,
-  expression: PropTypes.string.isRequired,
-});
+export type savedMetricType = {
+  metric_name: string;
+  verbose_name: string;
+  expression: string;
+};
