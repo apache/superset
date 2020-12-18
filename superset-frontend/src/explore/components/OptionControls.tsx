@@ -38,8 +38,12 @@ const OptionControlContainer = styled.div<{ isAdhoc?: boolean }>`
 `;
 
 const Label = styled.div`
-  display: flex;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   align-items: center;
+  white-space: nowrap;
   padding-left: ${({ theme }) => theme.gridUnit}px;
   svg {
     margin-right: ${({ theme }) => theme.gridUnit}px;
