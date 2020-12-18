@@ -260,8 +260,11 @@ class TestReportSchedulesApi(SupersetTestCase):
             "changed_on",
             "changed_on_delta_humanized",
             "created_on",
+            "crontab",
+            "last_eval_dttm",
             "name",
             "type",
+            "crontab_humanized",
         ]
 
         for order_column in order_columns:
@@ -864,12 +867,15 @@ class TestReportSchedulesApi(SupersetTestCase):
             "error_message",
             "end_dttm",
             "start_dttm",
+            "scheduled_dttm",
         ]
 
         for order_column in order_columns:
             arguments = {"order_column": order_column, "order_direction": "asc"}
             uri = f"api/v1/report/{report_schedule.id}/log/?q={prison.dumps(arguments)}"
             rv = self.get_assert_metric(uri, "get_list")
+            if rv.status_code == 400:
+                raise Exception(json.loads(rv.data.decode("utf-8")))
             assert rv.status_code == 200
 
     @pytest.mark.usefixtures("create_report_schedules")
