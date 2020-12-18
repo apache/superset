@@ -53,7 +53,11 @@ describe('ControlPanelSection', () => {
     });
 
     it('renders a label if present', () => {
-      expect(wrapper.find(Panel.Title).dive().text()).toContain('my label');
+      expect(
+        wrapper
+          .find('[data-test="clickable-control-panel-section-title"]')
+          .text(),
+      ).toContain('my label');
     });
 
     it('renders a InfoTooltipWithTrigger if label and tooltip is present', () => {
