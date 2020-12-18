@@ -55,7 +55,7 @@ const RunQueryActionButton = ({
       <Dropdown.Button
         onClick={stopQuery}
         icon={<Icon color="#00000" name="caret-down" />}
-        buttonStyle={btnStyle}
+        type={btnStyle}
         overlay={overlayCreateAsMenu}
         disabled={!sql.trim()}
       >
@@ -68,7 +68,7 @@ const RunQueryActionButton = ({
       <Dropdown.Button
         onClick={() => runQuery(true)}
         icon={<Icon color="#00000" name="caret-down" />}
-        buttonStyle={btnStyle}
+        buttonS={btnStyle}
         overlay={overlayCreateAsMenu}
         disabled={!sql.trim()}
       >
@@ -80,7 +80,7 @@ const RunQueryActionButton = ({
     <Dropdown.Button
       onClick={() => runQuery(false)}
       icon={<Icon color="#00000" name="caret-down" />}
-      buttonStyle={btnStyle}
+      type={btnStyle}
       overlay={overlayCreateAsMenu}
       disabled={!sql.trim()}
     >
