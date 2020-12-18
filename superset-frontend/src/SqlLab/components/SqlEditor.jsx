@@ -450,12 +450,6 @@ class SqlEditor extends React.PureComponent {
 
   renderDropdown() {
     const qe = this.props.queryEditor;
-    const successful =
-      this.props.latestQuery && this.props.latestQuery.state === 'success';
-    const scheduleToolTip = successful
-      ? t('Schedule the query periodically')
-      : t('You must run the query successfully first');
-
     return (
       <Menu onClick={this.handleMenuClick}>
         <Menu.Item>
@@ -514,50 +508,6 @@ class SqlEditor extends React.PureComponent {
   }
 
   renderEditorBottomBar() {
-    let ctasControls;
-    if (
-      this.props.database &&
-      (this.props.database.allow_ctas || this.props.database.allow_cvas)
-    ) {
-      const ctasToolTip = t('Create table as with query results');
-      const cvasToolTip = t('Create view as with query results');
-
-      ctasControls = (
-        <FormGroup>
-          <InputGroup bsSize="small">
-            <FormControl
-              type="text"
-              bsSize="small"
-              className="input-sm"
-              placeholder={t('new table name')}
-              onChange={this.ctasChanged.bind(this)}
-            />
-            <InputGroup.Button>
-              {this.props.database.allow_ctas && (
-                <Button
-                  buttonSize="small"
-                  disabled={this.state.ctas.length === 0}
-                  onClick={this.createTableAs.bind(this)}
-                  tooltip={ctasToolTip}
-                >
-                  <i className="fa fa-table" /> CTAS
-                </Button>
-              )}
-              {this.props.database.allow_cvas && (
-                <Button
-                  buttonSize="small"
-                  disabled={this.state.ctas.length === 0}
-                  onClick={this.createViewAs.bind(this)}
-                  tooltip={cvasToolTip}
-                >
-                  <i className="fa fa-table" /> CVAS
-                </Button>
-              )}
-            </InputGroup.Button>
-          </InputGroup>
-        </FormGroup>
-      );
-    }
     const { queryEditor: qe } = this.props;
     let limitWarning = null;
     if (this.props.latestQuery?.results?.displayLimitReached) {
@@ -609,7 +559,6 @@ class SqlEditor extends React.PureComponent {
       </Menu>
     );
 
-    const successful = this.props.latestQuery?.state === 'success';
     return (
       <div className="sql-toolbar" id="js-sql-toolbar">
         <div className="leftItems">
