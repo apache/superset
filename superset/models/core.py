@@ -183,14 +183,11 @@ class Database(
 
     @property
     def allows_cost_estimate(self) -> bool:
-        extra = self.get_extra()
-
-        database_version = extra.get("version")
+        extra = self.get_extra() or {}
         cost_estimate_enabled: bool = extra.get("cost_estimate_enabled")  # type: ignore
 
         return (
-            self.db_engine_spec.get_allow_cost_estimate(database_version)
-            and cost_estimate_enabled
+            self.db_engine_spec.get_allow_cost_estimate(extra) and cost_estimate_enabled
         )
 
     @property

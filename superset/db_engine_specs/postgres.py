@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
 from datetime import datetime
-from typing import Any, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from pytz import _FixedOffset  # type: ignore
 from sqlalchemy.dialects.postgresql.base import PGInspector
@@ -70,6 +71,31 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
     engine_aliases = ("postgres",)
     max_column_name_length = 63
     try_remove_schema_from_table_name = False
+
+    @classmethod
+    def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
+        return True
+
+    @classmethod
+    def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:
+        sql = f"EXPLAIN {statement}"
+        cursor.execute(sql)
+
+        result = cursor.fetchone()[0]
+        match = re.search(r"cost=([\d\.]+)\.\.([\d\.]+)", result)
+        if match:
+            return {
+                "Start-up cost": float(match.group(1)),
+                "Total cost": float(match.group(2)),
+            }
+
+        return {}
+
+    @classmethod
+    def query_cost_formatter(
+        cls, raw_cost: List[Dict[str, Any]]
+    ) -> List[Dict[str, str]]:
+        return [{k: str(v) for k, v in row.items()} for row in raw_cost]
 
     @classmethod
     def get_table_names(
