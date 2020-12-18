@@ -628,15 +628,6 @@ class SqlEditor extends React.PureComponent {
                 overlayCreateAsMenu={showMenu ? runMenuBtn : <></>}
               />
             </span>
-            {limitWarning}
-            {this.props.latestQuery && (
-              <Timer
-                startTime={this.props.latestQuery.startDttm}
-                endTime={this.props.latestQuery.endDttm}
-                state={STATE_BSSTYLE_MAP[this.props.latestQuery.state]}
-                isRunning={this.props.latestQuery.state === 'running'}
-              />
-            )}
             {isFeatureEnabled(FeatureFlag.ESTIMATE_QUERY_COST) &&
               this.props.database &&
               this.props.database.allows_cost_estimate && (
@@ -652,6 +643,15 @@ class SqlEditor extends React.PureComponent {
                   />
                 </span>
               )}
+            {limitWarning}
+            {this.props.latestQuery && (
+              <Timer
+                startTime={this.props.latestQuery.startDttm}
+                endTime={this.props.latestQuery.endDttm}
+                state={STATE_BSSTYLE_MAP[this.props.latestQuery.state]}
+                isRunning={this.props.latestQuery.state === 'running'}
+              />
+            )}
             <span>
               <LimitSelectStyled>
                 <Dropdown overlay={this.renderQueryLimit()}>
