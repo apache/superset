@@ -34,21 +34,17 @@ interface ParameterErrorExtra {
 }
 
 const maxDistanceForSuggestion = 2;
-const findMatches = (
-  undefined_parameters: string[],
-  template_keys: string[],
-) => {
-  const matches: { [undefined_parameter: string]: string[] } = {};
-  undefined_parameters.forEach(undefined_parameter => {
-    template_keys.forEach(template_key => {
+const findMatches = (undefinedParameters: string[], templateKeys: string[]) => {
+  const matches: { [undefinedParameter: string]: string[] } = {};
+  undefinedParameters.forEach(undefinedParameter => {
+    templateKeys.forEach(templateKey => {
       if (
-        levenshtein(undefined_parameter, template_key) <=
-        maxDistanceForSuggestion
+        levenshtein(undefinedParameter, templateKey) <= maxDistanceForSuggestion
       ) {
-        if (!matches[undefined_parameter]) {
-          matches[undefined_parameter] = [];
+        if (!matches[undefinedParameter]) {
+          matches[undefinedParameter] = [];
         }
-        matches[undefined_parameter].push(`"${template_key}"`);
+        matches[undefinedParameter].push(`"${templateKey}"`);
       }
     });
   });
@@ -69,7 +65,7 @@ function ParameterErrorMessage({
 
   const matches = findMatches(
     extra.undefined_parameters || [],
-    Object.keys(extra.template_parameters || []),
+    Object.keys(extra.template_parameters || {}),
   );
 
   const body = (
@@ -80,20 +76,17 @@ function ParameterErrorMessage({
             <p>{t('Did you mean:')}</p>
             <ul>
               {Object.entries(matches).map(
-                ([undefined_parameter, template_keys]) => (
+                ([undefinedParameter, templateKeys]) => (
                   <li>
                     {tn(
                       '%(suggestion)s instead of "%(undefined)s?"',
                       '%(first_suggestions)s or %(last_suggestion)s instead of "%(undefined)s"?',
-                      template_keys.length,
+                      templateKeys.length,
                       {
-                        suggestion: template_keys.join(', '),
-                        first_suggestions: template_keys
-                          .slice(0, -1)
-                          .join(', '),
-                        last_suggestion:
-                          template_keys[template_keys.length - 1],
-                        undefined: undefined_parameter,
+                        suggestion: templateKeys.join(', '),
+                        first_suggestions: templateKeys.slice(0, -1).join(', '),
+                        last_suggestion: templateKeys[templateKeys.length - 1],
+                        undefined: undefinedParameter,
                       },
                     )}
                   </li>
