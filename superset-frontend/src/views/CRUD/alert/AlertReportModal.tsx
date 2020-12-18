@@ -613,7 +613,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const loadOwnerOptions = (input = '') => {
     const query = rison.encode({ filter: input });
     return SupersetClient.get({
-      endpoint: `/api/v1/dashboard/related/owners?q=${query}`,
+      endpoint: `/api/v1/report/related/owners?q=${query}`,
     }).then(
       response => {
         return response.json.result.map((item: any) => ({
@@ -630,7 +630,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const loadSourceOptions = (input = '') => {
     const query = rison.encode({ filter: input });
     return SupersetClient.get({
-      endpoint: `/api/v1/dataset/related/database?q=${query}`,
+      endpoint: `/api/v1/report/related/database?q=${query}`,
     }).then(
       response => {
         const list = response.json.result.map((item: any) => ({
@@ -679,12 +679,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const loadDashboardOptions = (input = '') => {
     const query = rison.encode({ filter: input });
     return SupersetClient.get({
-      endpoint: `/api/v1/dashboard?q=${query}`,
+      endpoint: `/api/v1/report/related/dashboard?q=${query}`,
     }).then(
       response => {
         const list = response.json.result.map((item: any) => ({
-          value: item.id,
-          label: item.dashboard_title,
+          value: item.value,
+          label: item.text,
         }));
 
         setDashboardOptions(list);
@@ -728,12 +728,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const loadChartOptions = (input = '') => {
     const query = rison.encode({ filter: input });
     return SupersetClient.get({
-      endpoint: `/api/v1/chart?q=${query}`,
+      endpoint: `/api/v1/report/related/chart?q=${query}`,
     }).then(
       response => {
         const list = response.json.result.map((item: any) => ({
-          value: item.id,
-          label: item.slice_name,
+          value: item.value,
+          label: item.text,
         }));
 
         setChartOptions(list);
