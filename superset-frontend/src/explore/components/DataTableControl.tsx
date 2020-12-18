@@ -19,6 +19,7 @@
 import React, { useMemo } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { FormControl } from 'react-bootstrap';
+import { Column } from 'react-table';
 import debounce from 'lodash/debounce';
 import Button from 'src/components/Button';
 import {
@@ -95,11 +96,30 @@ export const useFilteredTableData = (
     );
   }, [data, filterText]);
 
-export const useTableColumns = (data?: Record<string, any>[]) =>
+export const useTableColumns = (
+  data?: Record<string, any>[],
+  moreConfigs?: { [key: string]: Partial<Column> },
+) =>
   useMemo(
     () =>
       data?.length
-        ? Object.keys(data[0]).map(key => ({ accessor: key, Header: key }))
+        ? Object.keys(data[0]).map(
+            key =>
+              ({
+                accessor: key,
+                Header: key,
+                Cell: ({ value }) => {
+                  if (value === true) {
+                    return t('True');
+                  }
+                  if (value === false) {
+                    return t('False');
+                  }
+                  return String(value);
+                },
+                ...moreConfigs?.[key],
+              } as Column),
+          )
         : [],
-    [data],
+    [data, moreConfigs],
   );

@@ -235,28 +235,34 @@ const ExploreChartPanel = props => {
     };
   };
 
+  const panelBody = <div className="panel-body">{renderChart()}</div>;
+
   return (
     <Styles className="panel panel-default chart-container">
       <div className="panel-heading" ref={panelHeadingRef}>
         {header}
       </div>
-      <Split
-        sizes={splitSizes}
-        minSize={MIN_SIZES}
-        direction="vertical"
-        gutterSize={gutterHeight}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        elementStyle={elementStyle}
-      >
-        <div className="panel-body">{renderChart()}</div>
-        <DataTablesPane
-          queryFormData={props.chart.latestQueryFormData}
-          tableSectionHeight={tableSectionHeight}
-          onCollapseChange={onCollapseChange}
-          displayBackground={displaySouthPaneBackground}
-        />
-      </Split>
+      {props.vizType === 'filter_box' ? (
+        panelBody
+      ) : (
+        <Split
+          sizes={splitSizes}
+          minSize={MIN_SIZES}
+          direction="vertical"
+          gutterSize={gutterHeight}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          elementStyle={elementStyle}
+        >
+          {panelBody}
+          <DataTablesPane
+            queryFormData={props.chart.latestQueryFormData}
+            tableSectionHeight={tableSectionHeight}
+            onCollapseChange={onCollapseChange}
+            displayBackground={displaySouthPaneBackground}
+          />
+        </Split>
+      )}
     </Styles>
   );
 };
