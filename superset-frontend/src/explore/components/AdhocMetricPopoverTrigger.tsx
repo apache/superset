@@ -22,12 +22,17 @@ import AdhocMetricEditPopoverTitle from 'src/explore/components/AdhocMetricEditP
 import AdhocMetricEditPopover from './AdhocMetricEditPopover';
 import AdhocMetric from '../AdhocMetric';
 
+type savedMetricType = {
+  metric_name: string;
+  verbose_name: string;
+  expression: string;
+};
 export type AdhocMetricPopoverTriggerProps = {
   adhocMetric: AdhocMetric;
   onMetricEdit: () => void;
   columns: { column_name: string; type: string }[];
-  savedMetrics: Record<string, any>[];
-  savedMetric: any;
+  savedMetrics: savedMetricType[];
+  savedMetric: savedMetricType;
   datasourceType: string;
   children: ReactNode;
   createNew?: boolean;

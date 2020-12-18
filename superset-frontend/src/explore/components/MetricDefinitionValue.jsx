@@ -31,7 +31,7 @@ const propTypes = {
   onMetricEdit: PropTypes.func,
   onRemoveMetric: PropTypes.func,
   columns: PropTypes.arrayOf(columnType),
-  savedMetrics: PropTypes.arrayOf(PropTypes.object),
+  savedMetrics: PropTypes.arrayOf(savedMetricType),
   multi: PropTypes.bool,
   datasourceType: PropTypes.string,
 };

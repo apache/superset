@@ -32,6 +32,7 @@ import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 
 import { AGGREGATES_OPTIONS } from '../constants';
 import columnType from '../propTypes/columnType';
+import savedMetricType from '../propTypes/savedMetricType';
 import AdhocMetric, { EXPRESSION_TYPES } from '../AdhocMetric';
 
 const propTypes = {
@@ -40,8 +41,8 @@ const propTypes = {
   onClose: PropTypes.func.isRequired,
   onResize: PropTypes.func.isRequired,
   columns: PropTypes.arrayOf(columnType),
-  savedMetrics: PropTypes.arrayOf(PropTypes.object),
-  savedMetric: PropTypes.object,
+  savedMetrics: PropTypes.arrayOf(savedMetricType),
+  savedMetric: savedMetricType,
   datasourceType: PropTypes.string,
   title: PropTypes.shape({
     label: PropTypes.string,
@@ -339,7 +340,7 @@ export default class AdhocMetricEditPopover extends React.Component {
               <FormLabel>
                 <strong>Saved metric</strong>
               </FormLabel>
-              <Select name="select-column" {...savedSelectProps}>
+              <Select name="select-saved" {...savedSelectProps}>
                 {Array.isArray(savedMetrics) &&
                   savedMetrics.map(savedMetric => (
                     <Select.Option

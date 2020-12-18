@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import AdhocMetric from '../AdhocMetric';
 import columnType from '../propTypes/columnType';
+import savedMetricType from '../propTypes/savedMetricType';
 import { OptionControlLabel } from './OptionControls';
 import AdhocMetricPopoverTrigger from './AdhocMetricPopoverTrigger';
 
@@ -28,8 +29,8 @@ const propTypes = {
   onMetricEdit: PropTypes.func.isRequired,
   onRemoveMetric: PropTypes.func,
   columns: PropTypes.arrayOf(columnType),
-  savedMetrics: PropTypes.arrayOf(PropTypes.object),
-  savedMetric: PropTypes.object,
+  savedMetrics: PropTypes.arrayOf(savedMetricType),
+  savedMetric: savedMetricType,
   datasourceType: PropTypes.string,
 };
 
