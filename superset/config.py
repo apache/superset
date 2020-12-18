@@ -803,6 +803,10 @@ ENABLE_SCHEDULED_EMAIL_REPORTS = False
 # if it meets the criteria
 ENABLE_ALERTS = False
 
+# Used for Alerts/Reports (Feature flask ALERT_REPORTS) to set the size for the
+# sliding cron window size, should be synced with the celery beat config minus 1 second
+ALERT_REPORTS_CRON_WINDOW_SIZE = 59
+
 # Slack API token for the superset reports
 SLACK_API_TOKEN = None
 SLACK_PROXY = None
@@ -1012,3 +1016,8 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise
+
+
+# It's possible to add a dataset health check logic which is specific to your system.
+# It will get executed each time when user open a chart's explore view.
+DATASET_HEALTH_CHECK = None

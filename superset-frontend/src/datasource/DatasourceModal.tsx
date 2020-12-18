@@ -88,9 +88,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const onConfirmSave = () => {
     // Pull out extra fields into the extra object
     const schema =
-      currentDatasource.schema ||
+      currentDatasource.tableSelector?.schema ||
       currentDatasource.databaseSelector?.schema ||
-      currentDatasource.tableSelector?.schema;
+      currentDatasource.schema;
 
     setIsSaving(true);
 

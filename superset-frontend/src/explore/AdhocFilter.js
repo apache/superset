@@ -47,7 +47,12 @@ const OPERATORS_TO_SQL = {
 };
 
 function translateToSql(adhocMetric, { useSimple } = {}) {
-  if (adhocMetric.expressionType === EXPRESSION_TYPES.SIMPLE || useSimple) {
+  if (
+    (adhocMetric.expressionType === EXPRESSION_TYPES.SIMPLE &&
+      adhocMetric.comparator &&
+      adhocMetric.operator) ||
+    useSimple
+  ) {
     const isMulti = MULTI_OPERATORS.has(adhocMetric.operator);
     const { subject } = adhocMetric;
     const operator =

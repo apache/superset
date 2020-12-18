@@ -29,9 +29,7 @@ import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import ListView, { Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
-import ImportModelsModal, {
-  StyledIcon,
-} from 'src/components/ImportModal/index';
+import ImportModelsModal from 'src/components/ImportModal/index';
 import DatabaseModal from './DatabaseModal';
 import { DatabaseObject } from './types';
 
@@ -41,6 +39,11 @@ const PASSWORDS_NEEDED_MESSAGE = t(
     'import them. Please note that the "Secure Extra" and "Certificate" ' +
     'sections of the database configuration are not present in export ' +
     'files, and should be added manually after the import if they are needed.',
+);
+const CONFIRM_OVERWRITE_MESSAGE = t(
+  'You are importing one or more databases that already exist. ' +
+    'Overwriting might cause you to lose some of your work. Are you ' +
+    'sure you want to overwrite?',
 );
 
 interface DatabaseDeleteObject extends DatabaseObject {
@@ -142,11 +145,11 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     setDatabaseModalOpen(true);
   }
 
-  const canCreate = hasPerm('can_add');
-  const canEdit = hasPerm('can_edit');
-  const canDelete = hasPerm('can_delete');
+  const canCreate = hasPerm('can_write');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
   const canExport =
-    hasPerm('can_mulexport') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+    hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
 
   const menuData: SubMenuProps = {
     activeChild: 'Databases',
@@ -436,11 +439,8 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       <ImportModelsModal
         resourceName="database"
         resourceLabel={t('database')}
-        icon={<StyledIcon name="database" />}
         passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
-        confirmOverwriteMessage={t(
-          'One or more databases to be imported already exist.',
-        )}
+        confirmOverwriteMessage={CONFIRM_OVERWRITE_MESSAGE}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         onModelImport={handleDatabaseImport}

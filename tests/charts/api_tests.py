@@ -182,6 +182,20 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             db.session.delete(self.chart)
             db.session.commit()
 
+    def test_info_security_chart(self):
+        """
+        Chart API: Test info security
+        """
+        self.login(username="admin")
+        params = {"keys": ["permissions"]}
+        uri = f"api/v1/chart/_info?q={prison.dumps(params)}"
+        rv = self.get_assert_metric(uri, "info")
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert "can_read" in data["permissions"]
+        assert "can_write" in data["permissions"]
+        assert len(data["permissions"]) == 2
+
     def create_chart_import(self):
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
@@ -967,6 +981,18 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         for res in data["result"]:
             if res["id"] in users_favorite_ids:
                 assert res["value"]
+
+    def test_get_time_range(self):
+        """
+        Chart API: Test get actually time range from human readable string
+        """
+        self.login(username="admin")
+        humanize_time_range = "100 years ago : now"
+        uri = f"api/v1/time_range/?q={prison.dumps(humanize_time_range)}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(len(data["result"]), 3)
 
     @pytest.mark.usefixtures(
         "load_unicode_dashboard_with_slice", "load_energy_table_with_slice"

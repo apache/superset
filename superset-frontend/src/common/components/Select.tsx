@@ -20,6 +20,10 @@ import { styled } from '@superset-ui/core';
 import { Select as BaseSelect } from 'src/common/components';
 
 const StyledSelect = styled(BaseSelect)`
+  display: block;
+`;
+
+const StyledGraySelect = styled(StyledSelect)`
   &.ant-select-single {
     .ant-select-selector {
       height: 36px;
@@ -39,8 +43,12 @@ const StyledSelect = styled(BaseSelect)`
     }
   }
 `;
-const StyledOption = styled(BaseSelect.Option)``;
+const StyledOption = BaseSelect.Option;
 
 export const Select = Object.assign(StyledSelect, {
+  Option: StyledOption,
+});
+
+export const GraySelect = Object.assign(StyledGraySelect, {
   Option: StyledOption,
 });

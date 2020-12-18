@@ -87,7 +87,9 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
           row: {
             original: { state },
           },
-        }: any) => <AlertStatusIcon state={state} />,
+        }: any) => (
+          <AlertStatusIcon state={state} isReportEnabled={isReportEnabled} />
+        ),
         accessor: 'state',
         Header: t('State'),
         size: 'xs',
@@ -111,7 +113,8 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
           row: {
             original: { start_dttm: startDttm, end_dttm: endDttm },
           },
-        }: any) => fDuration(endDttm - startDttm),
+        }: any) =>
+          fDuration(new Date(startDttm).getTime(), new Date(endDttm).getTime()),
         Header: t('Duration'),
         disableSortBy: true,
       },
@@ -124,7 +127,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
         Header: t('Error Message'),
       },
     ],
-    [],
+    [isReportEnabled],
   );
   const path = `/${isReportEnabled ? 'report' : 'alert'}/list/`;
   return (

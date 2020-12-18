@@ -22,6 +22,7 @@ from typing import Any, Callable, cast, Dict, List, Optional, Tuple, TYPE_CHECKI
 
 from flask import current_app, g, request
 from flask_babel import gettext as _
+from jinja2 import DebugUndefined
 from jinja2.sandbox import SandboxedEnvironment
 
 from superset.exceptions import SupersetTemplateException
@@ -60,7 +61,7 @@ def context_addons() -> Dict[str, Any]:
 
 
 def filter_values(column: str, default: Optional[str] = None) -> List[str]:
-    """ Gets a values for a particular filter as a list
+    """Gets a values for a particular filter as a list
 
     This is useful if:
         - you want to use a filter box to filter a query where the name of filter box
@@ -296,7 +297,7 @@ class BaseTemplateProcessor:  # pylint: disable=too-few-public-methods
             self._schema = table.schema
         self._extra_cache_keys = extra_cache_keys
         self._context: Dict[str, Any] = {}
-        self._env = SandboxedEnvironment()
+        self._env = SandboxedEnvironment(undefined=DebugUndefined)
         self.set_context(**kwargs)
 
     def set_context(self, **kwargs: Any) -> None:

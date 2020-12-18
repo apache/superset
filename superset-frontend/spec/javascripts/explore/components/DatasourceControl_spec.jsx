@@ -24,6 +24,8 @@ import { Menu } from 'src/common/components';
 import DatasourceModal from 'src/datasource/DatasourceModal';
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
+import Icon from 'src/components/Icon';
+import { Tooltip } from 'src/common/components/Tooltip';
 
 const defaultProps = {
   name: 'datasource',
@@ -40,6 +42,7 @@ const defaultProps = {
       backend: 'mysql',
       name: 'main',
     },
+    health_check_message: 'Warning message!',
   },
   actions: {
     setDatasource: sinon.spy(),
@@ -90,5 +93,15 @@ describe('DatasourceControl', () => {
       </div>,
     );
     expect(menuWrapper.find(Menu.Item)).toHaveLength(2);
+  });
+
+  it('should render health check message', () => {
+    const wrapper = setup();
+    const alert = wrapper.find(Icon).first();
+    expect(alert.prop('name')).toBe('alert-solid');
+    const tooltip = wrapper.find(Tooltip).at(1);
+    expect(tooltip.prop('title')).toBe(
+      defaultProps.datasource.health_check_message,
+    );
   });
 });
