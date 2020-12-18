@@ -23,15 +23,18 @@ import Icon from 'src/components/Icon';
 
 interface TabsProps {
   fullWidth?: boolean;
+  allowOverflow?: boolean;
 }
 
-const notForwardedProps = ['fullWidth'];
+const notForwardedProps = ['fullWidth', 'allowOverflow'];
 
 const StyledTabs = styled(AntdTabs, {
   shouldForwardProp: prop => !notForwardedProps.includes(prop),
 })<TabsProps>`
+  overflow: ${({ allowOverflow }) => (allowOverflow ? 'visible' : 'hidden')};
+
   .ant-tabs-content-holder {
-    overflow: auto;
+    overflow: ${({ allowOverflow }) => (allowOverflow ? 'visible' : 'auto')};
   }
 
   .ant-tabs-tab {

@@ -169,7 +169,7 @@ describe('MetricsControl', () => {
       const editedMetric = sumValueAdhocMetric.duplicateWith({
         aggregate: AGGREGATES.AVG,
       });
-      component.instance().onMetricEdit(editedMetric);
+      component.instance().onMetricEdit(editedMetric, sumValueAdhocMetric);
 
       expect(onChange.lastCall.args).toEqual([[editedMetric]]);
     });
