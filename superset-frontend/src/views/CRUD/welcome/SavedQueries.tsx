@@ -26,6 +26,7 @@ import { Dropdown, Menu } from 'src/common/components';
 import { useListViewResource, copyQueryLink } from 'src/views/CRUD/hooks';
 import ListViewCard from 'src/components/ListViewCard';
 import DeleteModal from 'src/components/DeleteModal';
+import { $anyType } from 'src/constants';
 import Icon from 'src/components/Icon';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
@@ -42,7 +43,7 @@ const PAGE_SIZE = 3;
 
 interface Query {
   id?: number;
-  sql_tables?: Array<any>;
+  sql_tables?: Array<$anyType>;
   database?: {
     database_name: string;
   };

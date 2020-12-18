@@ -24,6 +24,7 @@ import {
   Filters,
   InternalFilter,
 } from 'src/components/ListView/types';
+import { $anyType } from 'src/constants';
 import SearchFilter from './Search';
 import SelectFilter from './Select';
 import DateRangeFilter from './DateRange';
@@ -69,7 +70,7 @@ function UIFilters({
                 initialValue={initialValue}
                 key={id}
                 name={id}
-                onSelect={(value: any) => updateFilterValue(index, value)}
+                onSelect={(value: $anyType) => updateFilterValue(index, value)}
                 paginate={paginate}
                 selects={selects}
               />

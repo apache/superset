@@ -30,6 +30,7 @@ import { AsyncSelect } from 'src/components/Select';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Owner from 'src/types/Owner';
 
+import { $anyType } from 'src/constants';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { AlertObject, Operator, Recipient, MetaObject } from './types';
 
@@ -550,7 +551,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
     });
 
-    const data: any = {
+    const data: $anyType = {
       ...currentAlert,
       validator_type: conditionNotNull ? 'not null' : 'operator',
       validator_config_json: conditionNotNull
@@ -621,7 +622,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       endpoint: `/api/v1/report/related/owners?q=${query}`,
     }).then(
       response => {
-        return response.json.result.map((item: any) => ({
+        return response.json.result.map((item: $anyType) => ({
           value: item.value,
           label: item.text,
         }));
@@ -638,7 +639,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       endpoint: `/api/v1/report/related/database?q=${query}`,
     }).then(
       response => {
-        const list = response.json.result.map((item: any) => ({
+        const list = response.json.result.map((item: $anyType) => ({
           value: item.value,
           label: item.text,
         }));
@@ -687,7 +688,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       endpoint: `/api/v1/report/related/dashboard?q=${query}`,
     }).then(
       response => {
-        const list = response.json.result.map((item: any) => ({
+        const list = response.json.result.map((item: $anyType) => ({
           value: item.value,
           label: item.text,
         }));
@@ -736,7 +737,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       endpoint: `/api/v1/report/related/chart?q=${query}`,
     }).then(
       response => {
-        const list = response.json.result.map((item: any) => ({
+        const list = response.json.result.map((item: $anyType) => ({
           value: item.value,
           label: item.text,
         }));
@@ -776,7 +777,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   // Updating alert/report state
-  const updateAlertState = (name: string, value: any) => {
+  const updateAlertState = (name: string, value: $anyType) => {
     setCurrentAlert(currentAlertData => ({
       ...currentAlertData,
       [name]: value,
@@ -840,7 +841,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('log_retention', retention);
   };
 
-  const onContentTypeChange = (event: any) => {
+  const onContentTypeChange = (event: $anyType) => {
     const { target } = event;
 
     setContentType(target.value);

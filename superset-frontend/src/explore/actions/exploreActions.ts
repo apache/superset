@@ -27,6 +27,7 @@ import {
 import { Dispatch } from 'redux';
 import { addDangerToast, toastActions } from 'src/messageToasts/actions';
 import { Slice } from 'src/types/Chart';
+import { $anyType } from 'src/constants';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
@@ -103,8 +104,8 @@ export function saveFaveStar(sliceId: string, isStarred: boolean) {
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
 export function setControlValue(
   controlName: string,
-  value: any,
-  validationErrors: any[],
+  value: $anyType,
+  validationErrors: $anyType[],
 ) {
   return { type: SET_FIELD_VALUE, controlName, value, validationErrors };
 }

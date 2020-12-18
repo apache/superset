@@ -19,6 +19,7 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
+import { $anyType } from 'src/constants';
 
 interface IndeterminateCheckboxProps {
   indeterminate: boolean;
@@ -50,7 +51,7 @@ const IndeterminateCheckbox = React.forwardRef(
       onChange,
       title = '',
     }: IndeterminateCheckboxProps,
-    ref: React.MutableRefObject<any>,
+    ref: React.MutableRefObject<$anyType>,
   ) => {
     const defaultRef = React.useRef<HTMLInputElement>();
     const resolvedRef = ref || defaultRef;

@@ -19,6 +19,7 @@
 import React, { ReactNode } from 'react';
 import { ControlType } from '@superset-ui/chart-controls';
 import { JsonValue, QueryFormData } from '@superset-ui/core';
+import { $anyType } from 'src/constants';
 import { ExploreActions } from '../actions/exploreActions';
 import controlMap from './controls';
 
@@ -37,7 +38,7 @@ export type ControlProps = {
   rightNode?: ReactNode;
   formData?: QueryFormData | null;
   value?: JsonValue;
-  validationErrors?: any[];
+  validationErrors?: $anyType[];
   hidden?: boolean;
   renderTrigger?: boolean;
 };
@@ -58,7 +59,7 @@ export default class Control extends React.PureComponent<
     this.onMouseLeave = this.setHover.bind(this, false);
   }
 
-  onChange(value: any, errors: any[]) {
+  onChange(value: $anyType, errors: $anyType[]) {
     this.props.actions.setControlValue(this.props.name, value, errors);
   }
 

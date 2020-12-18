@@ -19,6 +19,7 @@
 import React, { useState } from 'react';
 import { styled, withTheme, SupersetThemeProps } from '@superset-ui/core';
 import { PartialThemeConfig, Select } from 'src/components/Select';
+import { $anyType } from 'src/constants';
 import { CardSortSelectOption, FetchDataConfig, SortColumn } from './types';
 import { filterSelectStyles } from './utils';
 
@@ -35,7 +36,7 @@ const SortContainer = styled.div`
   text-align: left;
 `;
 interface CardViewSelectSortProps {
-  onChange: (conf: FetchDataConfig) => any;
+  onChange: (conf: FetchDataConfig) => $anyType;
   options: Array<CardSortSelectOption>;
   initialSort?: SortColumn[];
   pageIndex: number;
@@ -45,7 +46,7 @@ interface CardViewSelectSortProps {
 interface StyledSelectProps {
   onChange: (value: CardSortSelectOption) => void;
   options: CardSortSelectOption[];
-  selectStyles: any;
+  selectStyles: $anyType;
   theme: SupersetThemeProps['theme'];
   value: CardSortSelectOption;
 }

@@ -21,6 +21,7 @@ import { t } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 import Popover from 'src/common/components/Popover';
+import { $anyType } from 'src/constants';
 import AdhocFilterEditPopover from './AdhocFilterEditPopover';
 import AdhocFilter from '../AdhocFilter';
 import columnType from '../propTypes/columnType';
@@ -32,7 +33,7 @@ interface AdhocFilterPopoverTriggerProps {
     | typeof columnType[]
     | { saved_metric_name: string }[]
     | typeof adhocMetricType[];
-  datasource: Record<string, any>;
+  datasource: Record<string, $anyType>;
   onFilterEdit: () => void;
   partitionColumn?: string;
   createNew?: boolean;

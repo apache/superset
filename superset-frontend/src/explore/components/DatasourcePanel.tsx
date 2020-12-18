@@ -24,11 +24,12 @@ import {
   MetricOption,
   ControlType,
 } from '@superset-ui/chart-controls';
+import { $anyType } from 'src/constants';
 import { ExploreActions } from '../actions/exploreActions';
 import Control from './Control';
 
 interface DatasourceControl {
-  validationErrors: Array<any>;
+  validationErrors: Array<$anyType>;
   mapStateToProps: QueryFormData;
   type: ControlType;
   label: string;

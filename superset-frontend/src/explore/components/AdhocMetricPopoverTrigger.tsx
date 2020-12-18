@@ -19,6 +19,7 @@
 import React, { ReactNode } from 'react';
 import Popover from 'src/common/components/Popover';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/AdhocMetricEditPopoverTitle';
+import { $anyType } from 'src/constants';
 import AdhocMetricEditPopover from './AdhocMetricEditPopover';
 import AdhocMetric from '../AdhocMetric';
 import columnType from '../propTypes/columnType';
@@ -56,7 +57,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     };
   }
 
-  onLabelChange(e: any) {
+  onLabelChange(e: $anyType) {
     const label = e.target.value;
     this.setState({
       title: {

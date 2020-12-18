@@ -17,10 +17,14 @@
  * under the License.
  */
 import { Dispatch } from 'redux';
+import { $anyType } from 'src/constants';
 
 export const LOG_EVENT = 'LOG_EVENT';
 
-export function logEvent(eventName: string, eventData: Record<string, any>) {
+export function logEvent(
+  eventName: string,
+  eventData: Record<string, $anyType>,
+) {
   return (dispatch: Dispatch) =>
     dispatch({
       type: LOG_EVENT,

@@ -26,9 +26,10 @@ import { FilterValue } from 'src/components/ListView/types';
 import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { $anyType } from 'src/constants';
 import { FavoriteStatus, ImportResourceName } from './types';
 
-interface ListViewResourceState<D extends object = any> {
+interface ListViewResourceState<D extends object = $anyType> {
   loading: boolean;
   collection: D[];
   count: number;
@@ -38,7 +39,7 @@ interface ListViewResourceState<D extends object = any> {
   lastFetched?: string;
 }
 
-export function useListViewResource<D extends object = any>(
+export function useListViewResource<D extends object = $anyType>(
   resource: string,
   resourceLabel: string, // resourceLabel for translations
   handleErrorMsg: (errorMsg: string) => void,
@@ -185,13 +186,13 @@ export function useListViewResource<D extends object = any>(
 }
 
 // In the same vein as above, a hook for viewing a single instance of a resource (given id)
-interface SingleViewResourceState<D extends object = any> {
+interface SingleViewResourceState<D extends object = $anyType> {
   loading: boolean;
   resource: D | null;
   error: string | null;
 }
 
-export function useSingleViewResource<D extends object = any>(
+export function useSingleViewResource<D extends object = $anyType>(
   resourceName: string,
   resourceLabel: string, // resourceLabel for translations
   handleErrorMsg: (errorMsg: string) => void,
@@ -354,13 +355,13 @@ export function useImportResource(
   }
 
   /* eslint-disable no-underscore-dangle */
-  const isNeedsPassword = (payload: any) =>
+  const isNeedsPassword = (payload: $anyType) =>
     typeof payload === 'object' &&
     Array.isArray(payload._schema) &&
     payload._schema.length === 1 &&
     payload._schema[0] === 'Must provide a password for the database';
 
-  const isAlreadyExists = (payload: any) =>
+  const isAlreadyExists = (payload: $anyType) =>
     typeof payload === 'string' &&
     payload.includes('already exists and `overwrite=true` was not passed');
 

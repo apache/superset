@@ -22,12 +22,13 @@ import { ClassNames } from '@emotion/core';
 import { styled, useTheme } from '@superset-ui/core';
 
 import { Tooltip } from 'src/common/components/Tooltip';
+import { $anyType } from 'src/constants';
 
 const propTypes = {
   column: PropTypes.object.isRequired,
 };
 
-const StyledTooltip = (props: any) => {
+const StyledTooltip = (props: $anyType) => {
   const theme = useTheme();
   return (
     <ClassNames>

@@ -26,6 +26,7 @@ import Modal from 'src/common/components/Modal';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 
+import { $anyType } from 'src/constants';
 import { AnnotationObject } from './types';
 
 interface AnnotationModalProps {
@@ -176,7 +177,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
     setCurrentAnnotation(data);
   };
 
-  const onDateChange = (value: any, dateString: Array<string>) => {
+  const onDateChange = (value: $anyType, dateString: Array<string>) => {
     const data = {
       ...currentAnnotation,
       end_dttm:

@@ -17,17 +17,18 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
+import { $anyType } from 'src/constants';
 
 type BaseQueryObject = {
   id: number;
 };
-export function useQueryPreviewState<D extends BaseQueryObject = any>({
+export function useQueryPreviewState<D extends BaseQueryObject = $anyType>({
   queries,
   fetchData,
   currentQueryId,
 }: {
   queries: D[];
-  fetchData: (id: number) => any;
+  fetchData: (id: number) => $anyType;
   currentQueryId: number;
 }) {
   const index = queries.findIndex(query => query.id === currentQueryId);
@@ -50,7 +51,7 @@ export function useQueryPreviewState<D extends BaseQueryObject = any>({
     }
   }
 
-  function handleKeyPress(ev: any) {
+  function handleKeyPress(ev: $anyType) {
     if (currentIndex >= 0 && currentIndex < queries.length) {
       if (ev.key === 'ArrowDown' || ev.key === 'k') {
         ev.preventDefault();

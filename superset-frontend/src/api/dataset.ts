@@ -19,6 +19,7 @@
 
 import { SupersetClient, JsonResponse } from '@superset-ui/core';
 import rison from 'rison';
+import { $anyType } from 'src/constants';
 
 export const getByUser = async (userId: number) => {
   const queryParams = rison.encode({
@@ -43,7 +44,7 @@ export const put = async (
   datasetId: number,
   dbId: number,
   sql: string,
-  columns: Array<Record<string, any>>,
+  columns: Array<Record<string, $anyType>>,
   overrideColumns: boolean,
 ) => {
   const endpoint = `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;

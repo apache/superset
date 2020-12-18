@@ -19,8 +19,9 @@
 import React from 'react';
 import { t, styled } from '@superset-ui/core';
 import Button from 'src/components/Button';
+import { $anyType } from 'src/constants';
 
-type Callback = (...args: any[]) => void;
+type Callback = (...args: $anyType[]) => void;
 
 interface Props {
   height: number;

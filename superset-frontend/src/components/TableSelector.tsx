@@ -27,6 +27,7 @@ import { AsyncSelect, CreatableSelect, Select } from 'src/components/Select';
 
 import FormLabel from 'src/components/FormLabel';
 
+import { $anyType } from 'src/constants';
 import DatabaseSelector from './DatabaseSelector';
 import RefreshLabel from './RefreshLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
@@ -78,10 +79,10 @@ const TableLabel = styled.span`
 
 interface TableSelectorProps {
   clearable?: boolean;
-  database?: any;
+  database?: $anyType;
   dbId: number;
   formMode?: boolean;
-  getDbList?: (arg0: any) => {};
+  getDbList?: (arg0: $anyType) => {};
   handleError: (msg: string) => void;
   isDatabaseSelectEnabled?: boolean;
   onChange?: ({
@@ -92,11 +93,11 @@ interface TableSelectorProps {
     schema?: string;
     tableName?: string;
   }) => void;
-  onDbChange?: (db: any) => void;
-  onSchemaChange?: (arg0?: any) => {};
+  onDbChange?: (db: $anyType) => void;
+  onSchemaChange?: (arg0?: $anyType) => {};
   onSchemasLoad?: () => void;
   onTableChange?: (tableName: string, schema: string) => void;
-  onTablesLoad?: (options: Array<any>) => {};
+  onTablesLoad?: (options: Array<$anyType>) => {};
   readOnly?: boolean;
   schema?: string;
   sqlLabMode?: boolean;
@@ -150,7 +151,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       );
       return SupersetClient.get({ endpoint })
         .then(({ json }) => {
-          const options = json.options.map((o: any) => ({
+          const options = json.options.map((o: $anyType) => ({
             value: o.value,
             schema: o.schema,
             label: o.label,
@@ -199,7 +200,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
 
   function getTableNamesBySubStr(substr = 'undefined') {
     if (!dbId || !substr) {
-      const options: any[] = [];
+      const options: $anyType[] = [];
       return Promise.resolve({ options });
     }
     const encodedSchema = encodeURIComponent(schema || '');
@@ -209,7 +210,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         `/superset/tables/${dbId}/${encodedSchema}/${encodedSubstr}`,
       ),
     }).then(({ json }) => {
-      const options = json.options.map((o: any) => ({
+      const options = json.options.map((o: $anyType) => ({
         value: o.value,
         schema: o.schema,
         label: o.label,
@@ -220,7 +221,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     });
   }
 
-  function changeTable(tableOpt: any) {
+  function changeTable(tableOpt: $anyType) {
     if (!tableOpt) {
       setCurrentTableName('');
       return;
@@ -239,7 +240,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     }
   }
 
-  function changeSchema(schemaOpt: any, force = false) {
+  function changeSchema(schemaOpt: $anyType, force = false) {
     const value = schemaOpt ? schemaOpt.value : null;
     if (onSchemaChange) {
       onSchemaChange(value);
@@ -252,7 +253,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     fetchTables(dbId, currentSchema, force);
   }
 
-  function renderTableOption(option: any) {
+  function renderTableOption(option: $anyType) {
     return (
       <TableLabel title={option.label}>
         <small className="text-muted">

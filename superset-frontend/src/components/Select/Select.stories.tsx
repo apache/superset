@@ -19,6 +19,7 @@
 import React from 'react';
 import { useArgs } from '@storybook/client-api';
 import { OptionTypeBase } from 'react-select';
+import { $anyType } from 'src/constants';
 import Select from '.';
 
 const OPTIONS = [
@@ -95,10 +96,10 @@ SelectGallery.args = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const InteractiveSelect = (args: any) => {
+export const InteractiveSelect = (args: $anyType) => {
   const [{ value, multi, clearable, placeholder }, updateArgs] = useArgs();
   const onSelect = (selection: {}) => {
-    const { value }: { value?: any } = selection || {};
+    const { value }: { value?: $anyType } = selection || {};
     if (multi) {
       updateArgs({ value: selection });
       return;

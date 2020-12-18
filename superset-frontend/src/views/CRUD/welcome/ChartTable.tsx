@@ -29,6 +29,7 @@ import { User } from 'src/types/bootstrapTypes';
 import Icon from 'src/components/Icon';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';
 import Chart from 'src/types/Chart';
+import { $anyType } from 'src/constants';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
 import { CardContainer, IconContainer } from '../utils';
@@ -41,7 +42,7 @@ interface ChartTableProps {
   search: string;
   chartFilter?: string;
   user?: User;
-  mine: Array<any>;
+  mine: Array<$anyType>;
 }
 
 function ChartTable({

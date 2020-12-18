@@ -41,6 +41,7 @@ import { IconName } from 'src/components/Icon';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import { SavedQueryObject } from 'src/views/CRUD/types';
 import copyTextToClipboard from 'src/utils/copy';
+import { $anyType } from 'src/constants';
 import SavedQueryPreviewModal from './SavedQueryPreviewModal';
 
 const PAGE_SIZE = 25;
@@ -228,8 +229,8 @@ function SavedQueryList({
           row: {
             original: { sql_tables: tables = [] },
           },
-        }: any) => {
-          const names = tables.map((table: any) => table.table);
+        }: $anyType) => {
+          const names = tables.map((table: $anyType) => table.table);
           const main = names.length > 0 ? names.shift() : '';
 
           if (names.length) {
@@ -266,7 +267,7 @@ function SavedQueryList({
           row: {
             original: { created_on: createdOn },
           },
-        }: any) => {
+        }: $anyType) => {
           const date = new Date(createdOn);
           const utc = new Date(
             Date.UTC(
@@ -291,13 +292,13 @@ function SavedQueryList({
           row: {
             original: { changed_on_delta_humanized: changedOn },
           },
-        }: any) => changedOn,
+        }: $anyType) => changedOn,
         Header: t('Modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: $anyType) => {
           const handlePreview = () => {
             handleSavedQueryPreview(original.id);
           };

@@ -31,6 +31,7 @@ import Button from 'src/components/Button';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import Dataset from 'src/types/Dataset';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
+import { $anyType } from 'src/constants';
 import { getClientErrorObject } from '../utils/getClientErrorObject';
 import Loading from '../components/Loading';
 import withToasts from '../messageToasts/enhancers/withToasts';
@@ -49,7 +50,7 @@ interface ChangeDatasourceModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
   onChange: (uid: string) => void;
-  onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
+  onDatasourceSave: (datasource: object, errors?: Array<$anyType>) => {};
   onHide: () => void;
   show: boolean;
 }
@@ -95,7 +96,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   onHide,
   show,
 }) => {
-  const [filter, setFilter] = useState<any>(undefined);
+  const [filter, setFilter] = useState<$anyType>(undefined);
   const [confirmChange, setConfirmChange] = useState(false);
   const [confirmedDataset, setConfirmedDataset] = useState<Datasource>();
   let searchRef = useRef<HTMLInputElement>(null);
@@ -148,7 +149,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     show,
   ]);
 
-  const setSearchRef = (ref: any) => {
+  const setSearchRef = (ref: $anyType) => {
     searchRef = ref;
   };
 
@@ -169,7 +170,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       })
       .catch(response => {
         getClientErrorObject(response).then(
-          ({ error, message }: { error: any; message: string }) => {
+          ({ error, message }: { error: $anyType; message: string }) => {
             const errorMessage = error
               ? error.error || error.statusText || error
               : message;
@@ -186,7 +187,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   };
 
   const renderTableView = () => {
-    const data = resourceCollection.map((ds: any) => ({
+    const data = resourceCollection.map((ds: $anyType) => ({
       rawName: ds.table_name,
       connection: ds.database.database_name,
       schema: ds.schema,

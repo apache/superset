@@ -20,6 +20,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { t, SupersetClient, JsonObject } from '@superset-ui/core';
 import TableView from 'src/components/TableView';
+import { $anyType } from 'src/constants';
 import withToasts from '../messageToasts/enhancers/withToasts';
 import Loading from './Loading';
 import '../../stylesheets/reactable-pagination.less';
@@ -37,13 +38,13 @@ const propTypes = {
 
 interface TableLoaderProps {
   dataEndpoint?: string;
-  mutator?: (data: JsonObject) => any[];
+  mutator?: (data: JsonObject) => $anyType[];
   columns?: string[];
-  addDangerToast(text: string): any;
+  addDangerToast(text: string): $anyType;
 }
 
 const TableLoader = (props: TableLoaderProps) => {
-  const [data, setData] = useState<Array<any>>([]);
+  const [data, setData] = useState<Array<$anyType>>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -51,7 +52,7 @@ const TableLoader = (props: TableLoaderProps) => {
     if (dataEndpoint) {
       SupersetClient.get({ endpoint: dataEndpoint })
         .then(({ json }) => {
-          const data = (mutator ? mutator(json) : json) as Array<any>;
+          const data = (mutator ? mutator(json) : json) as Array<$anyType>;
           setData(data);
           setIsLoading(false);
         })

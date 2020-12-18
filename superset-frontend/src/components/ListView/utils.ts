@@ -36,6 +36,7 @@ import {
 import rison from 'rison';
 import { isEqual } from 'lodash';
 import { PartialStylesConfig } from 'src/components/Select';
+import { $anyType } from 'src/constants';
 import {
   FetchDataConfig,
   Filter,
@@ -46,8 +47,8 @@ import {
 } from './types';
 
 // Define custom RisonParam for proper encoding/decoding
-const RisonParam: QueryParamConfig<string, any> = {
-  encode: (data?: any | null) =>
+const RisonParam: QueryParamConfig<string, $anyType> = {
+  encode: (data?: $anyType | null) =>
     data === undefined ? undefined : rison.encode(data),
   decode: (dataStr?: string | string[]) =>
     dataStr === undefined || Array.isArray(dataStr)
@@ -60,12 +61,16 @@ export class ListViewError extends Error {
 }
 
 // removes element from a list, returns new list
-export function removeFromList(list: any[], index: number): any[] {
+export function removeFromList(list: $anyType[], index: number): $anyType[] {
   return list.filter((_, i) => index !== i);
 }
 
 // apply update to elements of object list, returns new list
-function updateInList(list: any[], index: number, update: any): any[] {
+function updateInList(
+  list: $anyType[],
+  index: number,
+  update: $anyType,
+): $anyType[] {
   const element = list.find((_, i) => index === i);
 
   return [
@@ -124,7 +129,7 @@ export function convertFilters(fts: InternalFilter[]): FilterValue[] {
 
 // convertFilters but to handle new decoded rison format
 export function convertFiltersRison(
-  filterObj: any,
+  filterObj: $anyType,
   list: Filter[],
 ): FilterValue[] {
   const filters: FilterValue[] = [];
@@ -153,7 +158,7 @@ export function convertFiltersRison(
   return filters;
 }
 
-export function extractInputValue(inputType: Filter['input'], event: any) {
+export function extractInputValue(inputType: Filter['input'], event: $anyType) {
   if (!inputType || inputType === 'text') {
     return event.currentTarget.value;
   }
@@ -165,9 +170,9 @@ export function extractInputValue(inputType: Filter['input'], event: any) {
 }
 
 interface UseListViewConfig {
-  fetchData: (conf: FetchDataConfig) => any;
-  columns: any[];
-  data: any[];
+  fetchData: (conf: FetchDataConfig) => $anyType;
+  columns: $anyType[];
+  data: $anyType[];
   count: number;
   initialPageSize: number;
   initialSort?: SortColumn[];
@@ -175,8 +180,8 @@ interface UseListViewConfig {
   initialFilters?: Filter[];
   bulkSelectColumnConfig?: {
     id: string;
-    Header: (conf: any) => React.ReactNode;
-    Cell: (conf: any) => React.ReactNode;
+    Header: (conf: $anyType) => React.ReactNode;
+    Cell: (conf: $anyType) => React.ReactNode;
   };
   renderCard?: boolean;
   defaultViewMode?: ViewModeType;
@@ -298,7 +303,7 @@ export function useListViewState({
       }
     });
 
-    const queryParams: any = {
+    const queryParams: $anyType = {
       filters: Object.keys(filterObj).length ? filterObj : undefined,
       pageIndex,
     };
@@ -327,7 +332,7 @@ export function useListViewState({
     }
   }, [query]);
 
-  const applyFilterValue = (index: number, value: any) => {
+  const applyFilterValue = (index: number, value: $anyType) => {
     setInternalFilters(currentInternalFilters => {
       // skip redunundant updates
       if (currentInternalFilters[index].value === value) {

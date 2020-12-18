@@ -32,6 +32,7 @@ import ListView, { ListViewProps, Filters } from 'src/components/ListView';
 import Button from 'src/components/Button';
 import DeleteModal from 'src/components/DeleteModal';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import { $anyType } from 'src/constants';
 import AnnotationLayerModal from './AnnotationLayerModal';
 import { AnnotationLayerObject } from './types';
 
@@ -133,7 +134,7 @@ function AnnotationLayersList({
           row: {
             original: { id, name },
           },
-        }: any) => {
+        }: $anyType) => {
           let hasHistory = true;
 
           try {
@@ -161,7 +162,7 @@ function AnnotationLayersList({
           row: {
             original: { changed_on: changedOn },
           },
-        }: any) => {
+        }: $anyType) => {
           const date = new Date(changedOn);
           const utc = new Date(
             Date.UTC(
@@ -186,7 +187,7 @@ function AnnotationLayersList({
           row: {
             original: { created_on: createdOn },
           },
-        }: any) => {
+        }: $anyType) => {
           const date = new Date(createdOn);
           const utc = new Date(
             Date.UTC(
@@ -214,12 +215,12 @@ function AnnotationLayersList({
           row: {
             original: { created_by: createdBy },
           },
-        }: any) =>
+        }: $anyType) =>
           createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
         size: 'xl',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: $anyType) => {
           const handleEdit = () => handleAnnotationLayerEdit(original);
           const handleDelete = () => setLayerCurrentlyDeleting(original);
 

@@ -22,11 +22,12 @@ import { t, useTheme } from '@superset-ui/core';
 import { Input } from 'src/common/components';
 import { Radio } from 'src/common/components/Radio';
 import { CronPicker, CronError } from 'src/common/components/CronPicker';
+import { $anyType } from 'src/constants';
 import { StyledInputContainer } from '../AlertReportModal';
 
 interface AlertReportCronSchedulerProps {
   value: string;
-  onChange: (change: string) => any;
+  onChange: (change: string) => $anyType;
 }
 
 export const AlertReportCronScheduler: FunctionComponent<AlertReportCronSchedulerProps> = ({

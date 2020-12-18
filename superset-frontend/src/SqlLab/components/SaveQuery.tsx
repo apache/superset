@@ -23,9 +23,10 @@ import { t, styled } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
 import Modal from 'src/common/components/Modal';
+import { $anyType } from 'src/constants';
 
 interface SaveQueryProps {
-  query: any;
+  query: $anyType;
   defaultLabel: string;
   onSave: (arg0: QueryPayload) => void;
   onUpdate: (arg0: QueryPayload) => void;

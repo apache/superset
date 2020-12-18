@@ -24,6 +24,7 @@ import StyledModal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 import { styled, t } from '@superset-ui/core';
 import { RadioChangeEvent } from 'antd/lib/radio';
+import { $anyType } from 'src/constants';
 
 interface SaveDatasetModalProps {
   visible: boolean;
@@ -40,7 +41,7 @@ interface SaveDatasetModalProps {
   handleOverwriteDataset: () => void;
   handleOverwriteDatasetOption: (
     data: string,
-    option: Record<string, any>,
+    option: Record<string, $anyType>,
   ) => void;
   onChangeAutoComplete: () => void;
   defaultCreateDatasetValue: string;

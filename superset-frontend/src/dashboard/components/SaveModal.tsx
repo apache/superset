@@ -28,6 +28,7 @@ import {
   SAVE_TYPE_OVERWRITE,
   SAVE_TYPE_NEWDASHBOARD,
 } from 'src/dashboard/util/constants';
+import { $anyType } from 'src/constants';
 
 type SaveType = typeof SAVE_TYPE_OVERWRITE | typeof SAVE_TYPE_NEWDASHBOARD;
 
@@ -36,15 +37,15 @@ type SaveModalProps = {
   addDangerToast: (arg: string) => void;
   dashboardId: number;
   dashboardTitle: string;
-  dashboardInfo: Record<string, any>;
-  expandedSlices: Record<string, any>;
-  layout: Record<string, any>;
+  dashboardInfo: Record<string, $anyType>;
+  expandedSlices: Record<string, $anyType>;
+  layout: Record<string, $anyType>;
   saveType: SaveType;
   triggerNode: JSX.Element;
   customCss: string;
   colorNamespace?: string;
   colorScheme?: string;
-  onSave: (data: any, id: number | string, saveType: SaveType) => void;
+  onSave: (data: $anyType, id: number | string, saveType: SaveType) => void;
   canOverwrite: boolean;
   shouldPersistRefreshFrequency: boolean;
   refreshFrequency: number;
@@ -70,7 +71,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
   modal: ModalTrigger | null;
 
   onSave: (
-    data: Record<string, any>,
+    data: Record<string, $anyType>,
     dashboardId: number | string,
     saveType: SaveType,
   ) => Promise<JsonResponse>;

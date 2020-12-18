@@ -18,13 +18,14 @@
  */
 import React from 'react';
 import { t, styled } from '@superset-ui/core';
+import { $anyType } from 'src/constants';
 import TooltipWrapper from './TooltipWrapper';
 import Icon from './Icon';
 
 interface FaveStarProps {
   itemId: number;
   fetchFaveStar?: (id: number) => void;
-  saveFaveStar(id: number, isStarred: boolean): any;
+  saveFaveStar(id: number, isStarred: boolean): $anyType;
   isStarred: boolean;
   showTooltip?: boolean;
 }

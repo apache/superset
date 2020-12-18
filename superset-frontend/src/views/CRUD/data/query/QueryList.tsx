@@ -40,7 +40,7 @@ import { Tooltip } from 'src/common/components/Tooltip';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
-import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
+import { $anyType, DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
 import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 
 import QueryPreviewModal from './QueryPreviewModal';
@@ -63,8 +63,8 @@ const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
 `;
 
 interface QueryListProps {
-  addDangerToast: (msg: string, config?: any) => any;
-  addSuccessToast: (msg: string, config?: any) => any;
+  addDangerToast: (msg: string, config?: $anyType) => $anyType;
+  addSuccessToast: (msg: string, config?: $anyType) => $anyType;
 }
 
 const StyledTableLabel = styled.div`
@@ -137,7 +137,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           row: {
             original: { status },
           },
-        }: any) => {
+        }: $anyType) => {
           const statusConfig = {
             name: '',
             label: '',
@@ -191,7 +191,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           row: {
             original: { start_time, end_time },
           },
-        }: any) => {
+        }: $anyType) => {
           const startMoment = moment.utc(start_time).local();
           const formattedStartTimeData = startMoment
             .format(DATETIME_WITH_TIME_ZONE)
@@ -243,8 +243,8 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           row: {
             original: { sql_tables: tables = [] },
           },
-        }: any) => {
-          const names = tables.map((table: any) => table.table);
+        }: $anyType) => {
+          const names = tables.map((table: $anyType) => table.table);
           const main = names.length > 0 ? names.shift() : '';
 
           if (names.length) {
@@ -284,7 +284,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           row: {
             original: { user },
           },
-        }: any) => `${user.first_name} ${user.last_name}`,
+        }: $anyType) => `${user.first_name} ${user.last_name}`,
       },
       {
         accessor: QueryObjectColumns.user,
@@ -298,7 +298,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.sql,
         Header: t('SQL'),
-        Cell: ({ row: { original, id } }: any) => {
+        Cell: ({ row: { original, id } }: $anyType) => {
           return (
             <div
               tabIndex={0}
@@ -321,7 +321,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           row: {
             original: { id },
           },
-        }: any) => {
+        }: $anyType) => {
           return (
             <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
               <a href={`/superset/sqllab?queryId=${id}`}>

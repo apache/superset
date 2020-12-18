@@ -28,6 +28,7 @@ import { styled, t } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getByUser, put as updateDatset } from 'src/api/dataset';
+import { $anyType } from 'src/constants';
 import Loading from '../../components/Loading';
 import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';
@@ -67,10 +68,10 @@ interface DatasetOptionAutocomplete {
 }
 
 interface ResultSetProps {
-  actions: Record<string, any>;
+  actions: Record<string, $anyType>;
   cache?: boolean;
   csv?: boolean;
-  database?: Record<string, any>;
+  database?: Record<string, $anyType>;
   displayLimit: number;
   height: number;
   query: Query;
@@ -82,13 +83,13 @@ interface ResultSetProps {
 interface ResultSetState {
   searchText: string;
   showExploreResultsButton: boolean;
-  data: Record<string, any>[];
+  data: Record<string, $anyType>[];
   showSaveDatasetModal: boolean;
   newSaveDatasetName: string;
   userDatasetsOwned: DatasetOption[];
   saveDatasetRadioBtnState: number;
   shouldOverwriteDataSet: boolean;
-  datasetToOverwrite: Record<string, any>;
+  datasetToOverwrite: Record<string, $anyType>;
   saveModalAutocompleteValue: string;
   userDatasetOptions: DatasetOptionAutocomplete[];
 }
@@ -284,7 +285,7 @@ export default class ResultSet extends React.PureComponent<
 
   handleOverwriteDatasetOption = (
     _data: string,
-    option: Record<string, any>,
+    option: Record<string, $anyType>,
   ) => {
     this.setState({ datasetToOverwrite: option });
   };

@@ -20,6 +20,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { action } from '@storybook/addon-actions';
 import { withKnobs, boolean, select } from '@storybook/addon-knobs';
 import Button from 'src/components/Button';
+import { $anyType } from 'src/constants';
 import Modal from './Modal';
 import Tabs, { EditableTabs } from './Tabs';
 import AntdPopover from './Popover';
@@ -186,7 +187,7 @@ export const Tooltip = () => (
   </AntdTooltip>
 );
 
-export const StyledInfoTooltip = (args: any) => {
+export const StyledInfoTooltip = (args: $anyType) => {
   const styles = {
     padding: '100px 0 0 200px',
   };

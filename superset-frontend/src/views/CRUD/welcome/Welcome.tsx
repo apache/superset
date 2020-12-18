@@ -23,6 +23,7 @@ import { User } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Loading from 'src/components/Loading';
+import { $anyType } from 'src/constants';
 import { getRecentAcitivtyObjs, mq } from '../utils';
 
 import ActivityTable from './ActivityTable';
@@ -89,7 +90,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   useEffect(() => {
     getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
       .then(res => {
-        const data: any = {
+        const data: $anyType = {
           Created: [
             ...res.createdByChart,
             ...res.createdByDash,

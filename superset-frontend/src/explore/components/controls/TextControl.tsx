@@ -20,13 +20,14 @@ import React from 'react';
 import { FormGroup, FormControl } from 'react-bootstrap';
 import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
+import { $anyType } from 'src/constants';
 import ControlHeader from '../ControlHeader';
 
 interface TextControlProps {
   disabled?: boolean;
   isFloat?: boolean;
   isInt?: boolean;
-  onChange?: (value: any, errors: any) => {};
+  onChange?: (value: $anyType, errors: $anyType) => {};
   onFocus?: () => {};
   placeholder?: string;
   value?: string | number;
@@ -86,7 +87,7 @@ export default class TextControl extends React.Component<
     this.props.onChange?.(parsedValue, errors);
   };
 
-  onChangeWrapper = (event: any) => {
+  onChangeWrapper = (event: $anyType) => {
     const { value } = event.target;
     this.setState({ value });
 

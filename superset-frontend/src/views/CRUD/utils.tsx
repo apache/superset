@@ -27,6 +27,7 @@ import Chart from 'src/types/Chart';
 import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
+import { $anyType } from 'src/constants';
 import { Dashboard } from './types';
 
 const createFetchResourceMethod = (method: string) => (
@@ -48,7 +49,7 @@ const createFetchResourceMethod = (method: string) => (
       endpoint: `${resourceEndpoint}?q=${queryParams}`,
     });
     const data = json?.result?.map(
-      ({ text: label, value }: { text: string; value: any }) => ({
+      ({ text: label, value }: { text: string; value: $anyType }) => ({
         label,
         value,
       }),
@@ -64,9 +65,9 @@ const createFetchResourceMethod = (method: string) => (
 export const getRecentAcitivtyObjs = (
   userId: string | number,
   recent: string,
-  addDangerToast: (arg1: string, arg2: any) => any,
+  addDangerToast: (arg1: string, arg2: $anyType) => $anyType,
 ) => {
-  const getParams = (filters?: Array<any>) => {
+  const getParams = (filters?: Array<$anyType>) => {
     const params = {
       order_column: 'changed_on_delta_humanized',
       order_direction: 'desc',
@@ -122,7 +123,7 @@ export const getRecentAcitivtyObjs = (
       createdByChart,
       createdByQuery,
     ]) => {
-      const res: any = {
+      const res: $anyType = {
         editedDash: editedDash.json?.result.slice(0, 3),
         editedChart: editedChart.json?.result.slice(0, 3),
         createdByDash: createdByDash.json?.result.slice(0, 3),

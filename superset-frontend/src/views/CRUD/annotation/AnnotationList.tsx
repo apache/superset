@@ -35,6 +35,7 @@ import { IconName } from 'src/components/Icon';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 
+import { $anyType } from 'src/constants';
 import { AnnotationObject } from './types';
 import AnnotationModal from './AnnotationModal';
 
@@ -49,7 +50,7 @@ function AnnotationList({
   addDangerToast,
   addSuccessToast,
 }: AnnotationListProps) {
-  const { annotationLayerId }: any = useParams();
+  const { annotationLayerId }: $anyType = useParams();
   const {
     state: {
       loading,
@@ -91,7 +92,7 @@ function AnnotationList({
         });
         setAnnotationLayerName(response.json.result.name);
       } catch (response) {
-        await getClientErrorObject(response).then(({ error }: any) => {
+        await getClientErrorObject(response).then(({ error }: $anyType) => {
           addDangerToast(error.error || error.statusText || error);
         });
       }
@@ -157,7 +158,7 @@ function AnnotationList({
           row: {
             original: { start_dttm: startDttm },
           },
-        }: any) => moment(new Date(startDttm)).format('ll'),
+        }: $anyType) => moment(new Date(startDttm)).format('ll'),
         Header: t('Start'),
         accessor: 'start_dttm',
       },
@@ -166,12 +167,12 @@ function AnnotationList({
           row: {
             original: { end_dttm: endDttm },
           },
-        }: any) => moment(new Date(endDttm)).format('ll'),
+        }: $anyType) => moment(new Date(endDttm)).format('ll'),
         Header: t('End'),
         accessor: 'end_dttm',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: $anyType) => {
           const handleEdit = () => handleAnnotationEdit(original);
           const handleDelete = () => setAnnotationCurrentlyDeleting(original);
           const actions = [

@@ -47,6 +47,7 @@ import {
 } from 'src/common/components';
 import Icon from 'src/components/Icon';
 import { Select } from 'src/components/Select';
+import { $anyType } from 'src/constants';
 import {
   TimeRangeFrameType,
   CommonRangeType,
@@ -461,11 +462,11 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
     return value;
   }
 
-  function getDefaultOrCommonRange(value: any): CommonRangeType {
+  function getDefaultOrCommonRange(value: $anyType): CommonRangeType {
     return commonRangeSet.has(value) ? value : 'Last week';
   }
 
-  function getDefaultOrCalendarRange(value: any): CalendarRangeType {
+  function getDefaultOrCalendarRange(value: $anyType): CalendarRangeType {
     return CalendarRangeSet.has(value) ? value : PreviousCalendarWeek;
   }
 
@@ -503,7 +504,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
     });
   }
 
-  function onCustomRangeChangeAnchorMode(option: any) {
+  function onCustomRangeChangeAnchorMode(option: $anyType) {
     const radioValue = option.target.value;
     if (radioValue === 'now') {
       setCustomRange({
@@ -567,7 +568,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
         </div>
         <Radio.Group
           value={commonRangeValue}
-          onChange={(e: any) => setCommonRange(e.target.value)}
+          onChange={(e: $anyType) => setCommonRange(e.target.value)}
         >
           {COMMON_RANGE_OPTIONS.map(({ value, label }) => (
             <Radio key={value} value={value} className="vertical-radio">
@@ -590,7 +591,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
         </div>
         <Radio.Group
           value={currentValue}
-          onChange={(e: any) => setCalendarRange(e.target.value)}
+          onChange={(e: $anyType) => setCalendarRange(e.target.value)}
         >
           {CALENDAR_RANGE_OPTIONS.map(({ value, label }) => (
             <Radio key={value} value={value} className="vertical-radio">
@@ -650,7 +651,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
               value={SINCE_MODE_OPTIONS.filter(
                 option => option.value === sinceMode,
               )}
-              onChange={(option: any) =>
+              onChange={(option: $anyType) =>
                 onCustomRangeChange('sinceMode', option.value)
               }
             />
@@ -689,7 +690,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
                     value={SINCE_GRAIN_OPTIONS.filter(
                       option => option.value === sinceGrain,
                     )}
-                    onChange={(option: any) =>
+                    onChange={(option: $anyType) =>
                       onCustomRangeChange('sinceGrain', option.value)
                     }
                   />
@@ -704,7 +705,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
               value={UNTIL_MODE_OPTIONS.filter(
                 option => option.value === untilMode,
               )}
-              onChange={(option: any) =>
+              onChange={(option: $anyType) =>
                 onCustomRangeChange('untilMode', option.value)
               }
             />
@@ -742,7 +743,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
                     value={UNTIL_GRAIN_OPTIONS.filter(
                       option => option.value === untilGrain,
                     )}
-                    onChange={(option: any) =>
+                    onChange={(option: $anyType) =>
                       onCustomRangeChange('untilGrain', option.value)
                     }
                   />
@@ -851,7 +852,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
             value={RANGE_FRAME_OPTIONS.filter(
               ({ value }) => value === timeRangeFrame,
             )}
-            onChange={(_: any) => setTimeRangeFrame(_.value)}
+            onChange={(_: $anyType) => setTimeRangeFrame(_.value)}
           />
           {timeRangeFrame !== 'No Filter' && <Divider />}
           {timeRangeFrame === 'Common' && renderCommon()}

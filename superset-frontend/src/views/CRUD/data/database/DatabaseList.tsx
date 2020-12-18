@@ -30,6 +30,7 @@ import Icon from 'src/components/Icon';
 import ListView, { Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import ImportModelsModal from 'src/components/ImportModal/index';
+import { $anyType } from 'src/constants';
 import DatabaseModal from './DatabaseModal';
 import { DatabaseObject } from './types';
 
@@ -217,7 +218,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { allow_run_async: allowRunAsync },
           },
-        }: any) => <BooleanDisplay value={allowRunAsync} />,
+        }: $anyType) => <BooleanDisplay value={allowRunAsync} />,
         size: 'md',
       },
       {
@@ -235,7 +236,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { allow_dml: allowDML },
           },
-        }: any) => <BooleanDisplay value={allowDML} />,
+        }: $anyType) => <BooleanDisplay value={allowDML} />,
         size: 'md',
       },
       {
@@ -245,7 +246,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { allow_csv_upload: allowCSVUpload },
           },
-        }: any) => <BooleanDisplay value={allowCSVUpload} />,
+        }: $anyType) => <BooleanDisplay value={allowCSVUpload} />,
         size: 'xl',
       },
       {
@@ -255,7 +256,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { expose_in_sqllab: exposeInSqllab },
           },
-        }: any) => <BooleanDisplay value={exposeInSqllab} />,
+        }: $anyType) => <BooleanDisplay value={exposeInSqllab} />,
         size: 'xxl',
       },
       {
@@ -266,7 +267,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { created_by: createdBy },
           },
-        }: any) =>
+        }: $anyType) =>
           createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
         size: 'xl',
       },
@@ -275,13 +276,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
           row: {
             original: { changed_on_delta_humanized: changedOn },
           },
-        }: any) => changedOn,
+        }: $anyType) => changedOn,
         Header: t('Last Modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: $anyType) => {
           const handleEdit = () => handleDatabaseEdit(original);
           const handleDelete = () => openDatabaseDeleteModal(original);
           const handleExport = () => handleDatabaseExport(original);

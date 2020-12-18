@@ -21,10 +21,11 @@ import cx from 'classnames';
 import { TableInstance } from 'react-table';
 import { styled } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
+import { $anyType } from 'src/constants';
 
 interface TableCollectionProps {
-  getTableProps: (userProps?: any) => any;
-  getTableBodyProps: (userProps?: any) => any;
+  getTableProps: (userProps?: $anyType) => $anyType;
+  getTableBodyProps: (userProps?: $anyType) => $anyType;
   prepareRow: TableInstance['prepareRow'];
   headerGroups: TableInstance['headerGroups'];
   rows: TableInstance['rows'];

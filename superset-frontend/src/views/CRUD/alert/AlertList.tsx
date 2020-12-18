@@ -33,7 +33,7 @@ import ListView, {
 } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import { Switch } from 'src/common/components/Switch';
-import { DATETIME_WITH_TIME_ZONE } from 'src/constants';
+import { $anyType, DATETIME_WITH_TIME_ZONE } from 'src/constants';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import RecipientIcon from 'src/views/CRUD/alert/components/RecipientIcon';
@@ -194,7 +194,7 @@ function AlertList({
           row: {
             original: { last_state: lastState },
           },
-        }: any) => (
+        }: $anyType) => (
           <AlertStatusIcon
             state={lastState}
             isReportEnabled={isReportEnabled}
@@ -209,7 +209,7 @@ function AlertList({
           row: {
             original: { last_eval_dttm: lastEvalDttm },
           },
-        }: any) => {
+        }: $anyType) => {
           return lastEvalDttm
             ? moment.utc(lastEvalDttm).local().format(DATETIME_WITH_TIME_ZONE)
             : '';
@@ -231,7 +231,7 @@ function AlertList({
           row: {
             original: { crontab_humanized = '' },
           },
-        }: any) => (
+        }: $anyType) => (
           <Tooltip title={crontab_humanized} placement="topLeft">
             <span>{crontab_humanized}</span>
           </Tooltip>
@@ -242,8 +242,8 @@ function AlertList({
           row: {
             original: { recipients },
           },
-        }: any) =>
-          recipients.map((r: any) => (
+        }: $anyType) =>
+          recipients.map((r: $anyType) => (
             <RecipientIcon key={r.id} type={r.type} />
           )),
         accessor: 'recipients',
@@ -262,14 +262,14 @@ function AlertList({
           row: {
             original: { owners = [] },
           },
-        }: any) => <FacePile users={owners} />,
+        }: $anyType) => <FacePile users={owners} />,
         Header: t('Owners'),
         id: 'owners',
         disableSortBy: true,
         size: 'xl',
       },
       {
-        Cell: ({ row: { original } }: any) => (
+        Cell: ({ row: { original } }: $anyType) => (
           <Switch
             data-test="toggle-active"
             checked={original.active}
@@ -283,7 +283,7 @@ function AlertList({
         size: 'xl',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: $anyType) => {
           const history = useHistory();
           const handleEdit = () => handleAlertEdit(original);
           const handleDelete = () => setCurrentAlertDeleting(original);

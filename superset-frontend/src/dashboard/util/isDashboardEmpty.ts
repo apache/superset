@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { $anyType } from 'src/constants';
 import { CHART_TYPE, MARKDOWN_TYPE } from './componentTypes';
 
 const USER_CONTENT_COMPONENT_TYPE: string[] = [CHART_TYPE, MARKDOWN_TYPE];
-export default function isDashboardEmpty(layout: any): boolean {
+export default function isDashboardEmpty(layout: $anyType): boolean {
   // has at least one chart or markdown component
   return !Object.values(layout).some(
     ({ type }: { type?: string }) =>

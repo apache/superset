@@ -21,6 +21,7 @@ import React from 'react';
 import { styled } from '@superset-ui/core';
 import { Tooltip } from 'src/common/components/Tooltip';
 import Icon from 'src/components/Icon';
+import { $anyType } from 'src/constants';
 
 interface InfoTooltipProps {
   className?: string;
@@ -40,7 +41,7 @@ interface InfoTooltipProps {
     | 'rightBottom'
     | undefined;
   trigger?: string | Array<string>;
-  overlayStyle?: any;
+  overlayStyle?: $anyType;
   bgColor?: string;
 }
 

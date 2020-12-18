@@ -25,6 +25,7 @@ import withToasts, { ToastProps } from 'src/messageToasts/enhancers/withToasts';
 import SyntaxHighlighterCopy from 'src/views/CRUD/data/components/SyntaxHighlighterCopy';
 import { useQueryPreviewState } from 'src/views/CRUD/data/hooks';
 import { QueryObject } from 'src/views/CRUD/types';
+import { $anyType } from 'src/constants';
 
 const QueryTitle = styled.div`
   color: ${({ theme }) => theme.colors.secondary.light2};
@@ -80,10 +81,10 @@ const StyledModal = styled(Modal)`
 
 interface QueryPreviewModalProps extends ToastProps {
   onHide: () => void;
-  openInSqlLab: (id: number) => any;
+  openInSqlLab: (id: number) => $anyType;
   queries: QueryObject[];
   query: QueryObject;
-  fetchData: (id: number) => any;
+  fetchData: (id: number) => $anyType;
   show: boolean;
 }
 

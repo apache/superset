@@ -18,13 +18,14 @@
  */
 import React, { ReactNode, useState } from 'react';
 import Button from 'src/components/Button';
+import { $anyType } from 'src/constants';
 
 interface Props {
   items: string[] | ReactNode[];
   display?: number;
 }
 
-function intersperse(arr: any[], sep: string | ReactNode) {
+function intersperse(arr: $anyType[], sep: string | ReactNode) {
   if (arr.length === 0) {
     return [];
   }

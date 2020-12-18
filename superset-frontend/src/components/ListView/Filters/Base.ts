@@ -18,10 +18,11 @@
  */
 import { ReactNode } from 'react';
 import { styled } from '@superset-ui/core';
+import { $anyType } from 'src/constants';
 
 export interface BaseFilter {
   Header: ReactNode;
-  initialValue: any;
+  initialValue: $anyType;
 }
 
 export const FilterContainer = styled.div`

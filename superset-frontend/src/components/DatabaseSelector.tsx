@@ -22,6 +22,7 @@ import rison from 'rison';
 import { Select } from 'src/components/Select';
 import Label from 'src/components/Label';
 
+import { $anyType } from 'src/constants';
 import SupersetAsyncSelect from './AsyncSelect';
 import RefreshLabel from './RefreshLabel';
 
@@ -57,12 +58,12 @@ const DatabaseSelectorWrapper = styled.div`
 interface DatabaseSelectorProps {
   dbId: number;
   formMode?: boolean;
-  getDbList?: (arg0: any) => {};
+  getDbList?: (arg0: $anyType) => {};
   getTableList?: (dbId: number, schema: string, force: boolean) => {};
   handleError: (msg: string) => void;
   isDatabaseSelectEnabled?: boolean;
-  onDbChange?: (db: any) => void;
-  onSchemaChange?: (arg0?: any) => {};
+  onDbChange?: (db: $anyType) => void;
+  onSchemaChange?: (arg0?: $anyType) => {};
   onSchemasLoad?: (schemas: Array<object>) => void;
   readOnly?: boolean;
   schema?: string;
@@ -143,21 +144,21 @@ export default function DatabaseSelector({
     }
   }
 
-  function dbMutator(data: any) {
+  function dbMutator(data: $anyType) {
     if (getDbList) {
       getDbList(data.result);
     }
     if (data.result.length === 0) {
       handleError(t("It seems you don't have access to any database"));
     }
-    return data.result.map((row: any) => ({
+    return data.result.map((row: $anyType) => ({
       ...row,
       // label is used for the typeahead
       label: `${row.backend} ${row.database_name}`,
     }));
   }
 
-  function changeDataBase(db: any, force = false) {
+  function changeDataBase(db: $anyType, force = false) {
     const dbId = db ? db.id : null;
     setSchemaOptions([]);
     if (onSchemaChange) {
@@ -170,7 +171,7 @@ export default function DatabaseSelector({
     onSelectChange({ dbId, schema: undefined });
   }
 
-  function changeSchema(schemaOpt: any, force = false) {
+  function changeSchema(schemaOpt: $anyType, force = false) {
     const schema = schemaOpt ? schemaOpt.value : null;
     if (onSchemaChange) {
       onSchemaChange(schema);
@@ -182,7 +183,7 @@ export default function DatabaseSelector({
     }
   }
 
-  function renderDatabaseOption(db: any) {
+  function renderDatabaseOption(db: $anyType) {
     return (
       <span title={db.database_name}>
         <Label bsStyle="default">{db.backend}</Label> {db.database_name}
@@ -222,14 +223,14 @@ export default function DatabaseSelector({
       <SupersetAsyncSelect
         data-test="select-database"
         dataEndpoint={`/api/v1/database/?q=${queryParams}`}
-        onChange={(db: any) => changeDataBase(db)}
+        onChange={(db: $anyType) => changeDataBase(db)}
         onAsyncError={() =>
           handleError(t('Error while fetching database list'))
         }
         clearable={false}
         value={currentDbId}
         valueKey="id"
-        valueRenderer={(db: any) => (
+        valueRenderer={(db: $anyType) => (
           <div>
             <span className="text-muted m-r-5">{t('Database:')}</span>
             {renderDatabaseOption(db)}

@@ -19,6 +19,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import cx from 'classnames';
 import { t } from '@superset-ui/core';
+import { $anyType } from 'src/constants';
 import TooltipWrapper from './TooltipWrapper';
 
 interface EditableTitleProps {
@@ -53,7 +54,9 @@ export default function EditableTitle({
   ] = useState<DOMRect | null>(null);
   // Used so we can access the DOM element if a user clicks on this component.
 
-  const contentRef = useRef<any | HTMLInputElement | HTMLTextAreaElement>();
+  const contentRef = useRef<
+    $anyType | HTMLInputElement | HTMLTextAreaElement
+  >();
 
   useEffect(() => {
     if (title !== currentTitle) {
@@ -106,20 +109,20 @@ export default function EditableTitle({
   // clicked and is focused/active. for accessibility, when focused the Tab <a /> intercepts
   // the ' ' key (among others, including all arrows) and onChange() doesn't fire. somehow
   // keydown is still called so we can detect this and manually add a ' ' to the current title
-  function handleKeyDown(event: any) {
+  function handleKeyDown(event: $anyType) {
     if (event.key === ' ') {
       event.stopPropagation();
     }
   }
 
-  function handleChange(ev: any) {
+  function handleChange(ev: $anyType) {
     if (!canEdit) {
       return;
     }
     setCurrentTitle(ev.target.value);
   }
 
-  function handleKeyPress(ev: any) {
+  function handleKeyPress(ev: $anyType) {
     if (ev.key === 'Enter') {
       ev.preventDefault();
       handleBlur();

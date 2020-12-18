@@ -23,6 +23,7 @@ import React, { useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ListView from 'src/components/ListView';
 import SubMenu from 'src/components/Menu/SubMenu';
+import { $anyType } from 'src/constants';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { fDuration } from 'src/modules/dates';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
@@ -54,7 +55,7 @@ interface ExecutionLogProps {
 }
 
 function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
-  const { alertId }: any = useParams();
+  const { alertId }: $anyType = useParams();
   const {
     state: { loading, resourceCount: logCount, resourceCollection: logs },
     fetchData,
@@ -87,7 +88,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
           row: {
             original: { state },
           },
-        }: any) => (
+        }: $anyType) => (
           <AlertStatusIcon state={state} isReportEnabled={isReportEnabled} />
         ),
         accessor: 'state',
@@ -104,7 +105,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
           row: {
             original: { start_dttm: startDttm },
           },
-        }: any) => moment(new Date(startDttm)).format('ll'),
+        }: $anyType) => moment(new Date(startDttm)).format('ll'),
         Header: t('Start At'),
         accessor: 'start_dttm',
       },
@@ -113,7 +114,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
           row: {
             original: { start_dttm: startDttm, end_dttm: endDttm },
           },
-        }: any) =>
+        }: $anyType) =>
           fDuration(new Date(startDttm).getTime(), new Date(endDttm).getTime()),
         Header: t('Duration'),
         disableSortBy: true,

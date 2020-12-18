@@ -25,6 +25,7 @@ import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { getDataTablePageSize } from 'src/explore/exploreUtils';
+import { $anyType } from 'src/constants';
 import {
   CopyToClipboardButton,
   FilterInput,
@@ -79,14 +80,14 @@ export const DataTablesPane = ({
   onCollapseChange,
   displayBackground,
 }: {
-  queryFormData: Record<string, any>;
+  queryFormData: Record<string, $anyType>;
   tableSectionHeight: number;
   onCollapseChange: (openPanelName: string) => void;
   displayBackground: boolean;
 }) => {
   const [data, setData] = useState<{
-    [RESULT_TYPES.results]?: Record<string, any>[];
-    [RESULT_TYPES.samples]?: Record<string, any>[];
+    [RESULT_TYPES.results]?: Record<string, $anyType>[];
+    [RESULT_TYPES.samples]?: Record<string, $anyType>[];
   }>(NULLISH_RESULTS_STATE);
   const [isLoading, setIsLoading] = useState(NULLISH_RESULTS_STATE);
   const [error, setError] = useState(NULLISH_RESULTS_STATE);

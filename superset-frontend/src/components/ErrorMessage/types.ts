@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import { $anyType } from 'src/constants';
+
 // Keep in sync with superset/views/errors.py
 export const ErrorTypeEnum = {
   // Frontend errors
@@ -56,7 +58,7 @@ export type ErrorLevel = 'info' | 'warning' | 'error';
 
 export type ErrorSource = 'dashboard' | 'explore' | 'sqllab';
 
-export type SupersetError<ExtraType = Record<string, any> | null> = {
+export type SupersetError<ExtraType = Record<string, $anyType> | null> = {
   error_type: ErrorType;
   extra: ExtraType;
   level: ErrorLevel;
@@ -64,7 +66,7 @@ export type SupersetError<ExtraType = Record<string, any> | null> = {
 };
 
 export type ErrorMessageComponentProps<
-  ExtraType = Record<string, any> | null
+  ExtraType = Record<string, $anyType> | null
 > = {
   error: SupersetError<ExtraType>;
   source?: ErrorSource;
