@@ -71,7 +71,7 @@ function ParameterErrorMessage({
   const body = (
     <>
       <p>
-        {matches && (
+        {Object.keys(matches).length > 0 && (
           <>
             <p>{t('Did you mean:')}</p>
             <ul>
