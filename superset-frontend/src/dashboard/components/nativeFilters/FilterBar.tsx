@@ -29,6 +29,8 @@ import cx from 'classnames';
 import { Form } from 'src/common/components';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
+import { getChartDataRequest } from 'src/chart/chartAction';
+import { areObjectsEqual } from 'src/reduxUtils';
 import FilterConfigurationLink from './FilterConfigurationLink';
 // import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 
@@ -39,8 +41,6 @@ import {
 } from './state';
 import { Filter, CascadeFilter } from './types';
 import { buildCascadeFiltersTree, mapParentFiltersToChildren } from './utils';
-import { getChartDataRequest } from 'src/chart/chartAction';
-import { areObjectsEqual } from 'src/reduxUtils';
 import CascadePopover from './CascadePopover';
 
 const barWidth = `250px`;
