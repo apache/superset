@@ -397,8 +397,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         className={cx({ open: !filtersOpen })}
         onClick={() => toggleFiltersBar(true)}
       >
-        <Icon name="filter" />
         <Icon name="collapse" />
+        <Icon name="filter" />
       </CollapsedBar>
       <Bar className={cx({ open: filtersOpen })}>
         <TitleArea>
