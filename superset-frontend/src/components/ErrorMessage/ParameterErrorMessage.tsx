@@ -17,7 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { t, tn } from '@superset-ui/core';
+import levenshtein from 'js-levenshtein';
 
 import { ErrorMessageComponentProps } from './types';
 import IssueCode from './IssueCode';
@@ -32,7 +33,23 @@ interface ParameterErrorExtra {
   }[];
 }
 
-const triggerMessage = t('This may be triggered by:');
+const maxDistanceForSuggestion = 2;
+const findMatches = (undefinedParameters: string[], templateKeys: string[]) => {
+  const matches: { [undefinedParameter: string]: string[] } = {};
+  undefinedParameters.forEach(undefinedParameter => {
+    templateKeys.forEach(templateKey => {
+      if (
+        levenshtein(undefinedParameter, templateKey) <= maxDistanceForSuggestion
+      ) {
+        if (!matches[undefinedParameter]) {
+          matches[undefinedParameter] = [];
+        }
+        matches[undefinedParameter].push(`"${templateKey}"`);
+      }
+    });
+  });
+  return matches;
+};
 
 function ParameterErrorMessage({
   error,
@@ -40,9 +57,45 @@ function ParameterErrorMessage({
 }: ErrorMessageComponentProps<ParameterErrorExtra>) {
   const { extra, level, message } = error;
 
+  const triggerMessage = tn(
+    'This was triggered by:',
+    'This may be triggered by:',
+    extra.issue_codes.length,
+  );
+
+  const matches = findMatches(
+    extra.undefined_parameters || [],
+    Object.keys(extra.template_parameters || {}),
+  );
+
   const body = (
     <>
       <p>
+        {Object.keys(matches).length > 0 && (
+          <>
+            <p>{t('Did you mean:')}</p>
+            <ul>
+              {Object.entries(matches).map(
+                ([undefinedParameter, templateKeys]) => (
+                  <li>
+                    {tn(
+                      '%(suggestion)s instead of "%(undefined)s?"',
+                      '%(first_suggestions)s or %(last_suggestion)s instead of "%(undefined)s"?',
+                      templateKeys.length,
+                      {
+                        suggestion: templateKeys.join(', '),
+                        first_suggestions: templateKeys.slice(0, -1).join(', '),
+                        last_suggestion: templateKeys[templateKeys.length - 1],
+                        undefined: undefinedParameter,
+                      },
+                    )}
+                  </li>
+                ),
+              )}
+            </ul>
+            <br />
+          </>
+        )}
         {triggerMessage}
         <br />
         {extra.issue_codes
