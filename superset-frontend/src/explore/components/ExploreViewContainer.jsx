@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -27,6 +27,7 @@ import { debounce } from 'lodash';
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/core';
 import { Tooltip } from 'src/common/components/Tooltip';
+import { usePrevious } from 'src/common/hooks/usePrevious';
 import Icon from 'src/components/Icon';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
@@ -142,18 +143,6 @@ function useWindowSize({ delayMs = 250 } = {}) {
   }, []);
 
   return size;
-}
-
-/**
- * returns the value from the previous render.
- * @param {*} value the current value, which will be returned from usePrevious on the next render
- */
-function usePrevious(value, initial = null) {
-  const ref = useRef(initial);
-  useEffect(() => {
-    ref.current = value;
-  });
-  return ref.current;
 }
 
 function ExploreViewContainer(props) {
