@@ -16,6 +16,7 @@
 # under the License.
 import json
 
+from flask import g
 from flask_appbuilder import expose, has_access
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
@@ -33,6 +34,7 @@ from superset.views.base import (
     SupersetModelView,
 )
 from superset.views.chart.mixin import SliceMixin
+from superset.views.utils import bootstrap_user_data
 
 
 class SliceModelView(
@@ -68,6 +70,7 @@ class SliceModelView(
         payload = {
             "datasources": sorted(datasources, key=lambda d: d["label"]),
             "common": common_bootstrap_payload(),
+            "user": bootstrap_user_data(g.user),
         }
         return self.render_template(
             "superset/add_slice.html", bootstrap_data=json.dumps(payload)
