@@ -39,8 +39,8 @@ import {
 } from './state';
 import { Filter, CascadeFilter } from './types';
 import { buildCascadeFiltersTree, mapParentFiltersToChildren } from './utils';
-import { getChartDataRequest } from '../../../chart/chartAction';
-import { areObjectsEqual } from '../../../reduxUtils';
+import { getChartDataRequest } from 'src/chart/chartAction';
+import { areObjectsEqual } from 'src/reduxUtils';
 import CascadePopover from './CascadePopover';
 
 const barWidth = `250px`;
