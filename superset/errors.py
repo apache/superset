@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-few-public-methods,invalid-name
-from dataclasses import dataclass
+from dataclasses import dataclass  # pylint: disable=wrong-import-order
 from enum import Enum
 from typing import Any, Dict, Optional
 

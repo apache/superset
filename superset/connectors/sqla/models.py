@@ -18,7 +18,7 @@ import json
 import logging
 from collections import defaultdict, OrderedDict
 from contextlib import closing
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field  # pylint: disable=wrong-import-order
 from datetime import datetime, timedelta
 from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Union
 

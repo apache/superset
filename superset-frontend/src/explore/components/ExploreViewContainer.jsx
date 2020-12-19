@@ -17,13 +17,17 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { styled, logging, t, supersetTheme, css } from '@superset-ui/core';
+import { styled, t, supersetTheme, css } from '@superset-ui/core';
+import { debounce } from 'lodash';
+
+import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/core';
 import { Tooltip } from 'src/common/components/Tooltip';
+import { usePrevious } from 'src/common/hooks/usePrevious';
 import Icon from 'src/components/Icon';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
@@ -45,6 +49,7 @@ import {
 } from '../../logger/LogUtils';
 
 const propTypes = {
+  ...ExploreChartPanel.propTypes,
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
   dashboardId: PropTypes.number,
@@ -58,6 +63,7 @@ const propTypes = {
   standalone: PropTypes.bool.isRequired,
   timeout: PropTypes.number,
   impressionId: PropTypes.string,
+  vizType: PropTypes.string,
 };
 
 const Styles = styled.div`
@@ -122,138 +128,98 @@ const Styles = styled.div`
   }
 `;
 
-class ExploreViewContainer extends React.Component {
-  constructor(props) {
-    super(props);
+const getWindowSize = () => ({
+  height: window.innerHeight,
+  width: window.innerWidth,
+});
 
-    this.state = {
-      height: this.getHeight(),
-      width: this.getWidth(),
-      showModal: false,
-      chartIsStale: false,
-      refreshOverlayVisible: false,
-      collapse: true,
-    };
+function useWindowSize({ delayMs = 250 } = {}) {
+  const [size, setSize] = useState(getWindowSize());
 
-    this.addHistory = this.addHistory.bind(this);
-    this.handleResize = this.handleResize.bind(this);
-    this.handlePopstate = this.handlePopstate.bind(this);
-    this.onStop = this.onStop.bind(this);
-    this.onQuery = this.onQuery.bind(this);
-    this.toggleModal = this.toggleModal.bind(this);
-    this.handleKeydown = this.handleKeydown.bind(this);
-    this.toggleCollapse = this.toggleCollapse.bind(this);
-  }
+  useEffect(() => {
+    const onWindowResize = debounce(() => setSize(getWindowSize()), delayMs);
+    window.addEventListener('resize', onWindowResize);
+    return () => window.removeEventListener('resize', onWindowResize);
+  }, []);
 
-  componentDidMount() {
-    window.addEventListener('resize', this.handleResize);
-    window.addEventListener('popstate', this.handlePopstate);
-    document.addEventListener('keydown', this.handleKeydown);
-    this.addHistory({ isReplace: true });
-    this.props.actions.logEvent(LOG_ACTIONS_MOUNT_EXPLORER);
+  return size;
+}
 
-    // Trigger the chart if there are no errors
-    const { chart } = this.props;
-    if (!this.hasErrors()) {
-      this.props.actions.triggerQuery(true, this.props.chart.id);
-    }
-  }
+function ExploreViewContainer(props) {
+  const dynamicPluginContext = useDynamicPluginContext();
+  const dynamicPlugin = dynamicPluginContext.plugins[props.vizType];
+  const isDynamicPluginLoading = dynamicPlugin && dynamicPlugin.loading;
+  const wasDynamicPluginLoading = usePrevious(isDynamicPluginLoading);
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    if (
-      nextProps.controls.viz_type.value !== this.props.controls.viz_type.value
-    ) {
-      this.props.actions.resetControls();
-    }
-    if (
-      nextProps.controls.datasource &&
-      (this.props.controls.datasource == null ||
-        nextProps.controls.datasource.value !==
-          this.props.controls.datasource.value)
-    ) {
-      fetchDatasourceMetadata(nextProps.form_data.datasource, true);
-    }
+  const previousControls = usePrevious(props.controls);
+  const windowSize = useWindowSize();
 
-    const changedControlKeys = this.findChangedControlKeys(
-      this.props.controls,
-      nextProps.controls,
-    );
-    if (this.hasDisplayControlChanged(changedControlKeys, nextProps.controls)) {
-      this.props.actions.updateQueryFormData(
-        getFormDataFromControls(nextProps.controls),
-        this.props.chart.id,
-      );
-      this.props.actions.renderTriggered(
-        new Date().getTime(),
-        this.props.chart.id,
+  const [showingModal, setShowingModal] = useState(false);
+  const [chartIsStale, setChartIsStale] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
+
+  const width = `${windowSize.width}px`;
+  const navHeight = props.standalone ? 0 : 90;
+  const height = props.forcedHeight
+    ? `${props.forcedHeight}px`
+    : `${windowSize.height - navHeight}px`;
+
+  function addHistory({ isReplace = false, title } = {}) {
+    const payload = { ...props.form_data };
+    const longUrl = getExploreLongUrl(props.form_data, null, false);
+    try {
+      if (isReplace) {
+        window.history.replaceState(payload, title, longUrl);
+      } else {
+        window.history.pushState(payload, title, longUrl);
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        'Failed at altering browser history',
+        payload,
+        title,
+        longUrl,
       );
     }
-    if (this.hasQueryControlChanged(changedControlKeys, nextProps.controls)) {
-      this.props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS);
-      this.setState({ chartIsStale: true, refreshOverlayVisible: true });
+  }
+
+  function handlePopstate() {
+    const formData = window.history.state;
+    if (formData && Object.keys(formData).length) {
+      props.actions.setExploreControls(formData);
+      props.actions.postChartFormData(
+        formData,
+        false,
+        props.timeout,
+        props.chart.id,
+      );
     }
   }
 
-  /* eslint no-unused-vars: 0 */
-  componentDidUpdate(prevProps, prevState) {
-    const changedControlKeys = this.findChangedControlKeys(
-      prevProps.controls,
-      this.props.controls,
-    );
-    if (
-      this.hasDisplayControlChanged(changedControlKeys, this.props.controls)
-    ) {
-      this.addHistory({});
-    }
-  }
-
-  componentWillUnmount() {
-    window.removeEventListener('resize', this.handleResize);
-    window.removeEventListener('popstate', this.handlePopstate);
-    document.removeEventListener('keydown', this.handleKeydown);
-  }
-
-  onQuery() {
+  function onQuery() {
     // remove alerts when query
-    this.props.actions.removeControlPanelAlert();
-    this.props.actions.triggerQuery(true, this.props.chart.id);
+    props.actions.removeControlPanelAlert();
+    props.actions.triggerQuery(true, props.chart.id);
 
-    this.setState({ chartIsStale: false, refreshOverlayVisible: false });
-    this.addHistory({});
+    setChartIsStale(false);
+    addHistory();
   }
 
-  onStop() {
-    if (this.props.chart && this.props.chart.queryController) {
-      this.props.chart.queryController.abort();
-    }
-  }
-
-  getWidth() {
-    return `${window.innerWidth}px`;
-  }
-
-  getHeight() {
-    if (this.props.forcedHeight) {
-      return `${this.props.forcedHeight}px`;
-    }
-    const navHeight = this.props.standalone ? 0 : 90;
-    return `${window.innerHeight - navHeight}px`;
-  }
-
-  handleKeydown(event) {
+  function handleKeydown(event) {
     const controlOrCommand = event.ctrlKey || event.metaKey;
     if (controlOrCommand) {
       const isEnter = event.key === 'Enter' || event.keyCode === 13;
       const isS = event.key === 's' || event.keyCode === 83;
       if (isEnter) {
-        this.onQuery();
+        onQuery();
       } else if (isS) {
-        if (this.props.slice) {
-          this.props.actions
-            .saveSlice(this.props.form_data, {
+        if (props.slice) {
+          props.actions
+            .saveSlice(props.form_data, {
               action: 'overwrite',
-              slice_id: this.props.slice.slice_id,
-              slice_name: this.props.slice.slice_name,
+              slice_id: props.slice.slice_id,
+              slice_name: props.slice.slice_name,
               add_to_dash: 'noSave',
               goto_dash: false,
             })
@@ -265,88 +231,100 @@ class ExploreViewContainer extends React.Component {
     }
   }
 
-  findChangedControlKeys(prevControls, currentControls) {
-    return Object.keys(currentControls).filter(
-      key =>
-        typeof prevControls[key] !== 'undefined' &&
-        !areObjectsEqual(currentControls[key].value, prevControls[key].value),
+  function onStop() {
+    if (props.chart && props.chart.queryController) {
+      props.chart.queryController.abort();
+    }
+  }
+
+  function toggleModal() {
+    setShowingModal(!showingModal);
+  }
+
+  function toggleCollapse() {
+    setIsCollapsed(!isCollapsed);
+  }
+
+  // effect to run on mount
+  useEffect(() => {
+    props.actions.logEvent(LOG_ACTIONS_MOUNT_EXPLORER);
+    addHistory({ isReplace: true });
+    window.addEventListener('popstate', handlePopstate);
+    document.addEventListener('keydown', handleKeydown);
+    return () => {
+      window.removeEventListener('popstate', handlePopstate);
+      document.removeEventListener('keydown', handleKeydown);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (wasDynamicPluginLoading && !isDynamicPluginLoading) {
+      // reload the controls now that we actually have the control config
+      props.actions.dynamicPluginControlsReady();
+    }
+  }, [isDynamicPluginLoading]);
+
+  // effect to run when controls change
+  useEffect(() => {
+    const hasError = Object.values(props.controls).some(
+      control =>
+        control.validationErrors && control.validationErrors.length > 0,
     );
-  }
+    if (!hasError) {
+      props.actions.triggerQuery(true, props.chart.id);
+    }
 
-  hasDisplayControlChanged(changedControlKeys, currentControls) {
-    return changedControlKeys.some(key => currentControls[key].renderTrigger);
-  }
-
-  hasQueryControlChanged(changedControlKeys, currentControls) {
-    return changedControlKeys.some(
-      key =>
-        !currentControls[key].renderTrigger &&
-        !currentControls[key].dontRefreshOnChange,
-    );
-  }
-
-  addHistory({ isReplace = false, title }) {
-    const payload = { ...this.props.form_data };
-    const longUrl = getExploreLongUrl(this.props.form_data, null, false);
-    try {
-      if (isReplace) {
-        window.history.replaceState(payload, title, longUrl);
-      } else {
-        window.history.pushState(payload, title, longUrl);
+    if (previousControls) {
+      if (props.controls.viz_type.value !== previousControls.viz_type.value) {
+        props.actions.resetControls();
       }
-    } catch (e) {
-      logging.warn(
-        'Failed at altering browser history',
-        payload,
-        title,
-        longUrl,
+      if (
+        props.controls.datasource &&
+        (previousControls.datasource == null ||
+          props.controls.datasource.value !== previousControls.datasource.value)
+      ) {
+        // this should really be handled by actions
+        fetchDatasourceMetadata(props.form_data.datasource, true);
+      }
+
+      const changedControlKeys = Object.keys(props.controls).filter(
+        key =>
+          typeof previousControls[key] !== 'undefined' &&
+          !areObjectsEqual(
+            props.controls[key].value,
+            previousControls[key].value,
+          ),
       );
-    }
 
-    // it seems some browsers don't support pushState title attribute
-    if (title) {
-      document.title = title;
-    }
-  }
-
-  toggleCollapse() {
-    this.setState(prevState => ({ collapse: !prevState.collapse }));
-  }
-
-  handleResize() {
-    clearTimeout(this.resizeTimer);
-    this.resizeTimer = setTimeout(() => {
-      this.setState({ height: this.getHeight(), width: this.getWidth() });
-    }, 250);
-  }
-
-  handlePopstate() {
-    const formData = window.history.state;
-    if (formData && Object.keys(formData).length) {
-      this.props.actions.setExploreControls(formData);
-      this.props.actions.postChartFormData(
-        formData,
-        false,
-        this.props.timeout,
-        this.props.chart.id,
+      // this should also be handled by the actions that are actually changing the controls
+      const hasDisplayControlChanged = changedControlKeys.some(
+        key => props.controls[key].renderTrigger,
       );
+      if (hasDisplayControlChanged) {
+        props.actions.updateQueryFormData(
+          getFormDataFromControls(props.controls),
+          props.chart.id,
+        );
+        props.actions.renderTriggered(new Date().getTime(), props.chart.id);
+        addHistory();
+      }
+
+      // this should be handled inside actions too
+      const hasQueryControlChanged = changedControlKeys.some(
+        key =>
+          !props.controls[key].renderTrigger &&
+          !props.controls[key].dontRefreshOnChange,
+      );
+      if (hasQueryControlChanged) {
+        props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS);
+        setChartIsStale(true);
+      }
     }
-  }
+  }, [props.controls]);
 
-  toggleModal() {
-    this.setState(prevState => ({ showModal: !prevState.showModal }));
-  }
-
-  hasErrors() {
-    const ctrls = this.props.controls;
-    return Object.keys(ctrls).some(
-      k => ctrls[k].validationErrors && ctrls[k].validationErrors.length > 0,
-    );
-  }
-
-  renderErrorMessage() {
+  function renderErrorMessage() {
     // Returns an error message as a node if any errors are in the store
-    const errors = Object.entries(this.props.controls)
+    const errors = Object.entries(props.controls)
       .filter(
         ([, control]) =>
           control.validationErrors && control.validationErrors.length > 0,
@@ -365,138 +343,136 @@ class ExploreViewContainer extends React.Component {
     return errorMessage;
   }
 
-  renderChartContainer() {
+  function renderChartContainer() {
     return (
       <ExploreChartPanel
-        width={this.state.width}
-        height={this.state.height}
-        {...this.props}
-        errorMessage={this.renderErrorMessage()}
-        refreshOverlayVisible={this.state.refreshOverlayVisible}
-        addHistory={this.addHistory}
-        onQuery={this.onQuery}
+        width={width}
+        height={height}
+        {...props}
+        errorMessage={renderErrorMessage()}
+        refreshOverlayVisible={chartIsStale}
+        addHistory={addHistory}
+        onQuery={onQuery}
       />
     );
   }
 
-  render() {
-    const { collapse } = this.state;
-    if (this.props.standalone) {
-      return this.renderChartContainer();
-    }
-    return (
-      <Styles id="explore-container">
-        <Global
-          styles={css`
-            .navbar {
-              margin-bottom: 0;
-            }
-            body {
-              max-height: 100vh;
-              overflow: hidden;
-            }
-            #app-menu,
-            #app {
-              flex: 1 1 auto;
-            }
-            #app {
-              flex-basis: 100%;
-              overflow: hidden;
-              height: 100vh;
-            }
-            #app-menu {
-              flex-shrink: 0;
-            }
-          `}
-        />
-        {this.state.showModal && (
-          <SaveModal
-            onHide={this.toggleModal}
-            actions={this.props.actions}
-            form_data={this.props.form_data}
-            sliceName={this.props.sliceName}
-            dashboardId={this.props.dashboardId}
-          />
-        )}
-        <div
-          className={
-            collapse
-              ? 'no-show'
-              : 'data-tab explore-column data-source-selection'
+  if (props.standalone) {
+    return renderChartContainer();
+  }
+
+  return (
+    <Styles id="explore-container" height={height}>
+      <Global
+        styles={css`
+          .navbar {
+            margin-bottom: 0;
           }
+          body {
+            max-height: 100vh;
+            overflow: hidden;
+          }
+          #app-menu,
+          #app {
+            flex: 1 1 auto;
+          }
+          #app {
+            flex-basis: 100%;
+            overflow: hidden;
+            height: 100vh;
+          }
+          #app-menu {
+            flex-shrink: 0;
+          }
+        `}
+      />
+      {showingModal && (
+        <SaveModal
+          onHide={toggleModal}
+          actions={props.actions}
+          form_data={props.form_data}
+          sliceName={props.sliceName}
+          dashboardId={props.dashboardId}
+        />
+      )}
+      <div
+        className={
+          isCollapsed
+            ? 'no-show'
+            : 'data-tab explore-column data-source-selection'
+        }
+      >
+        <div className="title-container">
+          <span className="horizont al-text">{t('Datasource')}</span>
+          <span
+            role="button"
+            tabIndex={0}
+            className="action-button"
+            onClick={toggleCollapse}
+          >
+            <Icon
+              name="expand"
+              color={supersetTheme.colors.primary.base}
+              className="collapse-icon"
+              width={16}
+            />
+          </span>
+        </div>
+        <DataSourcePanel
+          datasource={props.datasource}
+          controls={props.controls}
+          actions={props.actions}
+        />
+      </div>
+      {isCollapsed ? (
+        <div
+          className="sidebar"
+          onClick={toggleCollapse}
+          data-test="open-datasource-tab"
+          role="button"
+          tabIndex={0}
         >
-          <div className="title-container">
-            <span className="horizontal-text">{t('Datasource')}</span>
-            <span
-              role="button"
-              tabIndex={0}
-              className="action-button"
-              onClick={this.toggleCollapse}
-            >
+          <span role="button" tabIndex={0} className="action-button">
+            <Tooltip title={t('Open Datasource Tab')}>
               <Icon
-                name="expand"
+                name="collapse"
                 color={supersetTheme.colors.primary.base}
                 className="collapse-icon"
                 width={16}
               />
-            </span>
-          </div>
-          <DataSourcePanel
-            datasource={this.props.datasource}
-            controls={this.props.controls}
-            actions={this.props.actions}
-          />
+            </Tooltip>
+          </span>
+          <Icon name="dataset-physical" width={16} />
         </div>
-        {collapse ? (
-          <div
-            className="sidebar"
-            onClick={this.toggleCollapse}
-            data-test="open-datasource-tab"
-            role="button"
-            tabIndex={0}
-          >
-            <span role="button" tabIndex={0} className="action-button">
-              <Tooltip title={t('Open Datasource Tab')}>
-                <Icon
-                  name="collapse"
-                  color={supersetTheme.colors.primary.base}
-                  className="collapse-icon"
-                  width={16}
-                />
-              </Tooltip>
-            </span>
-            <Icon name="dataset-physical" width={16} />
-          </div>
-        ) : null}
-        <div className="col-sm-3 explore-column controls-column">
-          <QueryAndSaveBtns
-            canAdd={!!(this.props.can_add || this.props.can_overwrite)}
-            onQuery={this.onQuery}
-            onSave={this.toggleModal}
-            onStop={this.onStop}
-            loading={this.props.chart.chartStatus === 'loading'}
-            chartIsStale={this.state.chartIsStale}
-            errorMessage={this.renderErrorMessage()}
-            datasourceType={this.props.datasource_type}
-          />
-          <ConnectedControlPanelsContainer
-            actions={this.props.actions}
-            form_data={this.props.form_data}
-            controls={this.props.controls}
-            datasource_type={this.props.datasource_type}
-            isDatasourceMetaLoading={this.props.isDatasourceMetaLoading}
-          />
-        </div>
-        <div
-          className={`main-explore-content ${
-            collapse ? 'col-sm-9' : 'col-sm-7'
-          }`}
-        >
-          {this.renderChartContainer()}
-        </div>
-      </Styles>
-    );
-  }
+      ) : null}
+      <div className="col-sm-3 explore-column controls-column">
+        <QueryAndSaveBtns
+          canAdd={!!(props.can_add || props.can_overwrite)}
+          onQuery={onQuery}
+          onSave={toggleModal}
+          onStop={onStop}
+          loading={props.chart.chartStatus === 'loading'}
+          chartIsStale={chartIsStale}
+          errorMessage={renderErrorMessage()}
+          datasourceType={props.datasource_type}
+        />
+        <ConnectedControlPanelsContainer
+          actions={props.actions}
+          form_data={props.form_data}
+          controls={props.controls}
+          datasource_type={props.datasource_type}
+          isDatasourceMetaLoading={props.isDatasourceMetaLoading}
+        />
+      </div>
+      <div
+        className={`main-explore-content ${
+          isCollapsed ? 'col-sm-9' : 'col-sm-7'
+        }`}
+      >
+        {renderChartContainer()}
+      </div>
+    </Styles>
+  );
 }
 
 ExploreViewContainer.propTypes = propTypes;

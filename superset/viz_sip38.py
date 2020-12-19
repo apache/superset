@@ -22,7 +22,6 @@ Superset can render.
 """
 # mypy: ignore-errors
 import copy
-import dataclasses
 import hashlib
 import inspect
 import logging
@@ -64,6 +63,9 @@ from superset.utils.core import (
     merge_extra_filters,
     to_adhoc,
 )
+
+import dataclasses  # isort:skip
+
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
