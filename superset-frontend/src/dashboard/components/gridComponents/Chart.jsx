@@ -34,6 +34,7 @@ import {
 } from '../../../logger/LogUtils';
 import { isFilterBox } from '../../util/activeDashboardFilters';
 import getFilterValuesByFilterId from '../../util/getFilterValuesByFilterId';
+import { areObjectsEqual } from '../../../reduxUtils';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -133,19 +134,21 @@ export default class Chart extends React.Component {
         return false;
       }
 
-      for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
-        const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
-        if (nextProps[prop] !== this.props[prop]) {
-          return true;
-        }
-      }
-
       if (
         nextProps.width !== this.props.width ||
         nextProps.height !== this.props.height
       ) {
         clearTimeout(this.resizeTimeout);
         this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
+      }
+
+      for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
+        const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
+        // use deep objects equality comparison to prevent
+        // unneccessary updates when objects references change
+        if (!areObjectsEqual(nextProps[prop], this.props[prop])) {
+          return true;
+        }
       }
     }
 

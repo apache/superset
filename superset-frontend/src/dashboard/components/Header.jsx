@@ -102,6 +102,14 @@ const defaultProps = {
 
 // Styled Components
 const StyledDashboardHeader = styled.div`
+  background: ${({ theme }) => theme.colors.grayscale.light5};
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 ${({ theme }) => theme.gridUnit * 6}px;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+
   button,
   .fave-unfave-icon {
     margin-left: ${({ theme }) => theme.gridUnit * 2}px;
@@ -471,14 +479,17 @@ class Header extends React.PureComponent {
           )}
 
           {!editMode && userCanEdit && (
-            <span
-              role="button"
-              tabIndex={0}
-              className="action-button"
-              onClick={this.toggleEditMode}
-            >
-              <Icon name="edit-alt" />
-            </span>
+            <>
+              <span
+                role="button"
+                title="Edit Dashboard"
+                tabIndex={0}
+                className="action-button"
+                onClick={this.toggleEditMode}
+              >
+                <Icon name="edit-alt" />
+              </span>
+            </>
           )}
 
           {this.state.showingPropertiesModal && (
