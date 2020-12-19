@@ -124,14 +124,12 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   );
 
   const content = (
-    <>
-      <CascadeFilterControl
-        data-test="cascade-filters-control"
-        key={filter.id}
-        filter={filter}
-        onExtraFormDataChange={onExtraFormDataChange}
-      />
-    </>
+    <CascadeFilterControl
+      data-test="cascade-filters-control"
+      key={filter.id}
+      filter={filter}
+      onExtraFormDataChange={onExtraFormDataChange}
+    />
   );
 
   const activeFilters = getActiveChildren(filter) || [filter];
