@@ -350,7 +350,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         if ('val' in filter) {
           // need to nest these if statements to get a reference to val to appease TS
           const { val } = filter;
-          if (Array.isArray(val)) return val;
+          if (Array.isArray(val)) {
+            return val;
+          }
+          return [val];
         }
       }
       return null;
