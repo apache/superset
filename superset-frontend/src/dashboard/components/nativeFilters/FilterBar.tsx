@@ -343,10 +343,15 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   }, [filterConfigs]);
 
   const getFilterValue = useCallback(
-    (filter: Filter): string[] | null => {
+    (filter: Filter): (string | number | boolean)[] | null => {
       const filters = filterData[filter.id]?.append_form_data?.filters;
       if (filters?.length) {
-        return filters[0].val;
+        const filter = filters[0];
+        if ('val' in filter) {
+          // need to nest these if statements to get a reference to val to appease TS
+          const { val } = filter;
+          if (Array.isArray(val)) return val;
+        }
       }
       return null;
     },
