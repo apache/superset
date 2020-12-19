@@ -187,7 +187,7 @@ class TestUtils(SupersetTestCase):
     def test_merge_extra_filters(self):
         # does nothing if no extra filters
         form_data = {"A": 1, "B": 2, "c": "test"}
-        expected = {**form_data, "applied_time_extras": {}}
+        expected = {**form_data, "adhoc_filters": [], "applied_time_extras": {}}
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
         # empty extra_filters

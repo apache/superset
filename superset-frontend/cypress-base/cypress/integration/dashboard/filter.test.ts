@@ -82,7 +82,7 @@ describe('Dashboard filter', () => {
     // should still have all filter indicators
     // and since the select is closed, all filter indicators should be visible
     cy.get('svg[data-test="filter"]:visible').should(nodes => {
-      expect(nodes).to.have.length(9);
+      expect(nodes).to.have.length(10);
     });
 
     cy.get('.filter_box button').click({ force: true });
