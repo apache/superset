@@ -30,7 +30,7 @@ describe('Nativefilters', () => {
     cy.get('[data-test="create-filter"]').click();
     cy.get('.ant-modal').should('be.visible');
 
-    cy.get('.ant-form-horizontal').find('.ant-tabs-nav-add').first().click();
+    cy.get('.ant-form-vertical').find('.ant-tabs-nav-add').first().click();
 
     cy.get('.ant-modal')
       .find('.ant-tabs-tab-btn')
@@ -54,6 +54,6 @@ describe('Nativefilters', () => {
       .click();
       */
 
-    cy.get('.ant-modal-footer').find('.ant-btn-primary').should('be.visible');
+    cy.get('.ant-modal-footer').find('button').should('be.visible');
   });
 });
