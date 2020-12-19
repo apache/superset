@@ -17,8 +17,7 @@ export default function createQueryStory({
   };
 }) {
   const keys = Object.keys(choices);
-
-  return () => {
+  const story = () => {
     const host = text('Set Superset App host for CORS request', 'localhost:8088');
     const mode = select('Choose mode:', keys, keys[0]);
     const { formData: presetFormData, chartType } = choices[mode];
@@ -70,4 +69,8 @@ export default function createQueryStory({
       </div>
     );
   };
+  story.parameters = {
+    chromatic: { disable: true },
+  };
+  return story;
 }

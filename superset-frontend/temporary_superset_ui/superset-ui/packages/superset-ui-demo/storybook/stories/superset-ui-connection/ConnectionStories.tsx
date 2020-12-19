@@ -53,3 +53,7 @@ export const configureCORS = () => {
     </div>
   );
 };
+
+configureCORS.parameters = {
+  chromatic: { disable: true },
+};
