@@ -379,6 +379,7 @@ function ExploreViewContainer(props) {
           #app {
             flex-basis: 100%;
             overflow: hidden;
+            height: 100vh;
           }
           #app-menu {
             flex-shrink: 0;
