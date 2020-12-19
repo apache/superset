@@ -48,7 +48,6 @@ const datasetToSelectOption = (item: any): DatasetSelectValue => ({
 });
 
 const ScopingTreeNote = styled.div`
-  margin-top: ${({ theme }) => theme.gridUnit * -5}px;
   margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
