@@ -98,10 +98,14 @@ def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:
 
 
 class DashboardJSONMetadataSchema(Schema):
+    # filter_configuration is for dashboard-native filters
+    filter_configuration = fields.List(fields.Dict(), allow_none=True)
     timed_refresh_immune_slices = fields.List(fields.Integer())
+    # deprecated wrt dashboard-native filters
     filter_scopes = fields.Dict()
     expanded_slices = fields.Dict()
     refresh_frequency = fields.Integer()
+    # deprecated wrt dashboard-native filters
     default_filters = fields.Str()
     stagger_refresh = fields.Boolean()
     stagger_time = fields.Integer()
