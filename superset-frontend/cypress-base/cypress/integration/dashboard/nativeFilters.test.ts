@@ -54,6 +54,6 @@ describe('Nativefilters', () => {
       .click();
       */
 
-    cy.get('.ant-modal-footer').find('.ant-btn-primary').should('be.visible');
+    cy.get('.ant-modal-footer').find('button').should('be.visible');
   });
 });
