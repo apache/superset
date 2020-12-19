@@ -402,6 +402,7 @@ class ExploreViewContainer extends React.Component {
             #app {
               flex-basis: 100%;
               overflow: hidden;
+              height: 100vh;
             }
             #app-menu {
               flex-shrink: 0;
