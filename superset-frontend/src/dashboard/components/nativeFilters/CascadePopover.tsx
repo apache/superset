@@ -37,7 +37,7 @@ const StyledTitleBox = styled.div`
   justify-content: space-between;
   align-items: center;
   background-color: ${({ theme }) => theme.colors.grayscale.light4};
-  margin: -5px -16px; // to override default antd padding
+  margin: ${({ theme }) => theme.gridUnit * -1}px ${({ theme }) => theme.gridUnit * -4}px; // to override default antd padding
   padding: ${({ theme }) => theme.gridUnit * 2}px
     ${({ theme }) => theme.gridUnit * 4}px;
 
