@@ -19,10 +19,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { findLastIndex, uniq } from 'lodash';
 import shortid from 'shortid';
-import { DeleteFilled } from '@ant-design/icons';
+import { DeleteFilled, PlusOutlined } from '@ant-design/icons';
 import { styled, t } from '@superset-ui/core';
 import { Form } from 'src/common/components';
 import { StyledModal } from 'src/common/components/Modal';
+import Button from 'src/components/Button';
 import { LineEditableTabs } from 'src/common/components/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { usePrevious } from 'src/common/hooks/usePrevious';
@@ -30,6 +31,9 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import { useFilterConfigMap, useFilterConfiguration } from './state';
 import FilterConfigForm from './FilterConfigForm';
 import { FilterConfiguration, NativeFiltersForm } from './types';
+
+// how long to show the "undo" button when removing a filter
+const REMOVAL_DELAY_SECS = 5;
 
 const StyledModalBody = styled.div`
   display: flex;
@@ -40,14 +44,84 @@ const StyledModalBody = styled.div`
   }
 `;
 
-const RemovedStatus = styled.span`
-  &.removed {
-    text-decoration: line-through;
+const StyledForm = styled(Form)`
+  width: 100%;
+`;
+
+const FilterTabs = styled(LineEditableTabs)`
+  // extra selector specificity:
+  &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
+    min-width: 200px;
+    margin-left: 0;
+    padding: 0 ${({ theme }) => theme.gridUnit * 2}px
+      ${({ theme }) => theme.gridUnit}px;
+
+    &:hover,
+    &-active {
+      color: ${({ theme }) => theme.colors.grayscale.dark1};
+      border-radius: ${({ theme }) => theme.borderRadius}px;
+      background-color: ${({ theme }) => theme.colors.grayscale.light2};
+    }
+  }
+
+  .ant-tabs-tab-btn {
+    text-align: left;
+    justify-content: space-between;
+    text-transform: unset;
   }
 `;
 
+const FilterTabTitle = styled.span`
+  transition: color ${({ theme }) => theme.transitionTiming}s;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: ${({ theme }) => theme.gridUnit}px
+    ${({ theme }) => theme.gridUnit * 2}px 0 0;
+
+  @keyframes tabTitleRemovalAnimation {
+    0%,
+    90% {
+      opacity: 1;
+    }
+    95%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  &.removed {
+    color: ${({ theme }) => theme.colors.warning.dark1};
+    transform-origin: top;
+    animation-name: tabTitleRemovalAnimation;
+    animation-duration: ${REMOVAL_DELAY_SECS}s;
+  }
+`;
+
+const StyledAddFilterBox = styled.div`
+  color: ${({ theme }) => theme.colors.primary.dark1};
+  text-align: left;
+  padding: ${({ theme }) => theme.gridUnit * 2}px 0;
+  margin: ${({ theme }) => theme.gridUnit * 3}px 0 0
+    ${({ theme }) => -theme.gridUnit * 2}px;
+  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light1};
+
+  &:hover {
+    color: ${({ theme }) => theme.colors.primary.base};
+  }
+`;
+
+type FilterRemoval =
+  | null
+  | {
+      isPending: true; // the filter sticks around for a moment before removal is finalized
+      timerId: number; // id of the timer that finally removes the filter
+    }
+  | { isPending: false };
+
 function generateFilterId() {
-  return `FILTER_V2-${shortid.generate()}`;
+  return `NATIVE_FILTER-${shortid.generate()}`;
 }
 
 export interface FilterConfigModalProps {
@@ -78,18 +152,44 @@ export function FilterConfigModal({
 }: FilterConfigModalProps) {
   const [form] = Form.useForm<NativeFiltersForm>();
 
+  // the filter config from redux state, this does not change until modal is closed.
   const filterConfig = useFilterConfiguration();
   const filterConfigMap = useFilterConfigMap();
-  // new filter ids may belong to filters that do not exist yet
+
+  // new filter ids belong to filters have been added during
+  // this configuration session, and only exist in the form state until we submit.
   const [newFilterIds, setNewFilterIds] = useState<string[]>([]);
-  // store ids of filters that have been removed but keep them around in the state
-  const [removedFilters, setRemovedFilters] = useState<Record<string, boolean>>(
-    {},
+
+  // store ids of filters that have been removed with the time they were removed
+  // so that we can disappear them after a few secs.
+  // filters are still kept in state until form is submitted.
+  const [removedFilters, setRemovedFilters] = useState<
+    Record<string, FilterRemoval>
+  >({});
+
+  // brings back a filter that was previously removed ("Undo")
+  const restoreFilter = useCallback(
+    (id: string) => {
+      const removal = removedFilters[id];
+      // gotta clear the removal timeout to prevent the filter from getting deleted
+      if (removal?.isPending) clearTimeout(removal.timerId);
+      setRemovedFilters(current => ({ ...current, [id]: null }));
+    },
+    [removedFilters],
   );
+
+  // The full ordered set of ((original + new) - completely removed) filter ids
+  // Use this as the canonical list of what filters are being configured!
+  // This includes filter ids that are pending removal, so check for that.
   const filterIds = useMemo(
-    () => uniq([...getFilterIds(filterConfig), ...newFilterIds]),
-    [filterConfig, newFilterIds],
+    () =>
+      uniq([...getFilterIds(filterConfig), ...newFilterIds]).filter(
+        id => !removedFilters[id] || removedFilters[id]?.isPending,
+      ),
+    [filterConfig, newFilterIds, removedFilters],
   );
+
+  // open the first filter in the list to start
   const getInitialCurrentFilterId = useCallback(
     () => initialFilterId ?? filterIds[0],
     [initialFilterId, filterIds],
@@ -97,24 +197,45 @@ export function FilterConfigModal({
   const [currentFilterId, setCurrentFilterId] = useState(
     getInitialCurrentFilterId,
   );
+
   // the form values are managed by the antd form, but we copy them to here
+  // so that we can display them (e.g. filter titles in the tab headers)
   const [formValues, setFormValues] = useState<NativeFiltersForm>({
     filters: {},
   });
+
   const wasOpen = usePrevious(isOpen);
 
+  useEffect(() => {
+    // if the currently viewed filter is fully removed, change to another tab
+    const currentFilterRemoved = removedFilters[currentFilterId];
+    if (currentFilterRemoved && !currentFilterRemoved.isPending) {
+      const nextFilterIndex = findLastIndex(
+        filterIds,
+        id => !removedFilters[id] && id !== currentFilterId,
+      );
+      if (nextFilterIndex !== -1)
+        setCurrentFilterId(filterIds[nextFilterIndex]);
+    }
+  }, [currentFilterId, removedFilters, filterIds]);
+
+  // generates a new filter id and appends it to the newFilterIds
   const addFilter = useCallback(() => {
     const newFilterId = generateFilterId();
     setNewFilterIds([...newFilterIds, newFilterId]);
     setCurrentFilterId(newFilterId);
   }, [newFilterIds, setCurrentFilterId]);
 
+  // if this is a "create" modal rather than an "edit" modal,
+  // add a filter on modal open
   useEffect(() => {
     if (createNewOnOpen && isOpen && !wasOpen) {
       addFilter();
     }
   }, [createNewOnOpen, isOpen, wasOpen, addFilter]);
 
+  // After this, it should be as if the modal was just opened fresh.
+  // Called when the modal is closed.
   const resetForm = useCallback(() => {
     form.resetFields();
     setNewFilterIds([]);
@@ -122,22 +243,28 @@ export function FilterConfigModal({
     setRemovedFilters({});
   }, [form, getInitialCurrentFilterId]);
 
+  const completeFilterRemoval = (filterId: string) => {
+    // the filter state will actually stick around in the form,
+    // and the filterConfig/newFilterIds, but we use removedFilters
+    // to mark it as removed.
+    setRemovedFilters(removedFilters => ({
+      ...removedFilters,
+      [filterId]: { isPending: false },
+    }));
+  };
+
   function onTabEdit(filterId: string, action: 'add' | 'remove') {
     if (action === 'remove') {
-      setRemovedFilters({
+      // first set up the timer to completely remove it
+      const timerId = window.setTimeout(
+        () => completeFilterRemoval(filterId),
+        REMOVAL_DELAY_SECS * 1000,
+      );
+      // mark the filter state as "removal in progress"
+      setRemovedFilters(removedFilters => ({
         ...removedFilters,
-        // trash can button is actually a toggle
-        [filterId]: !removedFilters[filterId],
-      });
-      if (filterId === currentFilterId && !removedFilters[filterId]) {
-        // when a filter is removed, switch the view to a non-removed one
-        const lastNotRemoved = findLastIndex(
-          filterIds,
-          id => !removedFilters[id] && id !== filterId,
-        );
-        if (lastNotRemoved !== -1)
-          setCurrentFilterId(filterIds[lastNotRemoved]);
-      }
+        [filterId]: { isPending: true, timerId },
+      }));
     } else if (action === 'add') {
       addFilter();
     }
@@ -149,9 +276,68 @@ export function FilterConfigModal({
     );
   }
 
+  function getParentFilters(id: string) {
+    return filterIds
+      .filter(filterId => filterId !== id && !removedFilters[filterId])
+      .map(id => ({
+        id,
+        title: getFilterTitle(id),
+      }));
+  }
+
+  const addValidationError = (
+    filterId: string,
+    field: string,
+    error: string,
+  ) => {
+    const fieldError = {
+      name: ['filters', filterId, field],
+      errors: [error],
+    };
+    form.setFields([fieldError]);
+    // eslint-disable-next-line no-throw-literal
+    throw { errorFields: [fieldError] };
+  };
+
   const validateForm = useCallback(async () => {
     try {
-      return (await form.validateFields()) as NativeFiltersForm;
+      const formValues = (await form.validateFields()) as NativeFiltersForm;
+
+      const validateInstant = (filterId: string) => {
+        const isInstant = formValues.filters[filterId]
+          ? formValues.filters[filterId].isInstant
+          : filterConfigMap[filterId]?.isInstant;
+        if (!isInstant) {
+          addValidationError(
+            filterId,
+            'isInstant',
+            'For parent filters changes must be applied instantly',
+          );
+        }
+      };
+
+      const validateCycles = (filterId: string, trace: string[] = []) => {
+        if (trace.includes(filterId)) {
+          addValidationError(
+            filterId,
+            'parentFilter',
+            'Cannot create cyclic hierarchy',
+          );
+        }
+        const parentId = formValues.filters[filterId]
+          ? formValues.filters[filterId].parentFilter?.value
+          : filterConfigMap[filterId]?.cascadeParentIds?.[0];
+        if (parentId) {
+          validateInstant(parentId);
+          validateCycles(parentId, [...trace, filterId]);
+        }
+      };
+
+      filterIds
+        .filter(id => !removedFilters[id])
+        .forEach(filterId => validateCycles(filterId));
+
+      return formValues;
     } catch (error) {
       console.warn('Filter Configuration Failed:', error);
 
@@ -163,11 +349,16 @@ export function FilterConfigModal({
       // filter id is the second item in the field name
       if (!errorFields.some(field => field.name[1] === currentFilterId)) {
         // switch to the first tab that had a validation error
-        setCurrentFilterId(errorFields[0].name[1]);
+        const filterError = errorFields.find(
+          field => field.name[0] === 'filters',
+        );
+        if (filterError) {
+          setCurrentFilterId(filterError.name[1]);
+        }
       }
       return null;
     }
-  }, [form, currentFilterId]);
+  }, [form, currentFilterId, filterConfigMap, filterIds, removedFilters]);
 
   const onOk = useCallback(async () => {
     const values: NativeFiltersForm | null = await validateForm();
@@ -182,7 +373,6 @@ export function FilterConfigModal({
         if (!formInputs) return filterConfigMap[id];
         return {
           id,
-          cascadeParentIds: [],
           name: formInputs.name,
           type: 'text',
           // for now there will only ever be one target
@@ -195,6 +385,9 @@ export function FilterConfigModal({
             },
           ],
           defaultValue: formInputs.defaultValue || null,
+          cascadeParentIds: formInputs.parentFilter
+            ? [formInputs.parentFilter.value]
+            : [],
           scope: {
             rootPath: [DASHBOARD_ROOT_ID],
             excluded: [],
@@ -217,26 +410,34 @@ export function FilterConfigModal({
     validateForm,
   ]);
 
+  const handleCancel = () => {
+    resetForm();
+    onCancel();
+  };
+
   return (
     <StyledModal
       visible={isOpen}
       title={t('Filter Configuration and Scoping')}
       width="55%"
-      onCancel={() => {
-        resetForm();
-        onCancel();
-      }}
+      onCancel={handleCancel}
       onOk={onOk}
-      okText={t('Save')}
-      cancelText={t('Cancel')}
       centered
       data-test="filter-modal"
+      footer={[
+        <Button key="cancel" buttonStyle="secondary" onClick={handleCancel}>
+          {t('Cancel')}
+        </Button>,
+        <Button key="submit" buttonStyle="primary" onClick={onOk}>
+          {t('Save')}
+        </Button>,
+      ]}
     >
       <ErrorBoundary>
         <StyledModalBody>
-          <Form
+          <StyledForm
             form={form}
-            onValuesChange={(changes, values) => {
+            onValuesChange={(changes, values: NativeFiltersForm) => {
               if (
                 changes.filters &&
                 Object.values(changes.filters).some(
@@ -247,35 +448,56 @@ export function FilterConfigModal({
                 setFormValues(values);
               }
             }}
+            layout="vertical"
           >
-            <LineEditableTabs
+            <FilterTabs
               tabPosition="left"
               onChange={setCurrentFilterId}
               activeKey={currentFilterId}
               onEdit={onTabEdit}
+              addIcon={
+                <StyledAddFilterBox>
+                  <PlusOutlined /> <span>{t('Add Filter')}</span>
+                </StyledAddFilterBox>
+              }
             >
               {filterIds.map(id => (
                 <LineEditableTabs.TabPane
                   tab={
-                    <RemovedStatus
+                    <FilterTabTitle
                       className={removedFilters[id] ? 'removed' : ''}
                     >
-                      {getFilterTitle(id)}
-                    </RemovedStatus>
+                      <div>
+                        {removedFilters[id]
+                          ? t('(Removed)')
+                          : getFilterTitle(id)}
+                      </div>
+                      {removedFilters[id] && (
+                        <a
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => restoreFilter(id)}
+                        >
+                          {t('Undo?')}
+                        </a>
+                      )}
+                    </FilterTabTitle>
                   }
                   key={id}
-                  closeIcon={<DeleteFilled />}
+                  closeIcon={removedFilters[id] ? <></> : <DeleteFilled />}
                 >
                   <FilterConfigForm
                     form={form}
                     filterId={id}
                     filterToEdit={filterConfigMap[id]}
                     removed={!!removedFilters[id]}
+                    restore={restoreFilter}
+                    parentFilters={getParentFilters(id)}
                   />
                 </LineEditableTabs.TabPane>
               ))}
-            </LineEditableTabs>
-          </Form>
+            </FilterTabs>
+          </StyledForm>
         </StyledModalBody>
       </ErrorBoundary>
     </StyledModal>
