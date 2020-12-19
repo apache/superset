@@ -151,12 +151,16 @@ const VizTypeControl = props => {
   const filterString = filter.toLowerCase();
 
   const filteredTypes = DEFAULT_ORDER.filter(type => registry.has(type))
+    .filter(type => !registry.get(type).isNativeFilter)
     .map(type => ({
       key: type,
       value: registry.get(type),
     }))
     .concat(
-      registry.entries().filter(({ key }) => !typesWithDefaultOrder.has(key)),
+      registry
+        .entries()
+        .filter(entry => !entry.value.isNativeFilter)
+        .filter(({ key }) => !typesWithDefaultOrder.has(key)),
     )
     .filter(entry => entry.value.name.toLowerCase().includes(filterString));
 

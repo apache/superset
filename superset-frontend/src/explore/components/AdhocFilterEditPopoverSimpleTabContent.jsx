@@ -75,7 +75,7 @@ function translateOperator(operator) {
     return 'not equal to';
   }
   if (operator === OPERATORS.LIKE) {
-    return 'like';
+    return 'LIKE';
   }
   if (operator === OPERATORS['LATEST PARTITION']) {
     return 'use latest_partition template';
