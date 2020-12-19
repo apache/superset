@@ -32,6 +32,28 @@ export type PluginContextType = {
   fetchAll: () => void;
 };
 
+const dummyPluginContext: PluginContextType = {
+  loading: true,
+  plugins: {},
+  fetchAll: () => {},
+};
+
+/**
+ * It is highly recommended to use the useDynamicPluginContext hook instead.
+ * @see useDynamicPluginContext
+ */
+export const PluginContext = React.createContext(dummyPluginContext);
+
+/**
+ * The plugin context provides info about what dynamic plugins are available.
+ * It also provides loading info for the plugins' javascript bundles.
+ *
+ * Note: This does not include any information about static plugins.
+ * Those are compiled into the Superset bundle at build time.
+ * Dynamic plugins are added by the end user and can be any webhosted javascript.
+ */
+export const useDynamicPluginContext = () => useContext(PluginContext);
+
 // the plugin returned from the API
 type Plugin = {
   name: string;
@@ -40,26 +62,18 @@ type Plugin = {
   id: number;
 };
 
+// when a plugin completes loading
 type CompleteAction = {
   type: 'complete';
   key: string;
   error: null | Error;
 };
 
+// when plugins start loading
 type BeginAction = {
   type: 'begin';
   keys: string[];
 };
-
-const dummyPluginContext: PluginContextType = {
-  loading: true,
-  plugins: {},
-  fetchAll: () => {},
-};
-
-export const PluginContext = React.createContext(dummyPluginContext);
-
-export const useDynamicPluginContext = () => useContext(PluginContext);
 
 function pluginContextReducer(
   state: PluginContextType,
@@ -121,6 +135,9 @@ export const DynamicPluginProvider: React.FC = ({ children }) => {
     // TODO: Write fetchByKeys
   });
 
+  // For now, we fetch all the plugins at the same time.
+  // In the future it would be nice to fetch on an as-needed basis.
+  // That will most likely depend on having a json manifest for each plugin.
   async function fetchAll() {
     try {
       await defineSharedModules(sharedModules);
