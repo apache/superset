@@ -65,7 +65,6 @@
     "@babel/runtime-corejs3": "^7.8.4",
     "@data-ui/sparkline": "^0.0.84",
     "@emotion/core": "^10.0.35",
-    "@emotion/react": "^11.1.2",
     "@superset-ui/chart-controls": "^0.15.18",
     "@superset-ui/core": "^0.15.18",
     "@superset-ui/legacy-plugin-chart-calendar": "^0.15.18",

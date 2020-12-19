@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { keyframes } from '@emotion/react';
 import { findLastIndex, uniq } from 'lodash';
 import shortid from 'shortid';
 import { DeleteFilled, PlusOutlined } from '@ant-design/icons';
@@ -72,15 +71,6 @@ const FilterTabs = styled(LineEditableTabs)`
   }
 `;
 
-const tabTitleRemovalAnimation = keyframes`
-  0%, 90% {
-    opacity: 1;
-  }
-  95%, 100% {
-    opacity: 0;
-  }
-`;
-
 const FilterTabTitle = styled.span`
   transition: color ${({ theme }) => theme.transitionTiming}s;
   width: 100%;
@@ -90,10 +80,22 @@ const FilterTabTitle = styled.span`
   padding: ${({ theme }) => theme.gridUnit}px
     ${({ theme }) => theme.gridUnit * 2}px 0 0;
 
+  @keyframes tabTitleRemovalAnimation {
+    0%,
+    90% {
+      opacity: 1;
+    }
+    95%,
+    100% {
+      opacity: 0;
+    }
+  }
+
   &.removed {
     color: ${({ theme }) => theme.colors.warning.dark1};
     transform-origin: top;
-    animation: ${tabTitleRemovalAnimation} ${REMOVAL_DELAY_SECS}s;
+    animation-name: tabTitleRemovalAnimation;
+    animation-duration: ${REMOVAL_DELAY_SECS}s;
   }
 `;
 
