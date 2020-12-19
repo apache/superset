@@ -38,6 +38,7 @@ const propTypes = {
   alert: PropTypes.string,
   slice: PropTypes.object,
   datasource: PropTypes.object,
+  dashboardId: PropTypes.number,
 };
 
 // Session storage key for recent dashboard
@@ -64,6 +65,11 @@ class SaveModal extends React.Component {
       );
       let recentDashboard = sessionStorage.getItem(SK_DASHBOARD_ID);
       recentDashboard = recentDashboard && parseInt(recentDashboard, 10);
+
+      if (!recentDashboard && this.props.dashboardId) {
+        recentDashboard = this.props.dashboardId;
+      }
+
       if (
         recentDashboard !== null &&
         dashboardIds.indexOf(recentDashboard) !== -1
@@ -146,7 +152,8 @@ class SaveModal extends React.Component {
               id="btn_modal_save_goto_dash"
               buttonSize="sm"
               disabled={
-                !this.state.newSliceName || !this.state.newDashboardName
+                !this.state.newSliceName ||
+                (!this.state.saveToDashboardId && !this.state.newDashboardName)
               }
               onClick={this.saveOrOverwrite.bind(this, true)}
             >

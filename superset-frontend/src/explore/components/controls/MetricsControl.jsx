@@ -128,6 +128,7 @@ class MetricsControl extends React.PureComponent {
         onMetricEdit={this.onMetricEdit}
         onRemoveMetric={() => this.onRemoveMetric(index)}
         columns={this.props.columns}
+        savedMetrics={this.props.savedMetrics}
         datasourceType={this.props.datasourceType}
       />
     );
@@ -178,17 +179,25 @@ class MetricsControl extends React.PureComponent {
     );
   }
 
-  onMetricEdit(changedMetric) {
-    let newValue = this.state.value.map(value => {
-      if (value.optionName === changedMetric.optionName) {
-        return changedMetric;
-      }
-      return value;
-    });
-    if (!this.props.multi) {
-      newValue = newValue[0];
-    }
-    this.props.onChange(newValue);
+  onMetricEdit(changedMetric, oldMetric) {
+    this.setState(
+      prevState => ({
+        value: prevState.value.map(value => {
+          if (
+            // compare saved metrics
+            value === oldMetric.metric_name ||
+            // compare adhoc metrics
+            value.optionName === oldMetric.optionName
+          ) {
+            return changedMetric;
+          }
+          return value;
+        }),
+      }),
+      () => {
+        this.onChange(this.state.value);
+      },
+    );
   }
 
   onRemoveMetric(index) {
@@ -242,6 +251,8 @@ class MetricsControl extends React.PureComponent {
         adhocMetric={new AdhocMetric({})}
         onMetricEdit={this.onNewMetric}
         columns={this.props.columns}
+        savedMetrics={this.props.savedMetrics}
+        savedMetric={{}}
         datasourceType={this.props.datasourceType}
         createNew
       >

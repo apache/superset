@@ -70,11 +70,7 @@ describe('Dashboard filter', () => {
     cy.get('.Select__placeholder:first').click();
 
     // should open the filter indicator
-    cy.get('svg[data-test="filter"]')
-      .should('be.visible')
-      .should(nodes => {
-        expect(nodes).to.have.length(9);
-      });
+    cy.get('svg[data-test="filter"]').should('be.visible');
 
     cy.get('.Select__control:first input[type=text]').type('So', {
       force: true,
@@ -82,6 +78,12 @@ describe('Dashboard filter', () => {
     });
 
     cy.get('.Select__menu').first().contains('South Asia').click();
+
+    // should still have all filter indicators
+    // and since the select is closed, all filter indicators should be visible
+    cy.get('svg[data-test="filter"]:visible').should(nodes => {
+      expect(nodes).to.have.length(9);
+    });
 
     cy.get('.filter_box button').click({ force: true });
     cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests => {

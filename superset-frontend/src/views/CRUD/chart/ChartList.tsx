@@ -40,6 +40,7 @@ import ListView, {
   ListViewProps,
   Filters,
   SelectOption,
+  FilterOperators,
 } from 'src/components/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
@@ -195,7 +196,7 @@ function ChartList(props: ChartListProps) {
           />
         ),
         Header: '',
-        id: 'favorite',
+        id: 'id',
         disableSortBy: true,
         size: 'xs',
       },
@@ -367,7 +368,7 @@ function ChartList(props: ChartListProps) {
       Header: t('Owner'),
       id: 'owners',
       input: 'select',
-      operator: 'rel_m_m',
+      operator: FilterOperators.relationManyMany,
       unfilteredLabel: 'All',
       fetchSelects: createFetchRelated(
         'chart',
@@ -388,7 +389,7 @@ function ChartList(props: ChartListProps) {
       Header: t('Created By'),
       id: 'created_by',
       input: 'select',
-      operator: 'rel_o_m',
+      operator: FilterOperators.relationOneMany,
       unfilteredLabel: 'All',
       fetchSelects: createFetchRelated(
         'chart',
@@ -409,7 +410,7 @@ function ChartList(props: ChartListProps) {
       Header: t('Viz Type'),
       id: 'viz_type',
       input: 'select',
-      operator: 'eq',
+      operator: FilterOperators.equals,
       unfilteredLabel: 'All',
       selects: getChartMetadataRegistry()
         .keys()
@@ -433,7 +434,7 @@ function ChartList(props: ChartListProps) {
       Header: t('Dataset'),
       id: 'datasource_id',
       input: 'select',
-      operator: 'eq',
+      operator: FilterOperators.equals,
       unfilteredLabel: 'All',
       fetchSelects: createFetchDatasets(
         createErrorHandler(errMsg =>
@@ -448,10 +449,22 @@ function ChartList(props: ChartListProps) {
       paginate: false,
     },
     {
+      Header: t('Favorite'),
+      id: 'id',
+      urlDisplay: 'favorite',
+      input: 'select',
+      operator: FilterOperators.chartIsFav,
+      unfilteredLabel: 'Any',
+      selects: [
+        { label: t('Yes'), value: true },
+        { label: t('No'), value: false },
+      ],
+    },
+    {
       Header: t('Search'),
       id: 'slice_name',
       input: 'search',
-      operator: 'chart_all_text',
+      operator: FilterOperators.chartAllText,
     },
   ];
 

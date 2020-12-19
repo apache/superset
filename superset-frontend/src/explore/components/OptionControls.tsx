@@ -18,7 +18,9 @@
  */
 import React from 'react';
 import { styled, useTheme } from '@superset-ui/core';
+import { ColumnOption } from '@superset-ui/chart-controls';
 import Icon from '../../components/Icon';
+import { savedMetricType } from '../types';
 
 const OptionControlContainer = styled.div<{ isAdhoc?: boolean }>`
   display: flex;
@@ -36,8 +38,12 @@ const OptionControlContainer = styled.div<{ isAdhoc?: boolean }>`
 `;
 
 const Label = styled.div`
-  display: flex;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   align-items: center;
+  white-space: nowrap;
   padding-left: ${({ theme }) => theme.gridUnit}px;
   svg {
     margin-right: ${({ theme }) => theme.gridUnit}px;
@@ -109,17 +115,30 @@ export const AddIconButton = styled.button`
 
 export const OptionControlLabel = ({
   label,
+  savedMetric,
   onRemove,
   isAdhoc,
   isFunction,
   ...props
 }: {
   label: string | React.ReactNode;
+  savedMetric?: savedMetricType;
   onRemove: () => void;
   isAdhoc?: boolean;
   isFunction?: boolean;
 }) => {
   const theme = useTheme();
+  const getLabelContent = () => {
+    if (savedMetric?.metric_name) {
+      // add column_name to fix typescript error
+      const column = { ...savedMetric, column_name: '' };
+      if (!column.verbose_name) {
+        column.verbose_name = column.metric_name;
+      }
+      return <ColumnOption column={column} />;
+    }
+    return label;
+  };
   return (
     <OptionControlContainer
       isAdhoc={isAdhoc}
@@ -135,7 +154,7 @@ export const OptionControlLabel = ({
       </CloseContainer>
       <Label data-test="control-label">
         {isFunction && <Icon name="function" viewBox="0 0 16 11" />}
-        {label}
+        {getLabelContent()}
       </Label>
       {isAdhoc && (
         <CaretContainer>

@@ -51,6 +51,7 @@ const propTypes = {
   ...ExploreChartPanel.propTypes,
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
+  dashboardId: PropTypes.number,
   isDatasourceMetaLoading: PropTypes.bool.isRequired,
   chart: chartPropShape.isRequired,
   slice: PropTypes.object,
@@ -401,6 +402,7 @@ function ExploreViewContainer(props) {
           actions={props.actions}
           form_data={props.form_data}
           sliceName={props.sliceName}
+          dashboardId={props.dashboardId}
         />
       )}
       <div
@@ -411,7 +413,7 @@ function ExploreViewContainer(props) {
         }
       >
         <div className="title-container">
-          <span className="horizontal-text">{t('Datasource')}</span>
+          <span className="horizont al-text">{t('Datasource')}</span>
           <span
             role="button"
             tabIndex={0}
@@ -495,6 +497,7 @@ function mapStateToProps(state) {
     datasource: explore.datasource,
     datasource_type: explore.datasource.type,
     datasourceId: explore.datasource_id,
+    dashboardId: explore.form_data ? explore.form_data.dashboardId : undefined,
     controls: explore.controls,
     can_overwrite: !!explore.can_overwrite,
     can_add: !!explore.can_add,
