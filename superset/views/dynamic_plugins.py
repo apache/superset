@@ -16,6 +16,7 @@
 # under the License.
 from flask_appbuilder import ModelView
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_babel import lazy_gettext as _
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.models.dynamic_plugins import DynamicPlugin
@@ -38,8 +39,18 @@ class DynamicPluginsView(ModelView):
     label_columns = {"name": "Name", "key": "Key", "bundle_url": "Bundle URL"}
 
     description_columns = {
-        "name": "A human-friendly name",
-        "key": "Should be set to the package name from the pluginʼs package.json",
-        "bundle_url": "A full URL pointing to the location "
-        "of the built plugin (could be hosted on a CDN for example)",
+        "name": _("A human-friendly name"),
+        "key": _(
+            "Used internally to identify the plugin. "
+            "Should be set to the package name from the pluginʼs package.json"
+        ),
+        "bundle_url": _(
+            "A full URL pointing to the location "
+            "of the built plugin (could be hosted on a CDN for example)"
+        ),
     }
+
+    list_title = _("Custom Plugins")
+    show_title = _("Custom Plugin")
+    add_title = _("Add a Plugin")
+    edit_title = _("Edit Plugin")
