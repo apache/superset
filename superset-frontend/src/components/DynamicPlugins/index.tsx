@@ -17,11 +17,7 @@
  * under the License.
  */
 import React, { useContext, useEffect, useReducer } from 'react';
-import {
-  defineSharedModules,
-  logging,
-  SupersetClient,
-} from '@superset-ui/core';
+import { defineSharedModules, logging, makeApi } from '@superset-ui/core';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 
 export type PluginContextType = {
@@ -102,7 +98,10 @@ function pluginContextReducer(
   }
 }
 
-export type Props = React.PropsWithChildren<{}>;
+const pluginApi = makeApi<{}, { result: Plugin[] }>({
+  method: 'GET',
+  endpoint: '/dynamic-plugins/api/read',
+});
 
 const sharedModules = {
   react: () => import('react'),
@@ -112,7 +111,7 @@ const sharedModules = {
   '@superset-ui/core': () => import('@superset-ui/core'),
 };
 
-export function DynamicPluginProvider({ children }: Props) {
+export const DynamicPluginProvider: React.FC = ({ children }) => {
   const [pluginState, dispatch] = useReducer(pluginContextReducer, {
     // use the dummy plugin context, and override the methods
     ...dummyPluginContext,
@@ -125,10 +124,7 @@ export function DynamicPluginProvider({ children }: Props) {
   async function fetchAll() {
     try {
       await defineSharedModules(sharedModules);
-      const response = await SupersetClient.get({
-        endpoint: '/dynamic-plugins/api/read',
-      });
-      const plugins: Plugin[] = response.json.result;
+      const { result: plugins } = await pluginApi({});
       dispatch({ type: 'begin', keys: plugins.map(plugin => plugin.key) });
       await Promise.all(
         plugins.map(async plugin => {
@@ -165,4 +161,4 @@ export function DynamicPluginProvider({ children }: Props) {
       {children}
     </PluginContext.Provider>
   );
-}
+};
