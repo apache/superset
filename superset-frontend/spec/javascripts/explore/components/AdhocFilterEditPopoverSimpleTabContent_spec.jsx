@@ -41,7 +41,7 @@ const simpleAdhocFilter = new AdhocFilter({
 const simpleMultiAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
   subject: 'value',
-  operator: 'in',
+  operator: 'IN',
   comparator: ['10'],
   clause: CLAUSES.WHERE,
 });
@@ -112,10 +112,10 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
 
   it('will convert from individual comparator to array if the operator changes to multi', () => {
     const { wrapper, onChange } = setup();
-    wrapper.instance().onOperatorChange('in');
+    wrapper.instance().onOperatorChange('IN');
     expect(onChange.calledOnce).toBe(true);
     expect(onChange.lastCall.args[0]).toEqual(
-      simpleAdhocFilter.duplicateWith({ operator: 'in', comparator: ['10'] }),
+      simpleAdhocFilter.duplicateWith({ operator: 'IN', comparator: ['10'] }),
     );
   });
 
@@ -141,13 +141,13 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
 
   it('will filter operators for table datasources', () => {
     const { wrapper } = setup({ datasource: { type: 'table' } });
-    expect(wrapper.instance().isOperatorRelevant('regex')).toBe(false);
+    expect(wrapper.instance().isOperatorRelevant('REGEX')).toBe(false);
     expect(wrapper.instance().isOperatorRelevant('LIKE')).toBe(true);
   });
 
   it('will filter operators for druid datasources', () => {
     const { wrapper } = setup({ datasource: { type: 'druid' } });
-    expect(wrapper.instance().isOperatorRelevant('regex')).toBe(true);
+    expect(wrapper.instance().isOperatorRelevant('REGEX')).toBe(true);
     expect(wrapper.instance().isOperatorRelevant('LIKE')).toBe(false);
   });
 
