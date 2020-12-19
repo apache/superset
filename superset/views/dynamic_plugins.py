@@ -17,6 +17,7 @@
 from flask_appbuilder import ModelView
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.models.dynamic_plugins import DynamicPlugin
 
 
@@ -27,16 +28,7 @@ class DynamicPluginsView(ModelView):
     datamodel = SQLAInterface(DynamicPlugin)
     class_permission_name = "DynamicPlugin"
 
-    # set it up so that instead of 6 permissions
-    # we create just two - "can read" and "can write"
-    method_permission_name = {
-        "get_list": "read",
-        "get": "read",
-        "post": "write",
-        "put": "write",
-        "delete": "write",
-        "info": "read",
-    }
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
 
     add_columns = ["name", "key", "bundle_url"]
     edit_columns = add_columns
