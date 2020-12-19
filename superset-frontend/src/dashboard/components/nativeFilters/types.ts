@@ -77,7 +77,7 @@ export interface Filter {
   allowsMultipleValues: boolean;
   cascadeParentIds: string[];
   defaultValue: string | null;
-  currentValue?: string[] | null;
+  currentValue?: (string | number | boolean)[] | null;
   inverseSelection: boolean;
   isInstant: boolean;
   isRequired: boolean;
