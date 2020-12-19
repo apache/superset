@@ -181,6 +181,7 @@ class SupersetAppInitializer:
             ExcelToDatabaseView,
         )
         from superset.views.datasource import Datasource
+        from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
@@ -266,6 +267,15 @@ class SupersetAppInitializer:
             category="",
             category_icon="",
         )
+        if feature_flag_manager.is_feature_enabled("DYNAMIC_PLUGINS"):
+            appbuilder.add_view(
+                DynamicPluginsView,
+                "Plugins",
+                label=__("Plugins"),
+                category="Manage",
+                category_label=__("Manage"),
+                icon="fa-puzzle-piece",
+            )
         appbuilder.add_view(
             CssTemplateModelView,
             "CSS Templates",

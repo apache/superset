@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass  # pylint: disable=wrong-import-order
 from enum import Enum
 from typing import List, Optional, Set
 from urllib import parse
