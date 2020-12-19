@@ -522,7 +522,7 @@
           "__timestamp": "1971-01-01T00:00:00",
           "state": "other",
           "gender": "boy",
-          "name": "<img title=\"This is an image\" src=\"https://superset.incubator.apache.org/_images/s.png\" width=\"60\" />",
+          "name": "<img title=\"This is an image\" src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z/C/HgAGgwJ/lK3Q6wAAAABJRU5ErkJggg==\" width=\"60\" />",
           "total": 34443,
           "boys": 34443,
           "SUM(num_california)": 0,
