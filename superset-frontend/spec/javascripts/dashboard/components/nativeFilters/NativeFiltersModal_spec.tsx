@@ -49,20 +49,18 @@ describe('FiltersConfigModal', () => {
   function setup(overridesProps?: any) {
     return mount(
       <Provider store={mockStore}>
-        <FilterConfigModal {...{ ...mockedProps, ...overridesProps }} />
+        <FilterConfigModal {...mockedProps} {...overridesProps} />
       </Provider>,
     );
   }
+
   it('should be a valid react element', () => {
     expect(React.isValidElement(<FilterConfigModal {...mockedProps} />)).toBe(
       true,
     );
   });
-  it('should display form when isOpen is true', () => {
-    const wrapper = setup();
-    expect(wrapper.find('form')).toExist();
-  });
-  it('the form validate required fields', async () => {
+
+  it('the form validates required fields', async () => {
     const onSave = jest.fn();
     const wrapper = setup({ save: onSave });
     act(() => {
@@ -71,7 +69,7 @@ describe('FiltersConfigModal', () => {
         .first()
         .simulate('change', { target: { value: 'test name' } });
 
-      wrapper.find('.ant-btn-primary').simulate('click');
+      wrapper.find('.ant-modal-footer button').at(1).simulate('click');
     });
     await waitForComponentToPaint(wrapper);
     expect(onSave.mock.calls).toHaveLength(0);
