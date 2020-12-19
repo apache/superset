@@ -19,18 +19,18 @@
 import { ExtraFormData, QueryObject } from '@superset-ui/core';
 import { Charts, Layout, LayoutItem } from 'src/dashboard/types';
 import {
-  TreeItem,
-  Scope,
-  NativeFiltersState,
-  Filter,
-  CascadeFilter,
-} from './types';
-import {
   CHART_TYPE,
   DASHBOARD_ROOT_TYPE,
   TABS_TYPE,
   TAB_TYPE,
 } from 'src/dashboard/util/componentTypes';
+import {
+  CascadeFilter,
+  Filter,
+  NativeFiltersState,
+  Scope,
+  TreeItem,
+} from './types';
 
 export const isShowTypeInTree = ({ type, meta }: LayoutItem, charts?: Charts) =>
   (type === TABS_TYPE ||

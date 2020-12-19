@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const DATETIME_WITH_TIME_ZONE = 'YYYY-MM-DD HH:mm:ssZ';
-
-export const TIME_WITH_MS = 'HH:mm:ss.SSS';
-
-export const BOOL_TRUE_DISPLAY = 'True';
-export const BOOL_FALSE_DISPLAY = 'False';
+export type savedMetricType = {
+  metric_name: string;
+  verbose_name: string;
+  expression: string;
+};

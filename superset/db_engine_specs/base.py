@@ -51,7 +51,7 @@ from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Select, TextAsFrom
 from sqlalchemy.types import TypeEngine
 
-from superset import app, sql_parse
+from superset import app, security_manager, sql_parse
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, Table
@@ -203,7 +203,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return any(pattern.match(db_column_type) for pattern in patterns)
 
     @classmethod
-    def get_allow_cost_estimate(cls, version: Optional[str] = None) -> bool:
+    def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
         return False
 
     @classmethod
@@ -790,16 +790,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sql
 
     @classmethod
-    def estimate_statement_cost(
-        cls, statement: str, database: "Database", cursor: Any, user_name: str
-    ) -> Dict[str, Any]:
+    def estimate_statement_cost(cls, statement: str, cursor: Any,) -> Dict[str, Any]:
         """
         Generate a SQL query that estimates the cost of a given statement.
 
         :param statement: A single SQL statement
-        :param database: Database instance
         :param cursor: Cursor instance
-        :param username: Effective username
         :return: Dictionary with different costs
         """
         raise Exception("Database does not support cost estimation")
@@ -817,9 +813,30 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         raise Exception("Database does not support cost estimation")
 
     @classmethod
+    def process_statement(
+        cls, statement: str, database: "Database", user_name: str
+    ) -> str:
+        """
+        Process a SQL statement by stripping and mutating it.
+
+        :param statement: A single SQL statement
+        :param database: Database instance
+        :param username: Effective username
+        :return: Dictionary with different costs
+        """
+        parsed_query = ParsedQuery(statement)
+        sql = parsed_query.stripped()
+
+        sql_query_mutator = config["SQL_QUERY_MUTATOR"]
+        if sql_query_mutator:
+            sql = sql_query_mutator(sql, user_name, security_manager, database)
+
+        return sql
+
+    @classmethod
     def estimate_query_cost(
         cls, database: "Database", schema: str, sql: str, source: Optional[str] = None
-    ) -> List[Dict[str, str]]:
+    ) -> List[Dict[str, Any]]:
         """
         Estimate the cost of a multiple statement SQL query.
 
@@ -828,8 +845,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param sql: SQL query with possibly multiple statements
         :param source: Source of the query (eg, "sql_lab")
         """
-        database_version = database.get_extra().get("version")
-        if not cls.get_allow_cost_estimate(database_version):
+        extra = database.get_extra() or {}
+        if not cls.get_allow_cost_estimate(extra):
             raise Exception("Database does not support cost estimation")
 
         user_name = g.user.username if g.user else None
@@ -841,10 +858,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         with closing(engine.raw_connection()) as conn:
             with closing(conn.cursor()) as cursor:
                 for statement in statements:
+                    processed_statement = cls.process_statement(
+                        statement, database, user_name
+                    )
                     costs.append(
-                        cls.estimate_statement_cost(
-                            statement, database, cursor, user_name
-                        )
+                        cls.estimate_statement_cost(processed_statement, cursor)
                     )
         return costs
 
