@@ -63,6 +63,8 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
     'sure you want to overwrite?',
 );
 
+const registry = getChartMetadataRegistry();
+
 const createFetchDatasets = (handleError: (err: Response) => void) => async (
   filterValue = '',
   pageIndex?: number,
@@ -214,7 +216,7 @@ function ChartList(props: ChartListProps) {
           row: {
             original: { viz_type: vizType },
           },
-        }: any) => vizType,
+        }: any) => registry.get(vizType)?.name || vizType,
         Header: t('Visualization Type'),
         accessor: 'viz_type',
         size: 'xxl',
@@ -412,9 +414,9 @@ function ChartList(props: ChartListProps) {
       input: 'select',
       operator: FilterOperators.equals,
       unfilteredLabel: 'All',
-      selects: getChartMetadataRegistry()
+      selects: registry
         .keys()
-        .map(k => ({ label: k, value: k }))
+        .map(k => ({ label: registry.get(k)?.name || k, value: k }))
         .sort((a, b) => {
           if (!a.label || !b.label) {
             return 0;
