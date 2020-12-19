@@ -20,12 +20,14 @@ import { styled, t } from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
 import React, { useCallback, useState } from 'react';
 import {
+  Button,
   Checkbox,
   Form,
   Input,
   Radio,
   Typography,
 } from 'src/common/components';
+import { Select } from 'src/components/Select/SupersetStyledSelect';
 import SupersetResourceSelect, {
   Value,
 } from 'src/components/SupersetResourceSelect';
@@ -46,12 +48,12 @@ const datasetToSelectOption = (item: any): DatasetSelectValue => ({
 });
 
 const ScopingTreeNote = styled.div`
-  margin-top: ${({ theme }) => theme.gridUnit * -5}px;
   margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 const RemovedContent = styled.div`
   display: flex;
+  flex-direction: column;
   height: 400px; // arbitrary
   text-align: center;
   justify-content: center;
@@ -59,11 +61,34 @@ const RemovedContent = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
+const StyledContainer = styled.div`
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+`;
+
+const StyledFormItem = styled(Form.Item)`
+  width: 49%;
+  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+`;
+
+const StyledCheckboxFormItem = styled(Form.Item)`
+  margin-bottom: 0;
+`;
+
+const StyledLabel = styled.span`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+  font-size: ${({ theme }) => theme.typography.sizes.s};
+  text-transform: uppercase;
+`;
+
 export interface FilterConfigFormProps {
   filterId: string;
   filterToEdit?: Filter;
   removed?: boolean;
+  restore: (filterId: string) => void;
   form: FormInstance<NativeFiltersForm>;
+  parentFilters: { id: string; title: string }[];
 }
 
 /**
@@ -74,7 +99,9 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   filterId,
   filterToEdit,
   removed,
+  restore,
   form,
+  parentFilters,
 }) => {
   const [advancedScopingOpen, setAdvancedScopingOpen] = useState<Scoping>(
     Scoping.all,
@@ -102,46 +129,58 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   if (removed) {
     return (
       <RemovedContent>
-        {t(
-          'You have removed this filter. Click the trash again to bring it back.',
-        )}
+        <p>{t('You have removed this filter.')}</p>
+        <div>
+          <Button type="primary" onClick={() => restore(filterId)}>
+            {t('Restore Filter')}
+          </Button>
+        </div>
       </RemovedContent>
     );
   }
 
+  const parentFilterOptions = parentFilters.map(filter => ({
+    value: filter.id,
+    label: filter.title,
+  }));
+
   return (
     <>
-      <Form.Item
-        name={['filters', filterId, 'name']}
-        label={t('Filter Name')}
-        initialValue={filterToEdit?.name}
-        rules={[{ required: !removed, message: t('Name is required') }]}
-        data-test="name-input"
-      >
-        <Input />
-      </Form.Item>
-      <Form.Item
-        name={['filters', filterId, 'dataset']}
-        label={t('Datasource')}
-        rules={[{ required: !removed, message: t('Datasource is required') }]}
-        data-test="datasource-input"
-      >
-        <SupersetResourceSelect
-          initialId={filterToEdit?.targets[0].datasetId}
-          resource="dataset"
-          searchColumn="table_name"
-          transformItem={datasetToSelectOption}
-          isMulti={false}
-          onChange={setDataset}
-          onError={onDatasetSelectError}
-        />
-      </Form.Item>
-      <Form.Item
+      <Typography.Title level={5}>{t('Settings')}</Typography.Title>
+      <StyledContainer>
+        <StyledFormItem
+          name={['filters', filterId, 'name']}
+          label={<StyledLabel>{t('Filter Name')}</StyledLabel>}
+          initialValue={filterToEdit?.name}
+          rules={[{ required: !removed, message: t('Name is required') }]}
+          data-test="name-input"
+        >
+          <Input />
+        </StyledFormItem>
+
+        <StyledFormItem
+          name={['filters', filterId, 'dataset']}
+          label={<StyledLabel>{t('Datasource')}</StyledLabel>}
+          rules={[{ required: !removed, message: t('Datasource is required') }]}
+          data-test="datasource-input"
+        >
+          <SupersetResourceSelect
+            initialId={filterToEdit?.targets[0].datasetId}
+            resource="dataset"
+            searchColumn="table_name"
+            transformItem={datasetToSelectOption}
+            isMulti={false}
+            onChange={setDataset}
+            onError={onDatasetSelectError}
+          />
+        </StyledFormItem>
+      </StyledContainer>
+      <StyledFormItem
         // don't show the column select unless we have a dataset
         // style={{ display: datasetId == null ? undefined : 'none' }}
         name={['filters', filterId, 'column']}
         initialValue={filterToEdit?.targets[0]?.column?.name}
-        label={t('Field')}
+        label={<StyledLabel>{t('Field')}</StyledLabel>}
         rules={[{ required: !removed, message: t('Field is required') }]}
         data-test="field-input"
       >
@@ -150,48 +189,63 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
           filterId={filterId}
           datasetId={dataset?.value}
         />
-      </Form.Item>
-      <Form.Item
+      </StyledFormItem>
+
+      <StyledFormItem
         name={['filters', filterId, 'defaultValue']}
-        label={t('Default Value')}
+        label={<StyledLabel>{t('Default Value')}</StyledLabel>}
         initialValue={filterToEdit?.defaultValue}
       >
         <Input />
-      </Form.Item>
-      <Form.Item
+      </StyledFormItem>
+      <StyledFormItem
+        name={['filters', filterId, 'parentFilter']}
+        label={<StyledLabel>{t('Parent Filter')}</StyledLabel>}
+        initialValue={parentFilterOptions.find(
+          ({ value }) => value === filterToEdit?.cascadeParentIds[0],
+        )}
+      >
+        <Select
+          placeholder={t('None')}
+          options={parentFilterOptions}
+          isClearable
+        />
+      </StyledFormItem>
+
+      <StyledCheckboxFormItem
         name={['filters', filterId, 'isInstant']}
-        label={t('Apply changes instantly')}
         initialValue={filterToEdit?.isInstant}
         valuePropName="checked"
+        colon={false}
       >
-        <Checkbox />
-      </Form.Item>
-      <Form.Item
+        <Checkbox>{t('Apply changes instantly')}</Checkbox>
+      </StyledCheckboxFormItem>
+      <StyledCheckboxFormItem
         name={['filters', filterId, 'allowsMultipleValues']}
-        label={t('Allow multiple selections')}
         initialValue={filterToEdit?.allowsMultipleValues}
         valuePropName="checked"
+        colon={false}
       >
-        <Checkbox />
-      </Form.Item>
-      <Form.Item
+        <Checkbox>{t('Allow multiple selections')}</Checkbox>
+      </StyledCheckboxFormItem>
+      <StyledCheckboxFormItem
         name={['filters', filterId, 'inverseSelection']}
-        label={t('Inverse selection')}
         initialValue={filterToEdit?.inverseSelection}
         valuePropName="checked"
+        colon={false}
       >
-        <Checkbox />
-      </Form.Item>
-      <Form.Item
+        <Checkbox>{t('Inverse selection')}</Checkbox>
+      </StyledCheckboxFormItem>
+      <StyledCheckboxFormItem
         name={['filters', filterId, 'isRequired']}
-        label={t('Required')}
         initialValue={filterToEdit?.isRequired}
         valuePropName="checked"
+        colon={false}
       >
-        <Checkbox />
-      </Form.Item>
+        <Checkbox>{t('Required')}</Checkbox>
+      </StyledCheckboxFormItem>
       <Typography.Title level={5}>{t('Scoping')}</Typography.Title>
-      <Form.Item
+      <StyledCheckboxFormItem
         name={['filters', filterId, 'scoping']}
         initialValue={advancedScopingOpen}
       >
@@ -205,17 +259,21 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
             {t('Apply to specific panels')}
           </Radio>
         </Radio.Group>
-      </Form.Item>
-      {advancedScopingOpen === Scoping.specific && (
-        <>
-          <ScopingTreeNote>
-            <Typography.Text type="secondary">
-              {t('Only selected panels will be affected by this filter')}
-            </Typography.Text>
-          </ScopingTreeNote>
+      </StyledCheckboxFormItem>
+      <>
+        <ScopingTreeNote>
+          <Typography.Text type="secondary">
+            {advancedScopingOpen === Scoping.specific
+              ? t('Only selected panels will be affected by this filter')
+              : t(
+                  'All panels with this column will be affected by this filter',
+                )}
+          </Typography.Text>
+        </ScopingTreeNote>
+        {advancedScopingOpen === Scoping.specific && (
           <ScopingTree setFilterScope={setFilterScope} />
-        </>
-      )}
+        )}
+      </>
     </>
   );
 };

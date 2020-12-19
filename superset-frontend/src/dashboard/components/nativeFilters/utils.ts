@@ -24,7 +24,13 @@ import {
   TABS_TYPE,
   TAB_TYPE,
 } from 'src/dashboard/util/componentTypes';
-import { NativeFiltersState, Scope, TreeItem } from './types';
+import {
+  CascadeFilter,
+  Filter,
+  NativeFiltersState,
+  Scope,
+  TreeItem,
+} from './types';
 
 export const isShowTypeInTree = ({ type, meta }: LayoutItem, charts?: Charts) =>
   (type === TABS_TYPE ||
@@ -139,4 +145,36 @@ export function getExtraFormData(
     extraFormData = mergeExtraFormData(extraFormData, newExtra);
   });
   return extraFormData;
+}
+
+export function mapParentFiltersToChildren(
+  filters: Filter[],
+): { [id: string]: Filter[] } {
+  const cascadeChildren = {};
+  filters.forEach(filter => {
+    const [parentId] = filter.cascadeParentIds || [];
+    if (parentId) {
+      if (!cascadeChildren[parentId]) {
+        cascadeChildren[parentId] = [];
+      }
+      cascadeChildren[parentId].push(filter);
+    }
+  });
+  return cascadeChildren;
+}
+
+export function buildCascadeFiltersTree(filters: Filter[]): CascadeFilter[] {
+  const cascadeChildren = mapParentFiltersToChildren(filters);
+
+  const getCascadeFilter = (filter: Filter): CascadeFilter => {
+    const children = cascadeChildren[filter.id] || [];
+    return {
+      ...filter,
+      cascadeChildren: children.map(getCascadeFilter),
+    };
+  };
+
+  return filters
+    .filter(filter => !filter.cascadeParentIds?.length)
+    .map(getCascadeFilter);
 }

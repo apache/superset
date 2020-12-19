@@ -23,12 +23,14 @@ import {
   t,
   ExtraFormData,
 } from '@superset-ui/core';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import cx from 'classnames';
 import { Form } from 'src/common/components';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
+import { getChartDataRequest } from 'src/chart/chartAction';
+import { areObjectsEqual } from 'src/reduxUtils';
 import FilterConfigurationLink from './FilterConfigurationLink';
 // import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 
@@ -37,9 +39,9 @@ import {
   useFilterConfiguration,
   useSetExtraFormData,
 } from './state';
-import { Filter } from './types';
-import { getChartDataRequest } from '../../../chart/chartAction';
-import { areObjectsEqual } from '../../../reduxUtils';
+import { Filter, CascadeFilter } from './types';
+import { buildCascadeFiltersTree, mapParentFiltersToChildren } from './utils';
+import CascadePopover from './CascadePopover';
 
 const barWidth = `250px`;
 
@@ -147,8 +149,43 @@ const FilterControls = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
+const StyledCascadeChildrenList = styled.ul`
+  list-style-type: none;
+  & > * {
+    list-style-type: none;
+  }
+`;
+
+const StyledFilterControlTitle = styled.h4`
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  margin: 0;
+  text-transform: uppercase;
+`;
+
+const StyledFilterControlTitleBox = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: ${({ theme }) => theme.gridUnit}px;
+`;
+
+const StyledFilterControlContainer = styled.div`
+  width: 100%;
+`;
+
+const StyledFilterControlBox = styled.div`
+  display: flex;
+`;
+
+const StyledCaretIcon = styled(Icon)`
+  margin-top: ${({ theme }) => -theme.gridUnit}px;
+`;
+
 interface FilterProps {
   filter: Filter;
+  icon?: React.ReactElement;
   onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
 }
 
@@ -161,11 +198,17 @@ const FilterValue: React.FC<FilterProps> = ({
   filter,
   onExtraFormDataChange,
 }) => {
-  const { id } = filter;
+  const {
+    id,
+    allowsMultipleValues,
+    inverseSelection,
+    targets,
+    currentValue,
+    defaultValue,
+  } = filter;
   const cascadingFilters = useCascadingFilters(id);
   const [state, setState] = useState({ data: undefined });
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
-  const { allowsMultipleValues, inverseSelection, targets } = filter;
   const [target] = targets;
   const { datasetId = 18, column } = target;
   const { name: groupby } = column;
@@ -186,6 +229,7 @@ const FilterValue: React.FC<FilterProps> = ({
     time_range_endpoints: ['inclusive', 'exclusive'],
     url_params: {},
     viz_type: 'filter_select',
+    defaultValues: currentValue || defaultValue || [],
   });
 
   useEffect(() => {
@@ -225,19 +269,56 @@ const FilterValue: React.FC<FilterProps> = ({
   );
 };
 
-const FilterControl: React.FC<FilterProps> = ({
+export const FilterControl: React.FC<FilterProps> = ({
   filter,
+  icon,
   onExtraFormDataChange,
 }) => {
   const { name = '<undefined>' } = filter;
   return (
-    <div>
-      <h3>{name}</h3>
+    <StyledFilterControlContainer>
+      <StyledFilterControlTitleBox>
+        <StyledFilterControlTitle>{name}</StyledFilterControlTitle>
+        <div>{icon}</div>
+      </StyledFilterControlTitleBox>
       <FilterValue
         filter={filter}
         onExtraFormDataChange={onExtraFormDataChange}
       />
-    </div>
+    </StyledFilterControlContainer>
+  );
+};
+
+interface CascadeFilterControlProps {
+  filter: CascadeFilter;
+  onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
+}
+
+export const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
+  filter,
+  onExtraFormDataChange,
+}) => {
+  return (
+    <>
+      <StyledFilterControlBox>
+        <StyledCaretIcon name="caret-down" />
+        <FilterControl
+          filter={filter}
+          onExtraFormDataChange={onExtraFormDataChange}
+        />
+      </StyledFilterControlBox>
+
+      <StyledCascadeChildrenList>
+        {filter.cascadeChildren?.map(childFilter => (
+          <li>
+            <CascadeFilterControl
+              filter={childFilter}
+              onExtraFormDataChange={onExtraFormDataChange}
+            />
+          </li>
+        ))}
+      </StyledCascadeChildrenList>
+    </>
   );
 };
 
@@ -253,12 +334,45 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const canEdit = useSelector<any, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
+  const [visiblePopoverId, setVisiblePopoverId] = useState<string | null>(null);
 
   useEffect(() => {
     if (filterConfigs.length === 0 && filtersOpen) {
       toggleFiltersBar(false);
     }
   }, [filterConfigs]);
+
+  const getFilterValue = useCallback(
+    (filter: Filter): (string | number | boolean)[] | null => {
+      const filters = filterData[filter.id]?.append_form_data?.filters;
+      if (filters?.length) {
+        const filter = filters[0];
+        if ('val' in filter) {
+          // need to nest these if statements to get a reference to val to appease TS
+          const { val } = filter;
+          if (Array.isArray(val)) {
+            return val;
+          }
+          return [val];
+        }
+      }
+      return null;
+    },
+    [filterData],
+  );
+
+  const cascadeChildren = useMemo(
+    () => mapParentFiltersToChildren(filterConfigs),
+    [filterConfigs],
+  );
+
+  const cascadeFilters = useMemo(() => {
+    const filtersWithValue = filterConfigs.map(filter => ({
+      ...filter,
+      currentValue: getFilterValue(filter),
+    }));
+    return buildCascadeFiltersTree(filtersWithValue);
+  }, [filterConfigs, getFilterValue]);
 
   const handleExtraFormDataChange = (
     filter: Filter,
@@ -269,7 +383,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       [filter.id]: extraFormData,
     }));
 
-    if (filter.isInstant) {
+    const children = cascadeChildren[filter.id] || [];
+    // force instant updating for parent filters
+    if (filter.isInstant || children.length > 0) {
       setExtraFormData(filter.id, extraFormData);
     }
   };
@@ -287,10 +403,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>
       <CollapsedBar
         className={cx({ open: !filtersOpen })}
-        onClick={toggleFiltersBar}
+        onClick={() => toggleFiltersBar(true)}
       >
-        <Icon name="filter" />
         <Icon name="collapse" />
+        <Icon name="filter" />
       </CollapsedBar>
       <Bar className={cx({ open: filtersOpen })}>
         <TitleArea>
@@ -298,13 +414,18 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             {t('Filters')} ({filterConfigs.length})
           </span>
           {canEdit && (
-            <FilterConfigurationLink createNewOnOpen>
+            <FilterConfigurationLink
+              createNewOnOpen={filterConfigs.length === 0}
+            >
               <Icon name="edit" data-test="create-filter" />
             </FilterConfigurationLink>
           )}
-          <Icon name="expand" onClick={toggleFiltersBar} />
+          <Icon name="expand" onClick={() => toggleFiltersBar(false)} />
         </TitleArea>
         <ActionButtons>
+          <Button buttonStyle="secondary" buttonSize="sm">
+            {t('Reset All')}
+          </Button>
           <Button
             buttonStyle="primary"
             type="submit"
@@ -313,15 +434,16 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           >
             {t('Apply')}
           </Button>
-          <Button buttonStyle="secondary" buttonSize="sm">
-            {t('Reset All')}
-          </Button>
         </ActionButtons>
         <FilterControls>
-          {filterConfigs.map(filter => (
-            <FilterControl
-              data-test="filters-control"
+          {cascadeFilters.map(filter => (
+            <CascadePopover
+              data-test="cascade-filters-control"
               key={filter.id}
+              visible={visiblePopoverId === filter.id}
+              onVisibleChange={visible =>
+                setVisiblePopoverId(visible ? filter.id : null)
+              }
               filter={filter}
               onExtraFormDataChange={handleExtraFormDataChange}
             />
