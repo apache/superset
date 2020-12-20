@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-heatmap",
-  "version": "0.15.19",
+  "version": "0.16.0",
   "description": "Superset Legacy Chart - Heatmap",
   "sideEffects": [
     "*.css"
@@ -28,8 +28,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@superset-ui/chart-controls": "0.15.19",
-    "@superset-ui/core": "0.15.19",
+    "@superset-ui/chart-controls": "0.16.0",
+    "@superset-ui/core": "0.16.0",
     "d3": "^3.5.17",
     "d3-svg-legend": "^1.x",
     "d3-tip": "^0.9.1",
