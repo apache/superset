@@ -20,6 +20,7 @@
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import moment from 'moment';
 import { t, SupersetClient } from '@superset-ui/core';
+import { getControlsState } from 'src/explore/store';
 import { isFeatureEnabled, FeatureFlag } from '../featureFlags';
 import {
   getAnnotationJsonUrl,
@@ -100,6 +101,20 @@ export const ANNOTATION_QUERY_FAILED = 'ANNOTATION_QUERY_FAILED';
 export function annotationQueryFailed(annotation, queryResponse, key) {
   return { type: ANNOTATION_QUERY_FAILED, annotation, queryResponse, key };
 }
+
+export const DYNAMIC_PLUGIN_CONTROLS_READY = 'DYNAMIC_PLUGIN_CONTROLS_READY';
+export const dynamicPluginControlsReady = () => (dispatch, getState) => {
+  const state = getState();
+  const controlsState = getControlsState(
+    state.explore,
+    state.explore.form_data,
+  );
+  dispatch({
+    type: DYNAMIC_PLUGIN_CONTROLS_READY,
+    key: controlsState.slice_id.value,
+    controlsState,
+  });
+};
 
 const legacyChartDataRequest = async (
   formData,

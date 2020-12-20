@@ -19,7 +19,7 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
-import { Menu as AntdMenu, Dropdown, Skeleton } from 'antd';
+import { Dropdown, Menu as AntdMenu, Input as AntdInput, Skeleton } from 'antd';
 import { DropDownProps } from 'antd/lib/dropdown';
 /*
   Antd is re-exported from here so we can override components with Emotion as needed.
@@ -32,14 +32,17 @@ export {
   Avatar,
   Button,
   Card,
+  Checkbox,
   Col,
   DatePicker,
   Divider,
   Dropdown,
+  Form,
   Empty,
-  Input,
   InputNumber,
   Modal,
+  Typography,
+  Tree,
   Popover,
   Radio,
   Row,
@@ -49,6 +52,8 @@ export {
   Tabs,
   Tooltip,
 } from 'antd';
+export { TreeProps } from 'antd/lib/tree';
+export { FormInstance } from 'antd/lib/form';
 
 export { default as Collapse } from './Collapse';
 export { default as Badge } from './Badge';
@@ -77,6 +82,14 @@ export const MenuItem = styled(AntdMenu.Item)`
 export const Menu = Object.assign(AntdMenu, {
   Item: MenuItem,
 });
+
+export const Input = styled(AntdInput)`
+  &[type='text'],
+  &[type='textarea'] {
+    border: 1px solid ${({ theme }) => theme.colors.secondary.light3};
+    border-radius: ${({ theme }) => theme.borderRadius}px;
+  }
+`;
 
 export const NoAnimationDropdown = (props: DropDownProps) => (
   <Dropdown

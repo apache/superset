@@ -58,6 +58,7 @@ FEATURE_FLAGS = {
     "ENABLE_REACT_CRUD_VIEWS": os.environ.get("ENABLE_REACT_CRUD_VIEWS", False),
     "ROW_LEVEL_SECURITY": True,
     "ALERT_REPORTS": True,
+    "DASHBOARD_NATIVE_FILTERS": True,
 }
 
 
