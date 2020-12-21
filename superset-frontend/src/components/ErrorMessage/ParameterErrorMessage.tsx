@@ -79,14 +79,14 @@ function ParameterErrorMessage({
                 ([undefinedParameter, templateKeys]) => (
                   <li>
                     {tn(
-                      '%(suggestion)s instead of "%(undefined)s?"',
-                      '%(first_suggestions)s or %(last_suggestion)s instead of "%(undefined)s"?',
+                      '%(suggestion)s instead of "%(undefinedParameter)s?"',
+                      '%(firstSuggestions)s or %(lastSuggestion)s instead of "%(undefinedParameter)s"?',
                       templateKeys.length,
                       {
                         suggestion: templateKeys.join(', '),
-                        first_suggestions: templateKeys.slice(0, -1).join(', '),
-                        last_suggestion: templateKeys[templateKeys.length - 1],
-                        undefined: undefinedParameter,
+                        firstSuggestions: templateKeys.slice(0, -1).join(', '),
+                        lastSuggestion: templateKeys[templateKeys.length - 1],
+                        undefinedParameter,
                       },
                     )}
                   </li>
