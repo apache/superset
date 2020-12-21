@@ -109,7 +109,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     SecurityManager
 ):
     userstatschartview = None
-    READ_ONLY_MODEL_VIEWS = {"DatabaseAsync", "DatabaseView", "DruidClusterModelView"}
+    READ_ONLY_MODEL_VIEWS = {
+        "DatabaseAsync",
+        "DatabaseView",
+        "DruidClusterModelView",
+        "DynamicPlugin",
+    }
 
     USER_MODEL_VIEWS = {
         "UserDBModelView",

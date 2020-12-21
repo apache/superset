@@ -21,6 +21,7 @@ import React from 'react';
 import { Provider } from 'react-redux';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
+import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
 import DashboardContainer from './containers/Dashboard';
@@ -31,7 +32,9 @@ setupPlugins();
 const App = ({ store }) => (
   <Provider store={store}>
     <ThemeProvider theme={supersetTheme}>
-      <DashboardContainer />
+      <DynamicPluginProvider>
+        <DashboardContainer />
+      </DynamicPluginProvider>
     </ThemeProvider>
   </Provider>
 );

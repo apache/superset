@@ -20,6 +20,7 @@ import React, { useState, useMemo } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps } from 'src/views/CRUD/types';
+import { useHistory } from 'react-router-dom';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
@@ -42,6 +43,7 @@ function DashboardTable({
   addSuccessToast,
   mine,
 }: DashboardTableProps) {
+  const history = useHistory();
   const {
     state: { loading, resourceCollection: dashboards },
     setResourceCollection: setDashboards,
@@ -155,14 +157,18 @@ function DashboardTable({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.href = '/dashboard/new';
+              history.push('/dashboard/new');
             },
           },
           {
             name: 'View All »',
             buttonStyle: 'link',
             onClick: () => {
-              window.location.href = '/dashboard/list/';
+              const target =
+                dashboardFilter === 'Favorite'
+                  ? '/dashboard/list/?filters=(favorite:!t)'
+                  : '/dashboard/list/';
+              history.push(target);
             },
           },
         ]}
