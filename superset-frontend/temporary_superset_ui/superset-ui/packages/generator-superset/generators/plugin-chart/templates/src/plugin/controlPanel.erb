@@ -41,10 +41,9 @@ const config: ControlPanelConfig = {
    * If a control panel has both a `series` and `groupby` control, and
    * the user has chosen `col1` as the value for the `series` control,
    * and `col2` and `col3` as values for the `groupby` control,
-   * the resulting query will contain three groupby columns. This is due
-   * to the `series` control having the property `queryField` set to
-   * `groupby`, which automatically appends the values from the
-   * `series` control to the `groupby` control when the query is generated.
+   * the resulting query will contain three `groupby` columns. This is because
+   * we considered `series` control a `groupby` query field and its value
+   * will automatically append the `groupby` field when the query is generated.
    *
    * It is also possible to define custom controls by importing the
    * necessary dependencies and overriding the default parameters, which

@@ -1,9 +1,9 @@
 /* eslint-disable camelcase */
-import { QueryFormData, QueryFormDataMetric } from '@superset-ui/core';
+import { QueryFormData, QueryFormMetric } from '@superset-ui/core';
 
 type TableFormData = QueryFormData & {
   all_columns: string[];
-  percent_metrics: QueryFormDataMetric[];
+  percent_metrics: QueryFormMetric[];
   include_time: boolean;
   order_by_cols: string[];
 };

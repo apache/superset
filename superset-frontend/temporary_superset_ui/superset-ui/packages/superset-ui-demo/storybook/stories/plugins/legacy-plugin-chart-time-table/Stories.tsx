@@ -47,7 +47,6 @@ export const basic = () => (
           yAxisBounds: [null, null],
         },
       ],
-      queryFields: { metrics: 'metrics', groupby: 'groupby' },
       vizType: 'time-table',
     }}
   />

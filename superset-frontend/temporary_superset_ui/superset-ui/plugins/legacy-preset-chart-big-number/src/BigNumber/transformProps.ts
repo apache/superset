@@ -28,13 +28,6 @@ import {
 const TIME_COLUMN = '__timestamp';
 const formatPercentChange = getNumberFormatter(NumberFormats.PERCENT_SIGNED_1_POINT);
 
-export interface DatasourceMetric {
-  label: string;
-  // eslint-disable-next-line camelcase
-  metric_name?: string;
-  d3format?: string;
-}
-
 // we trust both the x (time) and y (big number) to be numeric
 export interface BigNumberDatum {
   [key: string]: number | null;
@@ -137,7 +130,7 @@ export default function transformProps(chartProps: BignumberChartProps) {
   }
 
   if (!yAxisFormat && chartProps.datasource && chartProps.datasource.metrics) {
-    chartProps.datasource.metrics.forEach((metricEntry: DatasourceMetric) => {
+    chartProps.datasource.metrics.forEach(metricEntry => {
       if (metricEntry.metric_name === metric && metricEntry.d3format) {
         yAxisFormat = metricEntry.d3format;
       }
