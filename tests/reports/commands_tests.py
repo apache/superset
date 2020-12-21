@@ -38,6 +38,8 @@ from superset.models.reports import (
 )
 from superset.models.slice import Slice
 from superset.reports.commands.exceptions import (
+    AlertQueryError,
+    AlertQueryInvalidTypeError,
     AlertQueryMultipleColumnsError,
     AlertQueryMultipleRowsError,
     ReportScheduleNotFoundError,
@@ -397,6 +399,41 @@ def create_mul_alert_email_chart(request):
             cleanup_report_schedule(report_schedule)
 
 
+@pytest.yield_fixture(params=["alert1", "alert2"])
+def create_invalid_sql_alert_email_chart(request):
+    param_config = {
+        "alert1": {
+            "sql": "SELECT 'string' ",
+            "validator_type": ReportScheduleValidatorType.OPERATOR,
+            "validator_config_json": '{"op": "<", "threshold": 10}',
+        },
+        "alert2": {
+            "sql": "SELECT first from foo_table",
+            "validator_type": ReportScheduleValidatorType.OPERATOR,
+            "validator_config_json": '{"op": "<", "threshold": 10}',
+        },
+    }
+    with app.app_context():
+        chart = db.session.query(Slice).first()
+        example_database = get_example_database()
+        with create_test_table_context(example_database):
+
+            report_schedule = create_report_notification(
+                email_target="target@email.com",
+                chart=chart,
+                report_type=ReportScheduleType.ALERT,
+                database=example_database,
+                sql=param_config[request.param]["sql"],
+                validator_type=param_config[request.param]["validator_type"],
+                validator_config_json=param_config[request.param][
+                    "validator_config_json"
+                ],
+            )
+            yield report_schedule
+
+            cleanup_report_schedule(report_schedule)
+
+
 @pytest.mark.usefixtures("create_report_email_chart")
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.compute_and_cache")
@@ -651,4 +688,16 @@ def test_email_mul_alert(create_mul_alert_email_chart):
         ):
             AsyncExecuteReportScheduleCommand(
                 create_mul_alert_email_chart.id, datetime.utcnow()
+            ).run()
+
+
+@pytest.mark.usefixtures("create_invalid_sql_alert_email_chart")
+def test_invalid_sql_alert(create_invalid_sql_alert_email_chart):
+    """
+    ExecuteReport Command: Test alert with invalid SQL statements
+    """
+    with freeze_time("2020-01-01T00:00:00Z"):
+        with pytest.raises((AlertQueryError, AlertQueryInvalidTypeError)):
+            AsyncExecuteReportScheduleCommand(
+                create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
