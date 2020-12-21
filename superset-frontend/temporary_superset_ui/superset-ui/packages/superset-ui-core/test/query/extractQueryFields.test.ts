@@ -17,6 +17,7 @@
  * under the License.
  */
 import extractQueryFields from '@superset-ui/core/src/query/extractQueryFields';
+import { DTTM_ALIAS } from '../../src/query/buildQueryObject';
 
 describe('extractQueryFields', () => {
   it('should return default object', () => {
@@ -77,5 +78,15 @@ describe('extractQueryFields', () => {
       groupby: ['col_1', 'col_2'],
       metrics: ['metric_1'],
     });
+  });
+
+  it('should include time', () => {
+    expect(extractQueryFields({ groupby: 'col_1', include_time: true }).groupby).toEqual([
+      DTTM_ALIAS,
+      'col_1',
+    ]);
+    expect(
+      extractQueryFields({ groupby: ['col_1', DTTM_ALIAS, ''], include_time: true }).groupby,
+    ).toEqual(['col_1', DTTM_ALIAS]);
   });
 });

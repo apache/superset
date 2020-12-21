@@ -52,7 +52,6 @@ export default class SequentialScheme extends ColorScheme {
     const piecewiseScale: (t: number) => string = piecewise(interpolateHcl, this.colors);
     const adjustExtent = scaleLinear().range(extent).clamp(true);
 
-    // @ts-ignore
-    return quantize<string>(t => piecewiseScale(adjustExtent(t)), numColors);
+    return quantize<string>(t => piecewiseScale(adjustExtent(t) as number), numColors);
   }
 }

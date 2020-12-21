@@ -1,16 +1,16 @@
-import { QueryFormDataMetric, AdhocMetric } from '@superset-ui/core';
+import { QueryFormMetric, AdhocMetric } from '@superset-ui/core';
 import { createSelector } from 'reselect';
 import { PlainObject } from './types';
 
 type inputType = {
-  metrics: QueryFormDataMetric[];
-  percentMetrics: QueryFormDataMetric[];
+  metrics: QueryFormMetric[];
+  percentMetrics: QueryFormMetric[];
   records: PlainObject[];
 };
 
 function processMetrics(
-  metrics: QueryFormDataMetric[],
-  percentMetrics: QueryFormDataMetric[],
+  metrics: QueryFormMetric[],
+  percentMetrics: QueryFormMetric[],
   records: PlainObject[],
 ) {
   const processedMetrics = (metrics || []).map(m => (m as AdhocMetric).label ?? (m as string));

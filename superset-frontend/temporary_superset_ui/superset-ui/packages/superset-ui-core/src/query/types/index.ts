@@ -16,15 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import processGroupby from '@superset-ui/core/src/query/processGroupby';
-
-describe('processGroupby', () => {
-  it('should handle array of strings', () => {
-    expect(processGroupby(['foo', 'bar'])).toEqual(['foo', 'bar']);
-  });
-
-  it('should exclude non-string values', () => {
-    // @ts-expect-error
-    expect(processGroupby(['bar', 1, undefined, null, 'foo'])).toEqual(['bar', 'foo']);
-  });
-});
+export * from './Datasource';
+export * from './Column';
+export * from './Filter';
+export * from './Metric';
+export * from './Operator';
+export * from './Query';
+export * from './QueryFormData';
+export * from './QueryResponse';
+export * from './Time';

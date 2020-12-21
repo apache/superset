@@ -1,5 +1,4 @@
-import { RegistryWithDefaultKey } from '../models';
-import { OverwritePolicy } from '../types';
+import { RegistryWithDefaultKey, OverwritePolicy } from '../models';
 
 export default class ColorSchemeRegistry<T> extends RegistryWithDefaultKey<T> {
   constructor() {

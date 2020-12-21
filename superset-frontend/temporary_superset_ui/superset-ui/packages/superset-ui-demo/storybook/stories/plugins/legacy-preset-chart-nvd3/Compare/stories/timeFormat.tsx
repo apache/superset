@@ -187,10 +187,6 @@ export const timeFormat = () => (
       ],
     }}
     formData={{
-      queryFields: {
-        metrics: 'metrics',
-        groupby: 'groupby',
-      },
       datasource: '24771__table',
       vizType: 'compare',
       urlParams: {},

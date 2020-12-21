@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RegistryWithDefaultKey } from '../models';
-import { OverwritePolicy } from '../types';
+import { RegistryWithDefaultKey, OverwritePolicy } from '../models';
 import TimeFormats, { LOCAL_PREFIX } from './TimeFormats';
 import createD3TimeFormatter from './factories/createD3TimeFormatter';
 import TimeFormatter from './TimeFormatter';

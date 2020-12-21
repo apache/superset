@@ -1,6 +1,7 @@
 #!/bin/env node
+/* eslint-disable no-console */
 /**
- * Build plugins specified by globs
+ * Build packages/plugins filtered by globs
  */
 process.env.PATH = `./node_modules/.bin:${process.env.PATH}`;
 
@@ -83,9 +84,11 @@ if (shouldLint) {
 }
 
 if (shouldCleanup) {
+  // these modules will be installed by `npm link` but not useful for actual build
+  const dirtyModules = 'node_modules/@types/react,node_modules/@superset-ui';
   const cachePath = shouldRunBabel
-    ? `./node_modules/${scope}/{lib,esm,tsconfig.tsbuildinfo,node_modules/@types/react}`
-    : `./node_modules/${scope}/{lib/**/*.d.ts,tsconfig.tsbuildinfo,node_modules/@types/react}`;
+    ? `./node_modules/${scope}/{lib,esm,tsconfig.tsbuildinfo,${dirtyModules}}`
+    : `./node_modules/${scope}/{lib/**/*.d.ts,tsconfig.tsbuildinfo,${dirtyModules}}`;
   console.log(`\n>> Cleaning up ${cachePath}`);
   rimraf.sync(cachePath);
 }

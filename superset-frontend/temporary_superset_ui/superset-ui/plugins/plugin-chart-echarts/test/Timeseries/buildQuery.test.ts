@@ -31,6 +31,6 @@ describe('Timeseries buildQuery', () => {
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
     expect(query.groupby).toEqual(['foo']);
-    expect(query.metrics).toEqual([{ label: 'bar' }, { label: 'baz' }]);
+    expect(query.metrics).toEqual(['bar', 'baz']);
   });
 });

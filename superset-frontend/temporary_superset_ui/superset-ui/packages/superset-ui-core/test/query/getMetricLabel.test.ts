@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ColumnType, convertMetric } from '@superset-ui/core/src/query';
+import { ColumnType, getMetricLabel } from '@superset-ui/core/src/query';
 
-describe('convertMetric', () => {
-  it('should handle string metric name', () => {
-    expect(convertMetric('sum__num')).toEqual({ label: 'sum__num' });
+describe('getMetricLabel', () => {
+  it('should handle predefined metric name', () => {
+    expect(getMetricLabel('sum__num')).toEqual('sum__num');
   });
 
   it('should handle simple adhoc metrics', () => {
     expect(
-      convertMetric({
+      getMetricLabel({
         expressionType: 'SIMPLE',
         aggregate: 'AVG',
         column: {
@@ -34,42 +34,25 @@ describe('convertMetric', () => {
           type: ColumnType.BIGINT,
         },
       }),
-    ).toEqual({
-      aggregate: 'AVG',
-      column: {
-        columnName: 'sum_girls',
-        id: 5,
-        type: ColumnType.BIGINT,
-      },
-      expressionType: 'SIMPLE',
-      label: 'AVG(sum_girls)',
-    });
+    ).toEqual('AVG(sum_girls)');
   });
 
   it('should handle SQL adhoc metrics', () => {
     expect(
-      convertMetric({
+      getMetricLabel({
         expressionType: 'SQL',
         sqlExpression: 'COUNT(sum_girls)',
       }),
-    ).toEqual({
-      expressionType: 'SQL',
-      label: 'COUNT(sum_girls)',
-      sqlExpression: 'COUNT(sum_girls)',
-    });
+    ).toEqual('COUNT(sum_girls)');
   });
 
   it('should handle adhoc metrics with custom labels', () => {
     expect(
-      convertMetric({
+      getMetricLabel({
         expressionType: 'SQL',
         label: 'foo',
         sqlExpression: 'COUNT(sum_girls)',
       }),
-    ).toEqual({
-      expressionType: 'SQL',
-      label: 'foo',
-      sqlExpression: 'COUNT(sum_girls)',
-    });
+    ).toEqual('foo');
   });
 });

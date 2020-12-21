@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ChartProps, QueryFormDataMetric, AdhocMetric } from '@superset-ui/core';
+import { ChartProps, QueryFormMetric, AdhocMetric } from '@superset-ui/core';
 import getProcessColumnsFunction from './processColumns';
 import getProcessMetricsFunction from './processMetrics';
 import getProcessDataFunction from './processData';
@@ -48,7 +48,7 @@ function transformData(data: PlainObject[], formData: PlainObject) {
 
   // handle percentage columns.
   const percentMetrics: string[] = (formData.percentMetrics || []).map(
-    (metric: QueryFormDataMetric) => (metric as AdhocMetric).label ?? (metric as string),
+    (metric: QueryFormMetric) => (metric as AdhocMetric).label ?? (metric as string),
   );
 
   if (percentMetrics.length > 0) {

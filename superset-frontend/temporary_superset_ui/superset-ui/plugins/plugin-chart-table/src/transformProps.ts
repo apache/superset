@@ -19,7 +19,7 @@
 import memoizeOne from 'memoize-one';
 import {
   DataRecord,
-  QueryFormDataMetric,
+  QueryFormMetric,
   getNumberFormatter,
   NumberFormats,
   getTimeFormatter,
@@ -38,7 +38,7 @@ const TIME_COLUMN = '__timestamp';
 /**
  * Consolidate list of metrics to string, identified by its unique identifier
  */
-function getMetricIdentifier(metric: QueryFormDataMetric) {
+function getMetricIdentifier(metric: QueryFormMetric) {
   if (typeof metric === 'string') return metric;
   // even though `metric.optionName` is more unique, it's not used
   // anywhere else in `queryData` and cannot be used to access `data.records`.

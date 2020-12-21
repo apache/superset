@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AnnotationLayer, buildQueryObject, QueryObject } from '@superset-ui/core/src/query';
+import {
+  AnnotationLayer,
+  AnnotationOpacity,
+  AnnotationSourceType,
+  AnnotationStyle,
+  AnnotationType,
+  buildQueryObject,
+  QueryObject,
+} from '../../src/query';
 
 describe('buildQueryObject', () => {
   let query: QueryObject;
@@ -47,30 +55,34 @@ describe('buildQueryObject', () => {
       metric: 'sum__num',
       secondary_metric: 'avg__num',
     });
-    expect(query.metrics).toEqual([{ label: 'sum__num' }, { label: 'avg__num' }]);
+    expect(query.metrics).toEqual(['sum__num', 'avg__num']);
   });
 
   it('should group custom metric control', () => {
-    query = buildQueryObject({
-      datasource: '5__table',
-      granularity_sqla: 'ds',
-      viz_type: 'table',
-      my_custom_metric_control: 'sum__num',
-      queryFields: { my_custom_metric_control: 'metrics' },
-    });
-    expect(query.metrics).toEqual([{ label: 'sum__num' }]);
+    query = buildQueryObject(
+      {
+        datasource: '5__table',
+        granularity_sqla: 'ds',
+        viz_type: 'table',
+        my_custom_metric_control: 'sum__num',
+      },
+      { my_custom_metric_control: 'metrics' },
+    );
+    expect(query.metrics).toEqual(['sum__num']);
   });
 
   it('should group custom metric control with predefined metrics', () => {
-    query = buildQueryObject({
-      datasource: '5__table',
-      granularity_sqla: 'ds',
-      viz_type: 'table',
-      metrics: ['sum__num'],
-      my_custom_metric_control: 'avg__num',
-      queryFields: { my_custom_metric_control: 'metrics' },
-    });
-    expect(query.metrics).toEqual([{ label: 'sum__num' }, { label: 'avg__num' }]);
+    query = buildQueryObject(
+      {
+        datasource: '5__table',
+        granularity_sqla: 'ds',
+        viz_type: 'table',
+        metrics: ['sum__num'],
+        my_custom_metric_control: 'avg__num',
+      },
+      { my_custom_metric_control: 'metrics' },
+    );
+    expect(query.metrics).toEqual(['sum__num', 'avg__num']);
   });
 
   it('should build limit', () => {
@@ -103,7 +115,7 @@ describe('buildQueryObject', () => {
       viz_type: 'table',
       timeseries_limit_metric: metric,
     });
-    expect(query.timeseries_limit_metric).toEqual({ label: metric });
+    expect(query.timeseries_limit_metric).toEqual(metric);
   });
 
   it('should handle null and non-numeric row_limit and row_offset', () => {
@@ -142,28 +154,27 @@ describe('buildQueryObject', () => {
   it('should populate annotation_layers', () => {
     const annotationLayers: AnnotationLayer[] = [
       {
-        annotationType: 'FORMULA',
+        annotationType: AnnotationType.Formula,
         color: '#ff7f44',
         name: 'My Formula',
-        opacity: 'opacityLow',
+        opacity: AnnotationOpacity.Low,
         show: true,
-        style: 'solid',
+        style: AnnotationStyle.Solid,
         value: '10*sin(x)',
         width: 1,
       },
       {
-        annotationType: 'INTERVAL',
+        annotationType: AnnotationType.Interval,
         color: null,
-        descriptionColumns: [],
+        show: false,
         name: 'My Interval',
-        overrides: { time_range: null },
-        sourceType: 'NATIVE',
-        style: 'dashed',
+        sourceType: AnnotationSourceType.Native,
+        style: AnnotationStyle.Dashed,
         value: 1,
         width: 100,
       },
       {
-        annotationType: 'EVENT',
+        annotationType: AnnotationType.Event,
         color: null,
         descriptionColumns: [],
         name: 'My Interval',
@@ -172,10 +183,11 @@ describe('buildQueryObject', () => {
           time_grain_sqla: null,
           time_range: null,
         },
-        sourceType: 'table',
+        sourceType: AnnotationSourceType.Table,
+        show: false,
         timeColumn: 'ds',
-        style: 'dashed',
-        value: 'asdf',
+        style: AnnotationStyle.Dashed,
+        value: 1,
         width: 100,
       },
     ];

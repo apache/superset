@@ -1,6 +1,5 @@
 /* eslint camelcase: 0 */
-
-import { DataRecord } from '../../chart';
+import { DataRecord } from './QueryResponse';
 
 export enum AnnotationType {
   Event = 'EVENT',

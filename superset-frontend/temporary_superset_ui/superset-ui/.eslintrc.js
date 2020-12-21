@@ -47,6 +47,7 @@ module.exports = {
         properties: 'never',
       },
     ],
+    curly: 2,
     'class-methods-use-this': 0,
     'func-names': 0,
     'guard-for-in': 0,
