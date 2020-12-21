@@ -210,7 +210,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       show={show}
       onHide={onHide}
       responsive
-      title={t('Select a dataset')}
+      title={t('Change Dataset')}
       hideFooter
     >
       <>
