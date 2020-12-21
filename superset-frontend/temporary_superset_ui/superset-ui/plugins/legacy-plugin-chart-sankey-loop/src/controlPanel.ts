@@ -16,31 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@superset-ui/core';
+import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
 
-import React from 'react';
-import PropTypes from 'prop-types';
-
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-
-const propTypes = {
-  option: PropTypes.object.isRequired,
+const config: ControlPanelConfig = {
+  controlPanelSections: [
+    sections.legacyRegularTime,
+    {
+      label: t('Query'),
+      expanded: true,
+      controlSetRows: [['groupby'], ['metric'], ['adhoc_filters'], ['row_limit']],
+    },
+    {
+      label: t('Chart Options'),
+      expanded: true,
+      controlSetRows: [['color_scheme', 'label_colors']],
+    },
+  ],
+  controlOverrides: {
+    groupby: {
+      label: t('Source / Target'),
+      description: t('Choose a source and a target'),
+    },
+  },
 };
 
-// This component provides a general tooltip for options
-// in a SelectControl
-export default function OptionDescription({ option }) {
-  return (
-    <span>
-      <span className="m-r-5 option-label">{option.label}</span>
-      {option.description && (
-        <InfoTooltipWithTrigger
-          className="m-r-5 text-muted"
-          icon="question-circle-o"
-          tooltip={option.description}
-          label={`descr-${option.label}`}
-        />
-      )}
-    </span>
-  );
-}
-OptionDescription.propTypes = propTypes;
+export default config;

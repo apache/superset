@@ -17,9 +17,9 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { formatSelectOptions, sections } from '@superset-ui/chart-controls';
+import { ControlPanelConfig, formatSelectOptions, sections } from '@superset-ui/chart-controls';
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyRegularTime,
     {
@@ -107,3 +107,5 @@ export default {
     },
   },
 };
+
+export default config;

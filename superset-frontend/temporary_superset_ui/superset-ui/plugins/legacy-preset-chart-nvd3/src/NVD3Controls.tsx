@@ -27,7 +27,6 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
-  sections,
 } from '@superset-ui/chart-controls';
 
 /*
@@ -305,7 +304,6 @@ export const yAxisLabel: CustomControlItem = {
 };
 
 export const timeSeriesSection: ControlPanelSectionConfig[] = [
-  sections.legacyTimeseriesTime,
   {
     label: t('Query'),
     expanded: true,

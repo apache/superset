@@ -39,6 +39,7 @@ import {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
+    sections.legacyTimeseriesTime,
     timeSeriesSection[0],
     {
       label: t('Chart Options'),

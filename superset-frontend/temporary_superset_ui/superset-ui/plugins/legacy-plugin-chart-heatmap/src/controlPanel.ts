@@ -18,8 +18,9 @@
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
-  formatSelectOptions,
   columnChoices,
+  ControlPanelConfig,
+  formatSelectOptions,
   formatSelectOptionsForRange,
   sections,
 } from '@superset-ui/chart-controls';
@@ -31,7 +32,7 @@ const sortAxisChoices = [
   ['value_desc', t('Metric descending')],
 ];
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyRegularTime,
     {
@@ -261,3 +262,5 @@ export default {
     },
   },
 };
+
+export default config;
