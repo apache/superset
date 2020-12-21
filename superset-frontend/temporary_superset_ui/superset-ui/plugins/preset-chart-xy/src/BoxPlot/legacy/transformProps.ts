@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, QueryData, QueryFormData, QueryFormDataMetric } from '@superset-ui/core';
+import { ChartProps, QueryData, QueryFormData, QueryFormMetric } from '@superset-ui/core';
 import { RawBoxPlotDataRow, BoxPlotDataRow } from '../../components/BoxPlot/types';
 
 export type LegacyBoxPlotFormData = {
@@ -49,7 +49,7 @@ export default function transformProps(chartProps: LegacyBoxPlotChartProps) {
 
   const xAxisLabel = groupby.join('/');
 
-  let metric: QueryFormDataMetric = '';
+  let metric: QueryFormMetric = '';
   if (Array.isArray(metrics)) {
     metric = metrics.length > 0 ? metrics[0] : '';
   } else {

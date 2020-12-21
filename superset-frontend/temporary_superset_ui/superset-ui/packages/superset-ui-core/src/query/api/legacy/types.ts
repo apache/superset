@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartDataResponseResult } from '../v1/types';
+import { ChartDataResponseResult } from '../../types';
 
 export interface LegacyChartDataResponse extends Omit<ChartDataResponseResult, 'data'> {
   data: Record<string, unknown>[] | Record<string, unknown>;

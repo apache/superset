@@ -19,7 +19,7 @@
 import {
   CategoricalColorNamespace,
   ChartProps,
-  convertMetric,
+  getMetricLabel,
   DataRecord,
   getNumberFormatter,
   NumberFormats,
@@ -72,8 +72,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     showLabels = true,
     showLegend = false,
   } = formData as PieChartFormData;
-  const { label: metricLabel } = convertMetric(metric);
-
+  const metricLabel = getMetricLabel(metric);
   const keys = data.map(datum => extractGroupbyLabel({ datum, groupby }));
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);

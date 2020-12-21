@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, DataRecord, QueryObjectMetric } from '@superset-ui/core';
+import { ChartProps, DataRecord, Metric } from '@superset-ui/core';
 
 interface FormData {
   groupby: string[];
@@ -60,7 +60,7 @@ export default function transformProps(chartProps: TableChartProps) {
         map[current.metric_name] = current;
       }
       return map;
-    }, {} as Record<string, QueryObjectMetric>);
+    }, {} as Record<string, Metric>);
     rows = metrics.map(metric => (typeof metric === 'object' ? metric : metricMap[metric]));
   }
 
