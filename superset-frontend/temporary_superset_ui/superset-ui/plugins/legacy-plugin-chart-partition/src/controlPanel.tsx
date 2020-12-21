@@ -19,15 +19,17 @@
 import React from 'react';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
-  formatSelectOptions,
-  D3_TIME_FORMAT_OPTIONS,
+  ColumnMeta,
+  ControlPanelConfig,
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
+  D3_TIME_FORMAT_OPTIONS,
+  formatSelectOptions,
   sections,
 } from '@superset-ui/chart-controls';
 import OptionDescription from './OptionDescription';
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyRegularTime,
     {
@@ -116,8 +118,8 @@ export default {
                   description: t('Use the Advanced Analytics options below'),
                 },
               ],
-              optionRenderer: op => <OptionDescription option={op} />,
-              valueRenderer: op => <OptionDescription option={op} />,
+              optionRenderer: (op: ColumnMeta) => <OptionDescription option={op} />,
+              valueRenderer: (op: ColumnMeta) => <OptionDescription option={op} />,
               description: t('Settings for time series'),
             },
           },
@@ -355,3 +357,5 @@ export default {
     },
   ],
 };
+
+export default config;

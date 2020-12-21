@@ -17,9 +17,14 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { formatSelectOptions, columnChoices, sections } from '@superset-ui/chart-controls';
+import {
+  columnChoices,
+  ControlPanelConfig,
+  formatSelectOptions,
+  sections,
+} from '@superset-ui/chart-controls';
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyRegularTime,
     {
@@ -99,9 +104,13 @@ export default {
                   'Either a numerical column or `Auto`, which scales the point based ' +
                   'on the largest cluster',
               ),
-              mapStateToProps: state => ({
-                choices: formatSelectOptions(['Auto']).concat(columnChoices(state.datasource)),
-              }),
+              mapStateToProps: state => {
+                const datasourceChoices = columnChoices(state.datasource);
+                const choices: [string, string][] = formatSelectOptions(['Auto']);
+                return {
+                  choices: choices.concat(datasourceChoices),
+                };
+              },
             },
           },
         ],
@@ -292,3 +301,5 @@ export default {
     },
   },
 };
+
+export default config;
