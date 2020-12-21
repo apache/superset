@@ -18,6 +18,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { $anyType } from 'src/constants';
 
 /**
  * Pass in a piece of state.
@@ -26,7 +27,7 @@ import { useEffect, useRef } from 'react';
  */
 export function usePrevious<T>(value: T): T | undefined;
 export function usePrevious<T, INIT>(value: T, initialValue: INIT): T | INIT;
-export function usePrevious<T>(value: T, initialValue?: any): T {
+export function usePrevious<T>(value: T, initialValue?: $anyType): T {
   const previous = useRef<T>(initialValue);
   useEffect(() => {
     // useEffect runs after the render completes

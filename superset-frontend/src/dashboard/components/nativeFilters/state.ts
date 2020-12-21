@@ -24,6 +24,7 @@ import { ExtraFormData, t } from '@superset-ui/core';
 import { Charts, Layout, RootState } from 'src/dashboard/types';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { DASHBOARD_ROOT_TYPE } from 'src/dashboard/util/componentTypes';
+import { $anyType } from 'src/constants';
 import {
   Filter,
   FilterConfiguration,
@@ -36,7 +37,7 @@ import { buildTree, mergeExtraFormData } from './utils';
 const defaultFilterConfiguration: Filter[] = [];
 
 export function useFilterConfiguration() {
-  return useSelector<any, FilterConfiguration>(
+  return useSelector<$anyType, FilterConfiguration>(
     state =>
       state.dashboardInfo?.metadata?.filter_configuration ||
       defaultFilterConfiguration,
@@ -60,7 +61,7 @@ export function useFilterConfigMap() {
 }
 
 export function useFilterState(id: string) {
-  return useSelector<any, FilterState>(state => {
+  return useSelector<$anyType, FilterState>(state => {
     return state.nativeFilters.filtersState[id] || getInitialFilterState(id);
   });
 }
@@ -95,7 +96,7 @@ export function useFilterScopeTree(): {
 }
 
 export function useCascadingFilters(id: string) {
-  return useSelector<any, ExtraFormData>(state => {
+  return useSelector<$anyType, ExtraFormData>(state => {
     const { nativeFilters }: { nativeFilters: NativeFiltersState } = state;
     const { filters, filtersState } = nativeFilters;
     const filter = filters[id];

@@ -17,9 +17,11 @@
  * under the License.
  */
 
-export const cacheWrapper = <T extends Array<any>, U>(
+import { $anyType } from 'src/constants';
+
+export const cacheWrapper = <T extends Array<$anyType>, U>(
   fn: (...args: T) => U,
-  cache: Map<string, any>,
+  cache: Map<string, $anyType>,
   keyFn: (...args: T) => string = (...args: T) => JSON.stringify([...args]),
 ) => {
   return (...args: T): U => {

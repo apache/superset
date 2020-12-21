@@ -21,6 +21,7 @@ import React from 'react';
 import { StickyContainer, Sticky } from 'react-sticky';
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';
+import { $anyType } from 'src/constants';
 
 export const SUPERSET_HEADER_HEIGHT = 59;
 
@@ -73,7 +74,7 @@ export const StickyVerticalBar: React.FC<SVBProps> = ({
     <Wrapper className={cx({ open: filtersOpen })}>
       <StickyContainer>
         <Sticky topOffset={-topOffset} bottomOffset={Infinity}>
-          {({ style, isSticky }: { style: any; isSticky: boolean }) => (
+          {({ style, isSticky }: { style: $anyType; isSticky: boolean }) => (
             <Contents style={isSticky ? { ...style, top: topOffset } : null}>
               {children}
             </Contents>

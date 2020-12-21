@@ -25,6 +25,7 @@ import {
   getClientErrorObject,
 } from 'src/utils/getClientErrorObject';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
+import { $anyType } from 'src/constants';
 
 export type Value<V> = { value: V; label: string };
 
@@ -52,7 +53,7 @@ export interface SupersetResourceSelectProps<T = unknown, V = string> {
  * we'll all be better off if you use AsyncSelect directly instead.
  */
 
-const localCache = new Map<string, any>();
+const localCache = new Map<string, $anyType>();
 
 const cachedSupersetGet = cacheWrapper(
   SupersetClient.get,

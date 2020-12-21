@@ -20,16 +20,17 @@ import React from 'react';
 import { styled } from '@superset-ui/core';
 import { Button } from 'src/common/components';
 import Icon from 'src/components/Icon';
+import { $anyType } from 'src/constants';
 import { useFilterConfiguration } from './state';
 
 interface Args {
-  filter: any;
+  filter: $anyType;
   index: number;
 }
 
 interface FiltersListProps {
   setEditFilter: (arg0: Args) => void;
-  setDataset: (arg0: any) => void;
+  setDataset: (arg0: $anyType) => void;
 }
 const FiltersStyle = styled.div`
   display: flex;

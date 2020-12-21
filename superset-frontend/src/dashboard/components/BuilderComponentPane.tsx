@@ -24,6 +24,7 @@ import { ParentSize } from '@vx/responsive';
 
 import { t, styled } from '@superset-ui/core';
 
+import { $anyType } from 'src/constants';
 import NewColumn from './gridComponents/new/NewColumn';
 import NewDivider from './gridComponents/new/NewDivider';
 import NewHeader from './gridComponents/new/NewHeader';
@@ -55,7 +56,13 @@ const BuilderComponentPane: React.FC<BCPProps> = ({ topOffset = 0 }) => {
         {({ height }) => (
           <StickyContainer>
             <Sticky topOffset={-topOffset} bottomOffset={Infinity}>
-              {({ style, isSticky }: { style: any; isSticky: boolean }) => (
+              {({
+                style,
+                isSticky,
+              }: {
+                style: $anyType;
+                isSticky: boolean;
+              }) => (
                 <div
                   className="viewport"
                   style={isSticky ? { ...style, top: topOffset } : null}

@@ -23,6 +23,7 @@ import { Provider } from 'react-redux';
 import { FilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterConfigModal';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { mockStore } from 'spec/fixtures/mockStore';
+import { $anyType } from 'src/constants';
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -46,7 +47,7 @@ describe('FiltersConfigModal', () => {
     onCancel: jest.fn(),
     save: jest.fn(),
   };
-  function setup(overridesProps?: any) {
+  function setup(overridesProps?: $anyType) {
     return mount(
       <Provider store={mockStore}>
         <FilterConfigModal {...mockedProps} {...overridesProps} />

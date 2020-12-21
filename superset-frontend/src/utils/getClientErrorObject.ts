@@ -21,6 +21,7 @@ import {
   SupersetError,
   ErrorTypeEnum,
 } from 'src/components/ErrorMessage/types';
+import { $anyType } from 'src/constants';
 import COMMON_ERR_MESSAGES from './errorMessages';
 
 // The response always contains an error attribute, can contain anything from the
@@ -89,7 +90,7 @@ export function getClientErrorObject(
           })
           .catch(() => {
             // fall back to reading as text
-            responseObject.text().then((errorText: any) => {
+            responseObject.text().then((errorText: $anyType) => {
               resolve({ ...responseObject, error: errorText });
             });
           });
@@ -128,7 +129,8 @@ export function getClientErrorObject(
         });
       } else {
         // fall back to Response.statusText or generic error of we cannot read the response
-        let error = (response as any).statusText || (response as any).message;
+        let error =
+          (response as $anyType).statusText || (response as $anyType).message;
         if (!error) {
           // eslint-disable-next-line no-console
           console.error('non-standard error:', response);

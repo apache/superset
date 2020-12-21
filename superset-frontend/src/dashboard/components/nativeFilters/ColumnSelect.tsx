@@ -24,6 +24,7 @@ import { AsyncSelect } from 'src/components/Select';
 import { useToasts } from 'src/messageToasts/enhancers/withToasts';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
+import { $anyType } from 'src/constants';
 import { NativeFiltersForm } from './types';
 
 type ColumnSelectValue = {
@@ -39,7 +40,7 @@ interface ColumnSelectProps {
   onChange?: (value: ColumnSelectValue | null) => void;
 }
 
-const localCache = new Map<string, any>();
+const localCache = new Map<string, $anyType>();
 
 const cachedSupersetGet = cacheWrapper(
   SupersetClient.get,
@@ -75,7 +76,7 @@ export function ColumnSelect({
     }).then(
       ({ json: { result } }) => {
         return result.columns
-          .map((col: any) => col.column_name)
+          .map((col: $anyType) => col.column_name)
           .sort((a: string, b: string) => a.localeCompare(b));
       },
       async badResponse => {

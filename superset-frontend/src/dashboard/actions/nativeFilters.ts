@@ -19,6 +19,7 @@
 
 import { ExtraFormData, makeApi } from '@superset-ui/core';
 import { Dispatch } from 'redux';
+import { $anyType } from 'src/constants';
 import {
   Filter,
   FilterConfiguration,
@@ -57,7 +58,7 @@ interface DashboardInfo {
 
 export const setFilterConfiguration = (
   filterConfig: FilterConfiguration,
-) => async (dispatch: Dispatch, getState: () => any) => {
+) => async (dispatch: Dispatch, getState: () => $anyType) => {
   dispatch({
     type: SET_FILTER_CONFIG_BEGIN,
     filterConfig,

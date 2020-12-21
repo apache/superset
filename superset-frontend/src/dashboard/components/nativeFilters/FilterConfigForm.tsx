@@ -31,6 +31,7 @@ import { Select } from 'src/components/Select/SupersetStyledSelect';
 import SupersetResourceSelect, {
   Value,
 } from 'src/components/SupersetResourceSelect';
+import { $anyType } from 'src/constants';
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ColumnSelect } from './ColumnSelect';
@@ -42,7 +43,7 @@ type DatasetSelectValue = {
   label: string;
 };
 
-const datasetToSelectOption = (item: any): DatasetSelectValue => ({
+const datasetToSelectOption = (item: $anyType): DatasetSelectValue => ({
   value: item.id,
   label: item.table_name,
 });

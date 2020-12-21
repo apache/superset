@@ -28,6 +28,7 @@ import { LineEditableTabs } from 'src/common/components/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import ErrorBoundary from 'src/components/ErrorBoundary';
+import { $anyType } from 'src/constants';
 import { useFilterConfigMap, useFilterConfiguration } from './state';
 import FilterConfigForm from './FilterConfigForm';
 import { FilterConfiguration, NativeFiltersForm } from './types';
@@ -441,7 +442,7 @@ export function FilterConfigModal({
               if (
                 changes.filters &&
                 Object.values(changes.filters).some(
-                  (filter: any) => filter.name != null,
+                  (filter: $anyType) => filter.name != null,
                 )
               ) {
                 // we only need to set this if a name changed

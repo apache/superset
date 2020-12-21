@@ -22,14 +22,14 @@ import { FormControl } from 'react-bootstrap';
 import { Column } from 'react-table';
 import debounce from 'lodash/debounce';
 
-import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
+import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY, $anyType } from 'src/constants';
 import Button from 'src/components/Button';
 import {
   applyFormattingToTabularData,
   prepareCopyToClipboardTabularData,
 } from 'src/utils/common';
 import CopyToClipboard from 'src/components/CopyToClipboard';
-import { $anyType } from 'src/constants';
+
 import RowCountLabel from './RowCountLabel';
 
 export const CopyButton = styled(Button)`
@@ -100,7 +100,7 @@ export const useFilteredTableData = (
   }, [data, filterText]);
 
 export const useTableColumns = (
-  data?: Record<string, any>[],
+  data?: Record<string, $anyType>[],
   moreConfigs?: { [key: string]: Partial<Column> },
 ) =>
   useMemo(

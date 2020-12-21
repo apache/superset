@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { $anyType } from 'src/constants';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
 
 describe('cacheWrapper', () => {
@@ -25,7 +26,7 @@ describe('cacheWrapper', () => {
   let wrappedFn: (a: number, b: number) => string;
 
   beforeEach(() => {
-    const cache = new Map<string, any>();
+    const cache = new Map<string, $anyType>();
     wrappedFn = cacheWrapper(fn, cache);
   });
 
@@ -60,10 +61,10 @@ describe('cacheWrapper', () => {
   });
 
   describe('with custom keyFn', () => {
-    let cache: Map<string, any>;
+    let cache: Map<string, $anyType>;
 
     beforeEach(() => {
-      cache = new Map<string, any>();
+      cache = new Map<string, $anyType>();
       wrappedFn = cacheWrapper(fn, cache, (...args) => `key-${args[0]}`);
     });
 

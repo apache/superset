@@ -47,7 +47,7 @@ const toasters = {
 export default function withToasts(BaseComponent: ComponentType<$anyType>) {
   return connect(null, dispatch => bindActionCreators(toasters, dispatch))(
     BaseComponent,
-  ) as any;
+  ) as $anyType;
   // Redux has some confusing typings that cause problems for consumers of this function.
   // If someone can fix the types, great, but for now it's just any.
 }
