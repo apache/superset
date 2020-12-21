@@ -36,7 +36,12 @@ import Loading from '../components/Loading';
 import withToasts from '../messageToasts/enhancers/withToasts';
 
 const CONFIRM_WARNING_MESSAGE = t(
-  'Warning! Changing the dataset may break the chart if the metadata (columns/metrics) does not exist in the target dataset',
+  'Warning! Changing the dataset may break the chart if the metadata does not exist.',
+);
+
+const CHANGE_WARNING_MSG = t(
+  'Changing the dataset may break the chart if the chart relies ' +
+    'on columns or metadata that does not exist in the target dataset',
 );
 
 interface Datasource {
@@ -74,10 +79,6 @@ const TABLE_COLUMNS = [
   'connection',
   'creator',
 ].map(col => ({ accessor: col, Header: col }));
-
-const CHANGE_WARNING_MSG = t(
-  'Warning changing the dataset may break the chart if the metadata does not exist.'
-);
 
 const emptyRequest = {
   pageIndex: 0,
