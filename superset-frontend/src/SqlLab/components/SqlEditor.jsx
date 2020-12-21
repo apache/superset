@@ -545,7 +545,10 @@ class SqlEditor extends React.PureComponent {
         {allowCTAS && (
           <Menu.Item
             onClick={() => {
-              this.setState({ showCreateAsModal: true, createAs: 'table' });
+              this.setState({
+                showCreateAsModal: true,
+                createAs: CtasEnum.TABLE,
+              });
             }}
             key="1"
           >
@@ -555,7 +558,10 @@ class SqlEditor extends React.PureComponent {
         {allowCVAS && (
           <Menu.Item
             onClick={() => {
-              this.setState({ showCreateAsModal: true, createAs: 'view' });
+              this.setState({
+                showCreateAsModal: true,
+                createAs: CtasEnum.VIEW,
+              });
             }}
             key="2"
           >
@@ -657,6 +663,11 @@ class SqlEditor extends React.PureComponent {
   }
 
   render() {
+    const createViewModalTitle =
+      this.state.createAs === CtasEnum.VIEW
+        ? 'Create View As'
+        : 'Create Table As';
+
     return (
       <div ref={this.sqlEditorRef} className="SqlEditor">
         <CSSTransition
@@ -676,7 +687,7 @@ class SqlEditor extends React.PureComponent {
         {this.queryPane()}
         <StyledModal
           visible={this.state.showCreateAsModal}
-          title={t('Create View As')}
+          title={t(createViewModalTitle)}
           onHide={() => {
             this.setState({ showCreateAsModal: false });
           }}
@@ -687,7 +698,7 @@ class SqlEditor extends React.PureComponent {
               >
                 Cancel
               </Button>
-              {this.state.createAs === 'table' && (
+              {this.state.createAs === CtasEnum.TABLE && (
                 <Button
                   buttonStyle="primary"
                   disabled={this.state.ctas.length === 0}
@@ -696,7 +707,7 @@ class SqlEditor extends React.PureComponent {
                   Create
                 </Button>
               )}
-              {this.state.createAs === 'view' && (
+              {this.state.createAs === CtasEnum.VIEW && (
                 <Button
                   buttonStyle="primary"
                   disabled={this.state.ctas.length === 0}
