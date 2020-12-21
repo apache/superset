@@ -17,10 +17,8 @@
 # isort:skip_file
 """Unit tests for Superset"""
 from datetime import datetime
-from typing import List, Optional
 import json
 
-from flask_appbuilder.security.sqla.models import User
 import pytest
 import prison
 from sqlalchemy.sql import func
@@ -48,6 +46,32 @@ REPORTS_COUNT = 10
 
 
 class TestReportSchedulesApi(SupersetTestCase):
+    @pytest.fixture()
+    def create_working_report_schedule(self):
+        with self.create_app().app_context():
+
+            admin_user = self.get_user("admin")
+            alpha_user = self.get_user("alpha")
+            chart = db.session.query(Slice).first()
+            example_db = get_example_database()
+
+            report_schedule = insert_report_schedule(
+                type=ReportScheduleType.ALERT,
+                name=f"name_working",
+                crontab=f"* * * * *",
+                sql=f"SELECT value from table",
+                description=f"Report working",
+                chart=chart,
+                database=example_db,
+                owners=[admin_user, alpha_user],
+                last_state=ReportState.WORKING,
+            )
+
+            yield
+
+            db.session.delete(report_schedule)
+            db.session.commit()
+
     @pytest.fixture()
     def create_report_schedules(self):
         with self.create_app().app_context():
@@ -580,6 +604,29 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert updated_model.crontab == report_schedule_data["crontab"]
         assert updated_model.chart_id == report_schedule_data["chart"]
         assert updated_model.database_id == report_schedule_data["database"]
+
+    @pytest.mark.usefixtures("create_working_report_schedule")
+    def test_update_report_schedule_state_working(self):
+        """
+        ReportSchedule Api: Test update state in a working report
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name_working")
+            .one_or_none()
+        )
+
+        self.login(username="admin")
+        report_schedule_data = {"active": False}
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.client.put(uri, json=report_schedule_data)
+        assert rv.status_code == 200
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name_working")
+            .one_or_none()
+        )
+        assert report_schedule.last_state == ReportState.NOOP
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_update_report_schedule_uniqueness(self):
