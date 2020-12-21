@@ -28,7 +28,7 @@ describe('getEffectiveExtraFilters', () => {
     expect(result).toMatchObject([
       {
         col: 'gender',
-        op: 'in',
+        op: 'IN',
         val: ['girl'],
       },
       {

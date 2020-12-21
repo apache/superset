@@ -50,8 +50,8 @@ else
   export SUPERSET_GITHUB_BRANCH="${VERSION_MAJOR}.${VERSION_MINOR}"
   export SUPERSET_PGP_FULLNAME="${2}"
   export SUPERSET_VERSION_RC="${SUPERSET_VERSION}rc${VERSION_RC}"
-  export SUPERSET_RELEASE=apache-superset-incubating-"${SUPERSET_VERSION}"
-  export SUPERSET_RELEASE_RC=apache-superset-incubating-"${SUPERSET_VERSION_RC}"
+  export SUPERSET_RELEASE=apache-superset-"${SUPERSET_VERSION}"
+  export SUPERSET_RELEASE_RC=apache-superset-"${SUPERSET_VERSION_RC}"
   export SUPERSET_RELEASE_TARBALL="${SUPERSET_RELEASE}"-source.tar.gz
   export SUPERSET_RELEASE_RC_TARBALL="${SUPERSET_RELEASE_RC}"-source.tar.gz
   export SUPERSET_TMP_ASF_SITE_PATH="/tmp/incubator-superset-site-${SUPERSET_VERSION}"

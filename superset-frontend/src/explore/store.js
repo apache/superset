@@ -69,13 +69,15 @@ export function applyDefaultFormData(inputFormData) {
   const controlFormData = getFormDataFromControls(controlsState);
 
   const formData = {};
-  Object.keys(controlsState).forEach(controlName => {
-    if (inputFormData[controlName] === undefined) {
-      formData[controlName] = controlFormData[controlName];
-    } else {
-      formData[controlName] = inputFormData[controlName];
-    }
-  });
+  Object.keys(controlsState)
+    .concat(Object.keys(inputFormData))
+    .forEach(controlName => {
+      if (inputFormData[controlName] === undefined) {
+        formData[controlName] = controlFormData[controlName];
+      } else {
+        formData[controlName] = inputFormData[controlName];
+      }
+    });
 
   // always use dynamically generated queryFields
   formData.queryFields = controlFormData.queryFields;

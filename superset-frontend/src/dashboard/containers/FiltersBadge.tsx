@@ -30,14 +30,13 @@ export interface FiltersBadgeProps {
   chartId: number;
 }
 
-const mapDispatchToProps = (dispatch: Dispatch) => {
-  return bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) =>
+  bindActionCreators(
     {
       onHighlightFilterSource: setDirectPathToChild,
     },
     dispatch,
   );
-};
 
 const mapStateToProps = (
   { datasources, dashboardFilters, charts }: $anyType,

@@ -22,6 +22,7 @@ import shortid from 'shortid';
 import { CategoricalColorNamespace } from '@superset-ui/core';
 
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
+import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { getParam } from 'src/modules/utils';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
@@ -168,7 +169,10 @@ export default function getInitialState(bootstrapData) {
     }
 
     // build DashboardFilters for interactive filter features
-    if (slice.form_data.viz_type === 'filter_box') {
+    if (
+      slice.form_data.viz_type === 'filter_box' ||
+      slice.form_data.viz_type === 'filter_select'
+    ) {
       const configs = getFilterConfigsFromFormdata(slice.form_data);
       let { columns } = configs;
       const { labels } = configs;
@@ -255,6 +259,10 @@ export default function getInitialState(bootstrapData) {
     directPathToChild.push(directLinkComponentId);
   }
 
+  const nativeFilters = getInitialNativeFilterState(
+    dashboard.metadata.filter_configuration || [],
+  );
+
   return {
     datasources,
     sliceEntities: { ...initSliceEntities, slices, isLoading: false },
@@ -277,6 +285,7 @@ export default function getInitialState(bootstrapData) {
       lastModifiedTime: dashboard.last_modified_time,
     },
     dashboardFilters,
+    nativeFilters,
     dashboardState: {
       sliceIds: Array.from(sliceIds),
       directPathToChild,

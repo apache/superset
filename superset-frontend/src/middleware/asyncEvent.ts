@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Middleware, MiddlewareAPI, Dispatch } from 'redux';
+import { Dispatch, Middleware, MiddlewareAPI } from 'redux';
 import { makeApi, SupersetClient } from '@superset-ui/core';
-import { SupersetError } from 'src/components/ErrorMessage/types';
 import { $anyType } from 'src/constants';
-import { isFeatureEnabled, FeatureFlag } from '../featureFlags';
+import { SupersetError } from 'src/components/ErrorMessage/types';
+import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
 import {
   getClientErrorObject,
   parseErrorJson,
@@ -104,7 +104,7 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
         const { json } = await SupersetClient.get({
           endpoint: asyncEvent.result_url,
         });
-        data = 'result' in json ? json.result[0] : json;
+        data = 'result' in json ? json.result : json;
       } catch (response) {
         status = 'error';
         data = await getClientErrorObject(response);
@@ -156,7 +156,7 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
                   break;
                 case JOB_STATUS.ERROR:
                   store.dispatch(
-                    errorAction(componentId, parseErrorJson(asyncEvent)),
+                    errorAction(componentId, [parseErrorJson(asyncEvent)]),
                   );
                   break;
                 default:
@@ -168,10 +168,13 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
 
             const fetchResults = await Promise.all(fetchDataEvents);
             fetchResults.forEach(result => {
+              const data = Array.isArray(result.data)
+                ? result.data
+                : [result.data];
               if (result.status === 'success') {
-                store.dispatch(successAction(result.componentId, result.data));
+                store.dispatch(successAction(result.componentId, data));
               } else {
-                store.dispatch(errorAction(result.componentId, result.data));
+                store.dispatch(errorAction(result.componentId, data));
               }
             });
           }

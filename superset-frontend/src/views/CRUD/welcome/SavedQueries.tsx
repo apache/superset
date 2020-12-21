@@ -256,6 +256,7 @@ const SavedQueries = ({
       <SubMenu
         activeChild={queryFilter}
         tabs={[
+          /* @TODO uncomment when fav functionality is implemented
           {
             name: 'Favorite',
             label: t('Favorite'),
@@ -263,6 +264,7 @@ const SavedQueries = ({
               getData('Favorite').then(() => setQueryFilter('Favorite'));
             },
           },
+          */
           {
             name: 'Mine',
             label: t('Mine'),

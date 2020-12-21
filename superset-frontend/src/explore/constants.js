@@ -35,10 +35,10 @@ export const OPERATORS = {
   '<': '<',
   '>=': '>=',
   '<=': '<=',
-  in: 'in',
-  'not in': 'not in',
+  IN: 'IN',
+  'NOT IN': 'NOT IN',
   LIKE: 'LIKE',
-  regex: 'regex',
+  REGEX: 'REGEX',
   'IS NOT NULL': 'IS NOT NULL',
   'IS NULL': 'IS NULL',
   'LATEST PARTITION': 'LATEST PARTITION',
@@ -46,7 +46,7 @@ export const OPERATORS = {
 export const OPERATORS_OPTIONS = Object.values(OPERATORS);
 
 export const TABLE_ONLY_OPERATORS = [OPERATORS.LIKE];
-export const DRUID_ONLY_OPERATORS = [OPERATORS.regex];
+export const DRUID_ONLY_OPERATORS = [OPERATORS.REGEX];
 export const HAVING_OPERATORS = [
   OPERATORS['=='],
   OPERATORS['!='],
@@ -55,7 +55,12 @@ export const HAVING_OPERATORS = [
   OPERATORS['>='],
   OPERATORS['<='],
 ];
-export const MULTI_OPERATORS = new Set([OPERATORS.in, OPERATORS['not in']]);
+export const MULTI_OPERATORS = new Set([
+  OPERATORS.in,
+  OPERATORS['not in'],
+  OPERATORS.IN,
+  OPERATORS['NOT IN'],
+]);
 // CUSTOM_OPERATORS will show operator in simple mode,
 // but will generate customized sqlExpression
 export const CUSTOM_OPERATORS = new Set([OPERATORS['LATEST PARTITION']]);

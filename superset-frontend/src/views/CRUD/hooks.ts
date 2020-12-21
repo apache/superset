@@ -116,8 +116,8 @@ export function useListViewResource<D extends object = $anyType>(
 
       const filterExps = (baseFilters || [])
         .concat(filterValues)
-        .map(({ id: col, operator: opr, value }) => ({
-          col,
+        .map(({ id, operator: opr, value }) => ({
+          col: id,
           opr,
           value,
         }));

@@ -41,11 +41,15 @@ function setup(overrides) {
   const onMetricEdit = sinon.spy();
   const props = {
     adhocMetric: sumValueAdhocMetric,
+    savedMetric: {},
+    savedMetrics: [],
     onMetricEdit,
     columns,
     ...overrides,
   };
-  const wrapper = shallow(<AdhocMetricOption {...props} />);
+  const wrapper = shallow(<AdhocMetricOption {...props} />)
+    .find('AdhocMetricPopoverTrigger')
+    .shallow();
   return { wrapper, onMetricEdit };
 }
 
@@ -54,13 +58,6 @@ describe('AdhocMetricOption', () => {
     const { wrapper } = setup();
     expect(wrapper.find(Popover)).toExist();
     expect(wrapper.find('OptionControlLabel')).toExist();
-  });
-
-  it('overlay should open if metric is new', () => {
-    const { wrapper } = setup({
-      adhocMetric: sumValueAdhocMetric.duplicateWith({ isNew: true }),
-    });
-    expect(wrapper.find(Popover).props().defaultVisible).toBe(true);
   });
 
   it('overwrites the adhocMetric in state with onLabelChange', () => {

@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import { ComponentType } from 'react';
+import { ComponentType, useMemo } from 'react';
 import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
+import { connect, useDispatch } from 'react-redux';
 
 import { $anyType } from 'src/constants';
 import {
@@ -36,19 +36,23 @@ export interface ToastProps {
   addWarningToast: typeof addWarningToast;
 }
 
+const toasters = {
+  addInfoToast,
+  addSuccessToast,
+  addWarningToast,
+  addDangerToast,
+};
+
 // To work properly the redux state must have a `messageToasts` subtree
 export default function withToasts(BaseComponent: ComponentType<$anyType>) {
-  return connect(null, dispatch =>
-    bindActionCreators(
-      {
-        addInfoToast,
-        addSuccessToast,
-        addWarningToast,
-        addDangerToast,
-      },
-      dispatch,
-    ),
-  )(BaseComponent) as $anyType;
+  return connect(null, dispatch => bindActionCreators(toasters, dispatch))(
+    BaseComponent,
+  ) as any;
   // Redux has some confusing typings that cause problems for consumers of this function.
   // If someone can fix the types, great, but for now it's just any.
+}
+
+export function useToasts() {
+  const dispatch = useDispatch();
+  return useMemo(() => bindActionCreators(toasters, dispatch), [dispatch]);
 }

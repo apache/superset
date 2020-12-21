@@ -35,6 +35,7 @@ export const AlertReportCronScheduler: FunctionComponent<AlertReportCronSchedule
   onChange,
 }) => {
   const theme = useTheme();
+  // @ts-ignore
   const inputRef = useRef<Input>(null);
   const [scheduleFormat, setScheduleFormat] = useState<'picker' | 'input'>(
     'picker',
