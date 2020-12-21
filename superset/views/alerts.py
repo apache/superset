@@ -15,7 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 from croniter import croniter
-from flask_appbuilder import CompactCRUDMixin
+from flask import abort
+from flask_appbuilder import CompactCRUDMixin, permission_name
 from flask_appbuilder.api import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
@@ -24,14 +25,13 @@ from flask_babel import lazy_gettext as _
 from superset import is_feature_enabled
 from superset.constants import RouteMethod
 from superset.models.alerts import Alert, AlertLog, SQLObservation
-from superset.models.reports import ReportSchedule
 from superset.tasks.alerts.validator import check_validator
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.utils.core import get_email_address_str, markdown
 
 from ..exceptions import SupersetException
-from .base import SupersetModelView
+from .base import BaseSupersetView, SupersetModelView
 
 # TODO: access control rules for this module
 
@@ -68,37 +68,48 @@ class AlertObservationModelView(
     }
 
 
-class AlertReportModelView(SupersetModelView):
-    datamodel = SQLAInterface(ReportSchedule)
+class BaseAlertReportView(BaseSupersetView):
     route_base = "/report"
-    include_route_methods = RouteMethod.CRUD_SET | {"log"}
+    class_permission_name = "ReportSchedule"
 
     @expose("/list/")
     @has_access
+    @permission_name("read")
     def list(self) -> FlaskResponse:
         if not (
             is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
             and is_feature_enabled("ALERT_REPORTS")
         ):
-            return super().list()
+            return abort(404)
 
         return super().render_app_template()
 
     @expose("/<pk>/log/", methods=["GET"])
     @has_access
+    @permission_name("read")
     def log(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
         if not (
             is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
             and is_feature_enabled("ALERT_REPORTS")
         ):
-            return super().list()
+            return abort(404)
 
         return super().render_app_template()
 
 
+class AlertView(BaseAlertReportView):
+    route_base = "/alert"
+    class_permission_name = "ReportSchedule"
+
+
+class ReportView(BaseAlertReportView):
+    route_base = "/report"
+    class_permission_name = "ReportSchedule"
+
+
 class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(Alert)
-    route_base = "/alert"
+    route_base = "/alerts"
     include_route_methods = RouteMethod.CRUD_SET | {"log"}
 
     list_columns = (
@@ -196,28 +207,6 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         AlertObservationModelView,
         AlertLogModelView,
     ]
-
-    @expose("/list/")
-    @has_access
-    def list(self) -> FlaskResponse:
-        if not (
-            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
-            and is_feature_enabled("ALERT_REPORTS")
-        ):
-            return super().list()
-
-        return super().render_app_template()
-
-    @expose("/<pk>/log/", methods=["GET"])
-    @has_access
-    def log(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
-        if not (
-            is_feature_enabled("ENABLE_REACT_CRUD_VIEWS")
-            and is_feature_enabled("ALERT_REPORTS")
-        ):
-            return super().list()
-
-        return super().render_app_template()
 
     def pre_add(self, item: "AlertModelView") -> None:
         item.recipients = get_email_address_str(item.recipients)
