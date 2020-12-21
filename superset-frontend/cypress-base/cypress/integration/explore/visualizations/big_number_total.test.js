@@ -48,7 +48,7 @@ describe('Visualization > Big Number Total', () => {
       {
         expressionType: 'SIMPLE',
         subject: 'name',
-        operator: 'in',
+        operator: 'IN',
         comparator: ['Aaron', 'Amy', 'Andrea'],
         clause: 'WHERE',
         sqlExpression: null,

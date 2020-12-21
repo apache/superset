@@ -17,7 +17,7 @@
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 import superset.models.core as models
-from superset.constants import RouteMethod
+from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.views.base import SupersetModelView
 
 from . import LogMixin
@@ -26,3 +26,5 @@ from . import LogMixin
 class LogModelView(LogMixin, SupersetModelView):  # pylint: disable=too-many-ancestors
     datamodel = SQLAInterface(models.Log)
     include_route_methods = {RouteMethod.LIST, RouteMethod.SHOW}
+    class_permission_name = "Log"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP

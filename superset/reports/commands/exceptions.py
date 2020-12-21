@@ -21,6 +21,7 @@ from superset.commands.exceptions import (
     CommandInvalidError,
     CreateFailedError,
     DeleteFailedError,
+    ForbiddenError,
     ValidationError,
 )
 
@@ -150,6 +151,10 @@ class AlertQueryInvalidTypeError(CommandException):
     message = _("Alert query returned a non-number value.")
 
 
+class AlertQueryError(CommandException):
+    message = _("Alert found an error while executing a query.")
+
+
 class ReportScheduleAlertGracePeriodError(CommandException):
     message = _("Alert fired during grace period.")
 
@@ -172,3 +177,7 @@ class ReportScheduleStateNotFoundError(CommandException):
 
 class ReportScheduleUnexpectedError(CommandException):
     message = _("Report schedule unexpected error")
+
+
+class ReportScheduleForbiddenError(ForbiddenError):
+    message = _("Changing this report is forbidden")

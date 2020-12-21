@@ -33,7 +33,7 @@ from superset import event_logger, is_feature_enabled
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import remove_root
 from superset.connectors.sqla.models import SqlaTable
-from superset.constants import RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.commands.bulk_delete import BulkDeleteDatasetCommand
 from superset.datasets.commands.create import CreateDatasetCommand
@@ -79,7 +79,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     resource_name = "dataset"
     allow_browser_login = True
-    class_permission_name = "TableModelView"
+    class_permission_name = "Dataset"
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
@@ -624,11 +625,19 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         ---
         post:
           requestBody:
+            required: true
             content:
-              application/zip:
+              multipart/form-data:
                 schema:
-                  type: string
-                  format: binary
+                  type: object
+                  properties:
+                    formData:
+                      type: string
+                      format: binary
+                    passwords:
+                      type: string
+                    overwrite:
+                      type: bool
           responses:
             200:
               description: Dataset import result
@@ -662,8 +671,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             if "passwords" in request.form
             else None
         )
+        overwrite = request.form.get("overwrite") == "true"
 
-        command = ImportDatasetsCommand(contents, passwords=passwords)
+        command = ImportDatasetsCommand(
+            contents, passwords=passwords, overwrite=overwrite
+        )
         try:
             command.run()
             return self.response(200, message="OK")

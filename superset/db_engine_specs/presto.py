@@ -37,7 +37,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
-from superset import app, cache_manager, is_feature_enabled, security_manager
+from superset import app, cache_manager, is_feature_enabled
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetTemplateException
@@ -132,7 +132,8 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
     }
 
     @classmethod
-    def get_allow_cost_estimate(cls, version: Optional[str] = None) -> bool:
+    def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
+        version = extra.get("version")
         return version is not None and StrictVersion(version) >= StrictVersion("0.319")
 
     @classmethod
@@ -484,7 +485,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
     @classmethod
     def estimate_statement_cost(  # pylint: disable=too-many-locals
-        cls, statement: str, database: "Database", cursor: Any, user_name: str
+        cls, statement: str, cursor: Any
     ) -> Dict[str, Any]:
         """
         Run a SQL query that estimates the cost of a given statement.
@@ -495,14 +496,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         :param username: Effective username
         :return: JSON response from Presto
         """
-        parsed_query = ParsedQuery(statement)
-        sql = parsed_query.stripped()
-
-        sql_query_mutator = config["SQL_QUERY_MUTATOR"]
-        if sql_query_mutator:
-            sql = sql_query_mutator(sql, user_name, security_manager, database)
-
-        sql = f"EXPLAIN (TYPE IO, FORMAT JSON) {sql}"
+        sql = f"EXPLAIN (TYPE IO, FORMAT JSON) {statement}"
         cursor.execute(sql)
 
         # the output from Presto is a single column and a single row containing

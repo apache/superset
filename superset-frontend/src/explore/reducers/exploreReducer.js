@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
+import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/chart/chartAction';
 import { getControlsState } from '../store';
 import {
   getControlConfig,
@@ -27,6 +28,12 @@ import * as actions from '../actions/exploreActions';
 
 export default function exploreReducer(state = {}, action) {
   const actionHandlers = {
+    [DYNAMIC_PLUGIN_CONTROLS_READY]() {
+      return {
+        ...state,
+        controls: action.controlsState,
+      };
+    },
     [actions.TOGGLE_FAVE_STAR]() {
       return {
         ...state,

@@ -19,6 +19,8 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
+import { styled } from '@superset-ui/core';
+
 import { exploreChart, exportChart } from '../../../explore/exploreUtils';
 import SliceHeader from '../SliceHeader';
 import ChartContainer from '../../../chart/ChartContainer';
@@ -32,6 +34,7 @@ import {
 } from '../../../logger/LogUtils';
 import { isFilterBox } from '../../util/activeDashboardFilters';
 import getFilterValuesByFilterId from '../../util/getFilterValuesByFilterId';
+import { areObjectsEqual } from '../../../reduxUtils';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -81,6 +84,13 @@ const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
 const OVERFLOWABLE_VIZ_TYPES = new Set(['filter_box']);
 const DEFAULT_HEADER_HEIGHT = 22;
 
+const ChartOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+`;
+
 export default class Chart extends React.Component {
   constructor(props) {
     super(props);
@@ -124,19 +134,21 @@ export default class Chart extends React.Component {
         return false;
       }
 
-      for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
-        const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
-        if (nextProps[prop] !== this.props[prop]) {
-          return true;
-        }
-      }
-
       if (
         nextProps.width !== this.props.width ||
         nextProps.height !== this.props.height
       ) {
         clearTimeout(this.resizeTimeout);
         this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
+      }
+
+      for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
+        const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
+        // use deep objects equality comparison to prevent
+        // unneccessary updates when objects references change
+        if (!areObjectsEqual(nextProps[prop], this.props[prop])) {
+          return true;
+        }
       }
     }
 
@@ -257,9 +269,13 @@ export default class Chart extends React.Component {
       return <MissingChart height={this.getChartHeight()} />;
     }
 
-    const { queryResponse, chartUpdateEndTime } = chart;
-    const isCached = queryResponse && queryResponse.is_cached;
-    const cachedDttm = queryResponse && queryResponse.cached_dttm;
+    const { queriesResponse, chartUpdateEndTime, chartStatus } = chart;
+    const isLoading = chartStatus === 'loading';
+    // eslint-disable-next-line camelcase
+    const isCached = queriesResponse?.map(({ is_cached }) => is_cached) || [];
+    const cachedDttm =
+      // eslint-disable-next-line camelcase
+      queriesResponse?.map(({ cached_dttm }) => cached_dttm) || [];
     const isOverflowable = OVERFLOWABLE_VIZ_TYPES.has(slice.viz_type);
     const initialValues = isFilterBox(id)
       ? getFilterValuesByFilterId({
@@ -267,7 +283,6 @@ export default class Chart extends React.Component {
           filterId: id,
         })
       : {};
-
     return (
       <div className="chart-slice">
         <SliceHeader
@@ -319,6 +334,15 @@ export default class Chart extends React.Component {
             isOverflowable && 'dashboard-chart--overflowable',
           )}
         >
+          {isLoading && (
+            <ChartOverlay
+              style={{
+                width,
+                height: this.getChartHeight(),
+              }}
+            />
+          )}
+
           <ChartContainer
             width={width}
             height={this.getChartHeight()}
@@ -328,12 +352,12 @@ export default class Chart extends React.Component {
             annotationData={chart.annotationData}
             chartAlert={chart.chartAlert}
             chartId={id}
-            chartStatus={chart.chartStatus}
+            chartStatus={chartStatus}
             datasource={datasource}
             dashboardId={dashboardId}
             initialValues={initialValues}
             formData={formData}
-            queryResponse={chart.queryResponse}
+            queriesResponse={chart.queriesResponse}
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={slice.viz_type}

@@ -46,9 +46,14 @@ describe('Visualization > Line', () => {
     cy.visitChartByParams(JSON.stringify(formData));
     cy.get('.alert-warning').contains(`"Metrics" cannot be empty`);
     cy.get('.text-danger').contains('Metrics');
-    cy.get('.metrics-select .Select__input input:eq(0)')
-      .focus()
-      .type('SUM(num){enter}');
+
+    cy.get('[data-test=metrics]')
+      .find('[data-test="add-metric-button"]')
+      .click();
+    cy.get('[name="select-column"]').click().type('num{enter}');
+    cy.get('[name="select-aggregate"]').click().type('sum{enter}');
+    cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
+
     cy.get('.text-danger').should('not.exist');
     cy.get('.alert-warning').should('not.exist');
   });

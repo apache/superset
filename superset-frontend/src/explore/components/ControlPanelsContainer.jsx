@@ -23,9 +23,11 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert } from 'react-bootstrap';
 import { css } from '@emotion/core';
-import { t, styled } from '@superset-ui/core';
+import { t, styled, getChartControlPanelRegistry } from '@superset-ui/core';
 
 import Tabs from 'src/common/components/Tabs';
+import { PluginContext } from 'src/components/DynamicPlugins';
+import Loading from 'src/components/Loading';
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
 import Control from './Control';
@@ -74,6 +76,9 @@ const ControlPanelsTabs = styled(Tabs)`
 `;
 
 class ControlPanelsContainer extends React.Component {
+  // trigger updates to the component when async plugins load
+  static contextType = PluginContext;
+
   constructor(props) {
     super(props);
 
@@ -159,7 +164,11 @@ class ControlPanelsContainer extends React.Component {
                 // When the item is a React element
                 return controlItem;
               }
-              if (controlItem.name && controlItem.config) {
+              if (
+                controlItem.name &&
+                controlItem.config &&
+                controlItem.name !== 'datasource'
+              ) {
                 return this.renderControl(controlItem);
               }
               return null;
@@ -182,6 +191,14 @@ class ControlPanelsContainer extends React.Component {
   }
 
   render() {
+    const controlPanelRegistry = getChartControlPanelRegistry();
+    if (
+      !controlPanelRegistry.has(this.props.form_data.viz_type) &&
+      this.context.loading
+    ) {
+      return <Loading />;
+    }
+
     const querySectionsToRender = [];
     const displaySectionsToRender = [];
     this.sectionsToRender().forEach(section => {
@@ -204,7 +221,6 @@ class ControlPanelsContainer extends React.Component {
         displaySectionsToRender.push(section);
       }
     });
-
     const showCustomizeTab = displaySectionsToRender.length > 0;
     return (
       <Styles>

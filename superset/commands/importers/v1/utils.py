@@ -38,7 +38,7 @@ def remove_root(file_path: str) -> str:
 
 class MetadataSchema(Schema):
     version = fields.String(required=True, validate=validate.Equal(IMPORT_VERSION))
-    type = fields.String(required=True)
+    type = fields.String(required=False)
     timestamp = fields.DateTime()
 
 

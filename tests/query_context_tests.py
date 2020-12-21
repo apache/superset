@@ -82,7 +82,7 @@ class TestQueryContext(SupersetTestCase):
         # construct baseline cache_key
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        cache_key_original = query_context.cache_key(query_object)
+        cache_key_original = query_context.query_cache_key(query_object)
 
         # make temporary change and revert it to refresh the changed_on property
         datasource = ConnectorRegistry.get_datasource(
@@ -99,7 +99,7 @@ class TestQueryContext(SupersetTestCase):
         # create new QueryContext with unchanged attributes and extract new cache_key
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        cache_key_new = query_context.cache_key(query_object)
+        cache_key_new = query_context.query_cache_key(query_object)
 
         # the new cache_key should be different due to updated datasource
         self.assertNotEqual(cache_key_original, cache_key_new)
@@ -115,20 +115,20 @@ class TestQueryContext(SupersetTestCase):
         # construct baseline cache_key from query_context with post processing operation
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        cache_key_original = query_context.cache_key(query_object)
+        cache_key_original = query_context.query_cache_key(query_object)
 
         # ensure added None post_processing operation doesn't change cache_key
         payload["queries"][0]["post_processing"].append(None)
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        cache_key_with_null = query_context.cache_key(query_object)
+        cache_key_with_null = query_context.query_cache_key(query_object)
         self.assertEqual(cache_key_original, cache_key_with_null)
 
         # ensure query without post processing operation is different
         payload["queries"][0].pop("post_processing")
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        cache_key_without_post_processing = query_context.cache_key(query_object)
+        cache_key_without_post_processing = query_context.query_cache_key(query_object)
         self.assertNotEqual(cache_key_original, cache_key_without_post_processing)
 
     def test_query_context_time_range_endpoints(self):
@@ -179,12 +179,9 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
         self.assertEqual(len(responses), 1)
-        data = responses[0]["data"]
+        data = responses["queries"][0]["data"]
         self.assertIn("name,sum__num\n", data)
         self.assertEqual(len(data.split("\n")), 12)
-
-        ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
-        assert ck.datasource_uid == f"{table.id}__table"
 
     def test_sql_injection_via_groupby(self):
         """
@@ -197,11 +194,11 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["groupby"] = ["currentDatabase()"]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_payload = query_context.get_payload()
-        assert query_payload[0].get("error") is not None
+        assert query_payload["queries"][0].get("error") is not None
 
     def test_sql_injection_via_columns(self):
         """
-        Ensure that calling invalid columns names in columns are caught
+        Ensure that calling invalid column names in columns are caught
         """
         self.login(username="admin")
         table_name = "birth_names"
@@ -212,11 +209,11 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["columns"] = ["*, 'extra'"]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_payload = query_context.get_payload()
-        assert query_payload[0].get("error") is not None
+        assert query_payload["queries"][0].get("error") is not None
 
     def test_sql_injection_via_metrics(self):
         """
-        Ensure that calling invalid columns names in filters are caught
+        Ensure that calling invalid column names in filters are caught
         """
         self.login(username="admin")
         table_name = "birth_names"
@@ -233,7 +230,7 @@ class TestQueryContext(SupersetTestCase):
         ]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_payload = query_context.get_payload()
-        assert query_payload[0].get("error") is not None
+        assert query_payload["queries"][0].get("error") is not None
 
     def test_samples_response_type(self):
         """
@@ -248,7 +245,7 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
         self.assertEqual(len(responses), 1)
-        data = responses[0]["data"]
+        data = responses["queries"][0]["data"]
         self.assertIsInstance(data, list)
         self.assertEqual(len(data), 5)
         self.assertNotIn("sum__num", data[0])
@@ -265,7 +262,26 @@ class TestQueryContext(SupersetTestCase):
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
         self.assertEqual(len(responses), 1)
-        response = responses[0]
+        response = responses["queries"][0]
         self.assertEqual(len(response), 2)
         self.assertEqual(response["language"], "sql")
         self.assertIn("SELECT", response["query"])
+
+    def test_query_object_unknown_fields(self):
+        """
+        Ensure that query objects with unknown fields don't raise an Exception and
+        have an identical cache key as one without the unknown field
+        """
+        self.maxDiff = None
+        self.login(username="admin")
+        table_name = "birth_names"
+        table = self.get_table_by_name(table_name)
+        payload = get_query_context(table.name, table.id, table.type)
+        query_context = ChartDataQueryContextSchema().load(payload)
+        responses = query_context.get_payload()
+        orig_cache_key = responses["queries"][0]["cache_key"]
+        payload["queries"][0]["foo"] = "bar"
+        query_context = ChartDataQueryContextSchema().load(payload)
+        responses = query_context.get_payload()
+        new_cache_key = responses["queries"][0]["cache_key"]
+        self.assertEqual(orig_cache_key, new_cache_key)

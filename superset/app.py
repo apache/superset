@@ -30,6 +30,7 @@ from superset.extensions import (
     _event_logger,
     APP_DIR,
     appbuilder,
+    async_query_manager,
     cache_manager,
     celery_app,
     csrf,
@@ -127,6 +128,7 @@ class SupersetAppInitializer:
         # pylint: disable=too-many-branches
         from superset.annotation_layers.api import AnnotationLayerRestApi
         from superset.annotation_layers.annotations.api import AnnotationRestApi
+        from superset.async_events.api import AsyncEventsRestApi
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
         from superset.connectors.druid.views import (
@@ -179,6 +181,7 @@ class SupersetAppInitializer:
             ExcelToDatabaseView,
         )
         from superset.views.datasource import Datasource
+        from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
@@ -201,6 +204,7 @@ class SupersetAppInitializer:
         #
         appbuilder.add_api(AnnotationRestApi)
         appbuilder.add_api(AnnotationLayerRestApi)
+        appbuilder.add_api(AsyncEventsRestApi)
         appbuilder.add_api(CacheRestApi)
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(CssTemplateRestApi)
@@ -263,6 +267,15 @@ class SupersetAppInitializer:
             category="",
             category_icon="",
         )
+        if feature_flag_manager.is_feature_enabled("DYNAMIC_PLUGINS"):
+            appbuilder.add_view(
+                DynamicPluginsView,
+                "Plugins",
+                label=__("Plugins"),
+                category="Manage",
+                category_label=__("Manage"),
+                icon="fa-puzzle-piece",
+            )
         appbuilder.add_view(
             CssTemplateModelView,
             "CSS Templates",
@@ -315,15 +328,16 @@ class SupersetAppInitializer:
         #
         # Add links
         #
-        appbuilder.add_link(
-            "Import Dashboards",
-            label=__("Import Dashboards"),
-            href="/superset/import_dashboards",
-            icon="fa-cloud-upload",
-            category="Manage",
-            category_label=__("Manage"),
-            category_icon="fa-wrench",
-        )
+        if not feature_flag_manager.is_feature_enabled("VERSIONED_EXPORT"):
+            appbuilder.add_link(
+                "Import Dashboards",
+                label=__("Import Dashboards"),
+                href="/superset/import_dashboards",
+                icon="fa-cloud-upload",
+                category="Manage",
+                category_label=__("Manage"),
+                category_icon="fa-wrench",
+            )
         appbuilder.add_link(
             "SQL Editor",
             label=_("SQL Editor"),
@@ -497,6 +511,7 @@ class SupersetAppInitializer:
         self.configure_url_map_converters()
         self.configure_data_sources()
         self.configure_auth_provider()
+        self.configure_async_queries()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -646,6 +661,10 @@ class SupersetAppInitializer:
             csrf_exempt_list = self.config["WTF_CSRF_EXEMPT_LIST"]
             for ex in csrf_exempt_list:
                 csrf.exempt(ex)
+
+    def configure_async_queries(self) -> None:
+        if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+            async_query_manager.init_app(self.flask_app)
 
     def register_blueprints(self) -> None:
         for bp in self.config["BLUEPRINTS"]:

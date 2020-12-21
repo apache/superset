@@ -41,7 +41,7 @@ const simpleAdhocFilter = new AdhocFilter({
 const simpleMultiAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
   subject: 'value',
-  operator: 'in',
+  operator: 'IN',
   comparator: ['10'],
   clause: CLAUSES.WHERE,
 });
@@ -59,10 +59,10 @@ const simpleCustomFilter = new AdhocFilter({
 });
 
 const options = [
-  { type: 'VARCHAR(255)', column_name: 'source' },
-  { type: 'VARCHAR(255)', column_name: 'target' },
-  { type: 'DOUBLE', column_name: 'value' },
-  { saved_metric_name: 'my_custom_metric' },
+  { type: 'VARCHAR(255)', column_name: 'source', id: 1 },
+  { type: 'VARCHAR(255)', column_name: 'target', id: 2 },
+  { type: 'DOUBLE', column_name: 'value', id: 3 },
+  { saved_metric_name: 'my_custom_metric', id: 4 },
   sumValueAdhocMetric,
 ];
 
@@ -91,9 +91,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
 
   it('passes the new adhocFilter to onChange after onSubjectChange', () => {
     const { wrapper, onChange } = setup();
-    wrapper
-      .instance()
-      .onSubjectChange({ type: 'VARCHAR(255)', column_name: 'source' });
+    wrapper.instance().onSubjectChange(1);
     expect(onChange.calledOnce).toBe(true);
     expect(onChange.lastCall.args[0]).toEqual(
       simpleAdhocFilter.duplicateWith({ subject: 'source' }),
@@ -102,7 +100,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
 
   it('may alter the clause in onSubjectChange if the old clause is not appropriate', () => {
     const { wrapper, onChange } = setup();
-    wrapper.instance().onSubjectChange(sumValueAdhocMetric);
+    wrapper.instance().onSubjectChange(sumValueAdhocMetric.optionName);
     expect(onChange.calledOnce).toBe(true);
     expect(onChange.lastCall.args[0]).toEqual(
       simpleAdhocFilter.duplicateWith({
@@ -114,10 +112,10 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
 
   it('will convert from individual comparator to array if the operator changes to multi', () => {
     const { wrapper, onChange } = setup();
-    wrapper.instance().onOperatorChange('in');
+    wrapper.instance().onOperatorChange('IN');
     expect(onChange.calledOnce).toBe(true);
     expect(onChange.lastCall.args[0]).toEqual(
-      simpleAdhocFilter.duplicateWith({ operator: 'in', comparator: ['10'] }),
+      simpleAdhocFilter.duplicateWith({ operator: 'IN', comparator: ['10'] }),
     );
   });
 
@@ -143,13 +141,13 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
 
   it('will filter operators for table datasources', () => {
     const { wrapper } = setup({ datasource: { type: 'table' } });
-    expect(wrapper.instance().isOperatorRelevant('regex')).toBe(false);
+    expect(wrapper.instance().isOperatorRelevant('REGEX')).toBe(false);
     expect(wrapper.instance().isOperatorRelevant('LIKE')).toBe(true);
   });
 
   it('will filter operators for druid datasources', () => {
     const { wrapper } = setup({ datasource: { type: 'druid' } });
-    expect(wrapper.instance().isOperatorRelevant('regex')).toBe(true);
+    expect(wrapper.instance().isOperatorRelevant('REGEX')).toBe(true);
     expect(wrapper.instance().isOperatorRelevant('LIKE')).toBe(false);
   });
 

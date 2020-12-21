@@ -45,11 +45,23 @@ import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import FacePile from 'src/components/FacePile';
 import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
-import ImportDatasetModal from 'src/datasource/components/ImportModal/index';
+import ImportModelsModal from 'src/components/ImportModal/index';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import AddDatasetModal from './AddDatasetModal';
 
 const PAGE_SIZE = 25;
+const PASSWORDS_NEEDED_MESSAGE = t(
+  'The passwords for the databases below are needed in order to ' +
+    'import them together with the datasets. Please note that the ' +
+    '"Secure Extra" and "Certificate" sections of ' +
+    'the database configuration are not present in export files, and ' +
+    'should be added manually after the import if they are needed.',
+);
+const CONFIRM_OVERWRITE_MESSAGE = t(
+  'You are importing one or more datasets that already exist. ' +
+    'Overwriting might cause you to lose some of your work. Are you ' +
+    'sure you want to overwrite?',
+);
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -132,10 +144,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     refreshData();
   };
 
-  const canEdit = hasPerm('can_edit');
-  const canDelete = hasPerm('can_delete');
-  const canCreate = hasPerm('can_add');
-  const canExport = hasPerm('can_mulexport');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
+  const canCreate = hasPerm('can_write');
+  const canExport = hasPerm('can_read');
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
@@ -647,12 +659,16 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         }}
       </ConfirmStatusChange>
 
-      <ImportDatasetModal
-        show={importingDataset}
-        onHide={closeDatasetImportModal}
+      <ImportModelsModal
+        resourceName="dataset"
+        resourceLabel={t('dataset')}
+        passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
+        confirmOverwriteMessage={CONFIRM_OVERWRITE_MESSAGE}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
-        onDatasetImport={handleDatasetImport}
+        onModelImport={handleDatasetImport}
+        show={importingDataset}
+        onHide={closeDatasetImportModal}
         passwordFields={passwordFields}
         setPasswordFields={setPasswordFields}
       />

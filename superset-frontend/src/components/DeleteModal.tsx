@@ -73,6 +73,7 @@ export default function DeleteModal({
           id="delete"
           type="text"
           bsSize="sm"
+          autoComplete="off"
           onChange={(
             event: React.FormEvent<FormControl & FormControlProps>,
           ) => {

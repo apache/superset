@@ -18,7 +18,7 @@
 -#}
 To: {{ receiver_email }}
 From: {{ sender_email }}
-Subject: [VOTE] Release Apache {{ project_name }} (incubating) {{ version }} based on Superset {{ version_rc }}
+Subject: [VOTE] Release Apache {{ project_name }} {{ version }} based on Superset {{ version_rc }}
 
 Hello {{ project_name }} Community,
 
@@ -26,20 +26,20 @@ This is a call for the vote to release Apache {{ project_name }}
 (incubating) version {{ version }}.
 
 The release candidate:
-https://dist.apache.org/repos/dist/dev/incubator/{{ project_module }}/{{ version_rc }}/
+https://dist.apache.org/repos/dist/dev/{{ project_module }}/{{ version_rc }}/
 
 Git tag for the release:
-https://github.com/apache/incubator-{{ project_module }}/tree/{{ version_rc }}
+https://github.com/apache/{{ project_module }}/tree/{{ version_rc }}
 
 The Change Log for the release:
-https://github.com/apache/incubator-{{ project_module }}/blob/{{ version_rc }}/CHANGELOG.md
+https://github.com/apache/{{ project_module }}/blob/{{ version_rc }}/CHANGELOG.md
 
 The Updating instructions for the release:
-https://github.com/apache/incubator-{{ project_module }}/blob/{{ version_rc }}/UPDATING.md
+https://github.com/apache/{{ project_module }}/blob/{{ version_rc }}/UPDATING.md
 
 public keys are available at:
 
-https://www.apache.org/dist/incubator/{{ project_module }}/KEYS
+https://www.apache.org/dist/{{ project_module }}/KEYS
 
 The vote will be open for at least 72 hours or until the necessary number
 of votes are reached.
@@ -51,4 +51,4 @@ Please vote accordingly:
 [ ] -1 disapprove with the reason
 
 Thanks,
-The Apache {{ project_name }} (Incubating) Team
+The Apache {{ project_name }} Team

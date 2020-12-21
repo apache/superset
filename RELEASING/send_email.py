@@ -33,7 +33,7 @@ SMTP_PORT = 587
 SMTP_SERVER = "mail-relay.apache.org"
 PROJECT_NAME = "Superset"
 PROJECT_MODULE = "superset"
-PROJECT_DESCRIPTION = "Apache Superset (incubating) is a modern, enterprise-ready business intelligence web application"
+PROJECT_DESCRIPTION = "Apache Superset is a modern, enterprise-ready business intelligence web application"
 
 
 def string_comma_to_list(message: str) -> List[str]:
@@ -198,88 +198,6 @@ def result_pmc(
     base_parameters, receiver_email, vote_bindings, vote_nonbindings, vote_negatives
 ):
     template_file = "email_templates/result_pmc.j2"
-    base_parameters.template_arguments["receiver_email"] = receiver_email
-    base_parameters.template_arguments["vote_bindings"] = string_comma_to_list(
-        vote_bindings
-    )
-    base_parameters.template_arguments["vote_nonbindings"] = string_comma_to_list(
-        vote_nonbindings
-    )
-    base_parameters.template_arguments["vote_negatives"] = string_comma_to_list(
-        vote_negatives
-    )
-    message = render_template(template_file, **base_parameters.template_arguments)
-    inter_send_email(
-        base_parameters.username,
-        base_parameters.password,
-        base_parameters.template_arguments["sender_email"],
-        base_parameters.template_arguments["receiver_email"],
-        message,
-    )
-
-
-@cli.command("vote_ipmc")
-@click.option(
-    "--receiver_email",
-    default="general@incubator.apache.org",
-    type=str,
-    prompt="The receiver email (To:)",
-)
-@click.option("--voting_thread", prompt="The URL for the PMC voting thread")
-@click.option(
-    "--vote_mentors",
-    default="",
-    type=str,
-    prompt="A list of mentors that have already voted (ex: Alan,Justin)",
-)
-@click.pass_obj
-def vote_ipmc(base_parameters, receiver_email, voting_thread, vote_mentors):
-    template_file = "email_templates/vote_ipmc.j2"
-    base_parameters.template_arguments["receiver_email"] = receiver_email
-    base_parameters.template_arguments["voting_thread"] = voting_thread
-    base_parameters.template_arguments["vote_mentors"] = string_comma_to_list(
-        vote_mentors
-    )
-    message = render_template(template_file, **base_parameters.template_arguments)
-    inter_send_email(
-        base_parameters.username,
-        base_parameters.password,
-        base_parameters.template_arguments["sender_email"],
-        base_parameters.template_arguments["receiver_email"],
-        message,
-    )
-
-
-@cli.command("result_ipmc")
-@click.option(
-    "--receiver_email",
-    default="general@incubator.apache.org",
-    type=str,
-    prompt="The receiver email (To:)",
-)
-@click.option(
-    "--vote_bindings",
-    default="",
-    type=str,
-    prompt="A List of people with +1 binding vote (ex: Alan,Justin)",
-)
-@click.option(
-    "--vote_nonbindings",
-    default="",
-    type=str,
-    prompt="A List of people with +1 non binding vote (ex: Ville)",
-)
-@click.option(
-    "--vote_negatives",
-    default="",
-    type=str,
-    prompt="A List of people with -1 vote (ex: John)",
-)
-@click.pass_obj
-def result_ipmc(
-    base_parameters, receiver_email, vote_bindings, vote_nonbindings, vote_negatives
-):
-    template_file = "email_templates/result_ipmc.j2"
     base_parameters.template_arguments["receiver_email"] = receiver_email
     base_parameters.template_arguments["vote_bindings"] = string_comma_to_list(
         vote_bindings

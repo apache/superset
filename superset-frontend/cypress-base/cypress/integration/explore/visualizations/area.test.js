@@ -86,7 +86,7 @@ describe('Visualization > Area', () => {
           {
             expressionType: 'SIMPLE',
             subject: 'region',
-            operator: 'in',
+            operator: 'IN',
             comparator: ['South Asia', 'North America'],
             clause: 'WHERE',
             sqlExpression: null,

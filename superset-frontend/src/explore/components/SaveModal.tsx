@@ -25,8 +25,6 @@ import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
 import { CreatableSelect } from 'src/components/Select/SupersetStyledSelect';
-import { connect } from 'react-redux';
-import { ValueType } from 'react-select';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -75,8 +73,13 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       const dashboardIds = this.props.dashboards.map(
         dashboard => dashboard.value,
       );
-      const lastDashboard = sessionStorage.getItem(SK_DASHBOARD_ID);
-      const recentDashboard = lastDashboard && parseInt(lastDashboard, 10);
+      let recentDashboard = sessionStorage.getItem(SK_DASHBOARD_ID);
+      recentDashboard = recentDashboard && parseInt(recentDashboard, 10);
+
+      if (!recentDashboard && this.props.dashboardId) {
+        recentDashboard = this.props.dashboardId;
+      }
+
       if (
         recentDashboard !== null &&
         dashboardIds.indexOf(recentDashboard) !== -1
@@ -161,7 +164,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               id="btn_modal_save_goto_dash"
               buttonSize="sm"
               disabled={
-                !this.state.newSliceName || !this.state.newDashboardName
+                !this.state.newSliceName ||
+                (!this.state.saveToDashboardId && !this.state.newDashboardName)
               }
               onClick={() => this.saveOrOverwrite(true)}
             >
