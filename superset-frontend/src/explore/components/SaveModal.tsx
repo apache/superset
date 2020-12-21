@@ -25,6 +25,7 @@ import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
 import { CreatableSelect } from 'src/components/Select/SupersetStyledSelect';
+import { connect } from 'react-redux';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -41,6 +42,7 @@ type SaveModalProps = {
   sliceName?: string;
   slice?: Record<string, any>;
   datasource?: Record<string, any>;
+  dashboardId: '' | number | null;
 };
 
 type ActionType = 'overwrite' | 'saveas';
@@ -73,8 +75,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       const dashboardIds = this.props.dashboards.map(
         dashboard => dashboard.value,
       );
-      let recentDashboard = sessionStorage.getItem(SK_DASHBOARD_ID);
-      recentDashboard = recentDashboard && parseInt(recentDashboard, 10);
+      const lastDashboard = sessionStorage.getItem(SK_DASHBOARD_ID);
+      let recentDashboard = lastDashboard && parseInt(lastDashboard, 10);
 
       if (!recentDashboard && this.props.dashboardId) {
         recentDashboard = this.props.dashboardId;
@@ -245,7 +247,10 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               creatable
               onChange={this.onDashboardSelectChange}
               autoSize={false}
-              value={{value:  this.state.saveToDashboardId || this.state.newDashboardName }}
+              value={{
+                value:
+                  this.state.saveToDashboardId || this.state.newDashboardName,
+              }}
               placeholder={
                 // Using markdown to allow for good i18n
                 <ReactMarkdown
