@@ -21,6 +21,7 @@ import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import { DEFAULT_FORM_DATA, AntdPluginFilterSelectProps } from './types';
 import { AntdPluginFilterStylesProps } from '../types';
+import { getSelectExtraFormData } from '../../utils';
 
 const Styles = styled.div<AntdPluginFilterStylesProps>`
   height: ${({ height }) => height};
@@ -60,26 +61,9 @@ export default function AntdPluginFilterSelect(
       enableEmptyFilter &&
       !inverseSelection &&
       (value === undefined || value === null || value.length === 0);
-    setExtraFormData({
-      append_form_data: emptyFilter
-        ? {
-            extras: {
-              where: '1 = 0',
-            },
-          }
-        : {
-            filters:
-              value === undefined || value === null || value.length === 0
-                ? []
-                : [
-                    {
-                      col,
-                      op: inverseSelection ? 'NOT IN' : 'IN',
-                      val: value,
-                    },
-                  ],
-          },
-    });
+    setExtraFormData(
+      getSelectExtraFormData(col, value, emptyFilter, inverseSelection),
+    );
   }
   const placeholderText =
     (data || []).length === 0

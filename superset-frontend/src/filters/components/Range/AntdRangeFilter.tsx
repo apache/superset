@@ -21,6 +21,7 @@ import React from 'react';
 import { Slider } from 'antd';
 import { AntdPluginFilterRangeProps } from './types';
 import { AntdPluginFilterStylesProps } from '../types';
+import { getRangeExtraFormData } from '../../utils';
 
 const Styles = styled.div<AntdPluginFilterStylesProps>`
   height: ${({ height }) => height};
@@ -37,19 +38,19 @@ export default function AntdRangeFilter(props: AntdPluginFilterRangeProps) {
 
   const handleChange = (value: [number, number]) => {
     const [lower, upper] = value;
-    const filters: QueryObjectFilterClause[] = [];
-    if (lower !== undefined && lower !== null) filters.push({ col, op: '>=', val: lower });
-    if (upper !== undefined && upper !== null) filters.push({ col, op: '>=', val: upper });
-    setExtraFormData({
-      append_form_data: {
-        filters,
-      },
-    });
+
+    setExtraFormData(getRangeExtraFormData(col, lower, upper));
   };
 
   return (
     <Styles height={height} width={width}>
-      <Slider range min={min} max={max} defaultValue={[min, max]} onChange={handleChange} />
+      <Slider
+        range
+        min={min}
+        max={max}
+        defaultValue={[min, max]}
+        onChange={handleChange}
+      />
     </Styles>
   );
 }
