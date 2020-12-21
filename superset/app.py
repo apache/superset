@@ -441,9 +441,7 @@ class SupersetAppInitializer:
             appbuilder.add_view_no_menu(AlertLogModelView)
             appbuilder.add_view_no_menu(AlertObservationModelView)
 
-        if feature_flag_manager.is_feature_enabled(
-            "ALERT_REPORTS"
-        ) and feature_flag_manager.is_feature_enabled("SIP_34_ALERTS_UI"):
+        if feature_flag_manager.is_feature_enabled("ALERT_REPORTS"):
             appbuilder.add_view(
                 AlertView,
                 "Alerts & Report",
