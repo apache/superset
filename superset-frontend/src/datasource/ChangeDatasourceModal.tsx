@@ -259,6 +259,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
             )}
           </>
         )}
+        {confirmChange && <>{CONFIRM_WARNING_MESSAGE}</>}
       </>
     </StyledModal>
   );
