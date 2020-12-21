@@ -137,7 +137,7 @@ class QueryObject:
         # non-ad-hoc metric which needs to adhere to superset-ui per
         # https://git.io/Jvm7P.
         self.metrics = [
-            metric if "expressionType" in metric else metric["label"]  # type: ignore
+            metric if isinstance(metric, str) or "expressionType" in metric else metric["label"]  # type: ignore
             for metric in metrics
         ]
 
