@@ -178,7 +178,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         );
       });
     onHide();
-    addSuccessToast('Successfully changed datasource!');
+    addSuccessToast('Successfully changed dataset!');
   };
 
   const handlerCancelConfirm = () => {
