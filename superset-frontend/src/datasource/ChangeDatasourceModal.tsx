@@ -76,8 +76,7 @@ const TABLE_COLUMNS = [
 ].map(col => ({ accessor: col, Header: col }));
 
 const CHANGE_WARNING_MSG = t(
-  'Changing the dataset may break the chart if the chart relies ' +
-    'on columns or metadata that does not exist in the target dataset',
+  'Warning changing the dataset may break the chart if the metadata does not exist.'
 );
 
 const emptyRequest = {
