@@ -18,14 +18,15 @@
  */
 import { t } from '@superset-ui/core';
 import {
-  D3_FORMAT_OPTIONS,
-  D3_FORMAT_DOCS,
+  ControlPanelConfig,
   formatSelectOptions,
+  D3_FORMAT_DOCS,
+  D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
   sections,
 } from '@superset-ui/chart-controls';
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyTimeseriesTime,
     {
@@ -135,3 +136,5 @@ export default {
     columns: { includeTime: true },
   },
 };
+
+export default config;

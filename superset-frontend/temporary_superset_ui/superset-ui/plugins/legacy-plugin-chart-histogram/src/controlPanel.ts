@@ -17,15 +17,20 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
-import { formatSelectOptions, columnChoices, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  columnChoices,
+  formatSelectOptions,
+  sections,
+} from '@superset-ui/chart-controls';
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
+    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        sections.legacyRegularTime,
         [
           {
             name: 'all_columns_x',
@@ -102,3 +107,4 @@ export default {
     },
   ],
 };
+export default config;

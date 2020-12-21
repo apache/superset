@@ -16,10 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, D3_FORMAT_OPTIONS, D3_FORMAT_DOCS } from '@superset-ui/core';
-import { sections } from '@superset-ui/chart-controls';
+import { t } from '@superset-ui/core';
+import {
+  ControlPanelConfig,
+  D3_FORMAT_OPTIONS,
+  D3_FORMAT_DOCS,
+  sections,
+} from '@superset-ui/chart-controls';
 
-export default {
+const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyRegularTime,
     {
@@ -69,3 +74,5 @@ export default {
     },
   },
 };
+
+export default config;
