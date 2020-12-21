@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObjectFilterClause, styled } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import React from 'react';
-import { Slider } from 'antd';
+import { Slider } from 'src/common/components';
 import { AntdPluginFilterRangeProps } from './types';
 import { AntdPluginFilterStylesProps } from '../types';
 import { getRangeExtraFormData } from '../../utils';

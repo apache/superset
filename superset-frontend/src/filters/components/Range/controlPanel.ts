@@ -22,6 +22,7 @@ import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
 const config: ControlPanelConfig = {
   // For control input types, see: superset-frontend/src/explore/components/controls/index.js
   controlPanelSections: [
+    // @ts-ignore
     sections.legacyRegularTime,
     {
       label: t('Query'),

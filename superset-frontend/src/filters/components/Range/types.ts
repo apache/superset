@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecord, QueryFormData, SetExtraFormDataHook } from '@superset-ui/core';
+import {
+  DataRecord,
+  QueryFormData,
+  SetExtraFormDataHook,
+} from '@superset-ui/core';
 import { AntdPluginFilterStylesProps } from '../types';
 
 interface AntdPluginFilterSelectCustomizeProps {

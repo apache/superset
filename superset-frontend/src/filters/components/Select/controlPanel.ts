@@ -30,6 +30,7 @@ const {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
+    // @ts-ignore
     sections.legacyRegularTime,
     {
       label: t('Query'),
