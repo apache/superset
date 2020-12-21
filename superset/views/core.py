@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=comparison-with-callable, line-too-long, too-many-branches
-import dataclasses
 import logging
 import re
 from contextlib import closing
@@ -71,14 +70,15 @@ from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     CertificateException,
     DatabaseNotFound,
     SerializationError,
     SupersetException,
+    SupersetGenericDBErrorException,
     SupersetSecurityException,
+    SupersetTemplateParamsErrorException,
     SupersetTimeoutException,
 )
 from superset.extensions import async_query_manager, cache_manager
@@ -2400,10 +2400,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             # re-raise exception for api exception handler
             raise ex
         except Exception as ex:  # pylint: disable=broad-except
-            logger.exception("Query %i: %s", query.id, str(ex))
-            return json_error_response(utils.error_msg_from_exception(ex))
+            logger.exception("Query %i failed unexpectedly", query.id)
+            raise SupersetGenericDBErrorException(utils.error_msg_from_exception(ex))
+
         if data.get("status") == QueryStatus.FAILED:
-            return json_error_response(payload=data)
+            raise SupersetGenericDBErrorException(data["error"])
         return json_success(payload)
 
     @has_access_api
@@ -2511,31 +2512,32 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 query.sql, **template_params
             )
         except TemplateError as ex:
-            error_msg = utils.error_msg_from_exception(ex)
-            return json_error_response(
-                f"Query {query_id}: Template syntax error: {error_msg}"
+            query.status = QueryStatus.FAILED
+            session.commit()
+            raise SupersetTemplateParamsErrorException(
+                utils.error_msg_from_exception(ex)
             )
 
-        # pylint: disable=protected-access
         if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
+            # pylint: disable=protected-access
             ast = template_processor._env.parse(rendered_query)
             undefined = find_undeclared_variables(ast)  # type: ignore
             if undefined:
-                error = SupersetError(
+                query.status = QueryStatus.FAILED
+                session.commit()
+                raise SupersetTemplateParamsErrorException(
                     message=ngettext(
-                        "There's an error with the parameter %(parameters)s.",
-                        "There's an error with the parameters %(parameters)s.",
+                        "The parameter %(parameters)s in your query is undefined.",
+                        "The following parameters in your query are undefined: %(parameters)s.",
                         len(undefined),
                         parameters=utils.format_list(undefined),
                     )
                     + " "
                     + PARAMETER_MISSING_ERR,
-                    level=ErrorLevel.ERROR,
-                    error_type=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
-                    extra={"missing_parameters": list(undefined)},
-                )
-                return json_error_response(
-                    payload={"errors": [dataclasses.asdict(error)]},
+                    extra={
+                        "undefined_parameters": list(undefined),
+                        "template_parameters": template_params,
+                    },
                 )
 
         # Limit is not applied to the CTA queries if SQLLAB_CTAS_NO_LIMIT flag is set

@@ -39,9 +39,9 @@ need to be done at every release.
 
     # Checkout ASF dist repo
 
-    svn checkout https://dist.apache.org/repos/dist/dev/incubator/superset/ ~/svn/superset_dev
+    svn checkout https://dist.apache.org/repos/dist/dev/superset/ ~/svn/superset_dev
 
-    svn checkout https://dist.apache.org/repos/dist/release/incubator/superset/ ~/svn/superset
+    svn checkout https://dist.apache.org/repos/dist/release/superset/ ~/svn/superset
     cd ~/svn/superset
 
 
@@ -89,10 +89,10 @@ The script will output the exported variables. Here's example for 0.38.0rc1:
     SUPERSET_GITHUB_BRANCH=0.38
     SUPERSET_PGP_FULLNAME=myid@apache.org
     SUPERSET_VERSION_RC=0.38.0rc1
-    SUPERSET_RELEASE=apache-superset-incubating-0.38.0
-    SUPERSET_RELEASE_RC=apache-superset-incubating-0.38.0rc1
-    SUPERSET_RELEASE_TARBALL=apache-superset-incubating-0.38.0-source.tar.gz
-    SUPERSET_RELEASE_RC_TARBALL=apache-superset-incubating-0.38.0rc1-source.tar.gz
+    SUPERSET_RELEASE=apache-superset-0.38.0
+    SUPERSET_RELEASE_RC=apache-superset-0.38.0rc1
+    SUPERSET_RELEASE_TARBALL=apache-superset-0.38.0-source.tar.gz
+    SUPERSET_RELEASE_RC_TARBALL=apache-superset-0.38.0rc1-source.tar.gz
     SUPERSET_TMP_ASF_SITE_PATH=/tmp/incubator-superset-site-0.38.0
 ```
 
@@ -240,38 +240,6 @@ here's an example:
 ```
 
 Following the result thread, yet another [VOTE] thread should be
-started at general@incubator.apache.org.
-
-To easily send the voting request to Apache community, still on the `superset/RELEASING` directory:
-
-```bash
-    # Note: use Superset's virtualenv
-    (venv)$ python send_email.py vote_ipmc
-```
-
-Once 3+ binding votes (by IPMC members) have been cast and at
-least 72 hours have past, you can post a [RESULT] thread
-
-To easily send the result email, still on the `superset/RELEASING` directory:
-
-```bash
-    # Note: use Superset's virtualenv
-    (venv)$ python send_email.py result_ipmc
-```
-
-Again, the script will interactively ask for extra information needed to fill out the email template. Based on the
-voting description, it will generate a passing, non passing or non conclusive email.
-here's an example:
-
-```bash
-    Sender email (ex: user@apache.org): your_apache_email@apache.org
-    Apache username: your_apache_user
-    Apache password: your_apache_password
-    A List of people with +1 binding vote (ex: Alan, Justin): Alan,Jeff,
-    A List of people with +1 non binding vote (ex: Ville):
-    A List of people with -1 vote (ex: John):
-```
-
 
 ### Validating a release
 
@@ -329,3 +297,5 @@ Finally, so the Github UI reflects the latest release, you should create a relea
 tag corresponding with the new version. Go to https://github.com/apache/incubator-superset/tags,
 click the 3-dot icon and select `Create Release`, paste the content of the ANNOUNCE thread in the
 release notes, and publish the new release.
+
+At this point, a GitHub action will run that will check whether this release's version number is higher than the current 'latest' release. If that condition is true, this release sha will automatically be tagged as `latest` so that the most recent release can be referenced simply by using the 'latest' tag instead of looking up the version number. The existing version number tag will still exist, and can also be used for reference.

@@ -43,7 +43,7 @@ export const defaultProps = {
         clause: 'WHERE',
         comparator: ['hello', 'my', 'name'],
         expressionType: 'SIMPLE',
-        operator: 'in',
+        operator: 'IN',
         subject: 'b',
       },
     ],
@@ -73,7 +73,7 @@ export const expectedDiffs = {
         clause: 'WHERE',
         comparator: ['hello', 'my', 'name'],
         expressionType: 'SIMPLE',
-        operator: 'in',
+        operator: 'IN',
         subject: 'b',
       },
     ],
@@ -107,7 +107,7 @@ export const expectedRows = [
   {
     control: 'Fake Filters',
     before: 'a == hello',
-    after: 'b in [hello, my, name]',
+    after: 'b IN [hello, my, name]',
   },
   {
     control: 'Value bounds',

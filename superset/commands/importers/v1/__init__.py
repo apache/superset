@@ -70,6 +70,7 @@ class ImportModelsCommand(BaseCommand):
             db.session.rollback()
             raise self.import_error()
 
+    # pylint: disable=too-many-branches
     def validate(self) -> None:
         exceptions: List[ValidationError] = []
 
@@ -99,6 +100,10 @@ class ImportModelsCommand(BaseCommand):
 
         # validate objects
         for file_name, content in self.contents.items():
+            # skip directories
+            if not content:
+                continue
+
             prefix = file_name.split("/")[0]
             schema = self.schemas.get(f"{prefix}/")
             if schema:

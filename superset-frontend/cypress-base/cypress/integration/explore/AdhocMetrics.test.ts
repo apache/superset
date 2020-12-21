@@ -29,22 +29,23 @@ describe('AdhocMetrics', () => {
   it('Clear metric and set simple adhoc metric', () => {
     const metric = 'sum(sum_girls)';
     const metricName = 'Sum Girls';
-    cy.get('[data-test=metrics]').find('.Select__clear-indicator').click();
+    cy.get('[data-test=metrics]')
+      .find('[data-test="remove-control-button"]')
+      .click();
 
     cy.get('[data-test=metrics]')
-      .find('.Select__control input')
-      .type('sum_girls', { force: true });
-
-    cy.get('[data-test=metrics]')
-      .find('.Select__option--is-focused')
-      .trigger('mousedown')
+      .find('[data-test="add-metric-button"]')
       .click();
 
     cy.get('[data-test="AdhocMetricEditTitle#trigger"]').click();
     cy.get('[data-test="AdhocMetricEditTitle#input"]').type(metricName);
+
+    cy.get('[name="select-column"]').click().type('sum_girls{enter}');
+    cy.get('[name="select-aggregate"]').click().type('sum{enter}');
+
     cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
 
-    cy.get('.metrics-select .metric-option').contains(metricName);
+    cy.get('[data-test="control-label"]').contains(metricName);
 
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
@@ -117,42 +118,5 @@ describe('AdhocMetrics', () => {
       querySubstring: `${metric} AS "${metric}"`,
       chartSelector: 'svg',
     });
-  });
-
-  it('Typing starts with aggregate function name', () => {
-    // select column "num"
-    cy.get('[data-test=metrics]').within(() => {
-      cy.get('.Select__dropdown-indicator').click();
-      cy.get('.Select__control input[type=text]').type('avg(');
-      cy.get('.Select__option').contains('ds');
-      cy.get('.Select__option').contains('name');
-      cy.get('.Select__option').contains('sum_boys').click();
-    });
-
-    const metric = 'AVG(sum_boys)';
-    cy.get('button[data-test="run-query-button"]').click();
-    cy.verifySliceSuccess({
-      waitAlias: '@postJson',
-      querySubstring: `${metric} AS "${metric}"`,
-      chartSelector: 'svg',
-    });
-  });
-
-  it('Click save without making any changes', () => {
-    cy.get('[data-test=metrics]')
-      .find('.Select__control input')
-      .type('sum_girls', { force: true });
-
-    cy.get('[data-test=metrics]')
-      .find('.Select__option--is-focused')
-      .trigger('mousedown')
-      .click();
-
-    cy.get('[data-test=metrics-edit-popover]').should('be.visible');
-    cy.get('[data-test="AdhocMetricEdit#save"]').click();
-
-    cy.wait(1000);
-
-    cy.get('[data-test=metrics-edit-popover]').should('not.be.visible');
   });
 });

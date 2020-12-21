@@ -36,6 +36,10 @@ export type ClientErrorObject = {
   stacktrace?: string;
 } & Partial<SupersetClientResponse>;
 
+interface ResponseWithTimeout extends Response {
+  timeout: number;
+}
+
 export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
   let error = { ...responseObject };
   // Backwards compatibility for old error renderers with the new error object
@@ -63,7 +67,7 @@ export function parseErrorJson(responseObject: JsonObject): ClientErrorObject {
 }
 
 export function getClientErrorObject(
-  response: SupersetClientResponse | (Response & { timeout: number }) | string,
+  response: SupersetClientResponse | ResponseWithTimeout | string,
 ): Promise<ClientErrorObject> {
   // takes a SupersetClientResponse as input, attempts to read response as Json if possible,
   // and returns a Promise that resolves to a plain object with error key and text value.
@@ -85,7 +89,7 @@ export function getClientErrorObject(
           })
           .catch(() => {
             // fall back to reading as text
-            responseObject.text().then(errorText => {
+            responseObject.text().then((errorText: any) => {
               resolve({ ...responseObject, error: errorText });
             });
           });
@@ -124,10 +128,12 @@ export function getClientErrorObject(
         });
       } else {
         // fall back to Response.statusText or generic error of we cannot read the response
-        const error =
-          'statusText' in response
-            ? response.statusText
-            : t('An error occurred');
+        let error = (response as any).statusText || (response as any).message;
+        if (!error) {
+          // eslint-disable-next-line no-console
+          console.error('non-standard error:', response);
+          error = t('An error occurred');
+        }
         resolve({
           ...responseObject,
           error,

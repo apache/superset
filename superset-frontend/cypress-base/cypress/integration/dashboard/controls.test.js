@@ -43,7 +43,8 @@ describe('Dashboard top-level controls', () => {
     });
   });
 
-  it('should allow chart level refresh', () => {
+  // flaky test
+  xit('should allow chart level refresh', () => {
     cy.wait(aliases);
     cy.get('[data-test="grid-container"]').find('.world_map').should('exist');
     cy.get(`#slice_${mapId}-controls`).click();

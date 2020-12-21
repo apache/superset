@@ -25,15 +25,16 @@ import { CronPicker, CronError } from 'src/common/components/CronPicker';
 import { StyledInputContainer } from '../AlertReportModal';
 
 interface AlertReportCronSchedulerProps {
-  value?: string;
+  value: string;
   onChange: (change: string) => any;
 }
 
 export const AlertReportCronScheduler: FunctionComponent<AlertReportCronSchedulerProps> = ({
-  value = '* * * * *',
+  value,
   onChange,
 }) => {
   const theme = useTheme();
+  // @ts-ignore
   const inputRef = useRef<Input>(null);
   const [scheduleFormat, setScheduleFormat] = useState<'picker' | 'input'>(
     'picker',

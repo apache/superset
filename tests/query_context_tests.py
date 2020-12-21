@@ -198,7 +198,7 @@ class TestQueryContext(SupersetTestCase):
 
     def test_sql_injection_via_columns(self):
         """
-        Ensure that calling invalid columns names in columns are caught
+        Ensure that calling invalid column names in columns are caught
         """
         self.login(username="admin")
         table_name = "birth_names"
@@ -213,7 +213,7 @@ class TestQueryContext(SupersetTestCase):
 
     def test_sql_injection_via_metrics(self):
         """
-        Ensure that calling invalid columns names in filters are caught
+        Ensure that calling invalid column names in filters are caught
         """
         self.login(username="admin")
         table_name = "birth_names"
@@ -266,3 +266,22 @@ class TestQueryContext(SupersetTestCase):
         self.assertEqual(len(response), 2)
         self.assertEqual(response["language"], "sql")
         self.assertIn("SELECT", response["query"])
+
+    def test_query_object_unknown_fields(self):
+        """
+        Ensure that query objects with unknown fields don't raise an Exception and
+        have an identical cache key as one without the unknown field
+        """
+        self.maxDiff = None
+        self.login(username="admin")
+        table_name = "birth_names"
+        table = self.get_table_by_name(table_name)
+        payload = get_query_context(table.name, table.id, table.type)
+        query_context = ChartDataQueryContextSchema().load(payload)
+        responses = query_context.get_payload()
+        orig_cache_key = responses["queries"][0]["cache_key"]
+        payload["queries"][0]["foo"] = "bar"
+        query_context = ChartDataQueryContextSchema().load(payload)
+        responses = query_context.get_payload()
+        new_cache_key = responses["queries"][0]["cache_key"]
+        self.assertEqual(orig_cache_key, new_cache_key)

@@ -18,6 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import { t } from '@superset-ui/core';
+import { getFormDataFromControls } from 'src/explore/controlUtils';
 import { now } from '../modules/dates';
 import * as actions from './chartAction';
 
@@ -30,7 +31,7 @@ export const chart = {
   chartUpdateStartTime: 0,
   latestQueryFormData: {},
   queryController: null,
-  queryResponse: null,
+  queriesResponse: null,
   triggerQuery: true,
   lastRendered: 0,
 };
@@ -47,8 +48,8 @@ export default function chartReducer(charts = {}, action) {
       return {
         ...state,
         chartStatus: 'success',
-        queryResponse: action.queryResponse,
         chartAlert: null,
+        queriesResponse: action.queriesResponse,
         chartUpdateEndTime: now(),
       };
     },
@@ -97,15 +98,19 @@ export default function chartReducer(charts = {}, action) {
       return {
         ...state,
         chartStatus: 'failed',
-        chartAlert: action.queryResponse
-          ? action.queryResponse.error
+        chartAlert: action.queriesResponse
+          ? action.queriesResponse?.[0]?.error
           : t('Network error.'),
         chartUpdateEndTime: now(),
-        queryResponse: action.queryResponse,
-        chartStackTrace: action.queryResponse
-          ? action.queryResponse.stacktrace
+        queriesResponse: action.queriesResponse,
+        chartStackTrace: action.queriesResponse
+          ? action.queriesResponse?.[0]?.stacktrace
           : null,
       };
+    },
+    [actions.DYNAMIC_PLUGIN_CONTROLS_READY](state) {
+      const sliceFormData = getFormDataFromControls(action.controlsState);
+      return { ...state, sliceFormData };
     },
     [actions.TRIGGER_QUERY](state) {
       return {
