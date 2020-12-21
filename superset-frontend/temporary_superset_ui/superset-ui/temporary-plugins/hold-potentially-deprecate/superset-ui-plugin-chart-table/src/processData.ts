@@ -1,16 +1,16 @@
-import { QueryFormDataMetric, AdhocMetric } from '@superset-ui/core';
+import { QueryFormMetric, AdhocMetric } from '@superset-ui/core';
 import { createSelector } from 'reselect';
 import { PlainObject } from './types';
 
 type inputType = {
-  timeseriesLimitMetric: QueryFormDataMetric;
+  timeseriesLimitMetric: QueryFormMetric;
   orderDesc: boolean;
   records: PlainObject[];
   metrics: string[];
 };
 
 function processData(
-  timeseriesLimitMetric: QueryFormDataMetric,
+  timeseriesLimitMetric: QueryFormMetric,
   orderDesc: boolean,
   records: PlainObject[],
   metrics: string[],

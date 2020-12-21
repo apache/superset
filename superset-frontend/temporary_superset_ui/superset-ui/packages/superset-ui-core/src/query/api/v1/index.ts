@@ -17,8 +17,7 @@
  * under the License.
  */
 import makeApi from './makeApi';
-import { QueryContext } from '../../types/Query';
-import { ChartDataResponse } from './types';
+import { ChartDataResponse, QueryContext } from '../../types';
 
 export const getChartData = makeApi<QueryContext, ChartDataResponse>({
   method: 'POST',

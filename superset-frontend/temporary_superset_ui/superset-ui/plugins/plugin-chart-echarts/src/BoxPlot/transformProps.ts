@@ -19,10 +19,9 @@
 import {
   CategoricalColorNamespace,
   ChartProps,
-  convertMetric,
   DataRecord,
+  getMetricLabel,
   getNumberFormatter,
-  QueryFormDataMetric,
 } from '@superset-ui/core';
 import { BoxPlotQueryFormData } from './types';
 import { EchartsProps } from '../types';
@@ -35,23 +34,19 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
   const {
     colorScheme,
     groupby = [],
-    metrics: formDataMetrics,
+    metrics: formdataMetrics = [],
     numberFormat,
     xTicksLayout,
   } = formData as BoxPlotQueryFormData;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
-
-  // TODO: remove cast once metrics is cleaned up in QueryFormData
-  const metrics = (formDataMetrics as QueryFormDataMetric[]).map(
-    metric => convertMetric(metric).label,
-  );
+  const metricLabels = formdataMetrics.map(getMetricLabel);
 
   const transformedData = data
     .map(datum => {
-      return metrics.map(metric => {
-        const groupbyLabel = extractGroupbyLabel({ datum, groupby });
-        const name = metrics.length === 1 ? groupbyLabel : `${groupbyLabel}, ${metric}`;
+      const groupbyLabel = extractGroupbyLabel({ datum, groupby });
+      return metricLabels.map(metric => {
+        const name = metricLabels.length === 1 ? groupbyLabel : `${groupbyLabel}, ${metric}`;
         return {
           name,
           value: [
@@ -76,9 +71,9 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
 
   const outlierData = data
     .map(datum => {
-      return metrics.map(metric => {
+      return metricLabels.map(metric => {
         const groupbyLabel = extractGroupbyLabel({ datum, groupby });
-        const name = metrics.length === 1 ? groupbyLabel : `${groupbyLabel}, ${metric}`;
+        const name = metricLabels.length === 1 ? groupbyLabel : `${groupbyLabel}, ${metric}`;
         // Outlier data is a nested array of numbers (uncommon, therefore no need to add to DataRecordValue)
         const outlierDatum = (datum[`${metric}__outliers`] || []) as number[];
         return {

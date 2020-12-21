@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RegistryWithDefaultKey } from '../models';
-import { OverwritePolicy } from '../types';
+import { RegistryWithDefaultKey, OverwritePolicy } from '../models';
 import createD3NumberFormatter from './factories/createD3NumberFormatter';
 import createSmartNumberFormatter from './factories/createSmartNumberFormatter';
 import NumberFormats from './NumberFormats';

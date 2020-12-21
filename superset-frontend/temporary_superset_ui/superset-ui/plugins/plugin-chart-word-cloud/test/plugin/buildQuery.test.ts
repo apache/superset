@@ -1,12 +1,12 @@
+import { WordCloudFormData } from '../../src';
 import buildQuery from '../../src/plugin/buildQuery';
 
 describe('WordCloud buildQuery', () => {
-  const formData = {
+  const formData: WordCloudFormData = {
     datasource: '5__table',
     granularity_sqla: 'ds',
     series: 'foo',
     viz_type: 'word_cloud',
-    queryFields: { series: 'groupby' },
   };
 
   it('should build groupby with series in form data', () => {

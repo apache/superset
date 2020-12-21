@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,29 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export enum ColumnType {
-  DOUBLE = 'DOUBLE',
-  FLOAT = 'FLOAT',
-  INT = 'INT',
-  BIGINT = 'BIGINT',
-  LONG = 'LONG',
-  REAL = 'REAL',
-  NUMERIC = 'NUMERIC',
-  DECIMAL = 'DECIMAL',
-  MONEY = 'MONEY',
-  DATE = 'DATE',
-  TIME = 'TIME',
-  DATETIME = 'DATETIME',
-  VARCHAR = 'VARCHAR',
-  STRING = 'STRING',
-  CHAR = 'CHAR',
-}
+import isEqualArray from './isEqualArray';
+import { TableChartProps } from '../types';
 
-/**
- * Column information defined in datasource.
- */
-export interface Column {
-  id: number;
-  type: ColumnType;
-  columnName: string;
+export default function isEqualColumns(propsA: TableChartProps[], propsB: TableChartProps[]) {
+  const a = propsA[0];
+  const b = propsB[0];
+  return (
+    a.datasource.columnFormats === b.datasource.columnFormats &&
+    a.datasource.verboseMap === b.datasource.verboseMap &&
+    a.formData.tableTimestampFormat === b.formData.tableTimestampFormat &&
+    a.formData.timeGrainSqla === b.formData.timeGrainSqla &&
+    isEqualArray(a.formData.metrics, b.formData.metrics) &&
+    isEqualArray(a.formData.groupby, b.formData.groupby) &&
+    isEqualArray(a.formData.allColumns, b.formData.allColumns)
+  );
 }

@@ -1,13 +1,8 @@
 /**
  * Types for query response
  */
+import { DataRecordValue, DataRecord } from '../../types';
 import { PlainObject } from './Base';
-
-export type DataRecordValue = number | string | boolean | Date | null;
-
-export interface DataRecord {
-  [key: string]: DataRecordValue;
-}
 
 export interface TimeseriesDataRecord extends DataRecord {
   __timestamp: number | string | Date | null;
