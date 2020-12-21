@@ -552,7 +552,7 @@ class SqlEditor extends React.PureComponent {
             }}
             key="1"
           >
-            Create As Table
+            {t('Create Table As')}
           </Menu.Item>
         )}
         {allowCVAS && (
@@ -565,7 +565,7 @@ class SqlEditor extends React.PureComponent {
             }}
             key="2"
           >
-            Create As View
+            {t('Create View As')}
           </Menu.Item>
         )}
       </Menu>
