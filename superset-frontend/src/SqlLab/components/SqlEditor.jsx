@@ -539,7 +539,7 @@ class SqlEditor extends React.PureComponent {
       allow_cvas: allowCVAS,
     } = this.props.database;
 
-    const showMenu = allowCTAS && allowCVAS;
+    const showMenu = allowCTAS || allowCVAS;
     const runMenuBtn = (
       <Menu>
         {allowCTAS && (
