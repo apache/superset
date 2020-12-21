@@ -17,8 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { Dropdown as AntdDropdown } from 'src/common/components';
+import { Dropdown as AntdDropdown, Tooltip } from 'src/common/components';
 import { styled } from '@superset-ui/core';
+import kebabCase from 'lodash/kebabCase';
 
 const MenuDots = styled.div`
   width: ${({ theme }) => theme.gridUnit * 0.75}px;
@@ -65,8 +66,47 @@ const MenuDotsWrapper = styled.div`
   padding-left: ${({ theme }) => theme.gridUnit}px;
 `;
 
-interface DropdownProps {
+const StyledDropdownButton = styled.div`
+  .ant-btn-group {
+    button.ant-btn {
+      background-color: ${({ theme }) => theme.colors.primary.dark1};
+      border-color: transparent;
+      color: ${({ theme }) => theme.colors.grayscale.light5};
+      font-size: 11px;
+      line-height: 13px;
+      outline: none;
+      text-transform: uppercase;
+      &:first-of-type {
+        border-radius: ${({ theme }) =>
+          `${theme.gridUnit}px 0 0 ${theme.gridUnit}px`};
+        margin-right: 1px;
+        width: 108px;
+      }
+      &:last-of-type {
+        border-radius: ${({ theme }) =>
+          `0 ${theme.gridUnit}px ${theme.gridUnit}px 0`};
+        margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+        width: ${({ theme }) => theme.gridUnit * 9}px;
+        &:before,
+        &:hover:before {
+          border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light5};
+          content: '';
+          display: block;
+          height: 23px;
+          margin: 0;
+          position: absolute;
+          top: ${({ theme }) => theme.gridUnit * 0.75}px;
+          width: ${({ theme }) => theme.gridUnit * 0.25}px;
+        }
+      }
+    }
+  }
+`;
+
+export interface DropdownProps {
   overlay: React.ReactElement;
+  tooltip?: string;
+  placement?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
 }
 
 export const Dropdown = ({ overlay, ...rest }: DropdownProps) => (
@@ -76,3 +116,28 @@ export const Dropdown = ({ overlay, ...rest }: DropdownProps) => (
     </MenuDotsWrapper>
   </AntdDropdown>
 );
+
+export const DropdownButton = ({
+  overlay,
+  tooltip,
+  placement,
+  ...rest
+}: DropdownProps) => {
+  const button = (
+    <StyledDropdownButton>
+      <AntdDropdown.Button overlay={overlay} {...rest} />
+    </StyledDropdownButton>
+  );
+  if (tooltip) {
+    return (
+      <Tooltip
+        placement={placement}
+        id={`${kebabCase(tooltip)}-tooltip`}
+        title={tooltip}
+      >
+        {button}
+      </Tooltip>
+    );
+  }
+  return { button };
+};
