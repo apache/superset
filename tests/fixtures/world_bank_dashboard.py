@@ -36,6 +36,21 @@ from tests.test_app import app
 
 @pytest.fixture()
 def load_world_bank_dashboard_with_slices():
+    dash_id_to_delete, slices_ids_to_delete = _load_data()
+    yield
+    with app.app_context():
+        _cleanup(dash_id_to_delete, slices_ids_to_delete)
+
+
+@pytest.fixture(scope="module")
+def load_world_bank_dashboard_with_slices_module_scope():
+    dash_id_to_delete, slices_ids_to_delete = _load_data()
+    yield
+    with app.app_context():
+        _cleanup(dash_id_to_delete, slices_ids_to_delete)
+
+
+def _load_data():
     table_name = "wb_health_population"
 
     with app.app_context():
@@ -53,9 +68,7 @@ def load_world_bank_dashboard_with_slices():
         dash = _create_world_bank_dashboard(table, slices)
         slices_ids_to_delete = [slice.id for slice in slices]
         dash_id_to_delete = dash.id
-        yield
-
-        _cleanup(dash_id_to_delete, slices_ids_to_delete)
+        return dash_id_to_delete, slices_ids_to_delete
 
 
 def _create_world_bank_slices(table: SqlaTable) -> List[Slice]:
@@ -78,7 +91,7 @@ def _commit_slices(slices: List[Slice]):
 def _create_world_bank_dashboard(table: SqlaTable, slices: List[Slice]) -> Dashboard:
     from superset.examples.world_bank import dashboard_positions
 
-    pos = json.loads(dashboard_positions)
+    pos = dashboard_positions
     from superset.examples.helpers import update_slice_ids
 
     update_slice_ids(pos, slices)
@@ -93,14 +106,11 @@ def _create_world_bank_dashboard(table: SqlaTable, slices: List[Slice]) -> Dashb
 def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
     engine = get_example_database().get_sqla_engine()
     engine.execute("DROP TABLE IF EXISTS wb_health_population")
-    db.session.query(Dashboard).filter_by(id=dash_id).delete()
+    dash = db.session.query(Dashboard).filter_by(id=dash_id).first()
+    db.session.delete(dash)
     for slice_id in slices_ids:
-        slice = db.session.query(Slice).filter_by(id=slice_id).first()
-        if slice:
-            db.session.delete(slice)
-            db.session.merge(slice)
+        db.session.query(Slice).filter_by(id=slice_id).delete()
     db.session.commit()
-    db.session.flush()
 
 
 def _get_dataframe(database: Database) -> DataFrame:

@@ -33,6 +33,7 @@ import yaml
 from sqlalchemy import and_, or_
 from sqlalchemy.sql import func
 
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 from tests.test_app import app
 from superset.charts.commands.data import ChartDataCommand
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -435,7 +436,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(user_alpha2)
         db.session.commit()
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices", "load_birth_names_dashboard_with_slices")
     def test_create_chart(self):
         """
         Chart API: Test create chart
@@ -698,6 +699,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         expected_response = {"message": {"owners": ["Owners are invalid"]}}
         self.assertEqual(response, expected_response)
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_chart(self):
         """
         Chart API: Test get chart
@@ -758,6 +760,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         "load_energy_table_with_slice",
         "load_birth_names_dashboard_with_slices",
         "load_unicode_dashboard_with_slice",
+        "load_world_bank_dashboard_with_slices",
     )
     def test_get_charts(self):
         """
@@ -798,7 +801,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(chart)
         db.session.commit()
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices", "load_birth_names_dashboard_with_slices")
     def test_get_charts_filter(self):
         """
         Chart API: Test get charts filter
@@ -1008,7 +1011,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
     @pytest.mark.usefixtures(
         "load_unicode_dashboard_with_slice",
         "load_energy_table_with_slice",
-        "load_birth_names_dashboard_with_slices",
+        "load_world_bank_dashboard_with_slices",
+        "load_birth_names_dashboard_with_slices"
     )
     def test_get_charts_page(self):
         """

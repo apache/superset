@@ -21,6 +21,7 @@ import json
 from io import BytesIO
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import prison
@@ -848,6 +849,7 @@ class TestDatabaseApi(SupersetTestCase):
     @pytest.mark.usefixtures(
         "load_unicode_dashboard_with_position",
         "load_energy_table_with_slice",
+        "load_world_bank_dashboard_with_slices",
         "load_birth_names_dashboard_with_slices",
     )
     def test_get_database_related_objects(self):

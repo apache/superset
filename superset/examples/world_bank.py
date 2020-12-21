@@ -120,7 +120,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     if not dash:
         dash = Dashboard()
     dash.published = True
-    pos = json.loads(dashboard_positions)
+    pos = dashboard_positions
     update_slice_ids(pos, slices)
 
     dash.dashboard_title = dash_name
@@ -368,19 +368,12 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
     ]
 
 
-dashboard_positions = textwrap.dedent(
-    """\
-{
+dashboard_positions = {
     "CHART-36bfc934": {
         "children": [],
         "id": "CHART-36bfc934",
-        "meta": {
-            "chartId": 40,
-            "height": 25,
-            "sliceName": "Region Filter",
-            "width": 2
-        },
-        "type": "CHART"
+        "meta": {"chartId": 40, "height": 25, "sliceName": "Region Filter", "width": 2},
+        "type": "CHART",
     },
     "CHART-37982887": {
         "children": [],
@@ -389,9 +382,9 @@ dashboard_positions = textwrap.dedent(
             "chartId": 41,
             "height": 25,
             "sliceName": "World's Population",
-            "width": 2
+            "width": 2,
         },
-        "type": "CHART"
+        "type": "CHART",
     },
     "CHART-17e0f8d8": {
         "children": [],
@@ -400,31 +393,21 @@ dashboard_positions = textwrap.dedent(
             "chartId": 42,
             "height": 92,
             "sliceName": "Most Populated Countries",
-            "width": 3
+            "width": 3,
         },
-        "type": "CHART"
+        "type": "CHART",
     },
     "CHART-2ee52f30": {
         "children": [],
         "id": "CHART-2ee52f30",
-        "meta": {
-            "chartId": 43,
-            "height": 38,
-            "sliceName": "Growth Rate",
-            "width": 6
-        },
-        "type": "CHART"
+        "meta": {"chartId": 43, "height": 38, "sliceName": "Growth Rate", "width": 6},
+        "type": "CHART",
     },
     "CHART-2d5b6871": {
         "children": [],
         "id": "CHART-2d5b6871",
-        "meta": {
-            "chartId": 44,
-            "height": 52,
-            "sliceName": "% Rural",
-            "width": 7
-        },
-        "type": "CHART"
+        "meta": {"chartId": 44, "height": 52, "sliceName": "% Rural", "width": 7},
+        "type": "CHART",
     },
     "CHART-0fd0d252": {
         "children": [],
@@ -433,9 +416,9 @@ dashboard_positions = textwrap.dedent(
             "chartId": 45,
             "height": 50,
             "sliceName": "Life Expectancy VS Rural %",
-            "width": 8
+            "width": 8,
         },
-        "type": "CHART"
+        "type": "CHART",
     },
     "CHART-97f4cb48": {
         "children": [],
@@ -444,9 +427,9 @@ dashboard_positions = textwrap.dedent(
             "chartId": 46,
             "height": 38,
             "sliceName": "Rural Breakdown",
-            "width": 3
+            "width": 3,
         },
-        "type": "CHART"
+        "type": "CHART",
     },
     "CHART-b5e05d6f": {
         "children": [],
@@ -455,135 +438,80 @@ dashboard_positions = textwrap.dedent(
             "chartId": 47,
             "height": 50,
             "sliceName": "World's Pop Growth",
-            "width": 4
+            "width": 4,
         },
-        "type": "CHART"
+        "type": "CHART",
     },
     "CHART-e76e9f5f": {
         "children": [],
         "id": "CHART-e76e9f5f",
-        "meta": {
-            "chartId": 48,
-            "height": 50,
-            "sliceName": "Box plot",
-            "width": 4
-        },
-        "type": "CHART"
+        "meta": {"chartId": 48, "height": 50, "sliceName": "Box plot", "width": 4},
+        "type": "CHART",
     },
     "CHART-a4808bba": {
         "children": [],
         "id": "CHART-a4808bba",
-        "meta": {
-            "chartId": 49,
-            "height": 50,
-            "sliceName": "Treemap",
-            "width": 8
-        },
-        "type": "CHART"
+        "meta": {"chartId": 49, "height": 50, "sliceName": "Treemap", "width": 8},
+        "type": "CHART",
+    },
+    "CHART-3nc0d8sk": {
+        "children": [],
+        "id": "CHART-3nc0d8sk",
+        "meta": {"chartId": 50, "height": 50, "sliceName": "Treemap", "width": 8},
+        "type": "CHART",
     },
     "COLUMN-071bbbad": {
-        "children": [
-            "ROW-1e064e3c",
-            "ROW-afdefba9"
-        ],
+        "children": ["ROW-1e064e3c", "ROW-afdefba9"],
         "id": "COLUMN-071bbbad",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT",
-            "width": 9
-        },
-        "type": "COLUMN"
+        "meta": {"background": "BACKGROUND_TRANSPARENT", "width": 9},
+        "type": "COLUMN",
     },
     "COLUMN-fe3914b8": {
-        "children": [
-            "CHART-36bfc934",
-            "CHART-37982887"
-        ],
+        "children": ["CHART-36bfc934", "CHART-37982887"],
         "id": "COLUMN-fe3914b8",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT",
-            "width": 2
-        },
-        "type": "COLUMN"
+        "meta": {"background": "BACKGROUND_TRANSPARENT", "width": 2},
+        "type": "COLUMN",
     },
     "GRID_ID": {
-        "children": [
-            "ROW-46632bc2",
-            "ROW-3fa26c5d",
-            "ROW-812b3f13"
-        ],
+        "children": ["ROW-46632bc2", "ROW-3fa26c5d", "ROW-812b3f13"],
         "id": "GRID_ID",
-        "type": "GRID"
+        "type": "GRID",
     },
     "HEADER_ID": {
         "id": "HEADER_ID",
-        "meta": {
-            "text": "World's Bank Data"
-        },
-        "type": "HEADER"
+        "meta": {"text": "World's Bank Data"},
+        "type": "HEADER",
     },
-    "ROOT_ID": {
-        "children": [
-            "GRID_ID"
-        ],
-        "id": "ROOT_ID",
-        "type": "ROOT"
-    },
+    "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
     "ROW-1e064e3c": {
-        "children": [
-            "COLUMN-fe3914b8",
-            "CHART-2d5b6871"
-        ],
+        "children": ["COLUMN-fe3914b8", "CHART-2d5b6871"],
         "id": "ROW-1e064e3c",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW"
+        "meta": {"background": "BACKGROUND_TRANSPARENT"},
+        "type": "ROW",
     },
     "ROW-3fa26c5d": {
-        "children": [
-            "CHART-b5e05d6f",
-            "CHART-0fd0d252"
-        ],
+        "children": ["CHART-b5e05d6f", "CHART-0fd0d252"],
         "id": "ROW-3fa26c5d",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW"
+        "meta": {"background": "BACKGROUND_TRANSPARENT"},
+        "type": "ROW",
     },
     "ROW-46632bc2": {
-        "children": [
-            "COLUMN-071bbbad",
-            "CHART-17e0f8d8"
-        ],
+        "children": ["COLUMN-071bbbad", "CHART-17e0f8d8"],
         "id": "ROW-46632bc2",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW"
+        "meta": {"background": "BACKGROUND_TRANSPARENT"},
+        "type": "ROW",
     },
     "ROW-812b3f13": {
-        "children": [
-            "CHART-a4808bba",
-            "CHART-e76e9f5f"
-        ],
+        "children": ["CHART-a4808bba", "CHART-e76e9f5f"],
         "id": "ROW-812b3f13",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW"
+        "meta": {"background": "BACKGROUND_TRANSPARENT"},
+        "type": "ROW",
     },
     "ROW-afdefba9": {
-        "children": [
-            "CHART-2ee52f30",
-            "CHART-97f4cb48"
-        ],
+        "children": ["CHART-2ee52f30", "CHART-97f4cb48"],
         "id": "ROW-afdefba9",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW"
+        "meta": {"background": "BACKGROUND_TRANSPARENT"},
+        "type": "ROW",
     },
-    "DASHBOARD_VERSION_KEY": "v2"
+    "DASHBOARD_VERSION_KEY": "v2",
 }
-    """
-)
