@@ -211,7 +211,24 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       onHide={onHide}
       responsive
       title={t('Change Dataset')}
-      hideFooter
+      footer={
+        <>
+          {confirmChange && (
+            <ConfirmModalStyled>
+              <div className="btn-container">
+                <Button onClick={handlerCancelConfirm}>Cancel</Button>
+                <Button
+                  className="proceed-btn"
+                  buttonStyle="primary"
+                  onClick={handleChangeConfirm}
+                >
+                  Proceed
+                </Button>
+              </div>
+            </ConfirmModalStyled>
+          )}
+        </>
+      }
     >
       <>
         {!confirmChange && (
@@ -241,23 +258,6 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
               />
             )}
           </>
-        )}
-        {confirmChange && (
-          <ConfirmModalStyled>
-            <div className="confirm-modal-container">
-              {CONFIRM_WARNING_MESSAGE}
-              <div className="btn-container">
-                <Button onClick={handlerCancelConfirm}>Cancel</Button>
-                <Button
-                  className="proceed-btn"
-                  buttonStyle="primary"
-                  onClick={handleChangeConfirm}
-                >
-                  Proceed
-                </Button>
-              </div>
-            </div>
-          </ConfirmModalStyled>
         )}
       </>
     </StyledModal>
