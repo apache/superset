@@ -23,7 +23,7 @@ import { CSSTransition } from 'react-transition-group';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
-import { FormGroup, InputGroup, Form, FormControl } from 'react-bootstrap';
+import { Form } from 'react-bootstrap';
 import Split from 'react-split';
 import { t, styled } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
@@ -126,6 +126,7 @@ class SqlEditor extends React.PureComponent {
       sql: props.queryEditor.sql,
       autocompleteEnabled: true,
       showCreateAsModal: false,
+      createAs: '',
     };
     this.sqlEditorRef = React.createRef();
     this.northPaneRef = React.createRef();
@@ -383,10 +384,12 @@ class SqlEditor extends React.PureComponent {
 
   createTableAs() {
     this.startQuery(true, CtasEnum.TABLE);
+    this.setState({ showCreateAsModal: false, ctas: '' });
   }
 
   createViewAs() {
     this.startQuery(true, CtasEnum.VIEW);
+    this.setState({ showCreateAsModal: false, ctas: '' });
   }
 
   ctasChanged(event) {
@@ -448,12 +451,10 @@ class SqlEditor extends React.PureComponent {
 
   renderDropdown() {
     const qe = this.props.queryEditor;
-    const successful =
-      this.props.latestQuery && this.props.latestQuery.state === 'success';
+    const successful = this.props.latestQuery?.state === 'success';
     const scheduleToolTip = successful
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
-
     return (
       <Menu onClick={this.handleMenuClick}>
         <Menu.Item>
@@ -512,50 +513,6 @@ class SqlEditor extends React.PureComponent {
   }
 
   renderEditorBottomBar() {
-    let ctasControls;
-    if (
-      this.props.database &&
-      (this.props.database.allow_ctas || this.props.database.allow_cvas)
-    ) {
-      const ctasToolTip = t('Create table as with query results');
-      const cvasToolTip = t('Create view as with query results');
-
-      ctasControls = (
-        <FormGroup>
-          <InputGroup bsSize="small">
-            <FormControl
-              type="text"
-              bsSize="small"
-              className="input-sm"
-              placeholder={t('new table name')}
-              onChange={this.ctasChanged.bind(this)}
-            />
-            <InputGroup.Button>
-              {this.props.database.allow_ctas && (
-                <Button
-                  buttonSize="small"
-                  disabled={this.state.ctas.length === 0}
-                  onClick={this.createTableAs.bind(this)}
-                  tooltip={ctasToolTip}
-                >
-                  <i className="fa fa-table" /> CTAS
-                </Button>
-              )}
-              {this.props.database.allow_cvas && (
-                <Button
-                  buttonSize="small"
-                  disabled={this.state.ctas.length === 0}
-                  onClick={this.createViewAs.bind(this)}
-                  tooltip={cvasToolTip}
-                >
-                  <i className="fa fa-table" /> CVAS
-                </Button>
-              )}
-            </InputGroup.Button>
-          </InputGroup>
-        </FormGroup>
-      );
-    }
     const { queryEditor: qe } = this.props;
     let limitWarning = null;
     if (this.props.latestQuery?.results?.displayLimitReached) {
@@ -575,37 +532,44 @@ class SqlEditor extends React.PureComponent {
       );
     }
 
-    const { allow_ctas, allow_cvas } = this.props.database;
-    const showMenu = allow_ctas && allow_ctas;
+    // eslint-disable-next-line camelcase
+    const {
+      allow_ctas: allowCTAS,
+      allow_cvas: allowCVAS,
+    } = this.props.database;
+
+    const showMenu = allowCTAS || allowCVAS;
     const runMenuBtn = (
       <Menu>
-        {allow_ctas && (
+        {allowCTAS && (
           <Menu.Item
             onClick={() => {
-              this.setState({ showCreateAsModal: true });
+              this.setState({
+                showCreateAsModal: true,
+                createAs: CtasEnum.TABLE,
+              });
             }}
             key="1"
           >
-            Create As Table
+            {t('Create Table As')}
           </Menu.Item>
         )}
-        {allow_cvas && (
+        {allowCVAS && (
           <Menu.Item
             onClick={() => {
-              this.setState({ showCreateAsModal: true });
+              this.setState({
+                showCreateAsModal: true,
+                createAs: CtasEnum.VIEW,
+              });
             }}
             key="2"
           >
-            Create As View
+            {t('Create View As')}
           </Menu.Item>
         )}
       </Menu>
     );
 
-    const successful = this.props.latestQuery?.state === 'success';
-    const scheduleToolTip = successful
-      ? t('Schedule the query periodically')
-      : t('You must run the query successfully first');
     return (
       <div className="sql-toolbar" id="js-sql-toolbar">
         <div className="leftItems">
@@ -626,15 +590,6 @@ class SqlEditor extends React.PureComponent {
                 overlayCreateAsMenu={showMenu ? runMenuBtn : <></>}
               />
             </span>
-            {limitWarning}
-            {this.props.latestQuery && (
-              <Timer
-                startTime={this.props.latestQuery.startDttm}
-                endTime={this.props.latestQuery.endDttm}
-                state={STATE_BSSTYLE_MAP[this.props.latestQuery.state]}
-                isRunning={this.props.latestQuery.state === 'running'}
-              />
-            )}
             {isFeatureEnabled(FeatureFlag.ESTIMATE_QUERY_COST) &&
               this.props.database &&
               this.props.database.allows_cost_estimate && (
@@ -650,6 +605,15 @@ class SqlEditor extends React.PureComponent {
                   />
                 </span>
               )}
+            {limitWarning}
+            {this.props.latestQuery && (
+              <Timer
+                startTime={this.props.latestQuery.startDttm}
+                endTime={this.props.latestQuery.endDttm}
+                state={STATE_BSSTYLE_MAP[this.props.latestQuery.state]}
+                isRunning={this.props.latestQuery.state === 'running'}
+              />
+            )}
             <span>
               <LimitSelectStyled>
                 <Dropdown overlay={this.renderQueryLimit()}>
@@ -698,6 +662,11 @@ class SqlEditor extends React.PureComponent {
   }
 
   render() {
+    const createViewModalTitle =
+      this.state.createAs === CtasEnum.VIEW
+        ? 'Create View As'
+        : 'Create Table As';
+
     return (
       <div ref={this.sqlEditorRef} className="SqlEditor">
         <CSSTransition
@@ -717,7 +686,10 @@ class SqlEditor extends React.PureComponent {
         {this.queryPane()}
         <StyledModal
           visible={this.state.showCreateAsModal}
-          title={t('Create View As')}
+          title={t(createViewModalTitle)}
+          onHide={() => {
+            this.setState({ showCreateAsModal: false });
+          }}
           footer={
             <>
               <Button
@@ -725,12 +697,32 @@ class SqlEditor extends React.PureComponent {
               >
                 Cancel
               </Button>
-              <Button buttonStyle="primary">Create</Button>
+              {this.state.createAs === CtasEnum.TABLE && (
+                <Button
+                  buttonStyle="primary"
+                  disabled={this.state.ctas.length === 0}
+                  onClick={this.createTableAs.bind(this)}
+                >
+                  Create
+                </Button>
+              )}
+              {this.state.createAs === CtasEnum.VIEW && (
+                <Button
+                  buttonStyle="primary"
+                  disabled={this.state.ctas.length === 0}
+                  onClick={this.createViewAs.bind(this)}
+                >
+                  Create
+                </Button>
+              )}
             </>
           }
         >
           <span>Name</span>
-          <Input placeholder="Specify name to Create View AS schema in: public" />
+          <Input
+            placeholder="Specify name to Create View AS schema in: public"
+            onChange={this.ctasChanged.bind(this)}
+          />
         </StyledModal>
       </div>
     );
