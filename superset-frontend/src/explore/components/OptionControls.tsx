@@ -17,12 +17,25 @@
  * under the License.
  */
 import React from 'react';
+import { findDOMNode } from 'react-dom';
+import { DragSource, DropTarget } from 'react-dnd';
 import { styled, useTheme } from '@superset-ui/core';
 import { ColumnOption } from '@superset-ui/chart-controls';
 import Icon from '../../components/Icon';
 import { savedMetricType } from '../types';
 
-const OptionControlContainer = styled.div<{ isAdhoc?: boolean }>`
+const TYPE = 'label-dnd';
+
+const DragContainer = styled.div`
+  margin-bottom: ${({ theme }) => theme.gridUnit}px;
+  :last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const OptionControlContainer = styled.div<{
+  isAdhoc?: boolean;
+}>`
   display: flex;
   align-items: center;
   width: 100%;
@@ -31,10 +44,6 @@ const OptionControlContainer = styled.div<{ isAdhoc?: boolean }>`
   background-color: ${({ theme }) => theme.colors.grayscale.light3};
   border-radius: 3px;
   cursor: ${({ isAdhoc }) => (isAdhoc ? 'pointer' : 'default')};
-  margin-bottom: ${({ theme }) => theme.gridUnit}px;
-  :last-child {
-    margin-bottom: 0;
-  }
 `;
 
 const Label = styled.div`
@@ -113,12 +122,79 @@ export const AddIconButton = styled.button`
   }
 `;
 
+const labelSource = {
+  beginDrag({ index }: { index: number }) {
+    return {
+      index,
+    };
+  },
+};
+
+const labelTarget = {
+  hover(props: Record<string, any>, monitor: any, component: any) {
+    const dragIndex = monitor.getItem().index;
+    const hoverIndex = props.index;
+
+    // Don't replace items with themselves
+    if (dragIndex === hoverIndex) {
+      return;
+    }
+
+    // console.log(
+    //   component.decoratedComponentInstance,
+    //   component.getDecoratedComponentInstance(),
+    // );
+
+    // Determine rectangle on screen
+    const hoverBoundingRect = findDOMNode(component)?.getBoundingClientRect();
+
+    // Get vertical middle
+    const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+
+    // Determine mouse position
+    const clientOffset = monitor.getClientOffset();
+
+    // Get pixels to the top
+    const hoverClientY = clientOffset.y - hoverBoundingRect.top;
+
+    // Only perform the move when the mouse has crossed half of the items height
+    // When dragging downwards, only move when the cursor is below 50%
+    // When dragging upwards, only move when the cursor is above 50%
+
+    // Dragging downwards
+    if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+      return;
+    }
+
+    // Dragging upwards
+    if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
+      return;
+    }
+
+    // Time to actually perform the action
+    props.onMoveLabel?.(dragIndex, hoverIndex);
+
+    // Note: we're mutating the monitor item here!
+    // Generally it's better to avoid mutations,
+    // but it's good here for the sake of performance
+    // to avoid expensive index searches.
+    // eslint-disable-next-line no-param-reassign
+    monitor.getItem().index = hoverIndex;
+  },
+  drop(props: Record<string, any>) {
+    return props.onDropLabel?.();
+  },
+};
+
 export const OptionControlLabel = ({
   label,
   savedMetric,
   onRemove,
   isAdhoc,
   isFunction,
+  isDraggable,
+  connectDragSource,
+  connectDropTarget,
   ...props
 }: {
   label: string | React.ReactNode;
@@ -126,6 +202,9 @@ export const OptionControlLabel = ({
   onRemove: () => void;
   isAdhoc?: boolean;
   isFunction?: boolean;
+  isDraggable?: boolean;
+  connectDragSource?: any;
+  connectDropTarget?: any;
 }) => {
   const theme = useTheme();
   const getLabelContent = () => {
@@ -139,7 +218,8 @@ export const OptionControlLabel = ({
     }
     return label;
   };
-  return (
+
+  const getOptionControlContent = () => (
     <OptionControlContainer
       isAdhoc={isAdhoc}
       data-test="option-label"
@@ -163,4 +243,27 @@ export const OptionControlLabel = ({
       )}
     </OptionControlContainer>
   );
+
+  return (
+    <DragContainer>
+      {isDraggable
+        ? connectDragSource(
+            connectDropTarget(<div>{getOptionControlContent()}</div>),
+          )
+        : getOptionControlContent()}
+    </DragContainer>
+  );
 };
+
+export const DraggableOptionControlLabel = DropTarget(
+  TYPE,
+  labelTarget,
+  (connect: any) => ({
+    connectDropTarget: connect.dropTarget(),
+  }),
+)(
+  DragSource(TYPE, labelSource, (connect: any) => ({
+    connectDragSource: connect.dragSource(),
+    isDraggable: true,
+  }))(OptionControlLabel),
+);
