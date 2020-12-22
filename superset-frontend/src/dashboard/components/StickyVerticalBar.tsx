@@ -73,8 +73,28 @@ export const StickyVerticalBar: React.FC<SVBProps> = ({
     <Wrapper className={cx({ open: filtersOpen })}>
       <StickyContainer>
         <Sticky topOffset={-topOffset} bottomOffset={Infinity}>
-          {({ style, isSticky }: { style: any; isSticky: boolean }) => (
-            <Contents style={isSticky ? { ...style, top: topOffset } : null}>
+          {({
+            style,
+            isSticky,
+            distanceFromTop,
+          }: {
+            style: any;
+            isSticky: boolean;
+            distanceFromTop: number;
+          }) => (
+            <Contents
+              style={
+                isSticky
+                  ? {
+                      ...style,
+                      top: topOffset,
+                      height: `calc(100vh - ${topOffset}px)`,
+                    }
+                  : {
+                      height: `calc(100vh - ${distanceFromTop}px)`,
+                    }
+              }
+            >
               {children}
             </Contents>
           )}
