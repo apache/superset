@@ -18,6 +18,8 @@
  */
 import React from 'react';
 import { findDOMNode } from 'react-dom';
+// Current version of react-dnd (2.5.4) doesn't work well with typescript
+// TODO: remove ts-ignore after we upgrade react-dnd
 // @ts-ignore
 import { DragSource, DropTarget } from 'react-dnd';
 import { styled, useTheme } from '@superset-ui/core';
@@ -144,6 +146,9 @@ const labelTarget = {
     }
 
     // Determine rectangle on screen
+    // TODO: refactor with references when we upgrade react-dnd
+    // For now we disable warnings about findDOMNode, but we should refactor after we upgrade react-dnd
+    // Current version (2.5.4) doesn't work well with refs
     // @ts-ignore
     // eslint-disable-next-line react/no-find-dom-node
     const hoverBoundingRect = findDOMNode(component)?.getBoundingClientRect();

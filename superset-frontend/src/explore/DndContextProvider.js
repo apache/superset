@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// TODO: convert to .ts after we upgrade react-dnd
 import { DragDropContext } from 'react-dnd';
 import HTML5Backend from 'react-dnd-html5-backend';
 
