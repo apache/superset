@@ -60,6 +60,7 @@ const FilterScope: FC<FilterScopeProps> = ({
   );
   return (
     <Space direction="vertical">
+      <Typography.Title level={5}>{t('Scoping')}</Typography.Title>
       <Form.Item
         name={['filters', filterId, 'scope']}
         hidden

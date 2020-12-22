@@ -262,14 +262,11 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       >
         <Checkbox>{t('Required')}</Checkbox>
       </StyledCheckboxFormItem>
-      <StyledCheckboxFormItem>
-        <Typography.Title level={5}>{t('Scoping')}</Typography.Title>
-        <FilterScope
-          filterId={filterId}
-          filterToEdit={filterToEdit}
-          form={form}
-        />
-      </StyledCheckboxFormItem>
+      <FilterScope
+        filterId={filterId}
+        filterToEdit={filterToEdit}
+        form={form}
+      />
     </StyledCheckboxFormItem>
   );
 };
