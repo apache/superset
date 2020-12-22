@@ -185,7 +185,7 @@ const StyledCaretIcon = styled(Icon)`
 
 const StyledLoadingBox = styled.div`
   position: relative;
-  height: 32px;
+  height: ${({ theme }) => theme.gridUnit * 8}px;
   margin-bottom: ${({ theme }) => theme.gridUnit * 6}px;
 `;
 
