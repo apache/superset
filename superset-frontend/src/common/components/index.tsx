@@ -20,7 +20,7 @@ import React from 'react';
 import { styled } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
 import { Dropdown, Menu as AntdMenu, Input as AntdInput, Skeleton } from 'antd';
-import { DropDownProps } from 'antd/lib/dropdown';
+import { DropDownProps as AntdDropdownProps } from 'antd/lib/dropdown';
 /*
   Antd is re-exported from here so we can override components with Emotion as needed.
 
@@ -92,7 +92,7 @@ export const Input = styled(AntdInput)`
   }
 `;
 
-export const NoAnimationDropdown = (props: DropDownProps) => (
+export const NoAnimationDropdown = (props: AntdDropdownProps) => (
   <Dropdown
     overlayStyle={{ zIndex: 4000, animationDuration: '0s' }}
     {...props}
@@ -110,3 +110,5 @@ export const ThinSkeleton = styled(Skeleton)`
 `;
 
 export { default as Icon } from '@ant-design/icons';
+
+export type DropdownProps = AntdDropdownProps;

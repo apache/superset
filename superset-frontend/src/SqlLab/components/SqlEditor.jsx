@@ -25,7 +25,7 @@ import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import { Form } from 'react-bootstrap';
 import Split from 'react-split';
-import { t, styled } from '@superset-ui/core';
+import { t, styled, supersetTheme } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 import Mousetrap from 'mousetrap';
@@ -87,8 +87,46 @@ const WINDOW_RESIZE_THROTTLE_MS = 100;
 
 const LimitSelectStyled = styled.span`
   .ant-dropdown-trigger {
+    align-items: center;
     color: black;
+    display: flex;
+    font-size: 12px;
+    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
     text-decoration: none;
+    span {
+      display: inline-block;
+      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+      &:last-of-type: {
+        margin-right: ${({ theme }) => theme.gridUnit * 4}px;
+      }
+    }
+  }
+`;
+
+const StyledToolbar = styled.div`
+  padding: 10px 10px 5px 10px;
+  background-color: @lightest;
+  display: flex;
+  justify-content: space-between;
+  border: 1px solid ${supersetTheme.colors.grayscale.light2};
+  border-top: 0;
+
+  form {
+    margin-block-end: 0;
+  }
+
+  .leftItems form,
+  .rightItems {
+    display: flex;
+    align-items: center;
+    & > span {
+      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+      display: inline-block;
+
+      &:last-child {
+        margin-right: 0;
+      }
+    }
   }
 `;
 
@@ -99,7 +137,7 @@ const propTypes = {
   tables: PropTypes.array.isRequired,
   editorQueries: PropTypes.array.isRequired,
   dataPreviewQueries: PropTypes.array.isRequired,
-  queryEditorId: PropTypes.number.isRequired,
+  queryEditorId: PropTypes.string.isRequired,
   hideLeftBar: PropTypes.bool,
   defaultQueryLimit: PropTypes.number.isRequired,
   maxRow: PropTypes.number.isRequired,
@@ -533,10 +571,8 @@ class SqlEditor extends React.PureComponent {
     }
 
     // eslint-disable-next-line camelcase
-    const {
-      allow_ctas: allowCTAS,
-      allow_cvas: allowCVAS,
-    } = this.props.database;
+    const { allow_ctas: allowCTAS, allow_cvas: allowCVAS } =
+      this.props.database || {};
 
     const showMenu = allowCTAS || allowCVAS;
     const runMenuBtn = (
@@ -571,7 +607,7 @@ class SqlEditor extends React.PureComponent {
     );
 
     return (
-      <div className="sql-toolbar" id="js-sql-toolbar">
+      <StyledToolbar className="sql-toolbar" id="js-sql-toolbar">
         <div className="leftItems">
           <Form inline>
             <span>
@@ -581,13 +617,12 @@ class SqlEditor extends React.PureComponent {
                     ? this.props.database.allow_run_async
                     : false
                 }
-                dbId={qe.dbId}
                 queryState={this.props.latestQuery?.state}
                 runQuery={this.runQuery}
                 selectedText={qe.selectedText}
                 stopQuery={this.stopQuery}
                 sql={this.state.sql}
-                overlayCreateAsMenu={showMenu ? runMenuBtn : <></>}
+                overlayCreateAsMenu={showMenu ? runMenuBtn : null}
               />
             </span>
             {isFeatureEnabled(FeatureFlag.ESTIMATE_QUERY_COST) &&
@@ -606,6 +641,22 @@ class SqlEditor extends React.PureComponent {
                 </span>
               )}
             {limitWarning}
+            <span>
+              <LimitSelectStyled>
+                <Dropdown overlay={this.renderQueryLimit()}>
+                  <a onClick={e => e.preventDefault()}>
+                    <span>LIMIT:</span>
+                    <span>
+                      {(
+                        this.props.queryEditor.queryLimit ||
+                        this.props.defaultQueryLimit
+                      ).toLocaleString()}
+                    </span>
+                    <Icon name="triangle-down" />
+                  </a>
+                </Dropdown>
+              </LimitSelectStyled>
+            </span>
             {this.props.latestQuery && (
               <Timer
                 startTime={this.props.latestQuery.startDttm}
@@ -614,23 +665,11 @@ class SqlEditor extends React.PureComponent {
                 isRunning={this.props.latestQuery.state === 'running'}
               />
             )}
-            <span>
-              <LimitSelectStyled>
-                <Dropdown overlay={this.renderQueryLimit()}>
-                  <a onClick={e => e.preventDefault()}>
-                    <b>LIMIT:</b>{' '}
-                    {this.props.queryEditor.queryLimit !== undefined
-                      ? this.props.queryEditor.queryLimit
-                      : this.props.defaultQueryLimit}
-                  </a>
-                </Dropdown>
-              </LimitSelectStyled>
-            </span>
           </Form>
         </div>
         <div
           className="rightItems"
-          style={{ display: 'flex', 'align-items': 'center' }}
+          style={{ display: 'flex', alignItems: 'center' }}
         >
           <span>
             <SaveQuery
@@ -645,19 +684,11 @@ class SqlEditor extends React.PureComponent {
             <ShareSqlLabQuery queryEditor={qe} />
           </span>
           {limitWarning}
-          {this.props.latestQuery && (
-            <Timer
-              startTime={this.props.latestQuery.startDttm}
-              endTime={this.props.latestQuery.endDttm}
-              state={STATE_BSSTYLE_MAP[this.props.latestQuery.state]}
-              isRunning={this.props.latestQuery.state === 'running'}
-            />
-          )}
           <Dropdown overlay={this.renderDropdown()} arrow>
             <Icon name="more-horiz" />
           </Dropdown>
         </div>
-      </div>
+      </StyledToolbar>
     );
   }
 

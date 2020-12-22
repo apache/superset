@@ -17,93 +17,110 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { t, styled, supersetTheme } from '@superset-ui/core';
 
-import { Dropdown, Menu } from 'src/common/components';
+import { Menu } from 'src/common/components';
+import Button, { ButtonProps } from 'src/components/Button';
 import Icon from 'src/components/Icon';
-
-const NO_OP = () => undefined;
+import { DropdownButton, DropdownProps } from 'src/common/components/Dropdown';
 
 interface Props {
   allowAsync: boolean;
-  dbId?: number;
   queryState?: string;
   runQuery: (c?: boolean) => void;
   selectedText?: string;
   stopQuery: () => void;
   sql: string;
-  overlayCreateAsMenu: typeof Menu;
+  overlayCreateAsMenu: typeof Menu | null;
 }
+
+type QueryButtonProps = DropdownProps | ButtonProps;
+
+const buildText = (
+  shouldShowStopButton: boolean,
+  selectedText: string | undefined,
+): string | JSX.Element => {
+  if (shouldShowStopButton) {
+    return (
+      <>
+        <i className="fa fa-stop" /> {t('Stop')}
+      </>
+    );
+  }
+  if (selectedText) {
+    return t('Run Selection');
+  }
+  return t('Run');
+};
+
+const onClick = (
+  shouldShowStopButton: boolean,
+  allowAsync: boolean,
+  runQuery: (c?: boolean) => void = () => undefined,
+  stopQuery = () => {},
+): void => {
+  if (shouldShowStopButton) return stopQuery();
+  if (allowAsync) {
+    return runQuery(true);
+  }
+  return runQuery(false);
+};
+
+const StyledButton = styled.span`
+  button {
+    line-height: 13px;
+    &:last-of-type {
+      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+    }
+  }
+`;
 
 const RunQueryActionButton = ({
   allowAsync = false,
-  dbId,
   queryState,
-  runQuery = NO_OP,
   selectedText,
-  stopQuery = NO_OP,
   sql = '',
   overlayCreateAsMenu,
+  runQuery,
+  stopQuery,
 }: Props) => {
-  const runBtnText = selectedText ? t('Run Selection') : t('Run');
   const btnStyle = selectedText ? 'warning' : 'primary';
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
 
-  if (shouldShowStopBtn) {
-    return (
-<<<<<<< HEAD
-      <Dropdown.Button
-        onClick={stopQuery}
-        icon={<Icon color="#00000" name="caret-down" />}
-        type={btnStyle}
-        overlay={overlayCreateAsMenu}
-        disabled={!sql.trim()}
-=======
-      <Button
-        {...commonBtnProps}
-        cta
-        onClick={stopQuery}
-        tooltip={t('Stop running (Ctrl + x)')}
->>>>>>> feat: move keyboard shortcut hints to tooltips (#12100)
-      >
-        <i className="fa fa-stop" /> {t('Stop')}
-      </Dropdown.Button>
-    );
-  }
-  if (allowAsync) {
-    return (
-      <Dropdown.Button
-        onClick={() => runQuery(true)}
-<<<<<<< HEAD
-        icon={<Icon color="#00000" name="caret-down" />}
-        type={btnStyle}
-        overlay={overlayCreateAsMenu}
-=======
-        key="run-async-btn"
-        tooltip={t('Run query (Ctrl + Return)')}
->>>>>>> feat: move keyboard shortcut hints to tooltips (#12100)
-        disabled={!sql.trim()}
-      >
-        <i className="fa fa-bolt" /> {runBtnText}
-      </Dropdown.Button>
-    );
-  }
+  const ButtonComponent: React.FC<QueryButtonProps> = overlayCreateAsMenu
+    ? (DropdownButton as React.FC)
+    : Button;
+
   return (
-    <Dropdown.Button
-      onClick={() => runQuery(false)}
-<<<<<<< HEAD
-      icon={<Icon color="#00000" name="caret-down" />}
-      type={btnStyle}
-      overlay={overlayCreateAsMenu}
-=======
-      key="run-btn"
-      tooltip={t('Run query (Ctrl + Return)')}
->>>>>>> feat: move keyboard shortcut hints to tooltips (#12100)
-      disabled={!sql.trim()}
-    >
-      <i className="fa fa-refresh" /> {runBtnText}
-    </Dropdown.Button>
+    <StyledButton>
+      <ButtonComponent
+        onClick={() =>
+          onClick(shouldShowStopBtn, allowAsync, runQuery, stopQuery)
+        }
+        disabled={!sql.trim()}
+        buttonSize="small"
+        tooltip={
+          shouldShowStopBtn
+            ? t('Stop running (Ctrl + x)')
+            : t('Run query (Ctrl + Return)')
+        }
+        cta
+        {...(overlayCreateAsMenu
+          ? {
+              overlay: overlayCreateAsMenu,
+              icon: (
+                <Icon
+                  color={supersetTheme.colors.grayscale.light5}
+                  name="caret-down"
+                />
+              ),
+            }
+          : { buttonStyle: btnStyle })}
+      >
+        {buildText(shouldShowStopBtn, selectedText)}
+      </ButtonComponent>
+    </StyledButton>
   );
 };
 
