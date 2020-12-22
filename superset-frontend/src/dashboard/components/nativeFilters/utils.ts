@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ExtraFormData, QueryObject } from '@superset-ui/core';
+import { ExtraFormData, QueryObject, t } from '@superset-ui/core';
 import { Charts, Layout, LayoutItem } from 'src/dashboard/types';
 import {
   CHART_TYPE,
@@ -24,9 +24,11 @@ import {
   TABS_TYPE,
   TAB_TYPE,
 } from 'src/dashboard/util/componentTypes';
+import { FormInstance } from 'antd/lib/form';
 import {
   CascadeFilter,
   Filter,
+  FilterType,
   NativeFiltersState,
   Scope,
   TreeItem,
@@ -60,6 +62,48 @@ export const buildTree = (
   );
 };
 
+const addInvisibleParents = (layout: Layout, item: string) => [
+  ...layout[item].children,
+  ...Object.values(layout)
+    .filter(
+      val =>
+        val.parents &&
+        val.parents[val.parents.length - 1] === item &&
+        !isShowTypeInTree(layout[val.parents[val.parents.length - 1]]),
+    )
+    .map(({ id }) => id),
+];
+
+// Generate checked options for Ant tree from redux scope
+const checkTreeItem = (
+  checkedItems: string[],
+  layout: Layout,
+  items: string[],
+  excluded: number[],
+) => {
+  items.forEach(item => {
+    checkTreeItem(
+      checkedItems,
+      layout,
+      addInvisibleParents(layout, item),
+      excluded,
+    );
+    if (
+      layout[item].type === CHART_TYPE &&
+      !excluded.includes(layout[item].meta.chartId)
+    ) {
+      checkedItems.push(item);
+    }
+  });
+};
+
+export const getTreeCheckedItems = (scope: Scope, layout: Layout) => {
+  const checkedItems: string[] = [];
+  checkTreeItem(checkedItems, layout, scope.rootPath, scope.excluded);
+  return [...new Set(checkedItems)];
+};
+
+// Looking for first common parent for selected charts/tabs/tab
 export const findFilterScope = (
   checkedKeys: string[],
   layout: Layout,
@@ -70,11 +114,18 @@ export const findFilterScope = (
       excluded: [],
     };
   }
-  const checkedItemParents = checkedKeys.map(key =>
-    (layout[key].parents || []).filter(parent =>
-      isShowTypeInTree(layout[parent]),
-    ),
-  );
+
+  // Get arrays of parents for selected charts
+  const checkedItemParents = checkedKeys
+    .filter(item => layout[item].type === CHART_TYPE)
+    .map(key =>
+      (layout[key].parents || []).filter(parent =>
+        isShowTypeInTree(layout[parent]),
+      ),
+    );
+
+  // Sort arrays of parents to get first shortest array of parents,
+  // that means on it's level of parents located common parent, from this place parents start be different
   checkedItemParents.sort((p1, p2) => p1.length - p2.length);
   const rootPath = checkedItemParents.map(
     parents => parents[checkedItemParents[0].length - 1],
@@ -84,6 +135,8 @@ export const findFilterScope = (
   const isExcluded = (parent: string, item: string) =>
     rootPath.includes(parent) && !checkedKeys.includes(item);
 
+  // looking for charts to be excluded: iterate over all charts
+  // and looking for charts that have one of their parents in `rootPath` and not in selected items
   Object.entries(layout).forEach(([key, value]) => {
     if (
       value.type === CHART_TYPE &&
@@ -178,3 +231,26 @@ export function buildCascadeFiltersTree(filters: Filter[]): CascadeFilter[] {
     .filter(filter => !filter.cascadeParentIds?.length)
     .map(getCascadeFilter);
 }
+
+export const FilterTypeNames = {
+  [FilterType.filter_text]: t('Text'),
+  [FilterType.filter_select]: t('Select'),
+  [FilterType.filter_range]: t('Range'),
+};
+
+export const setFilterFieldValues = (
+  form: FormInstance,
+  filterId: string,
+  values: object,
+) => {
+  const formFilters = form.getFieldValue('filters');
+  form.setFieldsValue({
+    filters: {
+      ...formFilters,
+      [filterId]: {
+        ...formFilters[filterId],
+        ...values,
+      },
+    },
+  });
+};

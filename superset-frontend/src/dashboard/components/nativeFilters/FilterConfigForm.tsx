@@ -24,7 +24,6 @@ import {
   Checkbox,
   Form,
   Input,
-  Radio,
   Typography,
 } from 'src/common/components';
 import { Select } from 'src/components/Select/SupersetStyledSelect';
@@ -34,8 +33,9 @@ import SupersetResourceSelect, {
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ColumnSelect } from './ColumnSelect';
-import ScopingTree from './ScopingTree';
-import { Filter, NativeFiltersForm, Scoping } from './types';
+import { Filter, FilterType, NativeFiltersForm } from './types';
+import FilterScope from './FilterScope';
+import { FilterTypeNames, setFilterFieldValues } from './utils';
 
 type DatasetSelectValue = {
   value: number;
@@ -46,10 +46,6 @@ const datasetToSelectOption = (item: any): DatasetSelectValue => ({
   value: item.id,
   label: item.table_name,
 });
-
-const ScopingTreeNote = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-`;
 
 const RemovedContent = styled.div`
   display: flex;
@@ -91,6 +87,20 @@ export interface FilterConfigFormProps {
   parentFilters: { id: string; title: string }[];
 }
 
+// TODO: just place holder need update with real plugins
+const filterTypeElements = {
+  [FilterType.filter_text]: Input,
+  [FilterType.filter_select]: Input,
+  [FilterType.filter_range]: Input,
+};
+
+// TODO: just place holder need update with real values
+const defaultValuesPerFilterType = {
+  [FilterType.filter_text]: '',
+  [FilterType.filter_select]: '',
+  [FilterType.filter_range]: '',
+};
+
 /**
  * The configuration form for a specific filter.
  * Assigns field values to `filters[filterId]` in the form.
@@ -103,9 +113,10 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   form,
   parentFilters,
 }) => {
-  const [advancedScopingOpen, setAdvancedScopingOpen] = useState<Scoping>(
-    Scoping.all,
+  const [filterType, setFilterType] = useState<FilterType>(
+    filterToEdit?.filterType || FilterType.filter_text,
   );
+  const FilterTypeElement = filterTypeElements[filterType];
   const [dataset, setDataset] = useState<Value<number> | undefined>();
 
   const onDatasetSelectError = useCallback(
@@ -117,13 +128,6 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       addDangerToast(errorText);
     },
     [],
-  );
-
-  const setFilterScope = useCallback(
-    value => {
-      form.setFields([{ name: ['filters', filterId, 'scope'], value }]);
-    },
-    [form, filterId],
   );
 
   if (removed) {
@@ -145,7 +149,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   }));
 
   return (
-    <>
+    <StyledCheckboxFormItem>
       <Typography.Title level={5}>{t('Settings')}</Typography.Title>
       <StyledContainer>
         <StyledFormItem
@@ -190,13 +194,27 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
           datasetId={dataset?.value}
         />
       </StyledFormItem>
-
       <StyledFormItem
-        name={['filters', filterId, 'defaultValue']}
-        label={<StyledLabel>{t('Default Value')}</StyledLabel>}
-        initialValue={filterToEdit?.defaultValue}
+        name={['filters', filterId, 'filterType']}
+        initialValue={filterToEdit?.filterType || FilterType.filter_text}
+        label={<StyledLabel>{t('Filter Type')}</StyledLabel>}
       >
-        <Input />
+        <Select
+          options={Object.values(FilterType).map(filterType => ({
+            value: filterType,
+            label: FilterTypeNames[filterType],
+          }))}
+          onChange={({ value }: { value: FilterType }) => {
+            setFilterType(value);
+            setFilterFieldValues(form, filterId, {
+              defaultValue: defaultValuesPerFilterType[value],
+              filterType: value,
+            });
+          }}
+        />
+      </StyledFormItem>
+      <StyledFormItem label={<StyledLabel>{t('Default Value')}</StyledLabel>}>
+        <FilterTypeElement />
       </StyledFormItem>
       <StyledFormItem
         name={['filters', filterId, 'parentFilter']}
@@ -244,37 +262,15 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       >
         <Checkbox>{t('Required')}</Checkbox>
       </StyledCheckboxFormItem>
-      <Typography.Title level={5}>{t('Scoping')}</Typography.Title>
-      <StyledCheckboxFormItem
-        name={['filters', filterId, 'scoping']}
-        initialValue={advancedScopingOpen}
-      >
-        <Radio.Group
-          onChange={({ target: { value } }) => {
-            setAdvancedScopingOpen(value as Scoping);
-          }}
-        >
-          <Radio value={Scoping.all}>{t('Apply to all panels')}</Radio>
-          <Radio value={Scoping.specific}>
-            {t('Apply to specific panels')}
-          </Radio>
-        </Radio.Group>
+      <StyledCheckboxFormItem>
+        <Typography.Title level={5}>{t('Scoping')}</Typography.Title>
+        <FilterScope
+          filterId={filterId}
+          filterToEdit={filterToEdit}
+          form={form}
+        />
       </StyledCheckboxFormItem>
-      <>
-        <ScopingTreeNote>
-          <Typography.Text type="secondary">
-            {advancedScopingOpen === Scoping.specific
-              ? t('Only selected panels will be affected by this filter')
-              : t(
-                  'All panels with this column will be affected by this filter',
-                )}
-          </Typography.Text>
-        </ScopingTreeNote>
-        {advancedScopingOpen === Scoping.specific && (
-          <ScopingTree setFilterScope={setFilterScope} />
-        )}
-      </>
-    </>
+    </StyledCheckboxFormItem>
   );
 };
 

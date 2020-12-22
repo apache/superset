@@ -46,6 +46,7 @@ export {
   Popover,
   Radio,
   Row,
+  Space,
   Select,
   Skeleton,
   Switch,

@@ -83,14 +83,17 @@ export function useFilterScopeTree(): {
   );
 
   const charts = useSelector<RootState, Charts>(({ charts }) => charts);
-
   const tree = {
     children: [],
     key: DASHBOARD_ROOT_ID,
     type: DASHBOARD_ROOT_TYPE,
     title: t('All Panels'),
   };
-  buildTree(layout[DASHBOARD_ROOT_ID], tree, layout, charts);
+
+  useMemo(() => {
+    buildTree(layout[DASHBOARD_ROOT_ID], tree, layout, charts);
+  }, [charts, layout, tree]);
+
   return { treeData: [tree], layout };
 }
 

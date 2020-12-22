@@ -17,44 +17,55 @@
  * under the License.
  */
 
-import React, { FC, useState } from 'react';
-import { Tree } from 'src/common/components';
+import React, { FC, useMemo, useState } from 'react';
+import { Tree, FormInstance } from 'src/common/components';
 import { useFilterScopeTree } from './state';
 import { DASHBOARD_ROOT_ID } from '../../util/constants';
-import { findFilterScope } from './utils';
+import {
+  findFilterScope,
+  getTreeCheckedItems,
+  setFilterFieldValues,
+} from './utils';
+import { Filter, NativeFiltersForm, Scope } from './types';
 
 type ScopingTreeProps = {
-  setFilterScope: Function;
+  form: FormInstance<NativeFiltersForm>;
+  filterId: string;
+  filterToEdit?: Filter;
+  scope: Scope;
 };
 
-const ScopingTree: FC<ScopingTreeProps> = ({ setFilterScope }) => {
+const ScopingTree: FC<ScopingTreeProps> = ({ form, filterId, scope }) => {
   const [expandedKeys, setExpandedKeys] = useState<string[]>([
     DASHBOARD_ROOT_ID,
   ]);
 
   const { treeData, layout } = useFilterScopeTree();
-
   const [autoExpandParent, setAutoExpandParent] = useState<boolean>(true);
-  const [checkedKeys, setCheckedKeys] = useState<string[]>([]);
+  const [checkedKeys, setCheckedKeys] = useState<string[]>(
+    useMemo(() => getTreeCheckedItems(scope, layout), [scope, layout]),
+  );
 
-  const onExpand = (expandedKeys: string[]) => {
+  const handleExpand = (expandedKeys: string[]) => {
     setExpandedKeys(expandedKeys);
     setAutoExpandParent(false);
   };
 
-  const onCheck = (checkedKeys: string[]) => {
+  const handleCheck = (checkedKeys: string[]) => {
     setCheckedKeys(checkedKeys);
-    setFilterScope(findFilterScope(checkedKeys, layout));
+    setFilterFieldValues(form, filterId, {
+      scope: findFilterScope(checkedKeys, layout),
+    });
   };
 
   return (
     <Tree
       checkable
       selectable={false}
-      onExpand={onExpand}
+      onExpand={handleExpand}
       expandedKeys={expandedKeys}
       autoExpandParent={autoExpandParent}
-      onCheck={onCheck}
+      onCheck={handleCheck}
       checkedKeys={checkedKeys}
       treeData={treeData}
     />

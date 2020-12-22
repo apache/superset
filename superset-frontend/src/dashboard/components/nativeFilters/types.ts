@@ -23,10 +23,13 @@ export enum Scoping {
   specific,
 }
 
+// Using to pass setState React callbacks directly to And components
+export type AntCallback = (value1?: any, value2?: any) => void;
+
 interface NativeFiltersFormItem {
-  scoping: Scoping;
   scope: Scope;
   name: string;
+  filterType: FilterType;
   dataset: {
     value: number;
     label: string;
@@ -67,7 +70,11 @@ export interface Target {
   // clarityColumns?: Column[];
 }
 
-export type FilterType = 'text' | 'date';
+export enum FilterType {
+  filter_text = 'filter_text',
+  filter_select = 'filter_select',
+  filter_range = 'filter_range',
+}
 
 /**
  * This is a filter configuration object, stored in the dashboard's json metadata.
@@ -84,7 +91,7 @@ export interface Filter {
   id: string; // randomly generated at filter creation
   name: string;
   scope: Scope;
-  type: FilterType;
+  filterType: FilterType;
   // for now there will only ever be one target
   // when multiple targets are supported, change this to Target[]
   targets: [Target];
