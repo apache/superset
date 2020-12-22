@@ -37,8 +37,8 @@ JSON_KEYS = {"params", "template_params", "extra"}
 
 
 type_map = {
-    "VARCHAR": String(),
-    "STRING": String(),
+    "VARCHAR": String(255),
+    "STRING": String(255),
     "TEXT": Text(),
     "BIGINT": BigInteger(),
     "FLOAT": Float(),
