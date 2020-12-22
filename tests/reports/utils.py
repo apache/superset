@@ -22,7 +22,12 @@ from flask_appbuilder.security.sqla.models import User
 from superset import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
-from superset.models.reports import ReportExecutionLog, ReportRecipients, ReportSchedule
+from superset.models.reports import (
+    ReportExecutionLog,
+    ReportRecipients,
+    ReportSchedule,
+    ReportState,
+)
 from superset.models.slice import Slice
 
 
@@ -39,6 +44,7 @@ def insert_report_schedule(
     validator_type: Optional[str] = None,
     validator_config_json: Optional[str] = None,
     log_retention: Optional[int] = None,
+    last_state: Optional[ReportState] = None,
     grace_period: Optional[int] = None,
     recipients: Optional[List[ReportRecipients]] = None,
     logs: Optional[List[ReportExecutionLog]] = None,
@@ -46,6 +52,7 @@ def insert_report_schedule(
     owners = owners or []
     recipients = recipients or []
     logs = logs or []
+    last_state = last_state or ReportState.NOOP
     report_schedule = ReportSchedule(
         type=type,
         name=name,
@@ -62,6 +69,7 @@ def insert_report_schedule(
         grace_period=grace_period,
         recipients=recipients,
         logs=logs,
+        last_state=last_state,
     )
     db.session.add(report_schedule)
     db.session.commit()
