@@ -72,7 +72,7 @@ const StyledDropdownButton = styled.div`
       background-color: ${({ theme }) => theme.colors.primary.dark1};
       border-color: transparent;
       color: ${({ theme }) => theme.colors.grayscale.light5};
-      font-size: 11px;
+      font-size: 12px;
       line-height: 13px;
       outline: none;
       text-transform: uppercase;

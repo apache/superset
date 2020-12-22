@@ -43,11 +43,7 @@ const buildText = (
   if (shouldShowStopButton) {
     return (
       <>
-        <i
-          className="fa fa-stop"
-          style={{ display: 'inline-block', marginRight: '10px' }}
-        />{' '}
-        {t('Stop')}
+        <i className="fa fa-stop" /> {t('Stop')}
       </>
     );
   }
