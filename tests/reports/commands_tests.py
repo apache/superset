@@ -419,6 +419,11 @@ def test_email_chart_report_schedule(
             create_report_email_chart
         )
         # Assert the email smtp address
+        assert (
+            f'<a href="http://0.0.0.0:8080/superset/slice/'
+            f'{create_report_email_chart.chart.id}/">Explore in Superset</a>'
+            in email_mock.call_args[0][2]
+        )
         assert email_mock.call_args[0][0] == notification_targets[0]
         # Assert the email inline screenshot
         smtp_images = email_mock.call_args[1]["images"]
