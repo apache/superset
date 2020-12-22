@@ -155,6 +155,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "changed_on_delta_humanized",
         "created_on",
         "crontab",
+        "last_eval_dttm",
         "name",
         "type",
         "crontab_humanized",

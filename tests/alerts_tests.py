@@ -341,7 +341,7 @@ def test_deliver_alert_screenshot(
 
     # TODO: fix AlertModelView.show url call from test
     url_mock.side_effect = [
-        f"http://0.0.0.0:8080/alert/show/{alert.id}",
+        f"http://0.0.0.0:8080/alerts/show/{alert.id}",
         f"http://0.0.0.0:8080/superset/slice/{alert.slice_id}/",
     ]
 
@@ -354,7 +354,7 @@ def test_deliver_alert_screenshot(
         f"*Query*:```{alert.sql}```\n"
         f"*Result*: {alert.observations[-1].value}\n"
         f"*Reason*: {alert.observations[-1].value} {alert.pretty_config}\n"
-        f"<http://0.0.0.0:8080/alert/show/{alert.id}"
+        f"<http://0.0.0.0:8080/alerts/show/{alert.id}"
         f"|View Alert Details>\n<http://0.0.0.0:8080/superset/slice/{alert.slice_id}/"
         "|*Explore in Superset*>",
         "title": f"[Alert] {alert.label}",
