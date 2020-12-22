@@ -309,6 +309,7 @@ zipp==3.4.1
     # via -r requirements/base.in
 PyAthenaJDBC>1.0.9
 PyAthena>1.2.0
+sqlalchemy-redshift
 psycopg2
 elasticsearch-dbapi
 python-crontab
