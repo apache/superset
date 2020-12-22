@@ -81,6 +81,15 @@ def update_id_refs(config: Dict[str, Any], chart_ids: Dict[str, int]) -> Dict[st
             for old_id, value in metadata["expanded_slices"].items()
         }
 
+    if "default_filters" in metadata:
+        default_filters = json.loads(metadata["default_filters"])
+        metadata["default_filters"] = json.dumps(
+            {
+                str(id_map[int(old_id)]): value
+                for old_id, value in default_filters.items()
+            }
+        )
+
     # fix position
     position = fixed.get("position", {})
     for child in position.values():
