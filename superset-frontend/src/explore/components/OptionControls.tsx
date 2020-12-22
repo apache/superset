@@ -267,3 +267,5 @@ export const DraggableOptionControlLabel = DropTarget(
     isDraggable: true,
   }))(OptionControlLabel),
 );
+
+DraggableOptionControlLabel.displayName = 'DraggableOptionControlLabel';

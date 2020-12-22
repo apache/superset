@@ -45,6 +45,9 @@ function setup(overrides) {
     savedMetrics: [],
     onMetricEdit,
     columns,
+    onMoveLabel: () => {},
+    onDropLabel: () => {},
+    index: 0,
     ...overrides,
   };
   const wrapper = shallow(<AdhocMetricOption {...props} />)
@@ -57,7 +60,7 @@ describe('AdhocMetricOption', () => {
   it('renders an overlay trigger wrapper for the label', () => {
     const { wrapper } = setup();
     expect(wrapper.find(Popover)).toExist();
-    expect(wrapper.find('OptionControlLabel')).toExist();
+    expect(wrapper.find('DraggableOptionControlLabel')).toExist();
   });
 
   it('overwrites the adhocMetric in state with onLabelChange', () => {
