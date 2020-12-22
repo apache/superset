@@ -105,7 +105,8 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
           row: {
             original: { start_dttm: startDttm },
           },
-        }: $anyType) => moment(new Date(startDttm)).format('MM/DD/YYYY hh:mm:ss a'),
+        }: $anyType) =>
+          moment(new Date(startDttm)).format('MM/DD/YYYY hh:mm:ss a'),
         Header: t('Start At'),
         accessor: 'start_dttm',
       },
