@@ -57,8 +57,7 @@ def _load_data():
         database = get_example_database()
         df = _get_dataframe(database)
         dtype = {
-            # todo: check TIMESTAMP type for presto
-            "year": DateTime if database.backend != "presto" else TIMESTAMP,
+            "year": DateTime if database.backend != "presto" else String(255),
             "country_code": String(3),
             "country_name": String(255),
             "region": String(255),
@@ -98,9 +97,12 @@ def _create_world_bank_dashboard(table: SqlaTable, slices: List[Slice]) -> Dashb
 
     table.fetch_metadata()
 
-    return create_dashboard(
+    dash = create_dashboard(
         "world_health", "World Bank's Data", json.dumps(pos), slices
     )
+    dash.json_metadata = None
+    db.session.commit()
+    return dash
 
 
 def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
@@ -131,15 +133,15 @@ def _get_world_bank_data() -> List[Dict[Any, Any]]:
         data.append(
             {
                 "country_name": "".join(
-                    choice([string.ascii_uppercase, string.ascii_lowercase, " "])
+                    choice(string.ascii_uppercase + string.ascii_lowercase + " ")
                     for _ in range(randint(3, 10))
                 ),
                 "country_code": "".join(
-                    choice([string.ascii_uppercase, string.ascii_lowercase])
+                    choice(string.ascii_uppercase + string.ascii_lowercase)
                     for _ in range(3)
                 ),
                 "region": "".join(
-                    choice([string.ascii_uppercase, string.ascii_lowercase])
+                    choice(string.ascii_uppercase + string.ascii_lowercase)
                     for _ in range(randint(3, 10))
                 ),
                 "year": "-".join(
