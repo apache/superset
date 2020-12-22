@@ -18,11 +18,11 @@
  */
 import React, { ReactNode } from 'react';
 import { Tooltip } from 'src/common/components/Tooltip';
+import { styled } from '@superset-ui/core';
 
 interface Props {
   children?: ReactNode;
   className?: string;
-  href?: string;
   onClick?: () => void;
   placement?:
     | 'bottom'
@@ -41,24 +41,29 @@ interface Props {
   tooltip?: string | null;
 }
 
-const Link = ({
+const StyledSpan = styled.span`
+  color: ${({ theme }) => theme.colors.primary.dark1};
+  &: hover {
+    color: ${({ theme }) => theme.colors.primary.dark2};
+  }
+`;
+
+const IconTooltip = ({
   children = null,
   className = '',
-  href = '#',
   onClick = () => undefined,
   placement = 'top',
   style = {},
   tooltip = null,
 }: Props) => {
-  const link = (
-    <a
-      href={href}
+  const iconTooltip = (
+    <StyledSpan
       onClick={onClick}
       style={style}
-      className={`Link ${className}`}
+      className={`IconTooltip ${className}`}
     >
       {children}
-    </a>
+    </StyledSpan>
   );
   if (tooltip) {
     return (
@@ -69,11 +74,11 @@ const Link = ({
         mouseEnterDelay={0.3}
         mouseLeaveDelay={0.15}
       >
-        {link}
+        {iconTooltip}
       </Tooltip>
     );
   }
-  return link;
+  return iconTooltip;
 };
 
-export default Link;
+export { IconTooltip };

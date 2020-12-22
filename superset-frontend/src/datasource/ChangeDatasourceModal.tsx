@@ -67,6 +67,14 @@ const ConfirmModalStyled = styled.div`
   }
 `;
 
+const StyledSpan = styled.span`
+  cursor: pointer;
+  color: ${({ theme }) => theme.colors.primary.dark1};
+  &: hover {
+    color: ${({ theme }) => theme.colors.primary.dark2};
+  }
+`;
+
 const TABLE_COLUMNS = [
   'name',
   'type',
@@ -191,13 +199,14 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       connection: ds.database.database_name,
       schema: ds.schema,
       name: (
-        <a
-          href="#"
+        <StyledSpan
+          role="button"
+          tabIndex={0}
+          data-test="datasource-link"
           onClick={() => selectDatasource({ type: 'table', ...ds })}
-          className="datasource-link"
         >
           {ds.table_name}
-        </a>
+        </StyledSpan>
       ),
       type: ds.kind,
     }));
