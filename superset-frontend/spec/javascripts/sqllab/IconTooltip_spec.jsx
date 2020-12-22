@@ -18,22 +18,23 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
+import { Tooltip } from 'src/common/components/Tooltip';
+import { IconTooltip } from 'src/components/IconTooltip';
 
-import Link from 'src/components/Link';
-
-describe('Link', () => {
+describe('IconTooltip', () => {
   const mockedProps = {
     tooltip: 'This is a tooltip',
-    href: 'https://www.airbnb.com',
   };
   it('renders', () => {
-    expect(React.isValidElement(<Link>TEST</Link>)).toBe(true);
+    expect(React.isValidElement(<IconTooltip>TEST</IconTooltip>)).toBe(true);
   });
   it('renders with props', () => {
-    expect(React.isValidElement(<Link {...mockedProps}>TEST</Link>)).toBe(true);
+    expect(
+      React.isValidElement(<IconTooltip {...mockedProps}>TEST</IconTooltip>),
+    ).toBe(true);
   });
-  it('renders an anchor tag', () => {
-    const wrapper = shallow(<Link {...mockedProps}>TEST</Link>);
-    expect(wrapper.find('a')).toExist();
+  it('renders a tooltip', () => {
+    const wrapper = shallow(<IconTooltip {...mockedProps}>TEST</IconTooltip>);
+    expect(wrapper.find(Tooltip)).toExist();
   });
 });

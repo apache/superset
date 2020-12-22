@@ -61,8 +61,7 @@ const Bar = styled.div`
   width: ${barWidth}; // arbitrary...
   background: ${({ theme }) => theme.colors.grayscale.light5};
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  height: 100%;
-  max-height: 100%;
+  min-height: 100%;
   display: none;
   /* &.animated {
     display: flex;
