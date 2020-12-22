@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { findDOMNode } from 'react-dom';
+// @ts-ignore
 import { DragSource, DropTarget } from 'react-dnd';
 import { styled, useTheme } from '@superset-ui/core';
 import { ColumnOption } from '@superset-ui/chart-controls';
@@ -143,6 +144,8 @@ const labelTarget = {
     }
 
     // Determine rectangle on screen
+    // @ts-ignore
+    // eslint-disable-next-line react/no-find-dom-node
     const hoverBoundingRect = findDOMNode(component)?.getBoundingClientRect();
 
     // Get vertical middle
