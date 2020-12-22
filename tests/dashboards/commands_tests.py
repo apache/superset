@@ -274,12 +274,12 @@ class TestExportDashboardsCommand(SupersetTestCase):
         metadata = yaml.safe_load(contents["dashboards/World_Banks_Data.yaml"])
         assert list(metadata.keys()) == [
             "dashboard_title",
-            "json_metadata",
             "description",
             "css",
             "slug",
             "uuid",
             "position",
+            "metadata",
             "version",
         ]
 
