@@ -99,7 +99,7 @@ function DashboardTable({
     } else {
       filters.push({
         id: 'id',
-        operator: 'dashboard_is_fav',
+        operator: 'dashboard_is_favorite',
         value: true,
       });
     }
