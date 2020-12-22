@@ -228,7 +228,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
                 },
                 "DASHBOARD_VERSION_KEY": "v2",
             },
-            "json_metadata": None,
+            "metadata": {"mock_key": "mock_value"},
             "version": "1.0.0",
         }
 

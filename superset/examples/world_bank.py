@@ -17,7 +17,6 @@
 """Loads datasets, dashboards and slices in a new superset instance"""
 import json
 import os
-import textwrap
 from typing import List
 
 import pandas as pd

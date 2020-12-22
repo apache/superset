@@ -100,7 +100,7 @@ def _create_world_bank_dashboard(table: SqlaTable, slices: List[Slice]) -> Dashb
     dash = create_dashboard(
         "world_health", "World Bank's Data", json.dumps(pos), slices
     )
-    dash.json_metadata = None
+    dash.json_metadata = '{"mock_key": "mock_value"}'
     db.session.commit()
     return dash
 
