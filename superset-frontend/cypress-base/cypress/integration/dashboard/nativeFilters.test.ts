@@ -23,36 +23,156 @@ describe('Nativefilters', () => {
     cy.login();
     cy.visit(TABBED_DASHBOARD);
   });
+
   it('should show filter bar and allow user to create filters ', () => {
     cy.get('[data-test="filter-bar"]').should('be.visible');
     cy.get('[data-test="collapse"]').click();
     cy.get('[data-test="create-filter"]').click();
     cy.get('.ant-modal').should('be.visible');
 
-    cy.get('.ant-form-vertical').find('.ant-tabs-nav-add').first().click();
-
     cy.get('.ant-modal')
-      .find('.ant-tabs-tab-btn')
-      .first()
-      .click({ force: true })
-      .type('TEST_Filter');
+      .find('[data-test="name-input"]')
+      .click()
+      .type('Country name');
 
-    cy.get('.ant-modal').find('[data-test="datasource-input"]').first().click();
+    cy.get('.ant-modal').find('[data-test="datasource-input"]').click();
 
     cy.get('[data-test="datasource-input"]')
       .contains('wb_health_population')
       .click();
 
-    // possible bug with cypress where it is having issue discovering the field input
-    // after it is enabled
-
-    /* cy.get('.ant-modal')
+    // hack for unclickable country_name
+    cy.get('.ant-modal').find('[data-test="field-input"]').type('country_name');
+    cy.get('.ant-modal')
       .find('[data-test="field-input"]')
-      .click()
-      .contains('country_name')
+      .type('{downarrow}{downarrow}{enter}');
+    cy.get('[data-test="apply-changes-instantly-checkbox"]').check();
+    cy.get('.ant-modal-footer')
+      .find('[data-test="native-filter-modal-save-button"]')
+      .should('be.visible')
       .click();
-      */
+  });
 
-    cy.get('.ant-modal-footer').find('button').should('be.visible');
+  it('should show newly added filter in filter bar menu', () => {
+    cy.get('[data-test="filter-bar"]').should('be.visible');
+    cy.get('[data-test="filter-control-name"]').should('be.visible');
+    cy.get('[data-test="form-item-value"]').should('be.visible');
+  });
+  it('should filter dashboard with selected filter value', () => {
+    cy.get('[data-test="form-item-value"]').should('be.visible').click();
+    cy.get('.ant-select-selection-search').type('Hong Kong{enter}');
+    cy.get('[data-test="filter-apply-button"]').click();
+    cy.get('.treemap').within(() => {
+      cy.contains('HKG').should('be.visible');
+      cy.contains('USA').should('not.exist');
+    });
+  });
+  it('should stop filtering when filter is removed', () => {
+    cy.get('[data-test="create-filter"]').click();
+    cy.get('.ant-modal').should('be.visible');
+    cy.get('.ant-tabs-nav-list').within(() => {
+      cy.get('.ant-tabs-tab-remove').click();
+    });
+    cy.get('.ant-modal-footer')
+    .find('[data-test="native-filter-modal-save-button"]')
+    .should('be.visible')
+      .click();
+    cy.get('.treemap').within(() => {
+      cy.contains('HKG').should('be.visible');
+      cy.contains('USA').should('be.visible');
+    });
+  });
+
+  it('should allow for creating parent filters ', () => {
+    cy.get('[data-test="filter-bar"]').should('be.visible');
+    cy.get('[data-test="collapse"]').click();
+    cy.get('[data-test="create-filter"]').click();
+    cy.get('.ant-modal').should('be.visible');
+
+    cy.get('.ant-modal')
+      .find('[data-test="name-input"]')
+      .click()
+      .type('Country name');
+
+    cy.get('.ant-modal').find('[data-test="datasource-input"]').click();
+
+    cy.get('[data-test="datasource-input"]')
+      .contains('wb_health_population')
+      .click();
+
+    // hack for unclickable country_name
+    cy.get('.ant-modal').find('[data-test="field-input"]').type('country_name');
+    cy.get('.ant-modal')
+      .find('[data-test="field-input"]')
+      .type('{downarrow}{downarrow}{enter}');
+    cy.get('[data-test="apply-changes-instantly-checkbox"]').check();
+    cy.get('.ant-modal-footer')
+    .find('[data-test="native-filter-modal-save-button"]')
+    .should('be.visible')
+      .click();
+
+    cy.get('[data-test="create-filter"]').click();
+    cy.get('.ant-modal').first().should('be.visible');
+    cy.get('[data-test=add-filter-button]').first().click();
+
+    cy.get('.ant-modal')
+      .find('[data-test="name-input"]')
+      .last()
+      .click()
+      .type('Region Name');
+
+    cy.get('.ant-modal').find('[data-test="datasource-input"]').last().click();
+
+    cy.get('[data-test="datasource-input"]')
+      .last()
+      .contains('wb_health_population')
+      .click();
+
+    // hack for unclickable country_name
+    cy.get('.ant-modal')
+      .find('[data-test="field-input"]')
+      .last()
+      .type('region');
+    cy.get('.ant-modal')
+      .find('[data-test="field-input"]')
+      .last()
+      .type('{downarrow}{downarrow}{downarrow}{downarrow}{enter}');
+
+    cy.get('[data-test="apply-changes-instantly-checkbox"]').last().check();
+    cy.get('.ant-modal')
+      .find('[data-test="parent-filter-input"]')
+      .last()
+      .type('{downarrow}{enter}');
+
+    cy.get('.ant-modal-footer')
+    .find('[data-test="native-filter-modal-save-button"]')
+    .first()
+      .should('be.visible')
+      .click();
+    cy.get('[data-test="filter-icon"]').should('be.visible');
+  });
+  it('should parent filter be working', () => {
+    cy.get('.treemap').within(() => {
+      cy.contains('SMR').should('be.visible');
+      cy.contains('Europe & Central Asia').should('be.visible');
+      cy.contains('South Asia').should('be.visible');
+    });
+
+    cy.get('[data-test="form-item-value"]').should('be.visible').click();
+    cy.get('.ant-popover-inner-content').within(() => {
+      cy.get('[data-test="form-item-value"]')
+        .should('be.visible')
+        .first()
+        .type('San Marino{enter}');
+      cy.get('[data-test="form-item-value"]')
+        .should('be.visible')
+        .last()
+        .type('Europe & Central Asia{enter}');
+    });
+    cy.get('.treemap').within(() => {
+      cy.contains('SMR').should('be.visible');
+      cy.contains('Europe & Central Asia').should('be.visible');
+      cy.contains('South Asia').should('not.exist');
+    });
   });
 });

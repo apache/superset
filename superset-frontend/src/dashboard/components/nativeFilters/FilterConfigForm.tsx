@@ -270,6 +270,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         initialValue={parentFilterOptions.find(
           ({ value }) => value === filterToEdit?.cascadeParentIds[0],
         )}
+        data-test="parent-filter-input"
       >
         <Select
           placeholder={t('None')}
@@ -283,7 +284,9 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         valuePropName="checked"
         colon={false}
       >
-        <Checkbox>{t('Apply changes instantly')}</Checkbox>
+        <Checkbox data-test="apply-changes-instantly-checkbox">
+          {t('Apply changes instantly')}
+        </Checkbox>
       </StyledCheckboxFormItem>
       <StyledCheckboxFormItem
         name={['filters', filterId, 'allowsMultipleValues']}
