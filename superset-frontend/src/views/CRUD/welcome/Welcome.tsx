@@ -30,8 +30,6 @@ import ChartTable from './ChartTable';
 import SavedQueries from './SavedQueries';
 import DashboardTable from './DashboardTable';
 
-const { Panel } = Collapse;
-
 interface WelcomeProps {
   user: User;
   addDangerToast: (arg0: string) => void;
@@ -81,17 +79,6 @@ const WelcomeContainer = styled.div`
   .ant-card.ant-card-bordered {
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
-  .ant-collapse-header {
-    font-weight: ${({ theme }) => theme.typography.weights.normal};
-    font-size: ${({ theme }) => theme.gridUnit * 4}px;
-  }
-  .ant-collapse-content-box {
-    min-height: 265px;
-    .loading.inline {
-      margin: ${({ theme }) => theme.gridUnit * 12}px auto;
-      display: block;
-    }
-  }
 `;
 
 function Welcome({ user, addDangerToast }: WelcomeProps) {
@@ -134,8 +121,8 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
 
   return (
     <WelcomeContainer>
-      <Collapse defaultActiveKey={['1', '2', '3', '4']} ghost>
-        <Panel header={t('Recents')} key="1">
+      <Collapse defaultActiveKey={['1', '2', '3', '4']} ghost bigger>
+        <Collapse.Panel header={t('Recents')} key="1">
           <ActivityTable
             user={user}
             activeChild={activeChild}
@@ -143,8 +130,8 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
             loading={loading}
             activityData={activityData}
           />
-        </Panel>
-        <Panel header={t('Dashboards')} key="2">
+        </Collapse.Panel>
+        <Collapse.Panel header={t('Dashboards')} key="2">
           {loading ? (
             <Loading position="inline" />
           ) : (
@@ -154,21 +141,21 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
               isLoading={loading}
             />
           )}
-        </Panel>
-        <Panel header={t('Saved Queries')} key="3">
+        </Collapse.Panel>
+        <Collapse.Panel header={t('Saved Queries')} key="3">
           {loading ? (
             <Loading position="inline" />
           ) : (
             <SavedQueries user={user} mine={activityData.myQuery} />
           )}
-        </Panel>
-        <Panel header={t('Charts')} key="4">
+        </Collapse.Panel>
+        <Collapse.Panel header={t('Charts')} key="4">
           {loading ? (
             <Loading position="inline" />
           ) : (
             <ChartTable user={user} mine={activityData.myChart} />
           )}
-        </Panel>
+        </Collapse.Panel>
       </Collapse>
     </WelcomeContainer>
   );

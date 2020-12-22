@@ -38,7 +38,7 @@ from sqlalchemy.exc import (
 from superset import event_logger
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import remove_root
-from superset.constants import RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.commands.create import CreateDatabaseCommand
 from superset.databases.commands.delete import DeleteDatabaseCommand
 from superset.databases.commands.exceptions import (
@@ -92,8 +92,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "test_connection",
         "related_objects",
     }
-    class_permission_name = "DatabaseView"
     resource_name = "database"
+    class_permission_name = "Database"
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     allow_browser_login = True
     base_filters = [["id", DatabaseFilter, lambda: []]]
     show_columns = [
@@ -744,11 +745,19 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         ---
         post:
           requestBody:
+            required: true
             content:
-              application/zip:
+              multipart/form-data:
                 schema:
-                  type: string
-                  format: binary
+                  type: object
+                  properties:
+                    formData:
+                      type: string
+                      format: binary
+                    passwords:
+                      type: string
+                    overwrite:
+                      type: bool
           responses:
             200:
               description: Database import result
@@ -782,8 +791,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             if "passwords" in request.form
             else None
         )
+        overwrite = request.form.get("overwrite") == "true"
 
-        command = ImportDatabasesCommand(contents, passwords=passwords)
+        command = ImportDatabasesCommand(
+            contents, passwords=passwords, overwrite=overwrite
+        )
         try:
             command.run()
             return self.response(200, message="OK")

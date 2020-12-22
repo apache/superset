@@ -30,11 +30,16 @@ describe('SaveDatasetModal', () => {
     userDatasetsOwned: [],
     handleSaveDatasetRadioBtnState: () => {},
     saveDatasetRadioBtnState: 1,
-    shouldOverwriteDataset: false,
     handleOverwriteCancel: () => {},
     handleOverwriteDataset: () => {},
     handleOverwriteDatasetOption: () => {},
     defaultCreateDatasetValue: 'someDatasets',
+    shouldOverwriteDataset: false,
+    userDatasetOptions: [],
+    disableSaveAndExploreBtn: false,
+    handleSaveDatasetModalSearch: () => {},
+    filterAutocompleteOption: () => false,
+    onChangeAutoComplete: () => {},
   };
   it('renders a radio group btn', () => {
     const wrapper = shallow(<SaveDatasetModal {...mockedProps} />);

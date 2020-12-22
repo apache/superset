@@ -21,7 +21,9 @@ import { hot } from 'react-hot-loader/root';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
+import { DynamicPluginProvider } from '../components/DynamicPlugins';
 import AddSliceContainer from './AddSliceContainer';
+import { initFeatureFlags } from '../featureFlags';
 
 setupApp();
 setupPlugins();
@@ -31,9 +33,13 @@ const bootstrapData = JSON.parse(
   addSliceContainer?.getAttribute('data-bootstrap') || '{}',
 );
 
+initFeatureFlags(bootstrapData.common.feature_flags);
+
 const App = () => (
   <ThemeProvider theme={supersetTheme}>
-    <AddSliceContainer datasources={bootstrapData.datasources} />
+    <DynamicPluginProvider>
+      <AddSliceContainer datasources={bootstrapData.datasources} />
+    </DynamicPluginProvider>
   </ThemeProvider>
 );
 

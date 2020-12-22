@@ -34,6 +34,7 @@ export interface DropdownItemProps {
 }
 
 export interface ButtonProps {
+  id?: string;
   className?: string;
   tooltip?: string;
   placement?:

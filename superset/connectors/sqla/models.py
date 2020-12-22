@@ -18,7 +18,7 @@ import json
 import logging
 from collections import defaultdict, OrderedDict
 from contextlib import closing
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field  # pylint: disable=wrong-import-order
 from datetime import datetime, timedelta
 from typing import Any, Dict, Hashable, List, NamedTuple, Optional, Tuple, Union
 
@@ -45,7 +45,6 @@ from sqlalchemy import (
     Table,
     Text,
 )
-from sqlalchemy.exc import CompileError
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
@@ -58,6 +57,7 @@ from superset.constants import NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
+from superset.extensions import event_logger
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -666,7 +666,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         col["type"] = db_engine_spec.column_datatype_to_string(
                             col["type"], db_dialect
                         )
-                except CompileError:
+                # Broad exception catch, because there are multiple possible exceptions
+                # from different drivers that fall outside CompileError
+                except Exception:  # pylint: disable=broad-except
                     col["type"] = "UNKNOWN"
         return cols
 
@@ -686,6 +688,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         )
 
     @property
+    def health_check_message(self) -> Optional[str]:
+        return self.extra_dict.get("health_check", {}).get("message")
+
+    @property
     def data(self) -> Dict[str, Any]:
         data_ = super().data
         if self.type == "table":
@@ -698,6 +704,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             data_["fetch_values_predicate"] = self.fetch_values_predicate
             data_["template_params"] = self.template_params
             data_["is_sqllab_view"] = self.is_sqllab_view
+            data_["health_check_message"] = self.health_check_message
         return data_
 
     @property
@@ -1466,6 +1473,26 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             sqla_query = self.get_sqla_query(**query_obj)
             extra_cache_keys += sqla_query.extra_cache_keys
         return extra_cache_keys
+
+    def health_check(self, commit: bool = False, force: bool = False) -> None:
+        check = config.get("DATASET_HEALTH_CHECK")
+        if check is None:
+            return
+
+        extra = self.extra_dict
+        # force re-run health check, or health check is updated
+        if force or extra.get("health_check", {}).get("version") != check.version:
+            with event_logger.log_context(action="dataset_health_check"):
+                message = check(self)
+                extra["health_check"] = {
+                    "version": check.version,
+                    "message": message,
+                }
+                self.extra = json.dumps(extra)
+
+                db.session.merge(self)
+                if commit:
+                    db.session.commit()
 
 
 sa.event.listen(SqlaTable, "after_insert", security_manager.set_perm)

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { t, styled } from '@superset-ui/core';
 import { Nav, Navbar, NavItem } from 'react-bootstrap';
 import NavDropdown from 'src/components/NavDropdown';
@@ -99,12 +99,10 @@ const StyledHeader = styled.header`
     padding-left: 12px;
   }
 
-  .navbar-nav > li > a {
+  .navbar-inverse .navbar-nav > li > a {
     color: ${({ theme }) => theme.colors.grayscale.dark1};
     border-bottom: none;
-    &:focus {
-      border-bottom: none;
-    }
+    transition: background-color ${({ theme }) => theme.transitionTiming}s;
     &:after {
       content: '';
       position: absolute;
@@ -115,19 +113,22 @@ const StyledHeader = styled.header`
       opacity: 0;
       transform: translateX(-50%);
       transition: all ${({ theme }) => theme.transitionTiming}s;
+      background-color: ${({ theme }) => theme.colors.primary.base};
     }
-
+    &:focus {
+      border-bottom: none;
+      background-color: transparent;
+      /* background-color: ${({ theme }) => theme.colors.primary.light5}; */
+    }
     &:hover {
       color: ${({ theme }) => theme.colors.grayscale.dark1};
+      background-color: ${({ theme }) => theme.colors.primary.light5};
       border-bottom: none;
+      margin: 0;
       &:after {
         opacity: 1;
         width: 100%;
       }
-    }
-    &:hover,
-    &:focus {
-      margin: 0;
     }
   }
 
@@ -153,6 +154,8 @@ const StyledHeader = styled.header`
 export function Menu({
   data: { menu, brand, navbar_right: navbarRight, settings },
 }: MenuProps) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
   return (
     <StyledHeader className="top" id="main-menu">
       <Navbar inverse fluid staticTop role="navigation">
@@ -172,7 +175,13 @@ export function Menu({
         <Nav className="navbar-right">
           {!navbarRight.user_is_anonymous && <NewMenu />}
           {settings && settings.length > 0 && (
-            <NavDropdown id="settings-dropdown" title={t('Settings')}>
+            <NavDropdown
+              id="settings-dropdown"
+              title={t('Settings')}
+              onMouseEnter={() => setDropdownOpen(true)}
+              onMouseLeave={() => setDropdownOpen(false)}
+              open={dropdownOpen}
+            >
               <DropdownMenu>
                 {settings.map((section, index) => [
                   <DropdownMenu.ItemGroup

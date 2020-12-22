@@ -112,18 +112,4 @@ describe('AdhocFilters', () => {
       chartSelector: 'svg',
     });
   });
-
-  it('Click save without making any changes', () => {
-    cy.get('[data-test=adhoc_filters]').within(() => {
-      cy.get('.Select__control').scrollIntoView().click();
-      cy.get('input[type=text]').focus().type('name{enter}');
-    });
-
-    cy.get('[data-test=filter-edit-popover]').should('be.visible');
-    cy.get('[data-test="adhoc-filter-edit-popover-save-button"]').click();
-
-    cy.wait(1000);
-
-    cy.get('[data-test=filter-edit-popover]').should('not.be.visible');
-  });
 });

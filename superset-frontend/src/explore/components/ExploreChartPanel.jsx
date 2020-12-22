@@ -84,25 +84,6 @@ const Styles = styled.div`
   }
 
   .ant-collapse {
-    height: 100%;
-    background-color: ${({ theme }) => theme.colors.grayscale.light5};
-    .ant-collapse-item {
-      height: 100%;
-      border: 0;
-    }
-    .ant-collapse-content,
-    .ant-collapse-content-box {
-      height: 100%;
-    }
-    .ant-collapse-header {
-      background-color: ${({ theme }) => theme.colors.grayscale.light5};
-      padding-top: 0;
-      padding-bottom: 0;
-      font-weight: ${({ theme }) => theme.typography.weights.bold};
-      & > .ant-collapse-arrow {
-        top: 5px; // not a theme variable, override necessary after setting paddings to 0 to center arrow
-      }
-    }
     .ant-tabs {
       height: 100%;
       .ant-tabs-nav {
@@ -208,7 +189,7 @@ const ExploreChartPanel = props => {
               formData={props.form_data}
               onQuery={props.onQuery}
               owners={props?.slice?.owners}
-              queryResponse={chart.queryResponse}
+              queriesResponse={chart.queriesResponse}
               refreshOverlayVisible={props.refreshOverlayVisible}
               setControlValue={props.actions.setControlValue}
               timeout={props.timeout}
@@ -254,28 +235,34 @@ const ExploreChartPanel = props => {
     };
   };
 
+  const panelBody = <div className="panel-body">{renderChart()}</div>;
+
   return (
     <Styles className="panel panel-default chart-container">
       <div className="panel-heading" ref={panelHeadingRef}>
         {header}
       </div>
-      <Split
-        sizes={splitSizes}
-        minSize={MIN_SIZES}
-        direction="vertical"
-        gutterSize={gutterHeight}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        elementStyle={elementStyle}
-      >
-        <div className="panel-body">{renderChart()}</div>
-        <DataTablesPane
-          queryFormData={props.chart.latestQueryFormData}
-          tableSectionHeight={tableSectionHeight}
-          onCollapseChange={onCollapseChange}
-          displayBackground={displaySouthPaneBackground}
-        />
-      </Split>
+      {props.vizType === 'filter_box' ? (
+        panelBody
+      ) : (
+        <Split
+          sizes={splitSizes}
+          minSize={MIN_SIZES}
+          direction="vertical"
+          gutterSize={gutterHeight}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          elementStyle={elementStyle}
+        >
+          {panelBody}
+          <DataTablesPane
+            queryFormData={props.chart.latestQueryFormData}
+            tableSectionHeight={tableSectionHeight}
+            onCollapseChange={onCollapseChange}
+            displayBackground={displaySouthPaneBackground}
+          />
+        </Split>
+      )}
     </Styles>
   );
 };

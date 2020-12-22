@@ -21,7 +21,6 @@ These objects represent the backend of all the visualizations that
 Superset can render.
 """
 import copy
-import dataclasses
 import inspect
 import logging
 import math
@@ -38,6 +37,7 @@ from typing import (
     Optional,
     Set,
     Tuple,
+    Type,
     TYPE_CHECKING,
     Union,
 )
@@ -57,6 +57,7 @@ from superset import app, db, is_feature_enabled
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    CacheLoadError,
     NullValueException,
     QueryObjectValidationError,
     SpatialException,
@@ -66,6 +67,7 @@ from superset.models.cache import CacheKey
 from superset.models.helpers import QueryResult
 from superset.typing import QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils
+from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
     DTTM_ALIAS,
     JS_MAX_INTEGER,
@@ -75,6 +77,9 @@ from superset.utils.core import (
 )
 from superset.utils.dates import datetime_to_epoch
 from superset.utils.hashing import md5_sha_from_str
+
+import dataclasses  # isort:skip
+
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -97,37 +102,6 @@ METRIC_KEYS = [
 ]
 
 
-def set_and_log_cache(
-    cache_key: str,
-    df: pd.DataFrame,
-    query: str,
-    cached_dttm: str,
-    cache_timeout: int,
-    datasource_uid: Optional[str],
-    annotation_data: Optional[Dict[str, Any]] = None,
-) -> None:
-    try:
-        cache_value = dict(
-            dttm=cached_dttm, df=df, query=query, annotation_data=annotation_data or {}
-        )
-        stats_logger.incr("set_cache_key")
-        cache_manager.data_cache.set(cache_key, cache_value, timeout=cache_timeout)
-
-        if datasource_uid:
-            ck = CacheKey(
-                cache_key=cache_key,
-                cache_timeout=cache_timeout,
-                datasource_uid=datasource_uid,
-            )
-            db.session.add(ck)
-    except Exception as ex:
-        # cache.set call can fail if the backend is down or if
-        # the key is too large or whatever other reasons
-        logger.warning("Could not cache key {}".format(cache_key))
-        logger.exception(ex)
-        cache_manager.data_cache.delete(cache_key)
-
-
 class BaseViz:
 
     """All visualizations derive this base class"""
@@ -144,6 +118,7 @@ class BaseViz:
         datasource: "BaseDatasource",
         form_data: Dict[str, Any],
         force: bool = False,
+        force_cached: bool = False,
     ) -> None:
         if not datasource:
             raise QueryObjectValidationError(_("Viz is missing a datasource"))
@@ -164,6 +139,7 @@ class BaseViz:
         self.results: Optional[QueryResult] = None
         self.errors: List[Dict[str, Any]] = []
         self.force = force
+        self._force_cached = force_cached
         self.from_dttm: Optional[datetime] = None
         self.to_dttm: Optional[datetime] = None
 
@@ -179,6 +155,10 @@ class BaseViz:
 
         self.applied_filters: List[Dict[str, str]] = []
         self.rejected_filters: List[Dict[str, str]] = []
+
+    @property
+    def force_cached(self) -> bool:
+        return self._force_cached
 
     def process_metrics(self) -> None:
         # metrics in TableViz is order sensitive, so metric_dict should be
@@ -268,11 +248,12 @@ class BaseViz:
             {
                 "groupby": [],
                 "metrics": [],
+                "orderby": [],
                 "row_limit": config["SAMPLES_ROW_LIMIT"],
                 "columns": [o.column_name for o in self.datasource.columns],
             }
         )
-        df = self.get_df(query_obj)
+        df = self.get_df_payload(query_obj)["df"]  # leverage caching logic
         return df.to_dict(orient="records")
 
     def get_df(self, query_obj: Optional[QueryObjectDict] = None) -> pd.DataFrame:
@@ -518,7 +499,6 @@ class BaseViz:
         is_loaded = False
         stacktrace = None
         df = None
-        cached_dttm = datetime.utcnow().isoformat().split(".")[0]
         if cache_key and cache_manager.data_cache and not self.force:
             cache_value = cache_manager.data_cache.get(cache_key)
             if cache_value:
@@ -539,6 +519,11 @@ class BaseViz:
                 logger.info("Serving from cache")
 
         if query_obj and not is_loaded:
+            if self.force_cached:
+                logger.warning(
+                    f"force_cached (viz.py): value not found for cache key {cache_key}"
+                )
+                raise CacheLoadError(_("Cached value not found"))
             try:
                 invalid_columns = [
                     col
@@ -590,12 +575,11 @@ class BaseViz:
 
             if is_loaded and cache_key and self.status != utils.QueryStatus.FAILED:
                 set_and_log_cache(
-                    cache_key=cache_key,
-                    df=df,
-                    query=self.query,
-                    cached_dttm=cached_dttm,
-                    cache_timeout=self.cache_timeout,
-                    datasource_uid=self.datasource.uid,
+                    cache_manager.data_cache,
+                    cache_key,
+                    {"df": df, "query": self.query},
+                    self.cache_timeout,
+                    self.datasource.uid,
                 )
         return {
             "cache_key": self._any_cache_key,
@@ -618,13 +602,15 @@ class BaseViz:
             obj, default=utils.json_int_dttm_ser, ignore_nan=True, sort_keys=sort_keys
         )
 
-    def payload_json_and_has_error(self, payload: VizPayload) -> Tuple[str, bool]:
-        has_error = (
+    def has_error(self, payload: VizPayload) -> bool:
+        return (
             payload.get("status") == utils.QueryStatus.FAILED
             or payload.get("error") is not None
             or bool(payload.get("errors"))
         )
-        return self.json_dumps(payload), has_error
+
+    def payload_json_and_has_error(self, payload: VizPayload) -> Tuple[str, bool]:
+        return self.json_dumps(payload), self.has_error(payload)
 
     @property
     def data(self) -> Dict[str, Any]:
@@ -638,7 +624,7 @@ class BaseViz:
         return content
 
     def get_csv(self) -> Optional[str]:
-        df = self.get_df()
+        df = self.get_df_payload()["df"]  # leverage caching logic
         include_index = not isinstance(df.index, pd.RangeIndex)
         return df.to_csv(index=include_index, **config["CSV_EXPORT"])
 
@@ -1721,7 +1707,7 @@ class SunburstViz(BaseViz):
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
             return None
-        fd = self.form_data
+        fd = copy.deepcopy(self.form_data)
         cols = fd.get("groupby") or []
         cols.extend(["m1", "m2"])
         metric = utils.get_metric_name(fd["metric"])
@@ -2983,12 +2969,14 @@ class PartitionViz(NVD3TimeSeriesViz):
         return self.nest_values(levels)
 
 
+def get_subclasses(cls: Type[BaseViz]) -> Set[Type[BaseViz]]:
+    return set(cls.__subclasses__()).union(
+        [sc for c in cls.__subclasses__() for sc in get_subclasses(c)]
+    )
+
+
 viz_types = {
     o.viz_type: o
-    for o in globals().values()
-    if (
-        inspect.isclass(o)
-        and issubclass(o, BaseViz)
-        and o.viz_type not in config["VIZ_TYPE_DENYLIST"]
-    )
+    for o in get_subclasses(BaseViz)
+    if o.viz_type not in config["VIZ_TYPE_DENYLIST"]
 }

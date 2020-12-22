@@ -34,13 +34,13 @@ from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.utils.core import get_example_database, get_main_database
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.certificates import ssl_certificate
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.importexport import (
     database_config,
     dataset_config,
     database_metadata_config,
     dataset_metadata_config,
 )
-
 from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_position
 from tests.test_app import app
 
@@ -90,6 +90,22 @@ class TestDatabaseApi(SupersetTestCase):
             db.session.delete(report_schedule)
             db.session.delete(database)
             db.session.commit()
+
+    def create_database_import(self):
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(database_config).encode())
+            with bundle.open(
+                "database_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(dataset_config).encode())
+        buf.seek(0)
+        return buf
 
     def test_get_items(self):
         """
@@ -546,6 +562,20 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertTrue(len(response["columns"]) > 5)
         self.assertTrue(response.get("selectStar").startswith("SELECT"))
 
+    def test_info_security_database(self):
+        """
+        Database API: Test info security
+        """
+        self.login(username="admin")
+        params = {"keys": ["permissions"]}
+        uri = f"api/v1/database/_info?q={prison.dumps(params)}"
+        rv = self.get_assert_metric(uri, "info")
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert "can_read" in data["permissions"]
+        assert "can_write" in data["permissions"]
+        assert len(data["permissions"]) == 2
+
     def test_get_invalid_database_table_metadata(self):
         """
         Database API: Test get invalid database from table metadata
@@ -800,7 +830,9 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.assertEqual(response, expected_response)
 
-    @pytest.mark.usefixtures("load_unicode_dashboard_with_position")
+    @pytest.mark.usefixtures(
+        "load_unicode_dashboard_with_position", "load_energy_table_with_slice"
+    )
     def test_get_database_related_objects(self):
         """
         Database API: Test get chart and dashboard count related to a database
@@ -856,7 +888,9 @@ class TestDatabaseApi(SupersetTestCase):
         argument = [database.id]
         uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
         rv = self.client.get(uri)
-        assert rv.status_code == 401
+        # export only requires can_read now, but gamma need to have explicit access to
+        # view the database
+        assert rv.status_code == 404
 
     def test_export_database_non_existing(self):
         """
@@ -879,20 +913,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         uri = "api/v1/database/import/"
 
-        buf = BytesIO()
-        with ZipFile(buf, "w") as bundle:
-            with bundle.open("database_export/metadata.yaml", "w") as fp:
-                fp.write(yaml.safe_dump(database_metadata_config).encode())
-            with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(database_config).encode())
-            with bundle.open(
-                "database_export/datasets/imported_dataset.yaml", "w"
-            ) as fp:
-                fp.write(yaml.safe_dump(dataset_config).encode())
-        buf.seek(0)
-
+        buf = self.create_database_import()
         form_data = {
             "formData": (buf, "database_export.zip"),
         }
@@ -912,6 +933,59 @@ class TestDatabaseApi(SupersetTestCase):
         assert dataset.table_name == "imported_dataset"
         assert str(dataset.uuid) == dataset_config["uuid"]
 
+        db.session.delete(dataset)
+        db.session.delete(database)
+        db.session.commit()
+
+    def test_import_database_overwrite(self):
+        """
+        Database API: Test import existing database
+        """
+        self.login(username="admin")
+        uri = "api/v1/database/import/"
+
+        buf = self.create_database_import()
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        # import again without overwrite flag
+        buf = self.create_database_import()
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert response == {
+            "message": {
+                "databases/imported_database.yaml": "Database already exists and `overwrite=true` was not passed"
+            }
+        }
+
+        # import with overwrite flag
+        buf = self.create_database_import()
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+            "overwrite": "true",
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        # clean up
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        dataset = database.tables[0]
         db.session.delete(dataset)
         db.session.delete(database)
         db.session.commit()

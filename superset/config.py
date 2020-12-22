@@ -305,6 +305,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Experimental feature introducing a client (browser) cache
     "CLIENT_CACHE": False,
     "DISABLE_DATASET_SOURCE_EDIT": False,
+    "DYNAMIC_PLUGINS": False,
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "ENABLE_TEMPLATE_PROCESSING": False,
     "KV_STORE": False,
@@ -327,6 +328,8 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DISPLAY_MARKDOWN_HTML": True,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
+    "DASHBOARD_NATIVE_FILTERS": False,
+    "GLOBAL_ASYNC_QUERIES": False,
     "VERSIONED_EXPORT": False,
     # Note that: RowLevelSecurityFilter is only given by default to the Admin role
     # and the Admin Role does have the all_datasources security permission.
@@ -338,7 +341,6 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ROW_LEVEL_SECURITY": False,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
-    "SIP_34_ALERTS_UI": False,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.
@@ -405,6 +407,9 @@ CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 
 # Cache for datasource metadata and query results
 DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
+
+# store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
+STORE_CACHE_KEYS_IN_METADATA_DB = False
 
 # CORS Options
 ENABLE_CORS = False
@@ -605,6 +610,37 @@ SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
 # query costs before they run. These EXPLAIN queries should have a small
 # timeout.
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = 10  # seconds
+# The feature is off by default, and currently only supported in Presto and Postgres.
+# It also need to be enabled on a per-database basis, by adding the key/value pair
+# `cost_estimate_enabled: true` to the database `extra` attribute.
+ESTIMATE_QUERY_COST = False
+# The cost returned by the databases is a relative value; in order to map the cost to
+# a tangible value you need to define a custom formatter that takes into consideration
+# your specific infrastructure. For example, you could analyze queries a posteriori by
+# running EXPLAIN on them, and compute a histogram of relative costs to present the
+# cost as a percentile:
+#
+# def postgres_query_cost_formatter(
+#     result: List[Dict[str, Any]]
+# ) -> List[Dict[str, str]]:
+#     # 25, 50, 75% percentiles
+#     percentile_costs = [100.0, 1000.0, 10000.0]
+#
+#     out = []
+#     for row in result:
+#         relative_cost = row["Total cost"]
+#         percentile = bisect.bisect_left(percentile_costs, relative_cost) + 1
+#         out.append({
+#             "Relative cost": relative_cost,
+#             "Percentile": str(percentile * 25) + "%",
+#         })
+#
+#     return out
+#
+# DEFAULT_FEATURE_FLAGS = {
+#     "ESTIMATE_QUERY_COST": True,
+#     "QUERY_COST_FORMATTERS_BY_ENGINE": {"postgresql": postgres_query_cost_formatter},
+# }
 
 # Flag that controls if limit should be enforced on the CTA (create table as queries).
 SQLLAB_CTAS_NO_LIMIT = False
@@ -799,6 +835,10 @@ ENABLE_SCHEDULED_EMAIL_REPORTS = False
 # if it meets the criteria
 ENABLE_ALERTS = False
 
+# Used for Alerts/Reports (Feature flask ALERT_REPORTS) to set the size for the
+# sliding cron window size, should be synced with the celery beat config minus 1 second
+ALERT_REPORTS_CRON_WINDOW_SIZE = 59
+
 # Slack API token for the superset reports
 SLACK_API_TOKEN = None
 SLACK_PROXY = None
@@ -965,6 +1005,23 @@ SIP_15_TOAST_MESSAGE = (
 # conventions and such. You can find examples in the tests.
 SQLA_TABLE_MUTATOR = lambda table: table
 
+# Global async query config options.
+# Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
+GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
+    "port": 6379,
+    "host": "127.0.0.1",
+    "password": "",
+    "db": 0,
+}
+GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX = "async-events-"
+GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT = 1000
+GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE = 1000000
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
+GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"
+GLOBAL_ASYNC_QUERIES_TRANSPORT = "polling"
+GLOBAL_ASYNC_QUERIES_POLLING_DELAY = 500
+
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful
     # for case where app is being executed via pex.
@@ -991,3 +1048,8 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise
+
+
+# It's possible to add a dataset health check logic which is specific to your system.
+# It will get executed each time when user open a chart's explore view.
+DATASET_HEALTH_CHECK = None

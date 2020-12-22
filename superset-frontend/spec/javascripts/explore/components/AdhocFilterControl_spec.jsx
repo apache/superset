@@ -20,13 +20,14 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
+import { supersetTheme } from '@superset-ui/core';
 
-import Select from 'src/components/Select';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
 } from 'src/explore/AdhocFilter';
 import AdhocFilterControl from 'src/explore/components/controls/AdhocFilterControl';
+import { LabelsContainer } from 'src/explore/components/OptionControls';
 import AdhocMetric from 'src/explore/AdhocMetric';
 import { AGGREGATES, OPERATORS } from 'src/explore/constants';
 
@@ -66,22 +67,23 @@ function setup(overrides) {
     columns,
     savedMetrics: [savedMetric],
     formData,
+    theme: supersetTheme,
     ...overrides,
   };
   const wrapper = shallow(<AdhocFilterControl {...props} />);
-  return { wrapper, onChange };
+  const component = wrapper.dive().shallow();
+  return { wrapper, component, onChange };
 }
 
 describe('AdhocFilterControl', () => {
-  it('renders Select', () => {
-    const { wrapper } = setup();
-    expect(wrapper.find(Select)).toExist();
+  it('renders LabelsContainer', () => {
+    const { component } = setup();
+    expect(component.find(LabelsContainer)).toExist();
   });
 
   it('handles saved metrics being selected to filter on', () => {
-    const { wrapper, onChange } = setup({ value: [] });
-    const select = wrapper.find(Select);
-    select.simulate('change', [{ saved_metric_name: 'sum__value' }]);
+    const { component, onChange } = setup({ value: [] });
+    component.instance().onNewFilter({ saved_metric_name: 'sum__value' });
 
     const adhocFilter = onChange.lastCall.args[0][0];
     expect(adhocFilter instanceof AdhocFilter).toBe(true);
@@ -99,9 +101,8 @@ describe('AdhocFilterControl', () => {
   });
 
   it('handles adhoc metrics being selected to filter on', () => {
-    const { wrapper, onChange } = setup({ value: [] });
-    const select = wrapper.find(Select);
-    select.simulate('change', [sumValueAdhocMetric]);
+    const { component, onChange } = setup({ value: [] });
+    component.instance().onNewFilter(sumValueAdhocMetric);
 
     const adhocFilter = onChange.lastCall.args[0][0];
     expect(adhocFilter instanceof AdhocFilter).toBe(true);
@@ -118,30 +119,9 @@ describe('AdhocFilterControl', () => {
     ).toBe(true);
   });
 
-  it('handles columns being selected to filter on', () => {
-    const { wrapper, onChange } = setup({ value: [] });
-    const select = wrapper.find(Select);
-    select.simulate('change', [columns[0]]);
-
-    const adhocFilter = onChange.lastCall.args[0][0];
-    expect(adhocFilter instanceof AdhocFilter).toBe(true);
-    expect(
-      adhocFilter.equals(
-        new AdhocFilter({
-          expressionType: EXPRESSION_TYPES.SIMPLE,
-          subject: columns[0].column_name,
-          operator: OPERATORS['=='],
-          comparator: '',
-          clause: CLAUSES.WHERE,
-        }),
-      ),
-    ).toBe(true);
-  });
-
   it('persists existing filters even when new filters are added', () => {
-    const { wrapper, onChange } = setup();
-    const select = wrapper.find(Select);
-    select.simulate('change', [simpleAdhocFilter, columns[0]]);
+    const { component, onChange } = setup();
+    component.instance().onNewFilter(columns[0]);
 
     const existingAdhocFilter = onChange.lastCall.args[0][0];
     expect(existingAdhocFilter instanceof AdhocFilter).toBe(true);

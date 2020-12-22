@@ -19,6 +19,7 @@ import textwrap
 import unittest
 
 import pandas
+import pytest
 from sqlalchemy.engine.url import make_url
 
 import tests.test_app
@@ -28,6 +29,7 @@ from superset.models.slice import Slice
 from superset.utils.core import get_example_database, QueryStatus
 
 from .base_tests import SupersetTestCase
+from .fixtures.energy_dashboard import load_energy_table_with_slice
 
 
 class TestDatabaseModel(SupersetTestCase):
@@ -107,6 +109,7 @@ class TestDatabaseModel(SupersetTestCase):
         user_name = make_url(model.get_sqla_engine(user_name=example_user).url).username
         self.assertNotEqual(example_user, user_name)
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_select_star(self):
         db = get_example_database()
         table_name = "energy_usage"

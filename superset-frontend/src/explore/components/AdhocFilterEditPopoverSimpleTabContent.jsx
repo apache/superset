@@ -19,8 +19,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
-import { Select } from 'src/components/Select';
-import { t, SupersetClient } from '@superset-ui/core';
+import { Select } from 'src/common/components/Select';
+import { Input } from 'src/common/components';
+import { t, SupersetClient, styled } from '@superset-ui/core';
 
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
 import adhocMetricType from '../propTypes/adhocMetricType';
@@ -36,7 +37,15 @@ import {
   DISABLE_INPUT_OPERATORS,
 } from '../constants';
 import FilterDefinitionOption from './FilterDefinitionOption';
-import SelectControl from './controls/SelectControl';
+
+const SelectWithLabel = styled(Select)`
+  .ant-select-selector::after {
+    content: '${({ labelText }) => labelText || '\\A0'}';
+    display: inline-block;
+    white-space: nowrap;
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+  }
+`;
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
@@ -66,7 +75,7 @@ function translateOperator(operator) {
     return 'not equal to';
   }
   if (operator === OPERATORS.LIKE) {
-    return 'like';
+    return 'LIKE';
   }
   if (operator === OPERATORS['LATEST PARTITION']) {
     return 'use latest_partition template';
@@ -92,17 +101,8 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     };
 
     this.selectProps = {
-      isMulti: false,
       name: 'select-column',
-      labelKey: 'label',
-      autosize: false,
-      clearable: false,
-    };
-
-    this.menuPortalProps = {
-      menuPortalTarget: props.popoverRef,
-      menuPosition: 'fixed',
-      menuPlacement: 'bottom',
+      showSearch: true,
     };
   }
 
@@ -116,7 +116,11 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     }
   }
 
-  onSubjectChange(option) {
+  onSubjectChange(id) {
+    const option = this.props.options.find(
+      option => option.id === id || option.optionName === id,
+    );
+
     let subject;
     let clause;
     // infer the new clause based on what subject was selected.
@@ -241,33 +245,45 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     );
   }
 
-  focusComparator(ref) {
-    if (ref) {
+  focusComparator(ref, shouldFocus) {
+    if (ref && shouldFocus) {
       ref.focus();
     }
+  }
+
+  optionsRemaining() {
+    const { suggestions } = this.state;
+    const { comparator } = this.props.adhocFilter;
+    // if select is multi/value is array, we show the options not selected
+    const valuesFromSuggestionsLength = Array.isArray(comparator)
+      ? comparator.filter(v => suggestions.includes(v)).length
+      : 0;
+    return suggestions?.length - valuesFromSuggestionsLength ?? 0;
+  }
+
+  createSuggestionsPlaceholder() {
+    const optionsRemaining = this.optionsRemaining();
+    const placeholder = t('%s option(s)', optionsRemaining);
+    return optionsRemaining ? placeholder : '';
   }
 
   renderSubjectOptionLabel(option) {
     return <FilterDefinitionOption option={option} />;
   }
 
-  renderSubjectOptionValue({ value }) {
-    return <span>{value}</span>;
-  }
-
   render() {
-    const { adhocFilter, options: columns, datasource } = this.props;
+    const { adhocFilter, options, datasource } = this.props;
+    let columns = options;
     const { subject, operator, comparator } = adhocFilter;
     const subjectSelectProps = {
-      options: columns,
-      value: subject ? { value: subject } : undefined,
+      value: subject ?? undefined,
       onChange: this.onSubjectChange,
-      optionRenderer: this.renderSubjectOptionLabel,
-      valueRenderer: this.renderSubjectOptionValue,
-      valueKey: 'filterOptionName',
-      noResultsText: t(
+      notFoundContent: t(
         'No such column found. To filter on a metric, try the Custom SQL tab.',
       ),
+      filterOption: (input, option) =>
+        option.filterBy.toLowerCase().indexOf(input.toLowerCase()) >= 0,
+      autoFocus: !subject,
     };
 
     if (datasource.type === 'druid') {
@@ -283,19 +299,34 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         adhocFilter.clause === CLAUSES.WHERE
           ? t('%s column(s)', columns.length)
           : t('To filter on a metric, use Custom SQL tab.');
-      // make sure options have `column_name`
-      subjectSelectProps.options = columns.filter(option => option.column_name);
+      columns = options.filter(option => option.column_name);
     }
 
     const operatorSelectProps = {
       placeholder: t('%s operators(s)', OPERATORS_OPTIONS.length),
       // like AGGREGTES_OPTIONS, operator options are string
-      options: OPERATORS_OPTIONS.filter(op =>
-        this.isOperatorRelevant(op, subject),
-      ),
       value: operator,
       onChange: this.onOperatorChange,
-      getOptionLabel: translateOperator,
+      filterOption: (input, option) =>
+        option.value.toLowerCase().indexOf(input.toLowerCase()) >= 0,
+      autoFocus: !!subjectSelectProps.value && !operator,
+    };
+
+    const focusComparator =
+      !!subjectSelectProps.value && !!operatorSelectProps.value;
+    const comparatorSelectProps = {
+      allowClear: true,
+      showSearch: true,
+      mode: MULTI_OPERATORS.has(operator) && 'tags',
+      tokenSeparators: [',', ' ', ';'],
+      loading: this.state.loading,
+      value: comparator,
+      onChange: this.onComparatorChange,
+      notFoundContent: t('type a value here'),
+      disabled: DISABLE_INPUT_OPERATORS.includes(operator),
+      placeholder: this.createSuggestionsPlaceholder(),
+      labelText: comparator?.length > 0 && this.createSuggestionsPlaceholder(),
+      autoFocus: focusComparator,
     };
 
     return (
@@ -303,44 +334,53 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         <FormGroup className="adhoc-filter-simple-column-dropdown">
           <Select
             {...this.selectProps}
-            {...this.menuPortalProps}
             {...subjectSelectProps}
             name="filter-column"
-          />
+          >
+            {columns.map(column => (
+              <Select.Option
+                value={column.id || column.optionName}
+                filterBy={
+                  column.saved_metric_name || column.column_name || column.label
+                }
+                key={column.id}
+              >
+                {this.renderSubjectOptionLabel(column)}
+              </Select.Option>
+            ))}
+          </Select>
         </FormGroup>
         <FormGroup>
           <Select
             {...this.selectProps}
-            {...this.menuPortalProps}
             {...operatorSelectProps}
             name="filter-operator"
-          />
+          >
+            {OPERATORS_OPTIONS.filter(op =>
+              this.isOperatorRelevant(op, subject),
+            ).map(option => (
+              <Select.Option value={option} key={option}>
+                {translateOperator(option)}
+              </Select.Option>
+            ))}
+          </Select>
         </FormGroup>
         <FormGroup data-test="adhoc-filter-simple-value">
           {MULTI_OPERATORS.has(operator) ||
           this.state.suggestions.length > 0 ? (
-            <SelectControl
-              {...this.menuPortalProps}
-              name="filter-value"
-              autoFocus
-              freeForm
-              multi={MULTI_OPERATORS.has(operator)}
-              value={comparator}
-              isLoading={this.state.loading}
-              choices={this.state.suggestions}
-              onChange={this.onComparatorChange}
-              showHeader={false}
-              noResultsText={t('type a value here')}
-              disabled={DISABLE_INPUT_OPERATORS.includes(operator)}
-            />
+            <SelectWithLabel name="filter-value" {...comparatorSelectProps}>
+              {this.state.suggestions.map(suggestion => (
+                <Select.Option value={suggestion} key={suggestion}>
+                  {suggestion}
+                </Select.Option>
+              ))}
+            </SelectWithLabel>
           ) : (
-            <input
+            <Input
               name="filter-value"
-              ref={this.focusComparator}
-              type="text"
+              ref={ref => this.focusComparator(ref, focusComparator)}
               onChange={this.onInputComparatorChange}
               value={comparator}
-              className="form-control input-sm"
               placeholder={t('Filter value (case sensitive)')}
               disabled={DISABLE_INPUT_OPERATORS.includes(operator)}
             />

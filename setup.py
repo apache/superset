@@ -72,6 +72,7 @@ setup(
         "colorama",
         "contextlib2",
         "croniter>=0.3.28",
+        "cron-descriptor",
         "cryptography>=3.2.1",
         "flask>=1.1.0, <2.0.0",
         "flask-appbuilder>=3.1.1, <4.0.0",
@@ -96,6 +97,7 @@ setup(
         "python-geohash",
         "pyarrow>=1.0.1, <1.1",
         "pyyaml>=5.1",
+        "redis",
         "retry>=0.9.2",
         "selenium>=3.141.0",
         "simplejson>=3.15.0",
@@ -104,6 +106,8 @@ setup(
         "sqlalchemy-utils>=0.36.6,<0.37",
         "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
         "wtforms-json",
+        "pyparsing>=2.4.7, <3.0.0",
+        "holidays==0.10.3",  # PINNED! https://github.com/dr-prodigy/python-holidays/issues/406
     ],
     extras_require={
         "athena": ["pyathena>=1.10.8,<1.11"],

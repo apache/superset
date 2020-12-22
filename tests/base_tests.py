@@ -324,6 +324,7 @@ class SupersetTestCase(TestCase):
         tmp_table_name=None,
         schema=None,
         ctas_method=CtasMethod.TABLE,
+        template_params="{}",
     ):
         if user_name:
             self.logout()
@@ -336,6 +337,7 @@ class SupersetTestCase(TestCase):
             "queryLimit": query_limit,
             "sql_editor_id": sql_editor_id,
             "ctas_method": ctas_method,
+            "templateParams": template_params,
         }
         if tmp_table_name:
             json_payload["tmp_table_name"] = tmp_table_name

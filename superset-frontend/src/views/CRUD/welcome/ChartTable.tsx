@@ -24,6 +24,7 @@ import {
   useFavoriteStatus,
 } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import { useHistory } from 'react-router-dom';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
 import Icon from 'src/components/Icon';
@@ -50,6 +51,7 @@ function ChartTable({
   addSuccessToast,
   mine,
 }: ChartTableProps) {
+  const history = useHistory();
   const {
     state: { resourceCollection: charts, bulkSelectEnabled },
     setResourceCollection: setCharts,
@@ -148,14 +150,18 @@ function ChartTable({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.href = '/chart/add';
+              history.push('/chart/add');
             },
           },
           {
             name: 'View All »',
             buttonStyle: 'link',
             onClick: () => {
-              window.location.href = '/chart/list';
+              const target =
+                chartFilter === 'Favorite'
+                  ? '/chart/list/?filters=(favorite:!t)'
+                  : '/chart/list/';
+              history.push(target);
             },
           },
         ]}

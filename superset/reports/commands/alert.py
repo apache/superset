@@ -26,9 +26,11 @@ from superset import jinja_context
 from superset.commands.base import BaseCommand
 from superset.models.reports import ReportSchedule, ReportScheduleValidatorType
 from superset.reports.commands.exceptions import (
+    AlertQueryError,
     AlertQueryInvalidTypeError,
     AlertQueryMultipleColumnsError,
     AlertQueryMultipleRowsError,
+    AlertValidatorConfigError,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,17 +48,24 @@ class AlertCommand(BaseCommand):
         self.validate()
 
         if self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL:
-            self._report_schedule.last_value_row_json = self._result
+            self._report_schedule.last_value_row_json = str(self._result)
             return self._result not in (0, None, np.nan)
         self._report_schedule.last_value = self._result
-        operator = json.loads(self._report_schedule.validator_config_json)["op"]
-        threshold = json.loads(self._report_schedule.validator_config_json)["threshold"]
-        return OPERATOR_FUNCTIONS[operator](self._result, threshold)
+        try:
+            operator = json.loads(self._report_schedule.validator_config_json)["op"]
+            threshold = json.loads(self._report_schedule.validator_config_json)[
+                "threshold"
+            ]
+            return OPERATOR_FUNCTIONS[operator](self._result, threshold)
+        except (KeyError, json.JSONDecodeError):
+            raise AlertValidatorConfigError()
 
     def _validate_not_null(self, rows: np.recarray) -> None:
+        self._validate_result(rows)
         self._result = rows[0][1]
 
-    def _validate_operator(self, rows: np.recarray) -> None:
+    @staticmethod
+    def _validate_result(rows: np.recarray) -> None:
         # check if query return more then one row
         if len(rows) > 1:
             raise AlertQueryMultipleRowsError(
@@ -68,11 +77,15 @@ class AlertCommand(BaseCommand):
         # check if query returned more then one column
         if len(rows[0]) > 2:
             raise AlertQueryMultipleColumnsError(
+                # len is subtracted by 1 to discard pandas index column
                 _(
                     "Alert query returned more then one column. %s columns returned"
-                    % len(rows[0])
+                    % (len(rows[0]) - 1)
                 )
             )
+
+    def _validate_operator(self, rows: np.recarray) -> None:
+        self._validate_result(rows)
         if rows[0][1] is None:
             return
         try:
@@ -90,7 +103,10 @@ class AlertCommand(BaseCommand):
             database=self._report_schedule.database
         )
         rendered_sql = sql_template.process_template(self._report_schedule.sql)
-        df = self._report_schedule.database.get_df(rendered_sql)
+        try:
+            df = self._report_schedule.database.get_df(rendered_sql)
+        except Exception as ex:
+            raise AlertQueryError(message=str(ex))
 
         if df.empty:
             return

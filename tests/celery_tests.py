@@ -18,13 +18,13 @@
 """Unit tests for Superset Celery worker"""
 import datetime
 import json
-import string
 import random
+import string
+import time
+import unittest.mock as mock
 from typing import Optional
 
 import pytest
-import time
-import unittest.mock as mock
 
 import flask
 from flask import current_app
@@ -35,6 +35,7 @@ from tests.test_app import app
 from superset import db, sql_lab
 from superset.result_set import SupersetResultSet
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.errors import ErrorLevel, SupersetErrorType
 from superset.extensions import celery_app
 from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
@@ -144,7 +145,19 @@ def test_run_sync_query_dont_exist(setup_sqllab, ctas_method):
     if backend() == "sqlite" and ctas_method == CtasMethod.VIEW:
         assert QueryStatus.SUCCESS == result["status"], result
     else:
-        assert QueryStatus.FAILED == result["status"], result
+        assert (
+            result["errors"][0]["error_type"]
+            == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
+        )
+        assert result["errors"][0]["level"] == ErrorLevel.ERROR
+        assert result["errors"][0]["extra"] == {
+            "issue_codes": [
+                {
+                    "code": 1002,
+                    "message": "Issue 1002 - The database returned an unexpected error.",
+                }
+            ]
+        }
 
 
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])

@@ -24,10 +24,10 @@ from unittest import mock
 
 import prison
 
-import tests.test_app
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs import BaseEngineSpec
+from superset.errors import ErrorLevel, SupersetErrorType
 from superset.models.sql_lab import Query, SavedQuery
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import CtasMethod
@@ -69,7 +69,18 @@ class TestSqlLab(SupersetTestCase):
         self.assertLess(0, len(data["data"]))
 
         data = self.run_sql("SELECT * FROM unexistant_table", "2")
-        self.assertLess(0, len(data["error"]))
+        assert (
+            data["errors"][0]["error_type"] == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
+        )
+        assert data["errors"][0]["level"] == ErrorLevel.ERROR
+        assert data["errors"][0]["extra"] == {
+            "issue_codes": [
+                {
+                    "code": 1002,
+                    "message": "Issue 1002 - The database returned an unexpected error.",
+                }
+            ]
+        }
 
     def test_sql_json_to_saved_query_info(self):
         """
@@ -552,7 +563,6 @@ class TestSqlLab(SupersetTestCase):
 
         url = "/api/v1/query/"
         data = self.get_json_resp(url)
-        admin = security_manager.find_user("admin")
         self.assertEqual(3, len(data["result"]))
 
     def test_api_database(self):
@@ -576,3 +586,35 @@ class TestSqlLab(SupersetTestCase):
             {r.get("database_name") for r in self.get_json_resp(url)["result"]},
         )
         self.delete_fake_db()
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"ENABLE_TEMPLATE_PROCESSING": True},
+        clear=True,
+    )
+    def test_sql_json_parameter_error(self):
+        self.login("admin")
+
+        data = self.run_sql(
+            "SELECT * FROM birth_names WHERE state = '{{ state }}' LIMIT 10",
+            "1",
+            template_params=json.dumps({"state": "CA"}),
+        )
+        assert data["status"] == "success"
+
+        data = self.run_sql(
+            "SELECT * FROM birth_names WHERE state = '{{ stat }}' LIMIT 10",
+            "2",
+            template_params=json.dumps({"state": "CA"}),
+        )
+        assert data["errors"][0]["error_type"] == "MISSING_TEMPLATE_PARAMS_ERROR"
+        assert data["errors"][0]["extra"] == {
+            "issue_codes": [
+                {
+                    "code": 1006,
+                    "message": "Issue 1006 - One or more parameters specified in the query are missing.",
+                }
+            ],
+            "template_parameters": {"state": "CA"},
+            "undefined_parameters": ["stat"],
+        }

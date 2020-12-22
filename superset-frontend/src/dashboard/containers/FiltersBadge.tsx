@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { connect, Dispatch } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux';
+import { bindActionCreators, Dispatch } from 'redux';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import {
   selectIndicatorsForChart,
@@ -29,14 +29,13 @@ export interface FiltersBadgeProps {
   chartId: number;
 }
 
-const mapDispatchToProps = (dispatch: Dispatch<any>) => {
-  return bindActionCreators(
+const mapDispatchToProps = (dispatch: Dispatch) =>
+  bindActionCreators(
     {
       onHighlightFilterSource: setDirectPathToChild,
     },
     dispatch,
   );
-};
 
 const mapStateToProps = (
   { datasources, dashboardFilters, charts }: any,

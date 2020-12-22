@@ -28,9 +28,9 @@ import AdhocMetricEditPopover from 'src/explore/components/AdhocMetricEditPopove
 import { AGGREGATES } from 'src/explore/constants';
 
 const columns = [
-  { type: 'VARCHAR(255)', column_name: 'source' },
-  { type: 'VARCHAR(255)', column_name: 'target' },
-  { type: 'DOUBLE', column_name: 'value' },
+  { type: 'VARCHAR(255)', column_name: 'source', id: 1 },
+  { type: 'VARCHAR(255)', column_name: 'target', id: 2 },
+  { type: 'DOUBLE', column_name: 'value', id: 3 },
 ];
 
 const sumValueAdhocMetric = new AdhocMetric({
@@ -49,6 +49,8 @@ function setup(overrides) {
   const onClose = sinon.spy();
   const props = {
     adhocMetric: sumValueAdhocMetric,
+    savedMetric: {},
+    savedMetrics: [],
     onChange,
     onClose,
     onResize: () => {},
@@ -62,13 +64,13 @@ function setup(overrides) {
 describe('AdhocMetricEditPopover', () => {
   it('renders a popover with edit metric form contents', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(FormGroup)).toHaveLength(3);
+    expect(wrapper.find(FormGroup)).toHaveLength(4);
     expect(wrapper.find(Button)).toHaveLength(2);
   });
 
   it('overwrites the adhocMetric in state with onColumnChange', () => {
     const { wrapper } = setup();
-    wrapper.instance().onColumnChange(columns[0]);
+    wrapper.instance().onColumnChange(columns[0].id);
     expect(wrapper.state('adhocMetric')).toEqual(
       sumValueAdhocMetric.duplicateWith({ column: columns[0] }),
     );
@@ -95,7 +97,7 @@ describe('AdhocMetricEditPopover', () => {
     expect(wrapper.find(Button).find({ disabled: true })).not.toExist();
     wrapper.instance().onColumnChange(null);
     expect(wrapper.find(Button).find({ disabled: true })).toExist();
-    wrapper.instance().onColumnChange({ column: columns[0] });
+    wrapper.instance().onColumnChange(columns[0].id);
     expect(wrapper.find(Button).find({ disabled: true })).not.toExist();
     wrapper.instance().onAggregateChange(null);
     expect(wrapper.find(Button).find({ disabled: true })).toExist();
@@ -104,7 +106,7 @@ describe('AdhocMetricEditPopover', () => {
   it('highlights save if changes are present', () => {
     const { wrapper } = setup();
     expect(wrapper.find(Button).find({ buttonStyle: 'primary' })).not.toExist();
-    wrapper.instance().onColumnChange({ column: columns[1] });
+    wrapper.instance().onColumnChange(columns[1].id);
     expect(wrapper.find(Button).find({ buttonStyle: 'primary' })).toExist();
   });
 

@@ -77,9 +77,7 @@ describe('SavedQueries', () => {
     mine: mockqueries,
   };
 
-  const wrapper = mount(<SavedQueries {...savedQueryProps} />, {
-    context: { store },
-  });
+  const wrapper = mount(<SavedQueries store={store} {...savedQueryProps} />);
 
   const clickTab = (idx: number) => {
     act(() => {
@@ -98,7 +96,7 @@ describe('SavedQueries', () => {
     expect(wrapper.find(SavedQueries)).toExist();
   });
 
-  it('fetches queries favorites and renders listviewcard cards', async () => {
+  it('fetches queries mine and renders listviewcard cards', async () => {
     clickTab(0);
     await waitForComponentToPaint(wrapper);
     expect(fetchMock.calls(/saved_query\/\?q/)).toHaveLength(1);
@@ -107,9 +105,9 @@ describe('SavedQueries', () => {
 
   it('it renders a submenu with clickable tables and buttons', async () => {
     expect(wrapper.find(SubMenu)).toExist();
-    expect(wrapper.find('li')).toHaveLength(2);
+    expect(wrapper.find('li')).toHaveLength(1);
     expect(wrapper.find('button')).toHaveLength(2);
-    clickTab(1);
+    clickTab(0);
     await waitForComponentToPaint(wrapper);
     expect(fetchMock.calls(/saved_query\/\?q/)).toHaveLength(2);
   });

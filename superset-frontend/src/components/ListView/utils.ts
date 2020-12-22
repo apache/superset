@@ -80,10 +80,11 @@ type QueryFilterState = {
 };
 
 function mergeCreateFilterValues(list: Filter[], updateObj: QueryFilterState) {
-  return list.map(({ id, operator }) => {
-    const update = updateObj[id];
+  return list.map(({ id, urlDisplay, operator }) => {
+    const currentFilterId = urlDisplay || id;
+    const update = updateObj[currentFilterId];
 
-    return { id, operator, value: update };
+    return { id, urlDisplay, operator, value: update };
   });
 }
 
@@ -143,10 +144,12 @@ export function convertFiltersRison(
 
   // Add operators from filter list
   list.forEach(value => {
-    const filter = refs[value.id];
+    const currentFilterId = value.urlDisplay || value.id;
+    const filter = refs[currentFilterId];
 
     if (filter) {
       filter.operator = value.operator;
+      filter.id = value.id;
     }
   });
 
@@ -294,7 +297,8 @@ export function useListViewState({
         filter.value !== undefined &&
         (typeof filter.value !== 'string' || filter.value.length > 0)
       ) {
-        filterObj[filter.id] = filter.value;
+        const currentFilterId = filter.urlDisplay || filter.id;
+        filterObj[currentFilterId] = filter.value;
       }
     });
 
@@ -318,6 +322,7 @@ export function useListViewState({
         : 'replace';
 
     setQuery(queryParams, method);
+
     fetchData({ pageIndex, pageSize, sortBy, filters });
   }, [fetchData, pageIndex, pageSize, sortBy, filters, viewMode]);
 
@@ -333,12 +338,14 @@ export function useListViewState({
       if (currentInternalFilters[index].value === value) {
         return currentInternalFilters;
       }
+
       const update = { ...currentInternalFilters[index], value };
       const updatedFilters = updateInList(
         currentInternalFilters,
         index,
         update,
       );
+
       setAllFilters(convertFilters(updatedFilters));
       gotoPage(0); // clear pagination on filter
       return updatedFilters;

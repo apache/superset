@@ -48,7 +48,7 @@ interface StyledModalProps extends SupersetThemeProps {
   responsive?: boolean;
 }
 
-const StyledModal = styled(BaseModal)<StyledModalProps>`
+export const StyledModal = styled(BaseModal)<StyledModalProps>`
   ${({ theme, responsive, maxWidth }) =>
     responsive &&
     css`
@@ -61,6 +61,8 @@ const StyledModal = styled(BaseModal)<StyledModalProps>`
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
     border-radius: ${({ theme }) => theme.borderRadius}px
       ${({ theme }) => theme.borderRadius}px 0 0;
+    padding-left: ${({ theme }) => theme.gridUnit * 4}px;
+    padding-right: ${({ theme }) => theme.gridUnit * 4}px;
 
     .ant-modal-title h4 {
       display: flex;
@@ -84,6 +86,7 @@ const StyledModal = styled(BaseModal)<StyledModalProps>`
 
   .ant-modal-body {
     padding: ${({ theme }) => theme.gridUnit * 4}px;
+    overflow: auto;
   }
 
   .ant-modal-footer {
@@ -102,8 +105,14 @@ const StyledModal = styled(BaseModal)<StyledModalProps>`
   }
 
   // styling for Tabs component
-  .ant-tabs {
+  // Aaron note 20-11-19: this seems to be exclusively here for the Edit Database modal.
+  // TODO: remove this as it is a special case.
+  .ant-tabs-top {
     margin-top: -${({ theme }) => theme.gridUnit * 4}px;
+  }
+
+  &.no-content-padding .ant-modal-body {
+    padding: 0;
   }
 `;
 
@@ -170,6 +179,9 @@ const CustomModal = ({
 };
 CustomModal.displayName = 'Modal';
 
+// TODO: in another PR, rename this to CompatabilityModal
+// and demote it as the default export.
+// We should start using AntD component interfaces going forward.
 const Modal = Object.assign(CustomModal, {
   error: BaseModal.error,
   warning: BaseModal.warning,

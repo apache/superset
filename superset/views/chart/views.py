@@ -16,13 +16,14 @@
 # under the License.
 import json
 
+from flask import g
 from flask_appbuilder import expose, has_access
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 
 from superset import db, is_feature_enabled
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.constants import RouteMethod
+from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.slice import Slice
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
@@ -33,6 +34,7 @@ from superset.views.base import (
     SupersetModelView,
 )
 from superset.views.chart.mixin import SliceMixin
+from superset.views.utils import bootstrap_user_data
 
 
 class SliceModelView(
@@ -45,6 +47,8 @@ class SliceModelView(
         RouteMethod.API_READ,
         RouteMethod.API_DELETE,
     }
+    class_permission_name = "Chart"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 
     def pre_add(self, item: "SliceModelView") -> None:
         utils.validate_json(item.params)
@@ -66,6 +70,7 @@ class SliceModelView(
         payload = {
             "datasources": sorted(datasources, key=lambda d: d["label"]),
             "common": common_bootstrap_payload(),
+            "user": bootstrap_user_data(g.user),
         }
         return self.render_template(
             "superset/add_slice.html", bootstrap_data=json.dumps(payload)
