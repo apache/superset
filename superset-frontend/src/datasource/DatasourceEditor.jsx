@@ -790,12 +790,12 @@ class DatasourceEditor extends React.PureComponent {
         </Fieldset>
         {this.allowEditSource && (
           <EditLockContainer>
-            <a href="#" onClick={this.onChangeEditMode}>
+            <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
               <Icon
                 color={supersetTheme.colors.grayscale.base}
                 name={this.state.isEditMode ? 'lock-unlocked' : 'lock-locked'}
               />
-            </a>
+            </span>
             {!this.state.isEditMode && (
               <div>{t('Click the lock to make changes.')}</div>
             )}
