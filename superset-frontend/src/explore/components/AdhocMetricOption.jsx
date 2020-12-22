@@ -23,6 +23,7 @@ import columnType from '../propTypes/columnType';
 import savedMetricType from '../propTypes/savedMetricType';
 import { DraggableOptionControlLabel } from './OptionControls';
 import AdhocMetricPopoverTrigger from './AdhocMetricPopoverTrigger';
+import { OPTION_TYPES } from './optionTypes';
 
 const propTypes = {
   adhocMetric: PropTypes.instanceOf(AdhocMetric),
@@ -76,6 +77,7 @@ class AdhocMetricOption extends React.PureComponent {
           onMoveLabel={onMoveLabel}
           onDropLabel={onDropLabel}
           index={index}
+          type={OPTION_TYPES.metric}
           isAdhoc
           isFunction
         />

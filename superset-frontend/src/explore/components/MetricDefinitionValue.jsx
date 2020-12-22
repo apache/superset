@@ -24,6 +24,7 @@ import columnType from '../propTypes/columnType';
 import savedMetricType from '../propTypes/savedMetricType';
 import adhocMetricType from '../propTypes/adhocMetricType';
 import { DraggableOptionControlLabel } from './OptionControls';
+import { OPTION_TYPES } from './optionTypes';
 
 const propTypes = {
   option: PropTypes.oneOfType([savedMetricType, adhocMetricType]).isRequired,
@@ -85,6 +86,7 @@ export default function MetricDefinitionValue({
         onRemove={onRemoveMetric}
         onMoveLabel={onMoveLabel}
         onDropLabel={onDropLabel}
+        type={OPTION_TYPES.metric}
         index={index}
         isFunction
       />

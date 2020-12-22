@@ -20,9 +20,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { t, withTheme } from '@superset-ui/core';
 import { isEqual } from 'lodash';
-import { DragDropContext } from 'react-dnd';
-import HTML5Backend from 'react-dnd-html5-backend';
-
 import ControlHeader from '../ControlHeader';
 import MetricDefinitionOption from '../MetricDefinitionOption';
 import MetricDefinitionValue from '../MetricDefinitionValue';
@@ -43,6 +40,7 @@ import {
   HeaderContainer,
   LabelsContainer,
 } from '../OptionControls';
+import DndWithHTML5Backend from '../../DndContextProvider';
 
 const propTypes = {
   name: PropTypes.string.isRequired,
@@ -394,4 +392,4 @@ class MetricsControl extends React.PureComponent {
 MetricsControl.propTypes = propTypes;
 MetricsControl.defaultProps = defaultProps;
 
-export default DragDropContext(HTML5Backend)(withTheme(MetricsControl));
+export default DndWithHTML5Backend(withTheme(MetricsControl));

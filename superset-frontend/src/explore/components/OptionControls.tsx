@@ -123,27 +123,24 @@ export const AddIconButton = styled.button`
 `;
 
 const labelSource = {
-  beginDrag({ index }: { index: number }) {
+  beginDrag({ index, type }: { index: number; type: string }) {
     return {
       index,
+      type,
     };
   },
 };
 
 const labelTarget = {
   hover(props: Record<string, any>, monitor: any, component: any) {
-    const dragIndex = monitor.getItem().index;
-    const hoverIndex = props.index;
+    const { index: dragIndex, type: dragType } = monitor.getItem();
+    const { index: hoverIndex, type: hoverType } = props;
 
     // Don't replace items with themselves
-    if (dragIndex === hoverIndex) {
+    // Don't allow to drag items between filters and metrics boxes
+    if (dragIndex === hoverIndex || dragType !== hoverType) {
       return;
     }
-
-    // console.log(
-    //   component.decoratedComponentInstance,
-    //   component.getDecoratedComponentInstance(),
-    // );
 
     // Determine rectangle on screen
     const hoverBoundingRect = findDOMNode(component)?.getBoundingClientRect();
