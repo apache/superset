@@ -10446,9 +10446,9 @@ domhandler@^2.3.0:
     domelementtype "1"
 
 dompurify@^2.0.6:
-  version "2.0.11"
-  resolved "https://registry.yarnpkg.com/dompurify/-/dompurify-2.0.11.tgz#cd47935774230c5e478b183a572e726300b3891d"
-  integrity sha512-qVoGPjIW9IqxRij7klDQQ2j6nSe4UNWANBhZNLnsS7ScTtLb+3YdxkRY8brNTpkUiTtcXsCJO+jS0UCDfenLuA==
+  version "2.0.17"
+  resolved "https://registry.yarnpkg.com/dompurify/-/dompurify-2.0.17.tgz#505ffa126a580603df4007e034bdc9b6b738668e"
+  integrity sha512-nNwwJfW55r8akD8MSFz6k75bzyT2y6JEa1O3JrZFBf+Y5R9JXXU4OsRl0B9hKoPgHTw2b7ER5yJ5Md97MMUJPg==
 
 domutils@1.5.1:
   version "1.5.1"
