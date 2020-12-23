@@ -26,14 +26,14 @@ import { NativeFiltersForm } from 'src/dashboard/components/nativeFilters/types'
 import { defaultScopeValue } from 'src/dashboard/components/nativeFilters/FilterScope';
 
 describe('ScopingTree', () => {
-  const filterId = '1'
+  const filterId = '1';
   const form = {
     getFieldValue: () => ({
       [filterId]: {
-        scope: defaultScopeValue
-      }
-    })
-  }
+        scope: defaultScopeValue,
+      },
+    }),
+  };
   const wrapper = mount(
     <Provider store={mockStore}>
       <ScopingTree

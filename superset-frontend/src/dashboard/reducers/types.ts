@@ -27,7 +27,7 @@ export enum Scoping {
 /** Chart state of redux */
 export type Chart = {
   id: number;
-  slice_id: 2107;
+  slice_id: string;
   formData: {
     viz_type: string;
   };
