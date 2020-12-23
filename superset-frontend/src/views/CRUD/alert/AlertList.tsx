@@ -183,10 +183,6 @@ function AlertList({
     }
   };
 
-  useEffect(() => {
-    refreshData();
-  }, [isReportEnabled]);
-
   const columns = useMemo(
     () => [
       {
