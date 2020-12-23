@@ -31,6 +31,7 @@ import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import { areObjectsEqual } from 'src/reduxUtils';
+import Loading from 'src/components/Loading';
 import FilterConfigurationLink from './FilterConfigurationLink';
 // import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 
@@ -182,6 +183,12 @@ const StyledCaretIcon = styled(Icon)`
   margin-top: ${({ theme }) => -theme.gridUnit}px;
 `;
 
+const StyledLoadingBox = styled.div`
+  position: relative;
+  height: ${({ theme }) => theme.gridUnit * 8}px;
+  margin-bottom: ${({ theme }) => theme.gridUnit * 6}px;
+`;
+
 interface FilterProps {
   filter: Filter;
   icon?: React.ReactElement;
@@ -206,6 +213,7 @@ const FilterValue: React.FC<FilterProps> = ({
     defaultValue,
   } = filter;
   const cascadingFilters = useCascadingFilters(id);
+  const [loading, setLoading] = useState<boolean>(true);
   const [state, setState] = useState({ data: undefined });
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
   const [target] = targets;
@@ -241,12 +249,21 @@ const FilterValue: React.FC<FilterProps> = ({
         requestParams: { dashboardId: 0 },
       }).then(response => {
         setState({ data: response.result[0].data });
+        setLoading(false);
       });
     }
   }, [cascadingFilters]);
 
   const setExtraFormData = (extraFormData: ExtraFormData) =>
     onExtraFormDataChange(filter, extraFormData);
+
+  if (loading) {
+    return (
+      <StyledLoadingBox>
+        <Loading />
+      </StyledLoadingBox>
+    );
+  }
 
   return (
     <Form
@@ -309,7 +326,7 @@ export const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
 
       <StyledCascadeChildrenList>
         {filter.cascadeChildren?.map(childFilter => (
-          <li>
+          <li key={childFilter.id}>
             <CascadeFilterControl
               filter={childFilter}
               onExtraFormDataChange={onExtraFormDataChange}
