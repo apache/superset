@@ -31,6 +31,7 @@ import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import { areObjectsEqual } from 'src/reduxUtils';
+import Loading from 'src/components/Loading';
 import FilterConfigurationLink from './FilterConfigurationLink';
 // import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 
@@ -61,8 +62,7 @@ const Bar = styled.div`
   width: ${barWidth}; // arbitrary...
   background: ${({ theme }) => theme.colors.grayscale.light5};
   border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  height: 100%;
-  max-height: 100%;
+  min-height: 100%;
   display: none;
   /* &.animated {
     display: flex;
@@ -183,6 +183,12 @@ const StyledCaretIcon = styled(Icon)`
   margin-top: ${({ theme }) => -theme.gridUnit}px;
 `;
 
+const StyledLoadingBox = styled.div`
+  position: relative;
+  height: ${({ theme }) => theme.gridUnit * 8}px;
+  margin-bottom: ${({ theme }) => theme.gridUnit * 6}px;
+`;
+
 interface FilterProps {
   filter: Filter;
   icon?: React.ReactElement;
@@ -207,6 +213,7 @@ const FilterValue: React.FC<FilterProps> = ({
     defaultValue,
   } = filter;
   const cascadingFilters = useCascadingFilters(id);
+  const [loading, setLoading] = useState<boolean>(true);
   const [state, setState] = useState([]);
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
   const [target] = targets;
@@ -242,12 +249,21 @@ const FilterValue: React.FC<FilterProps> = ({
         requestParams: { dashboardId: 0 },
       }).then(response => {
         setState(response.result);
+        setLoading(false);
       });
     }
   }, [cascadingFilters]);
 
   const setExtraFormData = (extraFormData: ExtraFormData) =>
     onExtraFormDataChange(filter, extraFormData);
+
+  if (loading) {
+    return (
+      <StyledLoadingBox>
+        <Loading />
+      </StyledLoadingBox>
+    );
+  }
 
   return (
     <Form
@@ -310,7 +326,7 @@ export const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
 
       <StyledCascadeChildrenList>
         {filter.cascadeChildren?.map(childFilter => (
-          <li>
+          <li key={childFilter.id}>
             <CascadeFilterControl
               filter={childFilter}
               onExtraFormDataChange={onExtraFormDataChange}
@@ -399,6 +415,16 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     });
   };
 
+  const handleResetAll = () => {
+    setFilterData({});
+    const filterIds = Object.keys(filterData);
+    filterIds.forEach(filterId => {
+      if (filterData[filterId]) {
+        setExtraFormData(filterId, {});
+      }
+    });
+  };
+
   return (
     <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>
       <CollapsedBar
@@ -423,7 +449,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           <Icon name="expand" onClick={() => toggleFiltersBar(false)} />
         </TitleArea>
         <ActionButtons>
-          <Button buttonStyle="secondary" buttonSize="sm">
+          <Button
+            buttonStyle="secondary"
+            buttonSize="sm"
+            onClick={handleResetAll}
+          >
             {t('Reset All')}
           </Button>
           <Button

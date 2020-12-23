@@ -1,0 +1,78 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Games
+viz_type: table
+params:
+  adhoc_filters: []
+  all_columns:
+  - Name
+  - Global_Sales
+  - Platform
+  - Genre
+  - Publisher
+  - Year
+  color_pn: false
+  datasource: 21__table
+  granularity_sqla: Year
+  groupby:
+  - Name
+  include_search: true
+  metrics:
+  - aggregate: SUM
+    column:
+      column_name: Global_Sales
+      description: null
+      expression: null
+      filterable: true
+      groupby: true
+      id: 887
+      is_dttm: false
+      optionName: _col_Global_Sales
+      python_date_format: null
+      type: DOUBLE PRECISION
+      verbose_name: null
+    expressionType: SIMPLE
+    hasCustomLabel: false
+    isNew: false
+    label: SUM(Global_Sales)
+    optionName: metric_pkpvgdsf70d_pnqv77v0x2p
+    sqlExpression: null
+  order_by_cols:
+  - '["Global_Sales", false]'
+  order_desc: true
+  page_length: '15'
+  percent_metrics: []
+  queryFields:
+    groupby: groupby
+    metrics: metrics
+  query_mode: raw
+  row_limit: null
+  show_cell_bars: false
+  slice_id: 1394
+  table_filter: false
+  table_timestamp_format: smart_date
+  time_grain_sqla: P1D
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  url_params: {}
+  viz_type: table
+cache_timeout: null
+uuid: 2a5e562b-ab37-1b9b-1de3-1be4335c8e83
+version: 1.0.0
+dataset_uuid: 53d47c0c-c03d-47f0-b9ac-81225f808283
