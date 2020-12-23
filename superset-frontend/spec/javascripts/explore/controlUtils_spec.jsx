@@ -21,9 +21,7 @@ import { getChartControlPanelRegistry, t } from '@superset-ui/core';
 import {
   getControlConfig,
   getControlState,
-  getFormDataFromControls,
   applyMapStateToPropsToControl,
-  getAllControlsState,
   findControlItem,
 } from 'src/explore/controlUtils';
 import {
@@ -195,18 +193,6 @@ describe('controlUtils', () => {
         undefined,
       );
       expect(control.validationErrors).toBeUndefined();
-    });
-  });
-
-  describe('queryFields', () => {
-    it('in formData', () => {
-      const controlsState = getAllControlsState('table', 'table', {}, {});
-      const formData = getFormDataFromControls(controlsState);
-      expect(formData.queryFields).toEqual({
-        all_columns: 'columns',
-        metric: 'metrics',
-        metrics: 'metrics',
-      });
     });
   });
 
