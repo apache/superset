@@ -28,6 +28,10 @@ import Split from 'react-split';
 import { t, styled, supersetTheme } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
+<<<<<<< HEAD
+=======
+import StyledModal from 'src/common/components/Modal';
+>>>>>>> 0e64ceb2ad710a2906a65a0e6dfe63fe93b76d57
 import Mousetrap from 'mousetrap';
 
 import { Tooltip } from 'src/common/components/Tooltip';
