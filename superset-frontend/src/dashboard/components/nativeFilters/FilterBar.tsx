@@ -40,7 +40,11 @@ import {
   useSetExtraFormData,
 } from './state';
 import { Filter, CascadeFilter } from './types';
-import { buildCascadeFiltersTree, mapParentFiltersToChildren } from './utils';
+import {
+  buildCascadeFiltersTree,
+  getFormData,
+  mapParentFiltersToChildren,
+} from './utils';
 import CascadePopover from './CascadePopover';
 
 const barWidth = `250px`;
@@ -213,27 +217,16 @@ const FilterValue: React.FC<FilterProps> = ({
   const { datasetId = 18, column } = target;
   const { name: groupby } = column;
 
-  const getFormData = (): Partial<QueryFormData> => ({
-    adhoc_filters: [],
-    datasource: `${datasetId}__table`,
-    extra_filters: [],
-    extra_form_data: cascadingFilters,
-    granularity_sqla: 'ds',
-    groupby: [groupby],
-    inverseSelection,
-    metrics: ['count'],
-    multiSelect: allowsMultipleValues,
-    row_limit: 10000,
-    showSearch: true,
-    time_range: 'No filter',
-    time_range_endpoints: ['inclusive', 'exclusive'],
-    url_params: {},
-    viz_type: 'filter_select',
-    defaultValues: currentValue || defaultValue || [],
-  });
-
   useEffect(() => {
-    const newFormData = getFormData();
+    const newFormData = getFormData({
+      datasetId,
+      cascadingFilters,
+      groupby,
+      allowsMultipleValues,
+      currentValue,
+      defaultValue,
+      inverseSelection,
+    });
     if (!areObjectsEqual(formData || {}, newFormData)) {
       setFormData(newFormData);
       getChartDataRequest({
@@ -241,7 +234,7 @@ const FilterValue: React.FC<FilterProps> = ({
         force: false,
         requestParams: { dashboardId: 0 },
       }).then(response => {
-        setState({ data: response.result[0].data });
+        setState(response.result);
       });
     }
   }, [cascadingFilters]);
@@ -259,8 +252,16 @@ const FilterValue: React.FC<FilterProps> = ({
         <SuperChart
           height={20}
           width={220}
-          formData={getFormData()}
-          queryData={state}
+          formData={getFormData({
+            datasetId,
+            cascadingFilters,
+            groupby,
+            allowsMultipleValues,
+            currentValue,
+            defaultValue,
+            inverseSelection,
+          })}
+          queriesData={[state]}
           chartType="filter_select"
           hooks={{ setExtraFormData }}
         />

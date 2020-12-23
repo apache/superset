@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ExtraFormData, QueryObject, t } from '@superset-ui/core';
+import {
+  ExtraFormData,
+  QueryFormData,
+  QueryObject,
+  t,
+} from '@superset-ui/core';
 import { Charts, Layout, LayoutItem } from 'src/dashboard/types';
 import {
   CHART_TYPE,
@@ -268,3 +273,34 @@ export const setFilterFieldValues = (
 
 export const isScopingAll = (scope: Scope) =>
   !scope || (scope.rootPath[0] === DASHBOARD_ROOT_ID && !scope.excluded.length);
+
+export const getFormData = ({
+  datasetId,
+  cascadingFilters = {},
+  groupby,
+  allowsMultipleValues = false,
+  currentValue,
+  defaultValue,
+  inverseSelection,
+}: Partial<Filter> & {
+  datasetId: number;
+  cascadingFilters: object;
+  groupby: string;
+}): Partial<QueryFormData> => ({
+  adhoc_filters: [],
+  datasource: `${datasetId}__table`,
+  extra_filters: [],
+  extra_form_data: cascadingFilters,
+  granularity_sqla: 'ds',
+  groupby: [groupby],
+  inverseSelection,
+  metrics: ['count'],
+  multiSelect: allowsMultipleValues,
+  row_limit: 10000,
+  showSearch: true,
+  time_range: 'No filter',
+  time_range_endpoints: ['inclusive', 'exclusive'],
+  url_params: {},
+  viz_type: 'filter_select',
+  defaultValues: currentValue || defaultValue || [],
+});

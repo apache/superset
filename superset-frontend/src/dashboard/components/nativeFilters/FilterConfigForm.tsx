@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t } from '@superset-ui/core';
+import { styled, SuperChart, t } from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
-import React, { useCallback, useState } from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
   Button,
   Checkbox,
@@ -35,7 +35,9 @@ import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ColumnSelect } from './ColumnSelect';
 import { Filter, FilterType, NativeFiltersForm } from './types';
 import FilterScope from './FilterScope';
-import { FilterTypeNames, setFilterFieldValues } from './utils';
+import {FilterTypeNames, getFormData, setFilterFieldValues, useForceUpdate} from './utils';
+import {areObjectsEqual} from "../../../reduxUtils";
+import {getChartDataRequest} from "../../../chart/chartAction";
 
 type DatasetSelectValue = {
   value: number;
@@ -87,10 +89,34 @@ export interface FilterConfigFormProps {
   parentFilters: { id: string; title: string }[];
 }
 
-// TODO: just place holder need update with real plugins
-const filterTypeElements = {
+const filterTypeElements = ({
+                              state,
+                              filterType,
+                              datasetId,
+                              groupby,
+                              allowsMultipleValues,
+                              currentValue,
+                              defaultValue,
+                              inverseSelection,
+                            }) => {
   [FilterType.filter_text]: Input,
-  [FilterType.filter_select]: Input,
+  [FilterType.filter_select]:
+    <SuperChart
+      height={20}
+      width={220}
+      formData={getFormData({
+        datasetId,
+        groupby,
+        allowsMultipleValues,
+        currentValue,
+        defaultValue,
+        inverseSelection,
+      })}
+      queriesData={[state]}
+      chartType={filterType}
+      hooks={{ setExtraFormData: () => console.log('Updated') }}
+    />
+  ,
   [FilterType.filter_range]: Input,
 };
 
@@ -116,6 +142,30 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   const [filterType, setFilterType] = useState<FilterType>(
     filterToEdit?.filterType || FilterType.filter_text,
   );
+  const formFilter = form.getFieldValue('filters')[filterId];
+
+  const [state, setState] = useState([]);
+  useEffect(() => {
+    const newFormData = getFormData({
+      datasetId,
+      cascadingFilters,
+      groupby,
+      allowsMultipleValues,
+      currentValue,
+      defaultValue,
+      inverseSelection,
+    });
+    if (!areObjectsEqual(formData || {}, newFormData)) {
+      setFormData(newFormData);
+      getChartDataRequest({
+        formData: newFormData,
+        force: false,
+        requestParams: { dashboardId: 0 },
+      }).then(response => {
+        setState(response.result);
+      });
+    }
+  }, [filterType]);
   const FilterTypeElement = filterTypeElements[filterType];
   const [dataset, setDataset] = useState<Value<number> | undefined>();
 
@@ -129,6 +179,8 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
     },
     [],
   );
+
+  const forceUpdate = useForceUpdate()
 
   if (removed) {
     return (
@@ -205,7 +257,6 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
             label: FilterTypeNames[filterType],
           }))}
           onChange={({ value }: { value: FilterType }) => {
-            setFilterType(value);
             setFilterFieldValues(form, filterId, {
               defaultValue: defaultValuesPerFilterType[value],
               filterType: value,
