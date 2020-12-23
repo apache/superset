@@ -50,6 +50,8 @@ import {
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,
+  height: PropTypes.string,
+  width: PropTypes.string,
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
   dashboardId: PropTypes.number,

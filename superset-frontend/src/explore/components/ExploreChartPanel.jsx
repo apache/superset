@@ -172,9 +172,8 @@ const ExploreChartPanel = props => {
 
     return (
       <ParentSize>
-        {({ width, height }) =>
-          width > 0 &&
-          height > 0 && (
+        {({ width }) =>
+          width > 0 && (
             <ChartContainer
               width={Math.floor(width)}
               height={chartSectionHeight}
