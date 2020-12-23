@@ -14,7 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# pylint: disable=too-many-branches
 
+import gzip
 import json
 import logging
 import re
@@ -109,6 +111,8 @@ def import_dataset(
     # load data
     if data_uri:
         data = request.urlopen(data_uri)
+        if data_uri.endswith(".gz"):
+            data = gzip.open(data)
         df = pd.read_csv(data, encoding="utf-8")
         dtype = get_dtype(df, dataset)
 
