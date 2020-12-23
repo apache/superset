@@ -86,7 +86,7 @@ describe('ChangeDatasourceModal', () => {
 
   it('renders confirmation message', async () => {
     act(() => {
-      wrapper.find('.datasource-link').at(0).props().onClick();
+      wrapper.find('[data-test="datasource-link"]').at(0).props().onClick();
     });
     await waitForComponentToPaint(wrapper);
 
@@ -95,7 +95,7 @@ describe('ChangeDatasourceModal', () => {
 
   it('changes the datasource', async () => {
     act(() => {
-      wrapper.find('.datasource-link').at(0).props().onClick();
+      wrapper.find('[data-test="datasource-link"]').at(0).props().onClick();
     });
     await waitForComponentToPaint(wrapper);
 
