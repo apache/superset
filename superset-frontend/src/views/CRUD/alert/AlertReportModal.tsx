@@ -554,6 +554,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     const data: any = {
       ...currentAlert,
+      type: isReport ? 'Report' : 'Alert',
       validator_type: conditionNotNull ? 'not null' : 'operator',
       validator_config_json: conditionNotNull
         ? {}
@@ -973,7 +974,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       owners: [],
       recipients: [],
       sql: '',
-      type: isReport ? 'Report' : 'Alert',
       validator_config_json: {},
       validator_type: '',
     });
