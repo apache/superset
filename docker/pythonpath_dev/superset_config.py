@@ -81,8 +81,6 @@ class CeleryConfig(object):
 CELERY_CONFIG = CeleryConfig
 SQLLAB_CTAS_NO_LIMIT = True
 
-
-
 #
 # Optionally import superset_config_docker.py (which will have been included on
 # the PYTHONPATH) in order to allow for local settings to be overridden
