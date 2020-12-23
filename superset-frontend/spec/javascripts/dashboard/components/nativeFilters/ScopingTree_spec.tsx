@@ -26,12 +26,20 @@ import { NativeFiltersForm } from 'src/dashboard/components/nativeFilters/types'
 import { defaultScopeValue } from 'src/dashboard/components/nativeFilters/FilterScope';
 
 describe('ScopingTree', () => {
+  const filterId = '1'
+  const form = {
+    getFieldValue: () => ({
+      [filterId]: {
+        scope: defaultScopeValue
+      }
+    })
+  }
   const wrapper = mount(
     <Provider store={mockStore}>
       <ScopingTree
-        filterId="1"
+        filterId={filterId}
         initialScope={defaultScopeValue}
-        form={({} as unknown) as FormInstance<NativeFiltersForm>}
+        form={(form as unknown) as FormInstance<NativeFiltersForm>}
       />
     </Provider>,
   );
@@ -39,9 +47,9 @@ describe('ScopingTree', () => {
     expect(
       React.isValidElement(
         <ScopingTree
-          filterId="1"
+          filterId={filterId}
           initialScope={defaultScopeValue}
-          form={({} as unknown) as FormInstance<NativeFiltersForm>}
+          form={(form as unknown) as FormInstance<NativeFiltersForm>}
         />,
       ),
     ).toBe(true);
