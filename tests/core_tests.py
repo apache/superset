@@ -848,11 +848,6 @@ class TestCore(SupersetTestCase):
     def test_explore_json(self):
         tbl_id = self.table_ids.get("birth_names")
         form_data = {
-            "queryFields": {
-                "metrics": "metrics",
-                "groupby": "groupby",
-                "columns": "groupby",
-            },
             "datasource": f"{tbl_id}__table",
             "viz_type": "dist_bar",
             "time_range_endpoints": ["inclusive", "exclusive"],
@@ -879,11 +874,6 @@ class TestCore(SupersetTestCase):
     def test_explore_json_async(self):
         tbl_id = self.table_ids.get("birth_names")
         form_data = {
-            "queryFields": {
-                "metrics": "metrics",
-                "groupby": "groupby",
-                "columns": "groupby",
-            },
             "datasource": f"{tbl_id}__table",
             "viz_type": "dist_bar",
             "time_range_endpoints": ["inclusive", "exclusive"],
@@ -914,11 +904,6 @@ class TestCore(SupersetTestCase):
     def test_explore_json_async_results_format(self):
         tbl_id = self.table_ids.get("birth_names")
         form_data = {
-            "queryFields": {
-                "metrics": "metrics",
-                "groupby": "groupby",
-                "columns": "groupby",
-            },
             "datasource": f"{tbl_id}__table",
             "viz_type": "dist_bar",
             "time_range_endpoints": ["inclusive", "exclusive"],
@@ -947,11 +932,6 @@ class TestCore(SupersetTestCase):
         form_data = dict(
             {
                 "form_data": {
-                    "queryFields": {
-                        "metrics": "metrics",
-                        "groupby": "groupby",
-                        "columns": "groupby",
-                    },
                     "datasource": f"{tbl_id}__table",
                     "viz_type": "dist_bar",
                     "time_range_endpoints": ["inclusive", "exclusive"],
@@ -991,11 +971,6 @@ class TestCore(SupersetTestCase):
         form_data = dict(
             {
                 "form_data": {
-                    "queryFields": {
-                        "metrics": "metrics",
-                        "groupby": "groupby",
-                        "columns": "groupby",
-                    },
                     "datasource": f"{tbl_id}__table",
                     "viz_type": "dist_bar",
                     "time_range_endpoints": ["inclusive", "exclusive"],
