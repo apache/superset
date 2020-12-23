@@ -115,6 +115,7 @@ const RunQueryActionButton = ({
                   name="caret-down"
                 />
               ),
+              trigger: 'click',
             }
           : { buttonStyle: btnStyle })}
       >

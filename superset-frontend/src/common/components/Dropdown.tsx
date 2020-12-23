@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { Dropdown as AntdDropdown, Tooltip } from 'src/common/components';
 import { styled } from '@superset-ui/core';
 import kebabCase from 'lodash/kebabCase';
@@ -107,6 +107,7 @@ export interface DropdownProps {
   overlay: React.ReactElement;
   tooltip?: string;
   placement?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
+  buttonsRender?: ((buttons: ReactNode[]) => ReactNode[]) | undefined;
 }
 
 export const Dropdown = ({ overlay, ...rest }: DropdownProps) => (
@@ -123,21 +124,28 @@ export const DropdownButton = ({
   placement,
   ...rest
 }: DropdownProps) => {
-  const button = (
+  const buildButton = (
+    props: {
+      buttonsRender?: DropdownProps['buttonsRender'];
+    } = {},
+  ) => (
     <StyledDropdownButton>
-      <AntdDropdown.Button overlay={overlay} {...rest} />
+      <AntdDropdown.Button overlay={overlay} {...rest} {...props} />
     </StyledDropdownButton>
   );
   if (tooltip) {
-    return (
-      <Tooltip
-        placement={placement}
-        id={`${kebabCase(tooltip)}-tooltip`}
-        title={tooltip}
-      >
-        {button}
-      </Tooltip>
-    );
+    return buildButton({
+      buttonsRender: ([leftButton, rightButton]) => [
+        <Tooltip
+          placement={placement}
+          id={`${kebabCase(tooltip)}-tooltip`}
+          title={tooltip}
+        >
+          {leftButton}
+        </Tooltip>,
+        rightButton,
+      ],
+    });
   }
-  return { button };
+  return buildButton();
 };

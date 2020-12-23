@@ -24,6 +24,7 @@ from . import (
     css_templates,
     dashboard,
     datasource,
+    dynamic_plugins,
     health,
     redirects,
     schedules,

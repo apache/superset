@@ -1091,15 +1091,23 @@ def merge_extra_filters(  # pylint: disable=too-many-branches
     # Note extra_filters only support simple filters.
     applied_time_extras: Dict[str, str] = {}
     form_data["applied_time_extras"] = applied_time_extras
+    adhoc_filters = form_data.get("adhoc_filters", [])
+    form_data["adhoc_filters"] = adhoc_filters
+    # extra_overrides contains additional props to be added/overridden in the form_data
+    # and will deprecate `extra_filters`. For now only `filters` is supported,
+    # but additional props will be added later (time grains, groupbys etc)
+    extra_form_data = form_data.pop("extra_form_data", {})
+    append_form_data = extra_form_data.pop("append_form_data", {})
+    append_filters = append_form_data.get("filters", None)
+    if append_filters:
+        adhoc_filters.extend(
+            [to_adhoc({"isExtra": True, **fltr}) for fltr in append_filters if fltr]
+        )
     if "extra_filters" in form_data:
         # __form and __to are special extra_filters that target time
         # boundaries. The rest of extra_filters are simple
         # [column_name in list_of_values]. `__` prefix is there to avoid
         # potential conflicts with column that would be named `from` or `to`
-        if "adhoc_filters" not in form_data or not isinstance(
-            form_data["adhoc_filters"], list
-        ):
-            form_data["adhoc_filters"] = []
         date_options = {
             "__time_range": "time_range",
             "__time_col": "granularity_sqla",
@@ -1116,7 +1124,7 @@ def merge_extra_filters(  # pylint: disable=too-many-branches
             return "{}__{}".format(f["col"], f["op"])
 
         existing_filters = {}
-        for existing in form_data["adhoc_filters"]:
+        for existing in adhoc_filters:
             if (
                 existing["expressionType"] == "SIMPLE"
                 and existing["comparator"] is not None
@@ -1146,16 +1154,16 @@ def merge_extra_filters(  # pylint: disable=too-many-branches
                             # Add filters for unequal lists
                             # order doesn't matter
                             if set(existing_filters[filter_key]) != set(filtr["val"]):
-                                form_data["adhoc_filters"].append(to_adhoc(filtr))
+                                adhoc_filters.append(to_adhoc(filtr))
                         else:
-                            form_data["adhoc_filters"].append(to_adhoc(filtr))
+                            adhoc_filters.append(to_adhoc(filtr))
                     else:
                         # Do not add filter if same value already exists
                         if filtr["val"] != existing_filters[filter_key]:
-                            form_data["adhoc_filters"].append(to_adhoc(filtr))
+                            adhoc_filters.append(to_adhoc(filtr))
                 else:
                     # Filter not found, add it
-                    form_data["adhoc_filters"].append(to_adhoc(filtr))
+                    adhoc_filters.append(to_adhoc(filtr))
         # Remove extra filters from the form data since no longer needed
         del form_data["extra_filters"]
 

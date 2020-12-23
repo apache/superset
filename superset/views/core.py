@@ -2521,21 +2521,21 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
             # pylint: disable=protected-access
             ast = template_processor._env.parse(rendered_query)
-            undefined = find_undeclared_variables(ast)  # type: ignore
-            if undefined:
+            undefined_parameters = find_undeclared_variables(ast)  # type: ignore
+            if undefined_parameters:
                 query.status = QueryStatus.FAILED
                 session.commit()
                 raise SupersetTemplateParamsErrorException(
                     message=ngettext(
                         "The parameter %(parameters)s in your query is undefined.",
                         "The following parameters in your query are undefined: %(parameters)s.",
-                        len(undefined),
-                        parameters=utils.format_list(undefined),
+                        len(undefined_parameters),
+                        parameters=utils.format_list(undefined_parameters),
                     )
                     + " "
                     + PARAMETER_MISSING_ERR,
                     extra={
-                        "undefined_parameters": list(undefined),
+                        "undefined_parameters": list(undefined_parameters),
                         "template_parameters": template_params,
                     },
                 )

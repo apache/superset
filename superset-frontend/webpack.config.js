@@ -109,6 +109,7 @@ const plugins = [
   new ForkTsCheckerWebpackPlugin({
     eslint: true,
     checkSyntacticErrors: true,
+    memoryLimit: 4096,
   }),
 
   new CopyPlugin({

@@ -21,6 +21,7 @@ from unittest.mock import patch
 
 import pytest
 import yaml
+from werkzeug.utils import secure_filename
 
 from superset import db, security_manager
 from superset.commands.exceptions import CommandInvalidError
@@ -58,19 +59,12 @@ class TestExportDashboardsCommand(SupersetTestCase):
         expected_paths = {
             "metadata.yaml",
             "dashboards/World_Banks_Data.yaml",
-            "charts/Region_Filter.yaml",
             "datasets/examples/wb_health_population.yaml",
             "databases/examples.yaml",
-            "charts/Worlds_Population.yaml",
-            "charts/Most_Populated_Countries.yaml",
-            "charts/Growth_Rate.yaml",
-            "charts/Rural.yaml",
-            "charts/Life_Expectancy_VS_Rural.yaml",
-            "charts/Rural_Breakdown.yaml",
-            "charts/Worlds_Pop_Growth.yaml",
-            "charts/Box_plot.yaml",
-            "charts/Treemap.yaml",
         }
+        for chart in example_dashboard.slices:
+            chart_slug = secure_filename(chart.slice_name)
+            expected_paths.add(f"charts/{chart_slug}_{chart.id}.yaml")
         assert expected_paths == set(contents.keys())
 
         metadata = yaml.safe_load(contents["dashboards/World_Banks_Data.yaml"])

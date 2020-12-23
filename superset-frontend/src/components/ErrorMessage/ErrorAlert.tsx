@@ -114,9 +114,14 @@ export default function ErrorAlert({
           <strong>{title}</strong>
         </LeftSideContent>
         {!isExpandable && (
-          <a href="#" className="link" onClick={() => setIsModalOpen(true)}>
+          <span
+            role="button"
+            tabIndex={0}
+            className="link"
+            onClick={() => setIsModalOpen(true)}
+          >
             {t('See More')}
-          </a>
+          </span>
         )}
       </div>
       {isExpandable ? (
@@ -125,25 +130,27 @@ export default function ErrorAlert({
           {body && (
             <>
               {!isBodyExpanded && (
-                <a
-                  href="#"
+                <span
+                  role="button"
+                  tabIndex={0}
                   className="link"
                   onClick={() => setIsBodyExpanded(true)}
                 >
                   {t('See More')}
-                </a>
+                </span>
               )}
               {isBodyExpanded && (
                 <>
                   <br />
                   {body}
-                  <a
-                    href="#"
+                  <span
+                    role="button"
+                    tabIndex={0}
                     className="link"
                     onClick={() => setIsBodyExpanded(false)}
                   >
                     {t('See Less')}
-                  </a>
+                  </span>
                 </>
               )}
             </>

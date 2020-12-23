@@ -27,7 +27,7 @@ describe('getFormDataWithExtraFilters', () => {
         filters: [
           {
             col: 'country_name',
-            op: 'in',
+            op: 'IN',
             val: ['United States'],
           },
         ],
@@ -37,6 +37,10 @@ describe('getFormDataWithExtraFilters', () => {
       region: ['Spain'],
       color: ['pink', 'purple'],
     },
+    nativeFilters: {
+      filters: {},
+      filtersState: {},
+    },
     sliceId: chartId,
   };
 
@@ -45,12 +49,12 @@ describe('getFormDataWithExtraFilters', () => {
     expect(result.extra_filters).toHaveLength(2);
     expect(result.extra_filters[0]).toEqual({
       col: 'region',
-      op: 'in',
+      op: 'IN',
       val: ['Spain'],
     });
     expect(result.extra_filters[1]).toEqual({
       col: 'color',
-      op: 'in',
+      op: 'IN',
       val: ['pink', 'purple'],
     });
   });
