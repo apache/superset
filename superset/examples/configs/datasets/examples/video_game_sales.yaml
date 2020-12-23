@@ -153,4 +153,4 @@ columns:
   python_date_format: null
 version: 1.0.0
 database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
-data: https://raw.githubusercontent.com/apache/incubator-superset/e428e525a05fac3555d3cdc458f68fbb05ce7ce4/superset/examples/new_dashboards/video_game_sales_dashboard/video_game_sales.csv
+data: https://github.com/apache-superset/examples-data/raw/master/datasets/examples/video_game_sales.csv
