@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useHistory } from 'react-router-dom';
 import { t, SupersetClient, makeApi, styled } from '@superset-ui/core';
 import moment from 'moment';
