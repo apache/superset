@@ -468,6 +468,46 @@ class TestReportSchedulesApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data == {"message": {"name": ["Name must be unique"]}}
 
+        # Check that uniqueness is composed by name and type
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name3",
+            "description": "description",
+            "crontab": "0 9 * * *",
+            "chart": chart.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        assert rv.status_code == 201
+        data = json.loads(rv.data.decode("utf-8"))
+
+        # Rollback changes
+        created_model = db.session.query(ReportSchedule).get(data.get("id"))
+        db.session.delete(created_model)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_create_report_schedule_schema(self):
+        """
+        ReportSchedule Api: Test create report schedule schema check
+        """
+        self.login(username="admin")
+        chart = db.session.query(Slice).first()
+        example_db = get_example_database()
+
+        # Check that a report does not have a database reference
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name3",
+            "description": "description",
+            "crontab": "0 9 * * *",
+            "chart": chart.id,
+            "database": example_db.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        assert rv.status_code == 400
+
     @pytest.mark.usefixtures("create_report_schedules")
     def test_create_report_schedule_chart_dash_validation(self):
         """
