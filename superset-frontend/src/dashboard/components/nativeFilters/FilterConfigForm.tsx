@@ -149,7 +149,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   }));
 
   return (
-    <StyledCheckboxFormItem>
+    <>
       <Typography.Title level={5}>{t('Settings')}</Typography.Title>
       <StyledContainer>
         <StyledFormItem
@@ -267,7 +267,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         filterToEdit={filterToEdit}
         form={form}
       />
-    </StyledCheckboxFormItem>
+    </>
   );
 };
 
