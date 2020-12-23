@@ -19,7 +19,7 @@
 import React, { useState, useCallback, useRef, FunctionComponent } from 'react';
 import { t, useTheme } from '@superset-ui/core';
 
-import { Input } from 'src/common/components';
+import { Input, AntdInput } from 'src/common/components';
 import { Radio } from 'src/common/components/Radio';
 import { CronPicker, CronError } from 'src/common/components/CronPicker';
 import { StyledInputContainer } from '../AlertReportModal';
@@ -34,8 +34,7 @@ export const AlertReportCronScheduler: FunctionComponent<AlertReportCronSchedule
   onChange,
 }) => {
   const theme = useTheme();
-  // @ts-ignore
-  const inputRef = useRef<Input>(null);
+  const inputRef = useRef<AntdInput>(null);
   const [scheduleFormat, setScheduleFormat] = useState<'picker' | 'input'>(
     'picker',
   );
