@@ -91,6 +91,6 @@ describe('ControlPanelsContainer', () => {
 
   it('renders ControlPanelSections', () => {
     wrapper = shallow(<ControlPanelsContainer {...getDefaultProps()} />);
-    expect(wrapper.find(ControlPanelSection)).toHaveLength(6);
+    expect(wrapper.find(ControlPanelSection)).toHaveLength(5);
   });
 });
