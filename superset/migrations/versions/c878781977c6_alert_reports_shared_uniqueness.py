@@ -28,39 +28,60 @@ down_revision = "73fd22e742ab"
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy.dialects.mysql.base import MySQLDialect
+from sqlalchemy.dialects.postgresql.base import PGDialect
+from sqlalchemy.dialects.sqlite.base import SQLiteDialect
+from sqlalchemy.engine.reflection import Inspector
+
+from superset.utils.core import generic_find_uq_constraint_name
 
 
 def upgrade():
-    try:
-        op.drop_constraint("uq_report_schedule_name", "report_schedule", type_="unique")
-        op.drop_constraint(
-            "report_schedule_name_key", "report_schedule", type_="unique"
-        )
-    except Exception:
-        # Expected to fail on SQLite
-        pass
+    bind = op.get_bind()
+    insp = sa.engine.reflection.Inspector.from_engine(bind)
 
-    try:
+    if not isinstance(bind.dialect, SQLiteDialect):
+        op.drop_constraint("uq_report_schedule_name", "report_schedule", type_="unique")
+
+        if isinstance(bind.dialect, MySQLDialect):
+            op.drop_index(
+                op.f("name"), table_name="report_schedule",
+            )
+
+        if isinstance(bind.dialect, PGDialect):
+            op.drop_constraint(
+                "report_schedule_name_key", "report_schedule", type_="unique"
+            )
         op.create_unique_constraint(
             "uq_report_schedule_name_type", "report_schedule", ["name", "type"]
         )
-    except Exception:
-        # Expected to fail on SQLite
-        pass
+
+    else:
+        with op.batch_alter_table("report_schedule") as batch_op:
+            batch_op.drop_column("name")
+            batch_op.add_column(
+                sa.Column("name", sa.String(length=150), nullable=False)
+            )
+
+        with op.batch_alter_table("report_schedule") as batch_op:
+            batch_op.create_unique_constraint(
+                "uq_report_schedule_name_type", ["name", "type"]
+            )
 
 
 def downgrade():
-    try:
-        op.drop_constraint(
-            "uq_report_schedule_name_type", "report_schedule", type_="unique"
-        )
-    except Exception:
-        # Expected to fail on SQLite
-        pass
-    try:
-        op.create_unique_constraint(
-            "uq_report_schedule_name", "report_schedule", ["name"]
-        )
-    except Exception:
-        # Expected to fail on SQLite and if there are already non unique values on names
-        pass
+    bind = op.get_bind()
+    insp = sa.engine.reflection.Inspector.from_engine(bind)
+
+    if not isinstance(bind.dialect, SQLiteDialect):
+
+        with op.batch_alter_table("report_schedule") as batch_op:
+            batch_op.drop_constraint(
+                generic_find_uq_constraint_name(
+                    "report_schedule", {"name", "type"}, insp
+                )
+                or "uq_report_schedule_name_type",
+                type_="unique",
+            )
+        with op.batch_alter_table("report_schedule") as batch_op:
+            batch_op.create_unique_constraint("uq_report_schedule_name", ["name"])
