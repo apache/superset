@@ -16,12 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { TABBED_DASHBOARD } from './dashboard.helper';
+import { CHART_LIST } from '../chart_list/chart_list.helper';
+import { DASHBOARD_LIST } from '../dashboard_list/dashboard_list.helper';
 
+const milliseconds = new Date().getTime();
+const dashboard = `Test Dashboard${milliseconds}`;
 describe('Nativefilters', () => {
+  before(() => {
+    cy.login();
+    cy.visit(DASHBOARD_LIST);
+    cy.get('[data-test="new-dropdown"]').click();
+    cy.get('[data-test="menu-item-Dashboard"]').click({ force: true });
+    cy.get('[data-test="editable-title-input"]')
+      .click()
+      .clear()
+      .type(`${dashboard}{enter}`);
+    cy.get('[data-test="header-save-button"]').click();
+    cy.visit(CHART_LIST);
+    cy.get('[data-test="search-input"]').type('Treemap{enter}');
+    cy.contains('[data-test="cell-text"]', 'Treemap').click();
+    cy.get('[data-test="query-save-button"]').click();
+    cy.get('[data-test="save-chart-modal-select-dashboard-form"]')
+      .find('#dashboard-creatable-select')
+      .type(`${dashboard}{enter}{enter}`);
+    cy.get('[data-test="btn-modal-save"]').click();
+  });
   beforeEach(() => {
     cy.login();
-    cy.visit(TABBED_DASHBOARD);
+    cy.visit(DASHBOARD_LIST);
+    cy.get('[data-test="search-input"]').click().type(`${dashboard}{enter}`);
+    cy.contains('[data-test="cell-text"]', `${dashboard}`).click();
   });
 
   it('should show filter bar and allow user to create filters ', () => {
@@ -67,6 +91,20 @@ describe('Nativefilters', () => {
       cy.contains('USA').should('not.exist');
     });
   });
+  it('should allow for deleted filter restore', () => {
+    cy.get('[data-test="create-filter"]').click();
+    cy.get('.ant-modal').should('be.visible');
+    cy.get('.ant-tabs-nav-list').within(() => {
+      cy.get('.ant-tabs-tab-remove').click();
+    });
+
+    cy.get('[data-test="undo-button"]').should('be.visible').click();
+    cy.get('.ant-tabs-nav-list').within(() => {
+      cy.get('.ant-tabs-tab-remove').click();
+    });
+    cy.get('[data-test="restore-filter-button"]').should('be.visible').click();
+  });
+
   it('should stop filtering when filter is removed', () => {
     cy.get('[data-test="create-filter"]').click();
     cy.get('.ant-modal').should('be.visible');

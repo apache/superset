@@ -548,6 +548,7 @@ export function FilterConfigModal({
                       {removedFilters[id] && (
                         <StyledSpan
                           role="button"
+                          data-test="undo-button"
                           tabIndex={0}
                           onClick={() => restoreFilter(id)}
                         >

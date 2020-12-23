@@ -137,8 +137,12 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       <RemovedContent>
         <p>{t('You have removed this filter.')}</p>
         <div>
-          <Button type="primary" onClick={() => restore(filterId)}>
-            {t('Restore filter')}
+          <Button
+            data-test="restore-filter-button"
+            type="primary"
+            onClick={() => restore(filterId)}
+          >
+            {t('Restore Filter')}
           </Button>
         </div>
       </RemovedContent>
