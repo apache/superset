@@ -20,11 +20,12 @@ import React from 'react';
 import { hot } from 'react-hot-loader/root';
 import thunk from 'redux-thunk';
 import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
-import { Provider } from 'react-redux';
+import { Provider as ReduxProvider } from 'react-redux';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { initFeatureFlags } from 'src/featureFlags';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Menu from 'src/components/Menu/Menu';
 import FlashProvider from 'src/components/FlashProvider';
@@ -66,93 +67,95 @@ const store = createStore(
 );
 
 const App = () => (
-  <Provider store={store}>
+  <ReduxProvider store={store}>
     <ThemeProvider theme={supersetTheme}>
       <FlashProvider common={common}>
         <Router>
-          <QueryParamProvider
-            ReactRouterRoute={Route}
-            stringifyOptions={{ encode: false }}
-          >
-            <Menu data={menu} />
-            <Switch>
-              <Route path="/superset/welcome/">
-                <ErrorBoundary>
-                  <Welcome user={user} />
-                </ErrorBoundary>
-              </Route>
-              <Route path="/dashboard/list/">
-                <ErrorBoundary>
-                  <DashboardList user={user} />
-                </ErrorBoundary>
-              </Route>
-              <Route path="/chart/list/">
-                <ErrorBoundary>
-                  <ChartList user={user} />
-                </ErrorBoundary>
-              </Route>
-              <Route path="/tablemodelview/list/">
-                <ErrorBoundary>
-                  <DatasetList user={user} />
-                </ErrorBoundary>
-              </Route>
-              <Route path="/databaseview/list/">
-                <ErrorBoundary>
-                  <DatabaseList user={user} />
-                </ErrorBoundary>
-              </Route>
-              <Route path="/savedqueryview/list/">
-                <ErrorBoundary>
-                  <SavedQueryList user={user} />
-                </ErrorBoundary>
-              </Route>
-              <Route path="/csstemplatemodelview/list/">
-                <ErrorBoundary>
-                  <CssTemplatesList user={user} />
-                </ErrorBoundary>
-              </Route>
-              <Route path="/annotationlayermodelview/list/">
-                <ErrorBoundary>
-                  <AnnotationLayersList user={user} />
-                </ErrorBoundary>
-              </Route>
-              <Route path="/annotationmodelview/:annotationLayerId/annotation/">
-                <ErrorBoundary>
-                  <AnnotationList user={user} />
-                </ErrorBoundary>
-              </Route>
-              <Route path="/superset/sqllab/history/">
-                <ErrorBoundary>
-                  <QueryList user={user} />
-                </ErrorBoundary>
-              </Route>
-              <Route path="/alert/list/">
-                <ErrorBoundary>
-                  <AlertList user={user} />
-                </ErrorBoundary>
-              </Route>
-              <Route path="/report/list/">
-                <ErrorBoundary>
-                  <AlertList user={user} isReportEnabled />
-                </ErrorBoundary>
-              </Route>
-              <Route path="/alert/:alertId/log">
-                <ErrorBoundary>
-                  <ExecutionLog user={user} />
-                </ErrorBoundary>
-              </Route>
-              <Route path="/report/:alertId/log">
-                <ErrorBoundary>
-                  <ExecutionLog user={user} isReportEnabled />
-                </ErrorBoundary>
-              </Route>
-            </Switch>
-            <ToastPresenter />
-          </QueryParamProvider>
+          <DynamicPluginProvider>
+            <QueryParamProvider
+              ReactRouterRoute={Route}
+              stringifyOptions={{ encode: false }}
+            >
+              <Menu data={menu} />
+              <Switch>
+                <Route path="/superset/welcome/">
+                  <ErrorBoundary>
+                    <Welcome user={user} />
+                  </ErrorBoundary>
+                </Route>
+                <Route path="/dashboard/list/">
+                  <ErrorBoundary>
+                    <DashboardList user={user} />
+                  </ErrorBoundary>
+                </Route>
+                <Route path="/chart/list/">
+                  <ErrorBoundary>
+                    <ChartList user={user} />
+                  </ErrorBoundary>
+                </Route>
+                <Route path="/tablemodelview/list/">
+                  <ErrorBoundary>
+                    <DatasetList user={user} />
+                  </ErrorBoundary>
+                </Route>
+                <Route path="/databaseview/list/">
+                  <ErrorBoundary>
+                    <DatabaseList user={user} />
+                  </ErrorBoundary>
+                </Route>
+                <Route path="/savedqueryview/list/">
+                  <ErrorBoundary>
+                    <SavedQueryList user={user} />
+                  </ErrorBoundary>
+                </Route>
+                <Route path="/csstemplatemodelview/list/">
+                  <ErrorBoundary>
+                    <CssTemplatesList user={user} />
+                  </ErrorBoundary>
+                </Route>
+                <Route path="/annotationlayermodelview/list/">
+                  <ErrorBoundary>
+                    <AnnotationLayersList user={user} />
+                  </ErrorBoundary>
+                </Route>
+                <Route path="/annotationmodelview/:annotationLayerId/annotation/">
+                  <ErrorBoundary>
+                    <AnnotationList user={user} />
+                  </ErrorBoundary>
+                </Route>
+                <Route path="/superset/sqllab/history/">
+                  <ErrorBoundary>
+                    <QueryList user={user} />
+                  </ErrorBoundary>
+                </Route>
+                <Route path="/alert/list/">
+                  <ErrorBoundary>
+                    <AlertList user={user} />
+                  </ErrorBoundary>
+                </Route>
+                <Route path="/report/list/">
+                  <ErrorBoundary>
+                    <AlertList user={user} isReportEnabled />
+                  </ErrorBoundary>
+                </Route>
+                <Route path="/alert/:alertId/log">
+                  <ErrorBoundary>
+                    <ExecutionLog user={user} />
+                  </ErrorBoundary>
+                </Route>
+                <Route path="/report/:alertId/log">
+                  <ErrorBoundary>
+                    <ExecutionLog user={user} isReportEnabled />
+                  </ErrorBoundary>
+                </Route>
+              </Switch>
+              <ToastPresenter />
+            </QueryParamProvider>
+          </DynamicPluginProvider>
         </Router>
       </FlashProvider>
     </ThemeProvider>
-  </Provider>
+  </ReduxProvider>
 );
 
 export default hot(App);

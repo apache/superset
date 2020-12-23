@@ -34,7 +34,7 @@ describe('No Results', () => {
         {
           expressionType: 'SIMPLE',
           subject: 'state',
-          operator: 'in',
+          operator: 'IN',
           comparator: ['Fake State'],
           clause: 'WHERE',
           sqlExpression: null,

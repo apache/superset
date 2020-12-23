@@ -22,7 +22,7 @@ import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
-import Link from 'src/components/Link';
+import { IconTooltip } from 'src/components/IconTooltip';
 import Fade from 'src/common/components/Fade';
 import TableElement from 'src/SqlLab/components/TableElement';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
@@ -43,9 +43,9 @@ describe('TableElement', () => {
   it('renders with props', () => {
     expect(React.isValidElement(<TableElement {...mockedProps} />)).toBe(true);
   });
-  it('has 2 Link elements', () => {
+  it('has 2 IconTooltip elements', () => {
     const wrapper = shallow(<TableElement {...mockedProps} />);
-    expect(wrapper.find(Link)).toHaveLength(2);
+    expect(wrapper.find(IconTooltip)).toHaveLength(2);
   });
   it('has 14 columns', () => {
     const wrapper = shallow(<TableElement {...mockedProps} />);
@@ -95,7 +95,7 @@ describe('TableElement', () => {
       },
     );
     expect(mockedActions.collapseTable.called).toBe(false);
-    wrapper.find('.table-name').simulate('click');
+    wrapper.find('[data-test="collapse"]').hostNodes().simulate('click');
     expect(mockedActions.collapseTable.called).toBe(true);
   });
   it('removes the table', () => {

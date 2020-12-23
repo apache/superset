@@ -49,6 +49,8 @@ function setup(overrides) {
   const onClose = sinon.spy();
   const props = {
     adhocMetric: sumValueAdhocMetric,
+    savedMetric: {},
+    savedMetrics: [],
     onChange,
     onClose,
     onResize: () => {},
@@ -62,7 +64,7 @@ function setup(overrides) {
 describe('AdhocMetricEditPopover', () => {
   it('renders a popover with edit metric form contents', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(FormGroup)).toHaveLength(3);
+    expect(wrapper.find(FormGroup)).toHaveLength(4);
     expect(wrapper.find(Button)).toHaveLength(2);
   });
 

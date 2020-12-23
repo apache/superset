@@ -16,24 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { shallow } from 'enzyme';
-
-import Link from 'src/components/Link';
-
-describe('Link', () => {
-  const mockedProps = {
-    tooltip: 'This is a tooltip',
-    href: 'https://www.airbnb.com',
-  };
-  it('renders', () => {
-    expect(React.isValidElement(<Link>TEST</Link>)).toBe(true);
-  });
-  it('renders with props', () => {
-    expect(React.isValidElement(<Link {...mockedProps}>TEST</Link>)).toBe(true);
-  });
-  it('renders an anchor tag', () => {
-    const wrapper = shallow(<Link {...mockedProps}>TEST</Link>);
-    expect(wrapper.find('a')).toExist();
-  });
-});
+export const nativeFiltersInfo = {
+  filters: {
+    DefaultID1: {
+      id: 'DefaultID1',
+      name: 'test',
+      type: 'text',
+      targets: [
+        {
+          datasetId: 0,
+          column: {
+            name: 'test column',
+            displayName: 'test column',
+          },
+        },
+      ],
+      defaultValue: null,
+      scope: {
+        rootPath: [],
+        excluded: [],
+      },
+      isInstant: true,
+      allowsMultipleValues: true,
+      isRequired: false,
+    },
+  },
+  filtersState: {
+    DefaultsID: {
+      id: 'DefaultId',
+      selectedValues: [],
+    },
+  },
+};

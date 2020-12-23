@@ -33,6 +33,8 @@ import Owner from 'src/types/Owner';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { AlertObject, Operator, Recipient, MetaObject } from './types';
 
+const SELECT_PAGE_SIZE = 2000; // temporary fix for paginated query
+
 type SelectValue = {
   value: string;
   label: string;
@@ -101,6 +103,7 @@ const RETENTION_OPTIONS = [
 
 const DEFAULT_RETENTION = 90;
 const DEFAULT_WORKING_TIMEOUT = 3600;
+const DEFAULT_CRON_VALUE = '* * * * *'; // every minute
 
 const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
@@ -224,7 +227,7 @@ export const StyledInputContainer = styled.div`
   }
 
   textarea {
-    height: 160px;
+    height: 300px;
     resize: none;
   }
 
@@ -244,6 +247,11 @@ export const StyledInputContainer = styled.div`
     border-style: none;
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     border-radius: ${({ theme }) => theme.gridUnit}px;
+
+    .ant-select-selection-placeholder,
+    .ant-select-selection-item {
+      line-height: 24px;
+    }
 
     &[name='description'] {
       flex: 1 1 auto;
@@ -610,9 +618,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Fetch data to populate form dropdowns
   const loadOwnerOptions = (input = '') => {
-    const query = rison.encode({ filter: input });
+    const query = rison.encode({ filter: input, page_size: SELECT_PAGE_SIZE });
     return SupersetClient.get({
-      endpoint: `/api/v1/dashboard/related/owners?q=${query}`,
+      endpoint: `/api/v1/report/related/owners?q=${query}`,
     }).then(
       response => {
         return response.json.result.map((item: any) => ({
@@ -627,9 +635,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const loadSourceOptions = (input = '') => {
-    const query = rison.encode({ filter: input });
+    const query = rison.encode({ filter: input, page_size: SELECT_PAGE_SIZE });
     return SupersetClient.get({
-      endpoint: `/api/v1/dataset/related/database?q=${query}`,
+      endpoint: `/api/v1/report/related/database?q=${query}`,
     }).then(
       response => {
         const list = response.json.result.map((item: any) => ({
@@ -676,14 +684,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const loadDashboardOptions = (input = '') => {
-    const query = rison.encode({ filter: input });
+    const query = rison.encode({ filter: input, page_size: SELECT_PAGE_SIZE });
     return SupersetClient.get({
-      endpoint: `/api/v1/dashboard?q=${query}`,
+      endpoint: `/api/v1/report/related/dashboard?q=${query}`,
     }).then(
       response => {
         const list = response.json.result.map((item: any) => ({
-          value: item.id,
-          label: item.dashboard_title,
+          value: item.value,
+          label: item.text,
         }));
 
         setDashboardOptions(list);
@@ -725,14 +733,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const loadChartOptions = (input = '') => {
-    const query = rison.encode({ filter: input });
+    const query = rison.encode({ filter: input, page_size: SELECT_PAGE_SIZE });
     return SupersetClient.get({
-      endpoint: `/api/v1/chart?q=${query}`,
+      endpoint: `/api/v1/report/related/chart?q=${query}`,
     }).then(
       response => {
         const list = response.json.result.map((item: any) => ({
-          value: item.id,
-          label: item.slice_name,
+          value: item.value,
+          label: item.text,
         }));
 
         setChartOptions(list);
@@ -771,12 +779,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Updating alert/report state
   const updateAlertState = (name: string, value: any) => {
-    const data = {
-      ...currentAlert,
+    setCurrentAlert(currentAlertData => ({
+      ...currentAlertData,
       [name]: value,
-    };
-
-    setCurrentAlert(data);
+    }));
   };
 
   // Handle input/textarea updates
@@ -960,7 +966,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   ) {
     setCurrentAlert({
       active: true,
-      crontab: '',
+      crontab: DEFAULT_CRON_VALUE,
       log_retention: DEFAULT_RETENTION,
       working_timeout: DEFAULT_WORKING_TIMEOUT,
       name: '',
@@ -1024,12 +1030,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   return (
     <Modal
       className="no-content-padding"
+      responsive
       disablePrimaryButton={disableSave}
       onHandledPrimaryAction={onSave}
       onHide={hide}
       primaryButtonName={isEditMode ? t('Save') : t('Add')}
       show={show}
       width="100%"
+      maxWidth="1450px"
       title={
         <h4 data-test="alert-report-modal-title">
           {isEditMode ? (
@@ -1047,7 +1055,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         <div className="header-section">
           <StyledInputContainer>
             <div className="control-label">
-              {t('Alert Name')}
+              {isReport ? t('Report Name') : t('Alert Name')}
               <span className="required">*</span>
             </div>
             <div className="input-container">
@@ -1055,7 +1063,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 type="text"
                 name="name"
                 value={currentAlert ? currentAlert.name : ''}
-                placeholder={t('Alert Name')}
+                placeholder={isReport ? t('Report Name') : t('Alert Name')}
                 onChange={onTextChange}
               />
             </div>
@@ -1142,7 +1150,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <div className="inline-container wrap">
                 <StyledInputContainer>
                   <div className="control-label">
-                    {t('Alert If...')}
+                    {t('Trigger Alert If...')}
                     <span className="required">*</span>
                   </div>
                   <div className="input-container">
@@ -1189,10 +1197,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           )}
           <div className="column schedule">
             <StyledSectionTitle>
-              <h4>{t('Alert Condition Schedule')}</h4>
+              <h4>
+                {isReport
+                  ? t('Report Schedule')
+                  : t('Alert Condition Schedule')}
+              </h4>
             </StyledSectionTitle>
             <AlertReportCronScheduler
-              value={(currentAlert && currentAlert.crontab) || undefined}
+              value={
+                (currentAlert && currentAlert.crontab) || DEFAULT_CRON_VALUE
+              }
               onChange={newVal => updateAlertState('crontab', newVal)}
             />
             <StyledSectionTitle>

@@ -51,7 +51,7 @@ class DashboardFavoriteFilter(
     Custom filter for the GET list that filters all dashboards that a user has favored
     """
 
-    arg_name = "dashboard_is_fav"
+    arg_name = "dashboard_is_favorite"
     class_name = "Dashboard"
     model = Dashboard
 

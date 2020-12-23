@@ -27,6 +27,7 @@ import { Sticky, StickyContainer } from 'react-sticky';
 import { TabContainer, TabContent, TabPane } from 'react-bootstrap';
 import { styled } from '@superset-ui/core';
 
+import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
@@ -41,11 +42,14 @@ import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponen
 
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
 } from '../util/constants';
+import FilterBar from './nativeFilters/FilterBar';
+import { StickyVerticalBar } from './StickyVerticalBar';
 
 const TABS_HEIGHT = 47;
 const HEADER_HEIGHT = 67;
@@ -76,16 +80,21 @@ const StyledDashboardContent = styled.div`
   flex-direction: row;
   flex-wrap: nowrap;
   height: auto;
+  flex-grow: 1;
 
   .grid-container .dashboard-component-tabs {
     box-shadow: none;
     padding-left: 0;
   }
 
-  & > div:first-child {
+  .grid-container {
+    /* without this, the grid will not get smaller upon toggling the builder panel on */
+    min-width: 0;
     width: 100%;
     flex-grow: 1;
     position: relative;
+    margin: ${({ theme }) => theme.gridUnit * 6}px
+      ${({ theme }) => theme.gridUnit * 9}px;
   }
 
   .dashboard-component-chart-holder {
@@ -137,10 +146,14 @@ class DashboardBuilder extends React.Component {
     );
     this.state = {
       tabIndex,
+      dashboardFiltersOpen: true,
     };
 
     this.handleChangeTab = this.handleChangeTab.bind(this);
     this.handleDeleteTopLevelTabs = this.handleDeleteTopLevelTabs.bind(this);
+    this.toggleDashboardFiltersOpen = this.toggleDashboardFiltersOpen.bind(
+      this,
+    );
   }
 
   getChildContext() {
@@ -167,6 +180,24 @@ class DashboardBuilder extends React.Component {
     }
   }
 
+  toggleDashboardFiltersOpen(visible) {
+    if (visible === undefined) {
+      this.setState(state => ({
+        ...state,
+        dashboardFiltersOpen: !state.dashboardFiltersOpen,
+      }));
+    } else {
+      this.setState(state => ({
+        ...state,
+        dashboardFiltersOpen: visible,
+      }));
+    }
+  }
+
+  handleChangeTab({ pathToTabIndex }) {
+    this.props.setDirectPathToChild(pathToTabIndex);
+  }
+
   handleDeleteTopLevelTabs() {
     this.props.deleteTopLevelTabs();
 
@@ -176,10 +207,6 @@ class DashboardBuilder extends React.Component {
       0,
     );
     this.props.setDirectPathToChild(firstTab);
-  }
-
-  handleChangeTab({ pathToTabIndex }) {
-    this.props.setDirectPathToChild(pathToTabIndex);
   }
 
   render() {
@@ -198,6 +225,8 @@ class DashboardBuilder extends React.Component {
       rootChildId !== DASHBOARD_GRID_ID && dashboardLayout[rootChildId];
 
     const childIds = topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID];
+
+    const barTopOffset = HEADER_HEIGHT + (topLevelTabs ? TABS_HEIGHT : 0);
 
     return (
       <StickyContainer
@@ -251,6 +280,19 @@ class DashboardBuilder extends React.Component {
         </Sticky>
 
         <StyledDashboardContent className="dashboard-content">
+          {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && (
+            <StickyVerticalBar
+              filtersOpen={this.state.dashboardFiltersOpen}
+              topOffset={barTopOffset}
+            >
+              <ErrorBoundary>
+                <FilterBar
+                  filtersOpen={this.state.dashboardFiltersOpen}
+                  toggleFiltersBar={this.toggleDashboardFiltersOpen}
+                />
+              </ErrorBoundary>
+            </StickyVerticalBar>
+          )}
           <div className="grid-container" data-test="grid-container">
             <ParentSize>
               {({ width }) => (
@@ -293,7 +335,7 @@ class DashboardBuilder extends React.Component {
           </div>
           {editMode && (
             <BuilderComponentPane
-              topOffset={HEADER_HEIGHT + (topLevelTabs ? TABS_HEIGHT : 0)}
+              topOffset={barTopOffset}
               showBuilderPane={showBuilderPane}
               setColorSchemeAndUnsavedChanges={setColorSchemeAndUnsavedChanges}
               colorScheme={colorScheme}

@@ -177,7 +177,7 @@ describe('Dashboard tabs', () => {
       const requestParams = JSON.parse(requestFormData.get('form_data'));
       expect(requestParams.extra_filters[0]).deep.eq({
         col: 'region',
-        op: 'in',
+        op: 'IN',
         val: ['South Asia'],
       });
     });
@@ -195,7 +195,7 @@ describe('Dashboard tabs', () => {
       const requestParams = JSON.parse(requestFormData.get('form_data'));
       expect(requestParams.extra_filters[0]).deep.eq({
         col: 'region',
-        op: 'in',
+        op: 'IN',
         val: ['South Asia'],
       });
     });
@@ -214,7 +214,7 @@ describe('Dashboard tabs', () => {
       const requestParams = JSON.parse(requestFormData.get('form_data'));
       expect(requestParams.extra_filters[0]).deep.eq({
         col: 'region',
-        op: 'in',
+        op: 'IN',
         val: ['South Asia'],
       });
     });

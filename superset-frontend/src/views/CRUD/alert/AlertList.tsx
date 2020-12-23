@@ -19,7 +19,8 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
-import { t, SupersetClient, makeApi } from '@superset-ui/core';
+import { t, SupersetClient, makeApi, styled } from '@superset-ui/core';
+import moment from 'moment';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import Button from 'src/components/Button';
 import FacePile from 'src/components/FacePile';
@@ -32,11 +33,14 @@ import ListView, {
 } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import { Switch } from 'src/common/components/Switch';
+import { DATETIME_WITH_TIME_ZONE } from 'src/constants';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import RecipientIcon from 'src/views/CRUD/alert/components/RecipientIcon';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DeleteModal from 'src/components/DeleteModal';
+import LastUpdated from 'src/components/LastUpdated';
+
 import {
   useListViewResource,
   useSingleViewResource,
@@ -60,6 +64,13 @@ const deleteAlerts = makeApi<number[], { message: string }>({
   method: 'DELETE',
   endpoint: '/api/v1/report/',
 });
+
+const RefreshContainer = styled.div`
+  width: 100%;
+  padding: 0 ${({ theme }) => theme.gridUnit * 4}px
+    ${({ theme }) => theme.gridUnit * 3}px;
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+`;
 
 function AlertList({
   addDangerToast,
@@ -86,6 +97,7 @@ function AlertList({
       resourceCount: alertsCount,
       resourceCollection: alerts,
       bulkSelectEnabled,
+      lastFetched,
     },
     hasPerm,
     fetchData,
@@ -182,27 +194,33 @@ function AlertList({
           row: {
             original: { last_state: lastState },
           },
-        }: any) => <AlertStatusIcon state={lastState} />,
+        }: any) => (
+          <AlertStatusIcon
+            state={lastState}
+            isReportEnabled={isReportEnabled}
+          />
+        ),
         accessor: 'last_state',
         size: 'xs',
         disableSortBy: true,
       },
       {
-        accessor: 'name',
-        Header: t('Name'),
-      },
-      {
         Cell: ({
           row: {
-            original: { recipients },
+            original: { last_eval_dttm: lastEvalDttm },
           },
-        }: any) =>
-          recipients.map((r: any) => (
-            <RecipientIcon key={r.id} type={r.type} />
-          )),
-        accessor: 'recipients',
-        Header: t('Notification Method'),
-        disableSortBy: true,
+        }: any) => {
+          return lastEvalDttm
+            ? moment.utc(lastEvalDttm).local().format(DATETIME_WITH_TIME_ZONE)
+            : '';
+        },
+        accessor: 'last_eval_dttm',
+        Header: t('Last Run'),
+        size: 'lg',
+      },
+      {
+        accessor: 'name',
+        Header: t('Name'),
         size: 'xl',
       },
       {
@@ -218,6 +236,20 @@ function AlertList({
             <span>{crontab_humanized}</span>
           </Tooltip>
         ),
+      },
+      {
+        Cell: ({
+          row: {
+            original: { recipients },
+          },
+        }: any) =>
+          recipients.map((r: any) => (
+            <RecipientIcon key={r.id} type={r.type} />
+          )),
+        accessor: 'recipients',
+        Header: t('Notification Method'),
+        disableSortBy: true,
+        size: 'xl',
       },
       {
         accessor: 'created_by',
@@ -297,7 +329,7 @@ function AlertList({
         size: 'xl',
       },
     ],
-    [canDelete, canEdit],
+    [canDelete, canEdit, isReportEnabled],
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
@@ -397,7 +429,11 @@ function AlertList({
           },
         ]}
         buttons={subMenuButtons}
-      />
+      >
+        <RefreshContainer>
+          <LastUpdated updatedAt={lastFetched} update={() => refreshData()} />
+        </RefreshContainer>
+      </SubMenu>
       <AlertReportModal
         alert={currentAlert}
         addDangerToast={addDangerToast}

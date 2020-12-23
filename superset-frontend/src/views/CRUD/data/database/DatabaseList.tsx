@@ -145,11 +145,11 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     setDatabaseModalOpen(true);
   }
 
-  const canCreate = hasPerm('can_add');
-  const canEdit = hasPerm('can_edit');
-  const canDelete = hasPerm('can_delete');
+  const canCreate = hasPerm('can_write');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
   const canExport =
-    hasPerm('can_mulexport') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+    hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
 
   const menuData: SubMenuProps = {
     activeChild: 'Databases',
@@ -199,7 +199,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       {
         accessor: 'backend',
         Header: t('Backend'),
-        size: 'xxl',
+        size: 'lg',
         disableSortBy: true, // TODO: api support for sorting by 'backend'
       },
       {
@@ -218,7 +218,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
             original: { allow_run_async: allowRunAsync },
           },
         }: any) => <BooleanDisplay value={allowRunAsync} />,
-        size: 'md',
+        size: 'sm',
       },
       {
         accessor: 'allow_dml',
@@ -236,7 +236,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
             original: { allow_dml: allowDML },
           },
         }: any) => <BooleanDisplay value={allowDML} />,
-        size: 'md',
+        size: 'sm',
       },
       {
         accessor: 'allow_csv_upload',
@@ -246,7 +246,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
             original: { allow_csv_upload: allowCSVUpload },
           },
         }: any) => <BooleanDisplay value={allowCSVUpload} />,
-        size: 'xl',
+        size: 'md',
       },
       {
         accessor: 'expose_in_sqllab',
@@ -256,7 +256,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
             original: { expose_in_sqllab: exposeInSqllab },
           },
         }: any) => <BooleanDisplay value={exposeInSqllab} />,
-        size: 'xxl',
+        size: 'md',
       },
       {
         accessor: 'created_by',

@@ -83,7 +83,6 @@ export const controlPanelSectionsChartOptionsTable = [
           name: 'all_columns',
           config: {
             type: 'SelectControl',
-            queryField: 'columns',
             multi: true,
             label: t('Columns'),
             default: [],

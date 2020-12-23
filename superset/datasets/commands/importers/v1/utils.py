@@ -37,11 +37,15 @@ JSON_KEYS = {"params", "template_params", "extra"}
 
 
 type_map = {
+    "VARCHAR": String(255),
+    "STRING": String(255),
+    "TEXT": Text(),
     "BIGINT": BigInteger(),
     "FLOAT": Float(),
+    "FLOAT64": Float(),
+    "DOUBLE PRECISION": Float(),
     "DATE": Date(),
-    "DOUBLE PRECISION": Float(precision=32),
-    "TEXT": Text(),
+    "DATETIME": DateTime(),
     "TIMESTAMP WITHOUT TIME ZONE": DateTime(timezone=False),
     "TIMESTAMP WITH TIME ZONE": DateTime(timezone=True),
 }

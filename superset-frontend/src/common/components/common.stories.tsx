@@ -323,6 +323,7 @@ export const CollapseTextLight = () => (
   </Collapse>
 );
 export function StyledCronPicker() {
+  // @ts-ignore
   const inputRef = useRef<Input>(null);
   const defaultValue = '30 5 * * 1,6';
   const [value, setValue] = useState(defaultValue);
