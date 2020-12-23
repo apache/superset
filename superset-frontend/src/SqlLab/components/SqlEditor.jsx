@@ -28,10 +28,7 @@ import Split from 'react-split';
 import { t, styled, supersetTheme } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
-<<<<<<< HEAD
-=======
 import StyledModal from 'src/common/components/Modal';
->>>>>>> 0e64ceb2ad710a2906a65a0e6dfe63fe93b76d57
 import Mousetrap from 'mousetrap';
 
 import { Tooltip } from 'src/common/components/Tooltip';
@@ -108,7 +105,7 @@ const LimitSelectStyled = styled.span`
 `;
 
 const StyledToolbar = styled.div`
-  padding: 10px 10px 5px 10px;
+  padding: ${({ theme }) => theme.gridUnit * 2}px;
   background-color: @lightest;
   display: flex;
   justify-content: space-between;
@@ -393,6 +390,10 @@ class SqlEditor extends React.PureComponent {
     }
   }
 
+  convertToNumWithSpaces(num) {
+    return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ');
+  }
+
   startQuery(ctas = false, ctas_method = CtasEnum.TABLE) {
     const qe = this.props.queryEditor;
     const query = {
@@ -544,7 +545,7 @@ class SqlEditor extends React.PureComponent {
           <AntdMenu.Item onClick={() => this.setQueryLimit(limit)}>
             {/* // eslint-disable-line no-use-before-define */}
             <a role="button" styling="link">
-              {limit.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')}
+              {this.convertToNumWithSpaces(limit)}
             </a>{' '}
           </AntdMenu.Item>
         ))}
@@ -574,11 +575,11 @@ class SqlEditor extends React.PureComponent {
       );
     }
 
-    // eslint-disable-next-line camelcase
     const { allow_ctas: allowCTAS, allow_cvas: allowCVAS } =
       this.props.database || {};
 
     const showMenu = allowCTAS || allowCVAS;
+
     const runMenuBtn = (
       <Menu>
         {allowCTAS && (
@@ -591,7 +592,7 @@ class SqlEditor extends React.PureComponent {
             }}
             key="1"
           >
-            {t('Create Table As')}
+            {t('CREATE TABLE AS')}
           </Menu.Item>
         )}
         {allowCVAS && (
@@ -604,7 +605,7 @@ class SqlEditor extends React.PureComponent {
             }}
             key="2"
           >
-            {t('Create View As')}
+            {t('CREATE VIEW AS')}
           </Menu.Item>
         )}
       </Menu>
@@ -647,14 +648,14 @@ class SqlEditor extends React.PureComponent {
             {limitWarning}
             <span>
               <LimitSelectStyled>
-                <Dropdown overlay={this.renderQueryLimit()}>
+                <Dropdown overlay={this.renderQueryLimit()} trigger="click">
                   <a onClick={e => e.preventDefault()}>
                     <span>LIMIT:</span>
                     <span>
-                      {(
+                      {this.convertToNumWithSpaces(
                         this.props.queryEditor.queryLimit ||
-                        this.props.defaultQueryLimit
-                      ).toLocaleString()}
+                          this.props.defaultQueryLimit,
+                      )}
                     </span>
                     <Icon name="triangle-down" />
                   </a>
@@ -671,10 +672,7 @@ class SqlEditor extends React.PureComponent {
             )}
           </Form>
         </div>
-        <div
-          className="rightItems"
-          style={{ display: 'flex', alignItems: 'center' }}
-        >
+        <div className="rightItems">
           <span>
             <SaveQuery
               query={qe}
@@ -688,7 +686,7 @@ class SqlEditor extends React.PureComponent {
             <ShareSqlLabQuery queryEditor={qe} />
           </span>
           {limitWarning}
-          <Dropdown overlay={this.renderDropdown()} arrow>
+          <Dropdown overlay={this.renderDropdown()} trigger="click">
             <Icon name="more-horiz" />
           </Dropdown>
         </div>
