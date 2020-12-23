@@ -57,6 +57,7 @@ report_schedule = sa.Table(
     sa.Column("validator_config_json", sa.Text(), default="{}", nullable=True),
     sa.Column("log_retention", sa.Integer(), nullable=True, default=90),
     sa.Column("grace_period", sa.Integer(), nullable=True, default=60 * 60 * 4),
+    sa.Column("working_timeout", sa.Integer(), nullable=True, default=60 * 60 * 1),
     # Audit Mixin
     sa.Column("created_on", sa.DateTime(), nullable=True),
     sa.Column("changed_on", sa.DateTime(), nullable=True),
