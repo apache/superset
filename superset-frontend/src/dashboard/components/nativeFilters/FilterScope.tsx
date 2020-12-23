@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import React, { FC, useState } from 'react';
-import { t } from '@superset-ui/core';
+import React, { FC } from 'react';
+import { t, styled } from '@superset-ui/core';
 import {
   Form,
   Radio,
@@ -29,7 +29,7 @@ import {
 import { Filter, NativeFiltersForm, Scoping } from './types';
 import ScopingTree from './ScopingTree';
 import { DASHBOARD_ROOT_ID } from '../../util/constants';
-import { setFilterFieldValues } from './utils';
+import { isScopingAll, setFilterFieldValues, useForceUpdate } from './utils';
 
 type FilterScopeProps = {
   filterId: string;
@@ -37,59 +37,64 @@ type FilterScopeProps = {
   form: FormInstance<NativeFiltersForm>;
 };
 
-const defaultScopeValue = {
+export const defaultScopeValue = {
   rootPath: [DASHBOARD_ROOT_ID],
   excluded: [],
 };
+
+const CleanFormItem = styled(Form.Item)`
+  margin-bottom: 0;
+`;
 
 const FilterScope: FC<FilterScopeProps> = ({
   filterId,
   filterToEdit,
   form,
 }) => {
-  const { scope = defaultScopeValue } = filterToEdit || {};
+  const formFilter = form.getFieldValue('filters')[filterId];
+  const initialScope = filterToEdit?.scope || defaultScopeValue;
 
-  const groupingInitialValue =
-    !scope ||
-    (scope.rootPath[0] === DASHBOARD_ROOT_ID && !scope.excluded.length)
-      ? Scoping.all
-      : Scoping.specific;
+  const scoping = isScopingAll(initialScope) ? Scoping.all : Scoping.specific;
 
-  const [advancedScopingOpen, setAdvancedScopingOpen] = useState<Scoping>(
-    groupingInitialValue,
-  );
+  const forceUpdate = useForceUpdate();
+
   return (
     <Space direction="vertical">
-      <Typography.Title level={5}>{t('Scoping')}</Typography.Title>
-      <Form.Item
+      <CleanFormItem
         name={['filters', filterId, 'scope']}
         hidden
-        initialValue={scope}
+        initialValue={initialScope}
       />
-      <Radio.Group
-        defaultValue={groupingInitialValue}
-        onChange={({ target: { value } }) => {
-          if (value === Scoping.all) {
-            setFilterFieldValues(form, filterId, {
-              scope: defaultScopeValue,
-            });
-          }
-          setAdvancedScopingOpen(value as Scoping);
-        }}
+      <Typography.Title level={5}>{t('Scoping')}</Typography.Title>
+      <CleanFormItem
+        name={['filters', filterId, 'scoping']}
+        initialValue={scoping}
       >
-        <Radio value={Scoping.all}>{t('Apply to all panels')}</Radio>
-        <Radio value={Scoping.specific}>{t('Apply to specific panels')}</Radio>
-      </Radio.Group>
+        <Radio.Group
+          onChange={({ target: { value } }) => {
+            if (value === Scoping.all) {
+              setFilterFieldValues(form, filterId, {
+                scope: defaultScopeValue,
+              });
+            }
+            forceUpdate();
+          }}
+        >
+          <Radio value={Scoping.all}>{t('Apply to all panels')}</Radio>
+          <Radio value={Scoping.specific}>
+            {t('Apply to specific panels')}
+          </Radio>
+        </Radio.Group>
+      </CleanFormItem>
       <Typography.Text type="secondary">
-        {advancedScopingOpen === Scoping.specific
+        {formFilter.scoping === Scoping.specific
           ? t('Only selected panels will be affected by this filter')
           : t('All panels with this column will be affected by this filter')}
       </Typography.Text>
-      {advancedScopingOpen === Scoping.specific && (
+      {formFilter.scoping === Scoping.specific && (
         <ScopingTree
-          scope={scope}
+          initialScope={initialScope}
           form={form}
-          filterToEdit={filterToEdit}
           filterId={filterId}
         />
       )}

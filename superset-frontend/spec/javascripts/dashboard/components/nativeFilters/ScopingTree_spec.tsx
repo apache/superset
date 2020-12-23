@@ -21,19 +21,30 @@ import { Provider } from 'react-redux';
 import ScopingTree from 'src/dashboard/components/nativeFilters/ScopingTree';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { mockStore } from 'spec/fixtures/mockStore';
+import { FormInstance } from 'src/common/components';
+import { NativeFiltersForm } from 'src/dashboard/components/nativeFilters/types';
+import { defaultScopeValue } from 'src/dashboard/components/nativeFilters/FilterScope';
 
 describe('ScopingTree', () => {
-  const mock = jest.fn();
   const wrapper = mount(
     <Provider store={mockStore}>
-      <ScopingTree setFilterScope={mock} />
+      <ScopingTree
+        filterId="1"
+        initialScope={defaultScopeValue}
+        form={({} as unknown) as FormInstance<NativeFiltersForm>}
+      />
     </Provider>,
   );
   it('is valid', () => {
-    const mock = () => null;
-    expect(React.isValidElement(<ScopingTree setFilterScope={mock} />)).toBe(
-      true,
-    );
+    expect(
+      React.isValidElement(
+        <ScopingTree
+          filterId="1"
+          initialScope={defaultScopeValue}
+          form={({} as unknown) as FormInstance<NativeFiltersForm>}
+        />,
+      ),
+    ).toBe(true);
   });
   it('renders a tree', () => {
     expect(wrapper.find('TreeNode')).toExist();

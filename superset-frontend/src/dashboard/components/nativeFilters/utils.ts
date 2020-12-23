@@ -21,10 +21,10 @@ import { Charts, Layout, LayoutItem } from 'src/dashboard/types';
 import {
   CHART_TYPE,
   DASHBOARD_ROOT_TYPE,
-  TABS_TYPE,
   TAB_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import { FormInstance } from 'antd/lib/form';
+import React from 'react';
 import {
   CascadeFilter,
   Filter,
@@ -33,12 +33,15 @@ import {
   Scope,
   TreeItem,
 } from './types';
+import { DASHBOARD_ROOT_ID } from '../../util/constants';
+
+export const useForceUpdate = () => {
+  const [, updateState] = React.useState({});
+  return React.useCallback(() => updateState({}), []);
+};
 
 export const isShowTypeInTree = ({ type, meta }: LayoutItem, charts?: Charts) =>
-  (type === TABS_TYPE ||
-    type === TAB_TYPE ||
-    type === CHART_TYPE ||
-    type === DASHBOARD_ROOT_TYPE) &&
+  (type === TAB_TYPE || type === CHART_TYPE || type === DASHBOARD_ROOT_TYPE) &&
   (!charts || charts[meta?.chartId]?.formData?.viz_type !== 'filter_box');
 
 export const buildTree = (
@@ -46,9 +49,14 @@ export const buildTree = (
   treeItem: TreeItem,
   layout: Layout,
   charts: Charts,
+  validNodes: string[],
 ) => {
   let itemToPass: TreeItem = treeItem;
-  if (isShowTypeInTree(node, charts) && node.type !== DASHBOARD_ROOT_TYPE) {
+  if (
+    isShowTypeInTree(node, charts) &&
+    node.type !== DASHBOARD_ROOT_TYPE &&
+    validNodes.includes(node.id)
+  ) {
     const currentTreeItem = {
       key: node.id,
       title: node.meta.sliceName || node.meta.text || node.id.toString(),
@@ -58,7 +66,7 @@ export const buildTree = (
     itemToPass = currentTreeItem;
   }
   node.children.forEach(child =>
-    buildTree(layout[child], itemToPass, layout, charts),
+    buildTree(layout[child], itemToPass, layout, charts, validNodes),
   );
 };
 
@@ -99,6 +107,9 @@ const checkTreeItem = (
 
 export const getTreeCheckedItems = (scope: Scope, layout: Layout) => {
   const checkedItems: string[] = [];
+  if (isScopingAll(scope)) {
+    return [];
+  }
   checkTreeItem(checkedItems, layout, scope.rootPath, scope.excluded);
   return [...new Set(checkedItems)];
 };
@@ -254,3 +265,6 @@ export const setFilterFieldValues = (
     },
   });
 };
+
+export const isScopingAll = (scope: Scope) =>
+  !scope || (scope.rootPath[0] === DASHBOARD_ROOT_ID && !scope.excluded.length);

@@ -18,45 +18,53 @@
  */
 
 import React, { FC, useMemo, useState } from 'react';
-import { Tree, FormInstance } from 'src/common/components';
+import { FormInstance, Tree } from 'src/common/components';
 import { useFilterScopeTree } from './state';
 import { DASHBOARD_ROOT_ID } from '../../util/constants';
 import {
   findFilterScope,
   getTreeCheckedItems,
   setFilterFieldValues,
+  useForceUpdate,
 } from './utils';
-import { Filter, NativeFiltersForm, Scope } from './types';
+import { NativeFiltersForm, Scope } from './types';
 
 type ScopingTreeProps = {
   form: FormInstance<NativeFiltersForm>;
   filterId: string;
-  filterToEdit?: Filter;
-  scope: Scope;
+  initialScope: Scope;
 };
 
-const ScopingTree: FC<ScopingTreeProps> = ({ form, filterId, scope }) => {
+const ScopingTree: FC<ScopingTreeProps> = ({
+  form,
+  filterId,
+  initialScope,
+}) => {
   const [expandedKeys, setExpandedKeys] = useState<string[]>([
     DASHBOARD_ROOT_ID,
   ]);
 
+  const formFilter = form.getFieldValue('filters')[filterId];
+
   const { treeData, layout } = useFilterScopeTree();
   const [autoExpandParent, setAutoExpandParent] = useState<boolean>(true);
-  const [checkedKeys, setCheckedKeys] = useState<string[]>(
-    useMemo(() => getTreeCheckedItems(scope, layout), [scope, layout]),
-  );
 
   const handleExpand = (expandedKeys: string[]) => {
     setExpandedKeys(expandedKeys);
     setAutoExpandParent(false);
   };
-
+  const forceUpdate = useForceUpdate();
   const handleCheck = (checkedKeys: string[]) => {
-    setCheckedKeys(checkedKeys);
+    forceUpdate();
     setFilterFieldValues(form, filterId, {
       scope: findFilterScope(checkedKeys, layout),
     });
   };
+
+  const checkedKeys = useMemo(
+    () => getTreeCheckedItems(formFilter.scope || initialScope, layout),
+    [formFilter.scope, initialScope, layout],
+  );
 
   return (
     <Tree
