@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Alert, Col, Radio, Well } from 'react-bootstrap';
+import Card from 'src/common/components/Card';
 import Badge from 'src/common/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
@@ -261,7 +262,7 @@ StackedField.propTypes = {
 };
 
 function FormContainer({ children }) {
-  return <Well style={{ marginTop: 20 }}>{children}</Well>;
+  return <Card style={{ marginTop: 20 }} bodyStyle={{ padding: 15 }}>{children}</Card>;
 }
 
 FormContainer.propTypes = {

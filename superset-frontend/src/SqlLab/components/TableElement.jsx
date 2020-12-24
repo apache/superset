@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ButtonGroup, Collapse, Well } from 'react-bootstrap';
+import { ButtonGroup, Collapse } from 'react-bootstrap';
+import Card from 'src/common/components/Card';
 import shortid from 'shortid';
 import { t, styled } from '@superset-ui/core';
 
@@ -125,14 +126,14 @@ class TableElement extends React.PureComponent {
       );
       latest = latest.join('/');
       header = (
-        <Well bsSize="small">
+        <Card size="small">
           <div>
             <small>
               {t('latest partition:')} {latest}
             </small>{' '}
             {partitionClipBoard}
           </div>
-        </Well>
+        </Card>
       );
     }
     return header;
