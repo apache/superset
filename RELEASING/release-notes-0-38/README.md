@@ -19,7 +19,7 @@ under the License.
 
 # Release Notes for Superset 0.38
 
-## What's new
+## What's new 
 - [New features](#new-features)
 - [Bugfixes](#bugfixes)
 - [Breaking Changes](#breaking-changes)
