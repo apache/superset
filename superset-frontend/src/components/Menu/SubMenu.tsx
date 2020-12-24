@@ -30,6 +30,7 @@ const StyledHeader = styled.header`
   }
   .navbar-header .navbar-brand {
     font-weight: ${({ theme }) => theme.typography.weights.bold};
+    margin-right: ${({ theme }) => theme.gridUnit * 3}px;
   }
   .navbar-right {
     padding: 8px 0;
@@ -47,6 +48,7 @@ const StyledHeader = styled.header`
         a {
           margin: 0;
           padding: ${({ theme }) => theme.gridUnit * 4}px;
+          line-height: ${({ theme }) => theme.gridUnit * 5}px;
         }
       }
 
