@@ -137,6 +137,7 @@ export function useCascadingFilters(id: string) {
   });
 }
 
+// For changes of form fields sometimes we need re-render Filter defaultValue
 export const useFEFormUpdate = (
   form: FormInstance<NativeFiltersForm>,
   filterId: string,
@@ -171,6 +172,7 @@ const defaultValuesPerFilterType = {
   [FilterType.filter_range]: {},
 };
 
+// When some fields in form changed we need re-fetch data for Filter defaultValue
 export const useBEFormUpdate = (
   form: FormInstance<NativeFiltersForm>,
   filterId: string,
