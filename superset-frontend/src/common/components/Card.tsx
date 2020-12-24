@@ -16,30 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { FunctionComponent } from 'react';
 import { Card as AntdCard } from 'antd';
 
-type CardProps = {
-    style: React.CSSProperties;
-    bodyStyle: React.CSSProperties;
+interface CardProps extends React.Component {
+  style: React.CSSProperties;
+  bodyStyle: React.CSSProperties;
 }
 
-class Card extends React.Component<CardProps> {
-    render() {
-        const { 
-            style,
-            bodyStyle
-        } = this.props;
-
-        return (
-            <AntdCard 
-                style={{ backgroundColor: 'rgba(247,247,247,1.0)', borderRadius: '5px', ...style }}
-                bodyStyle={{ padding: '5px', ...bodyStyle }}
-            >
-                { this.props.children }
-            </AntdCard>
-        )
-    }
-}
+const Card: FunctionComponent<CardProps> = ({ style, bodyStyle, children }) => {
+  return (
+    <AntdCard
+      style={{
+        backgroundColor: 'rgba(247,247,247,1.0)',
+        borderRadius: '5px',
+        ...style,
+      }}
+      bodyStyle={{
+        padding: '5px',
+        ...bodyStyle,
+      }}
+    >
+      {children}
+    </AntdCard>
+  );
+};
 
 export default Card;
