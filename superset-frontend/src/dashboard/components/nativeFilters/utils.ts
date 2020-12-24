@@ -249,7 +249,6 @@ export function buildCascadeFiltersTree(filters: Filter[]): CascadeFilter[] {
 }
 
 export const FilterTypeNames = {
-  [FilterType.filter_text]: t('Text'),
   [FilterType.filter_select]: t('Select'),
   [FilterType.filter_range]: t('Range'),
 };
@@ -275,7 +274,7 @@ export const isScopingAll = (scope: Scope) =>
   !scope || (scope.rootPath[0] === DASHBOARD_ROOT_ID && !scope.excluded.length);
 
 export const getFormData = ({
-  datasetId,
+  datasetId = 18,
   cascadingFilters = {},
   groupby,
   allowsMultipleValues = false,
@@ -283,8 +282,8 @@ export const getFormData = ({
   defaultValue,
   inverseSelection,
 }: Partial<Filter> & {
-  datasetId: number;
-  cascadingFilters: object;
+  datasetId?: number;
+  cascadingFilters?: object;
   groupby: string;
 }): Partial<QueryFormData> => ({
   adhoc_filters: [],
@@ -302,5 +301,20 @@ export const getFormData = ({
   time_range_endpoints: ['inclusive', 'exclusive'],
   url_params: {},
   viz_type: 'filter_select',
+  // TODO: need process per filter type after will be decided approach
   defaultValues: currentValue || defaultValue || [],
 });
+
+type AppendFormData = {
+  filters: {
+    val?: number | string | null;
+  }[];
+};
+export const extractDefaultValue = {
+  [FilterType.filter_select]: (appendFormData: AppendFormData) =>
+    appendFormData.filters?.[0]?.val,
+  [FilterType.filter_range]: (appendFormData: AppendFormData) => ({
+    min: appendFormData.filters?.[0].val,
+    max: appendFormData.filters?.[1].val,
+  }),
+};

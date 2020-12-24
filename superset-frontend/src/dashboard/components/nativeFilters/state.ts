@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setExtraFormData } from 'src/dashboard/actions/nativeFilters';
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
@@ -27,14 +27,25 @@ import {
   CHART_TYPE,
   DASHBOARD_ROOT_TYPE,
 } from 'src/dashboard/util/componentTypes';
+import { FormInstance } from 'antd/lib/form';
 import {
   Filter,
   FilterConfiguration,
   FilterState,
+  FilterType,
+  NativeFiltersForm,
   NativeFiltersState,
   TreeItem,
 } from './types';
-import { buildTree, mergeExtraFormData } from './utils';
+import {
+  buildTree,
+  getFormData,
+  mergeExtraFormData,
+  setFilterFieldValues,
+  useForceUpdate,
+} from './utils';
+import { areObjectsEqual } from '../../../reduxUtils';
+import { getChartDataRequest } from '../../../chart/chartAction';
 
 const defaultFilterConfiguration: Filter[] = [];
 
@@ -125,3 +136,84 @@ export function useCascadingFilters(id: string) {
     return cascadedFilters;
   });
 }
+
+export const useFEFormUpdate = (
+  form: FormInstance<NativeFiltersForm>,
+  filterId: string,
+  filterToEdit?: Filter,
+) => {
+  const forceUpdate = useForceUpdate();
+  const formFilter = (form.getFieldValue('filters') || {})[filterId];
+  useEffect(() => {
+    if (!formFilter) {
+      return;
+    }
+    const formData = getFormData({
+      datasetId: formFilter?.dataset?.value,
+      groupby: formFilter?.column,
+      allowsMultipleValues: formFilter?.allowsMultipleValues,
+      currentValue: formFilter?.defaultValue,
+      defaultValue: filterToEdit?.defaultValue,
+      inverseSelection: formFilter?.inverseSelection,
+    });
+    if (areObjectsEqual(formData, formFilter?.defaultValueFormData)) {
+      return;
+    }
+    setFilterFieldValues(form, filterId, {
+      defaultValueFormData: formData,
+    });
+    forceUpdate();
+  });
+};
+
+const defaultValuesPerFilterType = {
+  [FilterType.filter_select]: [],
+  [FilterType.filter_range]: {},
+};
+
+export const useBEFormUpdate = (
+  form: FormInstance<NativeFiltersForm>,
+  filterId: string,
+  filterToEdit?: Filter,
+) => {
+  const forceUpdate = useForceUpdate();
+  const formFilter = (form.getFieldValue('filters') || {})[filterId];
+  useEffect(() => {
+    // No need to check data set change because it cascading update column
+    // So check that column exists is enougph
+    if (!formFilter || !formFilter?.column) {
+      return;
+    }
+    getChartDataRequest({
+      formData: getFormData({
+        datasetId: formFilter?.dataset?.value,
+        groupby: formFilter?.column,
+        allowsMultipleValues: formFilter?.allowsMultipleValues,
+        currentValue: formFilter?.defaultValue,
+        defaultValue: filterToEdit?.defaultValue,
+        inverseSelection: formFilter?.inverseSelection,
+      }),
+      force: false,
+      requestParams: { dashboardId: 0 },
+    }).then(response => {
+      let resolvedDefaultValue =
+        defaultValuesPerFilterType[formFilter?.filterType];
+      if (
+        filterToEdit?.filterType === formFilter?.filterType &&
+        filterToEdit?.targets[0].datasetId === formFilter?.dataset?.value &&
+        formFilter?.column === filterToEdit?.targets[0]?.column?.name
+      ) {
+        resolvedDefaultValue = filterToEdit?.defaultValue;
+      }
+      setFilterFieldValues(form, filterId, {
+        defaultValueQueriesData: response.result,
+        defaultValue: resolvedDefaultValue,
+      });
+      forceUpdate();
+    });
+  }, [
+    formFilter?.filterType,
+    formFilter?.column, // Will process also case when update dataset
+    filterId,
+  ]);
+};

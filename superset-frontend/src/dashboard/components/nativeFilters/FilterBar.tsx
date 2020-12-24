@@ -209,9 +209,10 @@ const FilterValue: React.FC<FilterProps> = ({
     targets,
     currentValue,
     defaultValue,
+    filterType,
   } = filter;
   const cascadingFilters = useCascadingFilters(id);
-  const [state, setState] = useState({ data: undefined });
+  const [state, setState] = useState([]);
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
   const [target] = targets;
   const { datasetId = 18, column } = target;
@@ -261,8 +262,8 @@ const FilterValue: React.FC<FilterProps> = ({
             defaultValue,
             inverseSelection,
           })}
-          queriesData={[state]}
-          chartType="filter_select"
+          queriesData={state}
+          chartType={filterType}
           hooks={{ setExtraFormData }}
         />
       </Form.Item>

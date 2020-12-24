@@ -396,26 +396,24 @@ export function FilterConfigModal({
       });
 
     await save(newFilterConfig);
-    resetForm();
-  }, [
-    save,
-    resetForm,
-    filterIds,
-    removedFilters,
-    filterConfigMap,
-    validateForm,
-  ]);
+  }, [save, filterIds, removedFilters, filterConfigMap, validateForm]);
 
   const handleCancel = () => {
-    resetForm();
     onCancel();
   };
+
+  useEffect(() => {
+    // Ant to reset formValues before Modal destroy performed ,so it re-init values before from destroyed,
+    // for this case we reset it also on Modal opens if it was not processed correctly on close
+    resetForm();
+  }, [isOpen]);
 
   return (
     <StyledModal
       visible={isOpen}
       title={t('Filter Configuration and Scoping')}
       width="55%"
+      destroyOnClose
       onCancel={handleCancel}
       onOk={onOk}
       centered
