@@ -18,7 +18,7 @@
  */
 import { styled, SuperChart, t } from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback } from 'react';
 import {
   Button,
   Checkbox,
@@ -27,9 +27,7 @@ import {
   Typography,
 } from 'src/common/components';
 import { Select } from 'src/components/Select/SupersetStyledSelect';
-import SupersetResourceSelect, {
-  Value,
-} from 'src/components/SupersetResourceSelect';
+import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ColumnSelect } from './ColumnSelect';
@@ -38,11 +36,9 @@ import FilterScope from './FilterScope';
 import {
   extractDefaultValue,
   FilterTypeNames,
-  getFormData,
   setFilterFieldValues,
   useForceUpdate,
 } from './utils';
-import { getChartDataRequest } from '../../../chart/chartAction';
 import { useBEFormUpdate, useFEFormUpdate } from './state';
 
 type DatasetSelectValue = {
@@ -158,7 +154,6 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         >
           <Input />
         </StyledFormItem>
-
         <StyledFormItem
           name={['filters', filterId, 'dataset']}
           initialValue={{ value: filterToEdit?.targets[0].datasetId }}
