@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { FunctionComponent } from 'react';
+// eslint-disable-next-line no-restricted-imports
 import { Card as AntdCard } from 'antd';
 
 interface CardProps extends React.Component {
