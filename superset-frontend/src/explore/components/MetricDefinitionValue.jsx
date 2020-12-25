@@ -18,18 +18,21 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-
 import AdhocMetricOption from './AdhocMetricOption';
 import AdhocMetric from '../AdhocMetric';
 import columnType from '../propTypes/columnType';
 import savedMetricType from '../propTypes/savedMetricType';
 import adhocMetricType from '../propTypes/adhocMetricType';
-import { OptionControlLabel } from './OptionControls';
+import { DraggableOptionControlLabel } from './OptionControls';
+import { OPTION_TYPES } from './optionTypes';
 
 const propTypes = {
   option: PropTypes.oneOfType([savedMetricType, adhocMetricType]).isRequired,
+  index: PropTypes.number.isRequired,
   onMetricEdit: PropTypes.func,
   onRemoveMetric: PropTypes.func,
+  onMoveLabel: PropTypes.func,
+  onDropLabel: PropTypes.func,
   columns: PropTypes.arrayOf(columnType),
   savedMetrics: PropTypes.arrayOf(savedMetricType),
   multi: PropTypes.bool,
@@ -43,6 +46,9 @@ export default function MetricDefinitionValue({
   columns,
   savedMetrics,
   datasourceType,
+  onMoveLabel,
+  onDropLabel,
+  index,
 }) {
   const getSavedMetricByName = metricName =>
     savedMetrics.find(metric => metric.metric_name === metricName);
@@ -65,6 +71,9 @@ export default function MetricDefinitionValue({
       savedMetrics,
       datasourceType,
       adhocMetric,
+      onMoveLabel,
+      onDropLabel,
+      index,
       savedMetric: savedMetric ?? {},
     };
 
@@ -72,7 +81,15 @@ export default function MetricDefinitionValue({
   }
   if (typeof option === 'string') {
     return (
-      <OptionControlLabel label={option} onRemove={onRemoveMetric} isFunction />
+      <DraggableOptionControlLabel
+        label={option}
+        onRemove={onRemoveMetric}
+        onMoveLabel={onMoveLabel}
+        onDropLabel={onDropLabel}
+        type={OPTION_TYPES.metric}
+        index={index}
+        isFunction
+      />
     );
   }
   return null;
