@@ -28,14 +28,12 @@ type CommonFrameProps = {
 };
 
 export default function CommonFrame(props: CommonFrameProps) {
-  function getCommonRange(value: any): CommonRangeType {
-    return COMMON_RANGE_SET.has(value) ? value : 'Last week';
+  let commonRange = 'Last week';
+  if (COMMON_RANGE_SET.has(props.value as CommonRangeType)) {
+    commonRange = props.value;
+  } else {
+    props.onChange(commonRange);
   }
-
-  const commonRange =
-    COMMON_RANGE_OPTIONS.find(
-      ({ value }) => value === getCommonRange(props.value),
-    )?.value || 'Last week';
 
   return (
     <>

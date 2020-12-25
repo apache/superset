@@ -28,14 +28,12 @@ type CalendarFrameProps = {
 };
 
 export default function CalendarFrame(props: CalendarFrameProps) {
-  function getCalendarRange(value: any): CalendarRangeType {
-    return CALENDAR_RANGE_SET.has(value) ? value : PreviousCalendarWeek;
+  let calendarRange = PreviousCalendarWeek;
+  if (CALENDAR_RANGE_SET.has(props.value as CalendarRangeType)) {
+    calendarRange = props.value;
+  } else {
+    props.onChange(calendarRange);
   }
-
-  const calendarRange =
-    CALENDAR_RANGE_OPTIONS.find(
-      ({ value }) => value === getCalendarRange(props.value),
-    )?.value || PreviousCalendarWeek;
 
   return (
     <>

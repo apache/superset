@@ -23,10 +23,12 @@ import { Input } from 'src/common/components';
 
 type AdvancedFrameProps = {
   onChange: (timeRange: string) => void;
-  value?: string;
+  value: string;
 };
 
 export default function AdvancedFrame(props: AdvancedFrameProps) {
+  const [since, until] = getAdvancedRange(props.value || '').split(SEPARATOR);
+
   function getAdvancedRange(value: string): string {
     if (value.includes(SEPARATOR)) {
       return value;
@@ -39,8 +41,6 @@ export default function AdvancedFrame(props: AdvancedFrameProps) {
     }
     return SEPARATOR;
   }
-
-  const [since, until] = getAdvancedRange(props?.value || '').split(SEPARATOR);
 
   function onAdvancedRangeChange(control: 'since' | 'until', value: string) {
     if (control === 'since') {

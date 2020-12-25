@@ -53,7 +53,10 @@ type CustomFrameProps = {
   value: string;
 };
 export default function CustomFrame(props: CustomFrameProps) {
-  const { customRange } = customTimeRangeDecode(props.value);
+  const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
+  if (!matchedFlag) {
+    props.onChange(customTimeRangeEncode(customRange));
+  }
   const {
     sinceDatetime,
     sinceMode,
