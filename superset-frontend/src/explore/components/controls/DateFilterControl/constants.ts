@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import moment from 'moment';
 import { t } from '@superset-ui/core';
 import {
   SelectOptionType,
   PreviousCalendarWeek,
   PreviousCalendarMonth,
   PreviousCalendarYear,
+  CommonRangeType,
+  CalendarRangeType,
 } from './types';
 
 export const RANGE_FRAME_OPTIONS: SelectOptionType[] = [
@@ -78,3 +81,28 @@ export const SINCE_MODE_OPTIONS: SelectOptionType[] = [
 ];
 
 export const UNTIL_MODE_OPTIONS: SelectOptionType[] = SINCE_MODE_OPTIONS.slice();
+
+export const COMMON_RANGE_SET: Set<CommonRangeType> = new Set([
+  'Last day',
+  'Last week',
+  'Last month',
+  'Last quarter',
+  'Last year',
+]);
+
+export const CALENDAR_RANGE_SET: Set<CalendarRangeType> = new Set([
+  PreviousCalendarWeek,
+  PreviousCalendarMonth,
+  PreviousCalendarYear,
+]);
+
+export const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
+export const DEFAULT_SINCE = moment()
+  .utc()
+  .startOf('day')
+  .subtract(7, 'days')
+  .format(MOMENT_FORMAT);
+export const DEFAULT_UNTIL = moment()
+  .utc()
+  .startOf('day')
+  .format(MOMENT_FORMAT);
