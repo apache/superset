@@ -252,6 +252,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
       {frame === 'Custom' && (
         <CustomFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
+      {frame === 'No Filter' && <div data-test="no-filter" />}
       <Divider />
       <div>
         <div className="section-title">{t('Actual Time Range')}</div>
@@ -273,7 +274,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           cta
           key="cancel"
           onClick={onHide}
-          data-test="modal-cancel-button"
+          data-test="cancel-button"
         >
           {t('CANCEL')}
         </Button>

@@ -117,7 +117,7 @@ export default function CustomFrame(props: CustomFrameProps) {
   }
 
   return (
-    <>
+    <div data-test="custom-frame">
       <div className="section-title">{t('Configure Custom Time Range')}</div>
       <Row gutter={24}>
         <Col span={12}>
@@ -258,6 +258,6 @@ export default function CustomFrame(props: CustomFrameProps) {
           </Row>
         </div>
       )}
-    </>
+    </div>
   );
 }
