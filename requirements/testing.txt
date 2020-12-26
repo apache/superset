@@ -92,6 +92,7 @@ wcwidth==0.2.5
     # via prompt-toolkit
 websocket-client==1.2.0
     # via docker
+apache-superset[cors]
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
