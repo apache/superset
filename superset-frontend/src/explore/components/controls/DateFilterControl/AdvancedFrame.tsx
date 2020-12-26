@@ -42,7 +42,7 @@ export default function AdvancedFrame(props: AdvancedFrameProps) {
     return SEPARATOR;
   }
 
-  function onAdvancedRangeChange(control: 'since' | 'until', value: string) {
+  function onChange(control: 'since' | 'until', value: string) {
     if (control === 'since') {
       props.onChange(`${value}${SEPARATOR}${until}`);
     } else {
@@ -57,13 +57,13 @@ export default function AdvancedFrame(props: AdvancedFrameProps) {
       <Input
         key="since"
         value={since}
-        onChange={e => onAdvancedRangeChange('since', e.target.value)}
+        onChange={e => onChange('since', e.target.value)}
       />
       <div className="control-label">{t('END')}</div>
       <Input
         key="until"
         value={until}
-        onChange={e => onAdvancedRangeChange('until', e.target.value)}
+        onChange={e => onChange('until', e.target.value)}
       />
     </>
   );

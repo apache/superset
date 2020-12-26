@@ -37,30 +37,23 @@ import Popover from 'src/common/components/Popover';
 import { Divider } from 'src/common/components';
 import Icon from 'src/components/Icon';
 import { Select } from 'src/components/Select';
+import { SelectOptionType, FrameType } from './types';
+import {
+  COMMON_RANGE_VALUES_SET,
+  CALENDAR_RANGE_VALUES_SET,
+  FRAME_OPTIONS,
+} from './constants';
+import { customTimeRangeDecode } from './utils';
 import CommonFrame from './CommonFrame';
 import CalendarFrame from './CalendarFrame';
 import CustomFrame from './CustomFrame';
-import { TimeRangeFrameType } from './types';
-import {
-  COMMON_RANGE_OPTIONS,
-  CALENDAR_RANGE_OPTIONS,
-  RANGE_FRAME_OPTIONS,
-} from './constants';
-import { customTimeRangeDecode } from './utils';
 import AdvancedFrame from './AdvancedFrame';
 
-const COMMON_RANGE_OPTIONS_SET = new Set(
-  COMMON_RANGE_OPTIONS.map(({ value }) => value),
-);
-const CALENDAR_RANGE_OPTIONS_SET = new Set(
-  CALENDAR_RANGE_OPTIONS.map(({ value }) => value),
-);
-
-const guessTimeRangeFrame = (timeRange: string): TimeRangeFrameType => {
-  if (COMMON_RANGE_OPTIONS_SET.has(timeRange)) {
+const guessFrame = (timeRange: string): FrameType => {
+  if (COMMON_RANGE_VALUES_SET.has(timeRange)) {
     return 'Common';
   }
-  if (CALENDAR_RANGE_OPTIONS_SET.has(timeRange)) {
+  if (CALENDAR_RANGE_VALUES_SET.has(timeRange)) {
     return 'Calendar';
   }
   if (timeRange === 'No filter') {
@@ -96,7 +89,7 @@ const fetchTimeRange = async (
   }
 };
 
-const StyleContainer = styled.div`
+const ContentStyleWrapper = styled.div`
   .ant-row {
     margin-top: 8px;
   }
@@ -170,9 +163,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
-  const [timeRangeFrame, setTimeRangeFrame] = useState<TimeRangeFrameType>(
-    guessTimeRangeFrame(value),
-  );
+  const [frame, setFrame] = useState<FrameType>(guessFrame(value));
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalTimeRange, setEvalTimeRange] = useState<string>(value);
@@ -207,9 +198,9 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   }
 
   function onHide() {
-    setShow(false);
-    setTimeRangeFrame(guessTimeRangeFrame(value));
+    setFrame(guessFrame(value));
     setTimeRangeValue(value);
+    setShow(false);
   }
 
   const togglePopover = () => {
@@ -220,46 +211,32 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
     }
   };
 
-  // function onValidate() {
-  //   const value = getCurrentValue();
-  //   fetchTimeRange(value, endpoints).then(({ value, error }) => {
-  //     if (error) {
-  //       setEvalTimeRange(error || '');
-  //       setValidTimeRange(false);
-  //     } else {
-  //       setEvalTimeRange(value || '');
-  //       setValidTimeRange(true);
-  //     }
-  //   });
-  // }
-  function onRangeFrameChange(rangeFrameValue: TimeRangeFrameType) {
-    if (rangeFrameValue === 'No Filter') {
+  function onFrame(option: SelectOptionType) {
+    if (option.value === 'No Filter') {
       setTimeRangeValue('No filter');
     }
-    setTimeRangeFrame(rangeFrameValue);
+    setFrame(option.value as FrameType);
   }
 
   const overlayConetent = (
-    <StyleContainer>
+    <ContentStyleWrapper>
       <div className="control-label">{t('RANGE TYPE')}</div>
       <Select
-        options={RANGE_FRAME_OPTIONS}
-        value={RANGE_FRAME_OPTIONS.filter(
-          ({ value }) => value === timeRangeFrame,
-        )}
-        onChange={(_: any) => onRangeFrameChange(_.value)}
+        options={FRAME_OPTIONS}
+        value={FRAME_OPTIONS.filter(({ value }) => value === frame)}
+        onChange={onFrame}
       />
-      {timeRangeFrame !== 'No Filter' && <Divider />}
-      {timeRangeFrame === 'Common' && (
+      {frame !== 'No Filter' && <Divider />}
+      {frame === 'Common' && (
         <CommonFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
-      {timeRangeFrame === 'Calendar' && (
+      {frame === 'Calendar' && (
         <CalendarFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
-      {timeRangeFrame === 'Advanced' && (
+      {frame === 'Advanced' && (
         <AdvancedFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
-      {timeRangeFrame === 'Custom' && (
+      {frame === 'Custom' && (
         <CustomFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
       <Divider />
@@ -297,7 +274,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           {t('APPLY')}
         </Button>
       </div>
-    </StyleContainer>
+    </ContentStyleWrapper>
   );
 
   const title = (

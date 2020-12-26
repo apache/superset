@@ -17,8 +17,13 @@
  * under the License.
  */
 import { SEPARATOR } from 'src/explore/dateFilterUtils';
-import { CustomRangeDecodeType, CustomRangeType } from './types';
-import { DEFAULT_SINCE, DEFAULT_UNTIL } from './constants';
+import {
+  CustomRangeDecodeType,
+  CustomRangeType,
+  DateTimeGrainType,
+  DateTimeModeType,
+} from './types';
+import { SEVEN_DAYS_AGO, MIDNIGHT } from './constants';
 
 /**
  * RegExp to test a string for a full ISO 8601 Date
@@ -42,11 +47,11 @@ export const ISO8601_AND_CONSTANT = RegExp(
 );
 const DATETIME_CONSTANT = ['now', 'today'];
 const defaultCustomRange: CustomRangeType = {
-  sinceDatetime: DEFAULT_SINCE,
+  sinceDatetime: SEVEN_DAYS_AGO,
   sinceMode: 'relative',
   sinceGrain: 'day',
   sinceGrainValue: -7,
-  untilDatetime: DEFAULT_UNTIL,
+  untilDatetime: MIDNIGHT,
   untilMode: 'specific',
   untilGrain: 'day',
   untilGrainValue: 7,
@@ -65,8 +70,12 @@ export const customTimeRangeDecode = (
 
     // specific : specific
     if (ISO8601_AND_CONSTANT.test(since) && ISO8601_AND_CONSTANT.test(until)) {
-      const sinceMode = DATETIME_CONSTANT.includes(since) ? since : 'specific';
-      const untilMode = DATETIME_CONSTANT.includes(until) ? until : 'specific';
+      const sinceMode = (DATETIME_CONSTANT.includes(since)
+        ? since
+        : 'specific') as DateTimeModeType;
+      const untilMode = (DATETIME_CONSTANT.includes(until)
+        ? until
+        : 'specific') as DateTimeModeType;
       return {
         customRange: {
           ...defaultCustomRange,
@@ -87,11 +96,13 @@ export const customTimeRangeDecode = (
       since.includes(until)
     ) {
       const [dttm, grainValue, grain] = sinceCapturedGroup.slice(1);
-      const untilMode = DATETIME_CONSTANT.includes(until) ? until : 'specific';
+      const untilMode = (DATETIME_CONSTANT.includes(until)
+        ? until
+        : 'specific') as DateTimeModeType;
       return {
         customRange: {
           ...defaultCustomRange,
-          sinceGrain: grain,
+          sinceGrain: grain as DateTimeGrainType,
           sinceGrainValue: parseInt(grainValue, 10),
           untilDatetime: dttm,
           sinceMode: 'relative',
@@ -109,11 +120,13 @@ export const customTimeRangeDecode = (
       until.includes(since)
     ) {
       const [dttm, grainValue, grain] = [...untilCapturedGroup.slice(1)];
-      const sinceMode = DATETIME_CONSTANT.includes(since) ? since : 'specific';
+      const sinceMode = (DATETIME_CONSTANT.includes(since)
+        ? since
+        : 'specific') as DateTimeModeType;
       return {
         customRange: {
           ...defaultCustomRange,
-          untilGrain: grain,
+          untilGrain: grain as DateTimeGrainType,
           untilGrainValue: parseInt(grainValue, 10),
           sinceDatetime: dttm,
           untilMode: 'relative',
@@ -135,9 +148,9 @@ export const customTimeRangeDecode = (
         return {
           customRange: {
             ...defaultCustomRange,
-            sinceGrain,
+            sinceGrain: sinceGrain as DateTimeGrainType,
             sinceGrainValue: parseInt(sinceGrainValue, 10),
-            untilGrain,
+            untilGrain: untilGrain as DateTimeGrainType,
             untilGrainValue: parseInt(untilGrainValue, 10),
             anchorValue: sinceDttm,
             sinceMode: 'relative',

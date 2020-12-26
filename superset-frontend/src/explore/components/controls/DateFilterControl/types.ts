@@ -21,7 +21,7 @@ export type SelectOptionType = {
   label: string;
 };
 
-export type TimeRangeFrameType =
+export type FrameType =
   | 'Common'
   | 'Calendar'
   | 'Custom'
@@ -49,14 +49,16 @@ export type CustomRangeKey =
   | 'anchorMode'
   | 'anchorValue';
 
+export type DateTimeModeType = 'specific' | 'relative' | 'now' | 'today';
+
 export type CustomRangeType = {
-  sinceMode: string;
+  sinceMode: DateTimeModeType;
   sinceDatetime: string;
-  sinceGrain: string;
+  sinceGrain: DateTimeGrainType;
   sinceGrainValue: number;
-  untilMode: string;
+  untilMode: 'specific' | 'relative' | 'now' | 'today';
   untilDatetime: string;
-  untilGrain: string;
+  untilGrain: DateTimeGrainType;
   untilGrainValue: number;
   anchorMode: 'now' | 'specific';
   anchorValue: string;
