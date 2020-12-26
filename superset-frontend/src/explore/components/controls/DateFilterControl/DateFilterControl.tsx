@@ -89,6 +89,8 @@ const fetchTimeRange = async (
   }
 };
 
+const StyledPopover = styled(Popover)``;
+
 const ContentStyleWrapper = styled.div`
   .ant-row {
     margin-top: 8px;
@@ -96,6 +98,10 @@ const ContentStyleWrapper = styled.div`
 
   .ant-input-number {
     width: 100%;
+  }
+
+  .frame-dropdown {
+    width: 272px;
   }
 
   .ant-picker {
@@ -131,6 +137,14 @@ const ContentStyleWrapper = styled.div`
     margin-bottom: 8px;
   }
 
+  .control-anchor-to {
+    margin-top: 16px;
+  }
+
+  .control-anchor-to-datetime {
+    width: 217px;
+  }
+
   .footer {
     text-align: right;
   }
@@ -140,11 +154,9 @@ const IconWrapper = styled.span`
   svg {
     margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
     vertical-align: middle;
-    display: inline-block;
   }
   .text {
     vertical-align: middle;
-    display: inline-block;
   }
   .error {
     color: ${({ theme }) => theme.colors.error.base};
@@ -225,6 +237,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
         options={FRAME_OPTIONS}
         value={FRAME_OPTIONS.filter(({ value }) => value === frame)}
         onChange={onFrame}
+        className="frame-dropdown"
       />
       {frame !== 'No Filter' && <Divider />}
       {frame === 'Common' && (
@@ -284,10 +297,14 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
     </IconWrapper>
   );
 
+  const overlayStyle = {
+    width: '600px',
+  };
+
   return (
     <>
       <ControlHeader {...props} />
-      <Popover
+      <StyledPopover
         placement="right"
         trigger="click"
         content={overlayConetent}
@@ -295,6 +312,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
         defaultVisible={show}
         visible={show}
         onVisibleChange={togglePopover}
+        overlayStyle={overlayStyle}
       >
         <Label
           className="pointer"
@@ -303,7 +321,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
         >
           {actualTimeRange}
         </Label>
-      </Popover>
+      </StyledPopover>
     </>
   );
 }

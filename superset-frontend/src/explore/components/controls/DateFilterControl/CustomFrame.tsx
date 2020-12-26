@@ -119,7 +119,7 @@ export default function CustomFrame(props: CustomFrameProps) {
   return (
     <>
       <div className="section-title">{t('Configure Custom Time Range')}</div>
-      <Row gutter={8}>
+      <Row gutter={24}>
         <Col span={12}>
           <div className="control-label">{t('START')}</div>
           <Select
@@ -148,7 +148,7 @@ export default function CustomFrame(props: CustomFrameProps) {
           )}
           {sinceMode === 'relative' && (
             <Row gutter={8}>
-              <Col span={10}>
+              <Col span={11}>
                 {/* Make sure sinceGrainValue looks like a positive integer */}
                 <InputNumber
                   placeholder={t('Relative quantity')}
@@ -163,7 +163,7 @@ export default function CustomFrame(props: CustomFrameProps) {
                   }
                 />
               </Col>
-              <Col span={14}>
+              <Col span={13}>
                 <Select
                   options={SINCE_GRAIN_OPTIONS}
                   value={SINCE_GRAIN_OPTIONS.filter(
@@ -205,7 +205,7 @@ export default function CustomFrame(props: CustomFrameProps) {
           )}
           {untilMode === 'relative' && (
             <Row gutter={8}>
-              <Col span={10}>
+              <Col span={11}>
                 <InputNumber
                   placeholder={t('Relative quantity')}
                   value={untilGrainValue}
@@ -219,7 +219,7 @@ export default function CustomFrame(props: CustomFrameProps) {
                   }
                 />
               </Col>
-              <Col span={14}>
+              <Col span={13}>
                 <Select
                   options={UNTIL_GRAIN_OPTIONS}
                   value={UNTIL_GRAIN_OPTIONS.filter(
@@ -235,8 +235,8 @@ export default function CustomFrame(props: CustomFrameProps) {
         </Col>
       </Row>
       {sinceMode === 'relative' && untilMode === 'relative' && (
-        <>
-          <div className="control-label">{t('ANCHOR RELATIVE TO')}</div>
+        <div className="control-anchor-to">
+          <div className="control-label">{t('ANCHOR TO')}</div>
           <Row align="middle">
             <Col>
               <Radio.Group
@@ -264,11 +264,12 @@ export default function CustomFrame(props: CustomFrameProps) {
                     )
                   }
                   allowClear={false}
+                  className="control-anchor-to-datetime"
                 />
               </Col>
             )}
           </Row>
-        </>
+        </div>
       )}
     </>
   );
