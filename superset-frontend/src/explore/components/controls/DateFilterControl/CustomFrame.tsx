@@ -137,10 +137,7 @@ export default function CustomFrame(props: CustomFrameProps) {
                 showTime
                 value={dttmToMoment(sinceDatetime)}
                 onChange={(datetime: Moment) =>
-                  onChange(
-                    'sinceDatetime',
-                    datetime.format(MOMENT_FORMAT),
-                  )
+                  onChange('sinceDatetime', datetime.format(MOMENT_FORMAT))
                 }
                 allowClear={false}
               />
@@ -158,9 +155,7 @@ export default function CustomFrame(props: CustomFrameProps) {
                   onChange={value =>
                     onGrainValue('sinceGrainValue', value || 1)
                   }
-                  onStep={value =>
-                    onGrainValue('sinceGrainValue', value || 1)
-                  }
+                  onStep={value => onGrainValue('sinceGrainValue', value || 1)}
                 />
               </Col>
               <Col span={13}>
@@ -194,10 +189,7 @@ export default function CustomFrame(props: CustomFrameProps) {
                 showTime
                 value={dttmToMoment(untilDatetime)}
                 onChange={(datetime: Moment) =>
-                  onChange(
-                    'untilDatetime',
-                    datetime.format(MOMENT_FORMAT),
-                  )
+                  onChange('untilDatetime', datetime.format(MOMENT_FORMAT))
                 }
                 allowClear={false}
               />
@@ -214,9 +206,7 @@ export default function CustomFrame(props: CustomFrameProps) {
                   onChange={value =>
                     onGrainValue('untilGrainValue', value || 1)
                   }
-                  onStep={value =>
-                    onGrainValue('untilGrainValue', value || 1)
-                  }
+                  onStep={value => onGrainValue('untilGrainValue', value || 1)}
                 />
               </Col>
               <Col span={13}>
@@ -258,10 +248,7 @@ export default function CustomFrame(props: CustomFrameProps) {
                   showTime
                   value={dttmToMoment(anchorValue)}
                   onChange={(datetime: Moment) =>
-                    onChange(
-                      'anchorValue',
-                      datetime.format(MOMENT_FORMAT),
-                    )
+                    onChange('anchorValue', datetime.format(MOMENT_FORMAT))
                   }
                   allowClear={false}
                   className="control-anchor-to-datetime"
