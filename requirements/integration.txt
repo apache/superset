@@ -34,6 +34,7 @@ psycopg2
 elasticsearch-dbapi
 python-crontab
 Authlib
+apache-superset[cors]
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip

@@ -475,7 +475,7 @@ DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "null"}
 STORE_CACHE_KEYS_IN_METADATA_DB = False
 
 # CORS Options
-ENABLE_CORS = False
+ENABLE_CORS = True
 CORS_OPTIONS: Dict[Any, Any] = {}
 
 # Chrome allows up to 6 open connections per domain at a time. When there are more
