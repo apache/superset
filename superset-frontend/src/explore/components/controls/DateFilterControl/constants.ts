@@ -62,7 +62,7 @@ const GRAIN_OPTIONS = [
   { value: 'day', label: (rel: string) => `${t('Days')} ${rel}` },
   { value: 'week', label: (rel: string) => `${t('Weeks')} ${rel}` },
   { value: 'month', label: (rel: string) => `${t('Months')} ${rel}` },
-  { value: 'quarter', label: (rel: string) => `${t('Quarter')} ${rel}` },
+  { value: 'quarter', label: (rel: string) => `${t('Quarters')} ${rel}` },
   { value: 'year', label: (rel: string) => `${t('Years')} ${rel}` },
 ];
 
