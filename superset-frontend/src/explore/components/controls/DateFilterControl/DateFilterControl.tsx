@@ -178,12 +178,12 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   const [frame, setFrame] = useState<FrameType>(guessFrame(value));
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
-  const [evalTimeRange, setEvalTimeRange] = useState<string>(value);
+  const [evalResponse, setEvalResponse] = useState<string>(value);
 
   useEffect(() => {
     fetchTimeRange(value, endpoints).then(({ value, error }) => {
       if (error) {
-        setEvalTimeRange(error || '');
+        setEvalResponse(error || '');
         setValidTimeRange(false);
       } else {
         setActualTimeRange(value || '');
@@ -195,10 +195,10 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   useEffect(() => {
     fetchTimeRange(timeRangeValue, endpoints).then(({ value, error }) => {
       if (error) {
-        setEvalTimeRange(error || '');
+        setEvalResponse(error || '');
         setValidTimeRange(false);
       } else {
-        setEvalTimeRange(value || '');
+        setEvalResponse(value || '');
         setValidTimeRange(true);
       }
     });
@@ -256,14 +256,14 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
       <Divider />
       <div>
         <div className="section-title">{t('Actual Time Range')}</div>
-        {validTimeRange && <div>{evalTimeRange}</div>}
+        {validTimeRange && <div>{evalResponse}</div>}
         {!validTimeRange && (
           <IconWrapper className="warning">
             <Icon
               name="error-solid-small"
               color={supersetTheme.colors.error.base}
             />
-            <span className="text error">{evalTimeRange}</span>
+            <span className="text error">{evalResponse}</span>
           </IconWrapper>
         )}
       </div>
