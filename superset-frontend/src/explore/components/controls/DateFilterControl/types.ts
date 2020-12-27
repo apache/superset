@@ -35,6 +35,7 @@ export type DateTimeGrainType =
   | 'day'
   | 'week'
   | 'month'
+  | 'quarter'
   | 'year';
 
 export type CustomRangeKey =
