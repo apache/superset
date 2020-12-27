@@ -29,6 +29,7 @@ import {
   getSequentialSchemeRegistry,
 } from '@superset-ui/core';
 import superset from '@superset-ui/core/esm/color/colorSchemes/categorical/superset';
+import setupColorsExtra from './setupColorsExtra';
 
 export default function setupColors() {
   // Register color schemes
@@ -49,4 +50,6 @@ export default function setupColors() {
     });
   });
   sequentialSchemeRegistry.setDefaultKey('superset_seq_1');
+
+  setupColorsExtra();
 }

@@ -232,6 +232,34 @@ Metadata attribute using the `label_colors` key.
 }
 ```
 
+### Is there a way to force the use specific colors?
+
+It is possible on a per-dashboard basis by providing a mapping of labels to colors in the JSON
+Metadata attribute using the `label_colors` key.
+
+```
+### Is there a way to add custom color schemes?
+
+It is possible to override [setupColorsExtra.ts](/src/setup/setupColorsExtra.ts) to register new color schemes
+
+```
+import CategoricalScheme from '../../CategoricalScheme'; // Can use existing scheme type or create new types
+const schemes = [{
+  id: 'myCustomColors',
+  label: 'Custom Colors',
+  colors: [
+  '#1FA8C9', '#454E7C', '#5AC189', '#FF7F44', '#666666', '#E04355', '#FCC700', '#A868B7', '#3CCCCB', '#A38F79',
+  '#8FD3E4', '#A1A6BD', '#ACE1C4', '#FEC0A1', '#B2B2B2', '#EFA1AA', '#FDE380', '#D3B3DA', '#9EE5E5', '#D1C6BC']
+}].map(s => new CategoricalScheme(s));
+.
+.
+.
+schemes.forEach(scheme => {
+    categoricalSchemeRegistry.registerValue(scheme.id, scheme);
+});
+
+```
+
 ### Does Superset work with [insert database engine here]?
 
 The [Connecting to Databases section](/docs/databases/installing-database-drivers) provides the best
