@@ -18,16 +18,22 @@
  */
 import React, { CSSProperties } from 'react';
 import { Alert, ButtonGroup } from 'react-bootstrap';
+import rison from 'rison';
 import ProgressBar from 'src/common/components/ProgressBar';
 import moment from 'moment';
 import { RadioChangeEvent } from 'antd/lib/radio';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
-import { styled, t } from '@superset-ui/core';
+import {
+  styled,
+  t,
+  makeApi,
+  SupersetClient,
+  JsonResponse,
+} from '@superset-ui/core';
 
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
-import { getByUser, put as updateDatset } from 'src/api/dataset';
 import Loading from '../../components/Loading';
 import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';
@@ -39,6 +45,29 @@ import { prepareCopyToClipboardTabularData } from '../../utils/common';
 import { exploreChart } from '../../explore/exploreUtils';
 import { CtasEnum } from '../actions/sqlLab';
 import { Query } from '../types';
+
+const updateDatset = async (
+  datasetId: number,
+  dbId: number,
+  sql: string,
+  columns: Array<Record<string, any>>,
+  overrideColumns: boolean,
+) => {
+  const endpoint = `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
+  const headers = { 'Content-Type': 'application/json' };
+  const body = JSON.stringify({
+    sql,
+    columns,
+    database_id: dbId,
+  });
+
+  const data: JsonResponse = await SupersetClient.put({
+    endpoint,
+    headers,
+    body,
+  });
+  return data.json.result;
+};
 
 const SEARCH_HEIGHT = 46;
 
@@ -171,8 +200,24 @@ export default class ResultSet extends React.PureComponent<
       appContainer?.getAttribute('data-bootstrap') || '{}',
     );
 
-    const datasets = await getByUser(bootstrapData.user.userId);
-    const userDatasetsOwned = datasets.map(
+    const queryParams = rison.encode({
+      filters: [
+        {
+          col: 'owners',
+          opr: 'rel_m_m',
+          value: bootstrapData.user.userId,
+        },
+      ],
+      order_column: 'changed_on_delta_humanized',
+      order_direction: 'desc',
+    });
+
+    const response = await makeApi({
+      method: 'GET',
+      endpoint: `/api/v1/dataset?q=${queryParams}`,
+    })({});
+
+    const userDatasetsOwned = response.result.map(
       (r: { table_name: string; id: number }) => ({
         datasetName: r.table_name,
         datasetId: r.id,
