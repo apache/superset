@@ -138,41 +138,44 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
             props.tabs.map(tab => {
               if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
                 return (
-                  <li
-                    className={tab.name === props.activeChild ? 'active' : ''}
-                    key={`${tab.label}`}
-                  >
-                    <div>
-                      <Link to={tab.url || ''}>{tab.label}</Link>
-                    </div>
-                  </li>
+                  <React.Fragment key={tab.label}>
+                    <li
+                      className={tab.name === props.activeChild ? 'active' : ''}
+                    >
+                      <div>
+                        <Link to={tab.url || ''}>{tab.label}</Link>
+                      </div>
+                    </li>
+                  </React.Fragment>
                 );
               }
 
               return (
-                <li
-                  className={cx('no-router', {
-                    active: tab.name === props.activeChild,
-                  })}
-                  key={`${tab.label}`}
-                >
-                  <a href={tab.url} onClick={tab.onClick}>
-                    {tab.label}
-                  </a>
-                </li>
+                <React.Fragment key={tab.label}>
+                  <li
+                    className={cx('no-router', {
+                      active: tab.name === props.activeChild,
+                    })}
+                  >
+                    <a href={tab.url} onClick={tab.onClick}>
+                      {tab.label}
+                    </a>
+                  </li>
+                </React.Fragment>
               );
             })}
         </Nav>
         <Nav className="navbar-right">
           {props.buttons?.map((btn, i) => (
-            <Button
-              key={`${i}`}
-              buttonStyle={btn.buttonStyle}
-              onClick={btn.onClick}
-              data-test={btn['data-test']}
-            >
-              {btn.name}
-            </Button>
+            <React.Fragment key={`${i}`}>
+              <Button
+                buttonStyle={btn.buttonStyle}
+                onClick={btn.onClick}
+                data-test={btn['data-test']}
+              >
+                {btn.name}
+              </Button>
+            </React.Fragment>
           ))}
         </Nav>
       </Navbar>
