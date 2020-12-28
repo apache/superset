@@ -43,14 +43,12 @@ def setup_sample_data() -> Any:
 
         examples.load_css_templates()
         examples.load_world_bank_health_n_pop(sample=True)
-        examples.load_birth_names(sample=True)
 
     yield
 
     with app.app_context():
         engine = get_example_database().get_sqla_engine()
         engine.execute("DROP TABLE wb_health_population")
-        engine.execute("DROP TABLE birth_names")
 
         # drop sqlachemy tables
 

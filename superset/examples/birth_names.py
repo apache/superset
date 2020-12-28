@@ -475,7 +475,7 @@ def create_slices(tbl: BaseDatasource) -> Tuple[List[Slice], List[Slice]]:
     return slices, misc_slices
 
 
-def create_dashboard(slices: List[Slice]) -> None:
+def create_dashboard(slices: List[Slice]) -> Dashboard:
     print("Creating a dashboard")
 
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
@@ -779,3 +779,4 @@ def create_dashboard(slices: List[Slice]) -> None:
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = "births"
     db.session.commit()
+    return dash
