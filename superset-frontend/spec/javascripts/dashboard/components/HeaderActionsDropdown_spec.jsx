@@ -24,6 +24,9 @@ import URLShortLinkModal from 'src/components/URLShortLinkModal';
 import HeaderActionsDropdown from 'src/dashboard/components/HeaderActionsDropdown';
 import SaveModal from 'src/dashboard/components/SaveModal';
 import CssEditor from 'src/dashboard/components/CssEditor';
+import fetchMock from 'fetch-mock';
+
+fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 
 describe('HeaderActionsDropdown', () => {
   const props = {
@@ -50,6 +53,7 @@ describe('HeaderActionsDropdown', () => {
     updateCss: () => {},
     userCanEdit: false,
     userCanSave: false,
+    lastModifiedTime: 0,
   };
 
   function setup(overrideProps) {
