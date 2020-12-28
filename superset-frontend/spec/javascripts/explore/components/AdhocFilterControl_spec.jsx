@@ -55,7 +55,7 @@ const columns = [
 
 const formData = {
   metric: undefined,
-  metrics: [sumValueAdhocMetric, savedMetric.saved_metric_name],
+  metrics: [sumValueAdhocMetric, savedMetric.metric_name],
 };
 
 function setup(overrides) {

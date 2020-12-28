@@ -155,7 +155,7 @@ describe('SelectControl', () => {
           <SelectControl
             {...defaultProps}
             multi
-            value={50}
+            value={['today']}
             placeholder="add something"
           />,
         );

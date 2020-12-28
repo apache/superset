@@ -52,8 +52,11 @@ const DATASOURCES_ENDPOINT =
 const DATASOURCE_ENDPOINT = `glob:*/datasource/get/${datasourceData.type}/${datasourceData.id}`;
 const DATASOURCE_PAYLOAD = { new: 'data' };
 
+const INFO_ENDPOINT = 'glob:*/api/v1/dataset/_info?*';
+
 fetchMock.get(DATASOURCES_ENDPOINT, { result: [mockDatasource['7__table']] });
 fetchMock.get(DATASOURCE_ENDPOINT, DATASOURCE_PAYLOAD);
+fetchMock.get(INFO_ENDPOINT, {});
 
 async function mountAndWait(props = mockedProps) {
   const mounted = mount(<ChangeDatasourceModal store={store} {...props} />, {

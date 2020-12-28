@@ -29,14 +29,17 @@ import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 
-import { mockStore } from 'spec/fixtures/mockStore';
+import { getMockStore } from 'spec/fixtures/mockStore';
 import { sliceId } from 'spec/fixtures/mockChartQueries';
+import dashboardInfo from 'spec/fixtures/mockDashboardInfo';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import WithDragDropContext from 'spec/helpers/WithDragDropContext';
+import { sliceEntitiesForChart } from 'spec/fixtures/mockSliceEntities';
 
 describe('ChartHolder', () => {
   const props = {
     id: String(sliceId),
+    dashboardId: dashboardInfo.id,
     parentId: 'ROW_ID',
     component: mockLayout.present.CHART_ID,
     depth: 2,
@@ -54,6 +57,10 @@ describe('ChartHolder', () => {
   };
 
   function setup(overrideProps) {
+    const mockStore = getMockStore({
+      sliceEntities: sliceEntitiesForChart,
+    });
+
     // We have to wrap provide DragDropContext for the underlying DragDroppable
     // otherwise we cannot assert on DragDroppable children
     const wrapper = mount(

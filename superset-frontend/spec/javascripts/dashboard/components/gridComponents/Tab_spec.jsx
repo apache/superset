@@ -42,6 +42,8 @@ describe('Tabs', () => {
     depth: 1,
     editMode: false,
     renderType: RENDER_TAB,
+    filters: {},
+    setDirectPathToChild: jest.fn(),
     onDropOnTab() {},
     onDeleteTab() {},
     availableColumnCount: 12,
