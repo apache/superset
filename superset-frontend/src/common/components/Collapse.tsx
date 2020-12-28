@@ -56,6 +56,12 @@ const Collapse = Object.assign(
               color: ${theme.colors.grayscale.light4};
             }
           `}
+        ${({ ghost, bordered, theme }) =>
+          ghost &&
+          bordered &&
+          `
+            border-bottom: 1px solid ${theme.colors.grayscale.light3};
+          `}
       }
       .ant-collapse-content {
         height: 100%;
