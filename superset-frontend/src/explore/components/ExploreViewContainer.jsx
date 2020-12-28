@@ -123,7 +123,7 @@ const Styles = styled.div`
     width: ${({ theme }) => 8 * theme.gridUnit}px;
   }
   .data-tab {
-    min-width: 288px;
+    width: 288px;
   }
   .callpase-icon > svg {
     color: ${({ theme }) => theme.colors.primary.base};
