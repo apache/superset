@@ -160,9 +160,13 @@ describe('AlteredSliceTag', () => {
       );
       const rows = getTableWrapperFromModalBody(modalBody).find('tr');
       expect(rows).toHaveLength(8);
-      const fakeRow = mount(<div>{rows.get(1)}</div>);
-      expect(fakeRow.find('tr')).toHaveLength(1);
-      expect(fakeRow.find('td')).toHaveLength(3);
+      const slice = mount(
+        <table>
+          <tbody>{rows.get(1)}</tbody>
+        </table>,
+      );
+      expect(slice.find('tr')).toHaveLength(1);
+      expect(slice.find('td')).toHaveLength(3);
     });
   });
 

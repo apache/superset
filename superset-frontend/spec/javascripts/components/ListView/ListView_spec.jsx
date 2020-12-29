@@ -150,37 +150,40 @@ describe('ListView', () => {
 
   it('calls fetchData on mount', () => {
     expect(wrapper.find(ListView)).toExist();
-    expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
-                                                      Array [
-                                                        Object {
-                                                          "filters": Array [],
-                                                          "pageIndex": 0,
-                                                          "pageSize": 1,
-                                                          "sortBy": Array [],
-                                                        },
-                                                      ]
-                                    `);
+    expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(
+      `
+        Array [
+          Object {
+            "filters": Array [],
+            "pageIndex": 0,
+            "pageSize": 1,
+            "sortBy": Array [],
+          },
+        ]
+      `,
+    );
   });
 
   it('calls fetchData on sort', () => {
     wrapper.find('[data-test="sort-header"]').at(1).simulate('click');
-
     expect(mockedProps.fetchData).toHaveBeenCalled();
-    expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(`
-                                                      Array [
-                                                        Object {
-                                                          "filters": Array [],
-                                                          "pageIndex": 0,
-                                                          "pageSize": 1,
-                                                          "sortBy": Array [
-                                                            Object {
-                                                              "desc": false,
-                                                              "id": "id",
-                                                            },
-                                                          ],
-                                                        },
-                                                      ]
-                                    `);
+    expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(
+      `
+        Array [
+          Object {
+            "filters": Array [],
+            "pageIndex": 0,
+            "pageSize": 1,
+            "sortBy": Array [
+              Object {
+                "desc": false,
+                "id": "id",
+              },
+            ],
+          },
+        ]
+      `,
+    );
   });
 
   it('renders pagination controls', () => {
@@ -363,13 +366,14 @@ describe('ListView', () => {
     );
   });
 
-  it('renders and empty state when there is no data', () => {
+  it('renders and empty state when there is no data', async () => {
     const props = {
       ...mockedProps,
       data: [],
     };
 
     const wrapper2 = factory(props);
+    await waitForComponentToPaint(wrapper2);
     expect(wrapper2.find(Empty)).toExist();
   });
 
@@ -461,7 +465,7 @@ describe('ListView', () => {
       initialSort: [{ id: 'something' }],
     });
 
-    act(() => {
+    await act(async () => {
       wrapper2.find('[data-test="card-sort-select"]').first().props().onChange({
         desc: false,
         id: 'something',
@@ -470,7 +474,6 @@ describe('ListView', () => {
       });
     });
 
-    wrapper2.update();
     expect(mockedProps.fetchData).toHaveBeenCalled();
   });
 });

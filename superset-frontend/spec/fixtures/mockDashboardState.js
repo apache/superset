@@ -28,4 +28,5 @@ export default {
   isPublished: true,
   css: '',
   focusedFilterField: null,
+  refreshFrequency: 0,
 };

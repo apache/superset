@@ -39,6 +39,8 @@ describe('DashboardGrid', () => {
     handleComponentDrop() {},
     resizeComponent() {},
     width: 500,
+    isComponentVisible: true,
+    setDirectPathToChild() {},
   };
 
   function setup(overrideProps) {
