@@ -14,7 +14,7 @@ export default [
         width={400}
         height={400}
         datasource={dummyDatasource}
-        queryData={payload}
+        queriesData={[payload]}
         formData={{
           datasource: '9__table',
           viz_type: 'deck_polygon',
@@ -80,7 +80,7 @@ export default [
         width={400}
         height={400}
         datasource={dummyDatasource}
-        queryData={geojsonPayload}
+        queriesData={[geojsonPayload]}
         formData={{
           datasource: '9__table',
           viz_type: 'deck_polygon',
