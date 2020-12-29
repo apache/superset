@@ -6,7 +6,7 @@ import { QueryData } from '../types/QueryResponse';
 
 interface Payload {
   formData: Partial<QueryFormData>;
-  queryData: QueryData;
+  queriesData: QueryData[];
   datasource?: Datasource;
 }
 
@@ -33,7 +33,7 @@ export type ChartDataProviderProps =
     formDataRequestOptions?: Partial<RequestConfig>;
     /** Hook to override the datasource request config. */
     datasourceRequestOptions?: Partial<RequestConfig>;
-    /** Hook to override the queryData request config. */
+    /** Hook to override the queriesData request config. */
     queryRequestOptions?: Partial<RequestConfig>;
   };
 
@@ -90,12 +90,12 @@ class ChartDataProvider extends React.PureComponent<
                 : Promise.resolve(undefined),
               this.chartClient.loadQueryData(formData, queryRequestOptions),
             ]).then(
-              ([datasource, queryData]) =>
+              ([datasource, queriesData]) =>
                 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                 ({
                   datasource,
                   formData,
-                  queryData,
+                  queriesData,
                 } as Payload),
             ),
           )

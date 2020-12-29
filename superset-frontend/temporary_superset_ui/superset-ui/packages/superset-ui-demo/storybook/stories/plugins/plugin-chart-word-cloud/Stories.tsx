@@ -26,7 +26,7 @@ export const basic = ({ width, height }) => (
     chartType="word-cloud2"
     width={width}
     height={height}
-    queryData={{ data }}
+    queriesData={[{ data }]}
     formData={{
       encoding: {
         color: {
@@ -56,7 +56,7 @@ export const encodesColorByWordLength = ({ width, height }) => (
     chartType="word-cloud2"
     width={width}
     height={height}
-    queryData={{ data }}
+    queriesData={[{ data }]}
     formData={{
       encoding: {
         color: {
@@ -92,7 +92,7 @@ export const encodesFontByFirstLetter = ({ width, height }) => (
     chartType="word-cloud2"
     width={width}
     height={height}
-    queryData={{ data }}
+    queriesData={[{ data }]}
     formData={{
       encoding: {
         color: {
@@ -130,7 +130,7 @@ export const legacyShim = ({ width, height }) => (
     chartType="legacy-word-cloud2"
     width={width}
     height={height}
-    queryData={{ data }}
+    queriesData={[{ data }]}
     formData={{
       colorScheme: 'd3Category10',
       metric: 'sum__num',

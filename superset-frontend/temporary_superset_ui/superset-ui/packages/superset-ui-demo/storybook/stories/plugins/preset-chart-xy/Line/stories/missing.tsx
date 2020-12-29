@@ -16,7 +16,7 @@ const missing = () => (
     width={400}
     height={400}
     datasource={dummyDatasource}
-    queryData={{ data: missingData }}
+    queriesData={[{ data: missingData }]}
     formData={{
       encoding: {
         x: {

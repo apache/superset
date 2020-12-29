@@ -46,12 +46,14 @@ const basicChartProps = {
   },
   hooks: {},
   initialValues: {},
-  queryData: {
-    data: {
-      columns: [],
-      records: [],
+  queriesData: [
+    {
+      data: {
+        columns: [],
+        records: [],
+      },
     },
-  },
+  ],
   formData: basicFormData,
 };
 
@@ -60,27 +62,29 @@ const basicChartProps = {
  */
 const basic = {
   ...new ChartProps(basicChartProps),
-  queryData: {
-    data: {
-      columns: ['__timestamp', 'name', 'sum__num', 'abc.com'],
-      records: [
-        {
-          __timestamp: '2020-01-01T12:34:56',
-          name: 'Michael',
-          sum__num: 2467063,
-          '%pct_nice': 0.123456,
-          'abc.com': 'foo',
-        },
-        {
-          __timestamp: 1585932584140,
-          name: 'Joe',
-          sum__num: 2467,
-          '%pct_nice': 0.00001,
-          'abc.com': 'bar',
-        },
-      ],
+  queriesData: [
+    {
+      data: {
+        columns: ['__timestamp', 'name', 'sum__num', 'abc.com'],
+        records: [
+          {
+            __timestamp: '2020-01-01T12:34:56',
+            name: 'Michael',
+            sum__num: 2467063,
+            '%pct_nice': 0.123456,
+            'abc.com': 'foo',
+          },
+          {
+            __timestamp: 1585932584140,
+            name: 'Joe',
+            sum__num: 2467,
+            '%pct_nice': 0.00001,
+            'abc.com': 'bar',
+          },
+        ],
+      },
     },
-  },
+  ],
 };
 
 /**
@@ -101,23 +105,27 @@ const advanced = {
     metrics: ['sum__num'],
     percentMetrics: ['pct_nice'],
   },
-  queryData: {
-    data: {
-      columns: ['name', 'sum__num', '%pct_nice'],
-      records: [...(basic.queryData.data?.records || [])],
+  queriesData: [
+    {
+      data: {
+        columns: ['name', 'sum__num', '%pct_nice'],
+        records: [...(basic.queriesData[0].data?.records || [])],
+      },
     },
-  },
+  ],
 };
 
 const empty = {
   ...advanced,
-  queryData: {
-    ...advanced.queryData,
-    data: {
-      ...advanced.queryData.data,
-      records: [],
+  queriesData: [
+    {
+      ...advanced.queriesData[0],
+      data: {
+        ...advanced.queriesData[0].data,
+        records: [],
+      },
     },
-  },
+  ],
 };
 
 export default {

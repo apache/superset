@@ -34,16 +34,16 @@ interface QueryData {
 
 export type TableChartProps = ChartProps & {
   formData: FormData;
-  queryData: QueryData;
+  queriesData: QueryData[];
 };
 
 interface ColumnData {
   timeLag?: string | number;
 }
 export default function transformProps(chartProps: TableChartProps) {
-  const { height, datasource, formData, queryData } = chartProps;
+  const { height, datasource, formData, queriesData } = chartProps;
   const { columnCollection, groupby, metrics, url } = formData;
-  const { records, columns } = queryData.data;
+  const { records, columns } = queriesData[0].data;
   const isGroupBy = groupby?.length > 0;
 
   // When there is a "group by",

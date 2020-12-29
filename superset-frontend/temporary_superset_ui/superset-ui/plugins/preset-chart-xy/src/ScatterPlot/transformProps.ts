@@ -3,9 +3,9 @@ import { ChartProps } from '@superset-ui/core';
 import { HookProps } from '../components/ScatterPlot/ScatterPlot';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { width, height, formData, queryData } = chartProps;
+  const { width, height, formData, queriesData } = chartProps;
   const { encoding, margin, theme } = formData;
-  const { data } = queryData;
+  const { data } = queriesData[0];
   const hooks = chartProps.hooks as HookProps;
 
   const fieldsFromHooks: (keyof HookProps)[] = [

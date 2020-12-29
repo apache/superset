@@ -15,7 +15,7 @@ export const basic = () => (
     chartType="sunburst"
     width={400}
     height={400}
-    queryData={{ data }}
+    queriesData={[{ data }]}
     formData={{
       colorScheme: 'd3Category10',
       metric: 'sum__SP_POP_TOTL',

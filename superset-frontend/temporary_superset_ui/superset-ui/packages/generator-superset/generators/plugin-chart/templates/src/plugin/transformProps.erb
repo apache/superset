@@ -35,8 +35,8 @@ export default function transformProps(chartProps: ChartProps) {
    *   the chart is located
    * - `formData`: the chart data request payload that was sent to the
    *   backend.
-   * - `queryData`: the chart data response payload that was received
-   *   from the backend. Some notable properties of `queryData`:
+   * - `queriesData`: the chart data response payload that was received
+   *   from the backend. Some notable properties of `queriesData`:
    *   - `data`: an array with data, each row with an object mapping
    *     the column/alias to its value. Example:
    *     `[{ col1: 'abc', metric1: 10 }, { col1: 'xyz', metric1: 20 }]`
@@ -48,9 +48,9 @@ export default function transformProps(chartProps: ChartProps) {
    * function during development with hot reloading, changes won't
    * be seen until restarting the development server.
    */
-  const { width, height, formData, queryData } = chartProps;
+  const { width, height, formData, queriesData } = chartProps;
   const { boldText, headerFontSize, headerText } = formData;
-  const data = queryData.data as TimeseriesDataRecord[];
+  const data = queriesData[0].data as TimeseriesDataRecord[];
 
   console.log('formData via TransformProps.ts', formData);
 

@@ -15,17 +15,19 @@ export const basic = () => (
     chartType="time-table"
     width={400}
     height={400}
-    queryData={{
-      data: {
-        columns: [
-          'East Asia & Pacific',
-          'Latin America & Caribbean',
-          'Middle East & North Africa',
-          'Sub-Saharan Africa',
-        ],
-        records: data,
+    queriesData={[
+      {
+        data: {
+          columns: [
+            'East Asia & Pacific',
+            'Latin America & Caribbean',
+            'Middle East & North Africa',
+            'Sub-Saharan Africa',
+          ],
+          records: data,
+        },
       },
-    }}
+    ]}
     formData={{
       adhocFilters: [],
       groupby: ['region'],

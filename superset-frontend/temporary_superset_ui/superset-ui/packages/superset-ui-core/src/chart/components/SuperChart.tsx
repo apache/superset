@@ -111,14 +111,12 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
       FallbackComponent,
       onErrorBoundary,
       Wrapper,
-      queryData,
       queriesData,
       ...rest
     } = this.props as PropsWithDefault;
 
     const chartProps = this.createChartProps({
       ...rest,
-      queryData,
       queriesData,
       height,
       width,
@@ -126,14 +124,10 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
 
     let chart;
     // Render the no results component if the query data is null or empty
-    const noResultQuery =
-      !queryData ||
-      !queryData.data ||
-      (Array.isArray(queryData.data) && queryData.data.length === 0);
     const noResultQueries =
       !queriesData ||
       queriesData.every(({ data }) => !data || (Array.isArray(data) && data.length === 0));
-    if (noResultQuery && noResultQueries) {
+    if (noResultQueries) {
       chart = <NoResultsComponent id={id} className={className} height={height} width={width} />;
     } else {
       const chartWithoutWrapper = (

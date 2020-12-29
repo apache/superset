@@ -26,8 +26,8 @@ for more details.
   width={600}
   height={600}
   formData={...}
-  queryData={{
+  queriesData={[{
     data: {...},
-  }}
+  }]}
 />
 ```

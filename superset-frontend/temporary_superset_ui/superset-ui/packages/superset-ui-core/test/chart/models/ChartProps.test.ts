@@ -9,6 +9,7 @@ const RAW_DATASOURCE = {
 };
 
 const QUERY_DATA = { data: {} };
+const QUERIES_DATA = [QUERY_DATA];
 
 describe('ChartProps', () => {
   it('exists', () => {
@@ -20,7 +21,7 @@ describe('ChartProps', () => {
         width: 800,
         height: 600,
         formData: RAW_FORM_DATA,
-        queryData: QUERY_DATA,
+        queriesData: QUERIES_DATA,
       });
       expect(props).toBeInstanceOf(ChartProps);
     });
@@ -30,7 +31,7 @@ describe('ChartProps', () => {
         height: 600,
         datasource: RAW_DATASOURCE,
         formData: RAW_FORM_DATA,
-        queryData: QUERY_DATA,
+        queriesData: QUERIES_DATA,
       });
       expect(props.formData.someField as number).toEqual(1);
       expect(props.datasource.columnFormats).toEqual(RAW_DATASOURCE.column_formats);
@@ -49,14 +50,14 @@ describe('ChartProps', () => {
         height: 600,
         datasource: RAW_DATASOURCE,
         formData: RAW_FORM_DATA,
-        queryData: QUERY_DATA,
+        queriesData: QUERIES_DATA,
       });
       const props2 = selector({
         width: 800,
         height: 600,
         datasource: RAW_DATASOURCE,
         formData: RAW_FORM_DATA,
-        queryData: QUERY_DATA,
+        queriesData: QUERIES_DATA,
       });
       expect(props1).toBe(props2);
     });
@@ -66,21 +67,21 @@ describe('ChartProps', () => {
         height: 600,
         datasource: RAW_DATASOURCE,
         formData: RAW_FORM_DATA,
-        queryData: QUERY_DATA,
+        queriesData: QUERIES_DATA,
       });
       const props2 = selector({
         width: 800,
         height: 600,
         datasource: RAW_DATASOURCE,
         formData: { new_field: 3 },
-        queryData: QUERY_DATA,
+        queriesData: QUERIES_DATA,
       });
       const props3 = selector({
         width: 800,
         height: 600,
         datasource: RAW_DATASOURCE,
         formData: RAW_FORM_DATA,
-        queryData: QUERY_DATA,
+        queriesData: QUERIES_DATA,
       });
       expect(props1).not.toBe(props2);
       expect(props1).not.toBe(props3);
