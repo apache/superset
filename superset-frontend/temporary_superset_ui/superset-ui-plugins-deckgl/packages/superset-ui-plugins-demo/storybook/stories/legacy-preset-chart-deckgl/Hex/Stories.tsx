@@ -13,7 +13,7 @@ export default [
         width={400}
         height={400}
         datasource={dummyDatasource}
-        queryData={payload}
+        queriesData={[payload]}
         formData={{
           datasource: '5__table',
           viz_type: 'deck_hex',
