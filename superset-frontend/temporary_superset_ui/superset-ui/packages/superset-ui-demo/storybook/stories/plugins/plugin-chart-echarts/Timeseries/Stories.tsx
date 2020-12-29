@@ -35,7 +35,7 @@ export const Timeseries = ({ width, height }) => {
       chartType="echarts-timeseries"
       width={width}
       height={height}
-      queryData={{ data: queryData }}
+      queriesData={[{ data: queryData }]}
       formData={{
         contributionMode: undefined,
         forecastEnabled,

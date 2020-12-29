@@ -27,15 +27,15 @@ export interface EventFlowFormData {
 
 export interface EventFlowChartProps extends ChartProps {
   formData: EventFlowFormData;
-  queryData: {
+  queriesData: {
     data: TimeseriesDataRecord[];
-  };
+  }[];
 }
 
 export default function transformProps(chartProps: ChartProps) {
-  const { formData, queryData, width, height } = chartProps as EventFlowChartProps;
+  const { formData, queriesData, width, height } = chartProps as EventFlowChartProps;
   const { allColumnsX, entity, minLeafNodeEventCount } = formData;
-  const { data } = queryData;
+  const { data } = queriesData[0];
 
   const hasData = data && data.length > 0;
   if (hasData) {

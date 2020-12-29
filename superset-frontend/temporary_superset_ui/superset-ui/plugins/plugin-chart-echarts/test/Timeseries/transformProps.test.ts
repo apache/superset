@@ -33,17 +33,19 @@ describe('EchartsTimeseries tranformProps', () => {
     metric: 'sum__num',
     groupby: ['foo', 'bar'],
   };
-  const queryData = {
-    data: [
-      { 'San Francisco': 1, 'New York': 2, __timestamp: 599616000000 },
-      { 'San Francisco': 3, 'New York': 4, __timestamp: 599916000000 },
-    ],
-  };
+  const queriesData = [
+    {
+      data: [
+        { 'San Francisco': 1, 'New York': 2, __timestamp: 599616000000 },
+        { 'San Francisco': 3, 'New York': 4, __timestamp: 599916000000 },
+      ],
+    },
+  ];
   const chartPropsConfig = {
     formData,
     width: 800,
     height: 600,
-    queryData,
+    queriesData,
   };
 
   it('should tranform chart props for viz', () => {
@@ -166,48 +168,50 @@ describe('EchartsTimeseries tranformProps', () => {
         ...formData,
         annotationLayers: [event, interval, timeseries],
       },
-      queryData: {
-        ...queryData,
-        annotation_data: {
-          'My Event': {
-            columns: ['start_dttm', 'end_dttm', 'short_descr', 'long_descr', 'json_metadata'],
-            records: [
-              {
-                start_dttm: 0,
-                end_dttm: 1000,
-                short_descr: '',
-                long_descr: '',
-                json_metadata: null,
-              },
-            ],
-          },
-          'My Interval': {
-            columns: ['start', 'end', 'title'],
-            records: [
-              {
-                start: 2000,
-                end: 3000,
-                title: 'My Title',
-              },
-            ],
-          },
-          'My Timeseries': [
-            {
-              key: 'My Line',
-              values: [
+      queriesData: [
+        {
+          ...queriesData[0],
+          annotation_data: {
+            'My Event': {
+              columns: ['start_dttm', 'end_dttm', 'short_descr', 'long_descr', 'json_metadata'],
+              records: [
                 {
-                  x: 10000,
-                  y: 11000,
-                },
-                {
-                  x: 20000,
-                  y: 21000,
+                  start_dttm: 0,
+                  end_dttm: 1000,
+                  short_descr: '',
+                  long_descr: '',
+                  json_metadata: null,
                 },
               ],
             },
-          ],
+            'My Interval': {
+              columns: ['start', 'end', 'title'],
+              records: [
+                {
+                  start: 2000,
+                  end: 3000,
+                  title: 'My Title',
+                },
+              ],
+            },
+            'My Timeseries': [
+              {
+                key: 'My Line',
+                values: [
+                  {
+                    x: 10000,
+                    y: 11000,
+                  },
+                  {
+                    x: 20000,
+                    y: 21000,
+                  },
+                ],
+              },
+            ],
+          },
         },
-      },
+      ],
     });
     expect(transformProps(chartProps)).toEqual(
       expect.objectContaining({

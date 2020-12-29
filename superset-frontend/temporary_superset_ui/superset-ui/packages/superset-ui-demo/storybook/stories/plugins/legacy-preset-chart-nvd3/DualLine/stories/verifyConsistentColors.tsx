@@ -15,7 +15,7 @@ export const verifyConsistentColors = () => (
       width={400}
       height={400}
       datasource={dummyDatasource}
-      queryData={{ data }}
+      queriesData={[{ data }]}
       formData={{
         colorScheme: 'd3Category10',
         vizType: 'dual_line',
@@ -29,7 +29,7 @@ export const verifyConsistentColors = () => (
       width={400}
       height={400}
       datasource={dummyDatasource}
-      queryData={{ data: reverseData }}
+      queriesData={[{ data: reverseData }]}
       formData={{
         colorScheme: 'd3Category10',
         vizType: 'dual_line',

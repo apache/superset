@@ -35,34 +35,36 @@ describe('BoxPlot tranformProps', () => {
     formData,
     width: 800,
     height: 600,
-    queryData: {
-      data: [
-        {
-          type: 'organic',
-          region: 'Charlotte',
-          'AVG(averageprice)__mean': 1.9405512820512825,
-          'AVG(averageprice)__median': 1.9025,
-          'AVG(averageprice)__max': 2.505,
-          'AVG(averageprice)__min': 1.4775,
-          'AVG(averageprice)__q1': 1.73875,
-          'AVG(averageprice)__q3': 2.105,
-          'AVG(averageprice)__count': 39,
-          'AVG(averageprice)__outliers': [2.735],
-        },
-        {
-          type: 'organic',
-          region: 'Hartford Springfield',
-          'AVG(averageprice)__mean': 2.231141025641026,
-          'AVG(averageprice)__median': 2.265,
-          'AVG(averageprice)__max': 2.595,
-          'AVG(averageprice)__min': 1.862,
-          'AVG(averageprice)__q1': 2.1285,
-          'AVG(averageprice)__q3': 2.32625,
-          'AVG(averageprice)__count': 39,
-          'AVG(averageprice)__outliers': [],
-        },
-      ],
-    },
+    queriesData: [
+      {
+        data: [
+          {
+            type: 'organic',
+            region: 'Charlotte',
+            'AVG(averageprice)__mean': 1.9405512820512825,
+            'AVG(averageprice)__median': 1.9025,
+            'AVG(averageprice)__max': 2.505,
+            'AVG(averageprice)__min': 1.4775,
+            'AVG(averageprice)__q1': 1.73875,
+            'AVG(averageprice)__q3': 2.105,
+            'AVG(averageprice)__count': 39,
+            'AVG(averageprice)__outliers': [2.735],
+          },
+          {
+            type: 'organic',
+            region: 'Hartford Springfield',
+            'AVG(averageprice)__mean': 2.231141025641026,
+            'AVG(averageprice)__median': 2.265,
+            'AVG(averageprice)__max': 2.595,
+            'AVG(averageprice)__min': 1.862,
+            'AVG(averageprice)__q1': 2.1285,
+            'AVG(averageprice)__q3': 2.32625,
+            'AVG(averageprice)__count': 39,
+            'AVG(averageprice)__outliers': [],
+          },
+        ],
+      },
+    ],
   });
 
   it('should tranform chart props for viz', () => {

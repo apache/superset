@@ -17,13 +17,13 @@
  * under the License.
  */
 export default function transformProps(chartProps) {
-  const { width, height, formData, queryData } = chartProps;
+  const { width, height, formData, queriesData } = chartProps;
   const { linearColorScheme, numberFormat, selectCountry } = formData;
 
   return {
     width,
     height,
-    data: queryData.data,
+    data: queriesData[0].data,
     country: selectCountry,
     linearColorScheme,
     numberFormat,

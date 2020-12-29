@@ -13,7 +13,7 @@ interface DataRow {
 }
 
 export default function transformProps(chartProps: ChartProps) {
-  const { width, height, formData, queryData } = chartProps;
+  const { width, height, formData, queriesData } = chartProps;
   const {
     colorScheme,
     maxBubbleSize,
@@ -34,7 +34,7 @@ export default function transformProps(chartProps: ChartProps) {
   const series = formData.series as Key;
   const size = formData.size as Key;
   const entity = formData.entity as Key;
-  const data = queryData.data as DataRow[];
+  const data = queriesData[0].data as DataRow[];
 
   return {
     data: flatMap(

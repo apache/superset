@@ -51,12 +51,12 @@ import {
 } from './transformers';
 
 export default function transformProps(chartProps: ChartProps): EchartsProps {
-  const { width, height, formData, queryData } = chartProps;
+  const { width, height, formData, queriesData } = chartProps;
 
   const {
     annotation_data: annotationData = {},
     data = [],
-  }: { annotation_data?: AnnotationData; data?: TimeseriesDataRecord[] } = queryData;
+  }: { annotation_data?: AnnotationData; data?: TimeseriesDataRecord[] } = queriesData[0];
 
   const {
     annotationLayers,
