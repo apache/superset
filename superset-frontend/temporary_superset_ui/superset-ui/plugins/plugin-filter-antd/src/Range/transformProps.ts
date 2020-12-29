@@ -19,9 +19,9 @@
 import { ChartProps, DataRecord } from '@superset-ui/core';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { formData, height, hooks, queryData, width } = chartProps;
+  const { formData, height, hooks, queriesData, width } = chartProps;
   const { setExtraFormData } = hooks;
-  const data = queryData.data as DataRecord[];
+  const data = queriesData[0].data as DataRecord[];
 
   return {
     data,

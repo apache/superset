@@ -3,8 +3,8 @@ import { ChartProps } from '@superset-ui/core';
 import { HookProps, FormDataProps } from '../components/Line/Line';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { width, height, queryData } = chartProps;
-  const { data } = queryData;
+  const { width, height, queriesData } = chartProps;
+  const { data } = queriesData[0];
   const formData = chartProps.formData as FormDataProps;
   const hooks = chartProps.hooks as HookProps;
 

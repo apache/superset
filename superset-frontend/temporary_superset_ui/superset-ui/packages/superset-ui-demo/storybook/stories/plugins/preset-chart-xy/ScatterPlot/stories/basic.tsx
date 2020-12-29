@@ -13,7 +13,7 @@ export default () => (
     width={400}
     height={400}
     datasource={dummyDatasource}
-    queryData={{ data }}
+    queriesData={[{ data }]}
     formData={{
       encoding: {
         x: {

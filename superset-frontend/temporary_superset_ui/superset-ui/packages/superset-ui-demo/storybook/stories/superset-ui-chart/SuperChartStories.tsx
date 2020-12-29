@@ -27,7 +27,7 @@ export const basic = () => {
       chartType={ChartKeys.DILIGENT}
       width={width}
       height={height}
-      queryData={DEFAULT_QUERY_DATA}
+      queriesData={[DEFAULT_QUERY_DATA]}
       formData={{ hi: 1 }}
     />
   );
@@ -41,7 +41,7 @@ export const container50pct = () => {
       chartType={ChartKeys.DILIGENT}
       width={width}
       height={height}
-      queryData={DEFAULT_QUERY_DATA}
+      queriesData={[DEFAULT_QUERY_DATA]}
       formData={{ hi: 1 }}
     />
   );
@@ -56,7 +56,7 @@ export const Resizable = () => {
           chartType={ChartKeys.DILIGENT}
           width={size.width}
           height={size.height}
-          queryData={DEFAULT_QUERY_DATA}
+          queriesData={[DEFAULT_QUERY_DATA]}
         />
       )}
     </ResizableChartDemo>
@@ -72,7 +72,7 @@ export const fixedWidth100height = () => {
       chartType={ChartKeys.DILIGENT}
       height={height}
       width={width}
-      queryData={DEFAULT_QUERY_DATA}
+      queriesData={[DEFAULT_QUERY_DATA]}
     />
   );
 };
@@ -87,7 +87,7 @@ export const fixedHeight100Width = () => {
       chartType={ChartKeys.DILIGENT}
       height={height}
       width={width}
-      queryData={DEFAULT_QUERY_DATA}
+      queriesData={[DEFAULT_QUERY_DATA]}
     />
   );
 };
@@ -102,10 +102,11 @@ export const withErrorBoundar = () => {
       chartType={ChartKeys.BUGGY}
       height={height}
       width={width}
-      queryData={DEFAULT_QUERY_DATA}
+      queriesData={[DEFAULT_QUERY_DATA]}
     />
   );
 };
+
 export const withWrapper = () => {
   const width = text('Vis width', '100%');
   const height = text('Vis height', '100%');
@@ -115,7 +116,7 @@ export const withWrapper = () => {
       chartType={ChartKeys.DILIGENT}
       width={width}
       height={height}
-      queryData={DEFAULT_QUERY_DATA}
+      queriesData={[DEFAULT_QUERY_DATA]}
       Wrapper={({ children }) => (
         <div>
           <div style={{ margin: 10, position: 'fixed' }}>With wrapper!</div>

@@ -29,7 +29,7 @@ const processData = getProcessDataFunction();
 const NOOP = () => {};
 
 export default function transformProps(chartProps: ChartProps) {
-  const { height, datasource, initialValues, formData, hooks, queryData, width } = chartProps;
+  const { height, datasource, initialValues, formData, hooks, queriesData, width } = chartProps;
 
   const { onAddFilter = NOOP } = hooks;
 
@@ -45,7 +45,7 @@ export default function transformProps(chartProps: ChartProps) {
     tableTimestampFormat,
     timeseriesLimitMetric,
   } = formData;
-  const { records, columns } = queryData.data;
+  const { records, columns } = queriesData[0].data;
 
   const metrics = processMetrics({
     metrics: rawMetrics,

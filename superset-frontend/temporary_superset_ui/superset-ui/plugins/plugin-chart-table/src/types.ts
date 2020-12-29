@@ -25,6 +25,7 @@ import {
   DataRecord,
   DataRecordValue,
   DataRecordFilters,
+  QueryData,
 } from '@superset-ui/core';
 
 export enum DataType {
@@ -67,9 +68,9 @@ export interface TableChartFormData {
 
 export interface TableChartProps<D extends DataRecord = DataRecord> extends ChartProps {
   formData: TableChartFormData;
-  queryData: ChartProps['queryData'] & {
+  queriesData: (QueryData & {
     data?: TableChartData<D>;
-  };
+  })[];
 }
 
 export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {

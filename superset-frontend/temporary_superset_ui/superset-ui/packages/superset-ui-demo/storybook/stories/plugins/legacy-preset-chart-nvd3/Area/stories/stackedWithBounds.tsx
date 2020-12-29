@@ -9,7 +9,7 @@ export const stackedWithYAxisBounds = () => (
     datasource={dummyDatasource}
     width={400}
     height={400}
-    queryData={{ data }}
+    queriesData={[{ data }]}
     formData={{
       bottomMargin: 'auto',
       colorCcheme: 'd3Category10',
@@ -44,7 +44,7 @@ export const stackedWithYAxisBoundsMinOnly = () => (
     datasource={dummyDatasource}
     width={400}
     height={400}
-    queryData={{ data }}
+    queriesData={[{ data }]}
     formData={{
       bottomMargin: 'auto',
       colorCcheme: 'd3Category10',

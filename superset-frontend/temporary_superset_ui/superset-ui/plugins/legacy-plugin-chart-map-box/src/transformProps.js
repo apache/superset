@@ -22,9 +22,9 @@ import { DEFAULT_POINT_RADIUS, DEFAULT_MAX_ZOOM } from './MapBox';
 const NOOP = () => {};
 
 export default function transformProps(chartProps) {
-  const { width, height, formData, hooks, queryData } = chartProps;
+  const { width, height, formData, hooks, queriesData } = chartProps;
   const { onError = NOOP, setControlValue = NOOP } = hooks;
-  const { bounds, geoJSON, hasCustomMetric, mapboxApiKey } = queryData.data;
+  const { bounds, geoJSON, hasCustomMetric, mapboxApiKey } = queriesData[0].data;
   const {
     clusteringRadius,
     globalOpacity,

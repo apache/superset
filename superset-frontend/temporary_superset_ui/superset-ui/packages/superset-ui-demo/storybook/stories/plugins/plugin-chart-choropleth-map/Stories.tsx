@@ -24,7 +24,7 @@ export const WorldMap = () => {
       chartType="choropleth-map"
       width={800}
       height={450}
-      queryData={{ data: useFakeMapData(map) }}
+      queriesData={[{ data: useFakeMapData(map) }]}
       formData={{
         map,
         encoding: {
@@ -50,7 +50,7 @@ export const USA = () => (
     chartType="choropleth-map"
     width={800}
     height={450}
-    queryData={{ data: useFakeMapData('usa') }}
+    queriesData={[{ data: useFakeMapData('usa') }]}
     formData={{
       map: 'usa',
       encoding: {
@@ -82,7 +82,7 @@ export const CategoricalColor = () => (
     chartType="choropleth-map"
     width={800}
     height={450}
-    queryData={{ data: useFakeMapData('usa') }}
+    queriesData={[{ data: useFakeMapData('usa') }]}
     formData={{
       map: 'usa',
       encoding: {

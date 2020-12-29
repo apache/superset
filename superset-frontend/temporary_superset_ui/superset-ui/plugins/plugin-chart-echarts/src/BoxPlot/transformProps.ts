@@ -29,8 +29,8 @@ import { extractGroupbyLabel } from '../utils/series';
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
 
 export default function transformProps(chartProps: ChartProps): EchartsProps {
-  const { width, height, formData, queryData } = chartProps;
-  const data: DataRecord[] = queryData.data || [];
+  const { width, height, formData, queriesData } = chartProps;
+  const data: DataRecord[] = queriesData[0].data || [];
   const {
     colorScheme,
     groupby = [],

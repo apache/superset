@@ -5,11 +5,11 @@ import { HookProps } from '../components/BoxPlot/BoxPlot';
 import { BoxPlotEncoding } from '../components/BoxPlot/Encoder';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { width, height, formData, queryData } = chartProps;
+  const { width, height, formData, queriesData } = chartProps;
   const { margin, theme } = formData;
   const encoding = formData.encoding as BoxPlotEncoding;
 
-  const data = (queryData.data as RawBoxPlotDataRow[]).map(({ label, values }) => ({
+  const data = (queriesData[0].data as RawBoxPlotDataRow[]).map(({ label, values }) => ({
     label,
     min: values.whisker_low,
     max: values.whisker_high,

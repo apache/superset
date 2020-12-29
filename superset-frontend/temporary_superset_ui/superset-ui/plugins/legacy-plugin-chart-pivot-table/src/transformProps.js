@@ -17,13 +17,13 @@
  * under the License.
  */
 export default function transformProps(chartProps) {
-  const { height, datasource, formData, queryData } = chartProps;
+  const { height, datasource, formData, queriesData } = chartProps;
   const { timeGrainSqla, groupby, numberFormat, dateFormat } = formData;
   const { columnFormats, verboseMap } = datasource;
 
   return {
     columnFormats,
-    data: queryData.data,
+    data: queriesData[0].data,
     dateFormat,
     granularity: timeGrainSqla,
     height,

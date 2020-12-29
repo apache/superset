@@ -9,7 +9,7 @@ export const barWithValues = () => (
     width={400}
     height={400}
     datasource={dummyDatasource}
-    queryData={{ data }}
+    queriesData={[{ data }]}
     formData={{
       bottomMargin: 'auto',
       colorScheme: 'd3Category10',

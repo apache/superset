@@ -17,7 +17,7 @@ export const basic = () => (
     chartType="country-map"
     width={400}
     height={400}
-    queryData={{ data }}
+    queriesData={[{ data }]}
     formData={{
       linearColorScheme: 'schemeRdYlBu',
       numberFormat: '.3s',

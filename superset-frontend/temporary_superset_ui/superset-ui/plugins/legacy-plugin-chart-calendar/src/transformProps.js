@@ -17,7 +17,7 @@
  * under the License.
  */
 export default function transformProps(chartProps) {
-  const { height, formData, queryData, datasource } = chartProps;
+  const { height, formData, queriesData, datasource } = chartProps;
   const {
     cellPadding,
     cellRadius,
@@ -37,7 +37,7 @@ export default function transformProps(chartProps) {
 
   return {
     height,
-    data: queryData.data,
+    data: queriesData[0].data,
     cellPadding,
     cellRadius,
     cellSize,

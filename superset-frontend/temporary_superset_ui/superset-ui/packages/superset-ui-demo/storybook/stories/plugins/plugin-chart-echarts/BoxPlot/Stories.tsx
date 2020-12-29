@@ -21,7 +21,7 @@ export const BoxPlot = ({ width, height }) => {
       chartType="echarts-boxplot"
       width={width}
       height={height}
-      queryData={{ data }}
+      queriesData={[{ data }]}
       formData={{
         columns: [],
         groupby: ['type', 'region'],

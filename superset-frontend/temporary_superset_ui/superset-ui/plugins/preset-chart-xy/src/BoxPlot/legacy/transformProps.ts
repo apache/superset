@@ -27,17 +27,17 @@ export type LegacyBoxPlotFormData = {
 
 export type LegacyBoxPlotChartProps = ChartProps & {
   formData: LegacyBoxPlotFormData;
-  queryData: QueryData & {
+  queriesData: (QueryData & {
     data?: RawBoxPlotDataRow[];
-  };
+  })[];
 };
 
 export default function transformProps(chartProps: LegacyBoxPlotChartProps) {
-  const { width, height, datasource, formData, queryData } = chartProps;
+  const { width, height, datasource, formData, queriesData } = chartProps;
   const { verboseMap = {} } = datasource;
   const { colorScheme, groupby = [], metrics = [] } = formData;
 
-  const data = (queryData.data || []).map(({ label, values }) => ({
+  const data = (queriesData[0].data || []).map(({ label, values }) => ({
     label,
     min: values.whisker_low,
     max: values.whisker_high,

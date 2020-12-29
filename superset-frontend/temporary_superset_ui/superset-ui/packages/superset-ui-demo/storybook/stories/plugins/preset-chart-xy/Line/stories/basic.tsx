@@ -47,7 +47,7 @@ export default () => (
       },
     }}
     height={400}
-    queryData={{ data }}
+    queriesData={[{ data }]}
     width={400}
   />
 );

@@ -17,7 +17,7 @@
  * under the License.
  */
 export default function transformProps(chartProps) {
-  const { width, height, formData, queryData } = chartProps;
+  const { width, height, formData, queriesData } = chartProps;
   const { colorScheme, treemapRatio } = formData;
   let { numberFormat } = formData;
 
@@ -32,7 +32,7 @@ export default function transformProps(chartProps) {
   return {
     width,
     height,
-    data: queryData.data,
+    data: queriesData[0].data,
     colorScheme,
     numberFormat,
     treemapRatio,

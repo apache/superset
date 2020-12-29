@@ -23,7 +23,7 @@ export const Select = ({ width, height }) => {
       chartType="filter_select"
       width={width}
       height={height}
-      queryData={{ data }}
+      queriesData={[{ data }]}
       formData={{
         adhoc_filters: [],
         extra_filters: [],

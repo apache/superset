@@ -33,12 +33,14 @@ export const basic = () => (
       yAxisFormat: '.3s',
       yscaleInterval: '1',
     }}
-    queryData={{
-      data: {
-        records: data,
-        extents: [0.1, 24.9],
+    queriesData={[
+      {
+        data: {
+          records: data,
+          extents: [0.1, 24.9],
+        },
       },
-    }}
+    ]}
   />
 );
 
@@ -66,20 +68,22 @@ export const withNullData = () => (
       yAxisFormat: '.3s',
       yscaleInterval: '1',
     }}
-    queryData={{
-      data: {
-        records: [
-          ...data,
-          {
-            x: null,
-            y: 'Electricity and heat',
-            v: 25.9,
-            perc: 0.43,
-            rank: 1.0,
-          },
-        ],
-        extents: [0.1, 24.9],
+    queriesData={[
+      {
+        data: {
+          records: [
+            ...data,
+            {
+              x: null,
+              y: 'Electricity and heat',
+              v: 25.9,
+              perc: 0.43,
+              rank: 1.0,
+            },
+          ],
+          extents: [0.1, 24.9],
+        },
       },
-    }}
+    ]}
   />
 );

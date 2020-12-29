@@ -14,7 +14,7 @@ export const basic = () => (
     chartType="horizon"
     width={400}
     height={400}
-    queryData={{ data }}
+    queriesData={[{ data }]}
     formData={{
       horizonColorScale: 'series',
       seriesHeight: '25',

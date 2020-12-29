@@ -17,7 +17,7 @@
  * under the License.
  */
 export default function transformProps(chartProps) {
-  const { width, height, datasource, formData, queryData } = chartProps;
+  const { width, height, datasource, formData, queriesData } = chartProps;
   const {
     colorScheme,
     dateTimeFormat,
@@ -36,7 +36,7 @@ export default function transformProps(chartProps) {
   return {
     width,
     height,
-    data: queryData.data,
+    data: queriesData[0].data,
     colorScheme,
     dateTimeFormat,
     equalDateSize,

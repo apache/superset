@@ -35,7 +35,7 @@ const grabD3Format = (datasource, targetMetric) => {
 };
 
 export default function transformProps(chartProps) {
-  const { width, height, annotationData, datasource, formData, hooks, queryData } = chartProps;
+  const { width, height, annotationData, datasource, formData, hooks, queriesData } = chartProps;
 
   const { onAddFilter = NOOP, onError = NOOP } = hooks;
 
@@ -95,7 +95,7 @@ export default function transformProps(chartProps) {
     yAxis2Format,
   } = formData;
 
-  const rawData = queryData.data || [];
+  const rawData = queriesData[0].data || [];
   const data = Array.isArray(rawData)
     ? rawData.map(row => ({
         ...row,

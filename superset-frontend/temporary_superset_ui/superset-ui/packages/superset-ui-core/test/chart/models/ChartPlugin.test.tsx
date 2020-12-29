@@ -107,7 +107,7 @@ describe('ChartPlugin', () => {
         formData: FORM_DATA,
         width: 400,
         height: 400,
-        queryData: {},
+        queriesData: [{}],
       });
       it('defaults to identity function', () => {
         const plugin = new ChartPlugin({

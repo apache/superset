@@ -17,8 +17,12 @@ function createPromise<T>(input: T) {
   return Promise.resolve(input);
 }
 
+function createArrayPromise<T>(input: T) {
+  return Promise.resolve([input]);
+}
+
 const mockLoadDatasource = jest.fn<Promise<unknown>, unknown[]>(createPromise);
-const mockLoadQueryData = jest.fn<Promise<unknown>, unknown[]>(createPromise);
+const mockLoadQueryData = jest.fn<Promise<unknown>, unknown[]>(createArrayPromise);
 
 // ChartClient is now a mock
 jest.mock('@superset-ui/core/src/chart/clients/ChartClient', () =>
@@ -202,7 +206,7 @@ describe('ChartDataProvider', () => {
             payload: {
               formData: props.formData,
               datasource: props.formData.datasource,
-              queryData: props.formData,
+              queriesData: [props.formData],
             },
           });
           done();
@@ -258,7 +262,7 @@ describe('ChartDataProvider', () => {
           expect(onLoaded.mock.calls[0][0]).toEqual({
             formData: props.formData,
             datasource: props.formData.datasource,
-            queryData: props.formData,
+            queriesData: [props.formData],
           });
           done();
         }, 0);

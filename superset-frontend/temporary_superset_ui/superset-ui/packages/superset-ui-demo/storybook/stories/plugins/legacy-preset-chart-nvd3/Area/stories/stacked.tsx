@@ -10,7 +10,7 @@ export const stacked = () => (
     datasource={dummyDatasource}
     width={400}
     height={400}
-    queryData={{ data }}
+    queriesData={[{ data }]}
     formData={{
       bottomMargin: 'auto',
       colorScheme: 'd3Category10',

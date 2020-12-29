@@ -47,10 +47,7 @@ export interface ChartPropsConfig {
   height?: number;
   /** Programmatic overrides such as event handlers, renderers */
   hooks?: Hooks;
-  /** Formerly called "payload". This property going to be deprecated because
-   * contains only first item in response data array (use `queriesData` instead) */
-  queryData?: QueryData;
-  /** Formerly called "payload" */
+  /** The data returned for all queries objects in the request */
   queriesData?: QueryData[];
   /** Chart width */
   width?: number;
@@ -78,8 +75,6 @@ export default class ChartProps {
 
   hooks: Hooks;
 
-  queryData: QueryData;
-
   queriesData: QueryData[];
 
   width: number;
@@ -91,7 +86,6 @@ export default class ChartProps {
       formData = {},
       hooks = {},
       initialValues = {},
-      queryData = {},
       queriesData = [],
       width = DEFAULT_WIDTH,
       height = DEFAULT_HEIGHT,
@@ -105,7 +99,6 @@ export default class ChartProps {
     this.rawFormData = formData;
     this.hooks = hooks;
     this.initialValues = initialValues;
-    this.queryData = queryData;
     this.queriesData = queriesData;
   }
 }
@@ -119,20 +112,9 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
     input => input.height,
     input => input.hooks,
     input => input.initialValues,
-    input => input.queryData,
     input => input.queriesData,
     input => input.width,
-    (
-      annotationData,
-      datasource,
-      formData,
-      height,
-      hooks,
-      initialValues,
-      queryData,
-      queriesData,
-      width,
-    ) =>
+    (annotationData, datasource, formData, height, hooks, initialValues, queriesData, width) =>
       new ChartProps({
         annotationData,
         datasource,
@@ -140,7 +122,6 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         height,
         hooks,
         initialValues,
-        queryData,
         queriesData,
         width,
       }),
