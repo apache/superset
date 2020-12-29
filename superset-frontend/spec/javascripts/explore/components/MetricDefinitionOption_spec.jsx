@@ -33,7 +33,9 @@ describe('MetricDefinitionOption', () => {
   }
 
   it('renders a MetricOption given a saved metric', () => {
-    const wrapper = setup({ option: { metric_name: 'a_saved_metric' } });
+    const wrapper = setup({
+      option: { metric_name: 'a_saved_metric', expression: 'COUNT(*)' },
+    });
     expect(wrapper.find(MetricOption)).toExist();
   });
 

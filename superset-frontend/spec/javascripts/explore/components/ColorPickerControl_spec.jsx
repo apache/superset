@@ -34,7 +34,7 @@ const defaultProps = {
 describe('ColorPickerControl', () => {
   let wrapper;
   let inst;
-  beforeEach(() => {
+  beforeAll(() => {
     getCategoricalSchemeRegistry()
       .registerValue(
         'test',

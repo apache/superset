@@ -55,6 +55,7 @@ describe('SqlEditor', () => {
     dataPreviewQueries: [],
     defaultQueryLimit: 1000,
     maxRow: 100000,
+    displayLimit: 100,
   };
 
   const buildWrapper = (props = {}) =>

@@ -39,6 +39,7 @@ const datasource = mockDatasource['7__table'];
 
 const SAVE_ENDPOINT = 'glob:*/api/v1/dataset/7';
 const SAVE_PAYLOAD = { new: 'data' };
+const SAVE_DATASOURCE_ENDPOINT = 'glob:*/datasource/save/';
 
 const mockedProps = {
   datasource,
@@ -94,6 +95,7 @@ describe('DatasourceModal', () => {
 
   it('saves on confirm', async () => {
     const callsP = fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
+    fetchMock.post(SAVE_DATASOURCE_ENDPOINT, {});
     act(() => {
       wrapper
         .find('button[data-test="datasource-modal-save"]')

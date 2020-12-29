@@ -45,7 +45,7 @@ describe('datasourcepanel', () => {
         datasource,
       },
     },
-    actions: null,
+    actions: {},
   };
   it('should render', () => {
     const { container } = render(
