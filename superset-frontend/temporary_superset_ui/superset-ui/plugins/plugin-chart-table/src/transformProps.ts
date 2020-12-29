@@ -97,7 +97,7 @@ const isEqualColumns = <T extends TableChartProps[]>(propsA: T, propsB: T) => {
     a.formData.tableTimestampFormat === b.formData.tableTimestampFormat &&
     a.formData.timeGrainSqla === b.formData.timeGrainSqla &&
     isEqualArray(a.formData.metrics, b.formData.metrics) &&
-    isEqualArray(a.queryData?.data?.columns, b.queryData?.data?.columns)
+    isEqualArray(a.queriesData?.[0]?.data?.columns, b.queriesData?.[0]?.data?.columns)
   );
 };
 
@@ -110,8 +110,10 @@ const processColumns = memoizeOne(function processColumns(props: TableChartProps
       metrics: metrics_,
       percentMetrics: percentMetrics_,
     },
-    queryData: { data: { records, columns: columns_ } = {} } = {},
+    queriesData,
   } = props;
+  // @ts-ignore
+  const { data: { records, columns: columns_ } = {} } = queriesData[0] || {};
   // convert `metrics` and `percentMetrics` to the key names in `data.records`
   const metrics = (metrics_ ?? []).map(getMetricIdentifier);
   const percentMetrics = (percentMetrics_ ?? [])
@@ -196,7 +198,7 @@ export default function transformProps(chartProps: TableChartProps): TableChartT
     height,
     width,
     formData,
-    queryData,
+    queriesData,
     initialValues: filters = {},
     hooks: { onAddFilter: onChangeFilter },
   } = chartProps;
@@ -212,7 +214,7 @@ export default function transformProps(chartProps: TableChartProps): TableChartT
   } = formData;
 
   const [metrics, percentMetrics, columns] = processColumns(chartProps);
-  const data = processDataRecords(queryData?.data?.records, columns);
+  const data = processDataRecords(queriesData?.[0]?.data?.records, columns);
 
   return {
     height,

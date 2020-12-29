@@ -23,6 +23,7 @@ import {
   getNumberFormatter,
   NumberFormats,
   ChartProps,
+  QueryData,
 } from '@superset-ui/core';
 
 const TIME_COLUMN = '__timestamp';
@@ -51,13 +52,13 @@ export type BigNumberFormData = {
 
 export type BignumberChartProps = ChartProps & {
   formData: BigNumberFormData;
-  queryData: ChartProps['queryData'] & {
+  queriesData: (QueryData & {
     data?: BigNumberDatum[];
-  };
+  })[];
 };
 
 export default function transformProps(chartProps: BignumberChartProps) {
-  const { width, height, queryData, formData } = chartProps;
+  const { width, height, queriesData, formData } = chartProps;
   const {
     colorPicker,
     compareLag: compareLag_,
@@ -73,7 +74,7 @@ export default function transformProps(chartProps: BignumberChartProps) {
     timeRangeFixed = false,
   } = formData;
   let { yAxisFormat } = formData;
-  const { data = [], from_dttm: fromDatetime, to_dttm: toDatetime } = queryData;
+  const { data = [], from_dttm: fromDatetime, to_dttm: toDatetime } = queriesData[0];
   const metricName = typeof metric === 'string' ? metric : metric.label;
   const compareLag = Number(compareLag_) || 0;
   const supportTrendLine = vizType === 'big_number';

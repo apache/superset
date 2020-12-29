@@ -6,16 +6,15 @@ This plugin provides native filter plugins based on AntD.
 
 ### Usage
 
-Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to lookup this chart throughout the app.
+Configure `key`, which can be any `string`, and register the plugin. This `key` will be used to
+lookup this chart throughout the app.
 
 Below is an example of how to use the Select filter plugin.
 
 ```js
 import { AntdFilterSelectPlugin } from '@superset-ui/plugin-filter-antd';
 
-new AntdFilterSelectPlugin()
-  .configure({ key: 'plugin-filter-select' })
-  .register();
+new AntdFilterSelectPlugin().configure({ key: 'plugin-filter-select' }).register();
 ```
 
 Then use it via `SuperChart`.
@@ -26,10 +25,10 @@ Then use it via `SuperChart`.
   width={600}
   height={600}
   formData={...}
-  queryData={{
+  queriesData={[{
     data: {...},
-    // this hook gets called 
+    // this hook gets called
     hooks: { setExtraFormData: extraFormData => console.log(extraFormData) },
-  }}
+  }]}
 />
 ```

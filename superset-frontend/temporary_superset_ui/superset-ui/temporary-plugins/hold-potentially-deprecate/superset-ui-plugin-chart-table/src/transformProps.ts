@@ -89,7 +89,7 @@ function transformData(data: PlainObject[], formData: PlainObject) {
 const NOOP = () => {};
 
 export default function transformProps(chartProps: ChartProps) {
-  const { height, width, datasource, initialValues, formData, hooks, queryData } = chartProps;
+  const { height, width, datasource, initialValues, formData, hooks, queriesData } = chartProps;
 
   const { onAddFilter = NOOP } = hooks;
 
@@ -105,7 +105,7 @@ export default function transformProps(chartProps: ChartProps) {
     tableTimestampFormat,
     timeseriesLimitMetric,
   } = formData;
-  const { records, columns } = transformData(queryData.data, formData);
+  const { records, columns } = transformData(queriesData[0].data, formData);
 
   const metrics = processMetrics({
     metrics: rawMetrics,

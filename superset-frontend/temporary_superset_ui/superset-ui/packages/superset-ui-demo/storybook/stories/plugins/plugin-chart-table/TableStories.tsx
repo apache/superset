@@ -40,18 +40,20 @@ function loadData(
   props: TableChartProps,
   { pageLength = 50, rows = 1042, cols = 8, alignPn = false, showCellBars = true },
 ): TableChartProps {
-  if (!props.queryData) return props;
-  const records = props.queryData?.data?.records || [];
-  const columns = props.queryData?.data?.columns || [];
+  if (!props.queriesData || !props.queriesData[0]) return props;
+  const records = props.queriesData?.[0].data?.records || [];
+  const columns = props.queriesData?.[0].data?.columns || [];
   return {
     ...props,
-    queryData: {
-      ...props.queryData,
-      data: {
-        records: expandRecords(records, rows),
-        columns: expandColumns(columns, cols),
+    queriesData: [
+      {
+        ...props.queriesData[0],
+        data: {
+          records: expandRecords(records, rows),
+          columns: expandColumns(columns, cols),
+        },
       },
-    },
+    ],
     formData: {
       ...props.formData,
       alignPn,
@@ -70,7 +72,7 @@ export const basic = ({ width, height }) => (
     }}
     width={width}
     height={height}
-    queryData={{ data: basicData }}
+    queriesData={[{ data: basicData }]}
     formData={basicFormData}
   />
 );

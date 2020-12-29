@@ -14,7 +14,7 @@ export const basic = () => (
     chartType="parallel-coordinates"
     width={400}
     height={400}
-    queryData={{ data }}
+    queriesData={[{ data }]}
     formData={{
       includeSeries: false,
       linearColorScheme: 'schemeRdYlBu',

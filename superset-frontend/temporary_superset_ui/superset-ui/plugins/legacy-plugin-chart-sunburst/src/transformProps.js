@@ -17,13 +17,13 @@
  * under the License.
  */
 export default function transformProps(chartProps) {
-  const { width, height, formData, queryData, datasource } = chartProps;
+  const { width, height, formData, queriesData, datasource } = chartProps;
   const { colorScheme, linearColorScheme, metric, secondaryMetric } = formData;
 
   const returnProps = {
     width,
     height,
-    data: queryData.data,
+    data: queriesData[0].data,
     colorScheme,
     linearColorScheme,
     metrics: [metric, secondaryMetric],

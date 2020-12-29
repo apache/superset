@@ -100,10 +100,12 @@ describe('ChartClient', () => {
       getChartBuildQueryRegistry().registerValue('word_cloud', (formData: QueryFormData) =>
         buildQueryContext(formData),
       );
-      fetchMock.post('glob:*/api/v1/chart/data', {
-        field1: 'abc',
-        field2: 'def',
-      });
+      fetchMock.post('glob:*/api/v1/chart/data', [
+        {
+          field1: 'abc',
+          field2: 'def',
+        },
+      ]);
 
       return expect(
         chartClient.loadQueryData({
@@ -111,10 +113,12 @@ describe('ChartClient', () => {
           viz_type: 'word_cloud',
           datasource: '1__table',
         }),
-      ).resolves.toEqual({
-        field1: 'abc',
-        field2: 'def',
-      });
+      ).resolves.toEqual([
+        {
+          field1: 'abc',
+          field2: 'def',
+        },
+      ]);
     });
     it('returns a promise that rejects for unknown chart type', () =>
       expect(
@@ -151,10 +155,12 @@ describe('ChartClient', () => {
           viz_type: 'word_cloud_legacy',
           datasource: '1__table',
         }),
-      ).resolves.toEqual({
-        field1: 'abc',
-        field2: 'def',
-      });
+      ).resolves.toEqual([
+        {
+          field1: 'abc',
+          field2: 'def',
+        },
+      ]);
     });
   });
 
@@ -259,11 +265,13 @@ describe('ChartClient', () => {
           datasource: '1__table',
           color: 'living-coral',
         },
-        queryData: {
-          lorem: 'ipsum',
-          dolor: 'sit',
-          amet: true,
-        },
+        queriesData: [
+          {
+            lorem: 'ipsum',
+            dolor: 'sit',
+            amet: true,
+          },
+        ],
       });
     });
   });

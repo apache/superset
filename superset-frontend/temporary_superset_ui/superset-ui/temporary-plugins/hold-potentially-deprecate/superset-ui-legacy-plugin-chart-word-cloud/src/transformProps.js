@@ -28,13 +28,13 @@ function transformData(data, formData) {
 }
 
 export default function transformProps(chartProps) {
-  const { width, height, formData, queryData } = chartProps;
+  const { width, height, formData, queriesData } = chartProps;
   const { colorScheme, rotation, sizeTo, sizeFrom } = formData;
 
   return {
     width,
     height,
-    data: transformData(queryData.data, formData),
+    data: transformData(queriesData[0].data, formData),
     colorScheme,
     rotation,
     sizeRange: [sizeFrom, sizeTo],

@@ -20,7 +20,7 @@ export const basic = () => (
     chartType="event-flow"
     width={400}
     height={400}
-    queryData={{ data }}
+    queriesData={[{ data }]}
     formData={{
       allColumnsX: 'eventName',
       entity: 'userId',

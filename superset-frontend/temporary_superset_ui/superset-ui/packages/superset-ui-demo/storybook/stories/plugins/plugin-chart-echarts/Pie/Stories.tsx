@@ -21,7 +21,7 @@ export const WeekdayPie = ({ width, height }) => {
       chartType="echarts-pie"
       width={width}
       height={height}
-      queryData={{ data: weekday }}
+      queriesData={[{ data: weekday }]}
       formData={{
         colorScheme: 'supersetColors',
         groupby: ['Day'],
@@ -50,7 +50,7 @@ export const PopulationPie = ({ width, height }) => {
       chartType="echarts-pie"
       width={width}
       height={height}
-      queryData={{ data: population }}
+      queriesData={[{ data: population }]}
       formData={{
         colorScheme: 'supersetColors',
         groupby: ['Country'],

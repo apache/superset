@@ -31,7 +31,7 @@ const propTypes = {
   annotationData: PropTypes.object,
   datasource: PropTypes.object,
   formData: PropTypes.object,
-  queryData: PropTypes.object,
+  queriesData: PropTypes.arrayOf(PropTypes.object),
   rawFormData: PropTypes.object,
   hooks: PropTypes.shape({
     onAddFilter: PropTypes.func,
@@ -85,8 +85,8 @@ class LineMulti extends React.Component {
   }
 
   loadData(props) {
-    const { formData, queryData } = props;
-    const { slices } = queryData.data;
+    const { formData, queriesData } = props;
+    const { slices } = queriesData[0].data;
     const {
       extraFilters,
       filters,
@@ -123,7 +123,7 @@ class LineMulti extends React.Component {
     });
 
     Promise.all(promises).then(data => {
-      const queryDataCopy = { ...queryData };
+      const queryDataCopy = { ...queriesData[0] };
       queryDataCopy.data = [].concat(...data);
 
       // add null values at the edges to fix multiChart bug when series with
