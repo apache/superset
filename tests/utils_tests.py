@@ -24,8 +24,10 @@ import json
 import os
 import re
 from unittest.mock import Mock, patch
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import numpy
+import pytest
 from flask import Flask, g
 import marshmallow
 from sqlalchemy.exc import ArgumentError
@@ -1229,6 +1231,7 @@ class TestUtils(SupersetTestCase):
 
             self.assertEqual(slc, None)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_log_this(self) -> None:
         # TODO: Add additional scenarios.
         self.login(username="admin")

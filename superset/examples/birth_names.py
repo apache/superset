@@ -108,11 +108,24 @@ def load_birth_names(
         print(f"Creating table [{tbl_name}] reference")
         obj = TBL(table_name=tbl_name)
         db.session.add(obj)
-    obj.main_dttm_col = "ds"
+
+    _set_table_metadata(obj, database)
+    _add_table_metrics(obj)
+
+    db.session.commit()
+
+    slices, _ = create_slices(obj)
+    create_dashboard(slices)
+
+
+def _set_table_metadata(obj: "BaseDatasource", database: "Database") -> None:
+    obj.main_dttm_col = "ds"  # type: ignore
     obj.database = database
     obj.filter_select_enabled = True
     obj.fetch_metadata()
 
+
+def _add_table_metrics(obj: "BaseDatasource") -> None:
     if not any(col.column_name == "num_california" for col in obj.columns):
         col_state = str(column("state").compile(db.engine))
         col_num = str(column("num").compile(db.engine))
@@ -126,11 +139,6 @@ def load_birth_names(
     if not any(col.metric_name == "sum__num" for col in obj.metrics):
         col = str(column("num").compile(db.engine))
         obj.metrics.append(SqlMetric(metric_name="sum__num", expression=f"SUM({col})"))
-
-    db.session.commit()
-
-    slices, _ = create_slices(obj)
-    create_dashboard(slices)
 
 
 def create_slices(tbl: BaseDatasource) -> Tuple[List[Slice], List[Slice]]:
@@ -161,7 +169,7 @@ def create_slices(tbl: BaseDatasource) -> Tuple[List[Slice], List[Slice]]:
     }
 
     slice_props = dict(
-        datasource_id=tbl.id, datasource_type="table", owners=[admin], created_by=admin
+        datasource_id=tbl.id, datasource_type="table", owners=[], created_by=admin
     )
 
     print("Creating some slices")

@@ -18,15 +18,19 @@
 import json
 from copy import deepcopy
 
+import pytest
+
 from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.utils.core import get_example_database
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 from .base_tests import SupersetTestCase
 from .fixtures.datasource import datasource_post
 
 
 class TestDatasource(SupersetTestCase):
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_external_metadata_for_physical_table(self):
         self.login(username="admin")
         tbl = self.get_table_by_name("birth_names")

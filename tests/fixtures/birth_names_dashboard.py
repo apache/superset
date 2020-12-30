@@ -63,7 +63,7 @@ def _load_data():
             "state": String(10),
             "name": String(255),
         }
-        table = create_table_for_dashboard(df, table_name, database, dtype)
+        table = _create_table(df, table_name, database, dtype)
 
         from superset.examples.birth_names import create_slices, create_dashboard
 
@@ -74,13 +74,16 @@ def _load_data():
         return dash_id_to_delete, slices_ids_to_delete
 
 
-def _commit_slices(slices: List[Slice]):
-    for slice in slices:
-        o = db.session.query(Slice).filter_by(slice_name=slice.slice_name).one_or_none()
-        if o:
-            db.session.delete(o)
-        db.session.add(slice)
-        db.session.commit()
+def _create_table(
+    df: DataFrame, table_name: str, database: "Database", dtype: Dict[str, Any]
+):
+    table = create_table_for_dashboard(df, table_name, database, dtype)
+    from superset.examples.birth_names import _add_table_metrics, _set_table_metadata
+
+    _set_table_metadata(table, database)
+    _add_table_metrics(table)
+    db.session.commit()
+    return table
 
 
 def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
@@ -106,7 +109,7 @@ def _get_birth_names_data() -> List[Dict[Any, Any]]:
     names = generate_names()
     for year in range(1960, 2020):
         ds = datetime(year, 1, 1, 0, 0, 0)
-        for _ in range(1000):
+        for _ in range(20):
             gender = "boy" if choice([True, False]) else "girl"
             num = randint(1, 100000)
             data.append(

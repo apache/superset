@@ -31,6 +31,8 @@ from superset.databases.commands.importers.v1 import ImportDatabasesCommand
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_database
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.importexport import (
     database_config,
     database_metadata_config,
@@ -41,10 +43,15 @@ from tests.fixtures.importexport import (
 
 class TestExportDatabasesCommand(SupersetTestCase):
     @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "load_energy_table_with_slice"
+    )
     def test_export_database_command(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
 
         example_db = get_example_database()
+        db_uuid = example_db.uuid
+
         command = ExportDatabasesCommand([example_db.id])
         contents = dict(command.run())
 
@@ -68,6 +75,11 @@ class TestExportDatabasesCommand(SupersetTestCase):
 
         assert core_files.issubset(set(contents.keys()))
 
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            ds_type = "DATETIME"
+        else:
+            ds_type = "TIMESTAMP WITHOUT TIME ZONE"
         metadata = yaml.safe_load(contents["databases/examples.yaml"])
         assert metadata == (
             {
@@ -87,153 +99,157 @@ class TestExportDatabasesCommand(SupersetTestCase):
 
         metadata = yaml.safe_load(contents["datasets/examples/birth_names.yaml"])
         metadata.pop("uuid")
-        assert metadata == {
-            "table_name": "birth_names",
-            "main_dttm_col": None,
-            "description": "Adding a DESCRip",
-            "default_endpoint": "",
-            "offset": 66,
+
+        metadata["columns"].sort(key=lambda x: x["column_name"])
+        expected_metadata = {
             "cache_timeout": 55,
-            "schema": "",
-            "sql": "",
-            "params": None,
-            "template_params": None,
-            "filter_select_enabled": True,
-            "fetch_values_predicate": None,
-            "extra": None,
-            "metrics": [
-                {
-                    "metric_name": "ratio",
-                    "verbose_name": "Ratio Boys/Girls",
-                    "metric_type": None,
-                    "expression": "sum(num_boys) / sum(num_girls)",
-                    "description": "This represents the ratio of boys/girls",
-                    "d3format": ".2%",
-                    "extra": None,
-                    "warning_text": "no warning",
-                },
-                {
-                    "metric_name": "sum__num",
-                    "verbose_name": "Babies",
-                    "metric_type": None,
-                    "expression": "SUM(num)",
-                    "description": "",
-                    "d3format": "",
-                    "extra": None,
-                    "warning_text": "",
-                },
-                {
-                    "metric_name": "count",
-                    "verbose_name": "",
-                    "metric_type": None,
-                    "expression": "count(1)",
-                    "description": None,
-                    "d3format": None,
-                    "extra": None,
-                    "warning_text": None,
-                },
-            ],
             "columns": [
                 {
-                    "column_name": "num_california",
-                    "verbose_name": None,
-                    "is_dttm": False,
-                    "is_active": None,
-                    "type": "NUMBER",
-                    "groupby": False,
-                    "filterable": False,
-                    "expression": "CASE WHEN state = 'CA' THEN num ELSE 0 END",
-                    "description": None,
-                    "python_date_format": None,
-                },
-                {
                     "column_name": "ds",
-                    "verbose_name": "",
-                    "is_dttm": True,
-                    "is_active": None,
-                    "type": "DATETIME",
-                    "groupby": True,
+                    "description": None,
+                    "expression": "",
                     "filterable": True,
-                    "expression": "",
-                    "description": None,
-                    "python_date_format": None,
-                },
-                {
-                    "column_name": "num_girls",
-                    "verbose_name": None,
-                    "is_dttm": False,
+                    "groupby": True,
                     "is_active": None,
-                    "type": "BIGINT(20)",
-                    "groupby": False,
-                    "filterable": False,
-                    "expression": "",
-                    "description": None,
+                    "is_dttm": True,
                     "python_date_format": None,
+                    "type": ds_type,
+                    "verbose_name": "",
                 },
                 {
                     "column_name": "gender",
-                    "verbose_name": None,
-                    "is_dttm": False,
-                    "is_active": None,
-                    "type": "VARCHAR(16)",
-                    "groupby": True,
-                    "filterable": True,
+                    "description": None,
                     "expression": "",
-                    "description": None,
-                    "python_date_format": None,
-                },
-                {
-                    "column_name": "state",
-                    "verbose_name": None,
-                    "is_dttm": None,
-                    "is_active": None,
-                    "type": "VARCHAR(10)",
-                    "groupby": True,
                     "filterable": True,
-                    "expression": None,
-                    "description": None,
-                    "python_date_format": None,
-                },
-                {
-                    "column_name": "num_boys",
-                    "verbose_name": None,
-                    "is_dttm": None,
-                    "is_active": None,
-                    "type": "BIGINT(20)",
                     "groupby": True,
-                    "filterable": True,
-                    "expression": None,
-                    "description": None,
-                    "python_date_format": None,
-                },
-                {
-                    "column_name": "num",
-                    "verbose_name": None,
-                    "is_dttm": None,
                     "is_active": None,
-                    "type": "BIGINT(20)",
-                    "groupby": True,
-                    "filterable": True,
-                    "expression": None,
-                    "description": None,
+                    "is_dttm": False,
                     "python_date_format": None,
+                    "type": "VARCHAR(16)",
+                    "verbose_name": None,
                 },
                 {
                     "column_name": "name",
-                    "verbose_name": None,
-                    "is_dttm": None,
-                    "is_active": None,
-                    "type": "VARCHAR(255)",
-                    "groupby": True,
-                    "filterable": True,
-                    "expression": None,
                     "description": None,
+                    "expression": "",
+                    "filterable": True,
+                    "groupby": True,
+                    "is_active": None,
+                    "is_dttm": None,
                     "python_date_format": None,
+                    "type": "VARCHAR(255)",
+                    "verbose_name": None,
+                },
+                {
+                    "column_name": "num",
+                    "description": None,
+                    "expression": "",
+                    "filterable": True,
+                    "groupby": True,
+                    "is_active": None,
+                    "is_dttm": None,
+                    "python_date_format": None,
+                    "type": "BIGINT",
+                    "verbose_name": None,
+                },
+                {
+                    "column_name": "num_california",
+                    "description": None,
+                    "expression": "CASE WHEN state = 'CA' THEN num ELSE 0 END",
+                    "filterable": False,
+                    "groupby": False,
+                    "is_active": None,
+                    "is_dttm": False,
+                    "python_date_format": None,
+                    "type": "NUMBER",
+                    "verbose_name": None,
+                },
+                {
+                    "column_name": "state",
+                    "description": None,
+                    "expression": "",
+                    "filterable": True,
+                    "groupby": True,
+                    "is_active": None,
+                    "is_dttm": None,
+                    "python_date_format": None,
+                    "type": "VARCHAR(10)",
+                    "verbose_name": None,
+                },
+                {
+                    "column_name": "num_boys",
+                    "description": None,
+                    "expression": "",
+                    "filterable": True,
+                    "groupby": True,
+                    "is_active": None,
+                    "is_dttm": None,
+                    "python_date_format": None,
+                    "type": "BIGINT",
+                    "verbose_name": None,
+                },
+                {
+                    "column_name": "num_girls",
+                    "description": None,
+                    "expression": "",
+                    "filterable": True,
+                    "groupby": True,
+                    "is_active": None,
+                    "is_dttm": False,
+                    "python_date_format": None,
+                    "type": "BIGINT",
+                    "verbose_name": None,
                 },
             ],
+            "database_uuid": str(db_uuid),
+            "default_endpoint": "",
+            "description": "",
+            "extra": None,
+            "fetch_values_predicate": None,
+            "filter_select_enabled": True,
+            "main_dttm_col": "ds",
+            "metrics": [
+                {
+                    "d3format": ".2%",
+                    "description": "This represents the ratio of boys/girls",
+                    "expression": "sum(num_boys) / sum(num_girls)",
+                    "extra": None,
+                    "metric_name": "ratio",
+                    "metric_type": None,
+                    "verbose_name": "Ratio Boys/Girls",
+                    "warning_text": "no warning",
+                },
+                {
+                    "d3format": "",
+                    "description": "",
+                    "expression": "SUM(num)",
+                    "extra": None,
+                    "metric_name": "sum__num",
+                    "metric_type": None,
+                    "verbose_name": "Babies",
+                    "warning_text": "",
+                },
+                {
+                    "d3format": None,
+                    "description": None,
+                    "expression": "count(1)",
+                    "extra": None,
+                    "metric_name": "count",
+                    "metric_type": None,
+                    "verbose_name": "",
+                    "warning_text": None,
+                },
+            ],
+            "offset": 66,
+            "params": None,
+            "schema": "",
+            "sql": "",
+            "table_name": "birth_names",
+            "template_params": None,
             "version": "1.0.0",
-            "database_uuid": str(example_db.uuid),
         }
+        expected_metadata["columns"].sort(key=lambda x: x["column_name"])
+        assert metadata == expected_metadata
 
     @patch("superset.security.manager.g")
     def test_export_database_command_no_access(self, mock_g):

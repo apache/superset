@@ -40,6 +40,7 @@ from superset.utils.core import backend, get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
 from tests.base_tests import SupersetTestCase
 from tests.conftest import CTAS_SCHEMA_NAME
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.importexport import (
     database_config,
@@ -1182,6 +1183,7 @@ class TestDatasetApi(SupersetTestCase):
         # gamma users by default do not have access to this dataset
         assert rv.status_code == 404
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_dataset_related_objects(self):
         """
         Dataset API: Test get chart and dashboard count related to a dataset

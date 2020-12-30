@@ -18,16 +18,17 @@
 """Unit tests for Superset"""
 import json
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from io import BytesIO
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import humanize
 import prison
 import pytest
 import yaml
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 from sqlalchemy.sql import func
 
 from tests.test_app import app
@@ -435,6 +436,11 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test create chart
         """
+        dashes = (
+            db.session.query(Dashboard)
+            .filter(or_(Dashboard.slug == "world_health", Dashboard.slug == "births"))
+            .all()
+        )
         admin_id = self.get_user("admin").id
         chart_data = {
             "slice_name": "name1",
@@ -445,7 +451,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             "cache_timeout": 1000,
             "datasource_id": 1,
             "datasource_type": "table",
-            "dashboards": [1, 2],
+            "dashboards": [dash.id for dash in dashes],
         }
         self.login(username="admin")
         uri = f"api/v1/chart/"
@@ -733,6 +739,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.get_assert_metric(uri, "get")
         self.assertEqual(rv.status_code, 404)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_chart_no_data_access(self):
         """
         Chart API: Test get chart without data access
@@ -747,8 +754,11 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
-    @pytest.mark.usefixtures("load_unicode_dashboard_with_slice")
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @pytest.mark.usefixtures(
+        "load_energy_table_with_slice",
+        "load_birth_names_dashboard_with_slices",
+        "load_unicode_dashboard_with_slice",
+    )
     def test_get_charts(self):
         """
         Chart API: Test get charts
@@ -788,6 +798,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(chart)
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_charts_filter(self):
         """
         Chart API: Test get charts filter
@@ -995,7 +1006,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(len(data["result"]), 3)
 
     @pytest.mark.usefixtures(
-        "load_unicode_dashboard_with_slice", "load_energy_table_with_slice"
+        "load_unicode_dashboard_with_slice",
+        "load_energy_table_with_slice",
+        "load_birth_names_dashboard_with_slices",
     )
     def test_get_charts_page(self):
         """
@@ -1028,6 +1041,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 0)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_simple(self):
         """
         Chart data API: Test chart data query
@@ -1037,8 +1051,10 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["result"][0]["rowcount"], 45)
+        expected_row_count = self.get_expected_row_count()
+        self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_applied_time_extras(self):
         """
         Chart data API: Test chart data query with applied time extras
@@ -1060,8 +1076,10 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             data["result"][0]["rejected_filters"],
             [{"column": "__time_origin", "reason": "not_druid_datasource"},],
         )
-        self.assertEqual(data["result"][0]["rowcount"], 45)
+        expected_row_count = self.get_expected_row_count()
+        self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_limit_offset(self):
         """
         Chart data API: Test chart data query with limit and offset
@@ -1090,6 +1108,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(result["rowcount"], 5)
         self.assertEqual(result["data"][0]["name"], expected_name)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
         "superset.common.query_object.config", {**app.config, "ROW_LIMIT": 7},
     )
@@ -1105,6 +1124,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         result = response_payload["result"][0]
         self.assertEqual(result["rowcount"], 7)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
         "superset.common.query_context.config", {**app.config, "SAMPLES_ROW_LIMIT": 5},
     )
@@ -1131,6 +1151,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 400)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_incorrect_result_format(self):
         """
         Chart data API: Test chart data with unsupported result format
@@ -1151,6 +1172,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 200)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_csv_result_format(self):
         """
         Chart data API: Test chart data with CSV result format
@@ -1161,6 +1183,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 200)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_mixed_case_filter_op(self):
         """
         Chart data API: Ensure mixed case filter operator generates valid result
@@ -1223,6 +1246,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         response_payload = json.loads(rv.data.decode("utf-8"))
         assert "non_existent_filter" not in response_payload["result"][0]["query"]
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_no_data(self):
         """
         Chart data API: Test chart data with empty result
@@ -1325,6 +1349,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         "superset.extensions.feature_flag_manager._feature_flags",
         GLOBAL_ASYNC_QUERIES=True,
     )
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_async_results_type(self):
         """
         Chart data API: Test chart data query non-JSON format (async)
@@ -1353,6 +1378,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = post_assert_metric(test_client, CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 401)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
         GLOBAL_ASYNC_QUERIES=True,
@@ -1379,8 +1405,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             )
             data = json.loads(rv.data.decode("utf-8"))
 
+        expected_row_count = self.get_expected_row_count()
         self.assertEqual(rv.status_code, 200)
-        self.assertEqual(data["result"][0]["rowcount"], 45)
+        self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
 
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
@@ -1609,7 +1636,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             "message": {"metadata.yaml": {"type": ["Must be equal to Slice."]}}
         }
 
-    @pytest.mark.usefixtures("create_annotation_layers")
+    @pytest.mark.usefixtures(
+        "create_annotation_layers", "load_birth_names_dashboard_with_slices"
+    )
     def test_chart_data_annotations(self):
         """
         Chart data API: Test chart data query
@@ -1648,3 +1677,22 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         data = json.loads(rv.data.decode("utf-8"))
         # response should only contain interval and event data, not formula
         self.assertEqual(len(data["result"][0]["annotation_data"]), 2)
+
+    def get_expected_row_count(self) -> int:
+        start_date = datetime.now()
+        start_date = start_date.replace(
+            year=start_date.year - 100, hour=0, minute=0, second=0
+        )
+
+        sql = f"""
+                            SELECT COUNT(*) AS rows FROM (
+                                SELECT name AS name, SUM(num) AS sum__num
+                                FROM birth_names
+                                WHERE ds >= '{start_date.strftime("%Y-%m-%d %H:%M:%S")}'
+                                AND gender = 'boy'
+                                GROUP BY name
+                                ORDER BY sum__num DESC
+                                LIMIT 100 OFFSET 0) AS inner__query
+                        """
+        resp = db.get_engine().execute(sql)
+        return next(resp)["rows"]
