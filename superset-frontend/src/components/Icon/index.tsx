@@ -419,10 +419,10 @@ const Icon = ({
   );
 };
 
-type AntdIconProps = typeof AntdIcon.defaultProps;
-type CustomIconProps = AntdIconProps & { name: string };
+type AntdIconType = typeof AntdIcon.defaultProps;
+type CustomIconType = AntdIconType & { name: string };
 
-const EnhancedCustomIcon = ({ name, viewBox, ...props }: CustomIconProps) => (
+const EnhancedCustomIcon = ({ name, viewBox, ...props }: CustomIconType) => (
   <AntdIcon
     component={iconsRegistry[name]}
     viewBox={viewBox || '0 0 24 24'}
