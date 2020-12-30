@@ -32,7 +32,7 @@ const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const queriesEndpoint = 'glob:*/api/v1/saved_query/?*';
-const savedQueriesInfo = 'glob:*/api/v1/saved_query/_info';
+const savedQueriesInfo = 'glob:*/api/v1/saved_query/_info*';
 
 const mockqueries = [...new Array(3)].map((_, i) => ({
   created_by: {

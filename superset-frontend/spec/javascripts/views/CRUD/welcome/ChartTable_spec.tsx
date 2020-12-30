@@ -24,6 +24,7 @@ import configureStore from 'redux-mock-store';
 
 import { act } from 'react-dom/test-utils';
 import ChartTable from 'src/views/CRUD/welcome/ChartTable';
+import { ReactWrapper } from 'enzyme';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 
 const mockStore = configureStore([thunk]);
@@ -31,6 +32,7 @@ const store = mockStore({});
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
+const chartFavoriteStatusEndpoint = 'glob:*/api/v1/chart/favorite_status*';
 
 const mockCharts = [...new Array(3)].map((_, i) => ({
   changed_on_utc: new Date().toISOString(),
@@ -51,13 +53,26 @@ fetchMock.get(chartsInfoEndpoint, {
   permissions: ['can_add', 'can_edit', 'can_delete'],
 });
 
+fetchMock.get(chartFavoriteStatusEndpoint, {
+  result: [],
+});
+
 describe('ChartTable', () => {
   const mockedProps = {
     user: {
       userId: '2',
     },
   };
-  const wrapper = mount(<ChartTable store={store} {...mockedProps} />);
+
+  let wrapper: ReactWrapper;
+
+  beforeEach(async () => {
+    act(() => {
+      wrapper = mount(<ChartTable store={store} {...mockedProps} />);
+    });
+    await waitForComponentToPaint(wrapper);
+  });
+
   it('renders', () => {
     expect(wrapper.find(ChartTable)).toExist();
   });
@@ -74,9 +89,7 @@ describe('ChartTable', () => {
     expect(wrapper.find('ChartCard')).toExist();
   });
 
-  it('display EmptyState if there is no data', () => {
-    fetchMock.resetHistory();
-    const wrapper = mount(<ChartTable store={store} {...mockedProps} />);
+  it('display EmptyState if there is no data', async () => {
     expect(wrapper.find('EmptyState')).toExist();
   });
 });

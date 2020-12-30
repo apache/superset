@@ -22,7 +22,6 @@ import configureStore from 'redux-mock-store';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import * as featureFlags from 'src/featureFlags';
-
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
 
@@ -38,10 +37,11 @@ const store = mockStore({});
 const chartsInfoEndpoint = 'glob:*/api/v1/chart/_info*';
 const chartssOwnersEndpoint = 'glob:*/api/v1/chart/related/owners*';
 const chartsCreatedByEndpoint = 'glob:*/api/v1/chart/related/created_by*';
-const chartsEndpoint = 'glob:*/api/v1/chart/?*';
+const chartsEndpoint = 'glob:*/api/v1/chart/*';
 const chartsVizTypesEndpoint = 'glob:*/api/v1/chart/viz_types';
 const chartsDatasourcesEndpoint = 'glob:*/api/v1/chart/datasources';
 const chartFavoriteStatusEndpoint = 'glob:*/api/v1/chart/favorite_status*';
+const datasetEndpoint = 'glob:*/api/v1/dataset/*';
 
 const mockCharts = [...new Array(3)].map((_, i) => ({
   changed_on: new Date().toISOString(),
@@ -86,6 +86,8 @@ fetchMock.get(chartsDatasourcesEndpoint, {
   count: 0,
 });
 
+fetchMock.get(datasetEndpoint, {});
+
 global.URL.createObjectURL = jest.fn();
 fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
 
@@ -98,6 +100,7 @@ describe('ChartList', () => {
     isFeatureEnabledMock.restore();
   });
   const mockedProps = {};
+
   const wrapper = mount(
     <Provider store={store}>
       <ChartList {...mockedProps} user={mockUser} />
@@ -134,19 +137,22 @@ describe('ChartList', () => {
     expect(wrapper.find(ListViewCard)).toExist();
   });
 
-  it('renders a table view', () => {
+  it('renders a table view', async () => {
     wrapper.find('[data-test="list-view"]').first().simulate('click');
+    await waitForComponentToPaint(wrapper);
     expect(wrapper.find('table')).toExist();
   });
 
-  it('edits', () => {
+  it('edits', async () => {
     expect(wrapper.find(PropertiesModal)).not.toExist();
     wrapper.find('[data-test="edit-alt"]').first().simulate('click');
+    await waitForComponentToPaint(wrapper);
     expect(wrapper.find(PropertiesModal)).toExist();
   });
 
-  it('delete', () => {
+  it('delete', async () => {
     wrapper.find('[data-test="trash"]').first().simulate('click');
+    await waitForComponentToPaint(wrapper);
     expect(wrapper.find(ConfirmStatusChange)).toExist();
   });
 });
