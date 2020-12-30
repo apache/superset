@@ -17,6 +17,8 @@
  * under the License.
  */
 import React, { SVGProps } from 'react';
+import AntdIcon from '@ant-design/icons';
+import { styled } from '@superset-ui/core';
 
 import { ReactComponent as AlertIcon } from 'images/icons/alert.svg';
 import { ReactComponent as AlertSolidIcon } from 'images/icons/alert_solid.svg';
@@ -142,6 +144,7 @@ import { ReactComponent as WarningIcon } from 'images/icons/warning.svg';
 import { ReactComponent as WarningSolidIcon } from 'images/icons/warning_solid.svg';
 import { ReactComponent as XLargeIcon } from 'images/icons/x-large.svg';
 import { ReactComponent as XSmallIcon } from 'images/icons/x-small.svg';
+// import { AntdIconProps } from '@ant-design/icons/lib/components/AntdIcon';
 
 export type IconName =
   | 'alert'
@@ -415,5 +418,20 @@ const Icon = ({
     <Component color={color} viewBox={viewBox} data-test={name} {...rest} />
   );
 };
+
+type AntdIconProps = typeof AntdIcon.defaultProps;
+type CustomIconProps = AntdIconProps & { name: string };
+
+const EnhancedCustomIcon = ({ name, viewBox, ...props }: CustomIconProps) => (
+  <AntdIcon
+    component={iconsRegistry[name]}
+    viewBox={viewBox || '0 0 24 24'}
+    {...props}
+  />
+);
+
+export const CustomIcon = styled(EnhancedCustomIcon)`
+  color: ${p => p.color || '#666666'};
+`;
 
 export default Icon;
