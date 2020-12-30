@@ -29,7 +29,7 @@ import sys
 from collections import OrderedDict
 from datetime import date
 from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING
-
+from datetime import timedelta
 from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
@@ -842,7 +842,7 @@ FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = False
 TROUBLESHOOTING_LINK = ""
 
 # CSRF token timeout, set to None for a token that never expires
-WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 7
+WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
 
 # This link should lead to a page with instructions on how to gain access to a
 # Datasource. It will be placed at the bottom of permissions errors.
@@ -1036,6 +1036,8 @@ RLS_FORM_QUERY_REL_FIELDS: Optional[Dict[str, List[List[Any]]]] = None
 SESSION_COOKIE_HTTPONLY = True  # Prevent cookie from being read by frontend JS?
 SESSION_COOKIE_SECURE = True  # Prevent cookie from being transmitted over non-tls?
 SESSION_COOKIE_SAMESITE = "None"  # One of [None, 'Lax', 'Strict']
+
+PERMANENT_SESSION_LIFETIME = timedelta(days=365)
 
 # Flask configuration variables
 SEND_FILE_MAX_AGE_DEFAULT = 60 * 60 * 24 * 365  # Cache static resources
