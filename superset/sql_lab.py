@@ -18,9 +18,12 @@
 from contextlib import closing
 from datetime import datetime
 import logging
+import os
 from sys import getsizeof
 from typing import Optional, Tuple, Union
 import uuid
+from ais_service_discovery import call
+from json import loads
 
 import backoff
 from celery.exceptions import SoftTimeLimitExceeded
@@ -54,6 +57,11 @@ stats_logger = config.get("STATS_LOGGER")
 SQLLAB_TIMEOUT = config.get("SQLLAB_ASYNC_TIME_LIMIT_SEC", 600)
 SQLLAB_HARD_TIMEOUT = SQLLAB_TIMEOUT + 60
 log_query = config.get("QUERY_LOGGER")
+
+# Celery Queue variables
+TENANT = os.environ['TENANT']
+STAGE = os.environ['STAGE']
+CELERY_QUEUE = '{}-{}'.format(STAGE, TENANT)
 
 
 class SqlLabException(Exception):
@@ -137,6 +145,7 @@ def session_scope(nullpool):
 @celery_app.task(
     name="sql_lab.get_sql_results",
     bind=True,
+    queue=CELERY_QUEUE,
     time_limit=SQLLAB_HARD_TIMEOUT,
     soft_time_limit=SQLLAB_TIMEOUT,
 )
@@ -167,6 +176,22 @@ def get_sql_results(
             logging.exception(f"Query {query_id}: {e}")
             stats_logger.incr("error_sqllab_unhandled")
             query = get_query(query_id, session)
+            logging.info(
+             f"calling service disovery function for query_id: {query_id}"
+            )
+            loads(call(
+                'ais-{}'.format(STAGE),
+                'sql-editor',
+                'superset-async-response',
+                {
+                  'status': 'failed',
+                  'queryId': query_id,
+                  'tenant': TENANT,
+                  },
+                {'InvocationType': 'Event'}))
+            logging.info(
+              f"service disovery function called successfully for query_id: {query_id}"
+            )
             return handle_query_error(str(e), query, session)
 
 
@@ -385,6 +410,7 @@ def execute_sql_statements(
     )
     payload["query"]["state"] = QueryStatus.SUCCESS
 
+    # async query will run
     if store_results:
         key = str(uuid.uuid4())
         logging.info(
@@ -409,8 +435,27 @@ def execute_sql_statements(
             results_backend.set(key, compressed, cache_timeout)
         query.results_key = key
 
+        logging.info(
+         f"calling service disovery function for query_id: {query_id}"
+        )
+        loads(call(
+            'ais-{}'.format(STAGE),
+            'sql-editor',
+            'superset-async-response',
+            {
+              'status': 'success',
+              'resultKey': key,
+              'queryId': query_id,
+              'tenant': TENANT,
+              },
+            {'InvocationType': 'Event'}))
+        logging.info(
+          f"service disovery function called successfully for query_id: {query_id}"
+        )
+
     query.status = QueryStatus.SUCCESS
     session.commit()
 
+    # sync query will run
     if return_results:
         return payload

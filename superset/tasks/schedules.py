@@ -22,6 +22,7 @@ from collections import namedtuple
 from datetime import datetime, timedelta
 from email.utils import make_msgid, parseaddr
 import logging
+import os
 import time
 from urllib.error import URLError
 import urllib.request
@@ -54,6 +55,11 @@ logging.getLogger("tasks.email_reports").setLevel(logging.INFO)
 
 # Time in seconds, we will wait for the page to load and render
 PAGE_RENDER_WAIT = 30
+
+# Celery Queue variables
+TENANT = os.environ['TENANT']
+STAGE = os.environ['STAGE']
+CELERY_QUEUE = '{}-{}'.format(STAGE, TENANT)
 
 
 EmailContent = namedtuple("EmailContent", ["body", "data", "images"])
@@ -346,7 +352,11 @@ def deliver_slice(schedule):
     _deliver_email(schedule, subject, email)
 
 
-@celery_app.task(name="email_reports.send", bind=True, soft_time_limit=300)
+@celery_app.task(
+ name="email_reports.send", bind=True,
+ queue=CELERY_QUEUE,
+ soft_time_limit=300
+ )
 def schedule_email_report(task, report_type, schedule_id, recipients=None):
     model_cls = get_scheduler_model(report_type)
     schedule = db.create_scoped_session().query(model_cls).get(schedule_id)
@@ -409,7 +419,10 @@ def schedule_window(report_type, start_at, stop_at, resolution):
             schedule_email_report.apply_async(args, eta=eta)
 
 
-@celery_app.task(name="email_reports.schedule_hourly")
+@celery_app.task(
+ name="email_reports.schedule_hourly",
+ queue=CELERY_QUEUE,
+)
 def schedule_hourly():
     """ Celery beat job meant to be invoked hourly """
 

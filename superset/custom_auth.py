@@ -2,7 +2,7 @@ import functools
 from datetime import timedelta, datetime
 from json import loads
 from os import environ
-
+import logging
 from flask import redirect, g, flash, request, make_response, jsonify
 from flask_appbuilder.security.views import AuthDBView
 from flask_appbuilder.security.views import expose
@@ -41,12 +41,15 @@ def use_ip_auth(f):
                 'ais-{}'.format(environ['STAGE']),
                 'authentication',
                 'ipAuth', {
-                    'clientIp': client_ip
+                    'clientIp': client_ip,
                 }))
             return f(self, *args, **kwargs)
         except Exception as e:
+            logging.info(e)
             response = make_response(
-                jsonify({'message': 'Not Found', }),
+                jsonify({
+                  'message': 'Authentication Failed',
+                 }),
                 404
             )
             response.headers['Content-Type'] = "application/json"

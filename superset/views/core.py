@@ -22,6 +22,8 @@ import re
 from typing import Dict, List, Optional, Union  # noqa: F401
 from urllib import parse
 
+from superset.custom_auth import use_ip_auth
+
 import backoff
 from flask import (
     abort,
@@ -2466,6 +2468,7 @@ class Superset(BaseSupersetView):
         payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
         obj = _deserialize_results_payload(payload, query, results_backend_use_msgpack)
 
+        # Trigger sql editor api if api got result for sql explorer query
         return json_success(
             json.dumps(
                 apply_display_max_row_limit(obj),
@@ -2762,6 +2765,255 @@ class Superset(BaseSupersetView):
         )
         return response
 
+# -------------------------------------------------------------------------------------------
+# SQL Explorer API
+
+    @use_ip_auth
+    @api
+    @handle_api_exception
+    @expose("/run_query/", methods=["POST", "GET"])
+    @event_logger.log_this
+    def run_query(self):
+        """Runs arbitrary sql and returns and json"""
+        logging.info("Request Received for query execution")
+        logging.info("runAsync value: {}".format(request.form.get("runAsync")))
+        g.user = security_manager.find_user(username="admin")
+        async_ = request.form.get("runAsync") == "true"
+        sql = request.form.get("sql")
+        database_id = request.form.get("database_id")
+        schema = request.form.get("schema") or None
+        template_params = json.loads(
+            request.form.get("templateParams") or "{}"
+         )
+        limit = int(request.form.get("queryLimit", 0))
+        if limit < 0:
+            logging.warning(
+                "Invalid limit of {} specified. Defaulting to max limit.".format(limit)
+            )
+            limit = 0
+        limit = limit or app.config.get("SQL_MAX_ROW")
+
+        session = db.session()
+        mydb = session.query(models.Database).filter_by(id=database_id).first()
+
+        if not mydb:
+            json_error_response("Database with id {} is missing.".format(database_id))
+
+        rejected_tables = security_manager.rejected_tables(sql, mydb, schema)
+        if rejected_tables:
+            return json_error_response(
+                security_manager.get_table_access_error_msg(rejected_tables),
+                link=security_manager.get_table_access_link(rejected_tables),
+                status=403,
+            )
+        session.commit()
+
+        select_as_cta = request.form.get("select_as_cta") == "true"
+        tmp_table_name = request.form.get("tmp_table_name")
+        if select_as_cta and mydb.force_ctas_schema:
+            tmp_table_name = "{}.{}".format(mydb.force_ctas_schema, tmp_table_name)
+
+        client_id = request.form.get("client_id") or utils.shortid()[:10]
+        logging.info(client_id)
+        query = Query(
+            database_id=int(database_id),
+            sql=sql,
+            schema=schema,
+            select_as_cta=select_as_cta,
+            start_time=now_as_float(),
+            tab_name=request.form.get("tab"),
+            status=QueryStatus.PENDING if async_ else QueryStatus.RUNNING,
+            sql_editor_id=request.form.get("sql_editor_id"),
+            tmp_table_name=tmp_table_name,
+            user_id=g.user.get_id() if g.user else None,
+            client_id=client_id,
+        )
+        session.add(query)
+        session.flush()
+        query_id = query.id
+        session.commit()  # shouldn't be necessary
+        if not query_id:
+            raise Exception(_("Query record was not created as expected."))
+        logging.info("Triggering query_id: {}".format(query_id))
+
+        try:
+            template_processor = get_template_processor(
+                database=query.database, query=query
+            )
+            rendered_query = template_processor.process_template(
+                query.sql, **template_params
+            )
+        except Exception as e:
+            return json_error_response(
+                "Query {}: Template rendering failed: {}".format(
+                    query_id, utils.error_msg_from_exception(e)
+                )
+            )
+
+        # set LIMIT after template processing
+        limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
+        query.limit = min(lim for lim in limits if lim is not None)
+        logging.info("Triggering async: {}".format(async_))
+        # Async request.
+        if async_:
+            logging.info(f"Query {query_id}: Running query on a Celery worker")
+            # Ignore the celery future object and the request may time out.
+            try:
+                sql_lab.get_sql_results.delay(
+                    query_id,
+                    rendered_query,
+                    return_results=False,
+                    store_results=not query.select_as_cta,
+                    user_name='AIS',
+                    start_time=now_as_float(),
+                )
+            except Exception as e:
+                logging.exception(f"Query {query_id}: {e}")
+                msg = _(
+                    "Failed to start remote query on a worker. "
+                    "Tell your administrator to verify the availability of "
+                    "the message queue."
+                )
+                query.status = QueryStatus.FAILED
+                query.error_message = msg
+                session.commit()
+                return json_error_response("{}".format(msg))
+
+            resp = json_success(
+                json.dumps(
+                    {"query": query.to_dict()},
+                    default=utils.json_int_dttm_ser,
+                    ignore_nan=True,
+                ),
+                status=202,
+            )
+            session.commit()
+            return resp
+
+        # Sync request.
+        try:
+            logging.info("Running query without async response")
+            timeout = config.get("SQLLAB_TIMEOUT")
+            timeout_msg = f"The query exceeded the {timeout} seconds timeout."
+            with utils.timeout(seconds=timeout, error_message=timeout_msg):
+                # pylint: disable=no-value-for-parameter
+                data = sql_lab.get_sql_results(
+                    query_id,
+                    rendered_query,
+                    return_results=True,
+                    user_name="AIS",
+                )
+
+            payload = json.dumps(
+                apply_display_max_row_limit(data),
+                default=utils.pessimistic_json_iso_dttm_ser,
+                ignore_nan=True,
+                encoding=None,
+            )
+        except Exception as e:
+            logging.exception(f"Query {query_id}: {e}")
+            return json_error_response("{}".format(e))
+        if data.get("status") == QueryStatus.FAILED:
+            return json_error_response(payload=data)
+        return json_success(payload)
+
+    @use_ip_auth
+    @api
+    @handle_api_exception
+    @expose("/check_cache_key/<key>/")
+    @event_logger.log_this
+    def check_cache_key(self, key):
+        """Returns if a key from cache exist"""
+        logging.info("Request Received to check cache key")
+        g.user = security_manager.find_user(username="admin")
+        key_exist = True if cache.get(key) else False
+        status = 200 if key_exist else 404
+        return json_success(json.dumps({"key_exist": key_exist}), status=status)
+
+    @use_ip_auth
+    @api
+    @handle_api_exception
+    @expose("/fetch_data/<key>/")
+    @event_logger.log_this
+    def fetch_data(self, key):
+        """Serves a key off of the results backend"""
+        logging.info("Request Received to fetch data")
+        g.user = security_manager.find_user(username="admin")
+        if not results_backend:
+            return json_error_response("Results backend isn't configured")
+
+        read_from_results_backend_start = now_as_float()
+        blob = results_backend.get(key)
+        stats_logger.timing(
+            "sqllab.query.results_backend_read",
+            now_as_float() - read_from_results_backend_start,
+        )
+        if not blob:
+            return json_error_response(
+                "Data could not be retrieved. " "You may want to re-run the query.",
+                status=410,
+            )
+
+        query = db.session.query(Query).filter_by(results_key=key).one_or_none()
+        if query is None:
+            return json_error_response(
+                "Data could not be retrieved. You may want to re-run the query.",
+                status=404,
+            )
+
+        rejected_tables = security_manager.rejected_tables(
+            query.sql, query.database, query.schema
+        )
+        if rejected_tables:
+            return json_error_response(
+                security_manager.get_table_access_error_msg(rejected_tables), status=403
+            )
+
+        payload = utils.zlib_decompress(blob, decode=not results_backend_use_msgpack)
+        obj = _deserialize_results_payload(payload, query, results_backend_use_msgpack)
+
+        return json_success(
+            json.dumps(
+                apply_display_max_row_limit(obj),
+                default=utils.json_iso_dttm_ser,
+                ignore_nan=True,
+            )
+        )
+
+    @use_ip_auth
+    @api
+    @handle_api_exception
+    @expose("/stop_sql_query/", methods=["POST"])
+    @event_logger.log_this
+    @backoff.on_exception(
+        backoff.constant,
+        Exception,
+        interval=1,
+        on_backoff=lambda details: db.session.rollback(),
+        on_giveup=lambda details: db.session.rollback(),
+        max_tries=5,
+    )
+    def stop_sql_query(self):
+        logging.info("Request Received to stop query")
+        g.user = security_manager.find_user(username="admin")
+        client_id = request.form.get("client_id")
+
+        query = db.session.query(Query).filter_by(client_id=client_id).one()
+        if query.status in [
+            QueryStatus.FAILED,
+            QueryStatus.SUCCESS,
+            QueryStatus.TIMED_OUT,
+        ]:
+            logging.error(
+                f"Query with client_id {client_id} could not be stopped: query already complete"
+            )
+            return self.json_response("OK")
+        query.status = QueryStatus.STOPPED
+        db.session.commit()
+
+        return self.json_response("OK")
+
+# -----------------------------------------------------------------------------------------
     @api
     @handle_api_exception
     @has_access

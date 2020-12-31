@@ -18,6 +18,7 @@
 
 import json
 import logging
+import os
 from urllib import request
 from urllib.error import URLError
 
@@ -36,6 +37,11 @@ from superset.utils.core import parse_human_datetime
 
 logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
+
+# Celery Queue variables
+TENANT = os.environ['TENANT']
+STAGE = os.environ['STAGE']
+CELERY_QUEUE = '{}-{}'.format(STAGE, TENANT)
 
 
 def get_form_data(chart_id, dashboard=None):
@@ -272,7 +278,11 @@ def get_auth_cookies():
 
     return cookies
 
-@celery_app.task(name="cache-warmup")
+
+@celery_app.task(
+ name="cache-warmup",
+ queue=CELERY_QUEUE,
+)
 def cache_warmup(strategy_name, *args, **kwargs):
     """
     Warm up cache.
