@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, DataRecord } from '@superset-ui/core';
+import { ChartProps } from '@superset-ui/core';
 import { DEFAULT_FORM_DATA } from './types';
 
 export default function transformProps(chartProps: ChartProps) {
@@ -24,7 +24,7 @@ export default function transformProps(chartProps: ChartProps) {
   const newFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const { setExtraFormData = () => {} } = hooks;
 
-  const data = queriesData[0]?.data as DataRecord[];
+  const { data } = queriesData[0];
 
   return {
     width,

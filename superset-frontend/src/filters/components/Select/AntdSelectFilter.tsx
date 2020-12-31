@@ -34,7 +34,6 @@ export default function AntdPluginFilterSelect(
   props: AntdPluginFilterSelectProps,
 ) {
   const [values, setValues] = useState<(string | number)[]>([]);
-  const DELIMITER = '!^&@%#*!@';
   const { data, formData, height, width, setExtraFormData } = props;
   const {
     defaultValues,
@@ -82,12 +81,10 @@ export default function AntdPluginFilterSelect(
         onChange={handleChange}
       >
         {(data || []).map(row => {
-          const options = groupby.map(col => row[col]);
-          const key = options.join(DELIMITER);
-          const label = options.join(', ');
+          const option = `${groupby.map(col => row[col])[0]}`;
           return (
-            <Option key={key} value={key}>
-              {label}
+            <Option key={option} value={option}>
+              {option}
             </Option>
           );
         })}
