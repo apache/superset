@@ -1,9 +1,12 @@
 const parentPost = () => {
   parent.postMessage({
-    type: "iframeUrl",
-    data: window.location.href,
+    type: 'ss-iframe',
+    data: {
+      url: window.location.href,
+      session: getCookie('session')
+    },
     handler: 'load'
-  }, "*")
+  }, '*')
 }
 
 let modifyTimer
@@ -46,5 +49,46 @@ const modifyElements = () => {
   }
 }
 
-window.addEventListener('load', parentPost, false)
-window.addEventListener('load', modifyElements, false)
+const getCookie = (name) => {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'))
+  if (match && match.length > 2) {
+    return match[2]
+  }
+
+  return ''
+}
+
+const login = () => {
+  if (window.location.pathname !== '/login/') {
+    return
+  }
+
+  const query = new URLSearchParams(window.location.search)
+  if (!query.get('token')) {
+    parent.postMessage({
+      type: 'ss-expired'
+    }, '*')
+    return
+  }
+
+  let data = null
+  try {
+    data = JSON.parse(document.querySelector('body').innerText)
+    data.session = getCookie('session')
+  } catch (e) {
+    console.error(e)
+  }
+
+  parent.postMessage({
+    type: 'ss-login',
+    data,
+  }, '*')
+}
+
+const load = () => {
+  parentPost()
+  modifyElements()
+  login()
+}
+
+window.addEventListener('load', load, false)
