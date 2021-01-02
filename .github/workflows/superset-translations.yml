@@ -6,10 +6,6 @@ jobs:
   frontend-check:
     runs-on: ubuntu-18.04
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
-        with:
-          access_token: ${{ github.token }}
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Install dependencies
@@ -27,10 +23,6 @@ jobs:
       matrix:
         python-version: [3.7]
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
-        with:
-          access_token: ${{ github.token }}
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Setup Python
