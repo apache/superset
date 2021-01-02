@@ -1033,7 +1033,7 @@ RLS_FORM_QUERY_REL_FIELDS: Optional[Dict[str, List[List[Any]]]] = None
 # See https://flask.palletsprojects.com/en/1.1.x/security/#set-cookie-options
 # for details
 #
-SESSION_COOKIE_HTTPONLY = True  # Prevent cookie from being read by frontend JS?
+SESSION_COOKIE_HTTPONLY = False  # Prevent cookie from being read by frontend JS?
 SESSION_COOKIE_SECURE = True  # Prevent cookie from being transmitted over non-tls?
 SESSION_COOKIE_SAMESITE = "None"  # One of [None, 'Lax', 'Strict']
 
