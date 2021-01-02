@@ -1035,7 +1035,7 @@ RLS_FORM_QUERY_REL_FIELDS: Optional[Dict[str, List[List[Any]]]] = None
 #
 SESSION_COOKIE_HTTPONLY = False  # Prevent cookie from being read by frontend JS?
 SESSION_COOKIE_SECURE = True  # Prevent cookie from being transmitted over non-tls?
-SESSION_COOKIE_SAMESITE = "None"  # One of [None, 'Lax', 'Strict']
+SESSION_COOKIE_SAMESITE = "Lax"  # One of [None, 'Lax', 'Strict']
 
 PERMANENT_SESSION_LIFETIME = timedelta(days=365)
 
