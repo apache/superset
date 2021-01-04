@@ -66,6 +66,7 @@ const TabTitleWrapper = styled.div`
 
 const TabTitle = styled.span`
   margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+  text-transform: none;
 `;
 
 class TabbedSqlEditors extends React.PureComponent {
@@ -365,7 +366,6 @@ class TabbedSqlEditors extends React.PureComponent {
           </Menu.Item>
         </Menu>
       );
-
       const tabHeader = (
         <TabTitleWrapper>
           <div data-test="dropdown-toggle-button">

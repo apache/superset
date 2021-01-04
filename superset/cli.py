@@ -15,6 +15,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 import sys
 from datetime import datetime, timedelta
@@ -26,7 +27,7 @@ import click
 import yaml
 from celery.utils.abstract import CallableTask
 from colorama import Fore, Style
-from flask import g
+from flask import current_app, g
 from flask.cli import FlaskGroup, with_appcontext
 from flask_appbuilder import Model
 from pathlib2 import Path
@@ -784,3 +785,39 @@ def alert() -> None:
             resolution=6000,
             session=session,
         )
+
+
+@superset.command()
+@with_appcontext
+def update_api_docs() -> None:
+    """Regenerate the openapi.json file in docs"""
+    from apispec import APISpec
+    from apispec.ext.marshmallow import MarshmallowPlugin
+    from flask_appbuilder.api import BaseApi
+    from os import path
+
+    superset_dir = path.abspath(path.dirname(__file__))
+    openapi_json = path.join(
+        superset_dir, "..", "docs", "src", "resources", "openapi.json"
+    )
+    api_version = "v1"
+
+    version_found = False
+    api_spec = APISpec(
+        title=current_app.appbuilder.app_name,
+        version=api_version,
+        openapi_version="3.0.2",
+        info=dict(description=current_app.appbuilder.app_name),
+        plugins=[MarshmallowPlugin()],
+        servers=[{"url": "/api/{}".format(api_version)}],
+    )
+    for base_api in current_app.appbuilder.baseviews:
+        if isinstance(base_api, BaseApi) and base_api.version == api_version:
+            base_api.add_api_spec(api_spec)
+            version_found = True
+    if version_found:
+        click.secho("Generating openapi.json", fg="green")
+        with open(openapi_json, "w") as outfile:
+            json.dump(api_spec.to_dict(), outfile, sort_keys=True, indent=2)
+    else:
+        click.secho("API version not found", err=True)

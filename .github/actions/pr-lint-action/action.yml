@@ -1,0 +1,39 @@
+name: "Pull Request Linter"
+description: "Ensure your PR titles match a given regex."
+author: "MorrisonCole"
+branding:
+  icon: "check"
+  color: "green"
+inputs:
+  title-regex:
+    description: "Regex to ensure PR title matches. Allows anything by default."
+    required: true
+    default: ".*"
+  on-failed-regex-create-review:
+    description:
+      "Whether the action should create a PR review & comment when the regex
+      doesn't match."
+    required: false
+    default: true
+  on-failed-regex-comment:
+    description:
+      "Comment for the bot to post on PRs that fail the regex. Use %regex% to
+      reference regex."
+    required: false
+    default: "PR title failed to match %regex%."
+  on-failed-regex-fail-action:
+    description: "Whether the action should fail when the regex doesn't match."
+    required: false
+    default: false
+  on-failed-regex-request-changes:
+    description:
+      "Whether the action should request changes or just provide a comment."
+    required: false
+    default: true
+  repo-token:
+    description:
+      "Github token with access to the repository (secrets.GITHUB_TOKEN)."
+    required: true
+runs:
+  using: "node12"
+  main: "dist/index.js"
