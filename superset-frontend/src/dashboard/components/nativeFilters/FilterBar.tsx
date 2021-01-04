@@ -276,7 +276,7 @@ const FilterValue: React.FC<FilterProps> = ({
           height={20}
           width={220}
           formData={getFormData()}
-          queryData={state}
+          queriesData={[state]}
           chartType="filter_select"
           hooks={{ setExtraFormData }}
         />
