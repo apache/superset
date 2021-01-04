@@ -225,7 +225,6 @@ export default class SelectControl extends React.PureComponent {
       filterOption,
       isLoading,
       menuPlacement,
-      menuPortalTarget,
       menuPosition,
       name,
       noResultsText,
