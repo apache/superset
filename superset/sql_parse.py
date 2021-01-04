@@ -81,7 +81,10 @@ class Table:  # pylint: disable=too-few-public-methods
 
 
 class ParsedQuery:
-    def __init__(self, sql_statement: str):
+    def __init__(self, sql_statement: str, strip_comments: bool = False):
+        if strip_comments:
+            sql_statement = sqlparse.format(sql_statement, strip_comments=True)
+
         self.sql: str = sql_statement
         self._tables: Set[Table] = set()
         self._alias_names: Set[str] = set()
@@ -109,6 +112,12 @@ class ParsedQuery:
 
     def is_select(self) -> bool:
         return self._parsed[0].get_type() == "SELECT"
+
+    def is_valid_ctas(self) -> bool:
+        return self._parsed[-1].get_type() == "SELECT"
+
+    def is_valid_cvas(self) -> bool:
+        return len(self._parsed) == 1 and self._parsed[0].get_type() == "SELECT"
 
     def is_explain(self) -> bool:
         # Remove comments
