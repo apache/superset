@@ -205,17 +205,17 @@ export const Table = styled.table`
 
 Table.displayName = 'table';
 
-export default function TableCollection({
-  getTableProps,
-  getTableBodyProps,
-  prepareRow,
-  headerGroups,
-  columns,
-  rows,
-  loading,
-  highlightRowId,
-}: TableCollectionProps) {
-  return (
+export default React.memo(
+  ({
+    getTableProps,
+    getTableBodyProps,
+    prepareRow,
+    headerGroups,
+    columns,
+    rows,
+    loading,
+    highlightRowId,
+  }: TableCollectionProps) => (
     <Table
       {...getTableProps()}
       className="table table-hover"
@@ -314,5 +314,5 @@ export default function TableCollection({
           })}
       </tbody>
     </Table>
-  );
-}
+  ),
+);
