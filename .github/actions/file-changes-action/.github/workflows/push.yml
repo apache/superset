@@ -12,7 +12,7 @@ jobs:
     needs: [build, test-unit, test-integration, lintdog]
     if: >
       github.actor != 'semantic-release-bot'
-      && ( (contains(github.event.head_commit.message, 'trilom/1.') 
+      && ( (contains(github.event.head_commit.message, 'trilom/1.')
         || contains(github.event.head_commit.message, 'trilom/2.'))
         && ! contains(github.event.head_commit.message, 'chore(release):'))
     env:
@@ -174,21 +174,21 @@ jobs:
             ```json
             ${{ toJSON(github.event.commits)}}
             ```
-            
+
             ## Files
-            
+
             &nbsp;&nbsp;_${{ steps.file_changes.outputs.files}}_
-            
+
             ## Files modified
-            
+
             &nbsp;&nbsp;_${{ steps.file_changes.outputs.files_modified}}_
-            
+
             ## Files added
-            
+
             &nbsp;&nbsp;_${{ steps.file_changes.outputs.files_added}}_
-            
+
             ## Files removed
-            
+
             &nbsp;&nbsp;_${{ steps.file_changes.outputs.files_removed}}_
           labels: 'automated pr'
           assignees: '${{ steps.login.outputs.result }},trilom'
@@ -204,7 +204,7 @@ jobs:
             Hey @${{ steps.login.outputs.result }},
 
             This merge has triggered a release, hurray!
-            
+
             [Here you can follow the release.](https://github.com/trilom/file-changes-action/pull/${{ steps.create-pr.outputs.pr_number }})
 
             Please use this new **Pull Request** if there are any issues to communicate further.

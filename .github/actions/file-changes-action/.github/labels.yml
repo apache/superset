@@ -38,5 +38,5 @@
   description: Code that has been looked at by reviewdog
   color: 5F422D
 - name: failure
-  description: Something bad happened...  
+  description: Something bad happened...
   color: d93f0b

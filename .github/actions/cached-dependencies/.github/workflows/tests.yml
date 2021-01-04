@@ -15,7 +15,7 @@ jobs:
         os: [ubuntu-latest, macOS-latest]
     name: Test on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    
+
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-node@v1

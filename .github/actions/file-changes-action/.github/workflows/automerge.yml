@@ -16,7 +16,7 @@ jobs:
 # if event type is non fork PR or comment on PR from trilom with '/release'
     if: >-
       (
-        github.event_name == 'pull_request' 
+        github.event_name == 'pull_request'
         && github.event.pull_request.head.repo.full_name == github.repository
         && contains(github.event.pull_request.labels.*.name, 'pretty')
         && contains(github.event.pull_request.labels.*.name, 'builds')
@@ -26,9 +26,9 @@ jobs:
         && ! contains(github.event.pull_request.labels.*.name, 'automated merge')
         && ! contains(github.event.pull_request.labels.*.name, 'hold merge')
       ) || (
-        github.event_name == 'issue_comment' 
-        && github.event.issue.pull_request != '' 
-        && contains(github.event.comment.body, '/release') 
+        github.event_name == 'issue_comment'
+        && github.event.issue.pull_request != ''
+        && contains(github.event.comment.body, '/release')
         && github.actor == 'trilom'
         && contains(github.event.issue.labels.*.name, 'pretty')
         && contains(github.event.issue.labels.*.name, 'builds')
@@ -83,7 +83,7 @@ jobs:
             @${{ steps.pr.outputs.user }}, @trilom - it appears that there was an issue with the merge.
 
             Head Repo/Branch: **[${{ steps.pr.outputs.head }}]**(${{ steps.pr.outputs.head_url }}) merge into **[${{ steps.pr.outputs.base }}]**(${{ steps.pr.outputs.base_url }})
-            
+
             ## Event JSON
             ```json
               ${{ toJSON(steps.pr_json.outputs.result)}}

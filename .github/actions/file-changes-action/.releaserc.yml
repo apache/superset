@@ -27,13 +27,13 @@ plugins:
       - path: "dist/**/*.js"
         label: Packaged JS Code
       successComment: >
-        # 🎉🦍🎉 This <% issue.pull_request ? 'pull request' : 'issue' %> 
+        # 🎉🦍🎉 This <% issue.pull_request ? 'pull request' : 'issue' %>
         has been resolved in version *<%= nextRelease.version %>* at
         *trilom/file-changes-action@<%= nextRelease.gitTag %>*
-        
+
         `  - name: File Changes Action
              uses: trilom/file-changes-action@<%= nextRelease.gitTag %>`
-        
+
         ## Release<%= _.size(releases) > 1 ? 's' : '' %>
 
         <% _.forEach(releases, function(release) { %>
@@ -43,7 +43,7 @@ plugins:
         **Release Name:** [<%= release.name %>](<%= release.url %>)<% }); %>
 
         ## Commits
-        
+
         <% _.forEach(commits, function(commit) { %>
         @<%= commit.author.name %> - [_<%= commit.message.toString().replace(/[()\\\/_\*]/g, '') %>_](https://github.com/trilom/file-changes-action/commit/<%= commit.hash %>)<% }); %>
       labels: [failure]
@@ -55,8 +55,8 @@ plugins:
       message: >
         chore(release): 🎉🦍🎉 Release <%= nextRelease.version %> -
         <%= new Date().toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' }) %> [skip ci]
-        
+
         `- name: File Changes Action
            uses: trilom/file-changes-action@<%= nextRelease.gitTag %>`
-        
+
         <%= nextRelease.notes %>

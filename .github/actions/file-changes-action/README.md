@@ -108,7 +108,7 @@ If a PR is made then it will look at all of the files included in the PR.
 If a push is made then it will compare commits from the SHA `github.payload.before` to the SHA `github.payload.after` of the push.
 
 After gathering this information it will output the files in 2 ways.  
-  
+
 - As an output variable, you can use this variable by using `steps.file_changes_outputs_files`, `steps.file_changes.outputs.files_modified`, `steps.file_changes.outputs.files_added`, `steps.file_changes.outputs.files_removed`.
 
 - As a file on the container stored at `$HOME/files.json`, `$HOME/files_modified.json`, `$HOME/files_added.json`, `$HOME/files_removed.json`.  

@@ -1,7 +1,7 @@
 name: Integration Tests
 on:
   issue_comment:
-    types: 
+    types:
       - created
   schedule:
     - cron: '0 0 * * *'
@@ -39,16 +39,16 @@ jobs:
         output: ['json', ',', ' ', '_<br />&nbsp;&nbsp;_']
         fileOutput: ['json', ',', ' ', '_<br />&nbsp;&nbsp;_']
     if: >-
-      ( startsWith(github.head_ref, '1.') 
-        || startsWith(github.head_ref, '2.')) 
-      || 
+      ( startsWith(github.head_ref, '1.')
+        || startsWith(github.head_ref, '2.'))
+      ||
       contains(github.event.head_commit.message, 'Release merge from')
       ||
       github.event_name == 'schedule'
-      || ( 
+      || (
         github.event_name == 'issue_comment'
-        && github.event.issue.number != '' 
-        && contains(github.event.comment.body, '/integration') 
+        && github.event.issue.number != ''
+        && contains(github.event.comment.body, '/integration')
         && github.actor == 'trilom')
     steps:
       # get pr number if exists
@@ -64,13 +64,13 @@ jobs:
         if: github.event_name == 'issue_comment' && steps.pr.outputs.pr != ''
         with:
           ref: ${{format('refs/pull/{0}/head', steps.pr.outputs.pr )}}
-      # use the issue number if pr is blank 
+      # use the issue number if pr is blank
       - uses: actions/checkout@v2
-        if: github.event_name == 'issue_comment' && steps.pr.outputs.pr == '' && github.event.issue.pull_request != '' 
+        if: github.event_name == 'issue_comment' && steps.pr.outputs.pr == '' && github.event.issue.pull_request != ''
         with:
           ref: ${{format('refs/pull/{0}/head', github.event.issue.number )}}
       - name: fail if no PR number and issue comment
-        if: github.event_name == 'issue_comment' && steps.pr.outputs.pr == '' && github.event.issue.pull_request == '' 
+        if: github.event_name == 'issue_comment' && steps.pr.outputs.pr == '' && github.event.issue.pull_request == ''
         run: |
           echo "Please provide a PR number to use like /integration13 for PR# 13."
           exit 1

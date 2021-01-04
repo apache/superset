@@ -12,6 +12,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - uses: ./.github/actions/pr-lint-action
         with:
           title-regex: "^(build|chore|ci|docs|feat|fix|perf|refactor|style|test|other)((.+))?:\\s.+"

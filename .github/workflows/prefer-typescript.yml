@@ -9,6 +9,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - name: Get changed files
         id: changed
         uses: ./.github/actions/file-changes-action

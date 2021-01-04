@@ -146,16 +146,16 @@ jobs:
     needs: [lintdog, lintdog-fork]
     if: always()
     env:
-      GITHUB_TOKEN: ${{ secrets.TRILOM_BOT_TOKEN }}  
+      GITHUB_TOKEN: ${{ secrets.TRILOM_BOT_TOKEN }}
     steps:
       - uses: actions/checkout@v2 # checkout for forks
         if: contains(env.isFork, 'true')
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/checkout@v2 # checkout for PR
         if: contains(env.isFork, 'false')
         with:
-          token: ${{ secrets.TRILOM_BOT_TOKEN }}  
+          token: ${{ secrets.TRILOM_BOT_TOKEN }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}
       - run: yarn build
@@ -163,7 +163,7 @@ jobs:
       - name: yarn format and push code if check failed
         if: failure() && github.actor != 'trilom-bot' && contains(env.isFork, 'false')
         env:
-          GITHUB_TOKEN: ${{ secrets.TRILOM_BOT_TOKEN }}  
+          GITHUB_TOKEN: ${{ secrets.TRILOM_BOT_TOKEN }}
         run: |
           yarn format
           sudo yarn clean
