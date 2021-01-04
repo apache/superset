@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "outDir": "lib",
+    "alwaysStrict": true,
+    "moduleResolution": "node",
+    "noImplicitAny": false,
+    "esModuleInterop": true,
+    "noUnusedLocals": true
+  },
+  "include": [
+    "src/*.ts",
+    "typings/*"
+  ],
+  "typeAcquisition": {
+    "enable": true
+  },
+  "compileOnSave": true
+}
