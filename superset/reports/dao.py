@@ -111,17 +111,20 @@ class ReportScheduleDAO(BaseDAO):
 
     @staticmethod
     def validate_update_uniqueness(
-        name: str, report_schedule_id: Optional[int] = None
+        name: str, report_type: str, report_schedule_id: Optional[int] = None
     ) -> bool:
         """
-        Validate if this name is unique.
+        Validate if this name and type is unique.
 
         :param name: The report schedule name
+        :param report_type: The report schedule type
         :param report_schedule_id: The report schedule current id
         (only for validating on updates)
         :return: bool
         """
-        query = db.session.query(ReportSchedule).filter(ReportSchedule.name == name)
+        query = db.session.query(ReportSchedule).filter(
+            ReportSchedule.name == name, ReportSchedule.type == report_type
+        )
         if report_schedule_id:
             query = query.filter(ReportSchedule.id != report_schedule_id)
         return not db.session.query(query.exists()).scalar()

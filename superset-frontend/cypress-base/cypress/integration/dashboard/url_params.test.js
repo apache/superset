@@ -36,7 +36,7 @@ describe('Dashboard form data', () => {
     });
   });
 
-  it('should apply url params and queryFields to slice requests', () => {
+  it('should apply url params to slice requests', () => {
     const aliases = getChartAliases(dashboard.slices);
     // wait and verify one-by-one
     cy.wait(aliases).then(requests => {
@@ -48,7 +48,6 @@ describe('Dashboard form data', () => {
           if (isLegacyResponse(responseBody)) {
             const requestFormData = xhr.request.body;
             const requestParams = JSON.parse(requestFormData.get('form_data'));
-            expect(requestParams).to.have.property('queryFields');
             expect(requestParams.url_params).deep.eq(urlParams);
           } else {
             xhr.request.body.queries.forEach(query => {

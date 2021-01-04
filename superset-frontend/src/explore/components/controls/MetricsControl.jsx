@@ -20,7 +20,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { t, withTheme } from '@superset-ui/core';
 import { isEqual } from 'lodash';
-
 import ControlHeader from '../ControlHeader';
 import MetricDefinitionOption from '../MetricDefinitionOption';
 import MetricDefinitionValue from '../MetricDefinitionValue';
@@ -41,6 +40,7 @@ import {
   HeaderContainer,
   LabelsContainer,
 } from '../OptionControls';
+import DndWithHTML5Backend from '../../DndContextProvider';
 
 const propTypes = {
   name: PropTypes.string.isRequired,
@@ -116,6 +116,7 @@ class MetricsControl extends React.PureComponent {
     this.onMetricEdit = this.onMetricEdit.bind(this);
     this.onNewMetric = this.onNewMetric.bind(this);
     this.onRemoveMetric = this.onRemoveMetric.bind(this);
+    this.moveLabel = this.moveLabel.bind(this);
     this.checkIfAggregateInInput = this.checkIfAggregateInInput.bind(this);
     this.optionsForSelect = this.optionsForSelect.bind(this);
     this.selectFilterOption = this.selectFilterOption.bind(this);
@@ -124,12 +125,15 @@ class MetricsControl extends React.PureComponent {
     this.valueRenderer = (option, index) => (
       <MetricDefinitionValue
         key={index}
+        index={index}
         option={option}
         onMetricEdit={this.onMetricEdit}
         onRemoveMetric={() => this.onRemoveMetric(index)}
         columns={this.props.columns}
         savedMetrics={this.props.savedMetrics}
         datasourceType={this.props.datasourceType}
+        onMoveLabel={this.moveLabel}
+        onDropLabel={() => this.props.onChange(this.state.value)}
       />
     );
     this.select = null;
@@ -236,6 +240,17 @@ class MetricsControl extends React.PureComponent {
       })
       .filter(option => option);
     this.props.onChange(this.props.multi ? optionValues : optionValues[0]);
+  }
+
+  moveLabel(dragIndex, hoverIndex) {
+    const { value } = this.state;
+
+    const newValues = [...value];
+    [newValues[hoverIndex], newValues[dragIndex]] = [
+      newValues[dragIndex],
+      newValues[hoverIndex],
+    ];
+    this.setState({ value: newValues });
   }
 
   isAddNewMetricDisabled() {
@@ -377,4 +392,4 @@ class MetricsControl extends React.PureComponent {
 MetricsControl.propTypes = propTypes;
 MetricsControl.defaultProps = defaultProps;
 
-export default withTheme(MetricsControl);
+export default DndWithHTML5Backend(withTheme(MetricsControl));
