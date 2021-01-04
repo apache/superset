@@ -373,7 +373,7 @@ export function FilterConfigModal({
         return {
           id,
           name: formInputs.name,
-          filterType: formInputs.filterType,
+          type: 'text',
           // for now there will only ever be one target
           targets: [
             {

@@ -33,9 +33,8 @@ import SupersetResourceSelect, {
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ColumnSelect } from './ColumnSelect';
-import { Filter, FilterType, NativeFiltersForm } from './types';
+import { Filter, NativeFiltersForm } from './types';
 import FilterScope from './FilterScope';
-import { FilterTypeNames, setFilterFieldValues } from './utils';
 
 type DatasetSelectValue = {
   value: number;
@@ -87,20 +86,6 @@ export interface FilterConfigFormProps {
   parentFilters: { id: string; title: string }[];
 }
 
-// TODO: just place holder need update with real plugins
-const filterTypeElements = {
-  [FilterType.filter_text]: Input,
-  [FilterType.filter_select]: Input,
-  [FilterType.filter_range]: Input,
-};
-
-// TODO: just place holder need update with real values
-const defaultValuesPerFilterType = {
-  [FilterType.filter_text]: '',
-  [FilterType.filter_select]: '',
-  [FilterType.filter_range]: '',
-};
-
 /**
  * The configuration form for a specific filter.
  * Assigns field values to `filters[filterId]` in the form.
@@ -113,10 +98,6 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   form,
   parentFilters,
 }) => {
-  const [filterType, setFilterType] = useState<FilterType>(
-    filterToEdit?.filterType || FilterType.filter_text,
-  );
-  const FilterTypeElement = filterTypeElements[filterType];
   const [dataset, setDataset] = useState<Value<number> | undefined>();
 
   const onDatasetSelectError = useCallback(
@@ -193,28 +174,6 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
           filterId={filterId}
           datasetId={dataset?.value}
         />
-      </StyledFormItem>
-      <StyledFormItem
-        name={['filters', filterId, 'filterType']}
-        initialValue={filterToEdit?.filterType || FilterType.filter_text}
-        label={<StyledLabel>{t('Filter Type')}</StyledLabel>}
-      >
-        <Select
-          options={Object.values(FilterType).map(filterType => ({
-            value: filterType,
-            label: FilterTypeNames[filterType],
-          }))}
-          onChange={({ value }: { value: FilterType }) => {
-            setFilterType(value);
-            setFilterFieldValues(form, filterId, {
-              defaultValue: defaultValuesPerFilterType[value],
-              filterType: value,
-            });
-          }}
-        />
-      </StyledFormItem>
-      <StyledFormItem label={<StyledLabel>{t('Default Value')}</StyledLabel>}>
-        <FilterTypeElement />
       </StyledFormItem>
       <StyledFormItem
         name={['filters', filterId, 'parentFilter']}
