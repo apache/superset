@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@actions/cache": "actions/cache#d29c1df198dd38ac88e0ae23a2881b99c2d20e68",
-    "@actions/core": "1.2.4",
+    "@actions/core": "1.2.6",
     "@actions/exec": "1.0.4",
     "@actions/glob": "0.1.0",
     "@types/uuid": "7.0.4",
