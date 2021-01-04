@@ -111,6 +111,10 @@ export const Table = styled.table<{ virtual: boolean }>`
     }
   }
 
+  .tr {
+    width: 100% !important;
+  }
+
   td,
   .td {
     &.xs {
