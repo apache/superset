@@ -1,0 +1,73 @@
+plugins:
+  - '@typescript-eslint'
+  - eslint-comments
+  - promise
+  - unicorn
+extends:
+  - airbnb-typescript
+  - plugin:@typescript-eslint/recommended
+  - plugin:eslint-comments/recommended
+  - plugin:promise/recommended
+  - plugin:unicorn/recommended
+  - prettier
+  - prettier/@typescript-eslint
+settings:
+  import/parsers:
+    '@typescript-eslint/parser':
+    - .ts
+    - .tsx
+    - .js
+  import/resolver:
+    typescript: {}
+rules:
+  unicorn/filename-case: off
+  react/static-property-placement: 0
+  no-prototype-builtins: 0
+  import/prefer-default-export: 0
+  '@typescript-eslint/no-explicit-any': 0
+  import/no-default-export: error
+  no-use-before-define:
+    - error
+    -
+      functions: false
+      classes: true
+      variables: true
+  '@typescript-eslint/explicit-function-return-type':
+    - error
+    -
+      allowExpressions: true
+      allowTypedFunctionExpressions: true
+  '@typescript-eslint/no-use-before-define':
+    - error
+    -
+      functions: false
+      classes: true
+      variables: true
+      typedefs: true
+  '@typescript-eslint/indent':
+    - 2
+    - 2
+  unicorn/prevent-abbreviations: 0
+  import/no-extraneous-dependencies: [error, {devDependencies: ['**/*.ts']}]
+parser: "@typescript-eslint/parser"
+parserOptions:
+  project: ./tsconfig.json
+  ecmaVersion: 2019
+  sourceType: module
+env:
+  node: true
+  browser: true
+ignorePatterns:
+  - '*.js'
+overrides:
+  - files: ['src/tests/**/*']
+    plugins:
+      - jest
+    extends:
+      - plugin:jest/recommended
+    rules:
+      global-require: 0
+      '@typescript-eslint/no-var-requires': 0
+      no-console: 0
+      '@typescript-eslint/no-unused-vars': 0
+      '@typescript-eslint/no-throw-literal': 0

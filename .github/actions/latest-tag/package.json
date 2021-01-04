@@ -1,0 +1,43 @@
+{
+  "name": "latest-tag",
+  "version": "1.4.0",
+  "description": "Automatically generate & update a 'latest' tag for your releases",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "ncc build src/action.ts --minify --out lib",
+    "lint": "eslint --ext .ts src",
+    "lint:fix": "eslint --ext .ts src --fix",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run build && npm run lint && git add lib"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EndBug/latest-tag.git"
+  },
+  "author": "Federico Grandi <fgrandi30@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/EndBug/latest-tag/issues"
+  },
+  "homepage": "https://github.com/EndBug/latest-tag#readme",
+  "dependencies": {
+    "@actions/core": "^1.2.6",
+    "@actions/github": "^2.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^13.9.0",
+    "@typescript-eslint/eslint-plugin": "^4.11.0",
+    "@typescript-eslint/parser": "^4.11.0",
+    "@zeit/ncc": "^0.21.1",
+    "eslint": "^7.16.0",
+    "eslint-config-prettier": "^7.1.0",
+    "eslint-plugin-prettier": "^3.3.0",
+    "husky": "^4.3.6",
+    "prettier": "^2.2.1",
+    "typescript": "^3.8.3"
+  }
+}

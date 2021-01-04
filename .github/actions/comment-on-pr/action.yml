@@ -1,0 +1,15 @@
+name: Comment on PR
+author: Aaron Klaassen <aaron@unsplash.com>
+description: Leaves a comment on an open PR matching a push event.
+branding:
+  icon: 'message-square'
+  color: 'blue'
+inputs:
+  msg:
+    description: Comment's message
+    required: true
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.msg }}
