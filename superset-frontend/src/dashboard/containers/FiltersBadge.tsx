@@ -22,6 +22,7 @@ import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import {
   selectIndicatorsForChart,
   IndicatorStatus,
+  selectNativeIndicatorsForChart,
 } from 'src/dashboard/components/FiltersBadge/selectors';
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
 
@@ -38,15 +39,28 @@ const mapDispatchToProps = (dispatch: Dispatch) =>
   );
 
 const mapStateToProps = (
-  { datasources, dashboardFilters, charts }: any,
+  { datasources, dashboardFilters, nativeFilters, charts }: any,
   { chartId }: FiltersBadgeProps,
 ) => {
-  const indicators = selectIndicatorsForChart(
+  const dashboardIndicators = selectIndicatorsForChart(
     chartId,
     dashboardFilters,
     datasources,
     charts,
   );
+
+  const nativeIndicators = selectNativeIndicatorsForChart(nativeFilters);
+
+  const indicators = nativeIndicators.reduce((acc, indicator) => {
+    const sameColumnIndicator = acc.find(
+      ({ column }) => column === indicator.column,
+    );
+    // deduplicate unapplied filters for the same column
+    if (sameColumnIndicator?.status !== IndicatorStatus.Applied) {
+      return [...acc.filter(ind => ind !== sameColumnIndicator), indicator];
+    }
+    return [...acc, indicator];
+  }, dashboardIndicators);
 
   const appliedIndicators = indicators.filter(
     indicator => indicator.status === IndicatorStatus.Applied,
