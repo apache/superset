@@ -1,0 +1,19 @@
+name: Sync labels
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '.github/labels.yml'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Run EndBug/label-sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: EndBug/label-sync@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: '.github/labels.yml'
