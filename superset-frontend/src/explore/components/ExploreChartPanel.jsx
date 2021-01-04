@@ -115,9 +115,6 @@ const ExploreChartPanel = props => {
     );
   };
 
-  const [chartSectionHeight, setChartSectionHeight] = useState(
-    calcSectionHeight(INITIAL_SIZES[0]) - CHART_PANEL_PADDING,
-  );
   const [tableSectionHeight, setTableSectionHeight] = useState(
     calcSectionHeight(INITIAL_SIZES[1]),
   );
@@ -136,10 +133,7 @@ const ExploreChartPanel = props => {
     return () => window.removeEventListener('resize', calcHeaderSize);
   }, [props.standalone]);
 
-  const recalcPanelSizes = ([northPercent, southPercent]) => {
-    setChartSectionHeight(
-      calcSectionHeight(northPercent) - CHART_PANEL_PADDING,
-    );
+  const recalcPanelSizes = ([, southPercent]) => {
     setTableSectionHeight(calcSectionHeight(southPercent));
   };
 
@@ -236,7 +230,10 @@ const ExploreChartPanel = props => {
   const panelBody = <div className="panel-body">{renderChart()}</div>;
 
   return (
-    <Styles className="panel panel-default chart-container" style={{height: props.height}} >
+    <Styles
+      className="panel panel-default chart-container"
+      style={{ height: props.height }}
+    >
       <div className="panel-heading" ref={panelHeadingRef}>
         {header}
       </div>
