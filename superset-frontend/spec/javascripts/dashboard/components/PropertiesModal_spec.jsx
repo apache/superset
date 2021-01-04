@@ -19,6 +19,7 @@
 import React from 'react';
 import { mount } from 'enzyme';
 import { Provider } from 'react-redux';
+import fetchMock from 'fetch-mock';
 
 import {
   supersetTheme,
@@ -40,6 +41,21 @@ const dashboardResult = {
     },
   },
 };
+
+fetchMock.restore();
+
+fetchMock.get('glob:*/api/v1/dashboard/related/owners?*', {
+  result: {},
+});
+
+fetchMock.get('glob:*/api/v1/dashboard/*', {
+  result: {
+    dashboard_title: 'New Title',
+    slug: '/new',
+    json_metadata: '{"something":"foo"}',
+    owners: [],
+  },
+});
 
 describe('PropertiesModal', () => {
   afterEach(() => {
@@ -84,14 +100,14 @@ describe('PropertiesModal', () => {
       });
       describe('with metadata', () => {
         describe('with color_scheme in the metadata', () => {
-          const wrapper = setup();
-          const modalInstance = wrapper.find('PropertiesModal').instance();
-          modalInstance.setState({
-            values: {
-              json_metadata: '{"color_scheme": "foo"}',
-            },
-          });
           it('will update the metadata', () => {
+            const wrapper = setup();
+            const modalInstance = wrapper.find('PropertiesModal').instance();
+            modalInstance.setState({
+              values: {
+                json_metadata: '{"color_scheme": "foo"}',
+              },
+            });
             const spy = jest.spyOn(modalInstance, 'onMetadataChange');
             modalInstance.onColorSchemeChange('SUPERSET_DEFAULT');
             expect(spy).toHaveBeenCalledWith(

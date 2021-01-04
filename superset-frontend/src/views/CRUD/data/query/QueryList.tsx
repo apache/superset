@@ -80,7 +80,9 @@ const StyledPopoverItem = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
 `;
 
-const StatusIcon = styled(Icon)<{ status: string }>`
+const StatusIcon = styled(Icon, {
+  shouldForwardProp: prop => prop !== 'status',
+})<{ status: string }>`
   color: ${({ status, theme }) => {
     if (status === 'success') return theme.colors.success.base;
     if (status === 'failed') return theme.colors.error.base;

@@ -21,15 +21,24 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
+import { act } from 'react-dom/test-utils';
 import configureStore from 'redux-mock-store';
 import Welcome from 'src/views/CRUD/welcome/Welcome';
+import { ReactWrapper } from 'enzyme';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
-const dashboardEndpoint = 'glob:*/api/v1/dashboard/?*';
+const chartInfoEndpoint = 'glob:*/api/v1/chart/_info?*';
+const chartFavoriteStatusEndpoint = 'glob:*/api/v1/chart/favorite_status?*';
+const dashboardsEndpoint = 'glob:*/api/v1/dashboard/?*';
+const dashboardInfoEndpoint = 'glob:*/api/v1/dashboard/_info?*';
+const dashboardFavoriteStatusEndpoint =
+  'glob:*/api/v1/dashboard/favorite_status?*';
 const savedQueryEndpoint = 'glob:*/api/v1/saved_query/?*';
+const savedQueryInfoEndpoint = 'glob:*/api/v1/saved_query/_info?*';
+const recentActivityEndpoint = 'glob:*/superset/recent_activity/*';
 
 fetchMock.get(chartsEndpoint, {
   result: [
@@ -43,7 +52,7 @@ fetchMock.get(chartsEndpoint, {
   ],
 });
 
-fetchMock.get(dashboardEndpoint, {
+fetchMock.get(dashboardsEndpoint, {
   result: [
     {
       dashboard_title: 'Dashboard_Test',
@@ -58,6 +67,28 @@ fetchMock.get(savedQueryEndpoint, {
   result: [],
 });
 
+fetchMock.get(recentActivityEndpoint, {});
+
+fetchMock.get(chartInfoEndpoint, {
+  permissions: [],
+});
+
+fetchMock.get(chartFavoriteStatusEndpoint, {
+  result: [],
+});
+
+fetchMock.get(dashboardInfoEndpoint, {
+  permissions: [],
+});
+
+fetchMock.get(dashboardFavoriteStatusEndpoint, {
+  result: [],
+});
+
+fetchMock.get(savedQueryInfoEndpoint, {
+  permissions: [],
+});
+
 describe('Welcome', () => {
   const mockedProps = {
     user: {
@@ -70,11 +101,18 @@ describe('Welcome', () => {
       isActive: true,
     },
   };
-  const wrapper = mount(
-    <Provider store={store}>
-      <Welcome {...mockedProps} />
-    </Provider>,
-  );
+
+  let wrapper: ReactWrapper;
+
+  beforeAll(async () => {
+    await act(async () => {
+      wrapper = mount(
+        <Provider store={store}>
+          <Welcome {...mockedProps} />
+        </Provider>,
+      );
+    });
+  });
 
   it('renders', () => {
     expect(wrapper).toExist();
