@@ -1,0 +1,62 @@
+branches:
+  - "+([1-9])?(.{+([1-9]),x}).x"
+  - master
+  - next
+  - name: alpha
+    prerelease: true
+  - name: beta
+    prerelease: true
+dryRun: false
+plugins:
+  - "@semantic-release/commit-analyzer"
+  - "@semantic-release/release-notes-generator"
+  -
+    - semantic-release-slack-bot
+    - notifyOnSuccess: true
+      notifyOnFail: true
+      markdownReleaseNotes: true
+      onSuccessTemplate:
+        text: "$package_name version v$npm_package_version!\n\n$release_notes"
+  -
+    - "@semantic-release/changelog"
+    - changelogFile: CHANGELOG.md
+  - "@semantic-release/npm"
+  -
+    - "@semantic-release/github"
+    - assets:
+      - path: "dist/**/*.js"
+        label: Packaged JS Code
+      successComment: >
+        # 🎉🦍🎉 This <% issue.pull_request ? 'pull request' : 'issue' %>
+        has been resolved in version *<%= nextRelease.version %>* at
+        *trilom/file-changes-action@<%= nextRelease.gitTag %>*
+
+        `  - name: File Changes Action
+             uses: trilom/file-changes-action@<%= nextRelease.gitTag %>`
+
+        ## Release<%= _.size(releases) > 1 ? 's' : '' %>
+
+        <% _.forEach(releases, function(release) { %>
+        \n\t\t**Release Name:** [<%= release.name %>](<%= release.url %>)<% }); %>
+        \n\n ## Commits<% _.forEach(commits, function(commit) { %>
+        \n\t\t@<%= commit.author %> - [_<%= commit.message %>_](https://github.com/trilom/file-changes-action/commit/<%= commit.hash %>)<% }); %>"
+        **Release Name:** [<%= release.name %>](<%= release.url %>)<% }); %>
+
+        ## Commits
+
+        <% _.forEach(commits, function(commit) { %>
+        @<%= commit.author.name %> - [_<%= commit.message.toString().replace(/[()\\\/_\*]/g, '') %>_](https://github.com/trilom/file-changes-action/commit/<%= commit.hash %>)<% }); %>
+      labels: [failure]
+      releasedLabels: ["releases/${nextRelease.gitTag}"]
+      assignees: trilom
+  -
+    - "@semantic-release/git"
+    - assets: [CHANGELOG.md, package.json, yarn.lock]
+      message: >
+        chore(release): 🎉🦍🎉 Release <%= nextRelease.version %> -
+        <%= new Date().toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' }) %> [skip ci]
+
+        `- name: File Changes Action
+           uses: trilom/file-changes-action@<%= nextRelease.gitTag %>`
+
+        <%= nextRelease.notes %>

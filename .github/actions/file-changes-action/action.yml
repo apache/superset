@@ -1,0 +1,43 @@
+name: 'File Changes Action'
+description: 'Creates outputs variables of files modified, added, or removed by a PR or Push.'
+author: 'Bryan Killian <me@trilom.org>'
+inputs:
+  githubRepo:
+    description: 'The github repository you want to compare changes from, defaults to the github.repository.'
+    required: false
+  githubToken:
+    description: 'The github action token will be used by default, if you want to use something different than you can pass it in here.'
+    default: ${{ github.token }}
+    required: true
+  pushBefore:
+    description: 'Pass in a specific sha to compare to as a before, required if using pushAfter. (push BASE payload after github.payload.before)'
+    required: false
+  pushAfter:
+    description: 'Pass in a specific sha to compare to as an after, required if using pushBefore. (push HEAD payload after github.payload.after)'
+    required: false
+  prNumber:
+    description: 'Pass in a specific PR number to get file changes from.'
+    required: false
+  output:
+    description: 'Choose between json (default), or custom delimiter by passing a string, for example '','' for csv variable output'
+    required: true
+    default: json
+  fileOutput:
+    description: 'Choose between json (default), or custom delimiter by passing a string, for example '','' for csv file output.  If you set as json the file output will be suffixed with .json, if you select '','' then the output will be .csv, else .txt will be the output.'
+    required: true
+    default: json
+outputs:
+  files:
+    description: 'The names all new, updated, and removed files'
+  files_added:
+    description: 'The names of the newly created files'
+  files_modified:
+    description: 'The names of the updated files'
+  files_removed:
+    description: 'The names of the removed files'
+runs:
+  using: 'node12'
+  main:  'dist/index.js'
+branding:
+  icon:  'file-text'
+  color: 'red'
