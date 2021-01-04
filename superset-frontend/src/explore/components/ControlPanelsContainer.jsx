@@ -25,7 +25,8 @@ import { Alert } from 'react-bootstrap';
 import { css } from '@emotion/core';
 import { t, styled, getChartControlPanelRegistry } from '@superset-ui/core';
 
-import { Collapse, Tabs } from 'src/common/components';
+import Tabs from 'src/common/components/Tabs';
+import { Collapse } from 'src/common/components';
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -67,17 +68,16 @@ const Styles = styled.div`
 `;
 
 const ControlPanelsTabs = styled(Tabs)`
-  .ant-tabs-tabpane {
-    height: 100%;
-  }
   ${({ fullWidth }) =>
     css`
       .ant-tabs-nav-list {
         width: ${fullWidth ? '100%' : '50%'};
       }
+      .ant-tabs-tabpane {
+        height: 100%;
+      }
     `}
 `;
-
 class ControlPanelsContainer extends React.Component {
   // trigger updates to the component when async plugins load
   static contextType = PluginContext;
@@ -94,6 +94,13 @@ class ControlPanelsContainer extends React.Component {
     return sectionsToRender(
       this.props.form_data.viz_type,
       this.props.datasource_type,
+    );
+  }
+
+  sectionsToExpand(sections) {
+    return sections.reduce(
+      (acc, cur) => cur.expanded && [...acc, cur.label],
+      [],
     );
   }
 
@@ -240,13 +247,9 @@ class ControlPanelsContainer extends React.Component {
     });
 
     const showCustomizeTab = displaySectionsToRender.length > 0;
-    const expandedQuerySections = querySectionsToRender.reduce(
-      (acc, cur) => cur.expanded && [...acc, cur.label],
-      [],
-    );
-    const expandedCustomSections = displaySectionsToRender.reduce(
-      (acc, cur) => cur.expanded && [...acc, cur.label],
-      [],
+    const expandedQuerySections = this.sectionsToExpand(querySectionsToRender);
+    const expandedCustomSections = this.sectionsToExpand(
+      displaySectionsToRender,
     );
 
     return (
