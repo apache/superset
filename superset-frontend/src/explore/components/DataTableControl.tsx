@@ -44,6 +44,12 @@ export const CopyButton = styled(Button)`
   }
 `;
 
+const CopyNode = (
+  <CopyButton buttonSize="xs">
+    <i className="fa fa-clipboard" />
+  </CopyButton>
+);
+
 export const CopyToClipboardButton = ({
   data,
 }: {
@@ -52,11 +58,7 @@ export const CopyToClipboardButton = ({
   <CopyToClipboard
     text={data ? prepareCopyToClipboardTabularData(data) : ''}
     wrapped={false}
-    copyNode={
-      <CopyButton buttonSize="xs">
-        <i className="fa fa-clipboard" />
-      </CopyButton>
-    }
+    copyNode={CopyNode}
   />
 );
 
