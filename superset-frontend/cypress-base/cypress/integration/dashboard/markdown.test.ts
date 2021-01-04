@@ -74,7 +74,6 @@ describe('Dashboard edit markdown', () => {
     ).to(500, 600);
 
     cy.get('[data-test="dashboard-markdown-editor"]').contains('Test resize');
-
     // entering edit mode does not add new scripts
     // (though scripts may still be removed by others)
     cy.get('script').then(nodes => {

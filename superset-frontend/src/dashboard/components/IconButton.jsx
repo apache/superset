@@ -50,7 +50,7 @@ export default class IconButton extends React.PureComponent {
         onClick={this.handleClick}
         tabIndex="0"
         role="button"
-        data-test="icon-button"
+        data-test={`icon-button-${className}`}
       >
         <span data-test="icon-button-span" className={className} />
         {label && <span className="icon-button-label">{label}</span>}

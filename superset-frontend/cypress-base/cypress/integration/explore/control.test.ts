@@ -233,8 +233,167 @@ describe('Time range filter', () => {
       });
     cy.get('[data-test=cancel-button]').click();
   });
-});
+  it('Chosen custom time range parameters are applied after change', () => {
+    const formData = {
+      ...FORM_DATA_DEFAULTS,
+      metrics: [NUM_METRIC],
+      viz_type: 'line',
+      time_range: '100 years ago : now',
+    };
 
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+
+    cy.get('[data-test=time-range-trigger]')
+      .click()
+      .then($range => {
+        const firstRange = $range.text();
+        cy.get('[data-test="date-filter-control-modal"]').within(() => {
+          cy.get('.frame-dropdown').click();
+          cy.contains('Custom').click();
+          cy.get('.ant-input-number-input').clear().type('30{enter}');
+        });
+
+        cy.get('[data-test=apply-button]').click();
+        cy.get('[data-test=time-range-modal]').should('not.exist');
+        cy.get('[data-test=time-range-trigger]').then($range => {
+          const secondRange = $range.text();
+          expect(secondRange).to.not.equal(firstRange);
+        });
+      });
+  });
+  it('Chosen last time filters are applied after change', () => {
+    const formData = {
+      ...FORM_DATA_DEFAULTS,
+      metrics: [NUM_METRIC],
+      viz_type: 'line',
+      time_range: '100 years ago : now',
+    };
+
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+
+    cy.get('[data-test=time-range-trigger]')
+      .click()
+      .then($range => {
+        const firstRange = $range.text();
+        cy.get('[data-test="date-filter-control-modal"]').within(() => {
+          cy.get('.frame-dropdown').should('be.visible').click();
+          cy.contains('Last').should('be.visible').click();
+          cy.get('.ant-radio-wrapper').within(() => {
+            cy.contains('last week').click();
+          });
+        });
+        cy.get('[data-test=apply-button]').click();
+        cy.get('[data-test=time-range-modal]').should('not.exist');
+        cy.get('[data-test=time-range-trigger]').then($range => {
+          const secondRange = $range.text();
+          expect(secondRange).to.not.equal(firstRange);
+        });
+        cy.get('[data-test=time-range-trigger]')
+          .click()
+          .then($range => {
+            const firstRange = $range.text();
+            cy.get('[data-test="date-filter-control-modal"]').within(() => {
+              cy.get('.frame-dropdown').click();
+              cy.get('.ant-radio-wrapper').within(() => {
+                cy.contains('last year').click();
+              });
+            });
+            cy.get('[data-test=apply-button]').click();
+            cy.get('[data-test=time-range-modal]').should('not.exist');
+            cy.get('[data-test=time-range-trigger]').then($range => {
+              const secondRange = $range.text();
+              expect(secondRange).to.not.equal(firstRange);
+            });
+          });
+      });
+  });
+  it('Changes through range types filters are applied after change', () => {
+    const formData = {
+      ...FORM_DATA_DEFAULTS,
+      metrics: [NUM_METRIC],
+      viz_type: 'line',
+      time_range: '100 years ago : now',
+    };
+
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.get('[data-test=time-range-trigger]')
+      .click()
+      .then(() => {
+        cy.get('[data-test="date-filter-control-modal"]').within(() => {
+          cy.get('.frame-dropdown').should('be.visible').click();
+          cy.contains('Custom').click();
+          cy.get('.ant-input-number-input').clear().type('35{enter}');
+        });
+
+        cy.get('[data-test=apply-button]').click();
+        cy.get('[data-test=time-range-modal]').should('not.exist');
+        cy.get('[data-test=time-range-trigger]').then($range => {
+          const customRange = $range.text();
+          cy.get('[data-test=time-range-trigger]')
+            .click()
+            .then(() => {
+              cy.get('[data-test="date-filter-control-modal"]').within(() => {
+                cy.get('.frame-dropdown').should('be.visible').click();
+                cy.contains('Last').should('be.visible').click();
+                cy.get('.ant-radio-wrapper').within(() => {
+                  cy.contains('last year').click();
+                });
+              });
+              cy.get('[data-test=apply-button]').click();
+              cy.get('[data-test=time-range-modal]').should('not.exist');
+              cy.get('[data-test=time-range-trigger]')
+                .click()
+                .then($range => {
+                  const lastYearRange = $range.text();
+                  expect(lastYearRange).to.not.equal(customRange);
+
+                  cy.get('[data-test="date-filter-control-modal"]').within(
+                    () => {
+                      cy.get('.frame-dropdown').should('be.visible').click();
+                      cy.contains('No Filter').should('be.visible').click();
+                      cy.get('[data-test=apply-button]').click();
+                      cy.get('[data-test=time-range-modal]').should(
+                        'not.exist',
+                      );
+                    },
+                  );
+                  cy.get('[data-test=time-range-trigger]')
+                    .should('be.visible')
+                    .click({ force: true })
+                    .then($range => {
+                      const noFilterRange = $range.text();
+                      expect(noFilterRange).to.not.equal(lastYearRange);
+                      cy.get('[data-test="date-filter-control-modal"]').within(
+                        () => {
+                          cy.get('.frame-dropdown')
+                            .should('be.visible')
+                            .click();
+                          cy.contains('Previous').click();
+                          cy.get('.ant-radio-wrapper').within(() => {
+                            cy.contains('previous calendar year').click();
+                          });
+                          cy.get('[data-test=apply-button]').click();
+                          cy.get('[data-test=time-range-modal]').should(
+                            'not.exist',
+                          );
+                        },
+                      );
+                      cy.get('[data-test=time-range-trigger]').then($range => {
+                        const previousCalendarYearRange = $range.text();
+                        expect(previousCalendarYearRange).to.not.equal(
+                          noFilterRange,
+                        );
+                      });
+                    });
+                });
+            });
+        });
+      });
+  });
+});
 describe('Groupby control', () => {
   it('Set groupby', () => {
     cy.login();

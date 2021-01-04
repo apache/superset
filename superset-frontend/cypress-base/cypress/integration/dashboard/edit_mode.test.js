@@ -100,3 +100,42 @@ describe('Dashboard edit mode', () => {
     });
   });
 });
+
+describe('Single component tests', () => {
+  before(() => {});
+  beforeEach(() => {
+    cy.login();
+    cy.visit('dashboard/new');
+  });
+  it('Row element can be removed from tab component', () => {
+    drag('[data-test="new-component"]', 'Tabs').to(
+      '[data-test=grid-content] > [data-test=dragdroppable-object]',
+    );
+    drag('[data-test="new-component"]', 'Row').to(
+      '.dashboard-component-tabs-content > :nth-child(1)',
+    );
+    cy.get('.dashboard-component-tabs-content')
+      .find('[data-test="icon-button-fa fa-trash"]')
+      .last()
+      .then($el => {
+        cy.wrap($el).invoke('show').click();
+        cy.get('[data-test=grid-row-background--transparent]').should(
+          'not.exist',
+        );
+      });
+  });
+  it('Row element can be removed as a standalone element', () => {
+    drag('[data-test="new-component"]', 'Row').to(
+      '[data-test=grid-content] > [data-test=dragdroppable-object]',
+    );
+    cy.get('.dashboard-grid')
+      .find('[data-test="icon-button-fa fa-trash"]')
+      .last()
+      .then($el => {
+        cy.wrap($el).invoke('show').click();
+        cy.get('[data-test="grid-row-background--transparent"]').should(
+          'not.exist',
+        );
+      });
+  });
+});

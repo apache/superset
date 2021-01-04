@@ -46,3 +46,21 @@ describe('No Results', () => {
     cy.get('div.chart-container').contains('No Results');
   });
 });
+describe('Results loaded', () => {
+  beforeEach(() => {
+    cy.login();
+    cy.server();
+    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.route('GET', '/api/v1/chart/**').as('getChart');
+  });
+
+  it('Get chart request should be called only once for chart', () => {
+    cy.visitChartByName('Num Births Trend');
+    cy.verifySliceSuccess({ waitAlias: '@getJson' });
+    cy.get('@getChart').then(() => {
+      expect(
+        cy.state('requests').filter(r => r.alias === 'getChart'),
+      ).to.have.length(1);
+    });
+  });
+});

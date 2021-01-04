@@ -267,7 +267,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   }
 
   const overlayConetent = (
-    <ContentStyleWrapper>
+    <ContentStyleWrapper data-test="date-filter-control-modal">
       <div className="control-label">{t('RANGE TYPE')}</div>
       <Select
         options={FRAME_OPTIONS}
@@ -320,6 +320,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           disabled={!validTimeRange}
           key="apply"
           onClick={onSave}
+          data-test="apply-button"
         >
           {t('APPLY')}
         </Button>
