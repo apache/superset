@@ -34,7 +34,9 @@ describe('Nativefilters', () => {
     cy.get('[data-test="header-save-button"]').click();
     cy.visit(CHART_LIST);
     cy.get('[data-test="search-input"]').type('Treemap{enter}');
-    cy.contains('[data-test="cell-text"]', 'Treemap').click();
+    cy.contains('[data-test="cell-text"]', 'Treemap')
+      .should('be.visible', { timeout: 5000 })
+      .click();
     cy.get('[data-test="query-save-button"]').click();
     cy.get('[data-test="save-chart-modal-select-dashboard-form"]')
       .find('#dashboard-creatable-select')
