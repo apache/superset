@@ -140,7 +140,7 @@ jobs:
   name: Build
   steps:
     - name: Install dependencies
-      uses: ktmud/cached-depdencies@v1
+      uses: cached-depdencies
 ```
 
 You must provide a `default-setup-command` in the bashlib. For example,
