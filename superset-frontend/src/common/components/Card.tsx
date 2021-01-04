@@ -16,31 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent } from 'react';
+import React from 'react';
+import { styled } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
 import { Card as AntdCard } from 'antd';
+import { CardProps } from 'antd/lib/card';
 
-interface CardProps extends React.Component {
-  style: React.CSSProperties;
-  bodyStyle: React.CSSProperties;
-}
+const Card = styled(({ ...props }: CardProps) => <AntdCard {...props} />)`
+  background-color: rgba(247, 247, 247, 1);
+  border-radius: 5px;
 
-const Card: FunctionComponent<CardProps> = ({ style, bodyStyle, children }) => {
-  return (
-    <AntdCard
-      style={{
-        backgroundColor: 'rgba(247,247,247,1.0)',
-        borderRadius: '5px',
-        ...style,
-      }}
-      bodyStyle={{
-        padding: '5px',
-        ...bodyStyle,
-      }}
-    >
-      {children}
-    </AntdCard>
-  );
-};
+  .ant-card-body {
+    padding: 5px;
+  }
+`;
 
 export default Card;
