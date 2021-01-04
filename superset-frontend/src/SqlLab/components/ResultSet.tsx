@@ -46,7 +46,7 @@ import { exploreChart } from '../../explore/exploreUtils';
 import { CtasEnum } from '../actions/sqlLab';
 import { Query } from '../types';
 
-const updateDatset = async (
+const updateDataset = async (
   datasetId: number,
   dbId: number,
   sql: string,
@@ -260,7 +260,7 @@ export default class ResultSet extends React.PureComponent<
     const { sql, results, dbId } = this.props.query;
     const { datasetToOverwrite } = this.state;
 
-    await updateDatset(
+    await updateDataset(
       datasetToOverwrite.datasetId,
       dbId,
       sql,
