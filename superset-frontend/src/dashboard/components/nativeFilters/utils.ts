@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ExtraFormData, QueryObject, t } from '@superset-ui/core';
+import { ExtraFormData, QueryObject } from '@superset-ui/core';
 import { Charts, Layout, LayoutItem } from 'src/dashboard/types';
 import {
   CHART_TYPE,
@@ -28,7 +28,6 @@ import React from 'react';
 import {
   CascadeFilter,
   Filter,
-  FilterType,
   NativeFiltersState,
   Scope,
   TreeItem,
@@ -242,12 +241,6 @@ export function buildCascadeFiltersTree(filters: Filter[]): CascadeFilter[] {
     .filter(filter => !filter.cascadeParentIds?.length)
     .map(getCascadeFilter);
 }
-
-export const FilterTypeNames = {
-  [FilterType.filter_text]: t('Text'),
-  [FilterType.filter_select]: t('Select'),
-  [FilterType.filter_range]: t('Range'),
-};
 
 export const setFilterFieldValues = (
   form: FormInstance,
