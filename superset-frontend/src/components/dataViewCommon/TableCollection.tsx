@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useCallback } from 'react';
 import cx from 'classnames';
 import { TableInstance } from 'react-table';
+import { FixedSizeList } from 'react-window';
 import { styled } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 
@@ -33,28 +34,53 @@ interface TableCollectionProps {
   highlightRowId?: number;
 }
 
-export const Table = styled.table`
+interface VirtualTableCollectionProps extends TableCollectionProps {
+  virtualScrollHeight?: number;
+}
+
+export const Table = styled.table<{ virtual: boolean }>`
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
   border-collapse: separate;
   border-radius: ${({ theme }) => theme.borderRadius}px;
   overflow: hidden;
 
-  thead > tr > th {
+  ${({ virtual }) => virtual && 'height: 100%'};
+  margin-bottom: 0;
+
+  thead > tr > th,
+  .thead > .tr > .th {
     border: 0;
   }
 
-  tbody {
-    tr:first-of-type > td {
+  tbody,
+  .tbody {
+    tr:first-of-type > td,
+    .tr:first-of-type > .td {
       border-top: 0;
     }
+
+    tr > td,
+    .tr > .td {
+      padding: ${({ theme }) => theme.gridUnit * 2}px;
+      border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    }
   }
-  th {
+
+  .tbody {
+    height: 100%;
+    overflow: auto;
+  }
+
+  th,
+  .th {
     background: ${({ theme }) => theme.colors.grayscale.light5};
     position: sticky;
     top: 0;
-
+    line-height: 1.4;
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
     white-space: nowrap;
 
+    padding: ${({ theme }) => theme.gridUnit * 2}px;
     &:first-of-type {
       padding-left: ${({ theme }) => theme.gridUnit * 4}px;
     }
@@ -85,7 +111,8 @@ export const Table = styled.table`
     }
   }
 
-  td {
+  td,
+  .td {
     &.xs {
       width: 25px;
     }
@@ -106,6 +133,7 @@ export const Table = styled.table`
     }
   }
 
+  padding: ${({ theme }) => theme.gridUnit * 2}px;
   .table-cell-loader {
     position: relative;
 
@@ -204,6 +232,137 @@ export const Table = styled.table`
 `;
 
 Table.displayName = 'table';
+
+export const VirtualizedTableCollection = React.memo(
+  ({
+    getTableProps,
+    getTableBodyProps,
+    prepareRow,
+    headerGroups,
+    columns,
+    rows,
+    loading,
+    highlightRowId,
+    virtualScrollHeight,
+  }: VirtualTableCollectionProps) => {
+    const RenderRow = useCallback(
+      ({ index, style }) => {
+        const row = rows[index];
+        prepareRow(row);
+        // @ts-ignore
+        const rowId = row.original.id;
+        return (
+          <div
+            data-test="table-row"
+            {...row.getRowProps({ style })}
+            className={cx('table-row', 'tr', {
+              'table-row-selected':
+                row.isSelected ||
+                (typeof rowId !== 'undefined' && rowId === highlightRowId),
+            })}
+          >
+            {row.cells.map(cell => {
+              if (cell.column.hidden) return null;
+
+              const columnCellProps = cell.column.cellProps || {};
+              return (
+                <div
+                  data-test="table-row-cell"
+                  className={cx('table-cell', 'td', {
+                    'table-cell-loader': loading,
+                    [cell.column.size || '']: cell.column.size,
+                  })}
+                  {...cell.getCellProps()}
+                  {...columnCellProps}
+                >
+                  <span className={cx({ 'loading-bar': loading })}>
+                    <span data-test="cell-text">{cell.render('Cell')}</span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      },
+      [highlightRowId, loading, prepareRow, rows],
+    );
+
+    return (
+      <Table
+        {...getTableProps()}
+        as="div"
+        className="table table-hover"
+        data-test="listview-table"
+        virtual
+      >
+        <div className="thead">
+          {headerGroups.map(headerGroup => (
+            <div {...headerGroup.getHeaderGroupProps()} className="tr">
+              {headerGroup.headers.map(column => {
+                let sortIcon = <Icon name="sort" />;
+                if (column.isSorted && column.isSortedDesc) {
+                  sortIcon = <Icon name="sort-desc" />;
+                } else if (column.isSorted && !column.isSortedDesc) {
+                  sortIcon = <Icon name="sort-asc" />;
+                }
+                return column.hidden ? null : (
+                  <div
+                    {...column.getHeaderProps(
+                      column.canSort ? column.getSortByToggleProps() : {},
+                    )}
+                    data-test="sort-header"
+                    className={cx('th', {
+                      [column.size || '']: column.size,
+                    })}
+                  >
+                    <span>
+                      {column.render('Header')}
+                      {column.canSort && sortIcon}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+        <div {...getTableBodyProps()} className="tbody">
+          {loading &&
+            rows.length === 0 &&
+            [...new Array(25)].map((_, i) => (
+              <div key={i} className="tr">
+                {columns.map((column, i2) => {
+                  if (column.hidden) return null;
+                  return (
+                    <div
+                      key={i2}
+                      className={cx('table-cell', 'td', {
+                        'table-cell-loader': loading,
+                        [column.size || '']: column.size,
+                      })}
+                    >
+                      <span className="loading-bar">
+                        <span>LOADING</span>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          {rows.length > 0 && (
+            <FixedSizeList
+              height={virtualScrollHeight ?? 400}
+              itemCount={rows.length}
+              itemSize={30}
+              width="100%"
+            >
+              {RenderRow}
+            </FixedSizeList>
+          )}
+        </div>
+      </Table>
+    );
+  },
+);
 
 export default React.memo(
   ({

@@ -211,6 +211,7 @@ export const DataTablesPane = ({
           noDataText={t('No data')}
           emptyWrapperType={EmptyWrapperType.Small}
           className="table-condensed"
+          withVirtualScroll
         />
       );
     }
