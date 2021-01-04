@@ -1,5 +1,7 @@
 # cached-dependencies
 
+[![](https://github.com/ktmud/cached-dependencies/workflows/Tests/badge.svg)](https://github.com/ktmud/cached-dependencies/actions?query=workflow%3ATests) [![codecov](https://codecov.io/gh/ktmud/cached-dependencies/branch/master/graph/badge.svg)](https://codecov.io/gh/ktmud/cached-dependencies)
+
 Enable **multi-layer cache** and **shortcut commands** in any workflows.
 
 Manage multiple cache targets in one step. Use either the built-in cache configs for npm, yarn, and pip, or write your own. Create a bash command library to easily reduce redudencies across workflows. Most useful for building webapps that require multi-stage building processes.
@@ -25,7 +27,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Install dependencies
-      uses: cached-dependencies
+      uses: ktmud/cached-dependencies@v1
       with:
         run: |
           npm-install
@@ -41,7 +43,7 @@ You may also replace `npm-install` with `yarn-install` to install npm pacakges w
 
 ```yaml
 - name: Install dependencies
-  uses: cached-dependencies
+  uses: ktmud/cached-dependencies@v1
   with:
     run: |
       yarn-install
@@ -96,7 +98,7 @@ With the predefined `cache-store` and `cache-save` bash commands, you have full 
 ```yaml
 steps:
 - uses: actions/checkout@v2
-- uses: cached-dependencies
+- uses: ktmud/cached-dependencies@v1
   with:
     run: |
       cache-restore npm
@@ -140,7 +142,7 @@ jobs:
   name: Build
   steps:
     - name: Install dependencies
-      uses: cached-depdencies
+      uses: ktmud/cached-depdencies@v1
 ```
 
 You must provide a `default-setup-command` in the bashlib. For example,
@@ -158,7 +160,7 @@ This will start installing pip and npm dependencies at the same time.
 Both the two config files, `.github/workflows/bashlib.sh` and `.github/workflows/caches.js`, can be placed in other locations:
 
 ```yaml
-- uses: cached-dependencies
+- uses: ktmud/cached-dependencies@v1
   with:
     caches: ${{ github.workspace }}/.github/configs/caches.js
     bashlib: ${{ github.workspace }}/.github/configs/bashlib.sh
@@ -169,7 +171,7 @@ Both the two config files, `.github/workflows/bashlib.sh` and `.github/workflows
 When `parallel` is set to `true`, the `run` input will be split into an array of commands and passed to `Promise.all(...)` to execute in parallel. For example,
 
 ```yaml
-- uses: cached-dependencies
+- uses: ktmud/cached-dependencies@v1
   with:
     parallel: true
     run: |
@@ -180,7 +182,7 @@ When `parallel` is set to `true`, the `run` input will be split into an array of
 is equivalent to
 
 ```yaml
-- uses: cached-dependencies
+- uses: ktmud/cached-dependencies@v1
   with:
     run: |
       pip-install & npm-install
@@ -189,7 +191,7 @@ is equivalent to
 If one or more of your commands must spread across multiple lines, you can add a new line between the parallel commands. Each command within a parallel group will still run sequentially.
 
 ```yaml
-- uses: cached-dependencies
+- uses: ktmud/cached-dependencies@v1
   with:
     run: |
       cache-restore pip

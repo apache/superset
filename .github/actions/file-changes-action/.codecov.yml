@@ -1,0 +1,55 @@
+codecov:
+  notify:
+    require_ci_to_pass: yes
+
+coverage:
+  notify:
+    slack:
+      default:
+        threshold: 1%
+        message: "Coverage {{changed}} for {{owner}}/{{repo}}"  # customize the message
+        attachments: "sunburst, diff"
+        only_pulls: false
+  status:
+    src:
+      target: auto
+      threshold: 7%
+      base: auto
+      if_ci_failed: success
+      paths:
+        - src/
+        - '!src/tests/'
+      flags:
+        - src
+    test:
+      target: 60%
+      threshold: 10%
+      if_ci_failed: error
+      base: auto
+      paths:
+      - src/tests/
+      flags:
+        - test
+  precision: 2
+  round: down
+  range: "70...100"
+flags:
+  src:
+    paths:
+      - src
+      - '!src/tests/'
+  test:
+    paths:
+      - src/tests/
+parsers:
+  gcov:
+    branch_detection:
+      conditional: yes
+      loop: yes
+      method: no
+      macro: no
+
+comment:
+  layout: "reach,diff,flags,tree"
+  behavior: default
+  require_changes: no

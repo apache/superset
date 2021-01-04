@@ -1,0 +1,19 @@
+name: Close Pull Request
+on:
+  pull_request:
+    branches-ignore: [master]
+    types: [opened, reopened]
+jobs:
+  # close any fork PRs not opened by trilom to anything but master
+  close_pr:
+    name: close non master PRs from fork
+    runs-on: ubuntu-latest
+    if:  (github.actor != 'trilom' || github.actor != 'trilom-bot') && github.event.pull_request.head.repo.full_name != github.repository
+    steps:
+      - uses: superbrothers/close-pull-request@v2
+        with:
+          comment: Please merge your code into master, this will trigger the desired merge workflow.
+      - uses: actions/github@v1.0.0
+        if: success()
+        with:
+          args: label "doesnt read directions"

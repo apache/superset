@@ -1,0 +1,24 @@
+{
+  "compileOnSave": true,
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDirs": [
+      "src",
+      "src/tests/mocks/*"
+    ],
+    "sourceMap": true,
+    "target": "ES2019",
+    "module": "commonjs",
+    "outDir": "./lib",
+    "strict": true,
+    "allowSyntheticDefaultImports": true,
+    "paths": {
+      "*": ["node_modules/"],
+      "typings/*": ["src/typings/*"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "."
+  ]
+}

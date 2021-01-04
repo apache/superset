@@ -1,5 +1,6 @@
 name: Cached Dependencies
 description: Setup multi-layered cache and dependencies in one step, share predefined commands across workflows
+author: Jesse Yang <hello@yjc.me>
 branding:
   icon: layers
   color: yellow
