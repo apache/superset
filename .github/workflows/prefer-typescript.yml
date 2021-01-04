@@ -9,9 +9,10 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - name: Get changed files
         id: changed
-        uses: trilom/file-changes-action@v1.2.4
+        uses: ./.github/actions/file-changes-action
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
 
@@ -31,7 +32,7 @@ jobs:
 
       - if: steps.check.outputs.js_files_added
         name: Add Comment to PR
-        uses: unsplash/comment-on-pr@master
+        uses: ./.github/actions/comment-on-pr
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
