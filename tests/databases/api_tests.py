@@ -347,6 +347,7 @@ class TestDatabaseApi(SupersetTestCase):
         """
         Database API: Test create fail with sqllite
         """
+        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
         database_data = {
             "database_name": "test-create-sqlite-database",
             "sqlalchemy_uri": "sqlite:////some.db",
@@ -366,6 +367,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.assertEqual(response_data, expected_response)
         self.assertEqual(response.status_code, 400)
+        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
 
     def test_create_database_conn_fail(self):
         """
@@ -492,6 +494,9 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertIn(
             "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
         )
+
+        db.session.delete(test_database)
+        db.session.commit()
 
     def test_delete_database(self):
         """
@@ -829,6 +834,8 @@ class TestDatabaseApi(SupersetTestCase):
             }
         }
         self.assertEqual(response, expected_response)
+
+        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
 
     @pytest.mark.usefixtures(
         "load_unicode_dashboard_with_position", "load_energy_table_with_slice"
