@@ -54,7 +54,7 @@ export const getRangeExtraFormData = (
     filters.push({ col, op: '>=', val: lower });
   }
   if (upper !== undefined && upper !== null) {
-    filters.push({ col, op: '>=', val: upper });
+    filters.push({ col, op: '<=', val: upper });
   }
 
   return {

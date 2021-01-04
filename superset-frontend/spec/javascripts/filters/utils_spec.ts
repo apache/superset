@@ -35,7 +35,7 @@ describe('Filter utils', () => {
             },
             {
               col: 'testCol',
-              op: '>=',
+              op: '<=',
               val: 2,
             },
           ],
@@ -53,7 +53,7 @@ describe('Filter utils', () => {
             },
             {
               col: 'testCol',
-              op: '>=',
+              op: '<=',
               val: 0,
             },
           ],
@@ -66,7 +66,7 @@ describe('Filter utils', () => {
           filters: [
             {
               col: 'testCol',
-              op: '>=',
+              op: '<=',
               val: 2,
             },
           ],
