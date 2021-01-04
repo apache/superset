@@ -249,7 +249,7 @@ export default class SelectControl extends React.PureComponent {
       isMulti,
       labelKey: 'label',
       menuPlacement,
-      menuPortalTarget,
+      menuPortalTarget: document.body,
       menuPosition,
       name: `select-${name}`,
       noResultsText,
@@ -281,7 +281,7 @@ export default class SelectControl extends React.PureComponent {
         {isMulti ? (
           <OnPasteSelect {...selectProps} selectWrap={SelectComponent} />
         ) : (
-          <SelectComponent {...selectProps} />
+            <SelectComponent {...selectProps} />
         )}
       </div>
     );
