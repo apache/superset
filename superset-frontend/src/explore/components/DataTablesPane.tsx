@@ -75,10 +75,12 @@ const TabsWrapper = styled.div<{ contentHeight: number }>`
 
 export const DataTablesPane = ({
   queryFormData,
+  tableSectionHeight,
   onCollapseChange,
   displayBackground,
 }: {
   queryFormData: Record<string, any>;
+  tableSectionHeight: number;
   onCollapseChange: (openPanelName: string) => void;
   displayBackground: boolean;
 }) => {
@@ -231,7 +233,7 @@ export const DataTablesPane = ({
   return (
     <SouthPane>
       {displayBackground && <SouthPaneBackground />}
-      <TabsWrapper>
+      <TabsWrapper contentHeight={tableSectionHeight}>
         <Collapse
           accordion
           bordered={false}

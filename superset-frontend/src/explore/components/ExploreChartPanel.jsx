@@ -255,6 +255,7 @@ const ExploreChartPanel = props => {
           {panelBody}
           <DataTablesPane
             queryFormData={props.chart.latestQueryFormData}
+            tableSectionHeight={tableSectionHeight}
             onCollapseChange={onCollapseChange}
             displayBackground={displaySouthPaneBackground}
           />
