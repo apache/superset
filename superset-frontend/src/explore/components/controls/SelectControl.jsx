@@ -281,7 +281,7 @@ export default class SelectControl extends React.PureComponent {
         {isMulti ? (
           <OnPasteSelect {...selectProps} selectWrap={SelectComponent} />
         ) : (
-            <SelectComponent {...selectProps} />
+          <SelectComponent {...selectProps} />
         )}
       </div>
     );
