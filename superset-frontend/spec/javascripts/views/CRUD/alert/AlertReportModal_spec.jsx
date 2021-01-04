@@ -27,6 +27,7 @@ import { AsyncSelect } from 'src/components/Select';
 import { Radio } from 'src/common/components/Radio';
 import { GraySelect as Select } from 'src/common/components/Select';
 import { Switch } from 'src/common/components/Switch';
+import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
 
@@ -169,8 +170,8 @@ describe('AlertReportModal', () => {
 
     const addWrapper = await mountAndWait(props);
 
-    expect(wrapper.find('textarea[name="sql"]')).toHaveLength(0);
-    expect(addWrapper.find('textarea[name="sql"]')).toExist();
+    expect(wrapper.find(TextAreaControl)).toHaveLength(0);
+    expect(addWrapper.find(TextAreaControl)).toExist();
   });
 
   it('renders one select element when in report mode', () => {
