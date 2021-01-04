@@ -3,9 +3,9 @@
 
 
 "@actions/core@^1.2.3":
-  version "1.2.3"
-  resolved "https://registry.npmjs.org/@actions/core/-/core-1.2.3.tgz#e844b4fa0820e206075445079130868f95bfca95"
-  integrity sha512-Wp4xnyokakM45Uuj4WLUxdsa8fJjKVl1fDTsPbTEcTcuu0Nb26IPQbOtjmnfaCPGcaoPOOqId8H9NapZ8gii4w==
+  version "1.2.6"
+  resolved "https://registry.yarnpkg.com/@actions/core/-/core-1.2.6.tgz#a78d49f41a4def18e88ce47c2cac615d5694bf09"
+  integrity sha512-ZQYitnqiyBc3D+k7LsgSBmMDVkOVidaagDG7j3fOym77jNunWRuYx7VSHa9GNfFZh+zh61xsCjRj4JxMZlDqTA==
 
 "@actions/github@^2.1.1":
   version "2.1.1"
