@@ -318,6 +318,7 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         "locale": locale,
         "language_pack": get_language_pack(locale),
         "feature_flags": get_feature_flags(),
+        "setup_extra": conf["SETUP_EXTRA"],
         "menu_data": menu_data(),
     }
 

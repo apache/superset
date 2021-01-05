@@ -369,6 +369,16 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] = None
 
 # ---------------------------------------------------
+# SETUP EXTRA
+# ---------------------------------------------------
+# SETUP EXTRA is used for adding custom extra Color schemes
+# It might be possible to add support for customizing also Formatting, Error messages
+# and plugins
+# This is merely a default
+SETUP_EXTRA = {}
+
+
+# ---------------------------------------------------
 # Thumbnail config (behind feature flag)
 # ---------------------------------------------------
 THUMBNAIL_SELENIUM_USER = "admin"
