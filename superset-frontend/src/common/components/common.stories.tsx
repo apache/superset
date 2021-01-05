@@ -33,6 +33,7 @@ import {
   RangePicker as AntdRangePicker,
 } from './DatePicker';
 import Badge from './Badge';
+import Card from './Card';
 import ProgressBar from './ProgressBar';
 import Collapse from './Collapse';
 import { CronPicker, CronError } from './CronPicker';
@@ -263,6 +264,9 @@ export const BadgeTextColored = () => (
 export const BadgeSuccess = () => <Badge status="success" text="Success" />;
 export const BadgeError = () => <Badge status="error" text="Error" />;
 export const BadgeSmall = () => <Badge count={100} size="small" />;
+
+export const CardDefault = () => <Card />;
+export const CardPadded = () => <Card padded />;
 
 export const CollapseDefault = () => (
   <Collapse defaultActiveKey={['1']}>
