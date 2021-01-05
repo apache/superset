@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - "!dependabot/**/docs/**"
-  pull_request_target:
+  pull_request:
     branches:
       - "!dependabot/**/docs/**"
 
