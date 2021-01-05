@@ -23,8 +23,8 @@ import { getChartControlPanelRegistry } from '@superset-ui/core';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import ModalTrigger from 'src/components/ModalTrigger';
 import TooltipWrapper from 'src/components/TooltipWrapper';
-import ListView from 'src/components/ListView';
 import TableCollection from 'src/components/dataViewCommon/TableCollection';
+import TableView from 'src/components/TableView';
 
 import {
   defaultProps,
@@ -34,7 +34,7 @@ import {
 } from './fixtures/AlteredSliceTag';
 
 const getTableWrapperFromModalBody = modalBody =>
-  modalBody.find(ListView).find(TableCollection);
+  modalBody.find(TableView).find(TableCollection);
 
 describe('AlteredSliceTag', () => {
   let wrapper;
@@ -110,7 +110,7 @@ describe('AlteredSliceTag', () => {
       const modalBody = mount(
         <div>{wrapper.instance().renderModalBody()}</div>,
       );
-      expect(modalBody.find(ListView)).toHaveLength(1);
+      expect(modalBody.find(TableView)).toHaveLength(1);
     });
 
     it('renders a thead', () => {

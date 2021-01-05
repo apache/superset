@@ -128,8 +128,8 @@ class DatasetRelatedObjectsResponse(Schema):
 class ImportV1ColumnSchema(Schema):
     column_name = fields.String(required=True)
     verbose_name = fields.String(allow_none=True)
-    is_dttm = fields.Boolean()
-    is_active = fields.Boolean(allow_none=True)
+    is_dttm = fields.Boolean(default=False, allow_none=True)
+    is_active = fields.Boolean(default=True, allow_none=True)
     type = fields.String(allow_none=True)
     groupby = fields.Boolean()
     filterable = fields.Boolean()

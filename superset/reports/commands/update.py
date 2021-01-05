@@ -80,15 +80,16 @@ class UpdateReportScheduleCommand(BaseReportScheduleCommand):
         ):
             self._properties["last_state"] = ReportState.NOOP
 
-        # Validate name uniqueness
-        if not ReportScheduleDAO.validate_update_uniqueness(
-            name, report_schedule_id=self._model_id
-        ):
-            exceptions.append(ReportScheduleNameUniquenessValidationError())
-
         # validate relation by report type
         if not report_type:
             report_type = self._model.type
+
+        # Validate name type uniqueness
+        if not ReportScheduleDAO.validate_update_uniqueness(
+            name, report_type, report_schedule_id=self._model_id
+        ):
+            exceptions.append(ReportScheduleNameUniquenessValidationError())
+
         if report_type == ReportScheduleType.ALERT:
             database_id = self._properties.get("database")
             # If database_id was sent let's validate it exists

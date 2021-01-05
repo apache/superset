@@ -23,6 +23,18 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
+- Security simplification (SIP-19), the following permission domains were simplified:
+    - [12072](https://github.com/apache/incubator-superset/pull/12072): `Query` with `can_read`, `can_write`
+    - [12036](https://github.com/apache/incubator-superset/pull/12036): `Database` with `can_read`, `can_write`.
+    - [12012](https://github.com/apache/incubator-superset/pull/12036): `Dashboard` with `can_read`, `can_write`.
+    - [12061](https://github.com/apache/incubator-superset/pull/12061): `Log` with `can_read`, `can_write`.
+    - [12000](https://github.com/apache/incubator-superset/pull/12000): `Dataset` with `can_read`, `can_write`.
+    - [12014](https://github.com/apache/incubator-superset/pull/12014): `Annotation` with `can_read`, `can_write`.
+    - [11981](https://github.com/apache/incubator-superset/pull/11981): `Chart` with `can_read`, `can_write`.
+    - [11853](https://github.com/apache/incubator-superset/pull/11853): `ReportSchedule` with `can_read`, `can_write`.
+    - [11856](https://github.com/apache/incubator-superset/pull/11856): `CssTemplate` with `can_read`, `can_write`.
+    - [11764](https://github.com/apache/incubator-superset/pull/11764): `SavedQuery` with `can_read`, `can_write`.
+   Old permissions will be automatically migrated to these new permissions and applied to all existing security Roles.
 - [11499](https://github.com/apache/incubator-superset/pull/11499): Breaking change: `STORE_CACHE_KEYS_IN_METADATA_DB` config flag added (default=`False`) to write `CacheKey` records to the metadata DB. `CacheKey` recording was enabled by default previously.
 - [11920](https://github.com/apache/incubator-superset/pull/11920): Undos the DB migration from [11714](https://github.com/apache/incubator-superset/pull/11714) to prevent adding new columns to the logs table. Deploying a sha between these two PRs may result in locking your DB.
 - [11704](https://github.com/apache/incubator-superset/pull/11704) Breaking change: Jinja templating for SQL queries has been updated, removing default modules such as `datetime` and `random` and enforcing static template values. To restore or extend functionality, use `JINJA_CONTEXT_ADDONS` and `CUSTOM_TEMPLATE_PROCESSORS` in `superset_config.py`.

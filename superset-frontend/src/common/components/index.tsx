@@ -51,6 +51,7 @@ export {
   Switch,
   Tabs,
   Tooltip,
+  Input as AntdInput,
 } from 'antd';
 export { TreeProps } from 'antd/lib/tree';
 export { FormInstance } from 'antd/lib/form';

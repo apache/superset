@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useHistory } from 'react-router-dom';
 import { t, SupersetClient, makeApi, styled } from '@superset-ui/core';
 import moment from 'moment';
@@ -183,10 +183,6 @@ function AlertList({
     }
   };
 
-  useEffect(() => {
-    refreshData();
-  }, [isReportEnabled]);
-
   const columns = useMemo(
     () => [
       {
@@ -303,7 +299,7 @@ function AlertList({
             canEdit
               ? {
                   label: 'edit-action',
-                  tooltip: t('Edit Alert'),
+                  tooltip: t('Edit'),
                   placement: 'bottom',
                   icon: 'edit' as IconName,
                   onClick: handleEdit,
@@ -312,7 +308,7 @@ function AlertList({
             canDelete
               ? {
                   label: 'delete-action',
-                  tooltip: t('Delete Alert'),
+                  tooltip: t('Delete'),
                   placement: 'bottom',
                   icon: 'trash' as IconName,
                   onClick: handleDelete,

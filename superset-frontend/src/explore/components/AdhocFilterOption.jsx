@@ -22,7 +22,8 @@ import AdhocFilter from '../AdhocFilter';
 import columnType from '../propTypes/columnType';
 import adhocMetricType from '../propTypes/adhocMetricType';
 import AdhocFilterPopoverTrigger from './AdhocFilterPopoverTrigger';
-import { OptionControlLabel } from './OptionControls';
+import { DraggableOptionControlLabel } from './OptionControls';
+import { OPTION_TYPES } from './optionTypes';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
@@ -37,6 +38,9 @@ const propTypes = {
   ).isRequired,
   datasource: PropTypes.object,
   partitionColumn: PropTypes.string,
+  onMoveLabel: PropTypes.func,
+  onDropLabel: PropTypes.func,
+  index: PropTypes.number,
 };
 
 const AdhocFilterOption = ({
@@ -46,6 +50,9 @@ const AdhocFilterOption = ({
   onFilterEdit,
   onRemoveFilter,
   partitionColumn,
+  onMoveLabel,
+  onDropLabel,
+  index,
 }) => (
   <AdhocFilterPopoverTrigger
     adhocFilter={adhocFilter}
@@ -54,9 +61,13 @@ const AdhocFilterOption = ({
     onFilterEdit={onFilterEdit}
     partitionColumn={partitionColumn}
   >
-    <OptionControlLabel
+    <DraggableOptionControlLabel
       label={adhocFilter.getDefaultLabel()}
       onRemove={onRemoveFilter}
+      onMoveLabel={onMoveLabel}
+      onDropLabel={onDropLabel}
+      index={index}
+      type={OPTION_TYPES.filter}
       isAdhoc
     />
   </AdhocFilterPopoverTrigger>

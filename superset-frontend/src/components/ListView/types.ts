@@ -57,8 +57,8 @@ type FilterOperator =
   | 'chart_all_text'
   | 'dataset_is_null_or_empty'
   | 'between'
-  | 'dashboard_is_fav'
-  | 'chart_is_fav';
+  | 'dashboard_is_favorite'
+  | 'chart_is_favorite';
 
 export interface Filter {
   Header: ReactNode;
@@ -124,6 +124,6 @@ export enum FilterOperators {
   chartAllText = 'chart_all_text',
   datasetIsNullOrEmpty = 'dataset_is_null_or_empty',
   between = 'between',
-  dashboardIsFav = 'dashboard_is_fav',
-  chartIsFav = 'chart_is_fav',
+  dashboardIsFav = 'dashboard_is_favorite',
+  chartIsFav = 'chart_is_favorite',
 }

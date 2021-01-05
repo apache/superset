@@ -1,0 +1,80 @@
+# General purpose
+- name: 'good first issue'
+  color: '5319e7'
+  description: 'Good for newcomers'
+  aliases: []
+
+- name: 'help wanted'
+  color: '008672'
+  description: 'Extra attention is needed'
+  aliases: []
+
+- name: 'status: pending'
+  color: c5def5
+  description: 'More info is needed before deciding what to do.'
+  aliases: []
+
+- name: 'status: pinned'
+  color: 0052cc
+  description: 'Issues and PRs that should not be labeled as stale or closed if they remain inactive.'
+  aliases: []
+
+- name: 'status: stale'
+  color: fbca04
+  description: 'Inactive issues and PRs.'
+  aliases: ['stale']
+
+- name: 'status: wontfix'
+  color: ffffff
+  description: 'This will not be worked on.'
+  aliases: ['wontfix']
+
+- name: 'type: automation'
+  color: 2fc904
+  description: 'About actions workflows and automation.'
+  aliases: ['automation', 'actions']
+
+- name: 'type: bug'
+  color: d73a4a
+  description: 'Verified problems that need to be worked on.'
+  aliases: ['bug']
+
+- name: 'type: dependencies'
+  color: 0366d6
+  description: 'Pull requests that update a dependency file'
+  aliases: ['dependencies']
+
+- name: 'type: duplicate'
+  color: cfd3d7
+  description: 'This issue or pull request already exists.'
+  aliases: ['duplicate']
+
+- name: 'type: enhancement'
+  color: a2eeef
+  description: 'New feature or request.'
+  aliases: ['enhancement']
+
+- name: 'type: invalid'
+  color: e4e669
+  description: "This doesn't seem right."
+  aliases: ['invalid']
+
+- name: 'type: maintenance'
+  color: 0075ca
+  description: "Documentation improvements and code refactoring, doesn't affect functionality."
+  aliases: ['documentation', 'docs']
+
+- name: 'type: not a bug'
+  color: 0e8a16
+  description: 'Reports that happen not be our fault.'
+  aliases: ['not a bug']
+
+- name: 'type: question'
+  color: d876e3
+  description: 'Further information is requested.'
+  aliases: ['question']
+
+- name: 'type: security'
+  color: 'ee0701'
+  description: 'Pull requests that address a security vulnerability.'
+  aliases: ['security']

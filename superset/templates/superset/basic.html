@@ -97,7 +97,9 @@
     </div>
 
     {% block tail_js %}
-      {{ js_bundle('menu') }}
+      {% if not standalone_mode %}
+        {{ js_bundle('menu') }}
+      {% endif %}
       {% if entry %}
         {{ js_bundle(entry) }}
       {% endif %}
