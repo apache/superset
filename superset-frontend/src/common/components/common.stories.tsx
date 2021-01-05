@@ -27,6 +27,14 @@ import { Switch as AntdSwitch } from './Switch';
 import { Menu, Input, Divider } from '.';
 import { Dropdown } from './Dropdown';
 import InfoTooltip from './InfoTooltip';
+import {
+  DatePicker as AntdDatePicker,
+  RangePicker as AntdRangePicker,
+} from './DatePicker';
+import Badge from './Badge';
+import Card from './Card';
+import ProgressBar from './ProgressBar';
+import Collapse from './Collapse';
 import { CronPicker, CronError } from './CronPicker';
 
 export default {
@@ -206,6 +214,76 @@ export const Switch = () => (
   </>
 );
 
+export const BadgeDefault = () => <Badge count={100} />;
+export const BadgeColored = () => <Badge color="blue" text="Blue" />;
+export const BadgeTextColored = () => (
+  <Badge textColor="yellow" color="red" text="yellow" />
+);
+export const BadgeSuccess = () => <Badge status="success" text="Success" />;
+export const BadgeError = () => <Badge status="error" text="Error" />;
+export const BadgeSmall = () => <Badge count={100} size="small" />;
+
+export const CardDefault = () => <Card />;
+export const CardPadded = () => <Card padded />;
+
+export const CollapseDefault = () => (
+  <Collapse defaultActiveKey={['1']}>
+    <Collapse.Panel header="Hi! I am a header" key="1">
+      Hi! I am a sample content
+    </Collapse.Panel>
+    <Collapse.Panel header="Hi! I am another header" key="2">
+      Hi! I am another sample content
+    </Collapse.Panel>
+  </Collapse>
+);
+export const CollapseGhost = () => (
+  <Collapse defaultActiveKey={['1']} ghost>
+    <Collapse.Panel header="Hi! I am a header" key="1">
+      Hi! I am a sample content
+    </Collapse.Panel>
+    <Collapse.Panel header="Hi! I am another header" key="2">
+      Hi! I am another sample content
+    </Collapse.Panel>
+  </Collapse>
+);
+export const CollapseBold = () => (
+  <Collapse defaultActiveKey={['1']} bold>
+    <Collapse.Panel header="Hi! I am a header" key="1">
+      Hi! I am a sample content
+    </Collapse.Panel>
+    <Collapse.Panel header="Hi! I am another header" key="2">
+      Hi! I am another sample content
+    </Collapse.Panel>
+  </Collapse>
+);
+export const CollapseBigger = () => (
+  <Collapse defaultActiveKey={['1']} bigger>
+    <Collapse.Panel header="Hi! I am a header" key="1">
+      Hi! I am a sample content
+    </Collapse.Panel>
+    <Collapse.Panel header="Hi! I am another header" key="2">
+      Hi! I am another sample content
+    </Collapse.Panel>
+  </Collapse>
+);
+export const CollapseTextLight = () => (
+  <Collapse defaultActiveKey={['1']} light>
+    <Collapse.Panel
+      header="Hi! I am a header"
+      key="1"
+      style={{ background: '#BBB' }}
+    >
+      Hi! I am a sample content
+    </Collapse.Panel>
+    <Collapse.Panel
+      header="Hi! I am another header"
+      key="2"
+      style={{ background: '#BBB' }}
+    >
+      Hi! I am another sample content
+    </Collapse.Panel>
+  </Collapse>
+);
 export function StyledCronPicker() {
   // @ts-ignore
   const inputRef = useRef<Input>(null);
