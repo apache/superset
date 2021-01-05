@@ -131,7 +131,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
 
     this.props.actions
       .saveSlice(this.props.form_data, sliceParams)
-      .then(({ data }: JsonObject) => {
+      .then((data: JsonObject) => {
         if (data.dashboard_id === null) {
           sessionStorage.removeItem(SK_DASHBOARD_ID);
         } else {

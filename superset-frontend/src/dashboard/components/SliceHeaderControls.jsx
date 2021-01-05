@@ -265,9 +265,9 @@ class SliceHeaderControls extends React.PureComponent {
           triggerNode.closest(SCREENSHOT_NODE_SELECTOR)
         }
       >
-        <a id={`slice_${slice.slice_id}-controls`} role="button">
+        <span id={`slice_${slice.slice_id}-controls`} role="button">
           <VerticalDotsTrigger />
-        </a>
+        </span>
       </NoAnimationDropdown>
     );
   }

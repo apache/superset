@@ -21,6 +21,8 @@ from pkg_resources import resource_isdir, resource_listdir, resource_stream
 
 from superset.commands.importers.v1.examples import ImportExamplesCommand
 
+YAML_EXTENSIONS = {".yaml", ".yml"}
+
 
 def load_from_configs() -> None:
     contents = load_contents()
@@ -43,7 +45,7 @@ def load_contents() -> Dict[str, Any]:
                 path_name / child_name
                 for child_name in resource_listdir("superset", str(path_name))
             )
-        else:
+        elif path_name.suffix.lower() in YAML_EXTENSIONS:
             contents[path_name] = (
                 resource_stream("superset", str(path_name)).read().decode("utf-8")
             )

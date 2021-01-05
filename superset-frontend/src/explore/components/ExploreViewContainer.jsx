@@ -50,6 +50,8 @@ import {
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,
+  height: PropTypes.string,
+  width: PropTypes.string,
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
   dashboardId: PropTypes.number,
@@ -156,7 +158,7 @@ function ExploreViewContainer(props) {
 
   const [showingModal, setShowingModal] = useState(false);
   const [chartIsStale, setChartIsStale] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const width = `${windowSize.width}px`;
   const navHeight = props.standalone ? 0 : 90;

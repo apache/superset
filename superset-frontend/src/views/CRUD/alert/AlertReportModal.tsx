@@ -29,7 +29,7 @@ import { Radio } from 'src/common/components/Radio';
 import { AsyncSelect } from 'src/components/Select';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Owner from 'src/types/Owner';
-
+import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { AlertObject, Operator, Recipient, MetaObject } from './types';
 
@@ -195,6 +195,14 @@ export const StyledInputContainer = styled.div`
   flex: 1 1 auto;
   margin: ${({ theme }) => theme.gridUnit * 2}px;
   margin-top: 0;
+
+  .helper {
+    display: block;
+    color: ${({ theme }) => theme.colors.grayscale.base};
+    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+    padding: ${({ theme }) => theme.gridUnit}px 0;
+    text-align: left;
+  }
 
   .required {
     margin-left: ${({ theme }) => theme.gridUnit / 2}px;
@@ -451,6 +459,9 @@ const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               onChange={onRecipientsChange}
             />
           </div>
+          <div className="helper">
+            {t('Recipients are separated by "," or ";"')}
+          </div>
         </StyledInputContainer>
       ) : null}
     </StyledNotificationMethod>
@@ -554,6 +565,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     const data: any = {
       ...currentAlert,
+      type: isReport ? 'Report' : 'Alert',
       validator_type: conditionNotNull ? 'not null' : 'operator',
       validator_config_json: conditionNotNull
         ? {}
@@ -794,6 +806,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState(target.name, target.value);
   };
 
+  const onSQLChange = (value: string) => {
+    updateAlertState('sql', value || '');
+  };
+
   const onOwnersChange = (value: Array<Owner>) => {
     updateAlertState('owners', value || []);
   };
@@ -973,7 +989,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       owners: [],
       recipients: [],
       sql: '',
-      type: isReport ? 'Report' : 'Alert',
       validator_config_json: {},
       validator_type: '',
     });
@@ -1139,13 +1154,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   {t('SQL Query')}
                   <span className="required">*</span>
                 </div>
-                <div className="input-container">
-                  <textarea
-                    name="sql"
-                    value={currentAlert ? currentAlert.sql || '' : ''}
-                    onChange={onTextChange}
-                  />
-                </div>
+                <TextAreaControl
+                  name="sql"
+                  language="sql"
+                  offerEditInModal={false}
+                  minLines={15}
+                  maxLines={15}
+                  onChange={onSQLChange}
+                  readOnly={false}
+                  value={currentAlert ? currentAlert.sql : ''}
+                />
               </StyledInputContainer>
               <div className="inline-container wrap">
                 <StyledInputContainer>

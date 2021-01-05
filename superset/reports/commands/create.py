@@ -64,8 +64,10 @@ class CreateReportScheduleCommand(BaseReportScheduleCommand):
         if not report_type:
             exceptions.append(ReportScheduleRequiredTypeValidationError())
 
-        # Validate name uniqueness
-        if not ReportScheduleDAO.validate_update_uniqueness(name):
+        # Validate name type uniqueness
+        if report_type and not ReportScheduleDAO.validate_update_uniqueness(
+            name, report_type
+        ):
             exceptions.append(ReportScheduleNameUniquenessValidationError())
 
         # validate relation by report type

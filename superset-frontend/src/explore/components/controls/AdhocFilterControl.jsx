@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-
 import { t, logging, SupersetClient, withTheme } from '@superset-ui/core';
 
 import ControlHeader from '../ControlHeader';
@@ -39,6 +38,7 @@ import {
 } from '../OptionControls';
 import Icon from '../../../components/Icon';
 import AdhocFilterPopoverTrigger from '../AdhocFilterPopoverTrigger';
+import DndWithHTML5Backend from '../../DndContextProvider';
 
 const propTypes = {
   name: PropTypes.string,
@@ -75,6 +75,7 @@ class AdhocFilterControl extends React.Component {
     this.onRemoveFilter = this.onRemoveFilter.bind(this);
     this.onNewFilter = this.onNewFilter.bind(this);
     this.onFilterEdit = this.onFilterEdit.bind(this);
+    this.moveLabel = this.moveLabel.bind(this);
     this.onChange = this.onChange.bind(this);
     this.getMetricExpression = this.getMetricExpression.bind(this);
 
@@ -86,11 +87,14 @@ class AdhocFilterControl extends React.Component {
     this.valueRenderer = (adhocFilter, index) => (
       <AdhocFilterOption
         key={index}
+        index={index}
         adhocFilter={adhocFilter}
         onFilterEdit={this.onFilterEdit}
         options={this.state.options}
         datasource={this.props.datasource}
         onRemoveFilter={() => this.onRemoveFilter(index)}
+        onMoveLabel={this.moveLabel}
+        onDropLabel={() => this.props.onChange(this.state.values)}
       />
     );
     this.state = {
@@ -256,6 +260,17 @@ class AdhocFilterControl extends React.Component {
     ).expression;
   }
 
+  moveLabel(dragIndex, hoverIndex) {
+    const { values } = this.state;
+
+    const newValues = [...values];
+    [newValues[hoverIndex], newValues[dragIndex]] = [
+      newValues[dragIndex],
+      newValues[hoverIndex],
+    ];
+    this.setState({ values: newValues });
+  }
+
   optionsForSelect(props) {
     const options = [
       ...props.columns,
@@ -349,4 +364,4 @@ class AdhocFilterControl extends React.Component {
 AdhocFilterControl.propTypes = propTypes;
 AdhocFilterControl.defaultProps = defaultProps;
 
-export default withTheme(AdhocFilterControl);
+export default DndWithHTML5Backend(withTheme(AdhocFilterControl));

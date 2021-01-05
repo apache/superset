@@ -1,0 +1,55 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Video Game Sales filter
+viz_type: filter_box
+params:
+  adhoc_filters: []
+  datasource: 21__table
+  date_filter: true
+  filter_configs:
+  - asc: true
+    clearable: true
+    column: Platform
+    key: s3ItH9vhG
+    multiple: true
+    searchAllOptions: false
+  - asc: true
+    clearable: true
+    column: Genre
+    key: 202hDeMsG
+    multiple: true
+    searchAllOptions: false
+  - asc: true
+    clearable: true
+    column: Publisher
+    key: 5Os6jsJFK
+    multiple: true
+    searchAllOptions: false
+  granularity_sqla: Year
+  queryFields: {}
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  url_params:
+    preselect_filters: '{"1389": {"Platform": ["PS", "PS2", "PS3", "PS4"], "Genre":
+      null, "__time_range": "No filter"}}'
+  viz_type: filter_box
+cache_timeout: null
+uuid: fd9ce7ec-ae08-4f71-93e0-7c26b132b2e6
+version: 1.0.0
+dataset_uuid: 53d47c0c-c03d-47f0-b9ac-81225f808283

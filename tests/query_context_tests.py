@@ -14,13 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import pytest
-
-import tests.test_app
 from superset import db
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.models.cache import CacheKey
 from superset.utils.core import (
     AdhocMetricExpressionType,
     ChartDataResultFormat,
@@ -29,7 +25,6 @@ from superset.utils.core import (
     TimeRangeEndpoint,
 )
 from tests.base_tests import SupersetTestCase
-from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.query_context import get_query_context
 
 
@@ -39,13 +34,10 @@ class TestQueryContext(SupersetTestCase):
         Ensure that the deserialized QueryContext contains all required fields.
         """
 
-        table_name = "birth_names"
-        table = self.get_table_by_name(table_name)
-        payload = get_query_context(
-            table.name, table.id, table.type, add_postprocessing_operations=True
-        )
+        payload = get_query_context("birth_names", add_postprocessing_operations=True)
         query_context = ChartDataQueryContextSchema().load(payload)
         self.assertEqual(len(query_context.queries), len(payload["queries"]))
+
         for query_idx, query in enumerate(query_context.queries):
             payload_query = payload["queries"][query_idx]
 
@@ -75,9 +67,7 @@ class TestQueryContext(SupersetTestCase):
 
     def test_cache_key_changes_when_datasource_is_updated(self):
         self.login(username="admin")
-        table_name = "birth_names"
-        table = self.get_table_by_name(table_name)
-        payload = get_query_context(table.name, table.id, table.type)
+        payload = get_query_context("birth_names")
 
         # construct baseline cache_key
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -106,11 +96,7 @@ class TestQueryContext(SupersetTestCase):
 
     def test_cache_key_changes_when_post_processing_is_updated(self):
         self.login(username="admin")
-        table_name = "birth_names"
-        table = self.get_table_by_name(table_name)
-        payload = get_query_context(
-            table.name, table.id, table.type, add_postprocessing_operations=True
-        )
+        payload = get_query_context("birth_names", add_postprocessing_operations=True)
 
         # construct baseline cache_key from query_context with post processing operation
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -121,43 +107,57 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["post_processing"].append(None)
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        cache_key_with_null = query_context.query_cache_key(query_object)
-        self.assertEqual(cache_key_original, cache_key_with_null)
+        cache_key = query_context.query_cache_key(query_object)
+        self.assertEqual(cache_key_original, cache_key)
 
         # ensure query without post processing operation is different
         payload["queries"][0].pop("post_processing")
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        cache_key_without_post_processing = query_context.query_cache_key(query_object)
-        self.assertNotEqual(cache_key_original, cache_key_without_post_processing)
+        cache_key = query_context.query_cache_key(query_object)
+        self.assertNotEqual(cache_key_original, cache_key)
 
     def test_query_context_time_range_endpoints(self):
         """
         Ensure that time_range_endpoints are populated automatically when missing
-        from the payload
+        from the payload.
         """
         self.login(username="admin")
-        table_name = "birth_names"
-        table = self.get_table_by_name(table_name)
-        payload = get_query_context(table.name, table.id, table.type)
+        payload = get_query_context("birth_names")
         del payload["queries"][0]["extras"]["time_range_endpoints"]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         extras = query_object.to_dict()["extras"]
-        self.assertTrue("time_range_endpoints" in extras)
+        assert "time_range_endpoints" in extras
         self.assertEqual(
             extras["time_range_endpoints"],
             (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
         )
+
+    def test_handle_metrics_field(self):
+        """
+        Should support both predefined and adhoc metrics.
+        """
+        self.login(username="admin")
+        adhoc_metric = {
+            "expressionType": "SIMPLE",
+            "column": {"column_name": "sum_boys", "type": "BIGINT(20)"},
+            "aggregate": "SUM",
+            "label": "Boys",
+            "optionName": "metric_11",
+        }
+        payload = get_query_context("birth_names")
+        payload["queries"][0]["metrics"] = ["sum__num", {"label": "abc"}, adhoc_metric]
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        self.assertEqual(query_object.metrics, ["sum__num", "abc", adhoc_metric])
 
     def test_convert_deprecated_fields(self):
         """
         Ensure that deprecated fields are converted correctly
         """
         self.login(username="admin")
-        table_name = "birth_names"
-        table = self.get_table_by_name(table_name)
-        payload = get_query_context(table.name, table.id, table.type)
+        payload = get_query_context("birth_names")
         payload["queries"][0]["granularity_sqla"] = "timecol"
         payload["queries"][0]["having_filters"] = [{"col": "a", "op": "==", "val": "b"}]
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -171,9 +171,7 @@ class TestQueryContext(SupersetTestCase):
         Ensure that CSV result format works
         """
         self.login(username="admin")
-        table_name = "birth_names"
-        table = self.get_table_by_name(table_name)
-        payload = get_query_context(table.name, table.id, table.type)
+        payload = get_query_context("birth_names")
         payload["result_format"] = ChartDataResultFormat.CSV.value
         payload["queries"][0]["row_limit"] = 10
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -188,9 +186,7 @@ class TestQueryContext(SupersetTestCase):
         Ensure that calling invalid columns names in groupby are caught
         """
         self.login(username="admin")
-        table_name = "birth_names"
-        table = self.get_table_by_name(table_name)
-        payload = get_query_context(table.name, table.id, table.type)
+        payload = get_query_context("birth_names")
         payload["queries"][0]["groupby"] = ["currentDatabase()"]
         query_context = ChartDataQueryContextSchema().load(payload)
         query_payload = query_context.get_payload()
@@ -201,9 +197,7 @@ class TestQueryContext(SupersetTestCase):
         Ensure that calling invalid column names in columns are caught
         """
         self.login(username="admin")
-        table_name = "birth_names"
-        table = self.get_table_by_name(table_name)
-        payload = get_query_context(table.name, table.id, table.type)
+        payload = get_query_context("birth_names")
         payload["queries"][0]["groupby"] = []
         payload["queries"][0]["metrics"] = []
         payload["queries"][0]["columns"] = ["*, 'extra'"]
@@ -216,9 +210,7 @@ class TestQueryContext(SupersetTestCase):
         Ensure that calling invalid column names in filters are caught
         """
         self.login(username="admin")
-        table_name = "birth_names"
-        table = self.get_table_by_name(table_name)
-        payload = get_query_context(table.name, table.id, table.type)
+        payload = get_query_context("birth_names")
         payload["queries"][0]["groupby"] = ["name"]
         payload["queries"][0]["metrics"] = [
             {
@@ -237,9 +229,7 @@ class TestQueryContext(SupersetTestCase):
         Ensure that samples result type works
         """
         self.login(username="admin")
-        table_name = "birth_names"
-        table = self.get_table_by_name(table_name)
-        payload = get_query_context(table.name, table.id, table.type)
+        payload = get_query_context("birth_names")
         payload["result_type"] = ChartDataResultType.SAMPLES.value
         payload["queries"][0]["row_limit"] = 5
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -255,9 +245,7 @@ class TestQueryContext(SupersetTestCase):
         Ensure that query result type works
         """
         self.login(username="admin")
-        table_name = "birth_names"
-        table = self.get_table_by_name(table_name)
-        payload = get_query_context(table.name, table.id, table.type)
+        payload = get_query_context("birth_names")
         payload["result_type"] = ChartDataResultType.QUERY.value
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
@@ -274,9 +262,7 @@ class TestQueryContext(SupersetTestCase):
         """
         self.maxDiff = None
         self.login(username="admin")
-        table_name = "birth_names"
-        table = self.get_table_by_name(table_name)
-        payload = get_query_context(table.name, table.id, table.type)
+        payload = get_query_context("birth_names")
         query_context = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
         orig_cache_key = responses["queries"][0]["cache_key"]

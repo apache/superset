@@ -102,7 +102,7 @@ setup(
         "selenium>=3.141.0",
         "simplejson>=3.15.0",
         "slackclient==2.5.0",  # PINNED! slack changes file upload api in the future versions
-        "sqlalchemy>=1.3.16, <2.0",
+        "sqlalchemy>=1.3.16, <2.0, !=1.3.21",
         "sqlalchemy-utils>=0.36.6,<0.37",
         "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
         "wtforms-json",

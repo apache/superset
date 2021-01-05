@@ -1,0 +1,58 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Work Location Preference
+viz_type: pie
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: '0'
+    expressionType: SIMPLE
+    filterOptionName: filter_qzz67uip1ue_jw3rr6tzo3a
+    isExtra: false
+    isNew: false
+    operator: ==
+    sqlExpression: null
+    subject: is_software_dev
+  color_scheme: supersetColors
+  datasource: 42__table
+  donut: true
+  granularity_sqla: time_start
+  groupby:
+  - Job Location Preference
+  innerRadius: 44
+  labels_outside: true
+  metric: count
+  number_format: SMART_NUMBER
+  outerRadius: 69
+  pie_label_type: key
+  queryFields:
+    groupby: groupby
+    metric: metrics
+  row_limit: null
+  show_labels: true
+  show_legend: false
+  slice_id: 1370
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  url_params: {}
+  viz_type: pie
+cache_timeout: null
+uuid: e6b09c28-98cf-785f-4caf-320fd4fca802
+version: 1.0.0
+dataset_uuid: d95a2865-53ce-1f82-a53d-8e3c89331469

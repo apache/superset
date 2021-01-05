@@ -45,7 +45,6 @@ def upgrade():
         sa.ForeignKeyConstraint(["changed_by_fk"], ["ab_user.id"],),
         sa.ForeignKeyConstraint(["created_by_fk"], ["ab_user.id"],),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("bundle_url"),
         sa.UniqueConstraint("key"),
         sa.UniqueConstraint("name"),
     )

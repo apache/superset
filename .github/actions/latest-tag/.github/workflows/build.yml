@@ -1,0 +1,25 @@
+name: Build action
+on:
+  push:
+    paths:
+      - src/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/build.yml
+
+jobs:
+  build:
+    name: Build with @zeit/ncc
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i
+      - run: npm run build
+      - uses: EndBug/add-and-commit@v4
+        with:
+          add: lib
+          force: true
+          message: "[auto] Update build"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
