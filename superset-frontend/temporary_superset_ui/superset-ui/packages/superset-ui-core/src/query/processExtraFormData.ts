@@ -62,7 +62,7 @@ export function appendExtraFormData(
     appendWhere = `(${appendWhere})`;
   }
   if (where) {
-    appendWhere = `(${where}) AND ${appendWhere}`;
+    appendWhere = appendWhere ? `(${where}) AND ${appendWhere}` : where;
   }
   extras.where = appendWhere;
 

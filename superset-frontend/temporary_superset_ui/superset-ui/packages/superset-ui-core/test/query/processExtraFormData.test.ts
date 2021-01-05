@@ -116,6 +116,30 @@ describe('appendExtraFormData', () => {
       },
     });
   });
+  it('should not change existing where if append where is missing', () => {
+    expect(
+      appendExtraFormData(
+        {
+          datasource: 'table_1',
+          granularity: 'something',
+          viz_type: 'custom',
+          extras: {
+            where: 'abc = 1',
+          },
+        },
+        {
+          extras: {},
+        },
+      ),
+    ).toEqual({
+      datasource: 'table_1',
+      granularity: 'something',
+      viz_type: 'custom',
+      extras: {
+        where: 'abc = 1',
+      },
+    });
+  });
 });
 
 describe('overrideExtraFormData', () => {
