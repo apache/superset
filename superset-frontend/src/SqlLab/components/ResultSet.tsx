@@ -306,7 +306,7 @@ export default class ResultSet extends React.PureComponent<
   };
 
   handleOverwriteCancel = () => {
-    this.setState({ shouldOverwriteDataSet: false });
+    this.setState({ shouldOverwriteDataSet: false, datasetToOverwrite: {} });
   };
 
   handleExploreBtnClick = () => {
