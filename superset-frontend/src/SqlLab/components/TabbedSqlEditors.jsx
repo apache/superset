@@ -325,7 +325,7 @@ class TabbedSqlEditors extends React.PureComponent {
       const state = latestQuery ? latestQuery.state : '';
 
       const menu = (
-        <Menu>
+        <Menu style={{ width: 176 }}>
           <Menu.Item
             className="close-btn"
             key="1"
