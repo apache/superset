@@ -36,7 +36,12 @@ import Loading from '../components/Loading';
 import withToasts from '../messageToasts/enhancers/withToasts';
 
 const CONFIRM_WARNING_MESSAGE = t(
-  'Warning! Changing the dataset may break the chart if the metadata (columns/metrics) does not exist in the target dataset',
+  'Warning! Changing the dataset may break the chart if the metadata does not exist.',
+);
+
+const CHANGE_WARNING_MSG = t(
+  'Changing the dataset may break the chart if the chart relies ' +
+    'on columns or metadata that does not exist in the target dataset',
 );
 
 interface Datasource {
@@ -82,11 +87,6 @@ const TABLE_COLUMNS = [
   'connection',
   'creator',
 ].map(col => ({ accessor: col, Header: col }));
-
-const CHANGE_WARNING_MSG = t(
-  'Changing the dataset may break the chart if the chart relies ' +
-    'on columns or metadata that does not exist in the target dataset',
-);
 
 const emptyRequest = {
   pageIndex: 0,
@@ -186,7 +186,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         );
       });
     onHide();
-    addSuccessToast('Successfully changed datasource!');
+    addSuccessToast('Successfully changed dataset!');
   };
 
   const handlerCancelConfirm = () => {
@@ -219,8 +219,25 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       show={show}
       onHide={onHide}
       responsive
-      title={t('Select a dataset')}
-      hideFooter
+      title={t('Change Dataset')}
+      footer={
+        <>
+          {confirmChange && (
+            <ConfirmModalStyled>
+              <div className="btn-container">
+                <Button onClick={handlerCancelConfirm}>Cancel</Button>
+                <Button
+                  className="proceed-btn"
+                  buttonStyle="primary"
+                  onClick={handleChangeConfirm}
+                >
+                  Proceed
+                </Button>
+              </div>
+            </ConfirmModalStyled>
+          )}
+        </>
+      }
     >
       <>
         {!confirmChange && (
@@ -251,23 +268,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
             )}
           </>
         )}
-        {confirmChange && (
-          <ConfirmModalStyled>
-            <div className="confirm-modal-container">
-              {CONFIRM_WARNING_MESSAGE}
-              <div className="btn-container">
-                <Button onClick={handlerCancelConfirm}>Cancel</Button>
-                <Button
-                  className="proceed-btn"
-                  buttonStyle="primary"
-                  onClick={handleChangeConfirm}
-                >
-                  Proceed
-                </Button>
-              </div>
-            </div>
-          </ConfirmModalStyled>
-        )}
+        {confirmChange && <>{CONFIRM_WARNING_MESSAGE}</>}
       </>
     </StyledModal>
   );

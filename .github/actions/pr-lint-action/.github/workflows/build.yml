@@ -1,0 +1,17 @@
+name: Build
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          yarn --frozen-lockfile
+          yarn build
+          git add dist/
+          git diff-index --quiet HEAD || git commit -m "ci: generate build"
+          git push

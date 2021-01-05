@@ -1,0 +1,192 @@
+name: Contribution Workflow
+env:
+  isFork: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+on: [pull_request]
+jobs:
+  add-reviews:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: kentaro-m/auto-assign-action@v1.1.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+  # make sure we can build
+  build:
+    name: yarn install && tsc
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: yarn build
+      - uses: actions/github-script@0.6.0
+        if: failure() && contains(env.isFork, 'false')
+        with:
+          github-token: ${{ secrets.TRILOM_BOT_TOKEN }}
+          script: |
+            if ('${{ contains(github.event.pull_request.labels.*.name, 'builds') }}' == 'true') {
+              github.issues.removeLabel({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number,
+                name: 'builds'
+              })
+            }
+      - uses: actions/github-script@0.6.0
+        if: contains(env.isFork, 'false')
+        with:
+          github-token: ${{ secrets.TRILOM_BOT_TOKEN }}
+          script: |
+            github.issues.addLabels({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number,
+              labels: ['builds']
+            })
+  # unit test with jest
+  test-unit:
+    name: jest unit tests
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+      - run: yarn build
+      - run: yarn test-coverage
+      - run: bash <(curl -s https://codecov.io/bash)
+        if: contains(env.isFork, 'false')
+      - uses: actions/github-script@0.6.0
+        if: failure() && contains(env.isFork, 'false')
+        with:
+          github-token: ${{ secrets.TRILOM_BOT_TOKEN }}
+          script: |
+            if ('${{ contains(github.event.pull_request.labels.*.name, 'tested-unit') }}' == 'true') {
+              github.issues.removeLabel({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number,
+                name: 'tested-unit'
+              })
+            }
+      - uses: actions/github-script@0.6.0
+        if: contains(env.isFork, 'false')
+        with:
+          github-token: ${{ secrets.TRILOM_BOT_TOKEN }}
+          script: |
+            github.issues.addLabels({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number,
+              labels: ['tested-unit']
+            })
+  # integration test with jest
+  test-integration:
+    name: jest integration tests
+    runs-on: ubuntu-latest
+    needs: test-unit
+    steps:
+      - uses: actions/checkout@v2
+      - run: yarn build
+      - run: yarn test-integration
+        env:
+          GITHUB_TOKEN: ${{ secrets.TRILOM_BOT_TOKEN }}
+      - uses: actions/github-script@0.6.0
+        if: failure() && contains(env.isFork, 'false')
+        with:
+          github-token: ${{ secrets.TRILOM_BOT_TOKEN }}
+          script: |
+            if ('${{ contains(github.event.pull_request.labels.*.name, 'tested-integration') }}' == 'true') {
+              github.issues.removeLabel({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number,
+                name: 'tested-integration'
+              })
+            }
+      - uses: actions/github-script@0.6.0
+        if: contains(env.isFork, 'false')
+        with:
+          github-token: ${{ secrets.TRILOM_BOT_TOKEN }}
+          script: |
+            github.issues.addLabels({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number,
+              labels: ['tested-integration']
+            })
+  # lint code in github check
+  lintdog-fork:
+    name: eslintdog (reviewdog)
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    steps:
+      - uses: actions/checkout@v2
+      - run: yarn build
+      - name: Lint and report
+        uses: reviewdog/action-eslint@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-check
+          eslint_flags: '--ext .ts ./'
+  # lint code and comment back if possible
+  lintdog:
+    name: eslintdog (reviewdog)
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v2
+      - run: yarn build
+      - name: Lint and report
+        uses: reviewdog/action-eslint@v1
+        with:
+          github_token: ${{ secrets.TRILOM_BOT_TOKEN }}
+          reporter: github-pr-review
+          eslint_flags: '--ext .ts ./'
+      - uses: actions/github-script@0.6.0
+        if: failure()
+        with:
+          github-token: ${{ secrets.TRILOM_BOT_TOKEN }}
+          script: |
+            if ('${{ contains(github.event.pull_request.labels.*.name, 'lintdogged') }}' == 'true') {
+              github.issues.removeLabel({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number,
+                name: 'lintdogged'
+              })
+            }
+      - uses: actions/github-script@0.6.0
+        with:
+          github-token: ${{ secrets.TRILOM_BOT_TOKEN }}
+          script: |
+            github.issues.addLabels({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number,
+              labels: ['lintdogged']
+            })
+  # format and push code back if not forked branch
+  format_check_push:
+    name: prettier
+    runs-on: ubuntu-latest
+    needs: [lintdog, lintdog-fork]
+    if: always()
+    env:
+      GITHUB_TOKEN: ${{ secrets.TRILOM_BOT_TOKEN }}
+    steps:
+      - uses: actions/checkout@v2 # checkout for forks
+        if: contains(env.isFork, 'true')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v2 # checkout for PR
+        if: contains(env.isFork, 'false')
+        with:
+          token: ${{ secrets.TRILOM_BOT_TOKEN }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - run: yarn build
+      - run: yarn format-check
+      - name: yarn format and push code if check failed
+        if: failure() && github.actor != 'trilom-bot' && contains(env.isFork, 'false')
+        env:
+          GITHUB_TOKEN: ${{ secrets.TRILOM_BOT_TOKEN }}
+        run: |
+          yarn format
+          sudo yarn clean
+          git config --local user.email "trilom-bot@trailmix.me"
+          git config --local user.name "trilom-bot"
+          git add -A
+          git diff-index --quiet HEAD || git commit -m "Adding format changes 🤖" -a
+          git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git HEAD:refs/heads/${{ github.head_ref }} && exit 0
+      - uses: actions/github-script@0.6.0
+        if: failure() && contains(env.isFork, 'false')
+        with:
+          github-token: ${{ secrets.TRILOM_BOT_TOKEN }}
+          script: |
+            if ('${{ contains(github.event.pull_request.labels.*.name, 'pretty') }}' == 'true') {
+              github.issues.removeLabel({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number,
+                name: 'pretty'
+              })
+            }
+      - uses: actions/github-script@0.6.0
+        if: contains(env.isFork, 'false')
+        with:
+          github-token: ${{ secrets.TRILOM_BOT_TOKEN }}
+          script: |
+            github.issues.addLabels({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number,
+              labels: ['pretty']
+            })
