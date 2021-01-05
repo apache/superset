@@ -370,11 +370,11 @@ GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] =
 
 # EXTRA_CATEGORICAL_COLOR_SCHEMES is used for adding custom categorical color schemes
 # This is merely a default
-EXTRA_CATEGORICAL_COLOR_SCHEMES: List = []
+EXTRA_CATEGORICAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
 # This is merely a default
-EXTRA_SEQUENTIAL_COLOR_SCHEMES: List = []
+EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
