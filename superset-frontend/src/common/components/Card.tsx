@@ -20,14 +20,18 @@ import React from 'react';
 import { styled } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
 import { Card as AntdCard } from 'antd';
-import { CardProps } from 'antd/lib/card';
+import { CardProps as AntdCardProps } from 'antd/lib/card';
 
-const Card = styled(({ ...props }: CardProps) => <AntdCard {...props} />)`
-  background-color: rgba(247, 247, 247, 1);
-  border-radius: 5px;
+interface CardProps extends AntdCardProps {
+  padded?: boolean;
+}
+
+const Card = styled(({ padded, ...props }: CardProps) => <AntdCard {...props} />)`
+  background-color: ${({ theme }) => theme.colors.grayscale.light4};
+  border-radius: ${({ theme }) => theme.borderRadius}px;
 
   .ant-card-body {
-    padding: 5px;
+    padding: ${({ padded, theme }) => padded ? theme.gridUnit * 4 : theme.gridUnit}px;
   }
 `;
 
