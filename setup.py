@@ -146,7 +146,7 @@ setup(
     },
     python_requires="~=3.7",
     author="Apache Software Foundation",
-    author_email="dev@superset.incubator.apache.org",
+    author_email="dev@superset.apache.org",
     url="https://superset.apache.org/",
     download_url="https://www.apache.org/dist/incubator/superset/" + version_string,
     classifiers=[

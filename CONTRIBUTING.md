@@ -330,7 +330,7 @@ referenced in the rst, e.g.
 
 aren't actually stored in that directory. Instead, you should add and commit
 images (and any other static assets) to the `superset-frontend/images` directory.
-When the docs are deployed to https://superset.incubator.apache.org/, images
+When the docs are deployed to https://superset.apache.org/, images
 are copied from there to the `_static/images` directory, just like they're referenced
 in the docs.
 
@@ -340,7 +340,7 @@ For example, the image referenced above actually lives in `superset-frontend/ima
 
 #### OS Dependencies
 
-Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps.
+Make sure your machine meets the [OS dependencies](https://superset.apache.org/installation.html#os-dependencies) before following these steps.
 
 Ensure Python versions >3.7, Then proceed with:
 

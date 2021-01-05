@@ -46,7 +46,7 @@ const installationLinks = [
   ],
   [
     'Locally with Docker',
-    'https://superset.incubator.apache.org/installation.html#start-with-docker',
+    'https://superset.apache.org/installation.html#start-with-docker',
   ],
   [
     'Superset on the Python Package Index (PyPI)',
