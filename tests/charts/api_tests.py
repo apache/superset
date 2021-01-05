@@ -1685,7 +1685,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         )
 
         sql = f"""
-                            SELECT COUNT(*) AS rows FROM (
+                            SELECT COUNT(*) AS rows_count FROM (
                                 SELECT name AS name, SUM(num) AS sum__num
                                 FROM birth_names
                                 WHERE ds >= '{start_date.strftime("%Y-%m-%d %H:%M:%S")}'
@@ -1695,4 +1695,4 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
                                 LIMIT 100 OFFSET 0) AS inner__query
                         """
         resp = db.get_engine().execute(sql)
-        return next(resp)["rows"]
+        return next(resp)["rows_count"]
