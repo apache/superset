@@ -99,7 +99,7 @@ class ControlPanelsContainer extends React.Component {
 
   sectionsToExpand(sections) {
     return sections.reduce(
-      (acc, cur) => cur.expanded && [...acc, cur.label],
+      (acc, cur) => (cur.expanded ? [...acc, cur.label] : acc),
       [],
     );
   }
