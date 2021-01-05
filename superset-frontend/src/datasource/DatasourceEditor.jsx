@@ -285,14 +285,7 @@ StackedField.propTypes = {
 };
 
 function FormContainer({ children }) {
-  return (
-    // <Card style={{ marginTop: 20 }} bodyStyle={{ padding: 15 }}>
-    //   {children}
-    // </Card>
-    <Card padded>
-      {children}
-    </Card>
-  );
+  return <Card padded>{children}</Card>;
 }
 
 FormContainer.propTypes = {
