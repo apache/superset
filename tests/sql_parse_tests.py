@@ -656,3 +656,79 @@ class TestSupersetSqlParse(unittest.TestCase):
         """
         parsed = ParsedQuery(query)
         self.assertEqual(parsed.is_explain(), False)
+
+    def test_is_valid_ctas(self):
+        """A valid CTAS has a SELECT as its last statement"""
+        query = "SELECT * FROM table"
+        parsed = ParsedQuery(query, strip_comments=True)
+        assert parsed.is_valid_ctas()
+
+        query = """
+            -- comment
+            SELECT * FROM table
+            -- comment 2
+        """
+        parsed = ParsedQuery(query, strip_comments=True)
+        assert parsed.is_valid_ctas()
+
+        query = """
+            -- comment
+            SET @value = 42;
+            SELECT @value as foo;
+            -- comment 2
+        """
+        parsed = ParsedQuery(query, strip_comments=True)
+        assert parsed.is_valid_ctas()
+
+        query = """
+            -- comment
+            EXPLAIN SELECT * FROM table
+            -- comment 2
+        """
+        parsed = ParsedQuery(query, strip_comments=True)
+        assert not parsed.is_valid_ctas()
+
+        query = """
+            SELECT * FROM table;
+            INSERT INTO TABLE (foo) VALUES (42);
+        """
+        parsed = ParsedQuery(query, strip_comments=True)
+        assert not parsed.is_valid_ctas()
+
+    def test_is_valid_cvas(self):
+        """A valid CVAS has a single SELECT statement"""
+        query = "SELECT * FROM table"
+        parsed = ParsedQuery(query, strip_comments=True)
+        assert parsed.is_valid_cvas()
+
+        query = """
+            -- comment
+            SELECT * FROM table
+            -- comment 2
+        """
+        parsed = ParsedQuery(query, strip_comments=True)
+        assert parsed.is_valid_cvas()
+
+        query = """
+            -- comment
+            SET @value = 42;
+            SELECT @value as foo;
+            -- comment 2
+        """
+        parsed = ParsedQuery(query, strip_comments=True)
+        assert not parsed.is_valid_cvas()
+
+        query = """
+            -- comment
+            EXPLAIN SELECT * FROM table
+            -- comment 2
+        """
+        parsed = ParsedQuery(query, strip_comments=True)
+        assert not parsed.is_valid_ctas()
+
+        query = """
+            SELECT * FROM table;
+            INSERT INTO TABLE (foo) VALUES (42);
+        """
+        parsed = ParsedQuery(query, strip_comments=True)
+        assert not parsed.is_valid_ctas()
