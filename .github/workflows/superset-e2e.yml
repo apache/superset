@@ -1,6 +1,6 @@
 name: E2E
 
-on: [push, pull_request_target]
+on: [push, pull_request]
 
 jobs:
   cypress-matrix:
@@ -35,10 +35,6 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
-        with:
-          access_token: ${{ github.token }}
       - name: Checkout code (push)
         if: github.event_name == 'push'
         uses: actions/checkout@v2
@@ -52,43 +48,43 @@ jobs:
         with:
           python-version: "3.7"
       - name: OS dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             apt-get-install
       - name: Install python dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             pip-upgrade
             pip install -r requirements/testing.txt
       - name: Setup postgres
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             setup-postgres
       - name: Import test data
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             testdata
       - name: Install npm dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             npm-install
       - name: Build javascript packages
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             build-instrumented-assets
       - name: Install cypress
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             cypress-install
       - name: Run Cypress
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}

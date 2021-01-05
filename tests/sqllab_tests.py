@@ -18,11 +18,12 @@
 """Unit tests for Sql Lab"""
 import json
 from datetime import datetime, timedelta
-from parameterized import parameterized
 from random import random
 from unittest import mock
 
+from parameterized import parameterized
 import prison
+import pytest
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
@@ -30,6 +31,7 @@ from superset.db_engine_specs import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.models.sql_lab import Query, SavedQuery
 from superset.result_set import SupersetResultSet
+from superset.sql_lab import execute_sql_statements, SqlLabException
 from superset.sql_parse import CtasMethod
 from superset.utils.core import (
     datetime_to_epoch,
@@ -618,3 +620,163 @@ class TestSqlLab(SupersetTestCase):
             "template_parameters": {"state": "CA"},
             "undefined_parameters": ["stat"],
         }
+
+    @mock.patch("superset.sql_lab.get_query")
+    @mock.patch("superset.sql_lab.execute_sql_statement")
+    def test_execute_sql_statements(self, mock_execute_sql_statement, mock_get_query):
+        sql = """
+            -- comment
+            SET @value = 42;
+            SELECT @value AS foo;
+            -- comment
+        """
+        mock_session = mock.MagicMock()
+        mock_query = mock.MagicMock()
+        mock_query.database.allow_run_async = False
+        mock_cursor = mock.MagicMock()
+        mock_query.database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value = (
+            mock_cursor
+        )
+        mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
+        mock_get_query.return_value = mock_query
+
+        execute_sql_statements(
+            query_id=1,
+            rendered_query=sql,
+            return_results=True,
+            store_results=False,
+            user_name="admin",
+            session=mock_session,
+            start_time=None,
+            expand_data=False,
+            log_params=None,
+        )
+        mock_execute_sql_statement.assert_has_calls(
+            [
+                mock.call(
+                    "SET @value = 42",
+                    mock_query,
+                    "admin",
+                    mock_session,
+                    mock_cursor,
+                    None,
+                    False,
+                ),
+                mock.call(
+                    "SELECT @value AS foo",
+                    mock_query,
+                    "admin",
+                    mock_session,
+                    mock_cursor,
+                    None,
+                    False,
+                ),
+            ]
+        )
+
+    @mock.patch("superset.sql_lab.get_query")
+    @mock.patch("superset.sql_lab.execute_sql_statement")
+    def test_execute_sql_statements_ctas(
+        self, mock_execute_sql_statement, mock_get_query
+    ):
+        sql = """
+            -- comment
+            SET @value = 42;
+            SELECT @value AS foo;
+            -- comment
+        """
+        mock_session = mock.MagicMock()
+        mock_query = mock.MagicMock()
+        mock_query.database.allow_run_async = False
+        mock_cursor = mock.MagicMock()
+        mock_query.database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value = (
+            mock_cursor
+        )
+        mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
+        mock_get_query.return_value = mock_query
+
+        # set the query to CTAS
+        mock_query.select_as_cta = True
+        mock_query.ctas_method = CtasMethod.TABLE
+
+        execute_sql_statements(
+            query_id=1,
+            rendered_query=sql,
+            return_results=True,
+            store_results=False,
+            user_name="admin",
+            session=mock_session,
+            start_time=None,
+            expand_data=False,
+            log_params=None,
+        )
+        mock_execute_sql_statement.assert_has_calls(
+            [
+                mock.call(
+                    "SET @value = 42",
+                    mock_query,
+                    "admin",
+                    mock_session,
+                    mock_cursor,
+                    None,
+                    False,
+                ),
+                mock.call(
+                    "SELECT @value AS foo",
+                    mock_query,
+                    "admin",
+                    mock_session,
+                    mock_cursor,
+                    None,
+                    True,  # apply_ctas
+                ),
+            ]
+        )
+
+        # try invalid CTAS
+        sql = "DROP TABLE my_table"
+        with pytest.raises(SqlLabException) as excinfo:
+            execute_sql_statements(
+                query_id=1,
+                rendered_query=sql,
+                return_results=True,
+                store_results=False,
+                user_name="admin",
+                session=mock_session,
+                start_time=None,
+                expand_data=False,
+                log_params=None,
+            )
+        assert str(excinfo.value) == (
+            "CTAS (create table as select) can only be run with "
+            "a query where the last statement is a SELECT. Please "
+            "make sure your query has a SELECT as its last "
+            "statement. Then, try running your query again."
+        )
+
+        # try invalid CVAS
+        mock_query.ctas_method = CtasMethod.VIEW
+        sql = """
+            -- comment
+            SET @value = 42;
+            SELECT @value AS foo;
+            -- comment
+        """
+        with pytest.raises(SqlLabException) as excinfo:
+            execute_sql_statements(
+                query_id=1,
+                rendered_query=sql,
+                return_results=True,
+                store_results=False,
+                user_name="admin",
+                session=mock_session,
+                start_time=None,
+                expand_data=False,
+                log_params=None,
+            )
+        assert str(excinfo.value) == (
+            "CVAS (create view as select) can only be run with a "
+            "query with a single SELECT statement. Please make "
+            "sure your query has only a SELECT statement. Then, "
+            "try running your query again."
+        )

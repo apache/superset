@@ -1,0 +1,5 @@
+# JetBrains
+.idea/
+
+# Packages
+node_modules
