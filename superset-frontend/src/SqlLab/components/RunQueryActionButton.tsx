@@ -84,7 +84,6 @@ const RunQueryActionButton = ({
   runQuery,
   stopQuery,
 }: Props) => {
-  const btnStyle = selectedText ? 'warning' : 'primary';
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
 
@@ -117,7 +116,7 @@ const RunQueryActionButton = ({
               ),
               trigger: 'click',
             }
-          : { buttonStyle: btnStyle })}
+          : { buttonStyle: 'primary' })}
       >
         {buildText(shouldShowStopBtn, selectedText)}
       </ButtonComponent>
