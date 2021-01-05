@@ -68,6 +68,7 @@ const onClick = (
 
 const StyledButton = styled.span`
   button {
+    width: 120px;
     line-height: 13px;
     &:last-of-type {
       margin-right: ${({ theme }) => theme.gridUnit * 2}px;
