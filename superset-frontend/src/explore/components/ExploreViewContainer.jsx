@@ -398,9 +398,7 @@ function ExploreViewContainer(props) {
       )}
       <div
         className={
-          isCollapsed
-            ? 'no-show'
-            : 'explore-column data-source-selection'
+          isCollapsed ? 'no-show' : 'explore-column data-source-selection'
         }
       >
         <div className="title-container">
