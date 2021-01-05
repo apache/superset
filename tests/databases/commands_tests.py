@@ -76,10 +76,10 @@ class TestExportDatabasesCommand(SupersetTestCase):
         assert core_files.issubset(set(contents.keys()))
 
         example_db = get_example_database()
-        if example_db.backend == "sqlite":
-            ds_type = "DATETIME"
-        else:
+        if example_db.backend == "postgresql":
             ds_type = "TIMESTAMP WITHOUT TIME ZONE"
+        else:
+            ds_type = "DATETIME"
         metadata = yaml.safe_load(contents["databases/examples.yaml"])
         assert metadata == (
             {
