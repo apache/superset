@@ -24,9 +24,9 @@ from superset.commands.importers.v1.examples import ImportExamplesCommand
 YAML_EXTENSIONS = {".yaml", ".yml"}
 
 
-def load_from_configs() -> None:
+def load_from_configs(force: bool) -> None:
     contents = load_contents()
-    command = ImportExamplesCommand(contents, overwrite=True)
+    command = ImportExamplesCommand(contents, overwrite=force)
     command.run()
 
 
