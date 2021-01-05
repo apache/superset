@@ -30,16 +30,18 @@ import {
 } from '@superset-ui/core';
 import superset from '@superset-ui/core/esm/color/colorSchemes/categorical/superset';
 
-export default function setupColors(colorExtra) {
+export default function setupColors(
+  extraCategoricalColorSchemas,
+  extraSequentialColorSchemes,
+) {
   // Register color schemes
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 
-  // Custom Categorical color scheme
-  colorExtra
-    .filter(x => x.schemeType === 'Categorical')
-    .forEach(scheme => {
+  if (extraCategoricalColorSchemas && extraCategoricalColorSchemas.length > 0) {
+    extraCategoricalColorSchemas.forEach(scheme => {
       categoricalSchemeRegistry.registerValue(scheme.id, scheme);
     });
+  }
 
   [superset, airbnb, categoricalD3, echarts, google, lyft, preset].forEach(
     group => {
@@ -52,12 +54,12 @@ export default function setupColors(colorExtra) {
 
   const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
-  // Custom Sequential color scheme
-  colorExtra
-    .filter(x => x.schemeType === 'Sequential')
-    .forEach(scheme => {
+  if (extraSequentialColorSchemes && extraSequentialColorSchemes.length > 0) {
+    extraSequentialColorSchemes.forEach(scheme => {
       categoricalSchemeRegistry.registerValue(scheme.id, scheme);
     });
+  }
+
   [sequentialCommon, sequentialD3].forEach(group => {
     group.forEach(scheme => {
       sequentialSchemeRegistry.registerValue(scheme.id, scheme);

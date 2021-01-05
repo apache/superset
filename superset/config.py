@@ -368,14 +368,14 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 #     return feature_flags_dict
 GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] = None
 
-# ---------------------------------------------------
-# SETUP EXTRA
-# ---------------------------------------------------
-# SETUP EXTRA is used for adding custom extra Color schemes
-# It might be possible to add support for customizing also Formatting, Error messages
-# and plugins
+
+# EXTRA_CATEGORICAL_COLOR_SCHEMES is used for adding custom categorical color schemes
 # This is merely a default
-SETUP_EXTRA = {}
+EXTRA_CATEGORICAL_COLOR_SCHEMES = {}
+
+# EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
+# This is merely a default
+EXTRA_SEQUENTIAL_COLOR_SCHEMES = {}
 
 
 # ---------------------------------------------------

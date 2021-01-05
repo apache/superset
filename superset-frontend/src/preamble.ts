@@ -52,17 +52,25 @@ if (typeof window !== 'undefined') {
 setupClient();
 
 // Setup color palettes
-let color_schemes: ColorScheme[] = [];
+let extraCategoricalColorSchemes: ColorScheme[] = [];
+let extraSequentialColorSchemes: ColorScheme[] = [];
 
 if (
   bootstrapData.common &&
-  bootstrapData.common.setup_extra &&
-  bootstrapData.common.setup_extra.COLOR_SCHEMES
+  bootstrapData.common.extra_categorical_color_schemes
 ) {
-  color_schemes = bootstrapData.common.setup_extra.COLOR_SCHEMES;
+  extraCategoricalColorSchemes =
+    bootstrapData.common.extra_categorical_color_schemes;
+}
+if (
+  bootstrapData.common &&
+  bootstrapData.common.extra_sequential_color_schemes
+) {
+  extraSequentialColorSchemes =
+    bootstrapData.common.extra_sequential_color_schemes;
 }
 
-setupColors(color_schemes);
+setupColors(extraCategoricalColorSchemes, extraSequentialColorSchemes);
 
 // Setup number formatters
 setupFormatters();
