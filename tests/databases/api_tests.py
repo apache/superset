@@ -19,6 +19,7 @@
 """Unit tests for Superset"""
 import json
 from io import BytesIO
+from unittest import mock
 from zipfile import is_zipfile, ZipFile
 
 import prison
@@ -343,11 +344,14 @@ class TestDatabaseApi(SupersetTestCase):
             "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
         )
 
+    @mock.patch(
+        "superset.views.core.app.config",
+        {**app.config, "PREVENT_UNSAFE_DB_CONNECTIONS": True},
+    )
     def test_create_database_fail_sqllite(self):
         """
         Database API: Test create fail with sqllite
         """
-        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
         database_data = {
             "database_name": "test-create-sqlite-database",
             "sqlalchemy_uri": "sqlite:////some.db",
@@ -367,7 +371,6 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.assertEqual(response_data, expected_response)
         self.assertEqual(response.status_code, 400)
-        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
 
     def test_create_database_conn_fail(self):
         """
