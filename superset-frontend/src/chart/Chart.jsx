@@ -81,8 +81,7 @@ const defaultProps = {
 };
 
 const Styles = styled.div`
-  height: 100%;
-  min-height: ${p => p.chartHeight}px;
+  min-height: ${p => p.height}px;
   position: relative;
 
   .chart-tooltip {
@@ -199,6 +198,7 @@ class Chart extends React.PureComponent {
         </Alert>
       );
     }
+
     return (
       <ErrorBoundary
         onError={this.handleRenderContainerFailure}
@@ -207,7 +207,7 @@ class Chart extends React.PureComponent {
         <Styles
           className="chart-container"
           data-test="chart-container"
-          chartHeight={height}
+          height={height}
         >
           <div
             className={`slice_container ${isFaded ? ' faded' : ''}`}
