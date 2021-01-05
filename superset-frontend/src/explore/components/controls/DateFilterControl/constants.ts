@@ -16,15 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import moment from 'moment';
 import { t } from '@superset-ui/core';
 import {
   SelectOptionType,
   PreviousCalendarWeek,
   PreviousCalendarMonth,
   PreviousCalendarYear,
+  CommonRangeType,
+  CalendarRangeType,
 } from './types';
 
-export const RANGE_FRAME_OPTIONS: SelectOptionType[] = [
+export const FRAME_OPTIONS: SelectOptionType[] = [
   { value: 'Common', label: t('Last') },
   { value: 'Calendar', label: t('Previous') },
   { value: 'Custom', label: t('Custom') },
@@ -33,18 +36,24 @@ export const RANGE_FRAME_OPTIONS: SelectOptionType[] = [
 ];
 
 export const COMMON_RANGE_OPTIONS: SelectOptionType[] = [
-  { value: 'Last day', label: t('Last day') },
-  { value: 'Last week', label: t('Last week') },
-  { value: 'Last month', label: t('Last month') },
-  { value: 'Last quarter', label: t('Last quarter') },
-  { value: 'Last year', label: t('Last year') },
+  { value: 'Last day', label: t('last day') },
+  { value: 'Last week', label: t('last week') },
+  { value: 'Last month', label: t('last month') },
+  { value: 'Last quarter', label: t('last quarter') },
+  { value: 'Last year', label: t('last year') },
 ];
+export const COMMON_RANGE_VALUES_SET = new Set(
+  COMMON_RANGE_OPTIONS.map(({ value }) => value),
+);
 
 export const CALENDAR_RANGE_OPTIONS: SelectOptionType[] = [
-  { value: PreviousCalendarWeek, label: t('Previous Calendar week') },
-  { value: PreviousCalendarMonth, label: t('Previous Calendar month') },
-  { value: PreviousCalendarYear, label: t('Previous Calendar year') },
+  { value: PreviousCalendarWeek, label: t('previous calendar week') },
+  { value: PreviousCalendarMonth, label: t('previous calendar month') },
+  { value: PreviousCalendarYear, label: t('previous calendar year') },
 ];
+export const CALENDAR_RANGE_VALUES_SET = new Set(
+  CALENDAR_RANGE_OPTIONS.map(({ value }) => value),
+);
 
 const GRAIN_OPTIONS = [
   { value: 'second', label: (rel: string) => `${t('Seconds')} ${rel}` },
@@ -53,6 +62,7 @@ const GRAIN_OPTIONS = [
   { value: 'day', label: (rel: string) => `${t('Days')} ${rel}` },
   { value: 'week', label: (rel: string) => `${t('Weeks')} ${rel}` },
   { value: 'month', label: (rel: string) => `${t('Months')} ${rel}` },
+  { value: 'quarter', label: (rel: string) => `${t('Quarters')} ${rel}` },
   { value: 'year', label: (rel: string) => `${t('Years')} ${rel}` },
 ];
 
@@ -78,3 +88,25 @@ export const SINCE_MODE_OPTIONS: SelectOptionType[] = [
 ];
 
 export const UNTIL_MODE_OPTIONS: SelectOptionType[] = SINCE_MODE_OPTIONS.slice();
+
+export const COMMON_RANGE_SET: Set<CommonRangeType> = new Set([
+  'Last day',
+  'Last week',
+  'Last month',
+  'Last quarter',
+  'Last year',
+]);
+
+export const CALENDAR_RANGE_SET: Set<CalendarRangeType> = new Set([
+  PreviousCalendarWeek,
+  PreviousCalendarMonth,
+  PreviousCalendarYear,
+]);
+
+export const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
+export const SEVEN_DAYS_AGO = moment()
+  .utc()
+  .startOf('day')
+  .subtract(7, 'days')
+  .format(MOMENT_FORMAT);
+export const MIDNIGHT = moment().utc().startOf('day').format(MOMENT_FORMAT);
