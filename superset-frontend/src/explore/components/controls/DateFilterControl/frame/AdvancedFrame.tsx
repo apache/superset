@@ -20,13 +20,9 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import { SEPARATOR } from 'src/explore/dateFilterUtils';
 import { Input } from 'src/common/components';
+import { FrameComponentProps } from '../types';
 
-type AdvancedFrameProps = {
-  onChange: (timeRange: string) => void;
-  value: string;
-};
-
-export default function AdvancedFrame(props: AdvancedFrameProps) {
+export function AdvancedFrame(props: FrameComponentProps) {
   const [since, until] = getAdvancedRange(props.value || '').split(SEPARATOR);
 
   function getAdvancedRange(value: string): string {

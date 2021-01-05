@@ -44,10 +44,12 @@ import {
   FRAME_OPTIONS,
 } from './constants';
 import { customTimeRangeDecode } from './utils';
-import CommonFrame from './CommonFrame';
-import CalendarFrame from './CalendarFrame';
-import CustomFrame from './CustomFrame';
-import AdvancedFrame from './AdvancedFrame';
+import {
+  CommonFrame,
+  CalendarFrame,
+  CustomFrame,
+  AdvancedFrame,
+} from './frame';
 
 const guessFrame = (timeRange: string): FrameType => {
   if (COMMON_RANGE_VALUES_SET.has(timeRange)) {

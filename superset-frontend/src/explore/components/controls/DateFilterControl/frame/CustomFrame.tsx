@@ -35,9 +35,13 @@ import {
   UNTIL_MODE_OPTIONS,
   MOMENT_FORMAT,
   MIDNIGHT,
-} from './constants';
-import { customTimeRangeDecode, customTimeRangeEncode } from './utils';
-import { CustomRangeKey, SelectOptionType } from './types';
+} from '../constants';
+import { customTimeRangeDecode, customTimeRangeEncode } from '../utils';
+import {
+  CustomRangeKey,
+  SelectOptionType,
+  FrameComponentProps,
+} from '../types';
 
 const dttmToMoment = (dttm: string): Moment => {
   if (dttm === 'now') {
@@ -49,11 +53,7 @@ const dttmToMoment = (dttm: string): Moment => {
   return moment(dttm);
 };
 
-type CustomFrameProps = {
-  onChange: (timeRange: string) => void;
-  value: string;
-};
-export default function CustomFrame(props: CustomFrameProps) {
+export function CustomFrame(props: FrameComponentProps) {
   const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
   if (!matchedFlag) {
     props.onChange(customTimeRangeEncode(customRange));

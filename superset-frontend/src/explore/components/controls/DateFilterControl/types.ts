@@ -87,3 +87,8 @@ export type CalendarRangeType =
   | typeof PreviousCalendarWeek
   | typeof PreviousCalendarMonth
   | typeof PreviousCalendarYear;
+
+export type FrameComponentProps = {
+  onChange: (timeRange: string) => void;
+  value: string;
+};

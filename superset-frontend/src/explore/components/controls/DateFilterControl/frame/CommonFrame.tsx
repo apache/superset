@@ -19,15 +19,10 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 import { Radio } from 'src/common/components';
-import { COMMON_RANGE_OPTIONS, COMMON_RANGE_SET } from './constants';
-import { CommonRangeType } from './types';
+import { COMMON_RANGE_OPTIONS, COMMON_RANGE_SET } from '../constants';
+import { CommonRangeType, FrameComponentProps } from '../types';
 
-type CommonFrameProps = {
-  onChange: (timeRange: string) => void;
-  value: string;
-};
-
-export default function CommonFrame(props: CommonFrameProps) {
+export function CommonFrame(props: FrameComponentProps) {
   let commonRange = 'Last week';
   if (COMMON_RANGE_SET.has(props.value as CommonRangeType)) {
     commonRange = props.value;

@@ -19,15 +19,14 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 import { Radio } from 'src/common/components';
-import { CALENDAR_RANGE_OPTIONS, CALENDAR_RANGE_SET } from './constants';
-import { CalendarRangeType, PreviousCalendarWeek } from './types';
+import { CALENDAR_RANGE_OPTIONS, CALENDAR_RANGE_SET } from '../constants';
+import {
+  CalendarRangeType,
+  PreviousCalendarWeek,
+  FrameComponentProps,
+} from '../types';
 
-type CalendarFrameProps = {
-  onChange: (timeRange: string) => void;
-  value: string;
-};
-
-export default function CalendarFrame(props: CalendarFrameProps) {
+export function CalendarFrame(props: FrameComponentProps) {
   let calendarRange = PreviousCalendarWeek;
   if (CALENDAR_RANGE_SET.has(props.value as CalendarRangeType)) {
     calendarRange = props.value;
