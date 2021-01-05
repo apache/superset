@@ -42,7 +42,7 @@ const learningLinks = [
 const installationLinks = [
   [
     'Official Apache releases',
-    'https://dist.apache.org/repos/dist/release/incubator/superset/',
+    'https://dist.apache.org/repos/dist/release/superset/',
   ],
   [
     'Locally with Docker',
@@ -50,7 +50,7 @@ const installationLinks = [
   ],
   [
     'Superset on the Python Package Index (PyPI)',
-    'https://dist.apache.org/repos/dist/release/incubator/superset/',
+    'https://dist.apache.org/repos/dist/release/superset/',
   ],
   [
     'Install on CentOS',

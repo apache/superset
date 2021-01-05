@@ -34,7 +34,7 @@ mkdir -p "${SUPERSET_SVN_DEV_PATH}"/"${SUPERSET_VERSION_RC}"
 cd /tmp
 git clone --depth 1 --branch ${SUPERSET_VERSION_RC} https://github.com/apache/superset.git
 mkdir -p "${HOME}/${SUPERSET_VERSION_RC}"
-cd incubator-superset && \
+cd superset && \
 
 # Check RC version
 if ! jq -e --arg SUPERSET_VERSION $SUPERSET_VERSION '.version == $SUPERSET_VERSION' superset-frontend/package.json

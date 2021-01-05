@@ -148,7 +148,7 @@ setup(
     author="Apache Software Foundation",
     author_email="dev@superset.apache.org",
     url="https://superset.apache.org/",
-    download_url="https://www.apache.org/dist/incubator/superset/" + version_string,
+    download_url="https://www.apache.org/dist/superset/" + version_string,
     classifiers=[
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
