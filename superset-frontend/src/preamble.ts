@@ -52,17 +52,17 @@ if (typeof window !== 'undefined') {
 setupClient();
 
 // Setup color palettes
-let color_schemas: ColorScheme[] = [];
+let color_schemes: ColorScheme[] = [];
 
 if (
   bootstrapData.common &&
   bootstrapData.common.setup_extra &&
   bootstrapData.common.setup_extra.COLOR_SCHEMES
 ) {
-  color_schemas = bootstrapData.common.setup_extra.COLOR_SCHEMES;
+  color_schemes = bootstrapData.common.setup_extra.COLOR_SCHEMES;
 }
 
-setupColors(color_schemas);
+setupColors(color_schemes);
 
 // Setup number formatters
 setupFormatters();
