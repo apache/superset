@@ -1201,8 +1201,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       name="threshold"
                       disabled={conditionNotNull}
                       value={
-                        currentAlert && currentAlert.validator_config_json
-                          ? currentAlert.validator_config_json.threshold || ''
+                        currentAlert &&
+                        currentAlert.validator_config_json &&
+                        currentAlert.validator_config_json.threshold !==
+                          undefined
+                          ? currentAlert.validator_config_json.threshold
                           : ''
                       }
                       placeholder={t('Value')}
