@@ -81,7 +81,9 @@ def get_runs_by_branch(
         item
         for event in events
         for status in statuses
-        for item in list_runs(repo, {"event": event, "status": status})["workflow_runs"]
+        for item in list_runs(
+            repo, {"event": event, "status": status, "per_page": 100}
+        )["workflow_runs"]
         if item["head_branch"] == branch
         and (user is None or (user == item["head_repository"]["owner"]["login"]))
     ]
@@ -200,6 +202,7 @@ def cancel_github_workflows(
 
     last_sha = None
 
+    print(f"\nCancelling {len(runs)} jobs...\n")
     for entry in runs:
         head_commit = entry["head_commit"]
         if head_commit["id"] != last_sha:
