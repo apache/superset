@@ -8,6 +8,13 @@ updates:
       - npm
       - dependabot
 
+  - package-ecosystem: "npm"
+    directory: ".github/actions"
+    schedule:
+      interval: "monthly"
+    ignore:
+      - dependency-name: "*"
+
   - package-ecosystem: "pip"
     directory: "/requirements/"
     schedule:
