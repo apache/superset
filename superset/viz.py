@@ -2379,6 +2379,8 @@ class BaseDeckGLViz(BaseViz):
             d["groupby"] = gb
             d["metrics"] = metrics
             d["columns"] = []
+            first_metric = d["metrics"][0]
+            d["orderby"] = [(first_metric, not fd.get("order_desc", True))]
         else:
             d["columns"] = gb
         return d
