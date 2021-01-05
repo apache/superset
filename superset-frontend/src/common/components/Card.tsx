@@ -26,12 +26,15 @@ interface CardProps extends AntdCardProps {
   padded?: boolean;
 }
 
-const Card = styled(({ padded, ...props }: CardProps) => <AntdCard {...props} />)`
+const Card = styled(({ padded, ...props }: CardProps) => (
+  <AntdCard {...props} />
+))`
   background-color: ${({ theme }) => theme.colors.grayscale.light4};
   border-radius: ${({ theme }) => theme.borderRadius}px;
 
   .ant-card-body {
-    padding: ${({ padded, theme }) => padded ? theme.gridUnit * 4 : theme.gridUnit}px;
+    padding: ${({ padded, theme }) =>
+      padded ? theme.gridUnit * 4 : theme.gridUnit}px;
   }
 `;
 
