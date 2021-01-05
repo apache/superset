@@ -58,6 +58,7 @@ from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.query_context import get_query_context, ANNOTATION_LAYERS
 from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 from tests.annotation_layers.fixtures import create_annotation_layers
+from tests.utils.get_dashboards import get_dashboards_ids
 
 CHART_DATA_URI = "api/v1/chart/data"
 CHARTS_FIXTURE_COUNT = 10
@@ -432,15 +433,12 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(user_alpha2)
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_create_chart(self):
         """
         Chart API: Test create chart
         """
-        dashes = (
-            db.session.query(Dashboard)
-            .filter(or_(Dashboard.slug == "world_health", Dashboard.slug == "births"))
-            .all()
-        )
+        dashboards_ids = get_dashboards_ids(db, ["world_health", "births"])
         admin_id = self.get_user("admin").id
         chart_data = {
             "slice_name": "name1",
@@ -451,7 +449,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             "cache_timeout": 1000,
             "datasource_id": 1,
             "datasource_type": "table",
-            "dashboards": [dash.id for dash in dashes],
+            "dashboards": dashboards_ids,
         }
         self.login(username="admin")
         uri = f"api/v1/chart/"

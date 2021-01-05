@@ -48,7 +48,7 @@ from tests.fixtures.importexport import (
     dataset_config,
     dataset_metadata_config,
 )
-
+from tests.utils.get_dashboards import get_dashboards_ids
 
 DASHBOARDS_FIXTURE_COUNT = 10
 
@@ -1152,13 +1152,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Dashboard API: Test dashboard export
         """
-        dashes = (
-            db.session.query(Dashboard)
-            .filter(or_(Dashboard.slug == "world_health", Dashboard.slug == "births"))
-            .all()
-        )
-        argument = [dash.id for dash in dashes]
-        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+        dashboards_ids = get_dashboards_ids(db, ["world_health", "births"])
+        uri = f"api/v1/dashboard/export/?q={prison.dumps(dashboards_ids)}"
 
         self.login(username="admin")
         rv = self.client.get(uri)

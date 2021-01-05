@@ -118,27 +118,29 @@ def load_birth_names(
     create_dashboard(slices)
 
 
-def _set_table_metadata(obj: "BaseDatasource", database: "Database") -> None:
-    obj.main_dttm_col = "ds"  # type: ignore
-    obj.database = database
-    obj.filter_select_enabled = True
-    obj.fetch_metadata()
+def _set_table_metadata(datasource: "BaseDatasource", database: "Database") -> None:
+    datasource.main_dttm_col = "ds"  # type: ignore
+    datasource.database = database
+    datasource.filter_select_enabled = True
+    datasource.fetch_metadata()
 
 
-def _add_table_metrics(obj: "BaseDatasource") -> None:
-    if not any(col.column_name == "num_california" for col in obj.columns):
+def _add_table_metrics(datasource: "BaseDatasource") -> None:
+    if not any(col.column_name == "num_california" for col in datasource.columns):
         col_state = str(column("state").compile(db.engine))
         col_num = str(column("num").compile(db.engine))
-        obj.columns.append(
+        datasource.columns.append(
             TableColumn(
                 column_name="num_california",
                 expression=f"CASE WHEN {col_state} = 'CA' THEN {col_num} ELSE 0 END",
             )
         )
 
-    if not any(col.metric_name == "sum__num" for col in obj.metrics):
+    if not any(col.metric_name == "sum__num" for col in datasource.metrics):
         col = str(column("num").compile(db.engine))
-        obj.metrics.append(SqlMetric(metric_name="sum__num", expression=f"SUM({col})"))
+        datasource.metrics.append(
+            SqlMetric(metric_name="sum__num", expression=f"SUM({col})")
+        )
 
 
 def create_slices(tbl: BaseDatasource) -> Tuple[List[Slice], List[Slice]]:
