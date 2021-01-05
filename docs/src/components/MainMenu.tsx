@@ -98,7 +98,7 @@ const MenuItems = ({ mode, toggleDrawer }: menuProps) => {
       {mode === 'horizontal'
       && (
       <Menu.Item key="github" style={rightStyle}>
-        <a href="https://github.com/apache/incubator-superset" target="_blank" rel="noreferrer">
+        <a href="https://github.com/apache/superset" target="_blank" rel="noreferrer">
           <GithubOutlined className="menu-icon" />
         </a>
       </Menu.Item>

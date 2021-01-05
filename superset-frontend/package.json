@@ -31,7 +31,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/apache/incubator-superset.git"
+    "url": "git+https://github.com/apache/superset.git"
   },
   "keywords": [
     "big",
@@ -47,7 +47,7 @@
   ],
   "author": "Apache",
   "bugs": {
-    "url": "https://github.com/apache/incubator-superset/issues"
+    "url": "https://github.com/apache/superset/issues"
   },
   "browserslist": [
     "last 3 chrome versions",

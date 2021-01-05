@@ -80,7 +80,7 @@ const LayoutFooter = () => (
           <SlackSquareOutlined className="icon" />
         </a>
         <a
-          href="https://github.com/apache/incubator-superset"
+          href="https://github.com/apache/superset"
           target="_blank"
           rel="noreferrer"
         >
