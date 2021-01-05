@@ -282,7 +282,7 @@
     "source-map-support": "^0.5.16",
     "speed-measure-webpack-plugin": "^1.2.3",
     "storybook-addon-jsx": "^7.3.3",
-    "storybook-addon-paddings": "^2.0.2",
+    "storybook-addon-paddings": "^3.2.0",
     "style-loader": "^1.0.0",
     "terser-webpack-plugin": "^1.1.0",
     "thread-loader": "^1.2.0",
