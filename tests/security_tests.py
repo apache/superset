@@ -260,6 +260,7 @@ class TestRolePermission(SupersetTestCase):
         session.commit()
 
     def test_set_perm_druid_datasource(self):
+        self.create_druid_test_objects()
         session = db.session
         druid_cluster = (
             session.query(DruidCluster).filter_by(cluster_name="druid_test").one()
