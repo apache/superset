@@ -1497,6 +1497,25 @@ def get_since_until(
     if time_range and time_range.startswith("Next") and separator not in time_range:
         time_range = _relative_start + separator + time_range
 
+    if (
+        time_range
+        and time_range.startswith("previous calendar week")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, WEEK), WEEK) : LASTDAY(DATEADD(DATETIME('today'), -1, WEEK), WEEK)"  # pylint: disable=line-too-long
+    if (
+        time_range
+        and time_range.startswith("previous calendar month")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, MONTH), MONTH) : LASTDAY(DATEADD(DATETIME('today'), -1, MONTH), MONTH)"  # pylint: disable=line-too-long
+    if (
+        time_range
+        and time_range.startswith("previous calendar year")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, YEAR), YEAR) : LASTDAY(DATEADD(DATETIME('today'), -1, YEAR), YEAR)"  # pylint: disable=line-too-long
+
     if time_range and separator in time_range:
         time_range_lookup = [
             (

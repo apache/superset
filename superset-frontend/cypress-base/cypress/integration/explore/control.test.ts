@@ -178,7 +178,7 @@ describe('Time range filter', () => {
       metrics: [NUM_METRIC],
       viz_type: 'line',
       time_range:
-        'DATETRUNC(DATEADD(DATETIME("TODAY"), -1, MONTH), MONTH) : LASTDAY(DATEADD(DATETIME("TODAY"), -1, MONTH), MONTH)',
+        'previous calendar month',
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
