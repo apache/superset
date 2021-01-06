@@ -95,8 +95,7 @@ class GitChangeLog:
         try:
             self._wait_github_rate_limit()
             with request.urlopen(
-                "https://api.github.com/repos/apache/superset/pulls/"
-                f"{pr_number}"
+                "https://api.github.com/repos/apache/superset/pulls/" f"{pr_number}"
             ) as response:
                 payload = json.loads(response.read())
         except HTTPError as ex:
