@@ -21,17 +21,17 @@ Superset
 =========
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/apache/incubator-superset)
-[![Build Status](https://github.com/apache/incubator-superset/workflows/Python/badge.svg)](https://github.com/apache/incubator-superset/actions)
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/apache/superset)
+[![Build Status](https://github.com/apache/superset/workflows/Python/badge.svg)](https://github.com/apache/superset/actions)
 [![PyPI version](https://badge.fury.io/py/apache-superset.svg)](https://badge.fury.io/py/apache-superset)
-[![Coverage Status](https://codecov.io/github/apache/incubator-superset/coverage.svg?branch=master)](https://codecov.io/github/apache/incubator-superset)
+[![Coverage Status](https://codecov.io/github/apache/superset/coverage.svg?branch=master)](https://codecov.io/github/apache/superset)
 [![PyPI](https://img.shields.io/pypi/pyversions/apache-superset.svg?maxAge=2592000)](https://pypi.python.org/pypi/apache-superset)
 [![Get on Slack](https://img.shields.io/badge/slack-join-orange.svg)](https://join.slack.com/t/apache-superset/shared_invite/zt-g8lpruog-HeqpgYrwdfrD5OYhlU7hPQ)
 [![Documentation](https://img.shields.io/badge/docs-apache.org-blue.svg)](https://superset.apache.org)
-[![Dependencies Status](https://david-dm.org/apache/incubator-superset/status.svg?path=superset-frontend)](https://david-dm.org/apache/incubator-superset?path=superset-frontend)
+[![Dependencies Status](https://david-dm.org/apache/superset/status.svg?path=superset-frontend)](https://david-dm.org/apache/superset?path=superset-frontend)
 
 <img
-  src="https://github.com/apache/incubator-superset/raw/master/superset-frontend/branding/superset-logo-horiz-apache.png"
+  src="https://github.com/apache/superset/raw/master/superset-frontend/branding/superset-logo-horiz-apache.png"
   alt="Superset"
   width="500"
 />
@@ -51,27 +51,27 @@ A modern, enterprise-ready business intelligence web application.
 
 **Gallery**
 
-<kbd><a href="https://superset.apache.org/gallery"><img title="Gallery" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/gallery.png"></a></kbd><br/>
+<kbd><a href="https://superset.apache.org/gallery"><img title="Gallery" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/gallery.png"></a></kbd><br/>
 
 **View Dashboards**
 
-<kbd><img title="View Dashboards" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/bank_dash.png"></kbd><br/>
+<kbd><img title="View Dashboards" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/bank_dash.png"></kbd><br/>
 
 **Slice & dice your data**
 
-<kbd><img title="Slice & dice your data" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/explore.png"></kbd><br/>
+<kbd><img title="Slice & dice your data" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/explore.png"></kbd><br/>
 
 **Query and visualize your data with SQL Lab**
 
-<kbd><img title="SQL Lab" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/sqllab.png"></kbd><br/>
+<kbd><img title="SQL Lab" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/sqllab.png"></kbd><br/>
 
 **Visualize geospatial data with deck.gl**
 
-<kbd><img title="Geospatial" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/deckgl_dash.png"></kbd><br/>
+<kbd><img title="Geospatial" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/deckgl_dash.png"></kbd><br/>
 
 **Choose from a wide array of visualizations**
 
-<kbd><img title="Visualizations" src="https://raw.githubusercontent.com/apache/incubator-superset/master/superset-frontend/images/screenshots/visualizations.png"></kbd><br/>
+<kbd><img title="Visualizations" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/visualizations.png"></kbd><br/>
 
 
 ## Why Superset
@@ -126,12 +126,12 @@ SQL toolkit that is compatible with most databases. Here are some of the major d
 </p>
 
 A complete list of supported databases can be found
-[here](https://superset.incubator.apache.org/docs/databases/installing-database-drivers).
+[here](https://superset.apache.org/docs/databases/installing-database-drivers).
 
 
 ## Installation and Configuration
 
-[See in the documentation](https://superset.incubator.apache.org/docs/installation/installing-superset-using-docker-compose)
+[See in the documentation](https://superset.apache.org/docs/installation/installing-superset-using-docker-compose)
 
 ## Get Involved
 
@@ -157,7 +157,7 @@ how to set up a development environment.
   * [Connect Superset To Google Sheets](https://preset.io/blog/2020-06-01-connect-superset-google-sheets/)
   * [Create Your First Chart](https://preset.io/blog/2020-06-08-first-chart/)
   * [Create Time Series Charts](https://preset.io/blog/2020-06-26-timeseries-chart/)
-* [Docker image](https://hub.docker.com/r/apache/incubator-superset)
+* [Docker image](https://hub.docker.com/r/apache/superset)
 * [Youtube Channel](https://www.youtube.com/channel/UCMuwrvBsg_jjI2gLcm04R0g)
   * [May 2020: Virtual Meetup Recording. Topics: 0.36 Overview, Committers Self-Intro, Roadmap](https://www.youtube.com/watch?v=tXGDmqjmcTs&t=20s)
   * [July 2020: Virtual Meetup Recording. Topics: Visualization Plugins, 0.37 Preview, Demo](https://www.youtube.com/watch?v=f6up5x_iRbI)

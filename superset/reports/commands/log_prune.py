@@ -18,7 +18,9 @@ import logging
 from datetime import datetime, timedelta
 
 from superset.commands.base import BaseCommand
+from superset.dao.exceptions import DAODeleteFailedError
 from superset.models.reports import ReportSchedule
+from superset.reports.commands.exceptions import ReportSchedulePruneLogError
 from superset.reports.dao import ReportScheduleDAO
 from superset.utils.celery import session_scope
 
@@ -36,14 +38,26 @@ class AsyncPruneReportScheduleLogCommand(BaseCommand):
     def run(self) -> None:
         with session_scope(nullpool=True) as session:
             self.validate()
+            prune_errors = []
+
             for report_schedule in session.query(ReportSchedule).all():
                 if report_schedule.log_retention is not None:
                     from_date = datetime.utcnow() - timedelta(
                         days=report_schedule.log_retention
                     )
-                    ReportScheduleDAO.bulk_delete_logs(
-                        report_schedule, from_date, session=session, commit=False
-                    )
+                    try:
+                        row_count = ReportScheduleDAO.bulk_delete_logs(
+                            report_schedule, from_date, session=session, commit=False
+                        )
+                        logger.info(
+                            "Deleted %s logs for %s",
+                            str(row_count),
+                            ReportSchedule.name,
+                        )
+                    except DAODeleteFailedError as ex:
+                        prune_errors.append(str(ex))
+            if prune_errors:
+                raise ReportSchedulePruneLogError(";".join(prune_errors))
 
     def validate(self) -> None:
         pass
