@@ -193,7 +193,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
         comparator: null,
         clause: 'WHERE',
         expressionType: 'SQL',
-        sqlExpression: "ds = '{{ presto.latest_partition('schema.table1') }}' ",
+        sqlExpression: "ds = '{{ presto.latest_partition('schema.table1') }}'",
       }),
     );
   });

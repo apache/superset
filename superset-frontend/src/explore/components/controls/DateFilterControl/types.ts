@@ -77,12 +77,9 @@ export type CommonRangeType =
   | 'Last quarter'
   | 'Last year';
 
-export const PreviousCalendarWeek =
-  'DATETRUNC(DATEADD(DATETIME("TODAY"), -1, WEEK), WEEK) : LASTDAY(DATEADD(DATETIME("TODAY"), -1, WEEK), WEEK)';
-export const PreviousCalendarMonth =
-  'DATETRUNC(DATEADD(DATETIME("TODAY"), -1, MONTH), MONTH) : LASTDAY(DATEADD(DATETIME("TODAY"), -1, MONTH), MONTH)';
-export const PreviousCalendarYear =
-  'DATETRUNC(DATEADD(DATETIME("TODAY"), -1, YEAR), YEAR) : LASTDAY(DATEADD(DATETIME("TODAY"), -1, YEAR), YEAR)';
+export const PreviousCalendarWeek = 'previous calendar week';
+export const PreviousCalendarMonth = 'previous calendar month';
+export const PreviousCalendarYear = 'previous calendar year';
 export type CalendarRangeType =
   | typeof PreviousCalendarWeek
   | typeof PreviousCalendarMonth

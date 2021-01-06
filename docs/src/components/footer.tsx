@@ -80,7 +80,7 @@ const LayoutFooter = () => (
           <SlackSquareOutlined className="icon" />
         </a>
         <a
-          href="https://github.com/apache/incubator-superset"
+          href="https://github.com/apache/superset"
           target="_blank"
           rel="noreferrer"
         >
@@ -116,16 +116,6 @@ const LayoutFooter = () => (
           &nbsp;License.
       </a>
       {' '}
-      <div>
-        Disclaimer: Apache Superset is an effort undergoing incubation at The
-        Apache Software Foundation (ASF), sponsored by the Apache Incubator.
-        Incubation is required of all newly accepted projects until a further
-        review indicates that the infrastructure, communications, and decision
-        making process have stabilized in a manner consistent with other
-        successful ASF projects. While incubation status is not necessarily a
-        reflection of the completeness or stability of the code, it does
-        indicate that the project has yet to be fully endorsed by the ASF.
-      </div>
       <div>
         Apache Superset, Apache, Superset, the Superset logo, and the Apache
         feather logo are either registered trademarks or trademarks of The
