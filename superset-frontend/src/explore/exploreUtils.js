@@ -308,3 +308,21 @@ export const useDebouncedEffect = (effect, delay) => {
     };
   }, [callback, delay]);
 };
+
+export const getSimpleSQLExpression = (
+  subject,
+  operator,
+  comparator,
+  isMulti,
+) => {
+  let expression = subject ?? '';
+  if (subject && operator) {
+    expression += ` ${operator}`;
+    if (comparator) {
+      expression += ` ${isMulti ? "('" : ''}${comparator}${
+        isMulti ? "')" : ''
+      }`;
+    }
+  }
+  return expression;
+};
