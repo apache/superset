@@ -58,6 +58,12 @@ jobs:
         run: yarn lint --quiet
       - name: Run unit tests
         run: yarn test
+      - name: Build Storybook
+        run: yarn build-storybook
+      - uses: actions/upload-artifact@v2
+        with:
+          name: storybookBuild
+          path: ./packages/superset-ui-demo/storybook-static/
 
       - name: Report code coverage
         run: curl -s https://codecov.io/bash | bash
