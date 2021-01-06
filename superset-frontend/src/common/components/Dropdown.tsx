@@ -80,7 +80,7 @@ const StyledDropdownButton = styled.div`
         border-radius: ${({ theme }) =>
           `${theme.gridUnit}px 0 0 ${theme.gridUnit}px`};
         margin-right: 1px;
-        width: 108px;
+        width: 120px;
       }
       &:last-of-type {
         border-radius: ${({ theme }) =>

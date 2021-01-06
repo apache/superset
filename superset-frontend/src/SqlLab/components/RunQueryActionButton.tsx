@@ -84,7 +84,6 @@ const RunQueryActionButton = ({
   runQuery,
   stopQuery,
 }: Props) => {
-  const btnStyle = selectedText ? 'warning' : 'primary';
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
 
@@ -99,7 +98,6 @@ const RunQueryActionButton = ({
           onClick(shouldShowStopBtn, allowAsync, runQuery, stopQuery)
         }
         disabled={!sql.trim()}
-        buttonSize="small"
         tooltip={
           shouldShowStopBtn
             ? t('Stop running (Ctrl + x)')
@@ -117,7 +115,7 @@ const RunQueryActionButton = ({
               ),
               trigger: 'click',
             }
-          : { buttonStyle: btnStyle })}
+          : { buttonStyle: 'primary' })}
       >
         {buildText(shouldShowStopBtn, selectedText)}
       </ButtonComponent>

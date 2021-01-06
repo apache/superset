@@ -610,7 +610,6 @@ class SqlEditor extends React.PureComponent {
         )}
       </Menu>
     );
-
     return (
       <StyledToolbar className="sql-toolbar" id="js-sql-toolbar">
         <div className="leftItems">
