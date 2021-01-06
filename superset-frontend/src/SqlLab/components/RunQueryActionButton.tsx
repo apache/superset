@@ -68,7 +68,6 @@ const onClick = (
 
 const StyledButton = styled.span`
   button {
-    width: 120px;
     line-height: 13px;
     &:last-of-type {
       margin-right: ${({ theme }) => theme.gridUnit * 2}px;
@@ -99,7 +98,6 @@ const RunQueryActionButton = ({
           onClick(shouldShowStopBtn, allowAsync, runQuery, stopQuery)
         }
         disabled={!sql.trim()}
-        buttonSize="small"
         tooltip={
           shouldShowStopBtn
             ? t('Stop running (Ctrl + x)')
