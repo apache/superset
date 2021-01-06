@@ -433,7 +433,9 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         rv = self.client.put(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": "Could not connect to database."}
+        expected_response = {
+            "message": "Connection failed, please check your connection settings"
+        }
         self.assertEqual(rv.status_code, 422)
         self.assertEqual(response, expected_response)
         # Cleanup
