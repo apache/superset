@@ -1,61 +1,44 @@
-name: Chromatic
+name: Upload Chomatic Build
 
 on:
-  push:
-    branches:
-      - '*'
-    tags-ignore:
-      - 'trigger-patch-test.*'
-  pull_request_target:
+  workflow_run:
+    workflows: ["build-and-test-workflow"]
+    types:
+      - completed
 
 jobs:
-  build:
-    name: Build and publish
-    runs-on: ubuntu-18.04
-    env:
-      CODECOV_TOKEN: '${{ secrets.CODECOV_TOKEN }}'
-    strategy:
-      matrix:
-        node-version: [12.x]
-
+  upload:
+    runs-on: ubuntu-latest
+    if: >
+      ${{ github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - uses: actions/checkout@v2
+      - name: 'Download artifact'
+        uses: actions/github-script@v3.1.0
         with:
-          # pulls all commits (needed for lerna / semantic release to correctly version)
-          fetch-depth: '0'
-
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ matrix.node-version }}
-
-      - name: Cache npm
-        uses: actions/cache@v1
-        with:
-          path: ~/.npm # npm cache files are stored in `~/.npm` on Linux/macOS
-          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.OS }}-node-
-            ${{ runner.OS }}-
-
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
-      - name: Cache yarn
-        uses: actions/cache@v1
-        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-        with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-      - name: Build packages
-        run: yarn build
+          script: |
+            var artifacts = await github.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: ${{github.event.workflow_run.id }},
+            });
+            var matchArtifact = artifacts.data.artifacts.filter((artifact) => {
+              return artifact.name == "storybookBuild"
+            })[0];
+            var download = await github.actions.downloadArtifact({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               artifact_id: matchArtifact.id,
+               archive_format: 'zip',
+            });
+            var fs = require('fs');
+            fs.writeFileSync('${{github.workspace}}/storybookBuild.zip', Buffer.from(download.data));
+      - run: unzip storybookBuild.zip
       - name: Deploy to Chromatic
         uses: chromaui/action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          storybookBuildDir: storybookBuild
+          # uncomment to automatically accept all chromatic changes
+          # autoAcceptChanges: true
