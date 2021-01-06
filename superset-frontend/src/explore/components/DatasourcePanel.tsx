@@ -192,9 +192,8 @@ const DataSourcePanel = ({
           placeholder={t('Search Metrics & Columns')}
         />
         <Collapse
-          accordion
           bordered={false}
-          defaultActiveKey={['column']}
+          defaultActiveKey={['column', 'metrics']}
           expandIconPosition="right"
         >
           <Collapse.Panel
