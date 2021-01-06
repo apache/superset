@@ -41,6 +41,7 @@ A modern, enterprise-ready business intelligence web application.
 [**Why Superset**](#why-superset) |
 [**Supported Databases**](#supported-databases) |
 [**Installation and Configuration**](#installation-and-configuration) |
+[**Release Notes**](RELEASING/release-notes-0-38/README.md) |
 [**Get Help**](#get-help) |
 [**Contributor Guide**](#contributor-guide) |
 [**Resources**](#resources) |
