@@ -320,7 +320,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "SQLLAB_BACKEND_PERSISTENCE": False,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
     # Enables the replacement React views for all the FAB views (list, edit, show) with
-    # designs introduced in https://github.com/apache/incubator-superset/issues/8976
+    # designs introduced in https://github.com/apache/superset/issues/8976
     # (SIP-34). This is a work in progress so not all features available in FAB have
     # been implemented.
     "ENABLE_REACT_CRUD_VIEWS": True,

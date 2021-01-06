@@ -90,7 +90,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
 
     const clauseSelectProps = {
       placeholder: t('choose WHERE or HAVING...'),
-      value: adhocFilter.clause || CLAUSES.WHERE,
+      value: adhocFilter.clause,
       onChange: this.onSqlExpressionClauseChange,
     };
     const keywords = sqlKeywords.concat(

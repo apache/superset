@@ -180,6 +180,7 @@ export function Menu({
               title={t('Settings')}
               onMouseEnter={() => setDropdownOpen(true)}
               onMouseLeave={() => setDropdownOpen(false)}
+              onToggle={value => setDropdownOpen(value)}
               open={dropdownOpen}
             >
               <DropdownMenu>

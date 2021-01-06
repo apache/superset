@@ -95,8 +95,7 @@ class GitChangeLog:
         try:
             self._wait_github_rate_limit()
             with request.urlopen(
-                "https://api.github.com/repos/apache/incubator-superset/pulls/"
-                f"{pr_number}"
+                "https://api.github.com/repos/apache/superset/pulls/" f"{pr_number}"
             ) as response:
                 payload = json.loads(response.read())
         except HTTPError as ex:
@@ -132,7 +131,7 @@ class GitChangeLog:
                 github_login = log.author
             result = result + (
                 f"- [#{log.pr_number}]"
-                f"(https://github.com/apache/incubator-superset/pull/{log.pr_number}) "
+                f"(https://github.com/apache/superset/pull/{log.pr_number}) "
                 f"{log.message} (@{github_login})\n"
             )
             print(f"\r {i}/{len(self._logs)}", end="", flush=True)
@@ -142,7 +141,7 @@ class GitChangeLog:
         for log in self._logs:
             yield {
                 "pr_number": log.pr_number,
-                "pr_link": f"https://github.com/apache/incubator-superset/pull/"
+                "pr_link": f"https://github.com/apache/superset/pull/"
                 f"{log.pr_number}",
                 "message": log.message,
                 "time": log.time,

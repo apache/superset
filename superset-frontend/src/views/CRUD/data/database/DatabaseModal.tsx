@@ -296,9 +296,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const id = database.id || 0;
       setTabKey(DEFAULT_TAB_KEY);
 
-      fetchResource(id).then(() => {
-        setDB(dbFetched);
-      });
+      fetchResource(id)
+        .then(() => {
+          setDB(dbFetched);
+        })
+        .catch(e =>
+          addDangerToast(
+            t(
+              'Sorry there was an error fetching database information: %s',
+              e.message,
+            ),
+          ),
+        );
     }
   } else if (!isEditMode && (!db || db.id || (isHidden && show))) {
     setTabKey(DEFAULT_TAB_KEY);
