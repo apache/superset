@@ -23,6 +23,7 @@ import croniter
 from superset import app
 from superset.commands.exceptions import CommandException
 from superset.extensions import celery_app
+from superset.reports.commands.exceptions import ReportScheduleUnexpectedError
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
 from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.reports.dao import ReportScheduleDAO
@@ -62,8 +63,10 @@ def scheduler() -> None:
 def execute(report_schedule_id: int, scheduled_dttm: datetime) -> None:
     try:
         AsyncExecuteReportScheduleCommand(report_schedule_id, scheduled_dttm).run()
+    except ReportScheduleUnexpectedError as ex:
+        logger.error("An unexpected occurred while executing the report: %s", ex)
     except CommandException as ex:
-        logger.error("An exception occurred while executing the report: %s", ex)
+        logger.info("Report state: %s", ex)
 
 
 @celery_app.task(name="reports.prune_log")
