@@ -98,12 +98,12 @@ little bit helps, and credit will always be given.
 
 Here's a list of repositories that contain Superset-related packages:
 
-- [apache/incubator-superset](https://github.com/apache/incubator-superset)
+- [apache/superset](https://github.com/apache/superset)
   is the main repository containing the `apache-superset` Python package
   distributed on
   [pypi](https://pypi.org/project/apache-superset/). This repository
   also includes Superset's main TypeScript/JavaScript bundles and react apps under
-  the [superset-frontend](https://github.com/apache/incubator-superset/tree/master/superset-frontend)
+  the [superset-frontend](https://github.com/apache/superset/tree/master/superset-frontend)
   folder.
 - [apache-superset/superset-ui](https://github.com/apache-superset/superset-ui)
   contains core Superset's
@@ -142,7 +142,7 @@ The best way is to file an issue on GitHub:
 - Keep the scope as narrow as possible, to make it easier to implement.
 - Remember that this is a volunteer-driven project, and that contributions are welcome :)
 
-For large features or major changes to codebase, please create **Superset Improvement Proposal (SIP)**. See template from [SIP-0](https://github.com/apache/incubator-superset/issues/5602)
+For large features or major changes to codebase, please create **Superset Improvement Proposal (SIP)**. See template from [SIP-0](https://github.com/apache/superset/issues/5602)
 
 ### Fix Bugs
 
@@ -310,8 +310,8 @@ Should you decide that reverting is desirable, it is the responsibility of the C
 First, [fork the repository on GitHub](https://help.github.com/articles/about-forks/), then clone it. You can clone the main repository directly, but you won't be able to send pull requests.
 
 ```bash
-git clone git@github.com:your-username/incubator-superset.git
-cd incubator-superset
+git clone git@github.com:your-username/superset.git
+cd superset
 ```
 
 ### Documentation
@@ -330,7 +330,7 @@ referenced in the rst, e.g.
 
 aren't actually stored in that directory. Instead, you should add and commit
 images (and any other static assets) to the `superset-frontend/images` directory.
-When the docs are deployed to https://superset.incubator.apache.org/, images
+When the docs are deployed to https://superset.apache.org/, images
 are copied from there to the `_static/images` directory, just like they're referenced
 in the docs.
 
@@ -340,7 +340,7 @@ For example, the image referenced above actually lives in `superset-frontend/ima
 
 #### OS Dependencies
 
-Make sure your machine meets the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before following these steps.
+Make sure your machine meets the [OS dependencies](https://superset.apache.org/installation.html#os-dependencies) before following these steps.
 
 Ensure Python versions >3.7, Then proceed with:
 
@@ -578,7 +578,7 @@ def sqrt(x: Union[float, int]) -> Union[float, int]:
 
 ### TypeScript
 
-TypeScript is fully supported and is the recommended language for writing all new frontend components. When modifying existing functions/components, migrating to TypeScript is appreciated, but not required. Examples of migrating functions/components to TypeScript can be found in [#9162](https://github.com/apache/incubator-superset/pull/9162) and [#9180](https://github.com/apache/incubator-superset/pull/9180).
+TypeScript is fully supported and is the recommended language for writing all new frontend components. When modifying existing functions/components, migrating to TypeScript is appreciated, but not required. Examples of migrating functions/components to TypeScript can be found in [#9162](https://github.com/apache/superset/pull/9162) and [#9180](https://github.com/apache/superset/pull/9180).
 
 ## Testing
 
@@ -670,7 +670,7 @@ npm run cypress-debug
 CYPRESS_BASE_URL=<your url> npm run cypress open
 ```
 
-See [`superset-frontend/cypress_build.sh`](https://github.com/apache/incubator-superset/blob/master/superset-frontend/cypress_build.sh).
+See [`superset-frontend/cypress_build.sh`](https://github.com/apache/superset/blob/master/superset-frontend/cypress_build.sh).
 
 As an alternative you can use docker-compose environment for testing:
 
@@ -817,7 +817,7 @@ yarn build
 Then use `npm link` to create symlinks of the plugins/superset-ui packages you want to edit in `superset-frontend/node_modules`:
 
 ```bash
-cd incubator-superset/superset-frontend
+cd superset/superset-frontend
 npm link ../../superset-ui/plugins/[PLUGIN NAME]
 
 # Or to link all core superset-ui and plugin packages:
@@ -855,7 +855,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
 
 1. Alter the model you want to change. This example will add a `Column` Annotations model.
 
-   [Example commit](https://github.com/apache/incubator-superset/commit/6c25f549384d7c2fc288451222e50493a7b14104)
+   [Example commit](https://github.com/apache/superset/commit/6c25f549384d7c2fc288451222e50493a7b14104)
 
 1. Generate the migration file
 
@@ -865,7 +865,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
 
    This will generate a file in `migrations/version/{SHA}_this_will_be_in_the_migration_filename.py`.
 
-   [Example commit](https://github.com/apache/incubator-superset/commit/d3e83b0fd572c9d6c1297543d415a332858e262)
+   [Example commit](https://github.com/apache/superset/commit/d3e83b0fd572c9d6c1297543d415a332858e262)
 
 1. Upgrade the DB
 
@@ -885,7 +885,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
 
    Since there is a new column, we need to add it to the AppBuilder Model view.
 
-   [Example commit](https://github.com/apache/incubator-superset/pull/5745/commits/6220966e2a0a0cf3e6d87925491f8920fe8a3458)
+   [Example commit](https://github.com/apache/superset/pull/5745/commits/6220966e2a0a0cf3e6d87925491f8920fe8a3458)
 
 1. Test the migration's `down` method
 

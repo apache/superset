@@ -276,7 +276,7 @@ class TimeRangeEndpoint(str, Enum):
     [start, end] the filter may behave like (start, end] due to mixed data types and
     lexicographical ordering.
 
-    :see: https://github.com/apache/incubator-superset/issues/6360
+    :see: https://github.com/apache/superset/issues/6360
     """
 
     EXCLUSIVE = "exclusive"

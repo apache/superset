@@ -1069,7 +1069,7 @@ class TestDatasetApi(SupersetTestCase):
         """
         birth_names_dataset = self.get_birth_names_dataset()
         # TODO: fix test for presto
-        # debug with dump: https://github.com/apache/incubator-superset/runs/1092546855
+        # debug with dump: https://github.com/apache/superset/runs/1092546855
         if birth_names_dataset.database.backend in {"presto", "hive"}:
             return
 
@@ -1131,7 +1131,7 @@ class TestDatasetApi(SupersetTestCase):
         """
         birth_names_dataset = self.get_birth_names_dataset()
         # TODO: fix test for presto
-        # debug with dump: https://github.com/apache/incubator-superset/runs/1092546855
+        # debug with dump: https://github.com/apache/superset/runs/1092546855
         if birth_names_dataset.database.backend in {"presto", "hive"}:
             return
 
