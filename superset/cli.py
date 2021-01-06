@@ -168,7 +168,7 @@ def load_examples_run(
     examples.load_tabbed_dashboard(only_metadata)
 
     # load examples that are stored as YAML config files
-    examples.load_from_configs()
+    examples.load_from_configs(force)
 
 
 @with_appcontext

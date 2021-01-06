@@ -29,6 +29,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.visitors import VisitableType
 
 from superset.connectors.sqla.models import SqlaTable
+from superset.models.core import Database
+from superset.utils.core import get_example_database, get_main_database
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +76,10 @@ def get_dtype(df: pd.DataFrame, dataset: SqlaTable) -> Dict[str, VisitableType]:
 
 
 def import_dataset(
-    session: Session, config: Dict[str, Any], overwrite: bool = False
+    session: Session,
+    config: Dict[str, Any],
+    overwrite: bool = False,
+    force_data: bool = False,
 ) -> SqlaTable:
     existing = session.query(SqlaTable).filter_by(uuid=config["uuid"]).first()
     if existing:
@@ -108,28 +113,43 @@ def import_dataset(
     if dataset.id is None:
         session.flush()
 
-    # load data
-    if data_uri:
-        data = request.urlopen(data_uri)
-        if data_uri.endswith(".gz"):
-            data = gzip.open(data)
-        df = pd.read_csv(data, encoding="utf-8")
-        dtype = get_dtype(df, dataset)
-
-        # convert temporal columns
-        for column_name, sqla_type in dtype.items():
-            if isinstance(sqla_type, (Date, DateTime)):
-                df[column_name] = pd.to_datetime(df[column_name])
-
-        df.to_sql(
-            dataset.table_name,
-            con=session.connection(),
-            schema=dataset.schema,
-            if_exists="replace",
-            chunksize=CHUNKSIZE,
-            dtype=dtype,
-            index=False,
-            method="multi",
-        )
+    example_database = get_example_database()
+    table_exists = example_database.has_table_by_name(dataset.table_name)
+    if data_uri and (not table_exists or force_data):
+        load_data(data_uri, dataset, example_database, session)
 
     return dataset
+
+
+def load_data(
+    data_uri: str, dataset: SqlaTable, example_database: Database, session: Session
+) -> None:
+    data = request.urlopen(data_uri)
+    if data_uri.endswith(".gz"):
+        data = gzip.open(data)
+    df = pd.read_csv(data, encoding="utf-8")
+    dtype = get_dtype(df, dataset)
+
+    # convert temporal columns
+    for column_name, sqla_type in dtype.items():
+        if isinstance(sqla_type, (Date, DateTime)):
+            df[column_name] = pd.to_datetime(df[column_name])
+
+    # reuse session when loading data if possible, to make import atomic
+    if example_database.sqlalchemy_uri == get_main_database().sqlalchemy_uri:
+        logger.info("Loading data inside the import transaction")
+        connection = session.connection()
+    else:
+        logger.warning("Loading data outside the import transaction")
+        connection = example_database.get_sqla_engine()
+
+    df.to_sql(
+        dataset.table_name,
+        con=connection,
+        schema=dataset.schema,
+        if_exists="replace",
+        chunksize=CHUNKSIZE,
+        dtype=dtype,
+        index=False,
+        method="multi",
+    )
