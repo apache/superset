@@ -46,4 +46,4 @@ jobs:
             ${{steps.check.outputs.js_files_added}}
             ```
 
-            As decided in [SIP-36](https://github.com/apache/incubator-superset/issues/9101), all new frontend code should be written in TypeScript. Please convert above files to TypeScript then re-request review.
+            As decided in [SIP-36](https://github.com/apache/superset/issues/9101), all new frontend code should be written in TypeScript. Please convert above files to TypeScript then re-request review.
