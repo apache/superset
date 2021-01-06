@@ -29,6 +29,7 @@ import { User } from 'src/types/bootstrapTypes';
 import Icon from 'src/components/Icon';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';
 import Chart from 'src/types/Chart';
+import ErrorBoundary from 'src/components/ErrorBoundary';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
 import { CardContainer, IconContainer } from '../utils';
@@ -112,7 +113,7 @@ function ChartTable({
   };
 
   return (
-    <>
+    <ErrorBoundary>
       {sliceCurrentlyEditing && (
         <PropertiesModal
           onHide={closeChartEditModal}
@@ -182,7 +183,7 @@ function ChartTable({
       ) : (
         <EmptyState tableName="CHARTS" tab={chartFilter} />
       )}
-    </>
+    </ErrorBoundary>
   );
 }
 
