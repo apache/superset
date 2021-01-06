@@ -70,7 +70,7 @@ class ImportExamplesCommand(ImportModelsCommand):
             db.session.rollback()
             raise self.import_error()
 
-    # pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals, arguments-differ
     @staticmethod
     def _import(
         session: Session,
