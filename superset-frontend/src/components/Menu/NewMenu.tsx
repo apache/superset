@@ -51,6 +51,7 @@ export default function NewMenu() {
       title={<StyledI className="fa fa-plus" />}
       onMouseEnter={() => setDropdownOpen(true)}
       onMouseLeave={() => setDropdownOpen(false)}
+      onToggle={value => setDropdownOpen(value)}
       open={dropdownOpen}
     >
       <Menu>

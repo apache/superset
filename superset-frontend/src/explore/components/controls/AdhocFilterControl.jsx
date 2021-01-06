@@ -77,6 +77,7 @@ class AdhocFilterControl extends React.Component {
     this.onFilterEdit = this.onFilterEdit.bind(this);
     this.moveLabel = this.moveLabel.bind(this);
     this.onChange = this.onChange.bind(this);
+    this.mapOption = this.mapOption.bind(this);
     this.getMetricExpression = this.getMetricExpression.bind(this);
 
     const filters = (this.props.value || []).map(filter =>
@@ -176,15 +177,18 @@ class AdhocFilterControl extends React.Component {
   }
 
   onNewFilter(newFilter) {
-    this.setState(
-      prevState => ({
-        ...prevState,
-        values: [...prevState.values, newFilter],
-      }),
-      () => {
-        this.onChange(this.state.values);
-      },
-    );
+    const mappedOption = this.mapOption(newFilter);
+    if (mappedOption) {
+      this.setState(
+        prevState => ({
+          ...prevState,
+          values: [...prevState.values, mappedOption],
+        }),
+        () => {
+          this.props.onChange(this.state.values);
+        },
+      );
+    }
   }
 
   onFilterEdit(changedFilter) {
@@ -200,56 +204,7 @@ class AdhocFilterControl extends React.Component {
 
   onChange(opts) {
     const options = (opts || [])
-      .map(option => {
-        // already a AdhocFilter, skip
-        if (option instanceof AdhocFilter) {
-          return option;
-        }
-        // via datasource saved metric
-        if (option.saved_metric_name) {
-          return new AdhocFilter({
-            expressionType:
-              this.props.datasource.type === 'druid'
-                ? EXPRESSION_TYPES.SIMPLE
-                : EXPRESSION_TYPES.SQL,
-            subject:
-              this.props.datasource.type === 'druid'
-                ? option.saved_metric_name
-                : this.getMetricExpression(option.saved_metric_name),
-            operator: OPERATORS['>'],
-            comparator: 0,
-            clause: CLAUSES.HAVING,
-          });
-        }
-        // has a custom label, meaning it's custom column
-        if (option.label) {
-          return new AdhocFilter({
-            expressionType:
-              this.props.datasource.type === 'druid'
-                ? EXPRESSION_TYPES.SIMPLE
-                : EXPRESSION_TYPES.SQL,
-            subject:
-              this.props.datasource.type === 'druid'
-                ? option.label
-                : new AdhocMetric(option).translateToSql(),
-            operator: OPERATORS['>'],
-            comparator: 0,
-            clause: CLAUSES.HAVING,
-          });
-        }
-        // add a new filter item
-        if (option.column_name) {
-          return new AdhocFilter({
-            expressionType: EXPRESSION_TYPES.SIMPLE,
-            subject: option.column_name,
-            operator: OPERATORS['=='],
-            comparator: '',
-            clause: CLAUSES.WHERE,
-            isNew: true,
-          });
-        }
-        return null;
-      })
+      .map(option => this.mapOption(option))
       .filter(option => option);
     this.props.onChange(options);
   }
@@ -269,6 +224,57 @@ class AdhocFilterControl extends React.Component {
       newValues[hoverIndex],
     ];
     this.setState({ values: newValues });
+  }
+
+  mapOption(option) {
+    // already a AdhocFilter, skip
+    if (option instanceof AdhocFilter) {
+      return option;
+    }
+    // via datasource saved metric
+    if (option.saved_metric_name) {
+      return new AdhocFilter({
+        expressionType:
+          this.props.datasource.type === 'druid'
+            ? EXPRESSION_TYPES.SIMPLE
+            : EXPRESSION_TYPES.SQL,
+        subject:
+          this.props.datasource.type === 'druid'
+            ? option.saved_metric_name
+            : this.getMetricExpression(option.saved_metric_name),
+        operator: OPERATORS['>'],
+        comparator: 0,
+        clause: CLAUSES.HAVING,
+      });
+    }
+    // has a custom label, meaning it's custom column
+    if (option.label) {
+      return new AdhocFilter({
+        expressionType:
+          this.props.datasource.type === 'druid'
+            ? EXPRESSION_TYPES.SIMPLE
+            : EXPRESSION_TYPES.SQL,
+        subject:
+          this.props.datasource.type === 'druid'
+            ? option.label
+            : new AdhocMetric(option).translateToSql(),
+        operator: OPERATORS['>'],
+        comparator: 0,
+        clause: CLAUSES.HAVING,
+      });
+    }
+    // add a new filter item
+    if (option.column_name) {
+      return new AdhocFilter({
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+        subject: option.column_name,
+        operator: OPERATORS['=='],
+        comparator: '',
+        clause: CLAUSES.WHERE,
+        isNew: true,
+      });
+    }
+    return null;
   }
 
   optionsForSelect(props) {
