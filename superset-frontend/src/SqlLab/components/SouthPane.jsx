@@ -37,7 +37,7 @@ import {
   LOCALSTORAGE_MAX_QUERY_AGE_MS,
 } from '../constants';
 
-const TAB_HEIGHT = 44;
+const TAB_HEIGHT = 64;
 
 /*
     editorQueries are queries executed by users passed from SqlEditor component
@@ -61,8 +61,25 @@ const defaultProps = {
 };
 
 const StyledPane = styled.div`
-  .div {
-    overflow: none;
+  width: 100%;
+
+  .ant-tabs .ant-tabs-content-holder {
+    overflow: visible;
+  }
+
+  .SouthPaneTabs {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .tab-content {
+    .alert {
+      margin-top: 10px;
+    }
+
+    button.fetch {
+      margin-top: 10px;
+    }
   }
 `;
 
