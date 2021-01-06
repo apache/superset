@@ -22,13 +22,10 @@ import { expandControlConfig } from '@superset-ui/chart-controls';
 import * as SECTIONS from './controlPanels/sections';
 
 export function getFormDataFromControls(controlsState) {
-  const formData = { queryFields: {} };
+  const formData = {};
   Object.keys(controlsState).forEach(controlName => {
     const control = controlsState[controlName];
     formData[controlName] = control.value;
-    if (control.hasOwnProperty('queryField')) {
-      formData.queryFields[controlName] = control.queryField;
-    }
   });
   return formData;
 }
@@ -193,12 +190,15 @@ const getMemoizedSectionsToRender = memoizeOne(
       }
     });
 
-    const { datasourceAndVizType, sqlaTimeSeries, druidTimeSeries } = sections;
-    const timeSection =
-      datasourceType === 'table' ? sqlaTimeSeries : druidTimeSeries;
+    const { datasourceAndVizType } = sections;
+    // list of datasource-specific controls that should be removed
+    const invalidControls =
+      datasourceType === 'table'
+        ? ['granularity', 'druid_time_origin']
+        : ['granularity_sqla', 'time_grain_sqla'];
 
     return []
-      .concat(datasourceAndVizType, timeSection, controlPanelSections)
+      .concat(datasourceAndVizType, controlPanelSections)
       .filter(section => !!section)
       .map(section => {
         const { controlSetRows } = section;
@@ -206,7 +206,9 @@ const getMemoizedSectionsToRender = memoizeOne(
           ...section,
           controlSetRows:
             controlSetRows?.map(row =>
-              row.map(item => expandControlConfig(item, controlOverrides)),
+              row
+                .filter(control => !invalidControls.includes(control))
+                .map(item => expandControlConfig(item, controlOverrides)),
             ) || [],
         };
       });

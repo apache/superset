@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
@@ -116,7 +116,7 @@ class BaseReportState:
         self._session.add(log)
         self._session.commit()
 
-    def _get_url(self, user_friendly: bool = False) -> str:
+    def _get_url(self, user_friendly: bool = False, **kwargs: Any) -> str:
         """
         Get the url for this report schedule: chart or dashboard
         """
@@ -125,12 +125,13 @@ class BaseReportState:
                 "Superset.slice",
                 user_friendly=user_friendly,
                 slice_id=self._report_schedule.chart_id,
-                standalone="true",
+                **kwargs,
             )
         return get_url_path(
             "Superset.dashboard",
             user_friendly=user_friendly,
             dashboard_id_or_slug=self._report_schedule.dashboard_id,
+            **kwargs,
         )
 
     def _get_screenshot_user(self) -> User:
@@ -148,11 +149,12 @@ class BaseReportState:
         Get a chart or dashboard screenshot
         :raises: ReportScheduleScreenshotFailedError
         """
-        url = self._get_url()
         screenshot: Optional[BaseScreenshot] = None
         if self._report_schedule.chart:
+            url = self._get_url(standalone="true")
             screenshot = ChartScreenshot(url, self._report_schedule.chart.digest)
         else:
+            url = self._get_url()
             screenshot = DashboardScreenshot(
                 url, self._report_schedule.dashboard.digest
             )

@@ -40,17 +40,13 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
-        with:
-          access_token: ${{ github.token }}
       - uses: actions/checkout@v2
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             apt-get-install
@@ -94,10 +90,6 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
-        with:
-          access_token: ${{ github.token }}
       - uses: actions/checkout@v2
       - name: Create csv upload directory
         run: sudo mkdir -p /tmp/.superset/uploads
@@ -110,7 +102,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             apt-get-install

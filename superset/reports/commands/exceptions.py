@@ -126,7 +126,7 @@ class ReportScheduleWorkingTimeoutError(CommandException):
 
 class ReportScheduleNameUniquenessValidationError(ValidationError):
     """
-    Marshmallow validation error for Report Schedule name already exists
+    Marshmallow validation error for Report Schedule name and type already exists
     """
 
     def __init__(self) -> None:

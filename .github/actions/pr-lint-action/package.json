@@ -1,0 +1,41 @@
+{
+  "name": "pr-lint-action",
+  "version": "1.1.1",
+  "description": "A GitHub Action to ensure that your PR title matches a given regex.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "ncc build src/main.ts --source-map --license licenses.txt --out dist",
+    "lint:eslint": "eslint . --ext .ts",
+    "lint:prettier": "prettier \"**/*.{ts,md,json,yml}\" --write"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MorrisonCole/pr-lint-action"
+  },
+  "keywords": [
+    "actions",
+    "container",
+    "toolkit",
+    "lint"
+  ],
+  "author": "Morrison Cole <admin@morrisoncole.co.uk>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MorrisonCole/pr-lint-action/issues"
+  },
+  "homepage": "https://github.com/MorrisonCole/pr-lint-action#readme",
+  "dependencies": {
+    "@actions/core": "1.2.6",
+    "@actions/github": "4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "14.14.16",
+    "@typescript-eslint/eslint-plugin": "4.11.0",
+    "@typescript-eslint/parser": "4.11.0",
+    "@vercel/ncc": "0.26.1",
+    "eslint": "7.16.0",
+    "eslint-config-prettier": "6.15.0",
+    "prettier": "2.2.1",
+    "typescript": "4.1.3"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "name": "setup-superset-action",
+  "version": "1.0.0",
+  "private": true,
+  "keywords": [
+    "actions",
+    "node",
+    "setup",
+    "superset"
+  ],
+  "main": "dist/run",
+  "scripts": {
+    "all": "npm run format && npm run lint && npm run test && npm run build",
+    "build": "npm run clean && tsc && ncc build -o dist src/run.ts && ncc build -o dist/scripts/cache src/scripts/cache.ts",
+    "clean": "rm -rf ./lib ./dist",
+    "coverage": "npm run test && open ./coverage/lcov-report/index.html",
+    "format": "prettier --write **/*.ts",
+    "format-check": "prettier --check **/*.ts",
+    "lint": "eslint src/**/*.ts",
+    "test": "jest --clearCache && jest --coverage"
+  },
+  "dependencies": {
+    "@actions/cache": "actions/cache#d29c1df198dd38ac88e0ae23a2881b99c2d20e68",
+    "@actions/core": "1.2.4",
+    "@actions/exec": "1.0.4",
+    "@actions/glob": "0.1.0",
+    "@types/uuid": "7.0.4",
+    "hasha": "5.2.0",
+    "tempy": "0.6.0",
+    "uuid": "7.0.3"
+  },
+  "devDependencies": {
+    "@types/jest": "26.0.7",
+    "@types/node": "12.12.53",
+    "@typescript-eslint/eslint-plugin": "3.7.1",
+    "@typescript-eslint/parser": "3.7.1",
+    "@zeit/ncc": "0.22.3",
+    "eslint": "7.5.0",
+    "eslint-plugin-jest": "23.19.0",
+    "jest": "26.1.0",
+    "js-yaml": "3.14.0",
+    "prettier": "2.0.5",
+    "prettier-plugin-packagejson": "2.2.5",
+    "ts-jest": "26.1.4",
+    "typescript": "3.9.7"
+  }
+}

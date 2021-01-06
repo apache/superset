@@ -1,0 +1,19 @@
+name: 'Latest tag'
+description: Automatically generate & update a 'latest' tag for your releases
+
+inputs:
+  description:
+    description: 'Tag description'
+    required: false
+  tag-name:
+    description: 'Tag name'
+    required: false
+    default: latest
+
+runs:
+  using: 'node12'
+  main: 'lib/index.js'
+
+branding:
+  icon: tag
+  color: blue
