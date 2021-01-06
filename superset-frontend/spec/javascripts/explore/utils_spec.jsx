@@ -25,6 +25,7 @@ import {
   getExploreLongUrl,
   getDataTablePageSize,
   shouldUseLegacyApi,
+  getSimpleSQLExpression,
 } from 'src/explore/exploreUtils';
 import {
   buildTimeRangeString,
@@ -295,6 +296,33 @@ describe('exploreUtils', () => {
       ).toBe('2010-07-30T01:00:00 < col ≤ ∞');
       expect(formatTimeRange(' : 2020-07-30T00:00:00')).toBe(
         '-∞ < col < 2020-07-30',
+      );
+    });
+  });
+
+  describe('getSimpleSQLExpression', () => {
+    const subject = 'subject';
+    const operator = '=';
+    const comparator = 'comparator';
+    it('returns empty string when subject is undefined', () => {
+      expect(getSimpleSQLExpression(undefined, '=', 10)).toBe('');
+      expect(getSimpleSQLExpression()).toBe('');
+    });
+    it('returns subject when its provided and operator is undefined', () => {
+      expect(getSimpleSQLExpression(subject, undefined, 10)).toBe(subject);
+      expect(getSimpleSQLExpression(subject)).toBe(subject);
+    });
+    it('returns subject and operator when theyre provided and comparator is undefined', () => {
+      expect(getSimpleSQLExpression(subject, operator)).toBe(
+        `${subject} ${operator}`,
+      );
+    });
+    it('returns full expression when subject, operator and comparator are provided', () => {
+      expect(getSimpleSQLExpression(subject, operator, comparator)).toBe(
+        `${subject} ${operator} ${comparator}`,
+      );
+      expect(getSimpleSQLExpression(subject, operator, comparator, true)).toBe(
+        `${subject} ${operator} ('${comparator}')`,
       );
     });
   });
