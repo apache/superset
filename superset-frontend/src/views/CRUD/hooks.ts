@@ -35,6 +35,7 @@ interface ListViewResourceState<D extends object = any> {
   permissions: string[];
   lastFetchDataConfig: FetchDataConfig | null;
   bulkSelectEnabled: boolean;
+  lastFetched?: string;
 }
 
 export function useListViewResource<D extends object = any>(
@@ -43,7 +44,7 @@ export function useListViewResource<D extends object = any>(
   handleErrorMsg: (errorMsg: string) => void,
   infoEnable = true,
   defaultCollectionValue: D[] = [],
-  baseFilters: FilterValue[] = [], // must be memoized
+  baseFilters?: FilterValue[], // must be memoized
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,
@@ -112,10 +113,10 @@ export function useListViewResource<D extends object = any>(
         loading: true,
       });
 
-      const filterExps = baseFilters
+      const filterExps = (baseFilters || [])
         .concat(filterValues)
-        .map(({ id: col, operator: opr, value }) => ({
-          col,
+        .map(({ id, operator: opr, value }) => ({
+          col: id,
           opr,
           value,
         }));
@@ -136,6 +137,7 @@ export function useListViewResource<D extends object = any>(
             updateState({
               collection: json.result,
               count: json.count,
+              lastFetched: new Date().toISOString(),
             });
           },
           createErrorHandler(errMsg =>
@@ -152,7 +154,7 @@ export function useListViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [baseFilters.length ? baseFilters : null],
+    [baseFilters],
   );
 
   return {
@@ -161,6 +163,7 @@ export function useListViewResource<D extends object = any>(
       resourceCount: state.count,
       resourceCollection: state.collection,
       bulkSelectEnabled: state.bulkSelectEnabled,
+      lastFetched: state.lastFetched,
     },
     setResourceCollection: (update: D[]) =>
       updateState({
@@ -203,119 +206,128 @@ export function useSingleViewResource<D extends object = any>(
     setState(currentState => ({ ...currentState, ...update }));
   }
 
-  const fetchResource = useCallback((resourceID: number) => {
-    // Set loading state
-    updateState({
-      loading: true,
-    });
-
-    return SupersetClient.get({
-      endpoint: `/api/v1/${resourceName}/${resourceID}`,
-    })
-      .then(
-        ({ json = {} }) => {
-          updateState({
-            resource: json.result,
-            error: null,
-          });
-          return json.result;
-        },
-        createErrorHandler(errMsg => {
-          handleErrorMsg(
-            t(
-              'An error occurred while fetching %ss: %s',
-              resourceLabel,
-              JSON.stringify(errMsg),
-            ),
-          );
-
-          updateState({
-            error: errMsg,
-          });
-        }),
-      )
-      .finally(() => {
-        updateState({ loading: false });
+  const fetchResource = useCallback(
+    (resourceID: number) => {
+      // Set loading state
+      updateState({
+        loading: true,
       });
-  }, []);
 
-  const createResource = useCallback((resource: D) => {
-    // Set loading state
-    updateState({
-      loading: true,
-    });
+      return SupersetClient.get({
+        endpoint: `/api/v1/${resourceName}/${resourceID}`,
+      })
+        .then(
+          ({ json = {} }) => {
+            updateState({
+              resource: json.result,
+              error: null,
+            });
+            return json.result;
+          },
+          createErrorHandler(errMsg => {
+            handleErrorMsg(
+              t(
+                'An error occurred while fetching %ss: %s',
+                resourceLabel,
+                JSON.stringify(errMsg),
+              ),
+            );
 
-    return SupersetClient.post({
-      endpoint: `/api/v1/${resourceName}/`,
-      body: JSON.stringify(resource),
-      headers: { 'Content-Type': 'application/json' },
-    })
-      .then(
-        ({ json = {} }) => {
-          updateState({
-            resource: json.result,
-            error: null,
-          });
-          return json.id;
-        },
-        createErrorHandler(errMsg => {
-          handleErrorMsg(
-            t(
-              'An error occurred while creating %ss: %s',
-              resourceLabel,
-              JSON.stringify(errMsg),
-            ),
-          );
+            updateState({
+              error: errMsg,
+            });
+          }),
+        )
+        .finally(() => {
+          updateState({ loading: false });
+        });
+    },
+    [handleErrorMsg, resourceName, resourceLabel],
+  );
 
-          updateState({
-            error: errMsg,
-          });
-        }),
-      )
-      .finally(() => {
-        updateState({ loading: false });
+  const createResource = useCallback(
+    (resource: D) => {
+      // Set loading state
+      updateState({
+        loading: true,
       });
-  }, []);
 
-  const updateResource = useCallback((resourceID: number, resource: D) => {
-    // Set loading state
-    updateState({
-      loading: true,
-    });
+      return SupersetClient.post({
+        endpoint: `/api/v1/${resourceName}/`,
+        body: JSON.stringify(resource),
+        headers: { 'Content-Type': 'application/json' },
+      })
+        .then(
+          ({ json = {} }) => {
+            updateState({
+              resource: json.result,
+              error: null,
+            });
+            return json.id;
+          },
+          createErrorHandler(errMsg => {
+            handleErrorMsg(
+              t(
+                'An error occurred while creating %ss: %s',
+                resourceLabel,
+                JSON.stringify(errMsg),
+              ),
+            );
 
-    return SupersetClient.put({
-      endpoint: `/api/v1/${resourceName}/${resourceID}`,
-      body: JSON.stringify(resource),
-      headers: { 'Content-Type': 'application/json' },
-    })
-      .then(
-        ({ json = {} }) => {
-          updateState({
-            resource: json.result,
-            error: null,
-          });
-          return json.result;
-        },
-        createErrorHandler(errMsg => {
-          handleErrorMsg(
-            t(
-              'An error occurred while fetching %ss: %s',
-              resourceLabel,
-              JSON.stringify(errMsg),
-            ),
-          );
+            updateState({
+              error: errMsg,
+            });
+          }),
+        )
+        .finally(() => {
+          updateState({ loading: false });
+        });
+    },
+    [handleErrorMsg, resourceName, resourceLabel],
+  );
 
-          updateState({
-            error: errMsg,
-          });
-
-          return errMsg;
-        }),
-      )
-      .finally(() => {
-        updateState({ loading: false });
+  const updateResource = useCallback(
+    (resourceID: number, resource: D) => {
+      // Set loading state
+      updateState({
+        loading: true,
       });
-  }, []);
+
+      return SupersetClient.put({
+        endpoint: `/api/v1/${resourceName}/${resourceID}`,
+        body: JSON.stringify(resource),
+        headers: { 'Content-Type': 'application/json' },
+      })
+        .then(
+          ({ json = {} }) => {
+            updateState({
+              resource: json.result,
+              error: null,
+            });
+            return json.result;
+          },
+          createErrorHandler(errMsg => {
+            handleErrorMsg(
+              t(
+                'An error occurred while fetching %ss: %s',
+                resourceLabel,
+                JSON.stringify(errMsg),
+              ),
+            );
+
+            updateState({
+              error: errMsg,
+            });
+
+            return errMsg;
+          }),
+        )
+        .finally(() => {
+          updateState({ loading: false });
+        });
+    },
+    [handleErrorMsg, resourceName, resourceLabel],
+  );
 
   return {
     state,

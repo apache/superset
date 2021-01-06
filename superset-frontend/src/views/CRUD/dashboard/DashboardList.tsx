@@ -29,7 +29,11 @@ import {
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import ListView, { ListViewProps, Filters } from 'src/components/ListView';
+import ListView, {
+  ListViewProps,
+  Filters,
+  FilterOperators,
+} from 'src/components/ListView';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import FacePile from 'src/components/FacePile';
@@ -104,6 +108,7 @@ function DashboardList(props: DashboardListProps) {
     dashboardIds,
     addDangerToast,
   );
+
   const [dashboardToEdit, setDashboardToEdit] = useState<Dashboard | null>(
     null,
   );
@@ -189,7 +194,7 @@ function DashboardList(props: DashboardListProps) {
           />
         ),
         Header: '',
-        id: 'favorite',
+        id: 'id',
         disableSortBy: true,
         size: 'xs',
       },
@@ -354,7 +359,7 @@ function DashboardList(props: DashboardListProps) {
       Header: t('Owner'),
       id: 'owners',
       input: 'select',
-      operator: 'rel_m_m',
+      operator: FilterOperators.relationManyMany,
       unfilteredLabel: 'All',
       fetchSelects: createFetchRelated(
         'dashboard',
@@ -375,7 +380,7 @@ function DashboardList(props: DashboardListProps) {
       Header: t('Created By'),
       id: 'created_by',
       input: 'select',
-      operator: 'rel_o_m',
+      operator: FilterOperators.relationOneMany,
       unfilteredLabel: 'All',
       fetchSelects: createFetchRelated(
         'dashboard',
@@ -396,7 +401,7 @@ function DashboardList(props: DashboardListProps) {
       Header: t('Status'),
       id: 'published',
       input: 'select',
-      operator: 'eq',
+      operator: FilterOperators.equals,
       unfilteredLabel: 'Any',
       selects: [
         { label: t('Published'), value: true },
@@ -404,10 +409,22 @@ function DashboardList(props: DashboardListProps) {
       ],
     },
     {
+      Header: t('Favorite'),
+      id: 'id',
+      urlDisplay: 'favorite',
+      input: 'select',
+      operator: FilterOperators.dashboardIsFav,
+      unfilteredLabel: 'Any',
+      selects: [
+        { label: t('Yes'), value: true },
+        { label: t('No'), value: false },
+      ],
+    },
+    {
       Header: t('Search'),
       id: 'dashboard_title',
       input: 'search',
-      operator: 'title_or_slug',
+      operator: FilterOperators.titleOrSlug,
     },
   ];
 

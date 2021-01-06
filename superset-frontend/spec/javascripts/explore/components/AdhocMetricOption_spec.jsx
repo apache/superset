@@ -22,7 +22,6 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
 import Popover from 'src/common/components/Popover';
-import Label from 'src/components/Label';
 import AdhocMetric from 'src/explore/AdhocMetric';
 import AdhocMetricOption from 'src/explore/components/AdhocMetricOption';
 import { AGGREGATES } from 'src/explore/constants';
@@ -42,11 +41,18 @@ function setup(overrides) {
   const onMetricEdit = sinon.spy();
   const props = {
     adhocMetric: sumValueAdhocMetric,
+    savedMetric: {},
+    savedMetrics: [],
     onMetricEdit,
     columns,
+    onMoveLabel: () => {},
+    onDropLabel: () => {},
+    index: 0,
     ...overrides,
   };
-  const wrapper = shallow(<AdhocMetricOption {...props} />);
+  const wrapper = shallow(<AdhocMetricOption {...props} />)
+    .find('AdhocMetricPopoverTrigger')
+    .shallow();
   return { wrapper, onMetricEdit };
 }
 
@@ -54,14 +60,7 @@ describe('AdhocMetricOption', () => {
   it('renders an overlay trigger wrapper for the label', () => {
     const { wrapper } = setup();
     expect(wrapper.find(Popover)).toExist();
-    expect(wrapper.find(Label)).toExist();
-  });
-
-  it('overlay should open if metric is new', () => {
-    const { wrapper } = setup({
-      adhocMetric: sumValueAdhocMetric.duplicateWith({ isNew: true }),
-    });
-    expect(wrapper.find(Popover).props().defaultVisible).toBe(true);
+    expect(wrapper.find('DraggableOptionControlLabel')).toExist();
   });
 
   it('overwrites the adhocMetric in state with onLabelChange', () => {

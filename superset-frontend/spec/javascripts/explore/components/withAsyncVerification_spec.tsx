@@ -120,7 +120,9 @@ describe('VerifiedMetricsControl', () => {
       onChange: mockOnChange,
     });
 
-    const child = wrapper.find(MetricsControl);
+    const child = wrapper.find(MetricsControl) as ReactWrapper<{
+      onChange: (str: string[]) => void;
+    }>;
     child.props().onChange(['abc']);
 
     expect(child.length).toBe(1);

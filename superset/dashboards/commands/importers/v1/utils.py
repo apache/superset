@@ -54,7 +54,7 @@ def update_id_refs(config: Dict[str, Any], chart_ids: Dict[str, int]) -> Dict[st
     id_map = {old_id: chart_ids[uuid] for uuid, old_id in old_ids.items()}
 
     # fix metadata
-    metadata = fixed["metadata"]
+    metadata = fixed.get("metadata", {})
     if "timed_refresh_immune_slices" in metadata:
         metadata["timed_refresh_immune_slices"] = [
             id_map[old_id] for old_id in metadata["timed_refresh_immune_slices"]
@@ -81,8 +81,17 @@ def update_id_refs(config: Dict[str, Any], chart_ids: Dict[str, int]) -> Dict[st
             for old_id, value in metadata["expanded_slices"].items()
         }
 
+    if "default_filters" in metadata:
+        default_filters = json.loads(metadata["default_filters"])
+        metadata["default_filters"] = json.dumps(
+            {
+                str(id_map[int(old_id)]): value
+                for old_id, value in default_filters.items()
+            }
+        )
+
     # fix position
-    position = fixed["position"]
+    position = fixed.get("position", {})
     for child in position.values():
         if (
             isinstance(child, dict)

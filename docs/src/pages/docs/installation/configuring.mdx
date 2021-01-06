@@ -42,7 +42,7 @@ MAPBOX_API_KEY = ''
 ```
 
 All the parameters and default values defined in
-[https://github.com/apache/incubator-superset/blob/master/superset/config.py](https://github.com/apache/incubator-superset/blob/master/superset/config.py)
+[https://github.com/apache/superset/blob/master/superset/config.py](https://github.com/apache/superset/blob/master/superset/config.py)
 can be altered in your local `superset_config.py`. Administrators will want to read through the file
 to understand what can be configured locally as well as the default values in place.
 
@@ -198,7 +198,7 @@ Here is a list of flags and descriptions:
   protection on all query request to the `explore_json` endpoint. When
   `ENABLE_EXPLORE_JSON_CSRF_PROTECTION` is set to true, your users cannot make GET request to
   `explore_json`. The default value for this feature is `False` and `explore_json` will accept both
-  GET and POST request. See [PR 7935](https://github.com/apache/incubator-superset/pull/7935) for
+  GET and POST request. See [PR 7935](https://github.com/apache/superset/pull/7935) for
   more details.
 
 - `PRESTO_EXPAND_DATA`: When this feature is enabled, nested types in Presto will be expanded into
@@ -206,7 +206,7 @@ Here is a list of flags and descriptions:
 
 ### SIP 15
 
-[Superset Improvement Proposal 15](https://github.com/apache/incubator-superset/issues/6360) aims to
+[Superset Improvement Proposal 15](https://github.com/apache/superset/issues/6360) aims to
 ensure that time intervals are handled in a consistent and transparent manner for both the Druid and
 SQLAlchemy connectors.
 

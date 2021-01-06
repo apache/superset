@@ -368,7 +368,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         )
 
         arguments = {
-            "filters": [{"col": "id", "opr": "dashboard_is_fav", "value": True}],
+            "filters": [{"col": "id", "opr": "dashboard_is_favorite", "value": True}],
             "order_column": "dashboard_title",
             "order_direction": "asc",
             "keys": ["none"],
@@ -431,7 +431,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             .all()
         )
         arguments = {
-            "filters": [{"col": "id", "opr": "dashboard_is_fav", "value": False}],
+            "filters": [{"col": "id", "opr": "dashboard_is_favorite", "value": False}],
             "order_column": "dashboard_title",
             "order_direction": "asc",
             "keys": ["none"],

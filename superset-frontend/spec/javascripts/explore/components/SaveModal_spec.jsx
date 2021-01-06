@@ -145,10 +145,8 @@ describe('SaveModal', () => {
 
       sinon.stub(defaultProps.actions, 'saveSlice').callsFake(() =>
         Promise.resolve({
-          data: {
-            dashboard_url: 'http://localhost/mock_dashboard/',
-            slice: { slice_url: '/mock_slice/' },
-          },
+          dashboard_url: 'http://localhost/mock_dashboard/',
+          slice: { slice_url: '/mock_slice/' },
         }),
       );
     });

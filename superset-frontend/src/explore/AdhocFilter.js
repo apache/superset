@@ -17,6 +17,7 @@
  * under the License.
  */
 import { MULTI_OPERATORS, CUSTOM_OPERATORS } from './constants';
+import { getSimpleSQLExpression } from './exploreUtils';
 
 export const EXPRESSION_TYPES = {
   SIMPLE: 'SIMPLE',
@@ -35,10 +36,10 @@ const OPERATORS_TO_SQL = {
   '<': '<',
   '>=': '>=',
   '<=': '<=',
-  in: 'in',
-  'not in': 'not in',
-  LIKE: 'like',
-  regex: 'regex',
+  IN: 'IN',
+  'NOT IN': 'NOT IN',
+  LIKE: 'LIKE',
+  REGEX: 'REGEX',
   'IS NOT NULL': 'IS NOT NULL',
   'IS NULL': 'IS NULL',
   'LATEST PARTITION': ({ datasource }) => {
@@ -47,7 +48,12 @@ const OPERATORS_TO_SQL = {
 };
 
 function translateToSql(adhocMetric, { useSimple } = {}) {
-  if (adhocMetric.expressionType === EXPRESSION_TYPES.SIMPLE || useSimple) {
+  if (
+    (adhocMetric.expressionType === EXPRESSION_TYPES.SIMPLE &&
+      adhocMetric.comparator &&
+      adhocMetric.operator) ||
+    useSimple
+  ) {
     const isMulti = MULTI_OPERATORS.has(adhocMetric.operator);
     const { subject } = adhocMetric;
     const operator =
@@ -57,9 +63,7 @@ function translateToSql(adhocMetric, { useSimple } = {}) {
     const comparator = Array.isArray(adhocMetric.comparator)
       ? adhocMetric.comparator.join("','")
       : adhocMetric.comparator || '';
-    return `${subject} ${operator} ${isMulti ? "('" : ''}${comparator}${
-      isMulti ? "')" : ''
-    }`;
+    return getSimpleSQLExpression(subject, operator, comparator, isMulti);
   }
   if (adhocMetric.expressionType === EXPRESSION_TYPES.SQL) {
     return adhocMetric.sqlExpression;
@@ -72,9 +76,9 @@ export default class AdhocFilter {
     this.expressionType = adhocFilter.expressionType || EXPRESSION_TYPES.SIMPLE;
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
       this.subject = adhocFilter.subject;
-      this.operator = adhocFilter.operator;
+      this.operator = adhocFilter.operator?.toUpperCase();
       this.comparator = adhocFilter.comparator;
-      this.clause = adhocFilter.clause;
+      this.clause = adhocFilter.clause || CLAUSES.WHERE;
       this.sqlExpression = null;
     } else if (this.expressionType === EXPRESSION_TYPES.SQL) {
       this.sqlExpression =

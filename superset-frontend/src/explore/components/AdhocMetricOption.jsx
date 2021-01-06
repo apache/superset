@@ -18,120 +18,70 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-
-import Popover from 'src/common/components/Popover';
-import Label from 'src/components/Label';
-import AdhocMetricEditPopoverTitle from 'src/explore/components/AdhocMetricEditPopoverTitle';
-import AdhocMetricEditPopover from './AdhocMetricEditPopover';
 import AdhocMetric from '../AdhocMetric';
 import columnType from '../propTypes/columnType';
+import savedMetricType from '../propTypes/savedMetricType';
+import { DraggableOptionControlLabel } from './OptionControls';
+import AdhocMetricPopoverTrigger from './AdhocMetricPopoverTrigger';
+import { OPTION_TYPES } from './optionTypes';
 
 const propTypes = {
   adhocMetric: PropTypes.instanceOf(AdhocMetric),
   onMetricEdit: PropTypes.func.isRequired,
+  onRemoveMetric: PropTypes.func,
   columns: PropTypes.arrayOf(columnType),
-  multi: PropTypes.bool,
+  savedMetrics: PropTypes.arrayOf(savedMetricType),
+  savedMetric: savedMetricType,
   datasourceType: PropTypes.string,
+  onMoveLabel: PropTypes.func,
+  onDropLabel: PropTypes.func,
+  index: PropTypes.number,
 };
 
 class AdhocMetricOption extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.onPopoverResize = this.onPopoverResize.bind(this);
-    this.onLabelChange = this.onLabelChange.bind(this);
-    this.closePopover = this.closePopover.bind(this);
-    this.togglePopover = this.togglePopover.bind(this);
-    this.state = {
-      popoverVisible: undefined,
-      title: {
-        label: props.adhocMetric.label,
-        hasCustomLabel: props.adhocMetric.hasCustomLabel,
-      },
-    };
+    this.onRemoveMetric = this.onRemoveMetric.bind(this);
   }
 
-  componentWillUnmount() {
-    // isNew is used to auto-open the popup. Once popup is viewed, it's not
-    // considered new anymore. We mutate the prop directly because we don't
-    // want excessive rerenderings.
-    this.props.adhocMetric.isNew = false;
-  }
-
-  onLabelChange(e) {
-    const label = e.target.value;
-    this.setState({
-      title: {
-        label: label || this.props.adhocMetric.label,
-        hasCustomLabel: !!label,
-      },
-    });
-  }
-
-  onPopoverResize() {
-    this.forceUpdate();
-  }
-
-  closePopover() {
-    this.togglePopover(false);
-  }
-
-  togglePopover(visible) {
-    this.setState(({ popoverVisible }) => {
-      this.props.adhocMetric.isNew = false;
-      return {
-        popoverVisible: visible === undefined ? !popoverVisible : visible,
-      };
-    });
+  onRemoveMetric(e) {
+    e.stopPropagation();
+    this.props.onRemoveMetric();
   }
 
   render() {
-    const { adhocMetric } = this.props;
-
-    const overlayContent = (
-      <AdhocMetricEditPopover
-        adhocMetric={adhocMetric}
-        title={this.state.title}
-        columns={this.props.columns}
-        datasourceType={this.props.datasourceType}
-        onResize={this.onPopoverResize}
-        onClose={this.closePopover}
-        onChange={this.props.onMetricEdit}
-      />
-    );
-
-    const popoverTitle = (
-      <AdhocMetricEditPopoverTitle
-        title={this.state.title}
-        defaultLabel={adhocMetric.label}
-        onChange={this.onLabelChange}
-      />
-    );
-
+    const {
+      adhocMetric,
+      onMetricEdit,
+      columns,
+      savedMetrics,
+      savedMetric,
+      datasourceType,
+      onMoveLabel,
+      onDropLabel,
+      index,
+    } = this.props;
     return (
-      <div
-        className="metric-option"
-        data-test="metric-option"
-        role="button"
-        tabIndex={0}
-        onMouseDown={e => e.stopPropagation()}
-        onKeyDown={e => e.stopPropagation()}
+      <AdhocMetricPopoverTrigger
+        adhocMetric={adhocMetric}
+        onMetricEdit={onMetricEdit}
+        columns={columns}
+        savedMetrics={savedMetrics}
+        savedMetric={savedMetric}
+        datasourceType={datasourceType}
       >
-        <Popover
-          placement="right"
-          trigger="click"
-          disabled
-          content={overlayContent}
-          defaultVisible={this.state.popoverVisible || adhocMetric.isNew}
-          visible={this.state.popoverVisible}
-          onVisibleChange={this.togglePopover}
-          title={popoverTitle}
-        >
-          <Label className="option-label adhoc-option" data-test="option-label">
-            {adhocMetric.label}
-            <i className="fa fa-caret-right adhoc-label-arrow" />
-          </Label>
-        </Popover>
-      </div>
+        <DraggableOptionControlLabel
+          savedMetric={savedMetric}
+          label={adhocMetric.label}
+          onRemove={this.onRemoveMetric}
+          onMoveLabel={onMoveLabel}
+          onDropLabel={onDropLabel}
+          index={index}
+          type={OPTION_TYPES.metric}
+          isAdhoc
+          isFunction
+        />
+      </AdhocMetricPopoverTrigger>
     );
   }
 }

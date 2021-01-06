@@ -61,12 +61,11 @@ const MIN_SIZES = [300, 50];
 const DEFAULT_SOUTH_PANE_HEIGHT_PERCENT = 40;
 
 const Styles = styled.div`
-  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   align-content: stretch;
-  overflow: hidden;
+  overflow: auto;
 
   & > div:last-of-type {
     flex-basis: 100%;
@@ -116,9 +115,6 @@ const ExploreChartPanel = props => {
     );
   };
 
-  const [chartSectionHeight, setChartSectionHeight] = useState(
-    calcSectionHeight(INITIAL_SIZES[0]) - CHART_PANEL_PADDING,
-  );
   const [tableSectionHeight, setTableSectionHeight] = useState(
     calcSectionHeight(INITIAL_SIZES[1]),
   );
@@ -133,14 +129,11 @@ const ExploreChartPanel = props => {
       );
     }, 100);
     calcHeaderSize();
-    document.addEventListener('resize', calcHeaderSize);
-    return () => document.removeEventListener('resize', calcHeaderSize);
+    window.addEventListener('resize', calcHeaderSize);
+    return () => window.removeEventListener('resize', calcHeaderSize);
   }, [props.standalone]);
 
-  const recalcPanelSizes = ([northPercent, southPercent]) => {
-    setChartSectionHeight(
-      calcSectionHeight(northPercent) - CHART_PANEL_PADDING,
-    );
+  const recalcPanelSizes = ([, southPercent]) => {
     setTableSectionHeight(calcSectionHeight(southPercent));
   };
 
@@ -169,15 +162,14 @@ const ExploreChartPanel = props => {
 
   const renderChart = () => {
     const { chart } = props;
-
+    const newHeight = calcSectionHeight(splitSizes[0]) - CHART_PANEL_PADDING;
     return (
       <ParentSize>
-        {({ width, height }) =>
-          width > 0 &&
-          height > 0 && (
+        {({ width }) =>
+          width > 0 && (
             <ChartContainer
               width={Math.floor(width)}
-              height={chartSectionHeight}
+              height={newHeight}
               annotationData={chart.annotationData}
               chartAlert={chart.chartAlert}
               chartStackTrace={chart.chartStackTrace}
@@ -189,7 +181,7 @@ const ExploreChartPanel = props => {
               formData={props.form_data}
               onQuery={props.onQuery}
               owners={props?.slice?.owners}
-              queryResponse={chart.queryResponse}
+              queriesResponse={chart.queriesResponse}
               refreshOverlayVisible={props.refreshOverlayVisible}
               setControlValue={props.actions.setControlValue}
               timeout={props.timeout}
@@ -235,28 +227,37 @@ const ExploreChartPanel = props => {
     };
   };
 
+  const panelBody = <div className="panel-body">{renderChart()}</div>;
+
   return (
-    <Styles className="panel panel-default chart-container">
+    <Styles
+      className="panel panel-default chart-container"
+      style={{ height: props.height }}
+    >
       <div className="panel-heading" ref={panelHeadingRef}>
         {header}
       </div>
-      <Split
-        sizes={splitSizes}
-        minSize={MIN_SIZES}
-        direction="vertical"
-        gutterSize={gutterHeight}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        elementStyle={elementStyle}
-      >
-        <div className="panel-body">{renderChart()}</div>
-        <DataTablesPane
-          queryFormData={props.chart.latestQueryFormData}
-          tableSectionHeight={tableSectionHeight}
-          onCollapseChange={onCollapseChange}
-          displayBackground={displaySouthPaneBackground}
-        />
-      </Split>
+      {props.vizType === 'filter_box' ? (
+        panelBody
+      ) : (
+        <Split
+          sizes={splitSizes}
+          minSize={MIN_SIZES}
+          direction="vertical"
+          gutterSize={gutterHeight}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          elementStyle={elementStyle}
+        >
+          {panelBody}
+          <DataTablesPane
+            queryFormData={props.chart.latestQueryFormData}
+            tableSectionHeight={tableSectionHeight}
+            onCollapseChange={onCollapseChange}
+            displayBackground={displaySouthPaneBackground}
+          />
+        </Split>
+      )}
     </Styles>
   );
 };

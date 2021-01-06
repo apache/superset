@@ -86,15 +86,15 @@ supported.)
 
 **Step 1 - Clone Superset's Github repository**
 
-`Clone Superset's repo <https://github.com/apache/incubator-superset>`__
+`Clone Superset's repo <https://github.com/apache/superset>`__
 in your terminal with the following command:
 
 .. code:: bash
 
-    $ git clone https://github.com/apache/incubator-superset.git
+    $ git clone https://github.com/apache/superset.git
 
 Once that command completes successfully, you should see a new
-``incubator-superset`` folder in your current directory.
+``superset`` folder in your current directory.
 
 **Step 2 - Launch Superset via `docker-compose up`**
 
@@ -102,7 +102,7 @@ Next, `cd` into the folder you created in Step 1:
 
 .. code:: bash
 
-    $ cd incubator-superset
+    $ cd superset
 
 Once you're in the directory, run the following command:
 
@@ -135,7 +135,7 @@ Congrats! You have successfully installed Superset!
 .. note ::
     The Docker-related files and documentation are actively maintained and
     managed by the core committers working on the project. Help and contributions
-    around Docker are welcomed! See also `docker/README.md <https://github.com/apache/incubator-superset/blob/master/docker/README.md>`_ for additional information.
+    around Docker are welcomed! See also `docker/README.md <https://github.com/apache/superset/blob/master/docker/README.md>`_ for additional information.
 
 OS dependencies
 ---------------
@@ -334,7 +334,7 @@ of the parameters you can copy / paste in that configuration module: ::
     MAPBOX_API_KEY = ''
 
 All the parameters and default values defined in
-https://github.com/apache/incubator-superset/blob/master/superset/config.py
+https://github.com/apache/superset/blob/master/superset/config.py
 can be altered in your local ``superset_config.py`` .
 Administrators will want to
 read through the file to understand what can be configured locally
@@ -931,7 +931,7 @@ Domain Sharding
 
 Chrome allows up to 6 open connections per domain at a time. When there are more
 than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
-next available socket. `PR 5039 <https://github.com/apache/incubator-superset/pull/5039>`_ adds domain sharding to Superset,
+next available socket. `PR 5039 <https://github.com/apache/superset/pull/5039>`_ adds domain sharding to Superset,
 and this feature will be enabled by configuration only (by default Superset
 doesn't allow cross-domain request).
 
@@ -1404,7 +1404,7 @@ Building from source
 
 More advanced users may want to build Superset from sources. That
 would be the case if you fork the project to add features specific to
-your environment. See `CONTRIBUTING.md#setup-local-environment-for-development <https://github.com/apache/incubator-superset/blob/master/CONTRIBUTING.md#setup-local-environment-for-development>`_.
+your environment. See `CONTRIBUTING.md#setup-local-environment-for-development <https://github.com/apache/superset/blob/master/CONTRIBUTING.md#setup-local-environment-for-development>`_.
 
 Blueprints
 ----------
@@ -1546,7 +1546,7 @@ Here is a list of flags and descriptions:
 
   * For some security concerns, you may need to enforce CSRF protection on all query request to explore_json endpoint. In Superset, we use `flask-csrf <https://sjl.bitbucket.io/flask-csrf/>`_ add csrf protection for all POST requests, but this protection doesn't apply to GET method.
 
-  * When ENABLE_EXPLORE_JSON_CSRF_PROTECTION is set to true, your users cannot make GET request to explore_json. The default value for this feature False (current behavior), explore_json accepts both GET and POST request. See `PR 7935 <https://github.com/apache/incubator-superset/pull/7935>`_ for more details.
+  * When ENABLE_EXPLORE_JSON_CSRF_PROTECTION is set to true, your users cannot make GET request to explore_json. The default value for this feature False (current behavior), explore_json accepts both GET and POST request. See `PR 7935 <https://github.com/apache/superset/pull/7935>`_ for more details.
 
 * PRESTO_EXPAND_DATA
 
@@ -1556,7 +1556,7 @@ Here is a list of flags and descriptions:
 SIP-15
 ------
 
-`SIP-15 <https://github.com/apache/incubator-superset/issues/6360>`_ aims to ensure that time intervals are handled in a consistent and transparent manner for both the Druid and SQLAlchemy connectors.
+`SIP-15 <https://github.com/apache/superset/issues/6360>`_ aims to ensure that time intervals are handled in a consistent and transparent manner for both the Druid and SQLAlchemy connectors.
 
 Prior to SIP-15 SQLAlchemy used inclusive endpoints however these may behave like exclusive for string columns (due to lexicographical ordering) if no formatting was defined and the column formatting did not conform to an ISO 8601 date-time (refer to the SIP for details).
 

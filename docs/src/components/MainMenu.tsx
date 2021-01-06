@@ -98,7 +98,7 @@ const MenuItems = ({ mode, toggleDrawer }: menuProps) => {
       {mode === 'horizontal'
       && (
       <Menu.Item key="github" style={rightStyle}>
-        <a href="https://github.com/apache/incubator-superset" target="_blank" rel="noreferrer">
+        <a href="https://github.com/apache/superset" target="_blank" rel="noreferrer">
           <GithubOutlined className="menu-icon" />
         </a>
       </Menu.Item>
@@ -133,7 +133,7 @@ export default class MainMenu extends React.Component {
     const { visible } = this.state;
     return (
       <Layout.Header css={headerStyle}>
-        <a href="https://superset.incubator.apache.org">
+        <a href="https://superset.apache.org">
           <img height="50" css={logoStyle} src={logoSvg} alt="logo" />
         </a>
         <MenuItems toggleDrawer={this.toggleDrawer} mode="horizontal" />

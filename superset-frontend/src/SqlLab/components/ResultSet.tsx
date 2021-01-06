@@ -28,7 +28,6 @@ import { styled, t } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { getByUser, put as updateDatset } from 'src/api/dataset';
-import { ErrorTypeEnum } from 'src/components/ErrorMessage/types';
 import Loading from '../../components/Loading';
 import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';
@@ -172,15 +171,17 @@ export default class ResultSet extends React.PureComponent<
       appContainer?.getAttribute('data-bootstrap') || '{}',
     );
 
-    const datasets = await getByUser(bootstrapData.user.userId);
-    const userDatasetsOwned = datasets.map(
-      (r: { table_name: string; id: number }) => ({
-        datasetName: r.table_name,
-        datasetId: r.id,
-      }),
-    );
+    if (bootstrapData.user && bootstrapData.user.id) {
+      const datasets = await getByUser(bootstrapData.user.userId);
+      const userDatasetsOwned = datasets.map(
+        (r: { table_name: string; id: number }) => ({
+          datasetName: r.table_name,
+          datasetId: r.id,
+        }),
+      );
 
-    this.setState({ userDatasetsOwned });
+      this.setState({ userDatasetsOwned });
+    }
   }
 
   UNSAFE_componentWillReceiveProps(nextProps: ResultSetProps) {
@@ -307,7 +308,7 @@ export default class ResultSet extends React.PureComponent<
   };
 
   handleOverwriteCancel = () => {
-    this.setState({ shouldOverwriteDataSet: false });
+    this.setState({ shouldOverwriteDataSet: false, datasetToOverwrite: {} });
   };
 
   handleExploreBtnClick = () => {
@@ -490,17 +491,10 @@ export default class ResultSet extends React.PureComponent<
       return <Alert bsStyle="warning">Query was stopped</Alert>;
     }
     if (query.state === 'failed') {
-      // TODO (betodealmeida): handle this logic through the error component
-      // registry
-      const title =
-        query?.errors?.[0].error_type ===
-        ErrorTypeEnum.MISSING_TEMPLATE_PARAMS_ERROR
-          ? t('Parameter Error')
-          : t('Database Error');
       return (
         <div className="result-set-error-message">
           <ErrorMessageWithStackTrace
-            title={title}
+            title={t('Database Error')}
             error={query?.errors?.[0]}
             subtitle={<MonospaceDiv>{query.errorMessage}</MonospaceDiv>}
             copyText={query.errorMessage || undefined}
