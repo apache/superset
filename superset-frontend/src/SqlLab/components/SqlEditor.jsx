@@ -699,6 +699,10 @@ class SqlEditor extends React.PureComponent {
         ? 'Create View As'
         : 'Create Table As';
 
+    const createModalPlaceHolder = this.state.createAs === CtasEnum.VIEW
+        ? 'Specify name to Create View AS schema in: public'
+        : 'Specify name to Create Table AS schema in: public';
+
     return (
       <div ref={this.sqlEditorRef} className="SqlEditor">
         <CSSTransition
@@ -752,7 +756,7 @@ class SqlEditor extends React.PureComponent {
         >
           <span>Name</span>
           <Input
-            placeholder="Specify name to Create View AS schema in: public"
+            placeholder={createModalPlaceHolder}
             onChange={this.ctasChanged.bind(this)}
           />
         </StyledModal>
