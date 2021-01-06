@@ -789,11 +789,10 @@ class TestDatabaseApi(SupersetTestCase):
         }
         url = "api/v1/database/test_connection"
         rv = self.post_assert_metric(url, data, "test_connection")
-        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rv.status_code, 422)
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "driver_name": "broken",
             "message": "Could not load database driver: broken",
         }
         self.assertEqual(response, expected_response)
@@ -805,11 +804,10 @@ class TestDatabaseApi(SupersetTestCase):
             "server_cert": None,
         }
         rv = self.post_assert_metric(url, data, "test_connection")
-        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rv.status_code, 422)
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "driver_name": "mssql+pymssql",
             "message": "Could not load database driver: mssql+pymssql",
         }
         self.assertEqual(response, expected_response)
