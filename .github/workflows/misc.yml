@@ -2,11 +2,9 @@ name: Miscellaneous
 
 on:
   push:
-    branches:
-      - "!dependabot/**"
+    branches-ignore:
+      - "dependabot/**"
   pull_request:
-    branches:
-      - "!dependabot/**"
 
 jobs:
   license_check:

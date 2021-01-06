@@ -2,15 +2,11 @@ name: E2E
 
 on:
   push:
-    branches:
-      - "!dependabot/**/docs/**"
-    paths:
+    branches-ignore:
+      - "dependabot/**/docs/**"
+    paths-ignore:
       - "docs/**"
   pull_request:
-    branches:
-      - "!dependabot/**/docs/**"
-    paths:
-      - "docs/**"
 
 jobs:
   Cypress:
