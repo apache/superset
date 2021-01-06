@@ -369,10 +369,33 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] = None
 
 # EXTRA_CATEGORICAL_COLOR_SCHEMES is used for adding custom categorical color schemes
+# example code for "My custom warm to hot" color scheme
+# EXTRA_CATEGORICAL_COLOR_SCHEMES =  [
+#     {
+#         "id": 'myVisualizationColors',
+#         "description": '',
+#         "label": 'My Visualization Colors',
+#         "colors":
+#          ['#006699', '#009DD9', '#5AAA46', '#44AAAA', '#DDAA77', '#7799BB', '#88AA77',
+#          '#552288', '#5AAA46', '#CC7788', '#EEDD55', '#9977BB', '#BBAA44', '#DDCCDD']
+#     }]
+#
+
 # This is merely a default
 EXTRA_CATEGORICAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
+# EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [
+#     {
+#         "id": 'warmToHot',
+#         "description": '',
+#         "isDiverging": true
+#         "label": 'My custom warm to hot',
+#         "colors":
+#          ['#552288', '#5AAA46', '#CC7788', '#EEDD55', '#9977BB', '#BBAA44', '#DDCCDD',
+#          '#006699', '#009DD9', '#5AAA46', '#44AAAA', '#DDAA77', '#7799BB', '#88AA77']
+#     }]
+
 # This is merely a default
 EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 

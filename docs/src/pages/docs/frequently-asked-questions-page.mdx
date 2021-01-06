@@ -232,30 +232,6 @@ Metadata attribute using the `label_colors` key.
 }
 ```
 
-### Is there a way to add custom color schemes?
-
-It is possible to override EXTRA_CATEGORICAL_COLOR_SCHEMES or EXTRA_SEQUENTIAL_COLOR_SCHEMES to register new color schemes
-
-```
-EXTRA_CATEGORICAL_COLOR_SCHEMES =  [
-    {
-        "id": 'myCustomColors',
-        "description": '',
-        "label": 'My custom Colors',
-        "colors": ['#6BD3B3', '#6BD3B3', '#6BD3B3', '#66CBE2']
-    }]
-
-EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [
-    {
-        "id": 'myCustomColors',
-        "description": '',
-        "isDiverging": true
-        "label": 'My custom Colors',
-        "colors": ['#6BD3B3', '#6BD3B3', '#66CBE2']
-    }]
-
-```
-
 ### Does Superset work with [insert database engine here]?
 
 The [Connecting to Databases section](/docs/databases/installing-database-drivers) provides the best
