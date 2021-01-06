@@ -171,15 +171,17 @@ export default class ResultSet extends React.PureComponent<
       appContainer?.getAttribute('data-bootstrap') || '{}',
     );
 
-    const datasets = await getByUser(bootstrapData.user.userId);
-    const userDatasetsOwned = datasets.map(
-      (r: { table_name: string; id: number }) => ({
-        datasetName: r.table_name,
-        datasetId: r.id,
-      }),
-    );
+    if (bootstrapData.user && bootstrapData.user.id) {
+      const datasets = await getByUser(bootstrapData.user.userId);
+      const userDatasetsOwned = datasets.map(
+        (r: { table_name: string; id: number }) => ({
+          datasetName: r.table_name,
+          datasetId: r.id,
+        }),
+      );
 
-    this.setState({ userDatasetsOwned });
+      this.setState({ userDatasetsOwned });
+    }
   }
 
   UNSAFE_componentWillReceiveProps(nextProps: ResultSetProps) {
