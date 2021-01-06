@@ -28,14 +28,14 @@ describe('Advanced analytics', () => {
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
-    cy.get('.panel-title').contains('Advanced Analytics').click();
+    cy.get('.ant-collapse-header').contains('Advanced Analytics').click();
 
     cy.get('[data-test=time_compare]').find('.Select__control').click();
     cy.get('[data-test=time_compare]')
       .find('input[type=text]')
       .type('28 days{enter}');
 
-    cy.get('[data-test=time_compare]').find('.Select__control').click();
+    cy.get('[data-test=time_compare]').find('.Select__conftrol').click();
     cy.get('[data-test=time_compare]')
       .find('input[type=text]')
       .type('364 days{enter}');
