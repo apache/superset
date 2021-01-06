@@ -102,7 +102,7 @@ class DatabaseUpdateFailedError(UpdateFailedError):
 class DatabaseConnectionFailedError(  # pylint: disable=too-many-ancestors
     DatabaseCreateFailedError, DatabaseUpdateFailedError,
 ):
-    message = _("Could not connect to database.")
+    message = _("Connection failed, please check your connection settings")
 
 
 class DatabaseDeleteDatasetsExistFailedError(DeleteFailedError):
@@ -117,8 +117,16 @@ class DatabaseDeleteFailedReportsExistError(DatabaseDeleteFailedError):
     message = _("There are associated alerts or reports")
 
 
-class DatabaseSecurityUnsafeError(DBSecurityException):
+class DatabaseSecurityUnsafeError(DatabaseConnectionFailedError):
     message = _("Stopped an unsafe database connection")
+
+
+class DatabaseConnectionDriverError(DatabaseConnectionFailedError):
+    message = _("Could not load database driver")
+
+
+class DatabaseConnectionUnexpectedError(DatabaseConnectionFailedError):
+    message = _("Unexpected error occurred, please check your logs for details")
 
 
 class DatabaseImportError(ImportFailedError):

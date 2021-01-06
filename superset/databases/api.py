@@ -589,29 +589,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             TestConnectionDatabaseCommand(g.user, item).run()
             return self.response(200, message="OK")
-        except (NoSuchModuleError, ModuleNotFoundError):
-            logger.info("Invalid driver")
-            driver_name = make_url(item.get("sqlalchemy_uri")).drivername
-            return self.response(
-                400,
-                message=_("Could not load database driver: {}").format(driver_name),
-                driver_name=driver_name,
-            )
-        except DatabaseSecurityUnsafeError as ex:
-            return self.response_422(message=ex)
-        except DBAPIError:
-            logger.warning("Connection failed")
-            return self.response(
-                500,
-                message=_("Connection failed, please check your connection settings"),
-            )
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Unexpected error %s", type(ex).__name__)
-            return self.response_400(
-                message=_(
-                    "Unexpected error occurred, please check your logs for details"
-                )
-            )
+        except DatabaseConnectionFailedError as ex:
+            return self.response_422(message=str(ex))
 
     @expose("/<int:pk>/related_objects/", methods=["GET"])
     @protect()
