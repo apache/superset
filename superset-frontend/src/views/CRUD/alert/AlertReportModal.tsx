@@ -536,7 +536,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Alert fetch logic
   const {
-    state: { loading, resource, error: fetchError },
+    state: { loading, resource },
     fetchResource,
     createResource,
     updateResource,
@@ -918,7 +918,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       (alert && alert.id !== currentAlert.id) ||
       (isHidden && show))
   ) {
-    if (alert && alert.id !== null && !loading && !fetchError) {
+    if (alert && alert.id !== null && !loading) {
       const id = alert.id || 0;
 
       fetchResource(id).then(() => {
