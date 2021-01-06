@@ -29,7 +29,7 @@ const ActionsWrapper = styled.div`
   justify-content: space-between;
 `;
 
-const StyledCard = styled(Card)`
+const StyledCard = styled(AntdCard)`
   border: 1px solid #d9dbe4;
   border-radius: ${({ theme }) => theme.gridUnit}px;
   overflow: hidden;

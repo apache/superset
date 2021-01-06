@@ -51,6 +51,7 @@ export {
   Tooltip,
   Input as AntdInput,
 } from 'antd';
+// eslint-disable-next-line no-restricted-imports
 export { Card as AntdCard } from 'antd';
 export { FormInstance } from 'antd/lib/form';
 export { RadioChangeEvent } from 'antd/lib/radio';
