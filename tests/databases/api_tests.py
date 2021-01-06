@@ -19,6 +19,7 @@
 """Unit tests for Superset"""
 import json
 from io import BytesIO
+from unittest import mock
 from zipfile import is_zipfile, ZipFile
 
 import prison
@@ -343,6 +344,10 @@ class TestDatabaseApi(SupersetTestCase):
             "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
         )
 
+    @mock.patch(
+        "superset.views.core.app.config",
+        {**app.config, "PREVENT_UNSAFE_DB_CONNECTIONS": True},
+    )
     def test_create_database_fail_sqllite(self):
         """
         Database API: Test create fail with sqllite
@@ -492,6 +497,9 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertIn(
             "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
         )
+
+        db.session.delete(test_database)
+        db.session.commit()
 
     def test_delete_database(self):
         """
@@ -829,6 +837,8 @@ class TestDatabaseApi(SupersetTestCase):
             }
         }
         self.assertEqual(response, expected_response)
+
+        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
 
     @pytest.mark.usefixtures(
         "load_unicode_dashboard_with_position", "load_energy_table_with_slice"
