@@ -762,15 +762,15 @@ class TestUtils(SupersetTestCase):
         self.assertEqual(result, expected)
 
         result = get_since_until("previous calendar week")
-        expected = datetime(2016, 10, 31, 0, 0, 0), datetime(2016, 11, 6, 0, 0, 0)
+        expected = datetime(2016, 10, 31, 0, 0, 0), datetime(2016, 11, 7, 0, 0, 0)
         self.assertEqual(result, expected)
 
         result = get_since_until("previous calendar month")
-        expected = datetime(2016, 10, 1, 0, 0, 0), datetime(2016, 10, 31, 0, 0, 0)
+        expected = datetime(2016, 10, 1, 0, 0, 0), datetime(2016, 11, 1, 0, 0, 0)
         self.assertEqual(result, expected)
 
         result = get_since_until("previous calendar year")
-        expected = datetime(2015, 1, 1, 0, 0, 0), datetime(2015, 12, 31, 0, 0, 0)
+        expected = datetime(2015, 1, 1, 0, 0, 0), datetime(2016, 1, 1, 0, 0, 0)
         self.assertEqual(result, expected)
 
         with self.assertRaises(ValueError):
