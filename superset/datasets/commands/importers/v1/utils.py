@@ -76,7 +76,10 @@ def get_dtype(df: pd.DataFrame, dataset: SqlaTable) -> Dict[str, VisitableType]:
 
 
 def import_dataset(
-    session: Session, config: Dict[str, Any], overwrite: bool = False
+    session: Session,
+    config: Dict[str, Any],
+    overwrite: bool = False,
+    force_data: bool = False,
 ) -> SqlaTable:
     existing = session.query(SqlaTable).filter_by(uuid=config["uuid"]).first()
     if existing:
@@ -112,7 +115,7 @@ def import_dataset(
 
     example_database = get_example_database()
     table_exists = example_database.has_table_by_name(dataset.table_name)
-    if data_uri and (not table_exists or overwrite):
+    if data_uri and (not table_exists or force_data):
         load_data(data_uri, dataset, example_database, session)
 
     return dataset
