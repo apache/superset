@@ -52,6 +52,7 @@ export {
   Tooltip,
   Input as AntdInput,
 } from 'antd';
+// eslint-disable-next-line no-restricted-imports
 export { Card as AntdCard } from 'antd';
 export { TreeProps } from 'antd/lib/tree';
 export { FormInstance } from 'antd/lib/form';
