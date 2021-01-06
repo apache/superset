@@ -23,7 +23,7 @@
   background-color: @lightest;
   position: relative;
   padding: 16px;
-  overflow-y: auto;
+  overflow-y: visible;
 
   // transitionable traits for when a filter is being actively focused
   transition: opacity 0.2s, border-color 0.2s, box-shadow 0.2s;
@@ -116,6 +116,8 @@
 
 .chart-slice {
   height: calc(100% - 32px);
+  overflow: auto;
+  height: 100%;
 }
 
 .dot {
