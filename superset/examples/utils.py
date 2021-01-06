@@ -22,9 +22,9 @@ from pkg_resources import resource_isdir, resource_listdir, resource_stream
 from superset.commands.importers.v1.examples import ImportExamplesCommand
 
 
-def load_from_configs() -> None:
+def load_from_configs(force_data: bool = False) -> None:
     contents = load_contents()
-    command = ImportExamplesCommand(contents, overwrite=True)
+    command = ImportExamplesCommand(contents, overwrite=True, force_data=force_data)
     command.run()
 
 
