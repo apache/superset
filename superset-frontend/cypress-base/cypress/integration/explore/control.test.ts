@@ -177,8 +177,7 @@ describe('Time range filter', () => {
       ...FORM_DATA_DEFAULTS,
       metrics: [NUM_METRIC],
       viz_type: 'line',
-      time_range:
-        'previous calendar month',
+      time_range: 'previous calendar month',
     };
 
     cy.visitChartByParams(JSON.stringify(formData));

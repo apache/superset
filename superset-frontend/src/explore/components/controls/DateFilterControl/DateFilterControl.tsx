@@ -185,14 +185,14 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   useEffect(() => {
     const valueToLower = value.toLowerCase();
     if (
-      valueToLower.startsWith("last")
-      || valueToLower.startsWith("next")
-      || valueToLower.startsWith("previous")
+      valueToLower.startsWith('last') ||
+      valueToLower.startsWith('next') ||
+      valueToLower.startsWith('previous')
     ) {
       setActualTimeRange(value);
       setValidTimeRange(true);
     } else {
-      fetchTimeRange(value, endpoints).then(({value, error}) => {
+      fetchTimeRange(value, endpoints).then(({ value, error }) => {
         if (error) {
           setEvalResponse(error || '');
           setValidTimeRange(false);
