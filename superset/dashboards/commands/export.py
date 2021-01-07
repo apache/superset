@@ -20,13 +20,14 @@ import json
 import logging
 import random
 import string
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, Optional, Set, Tuple
 
 import yaml
 from werkzeug.utils import secure_filename
 
 from superset.charts.commands.export import ExportChartsCommand
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
+from superset.dashboards.commands.importers.v1.utils import find_chart_uuids
 from superset.dashboards.dao import DashboardDAO
 from superset.commands.export import ExportModelsCommand
 from superset.models.dashboard import Dashboard
@@ -49,27 +50,35 @@ def suffix(length: int = 8) -> str:
     )
 
 
-def default_position(title: str, charts: List[Slice]) -> Dict[str, Any]:
-    chart_hashes = [f"CHART-{suffix()}" for _ in charts]
-    row_hash = f"ROW-N-{suffix()}"
-    position = {
+def get_default_position(title: str) -> Dict[str, Any]:
+    return {
         "DASHBOARD_VERSION_KEY": "v2",
         "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
         "GRID_ID": {
-            "children": [row_hash],
+            "children": [],
             "id": "GRID_ID",
             "parents": ["ROOT_ID"],
             "type": "GRID",
         },
         "HEADER_ID": {"id": "HEADER_ID", "meta": {"text": title}, "type": "HEADER"},
-        row_hash: {
+    }
+
+
+def append_charts(position: Dict[str, Any], charts: Set[Slice]) -> Dict[str, Any]:
+    chart_hashes = [f"CHART-{suffix()}" for _ in charts]
+
+    # if we have ROOT_ID/GRID_ID, append orphan charts to a new row inside the grid
+    row_hash = None
+    if "ROOT_ID" in position and "GRID_ID" in position["ROOT_ID"]["children"]:
+        row_hash = f"ROW-N-{suffix()}"
+        position["GRID_ID"]["children"].append(row_hash)
+        position[row_hash] = {
             "children": chart_hashes,
             "id": row_hash,
             "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"},
-            "parents": ["ROOT_ID", "GRID_ID"],
             "type": "ROW",
-        },
-    }
+            "parents": ["ROOT_ID", "GRID_ID"],
+        }
 
     for chart_hash, chart in zip(chart_hashes, charts):
         position[chart_hash] = {
@@ -82,9 +91,10 @@ def default_position(title: str, charts: List[Slice]) -> Dict[str, Any]:
                 "uuid": str(chart.uuid),
                 "width": DEFAULT_CHART_WIDTH,
             },
-            "parents": ["ROOT_ID", "GRID_ID", row_hash],
             "type": "CHART",
         }
+        if row_hash:
+            position[chart_hash]["parents"] = ["ROOT_ID", "GRID_ID", row_hash]
 
     return position
 
@@ -117,9 +127,17 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     payload[new_name] = {}
 
         # the mapping between dashboard -> charts is inferred from the position
-        # attributes, so if it's not present we need to add a default config
+        # attribute, so if it's not present we need to add a default config
         if not payload.get("position"):
-            payload["position"] = default_position(model.dashboard_title, model.slices)
+            payload["position"] = get_default_position(model.dashboard_title)
+
+        # if any charts or not referenced in position, we need to add them
+        # in a new row
+        referenced_charts = find_chart_uuids(payload["position"])
+        orphan_charts = {
+            chart for chart in model.slices if str(chart.uuid) not in referenced_charts
+        }
+        payload["position"] = append_charts(payload["position"], orphan_charts)
 
         payload["version"] = EXPORT_VERSION
 
