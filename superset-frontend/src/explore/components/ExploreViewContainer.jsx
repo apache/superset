@@ -81,10 +81,10 @@ const Styles = styled.div`
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   .explore-column {
     display: flex;
-    flex: 0 0 ${({ theme }) => theme.gridUnit * 80}px;
+    flex: 0 0 ${({ theme }) => theme.gridUnit * 95}px;
     flex-direction: column;
     padding: ${({ theme }) => 2 * theme.gridUnit}px 0;
-    max-width: ${({ theme }) => theme.gridUnit * 80}px;
+    max-width: ${({ theme }) => theme.gridUnit * 95}px;
     max-height: 100%;
   }
   .data-source-selection {
