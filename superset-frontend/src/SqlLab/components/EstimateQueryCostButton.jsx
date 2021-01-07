@@ -83,22 +83,21 @@ const EstimateQueryCostButton = props => {
   const { disabled, selectedText, tooltip } = props;
   const btnText = selectedText
     ? t('Estimate Selected Query Cost')
-    : t('Estimate Query Cost');
+    : t('Estimate Cost');
   return (
     <span className="EstimateQueryCostButton">
       <ModalTrigger
-        modalTitle={t('Query Cost Estimate')}
+        modalTitle={t('Cost Estimate')}
         modalBody={renderModalBody()}
         triggerNode={
           <Button
-            buttonStyle="warning"
-            buttonSize="small"
+            style={{ height: 32, padding: '4px 15px' }}
             onClick={onClick}
             key="query-estimate-btn"
             tooltip={tooltip}
             disabled={disabled}
           >
-            <i className="fa fa-clock-o" /> {btnText}
+            {btnText}
           </Button>
         }
       />
