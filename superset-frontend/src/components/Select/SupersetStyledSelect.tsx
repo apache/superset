@@ -216,6 +216,8 @@ function styled<
       Object.assign(restProps, sortableContainerProps);
     }
 
+    stylesConfig.menuPortal = base => ({ ...base, zIndex: 9999 });
+
     // When values are rendered as labels, adjust valueContainer padding
     const valueRenderedAsLabel =
       valueRenderedAsLabel_ === undefined ? isMulti : valueRenderedAsLabel_;
