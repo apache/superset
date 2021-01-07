@@ -24,6 +24,7 @@ import {
   MetricOption,
   ControlType,
 } from '@superset-ui/chart-controls';
+import matchSorter from 'match-sorter';
 import { ExploreActions } from '../actions/exploreActions';
 import Control from './Control';
 
@@ -154,13 +155,10 @@ const DataSourcePanel = ({
       setList({ columns, metrics });
       return;
     }
-    const filteredColumns = lists.columns.filter(
-      column => column.column_name.indexOf(value) !== -1,
-    );
-    const filteredMetrics = lists.metrics.filter(
-      metric => metric.metric_name.indexOf(value) !== -1,
-    );
-    setList({ columns: filteredColumns, metrics: filteredMetrics });
+    setList({
+      columns: matchSorter(columns, value, { keys: ['column_name'] }),
+      metrics: matchSorter(metrics, value, { keys: ['metric_name'] }),
+    });
   };
   useEffect(() => {
     setList({
