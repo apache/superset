@@ -70,20 +70,6 @@ class TestSqlLab(SupersetTestCase):
         data = self.run_sql("SELECT * FROM birth_names LIMIT 10", "1")
         self.assertLess(0, len(data["data"]))
 
-        data = self.run_sql("SELECT * FROM unexistant_table", "2")
-        assert (
-            data["errors"][0]["error_type"] == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
-        )
-        assert data["errors"][0]["level"] == ErrorLevel.ERROR
-        assert data["errors"][0]["extra"] == {
-            "issue_codes": [
-                {
-                    "code": 1002,
-                    "message": "Issue 1002 - The database returned an unexpected error.",
-                }
-            ]
-        }
-
     def test_sql_json_to_saved_query_info(self):
         """
         SQLLab: Test SQLLab query execution info propagation to saved queries
@@ -610,16 +596,6 @@ class TestSqlLab(SupersetTestCase):
             template_params=json.dumps({"state": "CA"}),
         )
         assert data["errors"][0]["error_type"] == "MISSING_TEMPLATE_PARAMS_ERROR"
-        assert data["errors"][0]["extra"] == {
-            "issue_codes": [
-                {
-                    "code": 1006,
-                    "message": "Issue 1006 - One or more parameters specified in the query are missing.",
-                }
-            ],
-            "template_parameters": {"state": "CA"},
-            "undefined_parameters": ["stat"],
-        }
 
     @mock.patch("superset.sql_lab.get_query")
     @mock.patch("superset.sql_lab.execute_sql_statement")
