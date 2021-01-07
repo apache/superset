@@ -499,8 +499,8 @@ class SqlEditor extends React.PureComponent {
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
     return (
-      <Menu onClick={this.handleMenuClick}>
-        <Menu.Item>
+      <Menu onClick={this.handleMenuClick} style={{ width: 176 }}>
+        <Menu.Item style={{ display: 'flex', justifyContent: 'space-between' }}>
           {' '}
           <span>Autocomplete</span>{' '}
           <Switch
@@ -643,7 +643,7 @@ class SqlEditor extends React.PureComponent {
                     tooltip={t('Estimate the cost before running a query')}
                   />
                 </span>
-              )}
+            )}
             {limitWarning}
             <span>
               <LimitSelectStyled>
