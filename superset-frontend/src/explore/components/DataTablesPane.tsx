@@ -24,7 +24,6 @@ import Loading from 'src/components/Loading';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { getDataTablePageSize } from 'src/explore/exploreUtils';
 import {
   CopyToClipboardButton,
   FilterInput,
@@ -189,9 +188,6 @@ export const DataTablesPane = ({
   };
 
   const renderDataTable = (type: string) => {
-    // restrict cell count to 10000 or min 5 rows to avoid crashing browser
-    const columnsLength = columns[type].length;
-    const pageSize = getDataTablePageSize(columnsLength);
     if (isLoading[type]) {
       return <Loading />;
     }
@@ -206,12 +202,10 @@ export const DataTablesPane = ({
         <TableView
           columns={columns[type]}
           data={filteredData[type]}
-          withPagination
-          pageSize={pageSize}
+          pageSize={50}
           noDataText={t('No data')}
           emptyWrapperType={EmptyWrapperType.Small}
           className="table-condensed"
-          withVirtualScroll
         />
       );
     }

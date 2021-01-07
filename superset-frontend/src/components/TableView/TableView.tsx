@@ -18,20 +18,9 @@
  */
 import React from 'react';
 import { styled, t } from '@superset-ui/core';
-import {
-  PluginHook,
-  useBlockLayout,
-  useFilters,
-  usePagination,
-  useSortBy,
-  useTable,
-} from 'react-table';
+import { useFilters, usePagination, useSortBy, useTable } from 'react-table';
 import { Empty } from 'src/common/components';
-import {
-  TableCollection,
-  VirtualizedTableCollection,
-  Pagination,
-} from 'src/components/dataViewCommon';
+import { TableCollection, Pagination } from 'src/components/dataViewCommon';
 import { SortColumns } from './types';
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -52,7 +41,6 @@ export interface TableViewProps {
   emptyWrapperType?: EmptyWrapperType;
   noDataText?: string;
   className?: string;
-  withVirtualScroll?: boolean;
 }
 
 const EmptyWrapper = styled.div`
@@ -68,6 +56,7 @@ const TableViewStyles = styled.div`
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: center;
   }
 
   .row-count-container {
@@ -86,7 +75,6 @@ const TableView = ({
   withPagination = true,
   emptyWrapperType = EmptyWrapperType.Default,
   noDataText,
-  withVirtualScroll,
   ...props
 }: TableViewProps) => {
   const initialState = {
@@ -94,16 +82,6 @@ const TableView = ({
     pageIndex: initialPageIndex ?? 0,
     sortBy: initialSortBy,
   };
-
-  const tablePlugins: PluginHook<any>[] = [
-    useFilters,
-    useSortBy,
-    usePagination,
-  ];
-
-  if (withVirtualScroll) {
-    tablePlugins.push(useBlockLayout);
-  }
 
   const {
     getTableProps,
@@ -121,7 +99,9 @@ const TableView = ({
       data,
       initialState,
     },
-    ...tablePlugins,
+    useFilters,
+    useSortBy,
+    usePagination,
   );
 
   const content = withPagination ? page : rows;
@@ -140,12 +120,9 @@ const TableView = ({
 
   const isEmpty = !loading && content.length === 0;
 
-  const TableView = withVirtualScroll
-    ? VirtualizedTableCollection
-    : TableCollection;
   return (
     <TableViewStyles {...props}>
-      <TableView
+      <TableCollection
         getTableProps={getTableProps}
         getTableBodyProps={getTableBodyProps}
         prepareRow={prepareRow}
