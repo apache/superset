@@ -79,13 +79,12 @@ const StyledDropdownButton = styled.div`
       &:first-of-type {
         border-radius: ${({ theme }) =>
           `${theme.gridUnit}px 0 0 ${theme.gridUnit}px`};
-        margin-right: 1px;
+        margin: 0;
         width: 120px;
       }
       &:last-of-type {
         border-radius: ${({ theme }) =>
           `0 ${theme.gridUnit}px ${theme.gridUnit}px 0`};
-        margin-right: ${({ theme }) => theme.gridUnit * 2}px;
         width: ${({ theme }) => theme.gridUnit * 9}px;
         &:before,
         &:hover:before {
