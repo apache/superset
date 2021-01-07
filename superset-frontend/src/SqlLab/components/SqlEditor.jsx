@@ -699,7 +699,8 @@ class SqlEditor extends React.PureComponent {
         ? 'Create View As'
         : 'Create Table As';
 
-    const createModalPlaceHolder = this.state.createAs === CtasEnum.VIEW
+    const createModalPlaceHolder =
+      this.state.createAs === CtasEnum.VIEW
         ? 'Specify name to Create View AS schema in: public'
         : 'Specify name to Create Table AS schema in: public';
 
