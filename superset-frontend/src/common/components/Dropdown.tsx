@@ -83,6 +83,7 @@ const StyledDropdownButton = styled.div`
         width: 120px;
       }
       &:last-of-type {
+        margin: 0;
         border-radius: ${({ theme }) =>
           `0 ${theme.gridUnit}px ${theme.gridUnit}px 0`};
         width: ${({ theme }) => theme.gridUnit * 9}px;
