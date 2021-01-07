@@ -279,6 +279,10 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
         : 'padding: 0; flex: 1 1 auto;'};
     `,
   ],
+  menuPortal: base => ({
+    ...base,
+    zIndex: 1030, // must be same or higher of antd popover
+  }),
 };
 
 const INPUT_TAG_BASE_STYLES = {
