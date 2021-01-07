@@ -111,6 +111,13 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   // Functions
   const hide = () => {
     setIsHidden(true);
+
+    // Reset layer
+    setCurrentLayer({
+      name: '',
+      descr: '',
+    });
+
     onHide();
   };
 
@@ -121,13 +128,21 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
         const update_id = currentLayer.id;
         delete currentLayer.id;
         delete currentLayer.created_by;
-        updateResource(update_id, currentLayer).then(() => {
+        updateResource(update_id, currentLayer).then(response => {
+          if (!response) {
+            return;
+          }
+
           hide();
         });
       }
     } else if (currentLayer) {
       // Create
       createResource(currentLayer).then(response => {
+        if (!response) {
+          return;
+        }
+
         if (onLayerAdd) {
           onLayerAdd(response);
         }
@@ -162,29 +177,35 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   };
 
   // Initialize
-  if (
-    isEditMode &&
-    (!currentLayer ||
-      !currentLayer.id ||
-      (layer && layer.id !== currentLayer.id) ||
-      (isHidden && show))
-  ) {
-    if (layer && layer.id !== null && !loading) {
-      const id = layer.id || 0;
+  useEffect(() => {
+    if (
+      isEditMode &&
+      (!currentLayer ||
+        !currentLayer.id ||
+        (layer && layer.id !== currentLayer.id) ||
+        (isHidden && show))
+    ) {
+      if (show && layer && layer.id !== null && !loading) {
+        const id = layer.id || 0;
 
-      fetchResource(id).then(() => {
-        setCurrentLayer(resource);
+        fetchResource(id);
+      }
+    } else if (
+      !isEditMode &&
+      (!currentLayer || currentLayer.id || (isHidden && show))
+    ) {
+      setCurrentLayer({
+        name: '',
+        descr: '',
       });
     }
-  } else if (
-    !isEditMode &&
-    (!currentLayer || currentLayer.id || (isHidden && show))
-  ) {
-    setCurrentLayer({
-      name: '',
-      descr: '',
-    });
-  }
+  }, [layer, show]);
+
+  useEffect(() => {
+    if (resource) {
+      setCurrentLayer(resource);
+    }
+  }, [resource]);
 
   // Validation
   useEffect(() => {
