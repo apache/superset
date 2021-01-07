@@ -1,6 +1,12 @@
 name: E2E
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - "dependabot/**/docs/**"
+    paths-ignore:
+      - "docs/**"
+  pull_request:
 
 jobs:
   Cypress:
