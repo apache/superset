@@ -26,7 +26,7 @@ The following keys in `superset_config.py` can be specified to configure CORS:
 
 Chrome allows up to 6 open connections per domain at a time. When there are more than 6 slices in
 dashboard, a lot of time fetch requests are queued up and wait for next available socket.
-[PR 5039](https://github.com/apache/incubator-superset/pull/5039) adds domain sharding to Superset,
+[PR 5039](https://github.com/apache/superset/pull/5039) adds domain sharding to Superset,
 and this feature will be enabled by configuration only (by default Superset doesn’t allow
 cross-domain request).
 

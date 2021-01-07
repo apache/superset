@@ -44,7 +44,7 @@ WORKDIR /home/superset
 ARG VERSION
 
 # Can fetch source from svn or copy tarball from local mounted directory
-RUN svn co https://dist.apache.org/repos/dist/dev/incubator/superset/$VERSION ./
+RUN svn co https://dist.apache.org/repos/dist/dev/superset/$VERSION ./
 RUN tar -xvf *.tar.gz
 WORKDIR apache-superset-$VERSION
 

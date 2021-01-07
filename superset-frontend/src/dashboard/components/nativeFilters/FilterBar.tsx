@@ -47,7 +47,7 @@ import CascadePopover from './CascadePopover';
 const barWidth = `250px`;
 
 const BarWrapper = styled.div`
-  width: ${({ theme }) => theme.gridUnit * 6}px;
+  width: ${({ theme }) => theme.gridUnit * 8}px;
   &.open {
     width: ${barWidth}; // arbitrary...
   }
@@ -88,7 +88,7 @@ const CollapsedBar = styled.div`
   top: 0;
   left: 0;
   height: 100%;
-  width: ${({ theme }) => theme.gridUnit * 6}px;
+  width: ${({ theme }) => theme.gridUnit * 8}px;
   padding-top: ${({ theme }) => theme.gridUnit * 2}px;
   display: none;
   text-align: center;
@@ -101,7 +101,10 @@ const CollapsedBar = styled.div`
     transition-delay: 0s;
   } */
   &.open {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: ${({ theme }) => theme.gridUnit * 2}px;
     /* &.animated {
       transform: translateX(0);
       transition-delay: ${({
@@ -114,6 +117,11 @@ const CollapsedBar = styled.div`
     height: ${({ theme }) => theme.gridUnit * 4}px;
     cursor: pointer;
   }
+`;
+
+const StyledCollapseIcon = styled(Icon)`
+  color: ${({ theme }) => theme.colors.primary.base};
+  margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
 `;
 
 const TitleArea = styled.h4`
@@ -431,7 +439,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         className={cx({ open: !filtersOpen })}
         onClick={() => toggleFiltersBar(true)}
       >
-        <Icon name="collapse" />
+        <StyledCollapseIcon name="collapse" />
         <Icon name="filter" />
       </CollapsedBar>
       <Bar className={cx({ open: filtersOpen })}>

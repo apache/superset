@@ -60,6 +60,7 @@ export default function MenuObject({
       title={label}
       onMouseEnter={() => setDropdownOpen(true)}
       onMouseLeave={() => setDropdownOpen(false)}
+      onToggle={value => setDropdownOpen(value)}
       open={dropdownOpen}
     >
       <Menu>

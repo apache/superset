@@ -111,6 +111,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
 
     related_field_filters = {
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "user": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
 
     search_columns = ["changed_on", "database", "sql", "status", "user", "start_time"]

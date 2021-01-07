@@ -1,6 +1,10 @@
 name: Translations
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - "dependabot/npm_and_yarn/**"
+  pull_request:
 
 jobs:
   frontend-check:

@@ -200,31 +200,33 @@ export default class ResultSet extends React.PureComponent<
       appContainer?.getAttribute('data-bootstrap') || '{}',
     );
 
-    const queryParams = rison.encode({
-      filters: [
-        {
-          col: 'owners',
-          opr: 'rel_m_m',
-          value: bootstrapData.user.userId,
-        },
-      ],
-      order_column: 'changed_on_delta_humanized',
-      order_direction: 'desc',
-    });
+    if (bootstrapData.user && bootstrapData.user.id) {
+      const queryParams = rison.encode({
+        filters: [
+          {
+            col: 'owners',
+            opr: 'rel_m_m',
+            value: bootstrapData.user.userId,
+          },
+        ],
+        order_column: 'changed_on_delta_humanized',
+        order_direction: 'desc',
+      });
 
-    const response = await makeApi({
-      method: 'GET',
-      endpoint: `/api/v1/dataset?q=${queryParams}`,
-    })({});
+      const response = await makeApi({
+        method: 'GET',
+        endpoint: `/api/v1/dataset?q=${queryParams}`,
+      })({});
 
-    const userDatasetsOwned = response.result.map(
-      (r: { table_name: string; id: number }) => ({
-        datasetName: r.table_name,
-        datasetId: r.id,
-      }),
-    );
+      const userDatasetsOwned = response.result.map(
+        (r: { table_name: string; id: number }) => ({
+          datasetName: r.table_name,
+          datasetId: r.id,
+        }),
+      );
 
-    this.setState({ userDatasetsOwned });
+      this.setState({ userDatasetsOwned });
+    }
   }
 
   UNSAFE_componentWillReceiveProps(nextProps: ResultSetProps) {
@@ -351,7 +353,7 @@ export default class ResultSet extends React.PureComponent<
   };
 
   handleOverwriteCancel = () => {
-    this.setState({ shouldOverwriteDataSet: false });
+    this.setState({ shouldOverwriteDataSet: false, datasetToOverwrite: {} });
   };
 
   handleExploreBtnClick = () => {

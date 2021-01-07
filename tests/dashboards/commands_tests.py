@@ -16,8 +16,9 @@
 # under the License.
 # pylint: disable=no-self-use, invalid-name
 
+import itertools
 import json
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
@@ -28,7 +29,11 @@ from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
-from superset.dashboards.commands.export import ExportDashboardsCommand
+from superset.dashboards.commands.export import (
+    append_charts,
+    ExportDashboardsCommand,
+    get_default_position,
+)
 from superset.dashboards.commands.importers import v0, v1
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -200,6 +205,139 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "metadata",
             "version",
         ]
+
+    @patch("superset.dashboards.commands.export.suffix")
+    def test_append_charts(self, mock_suffix):
+        """Test that oprhaned charts are added to the dashbaord position"""
+        # return deterministic IDs
+        mock_suffix.side_effect = (str(i) for i in itertools.count(1))
+
+        position = get_default_position("example")
+        chart_1 = db.session.query(Slice).filter_by(id=1).one()
+        new_position = append_charts(position, {chart_1})
+        assert new_position == {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+            "GRID_ID": {
+                "children": ["ROW-N-2"],
+                "id": "GRID_ID",
+                "parents": ["ROOT_ID"],
+                "type": "GRID",
+            },
+            "HEADER_ID": {
+                "id": "HEADER_ID",
+                "meta": {"text": "example"},
+                "type": "HEADER",
+            },
+            "ROW-N-2": {
+                "children": ["CHART-1"],
+                "id": "ROW-N-2",
+                "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"},
+                "type": "ROW",
+                "parents": ["ROOT_ID", "GRID_ID"],
+            },
+            "CHART-1": {
+                "children": [],
+                "id": "CHART-1",
+                "meta": {
+                    "chartId": 1,
+                    "height": 50,
+                    "sliceName": "Region Filter",
+                    "uuid": str(chart_1.uuid),
+                    "width": 4,
+                },
+                "type": "CHART",
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-N-2"],
+            },
+        }
+
+        chart_2 = db.session.query(Slice).filter_by(id=2).one()
+        new_position = append_charts(new_position, {chart_2})
+        assert new_position == {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+            "GRID_ID": {
+                "children": ["ROW-N-2", "ROW-N-4"],
+                "id": "GRID_ID",
+                "parents": ["ROOT_ID"],
+                "type": "GRID",
+            },
+            "HEADER_ID": {
+                "id": "HEADER_ID",
+                "meta": {"text": "example"},
+                "type": "HEADER",
+            },
+            "ROW-N-2": {
+                "children": ["CHART-1"],
+                "id": "ROW-N-2",
+                "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"},
+                "type": "ROW",
+                "parents": ["ROOT_ID", "GRID_ID"],
+            },
+            "ROW-N-4": {
+                "children": ["CHART-3"],
+                "id": "ROW-N-4",
+                "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"},
+                "type": "ROW",
+                "parents": ["ROOT_ID", "GRID_ID"],
+            },
+            "CHART-1": {
+                "children": [],
+                "id": "CHART-1",
+                "meta": {
+                    "chartId": 1,
+                    "height": 50,
+                    "sliceName": "Region Filter",
+                    "uuid": str(chart_1.uuid),
+                    "width": 4,
+                },
+                "type": "CHART",
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-N-2"],
+            },
+            "CHART-3": {
+                "children": [],
+                "id": "CHART-3",
+                "meta": {
+                    "chartId": 2,
+                    "height": 50,
+                    "sliceName": "World's Population",
+                    "uuid": str(chart_2.uuid),
+                    "width": 4,
+                },
+                "type": "CHART",
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-N-4"],
+            },
+        }
+
+        position = {"DASHBOARD_VERSION_KEY": "v2"}
+        new_position = append_charts(position, [chart_1, chart_2])
+        assert new_position == {
+            "CHART-5": {
+                "children": [],
+                "id": "CHART-5",
+                "meta": {
+                    "chartId": 1,
+                    "height": 50,
+                    "sliceName": "Region Filter",
+                    "uuid": str(chart_1.uuid),
+                    "width": 4,
+                },
+                "type": "CHART",
+            },
+            "CHART-6": {
+                "children": [],
+                "id": "CHART-6",
+                "meta": {
+                    "chartId": 2,
+                    "height": 50,
+                    "sliceName": "World's Population",
+                    "uuid": str(chart_2.uuid),
+                    "width": 4,
+                },
+                "type": "CHART",
+            },
+            "DASHBOARD_VERSION_KEY": "v2",
+        }
 
 
 class TestImportDashboardsCommand(SupersetTestCase):

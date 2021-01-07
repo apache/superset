@@ -183,15 +183,25 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   const [evalResponse, setEvalResponse] = useState<string>(value);
 
   useEffect(() => {
-    fetchTimeRange(value, endpoints).then(({ value, error }) => {
-      if (error) {
-        setEvalResponse(error || '');
-        setValidTimeRange(false);
-      } else {
-        setActualTimeRange(value || '');
-        setValidTimeRange(true);
-      }
-    });
+    const valueToLower = value.toLowerCase();
+    if (
+      valueToLower.startsWith('last') ||
+      valueToLower.startsWith('next') ||
+      valueToLower.startsWith('previous')
+    ) {
+      setActualTimeRange(value);
+      setValidTimeRange(true);
+    } else {
+      fetchTimeRange(value, endpoints).then(({ value, error }) => {
+        if (error) {
+          setEvalResponse(error || '');
+          setValidTimeRange(false);
+        } else {
+          setActualTimeRange(value || '');
+          setValidTimeRange(true);
+        }
+      });
+    }
   }, [value]);
 
   useEffect(() => {

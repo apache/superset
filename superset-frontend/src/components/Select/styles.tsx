@@ -279,6 +279,10 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
         : 'padding: 0; flex: 1 1 auto;'};
     `,
   ],
+  menuPortal: base => ({
+    ...base,
+    zIndex: 1030, // must be same or higher of antd popover
+  }),
 };
 
 const INPUT_TAG_BASE_STYLES = {
@@ -300,7 +304,7 @@ export type SelectComponentsType = Omit<
 export type InputProps = ReactSelectInputProps & {
   placeholder?: ReactNode;
   selectProps: SelectProps;
-  autocomplete?: string;
+  autoComplete?: string;
   onPaste?: SupersetStyledSelectProps<OptionType>['onPaste'];
   inputStyle?: object;
 };
@@ -352,7 +356,7 @@ export const DEFAULT_COMPONENTS: SelectComponentsType = {
         {...props}
         placeholder={isMultiWithValue ? placeholder : undefined}
         css={getStyles('input', props)}
-        autocomplete="chrome-off"
+        autoComplete="chrome-off"
         inputStyle={
           isMultiWithValue
             ? { ...INPUT_TAG_BASE_STYLES, width: '100%' }

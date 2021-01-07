@@ -179,6 +179,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
         DatabaseRelatedObjectsResponse,
+        DatabaseTestConnectionSchema,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
         SchemasResponseSchema,
@@ -560,16 +561,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  type: object
-                  properties:
-                    encrypted_extra:
-                      type: object
-                    extras:
-                      type: object
-                    name:
-                      type: string
-                    server_cert:
-                      type: string
+                  $ref: "#/components/schemas/DatabaseTestConnectionSchema"
           responses:
             200:
               description: Database Test Connection

@@ -1,0 +1,20 @@
+name: Cancel Duplicates
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: ["requested"]
+
+jobs:
+  cancel-duplicate-workflow-runs:
+    name: "Cancel duplicate workflow runs"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: apache-superset/cancel-workflow-runs@953e057
+        name: "Cancel duplicate workflow runs"
+        with:
+          cancelMode: duplicates
+          cancelFutureDuplicates: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          sourceRunId: ${{ github.event.workflow_run.id }}
+          notifyPRCancel: true
+          skipEventTypes: '["push", "pull_request", "pull_request_target"]'
