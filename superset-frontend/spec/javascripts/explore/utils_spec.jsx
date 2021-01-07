@@ -23,7 +23,6 @@ import {
   buildV1ChartDataPayload,
   getExploreUrl,
   getExploreLongUrl,
-  getDataTablePageSize,
   shouldUseLegacyApi,
   getSimpleSQLExpression,
 } from 'src/explore/exploreUtils';
