@@ -25,7 +25,6 @@ from superset.commands.exceptions import (
     ImportFailedError,
     UpdateFailedError,
 )
-from superset.security.analytics_db_safety import DBSecurityException
 
 
 class DatabaseInvalidError(CommandInvalidError):
@@ -117,15 +116,19 @@ class DatabaseDeleteFailedReportsExistError(DatabaseDeleteFailedError):
     message = _("There are associated alerts or reports")
 
 
-class DatabaseSecurityUnsafeError(DatabaseConnectionFailedError):
+class DatabaseTestConnectionFailedError(CommandException):
+    message = _("Connection failed, please check your connection settings")
+
+
+class DatabaseSecurityUnsafeError(DatabaseTestConnectionFailedError):
     message = _("Stopped an unsafe database connection")
 
 
-class DatabaseConnectionDriverError(DatabaseConnectionFailedError):
+class DatabaseTestConnectionDriverError(DatabaseTestConnectionFailedError):
     message = _("Could not load database driver")
 
 
-class DatabaseConnectionUnexpectedError(DatabaseConnectionFailedError):
+class DatabaseTestConnectionUnexpectedError(DatabaseTestConnectionFailedError):
     message = _("Unexpected error occurred, please check your logs for details")
 
 

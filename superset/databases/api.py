@@ -24,16 +24,8 @@ from zipfile import ZipFile
 from flask import g, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import gettext as _
 from marshmallow import ValidationError
-from sqlalchemy.engine.url import make_url
-from sqlalchemy.exc import (
-    DBAPIError,
-    NoSuchModuleError,
-    NoSuchTableError,
-    OperationalError,
-    SQLAlchemyError,
-)
+from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
 from superset import event_logger
 from superset.commands.exceptions import CommandInvalidError
@@ -49,7 +41,7 @@ from superset.databases.commands.exceptions import (
     DatabaseImportError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
-    DatabaseSecurityUnsafeError,
+    DatabaseTestConnectionFailedError,
     DatabaseUpdateFailedError,
 )
 from superset.databases.commands.export import ExportDatabasesCommand
@@ -589,7 +581,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             TestConnectionDatabaseCommand(g.user, item).run()
             return self.response(200, message="OK")
-        except DatabaseConnectionFailedError as ex:
+        except DatabaseTestConnectionFailedError as ex:
             return self.response_422(message=str(ex))
 
     @expose("/<int:pk>/related_objects/", methods=["GET"])

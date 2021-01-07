@@ -25,10 +25,10 @@ from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import (
-    DatabaseConnectionDriverError,
-    DatabaseConnectionFailedError,
-    DatabaseConnectionUnexpectedError,
     DatabaseSecurityUnsafeError,
+    DatabaseTestConnectionDriverError,
+    DatabaseTestConnectionFailedError,
+    DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.dao import DatabaseDAO
 from superset.models.core import Database
@@ -65,15 +65,15 @@ class TestConnectionDatabaseCommand(BaseCommand):
                     raise DBAPIError(None, None, None)
         except (NoSuchModuleError, ModuleNotFoundError):
             driver_name = make_url(uri).drivername
-            raise DatabaseConnectionDriverError(
+            raise DatabaseTestConnectionDriverError(
                 message=_("Could not load database driver: {}").format(driver_name),
             )
         except DBAPIError:
-            raise DatabaseConnectionFailedError()
+            raise DatabaseTestConnectionFailedError()
         except DBSecurityException as ex:
             raise DatabaseSecurityUnsafeError(message=str(ex))
         except Exception:
-            raise DatabaseConnectionUnexpectedError()
+            raise DatabaseTestConnectionUnexpectedError()
 
     def validate(self) -> None:
         database_name = self._properties.get("database_name")
