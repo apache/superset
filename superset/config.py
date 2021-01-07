@@ -733,8 +733,9 @@ ROBOT_PERMISSION_ROLES = ["Public", "Gamma", "Alpha", "Admin", "sql_lab"]
 
 CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
 
-# vVlid html code that will be injected into every view.
-# Use this to insert eg, google analytics or similar snippet
+# Use with caution!
+# Valid html code that will be injected into every view.
+# Use this to insert eg, google analytics, intercom, pendo, fullstory or similar snippet.
 HTML_TEMPLATE_SCRIPT = ""
 
 # If a callable is specified, it will be called at app startup while passing
