@@ -189,7 +189,11 @@ const DataSourcePanel = ({
           className="form-control input-sm"
           placeholder={t('Search Metrics & Columns')}
         />
-        <Collapse accordion bordered={false} expandIconPosition="right">
+        <Collapse
+          bordered={false}
+          defaultActiveKey={['metrics', 'column']}
+          expandIconPosition="right"
+        >
           <Collapse.Panel
             header={<span className="header">{t('Metrics')}</span>}
             key="metrics"
@@ -203,12 +207,6 @@ const DataSourcePanel = ({
               </div>
             ))}
           </Collapse.Panel>
-        </Collapse>
-        <Collapse
-          bordered={false}
-          defaultActiveKey={['column', 'metrics']}
-          expandIconPosition="right"
-        >
           <Collapse.Panel
             header={<span className="header">{t('Columns')}</span>}
             key="column"
