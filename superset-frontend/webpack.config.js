@@ -459,6 +459,7 @@ if (isDevMode) {
       // only allow exact match so imports like `@superset-ui/plugin-name/lib`
       // and `@superset-ui/plugin-name/esm` can still work.
       config.resolve.alias[`${pkg}$`] = `${pkg}/src`;
+      delete config.resolve.alias[pkg];
       hasSymlink = true;
     }
   });
