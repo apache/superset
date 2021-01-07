@@ -150,22 +150,11 @@ const DataSourcePanel = ({
     columns,
     metrics,
   });
-  //console.log('columns', columns, metrics);
   const search = ({ target: { value } }: { target: { value: string } }) => {
-    console.log('value', value);
     if (value === '') {
       setList({ columns, metrics });
       return;
     }
-    /* const filteredColumns = lists.columns.filter(
-      column => column.column_name.indexOf(value) !== -1,
-    );
-
-    const filteredMetrics = lists.metrics.filter(
-      metric => metric.metric_name.indexOf(value) !== -1,
-    );
-      */
-    console.log('matchSorter', matchSorter(lists.columns, value, { keys: ['column_name'] }) )
     setList({
       columns: matchSorter(columns, value, { keys: ['column_name'] }),
       metrics: matchSorter(metrics, value, { keys: ['metric_name'] }),
