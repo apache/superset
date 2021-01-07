@@ -121,6 +121,7 @@
     "json-stringify-pretty-compact": "^2.0.0",
     "lodash": "^4.17.20",
     "lodash-es": "^4.17.14",
+    "match-sorter": "^4.1.0",
     "mathjs": "^8.0.1",
     "memoize-one": "^5.1.1",
     "moment": "^2.26.0",

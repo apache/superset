@@ -1,6 +1,11 @@
 name: Frontend
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - "dependabot/**/docs/**"
+      - "dependabot/**/cypress-base/**"
+  pull_request:
 
 jobs:
   build:
