@@ -35,7 +35,6 @@ import GitHubButton from 'react-github-btn';
 
 import { Databases } from '../resources/data';
 import Layout from '../components/layout';
-import Image from '../components/image';
 import DbImage from '../components/DbImage';
 import 'antd/dist/antd.css';
 import SEO from '../components/seo';
