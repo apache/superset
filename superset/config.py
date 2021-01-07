@@ -733,11 +733,6 @@ ROBOT_PERMISSION_ROLES = ["Public", "Gamma", "Alpha", "Admin", "sql_lab"]
 
 CONFIG_PATH_ENV_VAR = "SUPERSET_CONFIG_PATH"
 
-# Use with caution!
-# Valid html code that will be injected into every view.
-# Use this to insert eg, google analytics, intercom, pendo, fullstory, etc.
-HTML_TEMPLATE_SCRIPT = ""
-
 # If a callable is specified, it will be called at app startup while passing
 # a reference to the Flask app. This can be used to alter the Flask app
 # in whatever way.
