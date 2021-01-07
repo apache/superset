@@ -42,6 +42,8 @@ const NULLISH_RESULTS_STATE = {
   [RESULT_TYPES.samples]: undefined,
 };
 
+const DATA_TABLE_PAGE_SIZE = 50;
+
 const TableControlsWrapper = styled.div`
   display: flex;
   align-items: center;
@@ -202,7 +204,7 @@ export const DataTablesPane = ({
         <TableView
           columns={columns[type]}
           data={filteredData[type]}
-          pageSize={50}
+          pageSize={DATA_TABLE_PAGE_SIZE}
           noDataText={t('No data')}
           emptyWrapperType={EmptyWrapperType.Small}
           className="table-condensed"
