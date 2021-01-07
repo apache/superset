@@ -87,5 +87,3 @@ release.json
 messages.mo
 
 docker/requirements-local.txt
-
-superset/templates/custom_override_template.html
