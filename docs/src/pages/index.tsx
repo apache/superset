@@ -110,10 +110,6 @@ const titleContainer = css`
       width: 400px;
     }
   }
-  .incubator {
-    margin-top: 40px;
-    margin-bottom: 30px;
-  }
   .alert {
     color: #0c5460;
     background-color: #d1ecf1;
@@ -328,9 +324,6 @@ const Theme = () => {
                   Fork
                 </GitHubButton>
               </span>
-            </div>
-            <div className="incubator">
-              <Image imageName="incubatorSm" />
             </div>
             <div>
               <Link to="/docs/intro">
