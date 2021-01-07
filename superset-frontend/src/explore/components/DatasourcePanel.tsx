@@ -189,6 +189,21 @@ const DataSourcePanel = ({
           className="form-control input-sm"
           placeholder={t('Search Metrics & Columns')}
         />
+        <Collapse accordion bordered={false} expandIconPosition="right">
+          <Collapse.Panel
+            header={<span className="header">{t('Metrics')}</span>}
+            key="metrics"
+          >
+            <div className="field-length">
+              {t(`Showing %s of %s`, metricSlice.length, metrics.length)}
+            </div>
+            {metricSlice.map(m => (
+              <div key={m.metric_name} className="column">
+                <MetricOption metric={m} showType />
+              </div>
+            ))}
+          </Collapse.Panel>
+        </Collapse>
         <Collapse
           bordered={false}
           defaultActiveKey={['column', 'metrics']}
@@ -204,19 +219,6 @@ const DataSourcePanel = ({
             {columnSlice.map(col => (
               <div key={col.column_name} className="column">
                 <ColumnOption column={col} showType />
-              </div>
-            ))}
-          </Collapse.Panel>
-          <Collapse.Panel
-            header={<span className="header">{t('Metrics')}</span>}
-            key="metrics"
-          >
-            <div className="field-length">
-              {t(`Showing %s of %s`, metricSlice.length, metrics.length)}
-            </div>
-            {metricSlice.map(m => (
-              <div key={m.metric_name} className="column">
-                <MetricOption metric={m} showType />
               </div>
             ))}
           </Collapse.Panel>
