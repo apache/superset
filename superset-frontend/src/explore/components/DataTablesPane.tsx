@@ -138,11 +138,18 @@ export const DataTablesPane = ({
   );
 
   useEffect(() => {
-    setIsRequestPending({
+    setIsRequestPending(prevState => ({
+      ...prevState,
       [RESULT_TYPES.results]: true,
-      [RESULT_TYPES.samples]: true,
-    });
+    }));
   }, [queryFormData]);
+
+  useEffect(() => {
+    setIsRequestPending(prevState => ({
+      ...prevState,
+      [RESULT_TYPES.samples]: true,
+    }));
+  }, [queryFormData.adhoc_filters]);
 
   useEffect(() => {
     if (panelOpen && isRequestPending[RESULT_TYPES.results]) {

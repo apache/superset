@@ -6,14 +6,10 @@ jobs:
   build:
     runs-on: ubuntu-18.04
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
-        with:
-          access_token: ${{ github.token }}
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Install dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: npm-install
       - name: lint

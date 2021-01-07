@@ -1,0 +1,15 @@
+[
+    ".github/workflows/integration.yml",
+    ".github/workflows/pr.yml",
+    ".github/workflows/push.yml",
+    ".github/workflows/readme.md",
+    ".gitignore",
+    ".prettierignore",
+    "README.md",
+    "action.yml",
+    "jest.config.js",
+    "package.json",
+    "src/main.ts",
+    "tsconfig.json",
+    "yarn.lock"
+]
