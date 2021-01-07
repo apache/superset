@@ -691,6 +691,7 @@ class TestCore(SupersetTestCase):
         self.assertEqual(list(expected_data), list(data))
         self.logout()
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_extra_table_metadata(self):
         self.login()
         example_db = utils.get_example_database()
