@@ -643,7 +643,7 @@ class SqlEditor extends React.PureComponent {
                     tooltip={t('Estimate the cost before running a query')}
                   />
                 </span>
-            )}
+              )}
             {limitWarning}
             <span>
               <LimitSelectStyled>
