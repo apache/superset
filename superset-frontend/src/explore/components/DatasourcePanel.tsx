@@ -119,7 +119,10 @@ const DatasourceContainer = styled.div`
     padding: 0px;
   }
   .field-selections {
-    padding: ${({ theme }) => 2 * theme.gridUnit}px;
+    padding: ${({ theme }) =>
+      `${2 * theme.gridUnit}px ${2 * theme.gridUnit}px ${
+        4 * theme.gridUnit
+      }px`};
     overflow: auto;
   }
   .field-length {
@@ -187,7 +190,6 @@ const DataSourcePanel = ({
           placeholder={t('Search Metrics & Columns')}
         />
         <Collapse
-          accordion
           bordered={false}
           defaultActiveKey={['column', 'metrics']}
           expandIconPosition="right"
@@ -205,8 +207,6 @@ const DataSourcePanel = ({
               </div>
             ))}
           </Collapse.Panel>
-        </Collapse>
-        <Collapse accordion bordered={false} expandIconPosition="right">
           <Collapse.Panel
             header={<span className="header">{t('Metrics')}</span>}
             key="metrics"
