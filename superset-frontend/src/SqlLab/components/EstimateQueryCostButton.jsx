@@ -91,7 +91,7 @@ const EstimateQueryCostButton = props => {
         modalBody={renderModalBody()}
         triggerNode={
           <Button
-            buttonSize="small"
+            style={{ height: 32, padding: '4px 15px'}}
             onClick={onClick}
             key="query-estimate-btn"
             tooltip={tooltip}
