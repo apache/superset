@@ -317,20 +317,22 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
     expression += ` ${operator}`;
     const firstValue =
       isMulti && Array.isArray(comparator) ? comparator[0] : comparator;
-    const comparatorArray =
-      comparator === undefined ||
-      comparator === null ||
-      Array.isArray(comparator)
-        ? comparator
-        : [comparator];
+    let comparatorArray;
+    if (comparator === undefined || comparator === null) {
+      comparatorArray = [];
+    } else if (Array.isArray(comparator)) {
+      comparatorArray = comparator;
+    } else {
+      comparatorArray = [comparator];
+    }
     const isString =
       firstValue !== undefined && Number.isNaN(Number(firstValue));
     const quote = isString ? "'" : '';
     const [prefix, suffix] = isMulti ? ['(', ')'] : ['', ''];
-    const formattedComparators = (comparatorArray || []).map(
+    const formattedComparators = comparatorArray.map(
       val => `${quote}${isString ? val.replace("'", "''") : val}${quote}`,
     );
-    if (comparatorArray) {
+    if (comparatorArray.length > 0) {
       expression += ` ${prefix}${formattedComparators.join(', ')}${suffix}`;
     }
   }

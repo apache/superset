@@ -312,7 +312,7 @@ describe('exploreUtils', () => {
     it("returns subject and operator when they're provided and comparator is undefined", () => {
       expect(getSimpleSQLExpression('col', '=')).toBe('col =');
       expect(getSimpleSQLExpression('col', 'IN')).toBe('col IN');
-      expect(getSimpleSQLExpression('col', 'IN', [])).toBe('col IN ()');
+      expect(getSimpleSQLExpression('col', 'IN', [])).toBe('col IN');
     });
     it('returns full expression when subject, operator and comparator are provided', () => {
       expect(getSimpleSQLExpression('col', '=', 'comp')).toBe("col = 'comp'");
