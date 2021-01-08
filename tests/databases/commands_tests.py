@@ -79,8 +79,14 @@ class TestExportDatabasesCommand(SupersetTestCase):
 
         if example_db.backend == "postgresql":
             ds_type = "TIMESTAMP WITHOUT TIME ZONE"
+        elif example_db.backend == "hive":
+            ds_type = "TIMESTAMP"
         else:
             ds_type = "DATETIME"
+        if example_db.backend == "mysql":
+            big_int_type = "BIGINT(20)"
+        else:
+            big_int_type = "BIGINT"
         metadata = yaml.safe_load(contents["databases/examples.yaml"])
         assert metadata == (
             {
@@ -104,10 +110,6 @@ class TestExportDatabasesCommand(SupersetTestCase):
         metadata["columns"].sort(key=lambda x: x["column_name"])
         logger.info("metadata:")
         logger.info(metadata)
-        if example_db.backend == "mysql":
-            big_int_type = "BIGINT(20)"
-        else:
-            big_int_type = "BIGINT"
         expected_metadata = {
             "cache_timeout": None,
             "columns": [
@@ -132,7 +134,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "is_active": True,
                     "is_dttm": False,
                     "python_date_format": None,
-                    "type": "VARCHAR(16)",
+                    "type": "STRING" if example_db.backend == "hive" else "VARCHAR(16)",
                     "verbose_name": None,
                 },
                 {
@@ -144,7 +146,9 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "is_active": True,
                     "is_dttm": False,
                     "python_date_format": None,
-                    "type": "VARCHAR(255)",
+                    "type": "STRING"
+                    if example_db.backend == "hive"
+                    else "VARCHAR(255)",
                     "verbose_name": None,
                 },
                 {
@@ -180,7 +184,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "is_active": True,
                     "is_dttm": False,
                     "python_date_format": None,
-                    "type": "VARCHAR(10)",
+                    "type": "STRING" if example_db.backend == "hive" else "VARCHAR(10)",
                     "verbose_name": None,
                 },
                 {
