@@ -22,6 +22,7 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import Button from 'src/components/Button';
 
+import ErrorBoundary from 'src/components/ErrorBoundary';
 import Tabs from 'src/common/components/Tabs';
 import AdhocFilter, {
   EXPRESSION_TYPES,
@@ -44,6 +45,14 @@ const simpleAdhocFilter = new AdhocFilter({
 const sqlAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SQL,
   sqlExpression: 'value > 10',
+  clause: CLAUSES.WHERE,
+});
+
+const faultyAdhocFilter = new AdhocFilter({
+  expressionType: null,
+  subject: null,
+  operator: '>',
+  comparator: '10',
   clause: CLAUSES.WHERE,
 });
 
@@ -95,6 +104,14 @@ describe('AdhocFilterEditPopover', () => {
     expect(wrapper.find(Tabs.TabPane)).toHaveLength(2);
     expect(wrapper.find(Button)).toHaveLength(2);
     expect(wrapper.find(AdhocFilterEditPopoverSqlTabContent)).toExist();
+  });
+
+  it('renders simple and sql tabs with ErrorBoundary instead of content', () => {
+    const { wrapper } = setup({ adhocFilter: faultyAdhocFilter });
+    expect(wrapper.find(Tabs)).toExist();
+    expect(wrapper.find(Tabs.TabPane)).toHaveLength(2);
+    expect(wrapper.find(Button)).toHaveLength(2);
+    expect(wrapper.find(ErrorBoundary)).toHaveLength(2);
   });
 
   it('overwrites the adhocFilter in state with onAdhocFilterChange', () => {
