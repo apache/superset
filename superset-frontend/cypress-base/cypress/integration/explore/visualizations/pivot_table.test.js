@@ -39,17 +39,17 @@ describe('Visualization > Pivot Table', () => {
     expressionType: 'SIMPLE',
     column: {
       id: 338,
-      column_name: 'sum_boys',
+      column_name: 'num_boys',
       expression: '',
       filterable: false,
       groupby: false,
       is_dttm: false,
       type: 'BIGINT',
-      optionName: '_col_sum_boys',
+      optionName: '_col_num_boys',
     },
     aggregate: 'SUM',
     hasCustomLabel: false,
-    label: 'SUM(sum_boys)',
+    label: 'SUM(num_boys)',
     optionName: 'metric_gvpdjt0v2qf_6hkf56o012',
   };
 
@@ -88,7 +88,7 @@ describe('Visualization > Pivot Table', () => {
       metrics: ['sum__num', TEST_METRIC],
     });
     cy.get('.chart-container tr:eq(0) th:eq(1)').contains('sum__num');
-    cy.get('.chart-container tr:eq(0) th:eq(2)').contains('SUM(sum_boys)');
+    cy.get('.chart-container tr:eq(0) th:eq(2)').contains('SUM(num_boys)');
     cy.get('.chart-container tr:eq(1) th:eq(0)').contains('state');
     cy.get('.chart-container tr:eq(2) th:eq(0)').contains('name');
   });
@@ -100,7 +100,7 @@ describe('Visualization > Pivot Table', () => {
       metrics: ['sum__num', TEST_METRIC],
     });
     cy.get('.chart-container tr:eq(0) th:eq(2)').contains('sum__num');
-    cy.get('.chart-container tr:eq(0) th:eq(3)').contains('SUM(sum_boys)');
+    cy.get('.chart-container tr:eq(0) th:eq(3)').contains('SUM(num_boys)');
     cy.get('.chart-container tr:eq(2) th:eq(0)').contains('name');
     cy.get('.chart-container tr:eq(2) th:eq(1)').contains('gender');
   });

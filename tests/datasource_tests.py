@@ -34,7 +34,7 @@ class TestDatasource(SupersetTestCase):
         resp = self.get_json_resp(url)
         col_names = {o.get("name") for o in resp}
         self.assertEqual(
-            col_names, {"sum_boys", "num", "gender", "name", "ds", "state", "sum_girls"}
+            col_names, {"num_boys", "num", "gender", "name", "ds", "state", "num_girls"}
         )
 
     def test_external_metadata_for_virtual_table(self):
@@ -179,13 +179,13 @@ class TestDatasource(SupersetTestCase):
         self.assertEqual(
             col_names,
             {
-                "sum_boys",
+                "num_boys",
                 "num",
                 "gender",
                 "name",
                 "ds",
                 "state",
-                "sum_girls",
+                "num_girls",
                 "num_california",
             },
         )
