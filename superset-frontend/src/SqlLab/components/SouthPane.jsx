@@ -74,7 +74,7 @@ const StyledPane = styled.div`
   }
   .tab-content {
     .alert {
-      margin-top: 10px;
+      margin-top: ${({ theme }) => theme.gridUnit * 2}px;
     }
 
     button.fetch {
