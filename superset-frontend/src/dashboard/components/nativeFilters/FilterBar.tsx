@@ -222,7 +222,7 @@ const FilterValue: React.FC<FilterProps> = ({
   } = filter;
   const cascadingFilters = useCascadingFilters(id);
   const [loading, setLoading] = useState<boolean>(true);
-  const [state, setState] = useState({ data: undefined });
+  const [state, setState] = useState([]);
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
   const [target] = targets;
   const { datasetId = 18, column } = target;
@@ -256,7 +256,7 @@ const FilterValue: React.FC<FilterProps> = ({
         force: false,
         requestParams: { dashboardId: 0 },
       }).then(response => {
-        setState({ data: response.result[0].data });
+        setState(response.result);
         setLoading(false);
       });
     }
