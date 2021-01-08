@@ -359,6 +359,8 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
             ),
           },
         },
+      ],
+      [
         {
           name: 'rolling_periods',
           config: {
