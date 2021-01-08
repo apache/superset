@@ -414,8 +414,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @expose("/", methods=["DELETE"])
     @protect()
     @safe
-    @rison(get_delete_ids_schema)
     @statsd_metrics
+    @rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
