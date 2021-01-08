@@ -48,7 +48,7 @@ const sqlAdhocFilter = new AdhocFilter({
   clause: CLAUSES.WHERE,
 });
 
-const faultiAdhocFilter = new AdhocFilter({
+const faultyAdhocFilter = new AdhocFilter({
   expressionType: null,
   subject: null,
   operator: '>',
@@ -107,7 +107,7 @@ describe('AdhocFilterEditPopover', () => {
   });
 
   it('renders simple and sql tabs with ErrorBoundary instead of content', () => {
-    const { wrapper } = setup({ adhocFilter: faultiAdhocFilter });
+    const { wrapper } = setup({ adhocFilter: faultyAdhocFilter });
     expect(wrapper.find(Tabs)).toExist();
     expect(wrapper.find(Tabs.TabPane)).toHaveLength(2);
     expect(wrapper.find(Button)).toHaveLength(2);
