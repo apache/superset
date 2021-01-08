@@ -332,8 +332,6 @@ export default class ResultSet extends React.PureComponent<
   handleSaveDatasetModalSearch = async (searchText: string) => {
     // Making sure that autocomplete input has a value before rendering the dropdown
     // Transforming the userDatasetsOwned data for SaveModalComponent)
-
-    console.log(searchText);
     const appContainer = document.getElementById('app');
     const bootstrapData = JSON.parse(
       appContainer?.getAttribute('data-bootstrap') || '{}',
@@ -361,8 +359,6 @@ export default class ResultSet extends React.PureComponent<
         method: 'GET',
         endpoint: '/api/v1/dataset',
       })(`q=${queryParams}`);
-
-      console.log(response);
 
       const userDatasetsOwned = response.result.map(
         (r: { table_name: string; id: number }) => ({
