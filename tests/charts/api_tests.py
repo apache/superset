@@ -1176,6 +1176,21 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 400)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_invalid_form_data(self):
+        """
+        Chart data API: Test chart data with invalid form_data json
+        """
+        self.login(username="admin")
+        data = {"form_data": "NOT VALID JSON"}
+
+        rv = self.client.post(
+            CHART_DATA_URI, data=data, content_type="multipart/form-data"
+        )
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(response["message"], "Request is not JSON")
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_query_result_type(self):
         """
         Chart data API: Test chart data with query result format
@@ -1592,7 +1607,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         assert rv.status_code == 422
         assert response == {
             "message": {
-                "charts/imported_chart.yaml": "Chart already exists and `overwrite=true` was not passed",
+                "charts/imported_chart.yaml": "Chart already exists and `overwrite=true` was not passed"
             }
         }
 

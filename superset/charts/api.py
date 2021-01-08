@@ -553,7 +553,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             json_body = request.json
         elif request.form.get("form_data"):
             # CSV export submits regular form data
-            json_body = json.loads(request.form["form_data"])
+            try:
+                json_body = json.loads(request.form["form_data"])
+            except (TypeError, json.JSONDecodeError):
+                return self.response_400(message=_("Request is not JSON"))
         else:
             return self.response_400(message="Request is not JSON")
 
