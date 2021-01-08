@@ -22,6 +22,8 @@ from datetime import datetime, timedelta
 from io import BytesIO
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
+
+from superset.models.sql_lab import Query
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import humanize
@@ -1049,7 +1051,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        expected_row_count = self.get_expected_row_count()
+        expected_row_count = self.get_expected_row_count("client_id_1")
         self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -1074,7 +1076,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             data["result"][0]["rejected_filters"],
             [{"column": "__time_origin", "reason": "not_druid_datasource"},],
         )
-        expected_row_count = self.get_expected_row_count()
+        expected_row_count = self.get_expected_row_count("client_id_2")
         self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -1406,7 +1408,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             )
             data = json.loads(rv.data.decode("utf-8"))
 
-        expected_row_count = self.get_expected_row_count()
+        expected_row_count = self.get_expected_row_count("client_id_3")
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
 
@@ -1679,7 +1681,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         # response should only contain interval and event data, not formula
         self.assertEqual(len(data["result"][0]["annotation_data"]), 2)
 
-    def get_expected_row_count(self) -> int:
+    def get_expected_row_count(self, client_id: str) -> int:
         start_date = datetime.now()
         start_date = start_date.replace(
             year=start_date.year - 100, hour=0, minute=0, second=0
@@ -1696,8 +1698,10 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
                                 ORDER BY sum__num DESC
                                 LIMIT 100 OFFSET 0) AS inner__query
                         """
-        resp = get_main_database().get_sqla_engine().execute(sql)
-        return next(resp)["rows_count"]
+        resp = self.run_sql(sql, client_id, raise_on_error=True)
+        db.session.query(Query).delete()
+        db.session.commit()
+        return resp["data"][0]["rows_count"]
 
     def quote_name(self, name: str):
         if get_main_database().backend in {"presto", "hive"}:
