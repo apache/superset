@@ -191,22 +191,9 @@ const DataSourcePanel = ({
         />
         <Collapse
           bordered={false}
-          defaultActiveKey={['column', 'metrics']}
+          defaultActiveKey={['metrics', 'column']}
           expandIconPosition="right"
         >
-          <Collapse.Panel
-            header={<span className="header">{t('Columns')}</span>}
-            key="column"
-          >
-            <div className="field-length">
-              {t(`Showing %s of %s`, columnSlice.length, columns.length)}
-            </div>
-            {columnSlice.map(col => (
-              <div key={col.column_name} className="column">
-                <ColumnOption column={col} showType />
-              </div>
-            ))}
-          </Collapse.Panel>
           <Collapse.Panel
             header={<span className="header">{t('Metrics')}</span>}
             key="metrics"
@@ -217,6 +204,19 @@ const DataSourcePanel = ({
             {metricSlice.map(m => (
               <div key={m.metric_name} className="column">
                 <MetricOption metric={m} showType />
+              </div>
+            ))}
+          </Collapse.Panel>
+          <Collapse.Panel
+            header={<span className="header">{t('Columns')}</span>}
+            key="column"
+          >
+            <div className="field-length">
+              {t(`Showing %s of %s`, columnSlice.length, columns.length)}
+            </div>
+            {columnSlice.map(col => (
+              <div key={col.column_name} className="column">
+                <ColumnOption column={col} showType />
               </div>
             ))}
           </Collapse.Panel>
