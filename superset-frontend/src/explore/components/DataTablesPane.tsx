@@ -55,13 +55,8 @@ const TableControlsWrapper = styled.div`
 
 const SouthPane = styled.div`
   position: relative;
-`;
-
-const SouthPaneBackground = styled.div`
-  position: absolute;
-  height: 100%;
-  width: 100%;
-  background: ${({ theme }) => theme.colors.grayscale.light5};
+  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  z-index: 5;
 `;
 
 const TabsWrapper = styled.div<{ contentHeight: number }>`
@@ -78,12 +73,10 @@ export const DataTablesPane = ({
   queryFormData,
   tableSectionHeight,
   onCollapseChange,
-  displayBackground,
 }: {
   queryFormData: Record<string, any>;
   tableSectionHeight: number;
   onCollapseChange: (openPanelName: string) => void;
-  displayBackground: boolean;
 }) => {
   const [data, setData] = useState<{
     [RESULT_TYPES.results]?: Record<string, any>[];
@@ -229,7 +222,6 @@ export const DataTablesPane = ({
 
   return (
     <SouthPane>
-      {displayBackground && <SouthPaneBackground />}
       <TabsWrapper contentHeight={tableSectionHeight}>
         <Collapse
           accordion
