@@ -283,6 +283,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "version",
         ]
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.dashboards.commands.export.suffix")
     def test_append_charts(self, mock_suffix):
         """Test that oprhaned charts are added to the dashbaord position"""
@@ -290,7 +291,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
         mock_suffix.side_effect = (str(i) for i in itertools.count(1))
 
         position = get_default_position("example")
-        chart_1 = db.session.query(Slice).filter_by(id=1).one()
+        chart_1 = db.session.query(Slice).filter_by(slice_name="Region Filter").one()
         new_position = append_charts(position, {chart_1})
         assert new_position == {
             "DASHBOARD_VERSION_KEY": "v2",
@@ -317,7 +318,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
                 "children": [],
                 "id": "CHART-1",
                 "meta": {
-                    "chartId": 1,
+                    "chartId": chart_1.id,
                     "height": 50,
                     "sliceName": "Region Filter",
                     "uuid": str(chart_1.uuid),
@@ -328,7 +329,9 @@ class TestExportDashboardsCommand(SupersetTestCase):
             },
         }
 
-        chart_2 = db.session.query(Slice).filter_by(id=2).one()
+        chart_2 = (
+            db.session.query(Slice).filter_by(slice_name="World's Population").one()
+        )
         new_position = append_charts(new_position, {chart_2})
         assert new_position == {
             "DASHBOARD_VERSION_KEY": "v2",
@@ -362,7 +365,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
                 "children": [],
                 "id": "CHART-1",
                 "meta": {
-                    "chartId": 1,
+                    "chartId": chart_1.id,
                     "height": 50,
                     "sliceName": "Region Filter",
                     "uuid": str(chart_1.uuid),
@@ -375,7 +378,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
                 "children": [],
                 "id": "CHART-3",
                 "meta": {
-                    "chartId": 2,
+                    "chartId": chart_2.id,
                     "height": 50,
                     "sliceName": "World's Population",
                     "uuid": str(chart_2.uuid),
@@ -393,7 +396,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
                 "children": [],
                 "id": "CHART-5",
                 "meta": {
-                    "chartId": 1,
+                    "chartId": chart_1.id,
                     "height": 50,
                     "sliceName": "Region Filter",
                     "uuid": str(chart_1.uuid),
@@ -405,7 +408,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
                 "children": [],
                 "id": "CHART-6",
                 "meta": {
-                    "chartId": 2,
+                    "chartId": chart_2.id,
                     "height": 50,
                     "sliceName": "World's Population",
                     "uuid": str(chart_2.uuid),
