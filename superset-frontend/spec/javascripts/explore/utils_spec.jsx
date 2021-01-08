@@ -23,7 +23,6 @@ import {
   buildV1ChartDataPayload,
   getExploreUrl,
   getExploreLongUrl,
-  getDataTablePageSize,
   shouldUseLegacyApi,
   getSimpleSQLExpression,
 } from 'src/explore/exploreUtils';
@@ -199,20 +198,6 @@ describe('exploreUtils', () => {
         URI(getExploreLongUrl(formData, 'base')),
         URI('/superset/explore/').search({ form_data: sFormData }),
       );
-    });
-  });
-
-  describe('getDataTablePageSize', () => {
-    it('divides samples data into pages dynamically', () => {
-      let pageSize;
-      pageSize = getDataTablePageSize(500);
-      expect(pageSize).toEqual(20);
-      pageSize = getDataTablePageSize(0);
-      expect(pageSize).toEqual(50);
-      pageSize = getDataTablePageSize(1);
-      expect(pageSize).toEqual(10000);
-      pageSize = getDataTablePageSize(1000000);
-      expect(pageSize).toEqual(5);
     });
   });
 

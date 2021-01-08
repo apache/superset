@@ -56,6 +56,7 @@ const TableViewStyles = styled.div`
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: center;
   }
 
   .row-count-container {
@@ -165,4 +166,4 @@ const TableView = ({
   );
 };
 
-export default TableView;
+export default React.memo(TableView);
