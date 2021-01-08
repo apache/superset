@@ -63,7 +63,7 @@ def gen_filter(
 
 
 def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
-    pdf = pd.read_json(get_example_data("birth_names.json.gz"))
+    pdf = pd.read_json(get_example_data("birth_names2.json.gz"))
     # TODO(bkyryliuk): move load examples data into the pytest fixture
     if database.backend == "presto":
         pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
@@ -221,14 +221,14 @@ def create_slices(tbl: BaseDatasource) -> Tuple[List[Slice], List[Slice]]:
                 metrics=[
                     {
                         "expressionType": "SIMPLE",
-                        "column": {"column_name": "sum_boys", "type": "BIGINT(20)"},
+                        "column": {"column_name": "num_boys", "type": "BIGINT(20)"},
                         "aggregate": "SUM",
                         "label": "Boys",
                         "optionName": "metric_11",
                     },
                     {
                         "expressionType": "SIMPLE",
-                        "column": {"column_name": "sum_girls", "type": "BIGINT(20)"},
+                        "column": {"column_name": "num_girls", "type": "BIGINT(20)"},
                         "aggregate": "SUM",
                         "label": "Girls",
                         "optionName": "metric_12",

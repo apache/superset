@@ -271,7 +271,7 @@ class TestSqlaTableModel(SupersetTestCase):
         spec.allows_joins = inner_join
         arbitrary_gby = "state || gender || '_test'"
         arbitrary_metric = dict(
-            label="arbitrary", expressionType="SQL", sqlExpression="SUM(sum_boys)"
+            label="arbitrary", expressionType="SQL", sqlExpression="SUM(num_boys)"
         )
         query_obj = dict(
             groupby=[arbitrary_gby, "name"],
