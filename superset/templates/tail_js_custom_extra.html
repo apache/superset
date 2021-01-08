@@ -16,12 +16,10 @@
   specific language governing permissions and limitations
   under the License.
 #}
-{% extends "superset/basic.html" %}
 
-{% block navbar %}
-{% endblock %}
-
-{% block tail_js %}
-  {{ js_bundle("crudViews") }}
-  {% include "tail_js_custom_extra.html" %}
-{% endblock %}
+{#
+  This file may be overriden in your custom deployment.
+  It will be included in every view in superset and is a
+  good place to include your custom frontend code, such as
+  scripts to initialize google analytics, intercom, segment, etc.
+#}
