@@ -136,7 +136,7 @@ def load_data(
             df[column_name] = pd.to_datetime(df[column_name])
 
     # reuse session when loading data if possible, to make import atomic
-    if example_database.sqlalchemy_uri == get_main_database().sqlalchemy_uri:
+    if example_database.sqlalchemy_uri == get_example_database().sqlalchemy_uri:
         logger.info("Loading data inside the import transaction")
         connection = session.connection()
     else:
