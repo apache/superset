@@ -265,7 +265,6 @@ function ExploreViewContainer(props) {
     }
   }, [isDynamicPluginLoading]);
 
-  // effect to run when controls change
   useEffect(() => {
     const hasError = Object.values(props.controls).some(
       control =>
@@ -274,7 +273,10 @@ function ExploreViewContainer(props) {
     if (!hasError) {
       props.actions.triggerQuery(true, props.chart.id);
     }
+  }, []);
 
+  // effect to run when controls change
+  useEffect(() => {
     if (previousControls) {
       if (props.controls.viz_type.value !== previousControls.viz_type.value) {
         props.actions.resetControls();
