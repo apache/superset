@@ -78,7 +78,7 @@ const StyledPane = styled.div`
     }
 
     button.fetch {
-      margin-top: 10px;
+      margin-top: ${({ theme }) => theme.gridUnit * 2}px;
     }
   }
 `;
