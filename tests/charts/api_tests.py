@@ -1682,10 +1682,11 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             year=start_date.year - 100, hour=0, minute=0, second=0
         )
 
+        quoted_table_name = self.quote_name("birth_names")
         sql = f"""
                             SELECT COUNT(*) AS rows_count FROM (
                                 SELECT name AS name, SUM(num) AS sum__num
-                                FROM birth_names
+                                FROM {quoted_table_name}
                                 WHERE ds >= '{start_date.strftime("%Y-%m-%d %H:%M:%S")}'
                                 AND gender = 'boy'
                                 GROUP BY name
@@ -1694,3 +1695,10 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
                         """
         resp = db.get_engine().execute(sql)
         return next(resp)["rows_count"]
+
+    def quote_name(self, name: str):
+        if get_example_database().backend in {"presto", "hive"}:
+            return get_example_database().inspector.engine.dialect.identifier_preparer.quote_identifier(
+                name
+            )
+        return name
