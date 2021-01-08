@@ -171,7 +171,7 @@ export default class ResultSet extends React.PureComponent<
       appContainer?.getAttribute('data-bootstrap') || '{}',
     );
 
-    if (bootstrapData.user && bootstrapData.user.id) {
+    if (bootstrapData.user && bootstrapData.user.userId) {
       const datasets = await getByUser(bootstrapData.user.userId);
       const userDatasetsOwned = datasets.map(
         (r: { table_name: string; id: number }) => ({
