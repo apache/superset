@@ -104,6 +104,10 @@ class TestExportDatabasesCommand(SupersetTestCase):
         metadata["columns"].sort(key=lambda x: x["column_name"])
         logger.info("metadata:")
         logger.info(metadata)
+        if example_db.backend == "mysql":
+            big_int_type = "BIGINT(20)"
+        else:
+            big_int_type = "BIGINT"
         expected_metadata = {
             "cache_timeout": None,
             "columns": [
@@ -152,7 +156,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "is_active": True,
                     "is_dttm": False,
                     "python_date_format": None,
-                    "type": "BIGINT",
+                    "type": big_int_type,
                     "verbose_name": None,
                 },
                 {
@@ -188,7 +192,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "is_active": True,
                     "is_dttm": False,
                     "python_date_format": None,
-                    "type": "BIGINT",
+                    "type": big_int_type,
                     "verbose_name": None,
                 },
                 {
@@ -200,7 +204,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "is_active": True,
                     "is_dttm": False,
                     "python_date_format": None,
-                    "type": "BIGINT",
+                    "type": big_int_type,
                     "verbose_name": None,
                 },
             ],
