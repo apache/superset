@@ -29,7 +29,7 @@ import {
   SortIndicator,
   Table,
 } from 'react-virtualized';
-import { getMultipleTextDimensions, t, css } from '@superset-ui/core';
+import { getMultipleTextDimensions, t, styled } from '@superset-ui/core';
 
 import Button from '../Button';
 import CopyToClipboard from '../CopyToClipboard';
@@ -83,8 +83,9 @@ const JSON_TREE_THEME = {
   base0F: '#cc6633',
 };
 
-const filterableTableStyles = css`
+const StyledFilterableTable = styled.div`
   overflow-x: auto;
+  margin-top: ${({ theme }) => theme.gridUnit * 12}px;
 `;
 
 // when more than MAX_COLUMNS_FOR_TABLE are returned, switch from table to grid view
@@ -556,11 +557,10 @@ export default class FilterableTable extends PureComponent<
     const rowGetter = ({ index }: { index: number }) =>
       this.getDatum(sortedAndFilteredList, index);
     return (
-      <div
+      <StyledFilterableTable
         style={{ height }}
         className="filterable-table-container"
         ref={this.container}
-        css={filterableTableStyles}
       >
         {this.state.fitted && (
           <Table
@@ -592,7 +592,7 @@ export default class FilterableTable extends PureComponent<
             ))}
           </Table>
         )}
-      </div>
+      </StyledFilterableTable>
     );
   }
 
