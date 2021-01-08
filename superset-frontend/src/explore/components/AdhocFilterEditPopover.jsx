@@ -149,7 +149,7 @@ export default class AdhocFilterEditPopover extends React.Component {
           defaultActiveKey={adhocFilter.expressionType}
           className="adhoc-filter-edit-tabs"
           data-test="adhoc-filter-edit-tabs"
-          style={{ height: this.state.height, width: this.state.width }}
+          style={{ minHeight: this.state.height, width: this.state.width }}
           allowOverflow
         >
           <Tabs.TabPane
