@@ -103,8 +103,6 @@
       {% if entry %}
         {{ js_bundle(entry) }}
       {% endif %}
-    {% endblock %}
-    {% block custom_template %}
       {% include "tail_js_custom_extra.html" %}
     {% endblock %}
   </body>
