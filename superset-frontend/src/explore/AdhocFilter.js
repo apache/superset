@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MULTI_OPERATORS, CUSTOM_OPERATORS } from './constants';
+import { CUSTOM_OPERATORS } from './constants';
 import { getSimpleSQLExpression } from './exploreUtils';
 
 export const EXPRESSION_TYPES = {
@@ -48,22 +48,13 @@ const OPERATORS_TO_SQL = {
 };
 
 function translateToSql(adhocMetric, { useSimple } = {}) {
-  if (
-    (adhocMetric.expressionType === EXPRESSION_TYPES.SIMPLE &&
-      adhocMetric.comparator &&
-      adhocMetric.operator) ||
-    useSimple
-  ) {
-    const isMulti = MULTI_OPERATORS.has(adhocMetric.operator);
-    const { subject } = adhocMetric;
+  if (adhocMetric.expressionType === EXPRESSION_TYPES.SIMPLE || useSimple) {
+    const { subject, comparator } = adhocMetric;
     const operator =
       adhocMetric.operator && CUSTOM_OPERATORS.has(adhocMetric.operator)
         ? OPERATORS_TO_SQL[adhocMetric.operator](adhocMetric)
         : OPERATORS_TO_SQL[adhocMetric.operator];
-    const comparator = Array.isArray(adhocMetric.comparator)
-      ? adhocMetric.comparator.join("','")
-      : adhocMetric.comparator || '';
-    return getSimpleSQLExpression(subject, operator, comparator, isMulti);
+    return getSimpleSQLExpression(subject, operator, comparator);
   }
   if (adhocMetric.expressionType === EXPRESSION_TYPES.SQL) {
     return adhocMetric.sqlExpression;
