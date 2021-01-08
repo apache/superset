@@ -77,7 +77,7 @@ datasource_post = {
         },
         {
             "id": 509,
-            "column_name": "sum_boys",
+            "column_name": "num_boys",
             "verbose_name": None,
             "description": None,
             "expression": None,
@@ -88,7 +88,7 @@ datasource_post = {
         },
         {
             "id": 510,
-            "column_name": "sum_girls",
+            "column_name": "num_girls",
             "verbose_name": None,
             "description": None,
             "expression": "",
@@ -144,7 +144,7 @@ datasource_post = {
             "metric_name": "ratio",
             "verbose_name": "Ratio Boys/Girls",
             "description": "This represents the ratio of boys/girls",
-            "expression": "sum(sum_boys) / sum(sum_girls)",
+            "expression": "sum(num_boys) / sum(num_girls)",
             "warning_text": "no warning",
             "d3format": ".2%",
         },
