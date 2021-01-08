@@ -208,10 +208,6 @@ div.Workspace {
   .ace_content {
     height: 100%;
   }
-
-  .SouthPane {
-    height: 100%;
-  }
 }
 
 .SqlEditorTabs li {
@@ -291,7 +287,7 @@ div.Workspace {
   .queryPane {
     flex: 1 1 auto;
     padding-left: 10px;
-    overflow: auto;
+    overflow: visible;
   }
 
   .schemaPane-enter-done,
@@ -378,10 +374,6 @@ div.tablePopover {
   padding-top: 16px;
 }
 
-.filterable-table-container {
-  margin-top: 48px;
-}
-
 .ace_editor.ace_editor {
   //double class is better than !important
   border: 1px solid @gray-light;
@@ -466,20 +458,6 @@ a.Link {
   margin: 3px 5px;
 }
 
-.SouthPane {
-  width: 100%;
-
-  .SouthPaneTabs {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .ant-tabs-tabpane {
-    overflow-y: auto; // scroll the query history pane
-  }
-}
-
 .nav-tabs .ddbtn-tab {
   padding: 0;
   border: none;
@@ -508,14 +486,6 @@ a.Link {
   .Select {
     margin-right: 3px;
   }
-}
-
-.SouthPane .tab-content .alert {
-  margin-top: 10px;
-}
-
-.SouthPane .tab-content button.fetch {
-  margin-top: 10px;
 }
 
 .cost-estimate {
