@@ -151,7 +151,7 @@ function ChartTable({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              history.push('/chart/add');
+              window.location.assign('/chart/add');
             },
           },
           {

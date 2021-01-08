@@ -157,7 +157,7 @@ function DashboardTable({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              history.push('/dashboard/new');
+              window.location.assign('/dashboard/new');
             },
           },
           {
