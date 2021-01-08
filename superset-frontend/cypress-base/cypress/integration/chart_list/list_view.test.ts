@@ -46,6 +46,6 @@ describe('chart list view', () => {
       .first()
       .find('[data-test="table-row-cell"]')
       .find('[data-test="cell-text"]')
-      .contains('Location of Current Developers');
+      .contains('Country of Citizenship');
   });
 });
