@@ -245,6 +245,7 @@ class TestQueryContext(SupersetTestCase):
         self.assertEqual(len(data), 5)
         self.assertNotIn("sum__num", data[0])
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_query_response_type(self):
         """
         Ensure that query result type works

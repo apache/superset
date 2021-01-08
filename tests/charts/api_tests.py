@@ -42,7 +42,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils import core as utils
-from superset.utils.core import AnnotationType, get_example_database
+from superset.utils.core import AnnotationType, get_example_database, get_main_database
 
 from tests.base_api_tests import ApiOwnersTestCaseMixin
 from tests.base_tests import SupersetTestCase, post_assert_metric, test_client
@@ -1160,6 +1160,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 400)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_query_result_type(self):
         """
         Chart data API: Test chart data with query result format
@@ -1229,6 +1230,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertIn("sum__num__yhat_lower", row)
         self.assertEqual(result["rowcount"], 47)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_query_missing_filter(self):
         """
         Chart data API: Ensure filter referencing missing column is ignored
@@ -1305,6 +1307,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, payload, "data")
         self.assertEqual(rv.status_code, 401)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_jinja_filter_request(self):
         """
         Chart data API: Ensure request referencing filters via jinja renders a correct query
@@ -1693,11 +1696,11 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
                                 ORDER BY sum__num DESC
                                 LIMIT 100 OFFSET 0) AS inner__query
                         """
-        resp = db.get_engine().execute(sql)
+        resp = get_main_database().get_sqla_engine().execute(sql)
         return next(resp)["rows_count"]
 
     def quote_name(self, name: str):
-        if get_example_database().backend in {"presto", "hive"}:
+        if get_main_database().backend in {"presto", "hive"}:
             return get_example_database().inspector.engine.dialect.identifier_preparer.quote_identifier(
                 name
             )

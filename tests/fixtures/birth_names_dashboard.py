@@ -25,7 +25,7 @@ import pytest
 from pandas import DataFrame
 from sqlalchemy import DateTime, String, TIMESTAMP
 
-from superset import db
+from superset import ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -87,9 +87,20 @@ def _create_table(
 
 
 def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
+    table_id = db.session.query(SqlaTable).filter_by(table_name="birth_names").one().id
+    datasource = ConnectorRegistry.get_datasource("table", table_id, db.session)
+    columns = [column for column in datasource.columns]
+    metrics = [metric for metric in datasource.metrics]
+
     engine = get_example_database().get_sqla_engine()
     engine.execute("DROP TABLE IF EXISTS birth_names")
+    for column in columns:
+        db.session.delete(column)
+    for metric in metrics:
+        db.session.delete(metric)
+
     dash = db.session.query(Dashboard).filter_by(id=dash_id).first()
+
     db.session.delete(dash)
     for slice_id in slices_ids:
         db.session.query(Slice).filter_by(id=slice_id).delete()

@@ -215,6 +215,7 @@ class TestDatabaseModel(SupersetTestCase):
 
 
 class TestSqlaTableModel(SupersetTestCase):
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_timestamp_expression(self):
         tbl = self.get_table_by_name("birth_names")
         ds_col = tbl.get_column("ds")
@@ -234,6 +235,7 @@ class TestSqlaTableModel(SupersetTestCase):
             self.assertEqual(compiled, "DATE(DATE_ADD(ds, 1))")
         ds_col.expression = prev_ds_expr
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_timestamp_expression_epoch(self):
         tbl = self.get_table_by_name("birth_names")
         ds_col = tbl.get_column("ds")
@@ -321,6 +323,7 @@ class TestSqlaTableModel(SupersetTestCase):
     def test_query_with_expr_groupby(self):
         self.query_with_expr_helper(is_timeseries=False)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_mutator(self):
         tbl = self.get_table_by_name("birth_names")
         query_obj = dict(

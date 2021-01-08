@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=no-self-use, invalid-name
-
+import logging
 from unittest.mock import patch
 
 import pytest
@@ -39,6 +39,8 @@ from tests.fixtures.importexport import (
     dataset_config,
     dataset_metadata_config,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class TestExportDatabasesCommand(SupersetTestCase):
@@ -75,7 +77,6 @@ class TestExportDatabasesCommand(SupersetTestCase):
 
         assert core_files.issubset(set(contents.keys()))
 
-        example_db = get_example_database()
         if example_db.backend == "postgresql":
             ds_type = "TIMESTAMP WITHOUT TIME ZONE"
         else:
@@ -101,28 +102,30 @@ class TestExportDatabasesCommand(SupersetTestCase):
         metadata.pop("uuid")
 
         metadata["columns"].sort(key=lambda x: x["column_name"])
+        logger.info("metadata:")
+        logger.info(metadata)
         expected_metadata = {
-            "cache_timeout": 55,
+            "cache_timeout": None,
             "columns": [
                 {
                     "column_name": "ds",
                     "description": None,
-                    "expression": "",
+                    "expression": None,
                     "filterable": True,
                     "groupby": True,
-                    "is_active": None,
+                    "is_active": True,
                     "is_dttm": True,
                     "python_date_format": None,
                     "type": ds_type,
-                    "verbose_name": "",
+                    "verbose_name": None,
                 },
                 {
                     "column_name": "gender",
                     "description": None,
-                    "expression": "",
+                    "expression": None,
                     "filterable": True,
                     "groupby": True,
-                    "is_active": None,
+                    "is_active": True,
                     "is_dttm": False,
                     "python_date_format": None,
                     "type": "VARCHAR(16)",
@@ -131,11 +134,11 @@ class TestExportDatabasesCommand(SupersetTestCase):
                 {
                     "column_name": "name",
                     "description": None,
-                    "expression": "",
+                    "expression": None,
                     "filterable": True,
                     "groupby": True,
-                    "is_active": None,
-                    "is_dttm": None,
+                    "is_active": True,
+                    "is_dttm": False,
                     "python_date_format": None,
                     "type": "VARCHAR(255)",
                     "verbose_name": None,
@@ -143,11 +146,11 @@ class TestExportDatabasesCommand(SupersetTestCase):
                 {
                     "column_name": "num",
                     "description": None,
-                    "expression": "",
+                    "expression": None,
                     "filterable": True,
                     "groupby": True,
-                    "is_active": None,
-                    "is_dttm": None,
+                    "is_active": True,
+                    "is_dttm": False,
                     "python_date_format": None,
                     "type": "BIGINT",
                     "verbose_name": None,
@@ -156,22 +159,22 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "column_name": "num_california",
                     "description": None,
                     "expression": "CASE WHEN state = 'CA' THEN num ELSE 0 END",
-                    "filterable": False,
-                    "groupby": False,
-                    "is_active": None,
+                    "filterable": True,
+                    "groupby": True,
+                    "is_active": True,
                     "is_dttm": False,
                     "python_date_format": None,
-                    "type": "NUMBER",
+                    "type": None,
                     "verbose_name": None,
                 },
                 {
                     "column_name": "state",
                     "description": None,
-                    "expression": "",
+                    "expression": None,
                     "filterable": True,
                     "groupby": True,
-                    "is_active": None,
-                    "is_dttm": None,
+                    "is_active": True,
+                    "is_dttm": False,
                     "python_date_format": None,
                     "type": "VARCHAR(10)",
                     "verbose_name": None,
@@ -179,11 +182,11 @@ class TestExportDatabasesCommand(SupersetTestCase):
                 {
                     "column_name": "num_boys",
                     "description": None,
-                    "expression": "",
+                    "expression": None,
                     "filterable": True,
                     "groupby": True,
-                    "is_active": None,
-                    "is_dttm": None,
+                    "is_active": True,
+                    "is_dttm": False,
                     "python_date_format": None,
                     "type": "BIGINT",
                     "verbose_name": None,
@@ -191,10 +194,10 @@ class TestExportDatabasesCommand(SupersetTestCase):
                 {
                     "column_name": "num_girls",
                     "description": None,
-                    "expression": "",
+                    "expression": None,
                     "filterable": True,
                     "groupby": True,
-                    "is_active": None,
+                    "is_active": True,
                     "is_dttm": False,
                     "python_date_format": None,
                     "type": "BIGINT",
@@ -202,7 +205,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                 },
             ],
             "database_uuid": str(db_uuid),
-            "default_endpoint": "",
+            "default_endpoint": None,
             "description": "",
             "extra": None,
             "fetch_values_predicate": None,
@@ -210,40 +213,30 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "main_dttm_col": "ds",
             "metrics": [
                 {
-                    "d3format": ".2%",
-                    "description": "This represents the ratio of boys/girls",
-                    "expression": "sum(num_boys) / sum(num_girls)",
+                    "d3format": None,
+                    "description": None,
+                    "expression": "COUNT(*)",
                     "extra": None,
-                    "metric_name": "ratio",
-                    "metric_type": None,
-                    "verbose_name": "Ratio Boys/Girls",
-                    "warning_text": "no warning",
-                },
-                {
-                    "d3format": "",
-                    "description": "",
-                    "expression": "SUM(num)",
-                    "extra": None,
-                    "metric_name": "sum__num",
-                    "metric_type": None,
-                    "verbose_name": "Babies",
-                    "warning_text": "",
+                    "metric_name": "count",
+                    "metric_type": "count",
+                    "verbose_name": "COUNT(*)",
+                    "warning_text": None,
                 },
                 {
                     "d3format": None,
                     "description": None,
-                    "expression": "count(1)",
+                    "expression": "SUM(num)",
                     "extra": None,
-                    "metric_name": "count",
+                    "metric_name": "sum__num",
                     "metric_type": None,
-                    "verbose_name": "",
+                    "verbose_name": None,
                     "warning_text": None,
                 },
             ],
-            "offset": 66,
+            "offset": 0,
             "params": None,
-            "schema": "",
-            "sql": "",
+            "schema": None,
+            "sql": None,
             "table_name": "birth_names",
             "template_params": None,
             "version": "1.0.0",
