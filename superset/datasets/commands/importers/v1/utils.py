@@ -30,7 +30,7 @@ from sqlalchemy.sql.visitors import VisitableType
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
-from superset.utils.core import get_example_database, get_main_database
+from superset.utils.core import get_example_database
 
 logger = logging.getLogger(__name__)
 
