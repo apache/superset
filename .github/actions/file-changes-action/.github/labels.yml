@@ -1,0 +1,42 @@
+- name: pretty
+  description: Code that has been linted with eslint and prettier
+  color: 76edd1
+- name: builds
+  description: Code that builds with yarn and tsc
+  color: 39bc44
+- name: tested-unit
+  description: Code that has passed unit tests with jest
+  color: 9520bc
+- name: tested-integration
+  description: Code that has passed integration tests with jest
+  color: fc5aee
+- name: "doesnt read directions"
+  description: "Doesn't know how to read directions, please PR to develop"
+  color: d876e3
+- name: automated pr
+  description: This was created by create-pull-request action
+  color: b9ff9b
+- name: released
+  description: This has been released to NPM, Github Packages, and Actions Marketplace
+  color: ededed
+- name: bug
+  description: Something isn't working
+  color: d73a4a
+- name: duplicate
+  description: This issue or pull request already exists
+  color: cfd3d7
+- name: enhancement
+  description: New feature or request
+  color: a2eeef
+- name: "automated merge"
+  description: This was merged automatically
+  color: c2e0c6
+- name: "hold merge"
+  description: This merge will be blocked from automerging until this label is removed
+  color: b60205
+- name: lintdogged
+  description: Code that has been looked at by reviewdog
+  color: 5F422D
+- name: failure
+  description: Something bad happened...
+  color: d93f0b

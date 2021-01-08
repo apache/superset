@@ -1,0 +1,25 @@
+name: Cached Dependencies
+description: Setup multi-layered cache and dependencies in one step, share predefined commands across workflows
+author: Jesse Yang <hello@yjc.me>
+branding:
+  icon: layers
+  color: yellow
+inputs:
+  caches:
+    required: false
+    description: Path to a JS file with cache configs
+    default: ${{ github.workspace }}/.github/workflows/caches.js
+  bashlib:
+    required: false
+    description: Path to a Bash script with command shortcuts
+    default: ${{ github.workspace }}/.github/workflows/bashlib.sh
+  run:
+    required: false
+    description: Setup commands to run, can use shortcuts defined in bashlib
+    default: default-setup-command
+  parallel:
+    required: false
+    description: Whether to run commands in parallel
+runs:
+  using: node12
+  main: dist/index.js

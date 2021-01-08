@@ -218,7 +218,6 @@ class ChartRenderer extends React.Component {
         initialValues={initialValues}
         formData={formData}
         hooks={this.hooks}
-        queryData={queriesResponse?.[0]} // deprecated
         queriesData={queriesResponse}
         onRenderSuccess={this.handleRenderSuccess}
         onRenderFailure={this.handleRenderFailure}

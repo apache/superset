@@ -50,6 +50,8 @@ import {
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,
+  height: PropTypes.string,
+  width: PropTypes.string,
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
   dashboardId: PropTypes.number,
@@ -79,8 +81,10 @@ const Styles = styled.div`
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   .explore-column {
     display: flex;
+    flex: 0 0 ${({ theme }) => theme.gridUnit * 80}px;
     flex-direction: column;
     padding: ${({ theme }) => 2 * theme.gridUnit}px 0;
+    max-width: ${({ theme }) => theme.gridUnit * 80}px;
     max-height: 100%;
   }
   .data-source-selection {
@@ -120,9 +124,6 @@ const Styles = styled.div`
     padding: ${({ theme }) => 2 * theme.gridUnit}px;
     width: ${({ theme }) => 8 * theme.gridUnit}px;
   }
-  .data-tab {
-    min-width: 288px;
-  }
   .callpase-icon > svg {
     color: ${({ theme }) => theme.colors.primary.base};
   }
@@ -156,7 +157,7 @@ function ExploreViewContainer(props) {
 
   const [showingModal, setShowingModal] = useState(false);
   const [chartIsStale, setChartIsStale] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const width = `${windowSize.width}px`;
   const navHeight = props.standalone ? 0 : 90;
@@ -397,9 +398,7 @@ function ExploreViewContainer(props) {
       )}
       <div
         className={
-          isCollapsed
-            ? 'no-show'
-            : 'data-tab explore-column data-source-selection'
+          isCollapsed ? 'no-show' : 'explore-column data-source-selection'
         }
       >
         <div className="title-container">

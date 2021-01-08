@@ -22,7 +22,6 @@ import Badge from 'src/common/components/Badge';
 import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
-import Button from 'src/components/Button';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { ConfigEditor } from 'src/components/AsyncAceEditor';
 
@@ -125,8 +124,8 @@ export default class TemplateParamsEditor extends React.Component {
       <ModalTrigger
         modalTitle={t('Template Parameters')}
         triggerNode={
-          <Button tooltip={t('Edit template parameters')} buttonSize="small">
-            {`${t('parameters')} `}
+          <div tooltip={t('Edit template parameters')} buttonSize="small">
+            {`${t('Parameters')} `}
             <Badge count={paramCount} />
             {!this.state.isValid && (
               <InfoTooltipWithTrigger
@@ -136,7 +135,7 @@ export default class TemplateParamsEditor extends React.Component {
                 label="invalid-json"
               />
             )}
-          </Button>
+          </div>
         }
         modalBody={this.renderModalBody(true)}
       />

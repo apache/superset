@@ -1,0 +1,53 @@
+{
+  "projectName": "latest-tag",
+  "projectOwner": "EndBug",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": true,
+  "commitConvention": "angular",
+  "contributors": [
+    {
+      "login": "EndBug",
+      "name": "Federico Grandi",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/26386270?v=4",
+      "profile": "https://github.com/EndBug",
+      "contributions": [
+        "code",
+        "doc"
+      ]
+    },
+    {
+      "login": "kslr",
+      "name": "Kslr",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/5516323?v=4",
+      "profile": "https://github.com/kslr",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "DocX",
+      "name": "Lukáš Doležal",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/132277?v=4",
+      "profile": "http://lukas.dolezalu.cz/",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "ziyangczi",
+      "name": "ziyangczi",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/41968256?v=4",
+      "profile": "https://github.com/ziyangczi",
+      "contributions": [
+        "ideas"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "skipCi": true
+}

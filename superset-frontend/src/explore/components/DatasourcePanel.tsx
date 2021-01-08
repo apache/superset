@@ -24,6 +24,7 @@ import {
   MetricOption,
   ControlType,
 } from '@superset-ui/chart-controls';
+import matchSorter from 'match-sorter';
 import { ExploreActions } from '../actions/exploreActions';
 import Control from './Control';
 
@@ -118,7 +119,10 @@ const DatasourceContainer = styled.div`
     padding: 0px;
   }
   .field-selections {
-    padding: ${({ theme }) => 2 * theme.gridUnit}px;
+    padding: ${({ theme }) =>
+      `${2 * theme.gridUnit}px ${2 * theme.gridUnit}px ${
+        4 * theme.gridUnit
+      }px`};
     overflow: auto;
   }
   .field-length {
@@ -154,13 +158,10 @@ const DataSourcePanel = ({
       setList({ columns, metrics });
       return;
     }
-    const filteredColumns = lists.columns.filter(
-      column => column.column_name.indexOf(value) !== -1,
-    );
-    const filteredMetrics = lists.metrics.filter(
-      metric => metric.metric_name.indexOf(value) !== -1,
-    );
-    setList({ columns: filteredColumns, metrics: filteredMetrics });
+    setList({
+      columns: matchSorter(columns, value, { keys: ['column_name'] }),
+      metrics: matchSorter(metrics, value, { keys: ['metric_name'] }),
+    });
   };
   useEffect(() => {
     setList({
@@ -189,26 +190,10 @@ const DataSourcePanel = ({
           placeholder={t('Search Metrics & Columns')}
         />
         <Collapse
-          accordion
           bordered={false}
-          defaultActiveKey={['column', 'metrics']}
+          defaultActiveKey={['metrics', 'column']}
           expandIconPosition="right"
         >
-          <Collapse.Panel
-            header={<span className="header">{t('Columns')}</span>}
-            key="column"
-          >
-            <div className="field-length">
-              {t(`Showing %s of %s`, columnSlice.length, columns.length)}
-            </div>
-            {columnSlice.map(col => (
-              <div key={col.column_name} className="column">
-                <ColumnOption column={col} showType />
-              </div>
-            ))}
-          </Collapse.Panel>
-        </Collapse>
-        <Collapse accordion bordered={false} expandIconPosition="right">
           <Collapse.Panel
             header={<span className="header">{t('Metrics')}</span>}
             key="metrics"
@@ -219,6 +204,19 @@ const DataSourcePanel = ({
             {metricSlice.map(m => (
               <div key={m.metric_name} className="column">
                 <MetricOption metric={m} showType />
+              </div>
+            ))}
+          </Collapse.Panel>
+          <Collapse.Panel
+            header={<span className="header">{t('Columns')}</span>}
+            key="column"
+          >
+            <div className="field-length">
+              {t(`Showing %s of %s`, columnSlice.length, columns.length)}
+            </div>
+            {columnSlice.map(col => (
+              <div key={col.column_name} className="column">
+                <ColumnOption column={col} showType />
               </div>
             ))}
           </Collapse.Panel>
