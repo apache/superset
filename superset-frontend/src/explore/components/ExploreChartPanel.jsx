@@ -142,6 +142,7 @@ const ExploreChartPanel = props => {
   };
 
   const onDragEnd = sizes => {
+    setSplitSizes(sizes);
     recalcPanelSizes(sizes);
     setDisplaySouthPaneBackground(false);
   };
