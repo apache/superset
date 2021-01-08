@@ -1,0 +1,207 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+table_name: covid_vaccines
+main_dttm_col: null
+description: null
+default_endpoint: null
+offset: 0
+cache_timeout: null
+schema: null
+sql: ''
+params: null
+template_params: null
+filter_select_enabled: false
+fetch_values_predicate: null
+extra: null
+uuid: 974b7a1c-22ea-49cb-9214-97b7dbd511e0
+metrics:
+- metric_name: count
+  verbose_name: COUNT(*)
+  metric_type: null
+  expression: COUNT(*)
+  description: null
+  d3format: null
+  extra: null
+  warning_text: null
+columns:
+- column_name: Clinical Stage
+  verbose_name: null
+  is_dttm: null
+  is_active: null
+  type: STRING
+  groupby: true
+  filterable: true
+  expression: "CASE \nWHEN Stage_of_Development = 'Pre-clinical' THEN '0. Pre-clinical'\n\
+    WHEN Stage_of_Development = 'Phase I' THEN '1. Phase I' \nWHEN Stage_of_Development\
+    \ = 'Phase I/II' or Stage_of_Development = 'Phase II' THEN '2. Phase II or\
+    \ Combined I/II'\nWHEN Stage_of_Development = 'Phase III' THEN '3. Phase III'\n\
+    WHEN Stage_of_Development = 'Authorized' THEN '4. Authorized'\nEND"
+  description: null
+  python_date_format: null
+- column_name: FDA_Approved_Indications
+  verbose_name: null
+  is_dttm: false
+  is_active: null
+  type: DOUBLE PRECISION
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+- column_name: Anticipated_Next_Steps
+  verbose_name: null
+  is_dttm: false
+  is_active: null
+  type: TEXT
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+- column_name: IOC_Country_Code
+  verbose_name: null
+  is_dttm: false
+  is_active: null
+  type: TEXT
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+- column_name: Clinical_Trials_for_Other_Diseases_or_Related_Use
+  verbose_name: null
+  is_dttm: false
+  is_active: null
+  type: TEXT
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+- column_name: Country_Name
+  verbose_name: null
+  is_dttm: false
+  is_active: null
+  type: TEXT
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+- column_name: Product_Category
+  verbose_name: null
+  is_dttm: false
+  is_active: null
+  type: TEXT
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+- column_name: Clinical_Trials
+  verbose_name: null
+  is_dttm: false
+  is_active: null
+  type: TEXT
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+- column_name: Date_Last_Updated
+  verbose_name: null
+  is_dttm: false
+  is_active: null
+  type: TEXT
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+- column_name: Product_Description
+  verbose_name: null
+  is_dttm: false
+  is_active: null
+  type: TEXT
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+- column_name: Developer_or_Researcher
+  verbose_name: null
+  is_dttm: false
+  is_active: null
+  type: TEXT
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+- column_name: Stage_of_Development
+  verbose_name: null
+  is_dttm: false
+  is_active: null
+  type: TEXT
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+- column_name: Funder
+  verbose_name: null
+  is_dttm: false
+  is_active: null
+  type: TEXT
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+- column_name: Published_Results
+  verbose_name: null
+  is_dttm: false
+  is_active: null
+  type: TEXT
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+- column_name: Sources
+  verbose_name: null
+  is_dttm: false
+  is_active: null
+  type: TEXT
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+- column_name: Treatment_vs_Vaccine
+  verbose_name: null
+  is_dttm: false
+  is_active: null
+  type: TEXT
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+version: 1.0.0
+database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
+data: https://raw.githubusercontent.com/apache-superset/examples-data/master/datasets/examples/covid_vaccines.csv
