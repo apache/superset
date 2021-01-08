@@ -1,12 +1,8 @@
 name: Docker
 
 on:
-  push:
-    branches:
-      - 'master'
-  pull_request:
-    types: [opened, synchronize, reopened]
-
+  release:
+    types: [published]
 jobs:
   build:
     name: build
@@ -14,7 +10,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-
+        with:
+          ref: ${{ github.ref }}
       - shell: bash
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
