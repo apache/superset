@@ -58,6 +58,12 @@ const ResizeIcon = styled.i`
   margin-left: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
+const ColumnOptionStyle = styled.span`
+  .option-label {
+    display: inline;
+  }
+`;
+
 const SAVED_TAB_KEY = 'SAVED';
 
 const startingWidth = 320;
@@ -220,7 +226,11 @@ export default class AdhocMetricEditPopover extends React.Component {
     if (column.metric_name && !column.verbose_name) {
       column.verbose_name = column.metric_name;
     }
-    return <ColumnOption column={column} showType />;
+    return (
+      <ColumnOptionStyle>
+        <ColumnOption column={column} showType />
+      </ColumnOptionStyle>
+    );
   }
 
   render() {
