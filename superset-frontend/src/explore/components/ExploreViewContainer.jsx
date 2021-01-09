@@ -169,7 +169,11 @@ function ExploreViewContainer(props) {
 
   function addHistory({ isReplace = false, title } = {}) {
     const payload = { ...props.form_data };
-    const longUrl = getExploreLongUrl(props.form_data, null, false);
+    const longUrl = getExploreLongUrl(
+      props.form_data,
+      props.standalone ? 'standalone' : null,
+      false,
+    );
     try {
       if (isReplace) {
         window.history.replaceState(payload, title, longUrl);

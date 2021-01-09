@@ -199,6 +199,16 @@ describe('exploreUtils', () => {
         URI('/superset/explore/').search({ form_data: sFormData }),
       );
     });
+
+    it('generates url with standalone', () => {
+      compareURI(
+        URI(getExploreLongUrl(formData, 'standalone')),
+        URI('/superset/explore/').search({
+          form_data: sFormData,
+          standalone: 'true',
+        }),
+      );
+    });
   });
 
   describe('buildV1ChartDataPayload', () => {
