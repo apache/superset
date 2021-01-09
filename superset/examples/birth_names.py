@@ -142,6 +142,11 @@ def _add_table_metrics(datasource: "BaseDatasource") -> None:
             SqlMetric(metric_name="sum__num", expression=f"SUM({col})")
         )
 
+    for col in datasource.columns:
+        if col.column_name == "ds":
+            col.is_dttm = True  # type: ignore
+            break
+
 
 def create_slices(
     tbl: BaseDatasource, admin_owner: bool
