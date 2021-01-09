@@ -22,7 +22,6 @@ import React, {
   useRef,
   useEffect,
   useCallback,
-  useMemo,
 } from 'react';
 import { Alert, FormControl, FormControlProps } from 'react-bootstrap';
 import { SupersetClient, t, styled } from '@superset-ui/core';
@@ -32,7 +31,6 @@ import Button from 'src/components/Button';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import Dataset from 'src/types/Dataset';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
-import debounce from 'lodash/debounce';
 import { getClientErrorObject } from '../utils/getClientErrorObject';
 import Loading from '../components/Loading';
 import withToasts from '../messageToasts/enhancers/withToasts';
