@@ -62,7 +62,6 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
 
   onInputBlur(e) {
     if (e.target.value === '') {
-      e.target.value = this.props.defaultLabel;
       this.props.onChange(e);
     }
     this.onBlur();
