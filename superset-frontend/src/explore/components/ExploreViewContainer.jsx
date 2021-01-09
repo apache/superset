@@ -93,6 +93,8 @@ const Styles = styled.div`
     border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
   .main-explore-content {
+    flex: 1;
+    min-width: ${({ theme }) => theme.gridUnit * 128}px;
     border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
   .controls-column {
