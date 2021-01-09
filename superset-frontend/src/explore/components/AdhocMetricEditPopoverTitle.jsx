@@ -26,7 +26,6 @@ const propTypes = {
     label: PropTypes.string,
     hasCustomLabel: PropTypes.bool,
   }),
-  defaultLabel: PropTypes.string,
   onChange: PropTypes.func.isRequired,
 };
 
