@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
 import { ParentSize } from '@vx/responsive';
@@ -105,34 +105,38 @@ const ExploreChartPanel = props => {
   const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
 
   const panelHeadingRef = useRef(null);
-  const [headerHeight, setHeaderHeight] = useState(props.standalone ? 0 : 50);
   const [splitSizes, setSplitSizes] = useState(INITIAL_SIZES);
 
-  const calcSectionHeight = percent => {
-    const containerHeight = parseInt(props.height, 10) - headerHeight - 30;
-    return (
-      (containerHeight * percent) / 100 - (gutterHeight / 2 + gutterMargin)
-    );
-  };
+  const calcSectionHeight = useCallback(
+    percent => {
+      const headerHeight = props.standalone
+        ? 0
+        : panelHeadingRef?.current?.offsetHeight ?? 50;
+      const containerHeight = parseInt(props.height, 10) - headerHeight;
+      return (
+        (containerHeight * percent) / 100 - (gutterHeight / 2 + gutterMargin)
+      );
+    },
+    [gutterHeight, gutterMargin, props.height, props.standalone],
+  );
 
   const [tableSectionHeight, setTableSectionHeight] = useState(
     calcSectionHeight(INITIAL_SIZES[1]),
   );
 
-  useEffect(() => {
-    const calcHeaderSize = debounce(() => {
-      setHeaderHeight(
-        props.standalone ? 0 : panelHeadingRef?.current?.offsetHeight,
-      );
-    }, 100);
-    calcHeaderSize();
-    window.addEventListener('resize', calcHeaderSize);
-    return () => window.removeEventListener('resize', calcHeaderSize);
-  }, [props.standalone]);
+  const recalcPanelSizes = useCallback(
+    ([, southPercent]) => {
+      setTableSectionHeight(calcSectionHeight(southPercent));
+    },
+    [calcSectionHeight],
+  );
 
-  const recalcPanelSizes = ([, southPercent]) => {
-    setTableSectionHeight(calcSectionHeight(southPercent));
-  };
+  useEffect(() => {
+    const recalcSizes = debounce(() => recalcPanelSizes(splitSizes), 200);
+
+    window.addEventListener('resize', recalcSizes);
+    return () => window.removeEventListener('resize', recalcSizes);
+  }, [props.standalone, recalcPanelSizes, splitSizes]);
 
   const onDragEnd = sizes => {
     setSplitSizes(sizes);
