@@ -43,6 +43,28 @@ import { Query } from '../types';
 
 const SEARCH_HEIGHT = 46;
 
+const debounce = (
+  func: { apply: (arg0: any, arg1: IArguments) => void },
+  wait: number,
+  immediate: number,
+) => {
+  let timeout: NodeJS.Timeout | null;
+  return function () {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const context = this;
+    // eslint-disable-next-line prefer-rest-params
+    const args = arguments;
+    const later = function () {
+      timeout = null;
+      if (!immediate) func.apply(context, args);
+    };
+    const callNow = immediate && !timeout;
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+    if (callNow) func.apply(context, args);
+  };
+};
+
 enum DatasetRadioState {
   SAVE_NEW = 1,
   OVERWRITE_DATASET = 2,
@@ -86,7 +108,6 @@ interface ResultSetState {
   data: Record<string, any>[];
   showSaveDatasetModal: boolean;
   newSaveDatasetName: string;
-  userDatasetsOwned: DatasetOption[];
   saveDatasetRadioBtnState: number;
   shouldOverwriteDataSet: boolean;
   datasetToOverwrite: Record<string, any>;
@@ -150,8 +171,10 @@ export default class ResultSet extends React.PureComponent<
     this.handleOverwriteDatasetOption = this.handleOverwriteDatasetOption.bind(
       this,
     );
-    this.handleSaveDatasetModalSearch = this.handleSaveDatasetModalSearch.bind(
-      this,
+    this.handleSaveDatasetModalSearch = debounce(
+      this.handleSaveDatasetModalSearch.bind(this),
+      2000,
+      0,
     );
     this.handleFilterAutocompleteOption = this.handleFilterAutocompleteOption.bind(
       this,
