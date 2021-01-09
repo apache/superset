@@ -25,6 +25,7 @@ import Button from 'src/components/Button';
 import shortid from 'shortid';
 import rison from 'rison';
 import { styled, t, makeApi } from '@superset-ui/core';
+import { debounce } from 'lodash';
 
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
@@ -42,28 +43,6 @@ import { CtasEnum } from '../actions/sqlLab';
 import { Query } from '../types';
 
 const SEARCH_HEIGHT = 46;
-
-const debounce = (
-  func: { apply: (arg0: any, arg1: IArguments) => void },
-  wait: number,
-  immediate: number,
-) => {
-  let timeout: NodeJS.Timeout | null;
-  return function () {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const context = this;
-    // eslint-disable-next-line prefer-rest-params
-    const args = arguments;
-    const later = function () {
-      timeout = null;
-      if (!immediate) func.apply(context, args);
-    };
-    const callNow = immediate && !timeout;
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-    if (callNow) func.apply(context, args);
-  };
-};
 
 enum DatasetRadioState {
   SAVE_NEW = 1,
@@ -173,8 +152,7 @@ export default class ResultSet extends React.PureComponent<
     );
     this.handleSaveDatasetModalSearch = debounce(
       this.handleSaveDatasetModalSearch.bind(this),
-      2000,
-      0,
+      1000,
     );
     this.handleFilterAutocompleteOption = this.handleFilterAutocompleteOption.bind(
       this,

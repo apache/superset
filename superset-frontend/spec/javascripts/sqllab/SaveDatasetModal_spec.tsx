@@ -27,7 +27,6 @@ describe('SaveDatasetModal', () => {
     onOk: () => {},
     onHide: () => {},
     handleDatasetNameChange: () => {},
-    userDatasetsOwned: [],
     handleSaveDatasetRadioBtnState: () => {},
     saveDatasetRadioBtnState: 1,
     handleOverwriteCancel: () => {},
@@ -37,7 +36,7 @@ describe('SaveDatasetModal', () => {
     shouldOverwriteDataset: false,
     userDatasetOptions: [],
     disableSaveAndExploreBtn: false,
-    handleSaveDatasetModalSearch: () => {},
+    handleSaveDatasetModalSearch: (searchText: string) => Promise<void>,
     filterAutocompleteOption: () => false,
     onChangeAutoComplete: () => {},
   };
