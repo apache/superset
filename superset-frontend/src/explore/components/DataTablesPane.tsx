@@ -143,7 +143,7 @@ export const DataTablesPane = ({
       ...prevState,
       [RESULT_TYPES.samples]: true,
     }));
-  }, [queryFormData.adhoc_filters]);
+  }, [queryFormData.adhoc_filters, queryFormData.datasource]);
 
   useEffect(() => {
     if (panelOpen && isRequestPending[RESULT_TYPES.results]) {
