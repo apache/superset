@@ -1698,7 +1698,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
                                 AND gender = 'boy'
                                 GROUP BY name
                                 ORDER BY sum__num DESC
-                                LIMIT 100 OFFSET 0) AS inner__query
+                                LIMIT 100) AS inner__query
                         """
         resp = self.run_sql(sql, client_id, raise_on_error=True)
         db.session.query(Query).delete()
