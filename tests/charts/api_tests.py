@@ -1070,8 +1070,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        logger.info("data:")
-        logger.info(data)
         self.assertEqual(
             data["result"][0]["applied_filters"],
             [{"column": "gender"}, {"column": "__time_range"},],
@@ -1705,6 +1703,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         resp = self.run_sql(sql, client_id, raise_on_error=True)
         db.session.query(Query).delete()
         db.session.commit()
+        logger.info("reps:")
+        logger.info(resp)
         return resp["data"][0]["rows_count"]
 
     def quote_name(self, name: str):
