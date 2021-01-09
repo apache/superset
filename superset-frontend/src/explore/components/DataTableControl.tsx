@@ -87,7 +87,11 @@ export const RowCount = ({
   data?: Record<string, any>[];
   loading: boolean;
 }) => (
-  <RowCountLabel rowcount={data?.length ?? 0} loading={loading} suffix={t('rows retrieved')} />
+  <RowCountLabel
+    rowcount={data?.length ?? 0}
+    loading={loading}
+    suffix={t('rows retrieved')}
+  />
 );
 
 export const useFilteredTableData = (
