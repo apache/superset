@@ -122,8 +122,7 @@ export default class AdhocMetricEditPopover extends React.Component {
     this.setState({
       adhocMetric: this.props.adhocMetric,
       savedMetric: this.props.savedMetric,
-    });
-    this.props.onClose();
+    }, this.props.onClose);
   }
 
   onColumnChange(columnId) {
