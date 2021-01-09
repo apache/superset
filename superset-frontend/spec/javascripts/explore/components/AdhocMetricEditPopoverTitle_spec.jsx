@@ -20,7 +20,6 @@
 import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
-import { Tooltip } from 'src/common/components/Tooltip';
 
 import AdhocMetricEditPopoverTitle from 'src/explore/components/AdhocMetricEditPopoverTitle';
 
@@ -43,18 +42,23 @@ function setup(overrides) {
 describe('AdhocMetricEditPopoverTitle', () => {
   it('renders an OverlayTrigger wrapper with the title', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Tooltip)).toExist();
+    // TODO: add support for custom title for saved metrics
+    // expect(wrapper.find(Tooltip)).toExist();
+    // expect(
+    //   wrapper.find('[data-test="AdhocMetricEditTitle#trigger"]').text(),
+    // ).toBe('My Metric\xa0');
     expect(
       wrapper.find('[data-test="AdhocMetricEditTitle#trigger"]').text(),
-    ).toBe('My Metric\xa0');
+    ).toBe('My Metric');
   });
 
-  it('transfers to edit mode when clicked', () => {
-    const { wrapper } = setup();
-    expect(wrapper.state('isEditable')).toBe(false);
-    wrapper
-      .find('[data-test="AdhocMetricEditTitle#trigger"]')
-      .simulate('click');
-    expect(wrapper.state('isEditable')).toBe(true);
-  });
+  // TODO: add support for custom title for saved metrics
+  // it('transfers to edit mode when clicked', () => {
+  //   const { wrapper } = setup();
+  //   expect(wrapper.state('isEditable')).toBe(false);
+  //   wrapper
+  //     .find('[data-test="AdhocMetricEditTitle#trigger"]')
+  //     .simulate('click');
+  //   expect(wrapper.state('isEditable')).toBe(true);
+  // });
 });

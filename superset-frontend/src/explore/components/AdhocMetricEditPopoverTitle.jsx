@@ -18,8 +18,6 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { FormControl } from 'react-bootstrap';
-import { Tooltip } from 'src/common/components/Tooltip';
 
 const propTypes = {
   title: PropTypes.shape({
@@ -30,77 +28,92 @@ const propTypes = {
   onChange: PropTypes.func.isRequired,
 };
 
-export default class AdhocMetricEditPopoverTitle extends React.Component {
-  constructor(props) {
-    super(props);
-    this.onMouseOver = this.onMouseOver.bind(this);
-    this.onMouseOut = this.onMouseOut.bind(this);
-    this.onClick = this.onClick.bind(this);
-    this.onBlur = this.onBlur.bind(this);
-    this.onInputBlur = this.onInputBlur.bind(this);
-    this.state = {
-      isHovered: false,
-      isEditable: false,
-    };
-  }
+// TODO: add support for custom title for saved metrics
+// export default class AdhocMetricEditPopoverTitle extends React.Component {
+//   constructor(props) {
+//     super(props);
+//     this.onMouseOver = this.onMouseOver.bind(this);
+//     this.onMouseOut = this.onMouseOut.bind(this);
+//     this.onClick = this.onClick.bind(this);
+//     this.onBlur = this.onBlur.bind(this);
+//     this.onInputBlur = this.onInputBlur.bind(this);
+//     this.state = {
+//       isHovered: false,
+//       isEditable: false,
+//     };
+//   }
+//
+//   onMouseOver() {
+//     this.setState({ isHovered: true });
+//   }
+//
+//   onMouseOut() {
+//     this.setState({ isHovered: false });
+//   }
+//
+//   onClick() {
+//     this.setState({ isEditable: true });
+//   }
+//
+//   onBlur() {
+//     this.setState({ isEditable: false });
+//   }
+//
+//   onInputBlur(e) {
+//     if (e.target.value === '') {
+//       this.props.onChange(e);
+//     }
+//     this.onBlur();
+//   }
+//
+//   render() {
+//     const { title, onChange } = this.props;
+//
+//     return this.state.isEditable ? (
+//       <FormControl
+//         className="metric-edit-popover-label-input"
+//         type="text"
+//         placeholder={title.label}
+//         value={title.hasCustomLabel ? title.label : ''}
+//         autoFocus
+//         onChange={onChange}
+//         onBlur={this.onInputBlur}
+//         data-test="AdhocMetricEditTitle#input"
+//       />
+//     ) : (
+//       <Tooltip placement="top" title="Click to edit label">
+//         <span
+//           className="AdhocMetricEditPopoverTitle inline-editable"
+//           data-test="AdhocMetricEditTitle#trigger"
+//           onMouseOver={this.onMouseOver}
+//           onMouseOut={this.onMouseOut}
+//           onClick={this.onClick}
+//           onBlur={this.onBlur}
+//           role="button"
+//           tabIndex={0}
+//         >
+//           {title.hasCustomLabel ? title.label : 'My Metric'}
+//           &nbsp;
+//           <i
+//             className="fa fa-pencil"
+//             style={{ color: this.state.isHovered ? 'black' : 'grey' }}
+//           />
+//         </span>
+//       </Tooltip>
+//     );
+//   }
+// }
 
-  onMouseOver() {
-    this.setState({ isHovered: true });
-  }
-
-  onMouseOut() {
-    this.setState({ isHovered: false });
-  }
-
-  onClick() {
-    this.setState({ isEditable: true });
-  }
-
-  onBlur() {
-    this.setState({ isEditable: false });
-  }
-
-  onInputBlur(e) {
-    if (e.target.value === '') {
-      this.props.onChange(e);
-    }
-    this.onBlur();
-  }
-
+export default class AdhocMetricEditPopoverTitle extends React.PureComponent {
   render() {
-    const { title, onChange } = this.props;
-
-    return this.state.isEditable ? (
-      <FormControl
-        className="metric-edit-popover-label-input"
-        type="text"
-        placeholder={title.label}
-        value={title.hasCustomLabel ? title.label : ''}
-        autoFocus
-        onChange={onChange}
-        onBlur={this.onInputBlur}
-        data-test="AdhocMetricEditTitle#input"
-      />
-    ) : (
-      <Tooltip placement="top" title="Click to edit label">
-        <span
-          className="AdhocMetricEditPopoverTitle inline-editable"
-          data-test="AdhocMetricEditTitle#trigger"
-          onMouseOver={this.onMouseOver}
-          onMouseOut={this.onMouseOut}
-          onClick={this.onClick}
-          onBlur={this.onBlur}
-          role="button"
-          tabIndex={0}
-        >
-          {title.hasCustomLabel ? title.label : 'My Metric'}
-          &nbsp;
-          <i
-            className="fa fa-pencil"
-            style={{ color: this.state.isHovered ? 'black' : 'grey' }}
-          />
-        </span>
-      </Tooltip>
+    const { title } = this.props;
+    return (
+      <span
+        className="AdhocMetricEditPopoverTitle inline-editable"
+        data-test="AdhocMetricEditTitle#trigger"
+      >
+        {title.hasCustomLabel ? title.label : 'My Metric'}
+      </span>
     );
   }
 }

@@ -27,8 +27,9 @@ describe('AdhocMetrics', () => {
   });
 
   it('Clear metric and set simple adhoc metric', () => {
-    const metric = 'sum(num_girls)';
-    const metricName = 'Sum Girls';
+    // TODO: add support for custom title for saved metrics
+    // const metric = 'sum(num_girls)';
+    // const metricName = 'Sum Girls';
     cy.get('[data-test=metrics]')
       .find('[data-test="remove-control-button"]')
       .click();
@@ -37,20 +38,21 @@ describe('AdhocMetrics', () => {
       .find('[data-test="add-metric-button"]')
       .click();
 
-    cy.get('[data-test="AdhocMetricEditTitle#trigger"]').click();
-    cy.get('[data-test="AdhocMetricEditTitle#input"]').type(metricName);
+    // cy.get('[data-test="AdhocMetricEditTitle#trigger"]').click();
+    // cy.get('[data-test="AdhocMetricEditTitle#input"]').type(metricName);
 
     cy.get('[name="select-column"]').click().type('num_girls{enter}');
     cy.get('[name="select-aggregate"]').click().type('sum{enter}');
 
     cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
 
-    cy.get('[data-test="control-label"]').contains(metricName);
+    // cy.get('[data-test="control-label"]').contains(metricName);
+    cy.get('[data-test="control-label"]').contains('SUM(num_girls)');
 
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
       waitAlias: '@postJson',
-      querySubstring: `${metric} AS "${metricName}"`, // SQL statement
+      // querySubstring: `${metric} AS "${metricName}"`, // SQL statement
       chartSelector: 'svg',
     });
   });
