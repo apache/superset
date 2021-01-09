@@ -131,7 +131,7 @@ const DatasourceContainer = styled.div`
     color: ${({ theme }) => theme.colors.grayscale.light1};
   }
   .form-control.input-sm {
-    width: 96%;
+    width: calc(100% - ${({ theme }) => theme.gridUnit * 2}px);
     margin: ${({ theme }) => theme.gridUnit * 2}px auto;
   }
   .type-label {
