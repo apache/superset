@@ -17,6 +17,7 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
+import logging
 from typing import List, Optional
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -62,6 +63,7 @@ from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 from tests.annotation_layers.fixtures import create_annotation_layers
 from tests.utils.get_dashboards import get_dashboards_ids
 
+logger = logging.getLogger(__name__)
 CHART_DATA_URI = "api/v1/chart/data"
 CHARTS_FIXTURE_COUNT = 10
 
@@ -1068,6 +1070,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
+        logger.info("data:")
+        logger.info(data)
         self.assertEqual(
             data["result"][0]["applied_filters"],
             [{"column": "gender"}, {"column": "__time_range"},],

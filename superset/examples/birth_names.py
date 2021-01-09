@@ -114,7 +114,7 @@ def load_birth_names(
 
     db.session.commit()
 
-    slices, _ = create_slices(obj)
+    slices, _ = create_slices(obj, admin_owner=True)
     create_dashboard(slices)
 
 
@@ -143,7 +143,9 @@ def _add_table_metrics(datasource: "BaseDatasource") -> None:
         )
 
 
-def create_slices(tbl: BaseDatasource) -> Tuple[List[Slice], List[Slice]]:
+def create_slices(
+    tbl: BaseDatasource, admin_owner: bool
+) -> Tuple[List[Slice], List[Slice]]:
     metrics = [
         {
             "expressionType": "SIMPLE",
@@ -170,9 +172,17 @@ def create_slices(tbl: BaseDatasource) -> Tuple[List[Slice], List[Slice]]:
         "markup_type": "markdown",
     }
 
-    slice_props = dict(
-        datasource_id=tbl.id, datasource_type="table", owners=[], created_by=admin
-    )
+    if admin_owner:
+        slice_props = dict(
+            datasource_id=tbl.id,
+            datasource_type="table",
+            owners=[admin],
+            created_by=admin,
+        )
+    else:
+        slice_props = dict(
+            datasource_id=tbl.id, datasource_type="table", owners=[], created_by=admin
+        )
 
     print("Creating some slices")
     slices = [
