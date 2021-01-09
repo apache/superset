@@ -29,7 +29,7 @@ import { debounce } from 'lodash';
 
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
-import { getByUser, put as updateDatset } from 'src/api/dataset';
+import { put as updateDatset } from 'src/api/dataset';
 import Loading from '../../components/Loading';
 import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';
@@ -57,11 +57,6 @@ const EXPLORE_CHART_DEFAULT = {
 };
 
 const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
-
-interface DatasetOption {
-  datasetId: number;
-  datasetName: string;
-}
 
 interface DatasetOptionAutocomplete {
   value: string;
