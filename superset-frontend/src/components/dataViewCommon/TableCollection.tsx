@@ -75,6 +75,10 @@ export const Table = styled.table`
       min-width: 200px;
     }
 
+    span {
+      white-space: nowrap;
+    }
+
     svg {
       display: inline-block;
       top: 6px;
