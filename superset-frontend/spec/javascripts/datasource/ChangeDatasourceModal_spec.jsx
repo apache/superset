@@ -28,7 +28,6 @@ import Modal from 'src/common/components/Modal';
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import mockDatasource from 'spec/fixtures/mockDatasource';
-import { waitFor } from 'spec/helpers/testing-library';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
