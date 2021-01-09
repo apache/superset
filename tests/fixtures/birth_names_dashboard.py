@@ -130,8 +130,8 @@ def _get_birth_names_data() -> List[Dict[Any, Any]]:
                     "name": choice(names),
                     "num": num,
                     "state": choice(us_states),
-                    "sum_boys": num if gender == "boy" else 0,
-                    "sum_girls": num if gender == "girl" else 0,
+                    "num_boys": num if gender == "boy" else 0,
+                    "num_girls": num if gender == "girl" else 0,
                 }
             )
 

@@ -144,7 +144,7 @@ class TestQueryContext(SupersetTestCase):
         self.login(username="admin")
         adhoc_metric = {
             "expressionType": "SIMPLE",
-            "column": {"column_name": "sum_boys", "type": "BIGINT(20)"},
+            "column": {"column_name": "num_boys", "type": "BIGINT(20)"},
             "aggregate": "SUM",
             "label": "Boys",
             "optionName": "metric_11",
