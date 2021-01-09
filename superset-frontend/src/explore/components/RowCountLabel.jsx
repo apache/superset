@@ -28,26 +28,28 @@ const propTypes = {
   limit: PropTypes.number,
   rows: PropTypes.string,
   suffix: PropTypes.string,
+  loading: PropTypes.bool,
 };
 
 const defaultProps = {
   suffix: t('rows'),
 };
 
-export default function RowCountLabel({ rowcount, limit, suffix }) {
+export default function RowCountLabel({ rowcount, limit, suffix, loading }) {
   const limitReached = rowcount === limit;
-  const bsStyle = limitReached || rowcount === 0 ? 'danger' : 'default';
+  const bsStyle =
+    limitReached || (rowcount === 0 && !loading) ? 'danger' : 'default';
   const formattedRowCount = getNumberFormatter()(rowcount);
   const tooltip = (
     <span>
       {limitReached && <div>{t('Limit reached')}</div>}
-      {rowcount}
+      {loading ? 'Loading' : rowcount}
     </span>
   );
   return (
     <TooltipWrapper label="tt-rowcount" tooltip={tooltip}>
       <Label bsStyle={bsStyle}>
-        {formattedRowCount} {suffix}
+        {loading ? 'Loading...' : `${formattedRowCount} ${suffix}`}
       </Label>
     </TooltipWrapper>
   );
