@@ -216,8 +216,6 @@ function styled<
       Object.assign(restProps, sortableContainerProps);
     }
 
-    stylesConfig.menuPortal = base => ({ ...base, zIndex: 9999 });
-
     // When values are rendered as labels, adjust valueContainer padding
     const valueRenderedAsLabel =
       valueRenderedAsLabel_ === undefined ? isMulti : valueRenderedAsLabel_;
@@ -260,36 +258,45 @@ function styled<
     };
 
     const theme = useTheme();
+    const menuPortalTargetRef = React.useRef() as React.MutableRefObject<
+      HTMLDivElement
+    >;
 
     return (
-      <MaybeSortableSelect
-        ref={setRef}
-        className={className}
-        classNamePrefix={classNamePrefix}
-        isMulti={isMulti}
-        isClearable={isClearable}
-        options={options}
-        value={value}
-        minMenuHeight={minMenuHeight}
-        maxMenuHeight={maxMenuHeight}
-        filterOption={
-          // filterOption may be NULL
-          filterOption !== undefined
-            ? filterOption
-            : createFilter({ ignoreAccents })
-        }
-        styles={{ ...DEFAULT_STYLES, ...stylesConfig } as SelectProps['styles']}
-        // merge default theme from `react-select`, default theme for Superset,
-        // and the theme from props.
-        theme={reactSelectTheme =>
-          merge(reactSelectTheme, defaultTheme(theme), themeConfig)
-        }
-        formatOptionLabel={formatOptionLabel}
-        getOptionLabel={getOptionLabel}
-        getOptionValue={getOptionValue}
-        components={components}
-        {...restProps}
-      />
+      <div ref={menuPortalTargetRef}>
+        <MaybeSortableSelect
+          ref={setRef}
+          className={className}
+          classNamePrefix={classNamePrefix}
+          isMulti={isMulti}
+          isClearable={isClearable}
+          options={options}
+          value={value}
+          minMenuHeight={minMenuHeight}
+          maxMenuHeight={maxMenuHeight}
+          filterOption={
+            // filterOption may be NULL
+            filterOption !== undefined
+              ? filterOption
+              : createFilter({ ignoreAccents })
+          }
+          styles={
+            { ...DEFAULT_STYLES, ...stylesConfig } as SelectProps['styles']
+          }
+          // merge default theme from `react-select`, default theme for Superset,
+          // and the theme from props.
+          theme={reactSelectTheme =>
+            merge(reactSelectTheme, defaultTheme(theme), themeConfig)
+          }
+          formatOptionLabel={formatOptionLabel}
+          getOptionLabel={getOptionLabel}
+          getOptionValue={getOptionValue}
+          components={components}
+          menuPortalTarget={menuPortalTargetRef.current}
+          menuPosition="fixed"
+          {...restProps}
+        />
+      </div>
     );
   }
 
