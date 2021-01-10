@@ -410,7 +410,7 @@ function ExploreViewContainer(props) {
         }
       >
         <div className="title-container">
-          <span className="horizont al-text">{t('Datasource')}</span>
+          <span className="horizont al-text">{t('Dataset')}</span>
           <span
             role="button"
             tabIndex={0}
