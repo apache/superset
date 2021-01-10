@@ -173,7 +173,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       onHide={onHide}
       title={
         <span>
-          {t('Edit Datasource')}
+          {t('Edit Datasource ')}
           <strong>{currentDatasource.table_name}</strong>
         </span>
       }
