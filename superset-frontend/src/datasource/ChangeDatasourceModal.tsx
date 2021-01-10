@@ -36,12 +36,12 @@ import Loading from '../components/Loading';
 import withToasts from '../messageToasts/enhancers/withToasts';
 
 const CONFIRM_WARNING_MESSAGE = t(
-  'Warning! Changing the dataset may break the chart if the metadata does not exist.',
+  'Warning! Changing the datasource may break the chart if the metadata does not exist.',
 );
 
 const CHANGE_WARNING_MSG = t(
-  'Changing the dataset may break the chart if the chart relies ' +
-    'on columns or metadata that does not exist in the target dataset',
+  'Changing the datasource may break the chart if the chart relies ' +
+    'on columns or metadata that does not exist in the target datasource',
 );
 
 interface Datasource {
@@ -111,7 +111,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   const {
     state: { loading, resourceCollection },
     fetchData,
-  } = useListViewResource<Dataset>('dataset', t('dataset'), addDangerToast);
+  } = useListViewResource<Dataset>('dataset', t('datasource'), addDangerToast);
 
   const selectDatasource = useCallback((datasource: Datasource) => {
     setConfirmChange(true);
@@ -190,7 +190,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         );
       });
     onHide();
-    addSuccessToast('Successfully changed dataset!');
+    addSuccessToast('Successfully changed datasource!');
   };
 
   const handlerCancelConfirm = () => {
@@ -223,7 +223,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       show={show}
       onHide={onHide}
       responsive
-      title={t('Change Dataset')}
+      title={t('Change Datasource')}
       footer={
         <>
           {confirmChange && (

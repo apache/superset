@@ -517,7 +517,7 @@ class DatasourceEditor extends React.PureComponent {
           fieldKey="default_endpoint"
           label={t('Default URL')}
           description={t(
-            'Default URL to redirect to when accessing from the dataset list page',
+            'Default URL to redirect to when accessing from the datasource list page',
           )}
           control={<TextControl controlId="default_endpoint" />}
         />
@@ -563,7 +563,7 @@ class DatasourceEditor extends React.PureComponent {
         <Field
           fieldKey="owners"
           label={t('Owners')}
-          description={t('Owners of the dataset')}
+          description={t('Owners of the datasource')}
           control={
             <SelectAsyncControl
               dataEndpoint="api/v1/dataset/related/owners"
@@ -695,14 +695,14 @@ class DatasourceEditor extends React.PureComponent {
                   />
                   <Field
                     fieldKey="table_name"
-                    label={t('dataset name')}
+                    label={t('datasource name')}
                     control={
                       <TextControl
                         controlId="table_name"
                         onChange={table => {
                           this.onDatasourcePropChange('table_name', table);
                         }}
-                        placeholder={t('dataset name')}
+                        placeholder={t('datasource name')}
                         disabled={!this.state.isEditMode}
                       />
                     }
@@ -954,7 +954,7 @@ class DatasourceEditor extends React.PureComponent {
           <Alert bsStyle="warning">
             <strong>{t('Be careful.')} </strong>
             {t(
-              'Changing these settings will affect all charts using this dataset, including charts owned by other people.',
+              'Changing these settings will affect all charts using this datasource, including charts owned by other people.',
             )}
           </Alert>
         </div>

@@ -111,7 +111,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       },
     })
       .then(({ json }) => {
-        addSuccessToast(t('The dataset has been saved'));
+        addSuccessToast(t('The datasource has been saved'));
         onDatasourceSave(json);
         onHide();
       })
@@ -147,8 +147,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       <Alert bsStyle="warning" className="pointer" onClick={closeDialog}>
         <div>
           <i className="fa fa-exclamation-triangle" />{' '}
-          {t(`The dataset configuration exposed here
-                affects all the charts using this dataset.
+          {t(`The datasource configuration exposed here
+                affects all the charts using this datasource.
                 Be mindful that changing settings
                 here may affect other charts
                 in undesirable ways.`)}
@@ -173,7 +173,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       onHide={onHide}
       title={
         <span>
-          {t('Edit Dataset ')}
+          {t('Edit Datasource')}
           <strong>{currentDatasource.table_name}</strong>
         </span>
       }
