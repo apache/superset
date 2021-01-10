@@ -73,7 +73,7 @@ export default class AdhocMetricEditPopover extends React.Component {
   constructor(props) {
     super(props);
     this.onSave = this.onSave.bind(this);
-    this.onRestStateAndClose = this.onRestStateAndClose.bind(this);
+    this.onResetStateAndClose = this.onResetStateAndClose.bind(this);
     this.onColumnChange = this.onColumnChange.bind(this);
     this.onAggregateChange = this.onAggregateChange.bind(this);
     this.onSavedMetricChange = this.onSavedMetricChange.bind(this);
@@ -124,7 +124,7 @@ export default class AdhocMetricEditPopover extends React.Component {
     this.props.onClose();
   }
 
-  onRestStateAndClose() {
+  onResetStateAndClose() {
     this.setState(
       {
         adhocMetric: this.props.adhocMetric,
@@ -411,7 +411,7 @@ export default class AdhocMetricEditPopover extends React.Component {
         <div>
           <Button
             buttonSize="small"
-            onClick={this.onRestStateAndClose}
+            onClick={this.onResetStateAndClose}
             data-test="AdhocMetricEdit#cancel"
             cta
           >
