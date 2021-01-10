@@ -156,10 +156,10 @@ class DatasourceControl extends React.PureComponent {
       <Menu onClick={this.handleMenuItemClick}>
         {this.props.isEditable && (
           <Menu.Item key={EDIT_DATASET} data-test="edit-dataset">
-            {t('Edit Datasource')}
+            {t('Edit Dataset')}
           </Menu.Item>
         )}
-        <Menu.Item key={CHANGE_DATASET}>{t('Change Datasource')}</Menu.Item>
+        <Menu.Item key={CHANGE_DATASET}>{t('Change Dataset')}</Menu.Item>
         <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
       </Menu>
     );
@@ -187,7 +187,7 @@ class DatasourceControl extends React.PureComponent {
             trigger={['click']}
             data-test="datasource-menu"
           >
-            <Tooltip title={t('More datasource related options')}>
+            <Tooltip title={t('More dataset related options')}>
               <Icon
                 className="datasource-modal-trigger"
                 data-test="datasource-menu-trigger"
