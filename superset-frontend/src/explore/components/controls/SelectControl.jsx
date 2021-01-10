@@ -125,13 +125,6 @@ export default class SelectControl extends React.PureComponent {
     this.props.onChange(optionValue);
   }
 
-  getSelectRef(instance) {
-    this.select = instance;
-    if (this.props.selectRef) {
-      this.props.selectRef(instance);
-    }
-  }
-
   getOptions(props) {
     let options = [];
     if (props.options) {
@@ -172,6 +165,26 @@ export default class SelectControl extends React.PureComponent {
     return options;
   }
 
+  getSelectRef(instance) {
+    this.select = instance;
+    if (this.props.selectRef) {
+      this.props.selectRef(instance);
+    }
+  }
+
+  createMetaSelectAllOption() {
+    const option = { label: 'Select All', meta: true };
+    option[this.props.valueKey] = 'Select All';
+    return option;
+  }
+
+  createPlaceholder() {
+    const optionsRemaining = this.optionsRemaining();
+    const placeholder =
+      this.props.placeholder || t('%s option(s)', optionsRemaining);
+    return optionsRemaining ? placeholder : '';
+  }
+
   handleKeyDownForCreate(event) {
     const { key } = event;
     if (key === 'Tab' || (this.props.commaChoosesOption && key === ',')) {
@@ -201,19 +214,6 @@ export default class SelectControl extends React.PureComponent {
       remainingOptions -= 1;
     }
     return remainingOptions;
-  }
-
-  createPlaceholder() {
-    const optionsRemaining = this.optionsRemaining();
-    const placeholder =
-      this.props.placeholder || t('%s option(s)', optionsRemaining);
-    return optionsRemaining ? placeholder : '';
-  }
-
-  createMetaSelectAllOption() {
-    const option = { label: 'Select All', meta: true };
-    option[this.props.valueKey] = 'Select All';
-    return option;
   }
 
   render() {

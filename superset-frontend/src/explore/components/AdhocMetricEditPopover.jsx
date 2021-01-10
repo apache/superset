@@ -93,52 +93,6 @@ export default class AdhocMetricEditPopover extends React.Component {
     document.removeEventListener('mousemove', this.onMouseMove);
   }
 
-  onSave() {
-    const { title } = this.props;
-    const { hasCustomLabel } = title;
-    let { label } = title;
-    const { adhocMetric, savedMetric } = this.state;
-    const metricLabel = adhocMetric.label;
-    if (!hasCustomLabel) {
-      label = metricLabel;
-    }
-
-    const metric = savedMetric?.metric_name ? savedMetric : adhocMetric;
-    const oldMetric = this.props.savedMetric?.metric_name
-      ? this.props.savedMetric
-      : this.props.adhocMetric;
-    this.props.onChange(
-      {
-        ...metric,
-        label,
-        hasCustomLabel,
-      },
-      oldMetric,
-    );
-    this.props.onClose();
-  }
-
-  onResetStateAndClose() {
-    this.setState(
-      {
-        adhocMetric: this.props.adhocMetric,
-        savedMetric: this.props.savedMetric,
-      },
-      this.props.onClose,
-    );
-  }
-
-  onColumnChange(columnId) {
-    const column = this.props.columns.find(column => column.id === columnId);
-    this.setState(prevState => ({
-      adhocMetric: prevState.adhocMetric.duplicateWith({
-        column,
-        expressionType: EXPRESSION_TYPES.SIMPLE,
-      }),
-      savedMetric: undefined,
-    }));
-  }
-
   onAggregateChange(aggregate) {
     // we construct this object explicitly to overwrite the value in the case aggregate is null
     this.setState(prevState => ({
@@ -150,26 +104,12 @@ export default class AdhocMetricEditPopover extends React.Component {
     }));
   }
 
-  onSavedMetricChange(savedMetricId) {
-    const savedMetric = this.props.savedMetrics.find(
-      metric => metric.id === savedMetricId,
-    );
+  onColumnChange(columnId) {
+    const column = this.props.columns.find(column => column.id === columnId);
     this.setState(prevState => ({
-      savedMetric,
       adhocMetric: prevState.adhocMetric.duplicateWith({
-        column: undefined,
-        aggregate: undefined,
-        sqlExpression: undefined,
+        column,
         expressionType: EXPRESSION_TYPES.SIMPLE,
-      }),
-    }));
-  }
-
-  onSqlExpressionChange(sqlExpression) {
-    this.setState(prevState => ({
-      adhocMetric: prevState.adhocMetric.duplicateWith({
-        sqlExpression,
-        expressionType: EXPRESSION_TYPES.SQL,
       }),
       savedMetric: undefined,
     }));
@@ -199,6 +139,66 @@ export default class AdhocMetricEditPopover extends React.Component {
 
   onMouseUp() {
     document.removeEventListener('mousemove', this.onMouseMove);
+  }
+
+  onResetStateAndClose() {
+    this.setState(
+      {
+        adhocMetric: this.props.adhocMetric,
+        savedMetric: this.props.savedMetric,
+      },
+      this.props.onClose,
+    );
+  }
+
+  onSave() {
+    const { title } = this.props;
+    const { hasCustomLabel } = title;
+    let { label } = title;
+    const { adhocMetric, savedMetric } = this.state;
+    const metricLabel = adhocMetric.label;
+    if (!hasCustomLabel) {
+      label = metricLabel;
+    }
+
+    const metric = savedMetric?.metric_name ? savedMetric : adhocMetric;
+    const oldMetric = this.props.savedMetric?.metric_name
+      ? this.props.savedMetric
+      : this.props.adhocMetric;
+    this.props.onChange(
+      {
+        ...metric,
+        label,
+        hasCustomLabel,
+      },
+      oldMetric,
+    );
+    this.props.onClose();
+  }
+
+  onSavedMetricChange(savedMetricId) {
+    const savedMetric = this.props.savedMetrics.find(
+      metric => metric.id === savedMetricId,
+    );
+    this.setState(prevState => ({
+      savedMetric,
+      adhocMetric: prevState.adhocMetric.duplicateWith({
+        column: undefined,
+        aggregate: undefined,
+        sqlExpression: undefined,
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+      }),
+    }));
+  }
+
+  onSqlExpressionChange(sqlExpression) {
+    this.setState(prevState => ({
+      adhocMetric: prevState.adhocMetric.duplicateWith({
+        sqlExpression,
+        expressionType: EXPRESSION_TYPES.SQL,
+      }),
+      savedMetric: undefined,
+    }));
   }
 
   handleAceEditorRef(ref) {

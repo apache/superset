@@ -49,6 +49,31 @@ class HighlightedSql extends React.Component {
     };
   }
 
+  generateModal() {
+    let rawSql;
+    if (this.props.rawSql && this.props.rawSql !== this.props.sql) {
+      rawSql = (
+        <div>
+          <h4>{t('Raw SQL')}</h4>
+          <SyntaxHighlighter language="sql" style={github}>
+            {this.props.rawSql}
+          </SyntaxHighlighter>
+        </div>
+      );
+    }
+    this.setState({
+      modalBody: (
+        <div>
+          <h4>{t('Source SQL')}</h4>
+          <SyntaxHighlighter language="sql" style={github}>
+            {this.props.sql}
+          </SyntaxHighlighter>
+          {rawSql}
+        </div>
+      ),
+    });
+  }
+
   shrinkSql() {
     const ssql = this.props.sql || '';
     let lines = ssql.split('\n');
@@ -75,31 +100,6 @@ class HighlightedSql extends React.Component {
         {shownSql}
       </SyntaxHighlighter>
     );
-  }
-
-  generateModal() {
-    let rawSql;
-    if (this.props.rawSql && this.props.rawSql !== this.props.sql) {
-      rawSql = (
-        <div>
-          <h4>{t('Raw SQL')}</h4>
-          <SyntaxHighlighter language="sql" style={github}>
-            {this.props.rawSql}
-          </SyntaxHighlighter>
-        </div>
-      );
-    }
-    this.setState({
-      modalBody: (
-        <div>
-          <h4>{t('Source SQL')}</h4>
-          <SyntaxHighlighter language="sql" style={github}>
-            {this.props.sql}
-          </SyntaxHighlighter>
-          {rawSql}
-        </div>
-      ),
-    });
   }
 
   render() {

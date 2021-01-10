@@ -98,8 +98,16 @@ export default class TimeSeriesColumnControl extends React.Component {
     this.onChange = this.onChange.bind(this);
   }
 
+  onBoundsChange(bounds) {
+    this.setState({ bounds }, this.onChange);
+  }
+
   onChange() {
     this.props.onChange(this.state);
+  }
+
+  onCheckboxChange(attr, value) {
+    this.setState({ [attr]: value }, this.onChange);
   }
 
   onSelectChange(attr, opt) {
@@ -110,23 +118,11 @@ export default class TimeSeriesColumnControl extends React.Component {
     this.setState({ [attr]: event.target.value }, this.onChange);
   }
 
-  onCheckboxChange(attr, value) {
-    this.setState({ [attr]: value }, this.onChange);
-  }
-
-  onBoundsChange(bounds) {
-    this.setState({ bounds }, this.onChange);
-  }
-
   onYAxisBoundsChange(yAxisBounds) {
     this.setState({ yAxisBounds }, this.onChange);
   }
 
   setType() {}
-
-  textSummary() {
-    return `${this.state.label}`;
-  }
 
   edit() {}
 
@@ -144,6 +140,10 @@ export default class TimeSeriesColumnControl extends React.Component {
         <Col md={7}>{control}</Col>
       </Row>
     );
+  }
+
+  textSummary() {
+    return `${this.state.label}`;
   }
 
   renderPopover() {

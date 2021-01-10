@@ -178,88 +178,6 @@ export default class FilterScopeSelector extends React.PureComponent {
     this.onSave = this.onSave.bind(this);
   }
 
-  onCheckFilterScope(checked = []) {
-    const {
-      activeFilterField,
-      filterScopeMap,
-      checkedFilterFields,
-    } = this.state;
-
-    const key = getKeyForFilterScopeTree({
-      activeFilterField,
-      checkedFilterFields,
-    });
-    const editingList = activeFilterField
-      ? [activeFilterField]
-      : checkedFilterFields;
-    const updatedEntry = {
-      ...filterScopeMap[key],
-      checked,
-    };
-
-    const updatedFilterScopeMap = getRevertedFilterScope({
-      checked,
-      filterFields: editingList,
-      filterScopeMap,
-    });
-
-    this.setState(() => ({
-      filterScopeMap: {
-        ...filterScopeMap,
-        ...updatedFilterScopeMap,
-        [key]: updatedEntry,
-      },
-    }));
-  }
-
-  onExpandFilterScope(expanded = []) {
-    const {
-      activeFilterField,
-      checkedFilterFields,
-      filterScopeMap,
-    } = this.state;
-    const key = getKeyForFilterScopeTree({
-      activeFilterField,
-      checkedFilterFields,
-    });
-    const updatedEntry = {
-      ...filterScopeMap[key],
-      expanded,
-    };
-    this.setState(() => ({
-      filterScopeMap: {
-        ...filterScopeMap,
-        [key]: updatedEntry,
-      },
-    }));
-  }
-
-  onCheckFilterField(checkedFilterFields = []) {
-    const { layout } = this.props;
-    const { filterScopeMap } = this.state;
-    const filterScopeTreeEntry = buildFilterScopeTreeEntry({
-      checkedFilterFields,
-      activeFilterField: null,
-      filterScopeMap,
-      layout,
-    });
-
-    this.setState(() => ({
-      activeFilterField: null,
-      checkedFilterFields,
-      filterScopeMap: {
-        ...filterScopeMap,
-        ...filterScopeTreeEntry,
-      },
-    }));
-  }
-
-  onExpandFilterField(expandedFilterIds = []) {
-    this.setState(() => ({
-      expandedFilterIds,
-    }));
-  }
-
   onChangeFilterField(filterField = {}) {
     const { layout } = this.props;
     const nextActiveFilterField = filterField.value;
@@ -308,12 +226,90 @@ export default class FilterScopeSelector extends React.PureComponent {
     }
   }
 
-  onSearchInputChange(e) {
-    this.setState({ searchText: e.target.value }, this.filterTree);
+  onCheckFilterField(checkedFilterFields = []) {
+    const { layout } = this.props;
+    const { filterScopeMap } = this.state;
+    const filterScopeTreeEntry = buildFilterScopeTreeEntry({
+      checkedFilterFields,
+      activeFilterField: null,
+      filterScopeMap,
+      layout,
+    });
+
+    this.setState(() => ({
+      activeFilterField: null,
+      checkedFilterFields,
+      filterScopeMap: {
+        ...filterScopeMap,
+        ...filterScopeTreeEntry,
+      },
+    }));
+  }
+
+  onCheckFilterScope(checked = []) {
+    const {
+      activeFilterField,
+      filterScopeMap,
+      checkedFilterFields,
+    } = this.state;
+
+    const key = getKeyForFilterScopeTree({
+      activeFilterField,
+      checkedFilterFields,
+    });
+    const editingList = activeFilterField
+      ? [activeFilterField]
+      : checkedFilterFields;
+    const updatedEntry = {
+      ...filterScopeMap[key],
+      checked,
+    };
+
+    const updatedFilterScopeMap = getRevertedFilterScope({
+      checked,
+      filterFields: editingList,
+      filterScopeMap,
+    });
+
+    this.setState(() => ({
+      filterScopeMap: {
+        ...filterScopeMap,
+        ...updatedFilterScopeMap,
+        [key]: updatedEntry,
+      },
+    }));
   }
 
   onClose() {
     this.props.onCloseModal();
+  }
+
+  onExpandFilterField(expandedFilterIds = []) {
+    this.setState(() => ({
+      expandedFilterIds,
+    }));
+  }
+
+  onExpandFilterScope(expanded = []) {
+    const {
+      activeFilterField,
+      checkedFilterFields,
+      filterScopeMap,
+    } = this.state;
+    const key = getKeyForFilterScopeTree({
+      activeFilterField,
+      checkedFilterFields,
+    });
+    const updatedEntry = {
+      ...filterScopeMap[key],
+      expanded,
+    };
+    this.setState(() => ({
+      filterScopeMap: {
+        ...filterScopeMap,
+        [key]: updatedEntry,
+      },
+    }));
   }
 
   onSave() {
@@ -341,6 +337,27 @@ export default class FilterScopeSelector extends React.PureComponent {
 
     // click Save button will do save and close modal
     this.props.onCloseModal();
+  }
+
+  onSearchInputChange(e) {
+    this.setState({ searchText: e.target.value }, this.filterTree);
+  }
+
+  filterNodes(filtered = [], node = {}) {
+    const { searchText } = this.state;
+    const children = (node.children || []).reduce(this.filterNodes, []);
+
+    if (
+      // Node's label matches the search string
+      node.label.toLocaleLowerCase().indexOf(searchText.toLocaleLowerCase()) >
+        -1 ||
+      // Or a children has a matching node
+      children.length
+    ) {
+      filtered.push({ ...node, children });
+    }
+
+    return filtered;
   }
 
   filterTree() {
@@ -403,21 +420,27 @@ export default class FilterScopeSelector extends React.PureComponent {
     }
   }
 
-  filterNodes(filtered = [], node = {}) {
-    const { searchText } = this.state;
-    const children = (node.children || []).reduce(this.filterNodes, []);
+  renderEditingFiltersName() {
+    const { dashboardFilters } = this.props;
+    const { activeFilterField, checkedFilterFields } = this.state;
+    const currentFilterLabels = []
+      .concat(activeFilterField || checkedFilterFields)
+      .map(key => {
+        const { chartId, column } = getChartIdAndColumnFromFilterKey(key);
+        return dashboardFilters[chartId].labels[column] || column;
+      });
 
-    if (
-      // Node's label matches the search string
-      node.label.toLocaleLowerCase().indexOf(searchText.toLocaleLowerCase()) >
-        -1 ||
-      // Or a children has a matching node
-      children.length
-    ) {
-      filtered.push({ ...node, children });
-    }
-
-    return filtered;
+    return (
+      <div className="selected-fields multi-edit-mode">
+        {currentFilterLabels.length === 0 && t('No filter is selected.')}
+        {currentFilterLabels.length === 1 && t('Editing 1 filter:')}
+        {currentFilterLabels.length > 1 &&
+          t('Batch editing %d filters:', currentFilterLabels.length)}
+        <span className="selected-scopes">
+          {currentFilterLabels.join(', ')}
+        </span>
+      </div>
+    );
   }
 
   renderFilterFieldList() {
@@ -477,29 +500,6 @@ export default class FilterScopeSelector extends React.PureComponent {
           selectedChartId={selectedChartId}
         />
       </>
-    );
-  }
-
-  renderEditingFiltersName() {
-    const { dashboardFilters } = this.props;
-    const { activeFilterField, checkedFilterFields } = this.state;
-    const currentFilterLabels = []
-      .concat(activeFilterField || checkedFilterFields)
-      .map(key => {
-        const { chartId, column } = getChartIdAndColumnFromFilterKey(key);
-        return dashboardFilters[chartId].labels[column] || column;
-      });
-
-    return (
-      <div className="selected-fields multi-edit-mode">
-        {currentFilterLabels.length === 0 && t('No filter is selected.')}
-        {currentFilterLabels.length === 1 && t('Editing 1 filter:')}
-        {currentFilterLabels.length > 1 &&
-          t('Batch editing %d filters:', currentFilterLabels.length)}
-        <span className="selected-scopes">
-          {currentFilterLabels.join(', ')}
-        </span>
-      </div>
     );
   }
 

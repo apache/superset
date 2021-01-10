@@ -114,21 +114,6 @@ class SliceHeaderControls extends React.PureComponent {
     };
   }
 
-  refreshChart() {
-    if (this.props.updatedDttm) {
-      this.props.forceRefresh(
-        this.props.slice.slice_id,
-        this.props.dashboardId,
-      );
-    }
-  }
-
-  toggleControls() {
-    this.setState(prevState => ({
-      showControls: !prevState.showControls,
-    }));
-  }
-
   handleMenuClick({ key, domEvent }) {
     switch (key) {
       case MENU_KEYS.FORCE_REFRESH:
@@ -164,6 +149,21 @@ class SliceHeaderControls extends React.PureComponent {
       default:
         break;
     }
+  }
+
+  refreshChart() {
+    if (this.props.updatedDttm) {
+      this.props.forceRefresh(
+        this.props.slice.slice_id,
+        this.props.dashboardId,
+      );
+    }
+  }
+
+  toggleControls() {
+    this.setState(prevState => ({
+      showControls: !prevState.showControls,
+    }));
   }
 
   render() {

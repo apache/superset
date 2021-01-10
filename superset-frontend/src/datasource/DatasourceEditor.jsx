@@ -358,8 +358,60 @@ class DatasourceEditor extends React.PureComponent {
     this.setState(obj, this.validateAndChange);
   }
 
-  validateAndChange() {
-    this.validate(this.onChange);
+  findDuplicates(arr, accessor) {
+    const seen = {};
+    const dups = [];
+    arr.forEach(obj => {
+      const item = accessor(obj);
+      if (item in seen) {
+        dups.push(item);
+      } else {
+        seen[item] = null;
+      }
+    });
+    return dups;
+  }
+
+  handleTabSelect(activeTabKey) {
+    this.setState({ activeTabKey });
+  }
+
+  syncMetadata() {
+    const { datasource } = this.state;
+    const endpoint = `/datasource/external_metadata/${
+      datasource.type || datasource.datasource_type
+    }/${datasource.id}/`;
+    this.setState({ metadataLoading: true });
+
+    SupersetClient.get({ endpoint })
+      .then(({ json }) => {
+        const results = this.updateColumns(json);
+        if (results.modified.length) {
+          this.props.addSuccessToast(
+            t('Modified columns: %s', results.modified.join(', ')),
+          );
+        }
+        if (results.removed.length) {
+          this.props.addSuccessToast(
+            t('Removed columns: %s', results.removed.join(', ')),
+          );
+        }
+        if (results.added.length) {
+          this.props.addSuccessToast(
+            t('New columns added: %s', results.added.join(', ')),
+          );
+        }
+        this.props.addSuccessToast(t('Metadata has been synced'));
+        this.setState({ metadataLoading: false });
+      })
+      .catch(response =>
+        getClientErrorObject(response).then(({ error, statusText }) => {
+          this.props.addDangerToast(
+            error || statusText || t('An error has occurred'),
+          );
+          this.setState({ metadataLoading: false });
+        }),
+      );
   }
 
   updateColumns(cols) {
@@ -414,58 +466,6 @@ class DatasourceEditor extends React.PureComponent {
     return results;
   }
 
-  syncMetadata() {
-    const { datasource } = this.state;
-    const endpoint = `/datasource/external_metadata/${
-      datasource.type || datasource.datasource_type
-    }/${datasource.id}/`;
-    this.setState({ metadataLoading: true });
-
-    SupersetClient.get({ endpoint })
-      .then(({ json }) => {
-        const results = this.updateColumns(json);
-        if (results.modified.length) {
-          this.props.addSuccessToast(
-            t('Modified columns: %s', results.modified.join(', ')),
-          );
-        }
-        if (results.removed.length) {
-          this.props.addSuccessToast(
-            t('Removed columns: %s', results.removed.join(', ')),
-          );
-        }
-        if (results.added.length) {
-          this.props.addSuccessToast(
-            t('New columns added: %s', results.added.join(', ')),
-          );
-        }
-        this.props.addSuccessToast(t('Metadata has been synced'));
-        this.setState({ metadataLoading: false });
-      })
-      .catch(response =>
-        getClientErrorObject(response).then(({ error, statusText }) => {
-          this.props.addDangerToast(
-            error || statusText || t('An error has occurred'),
-          );
-          this.setState({ metadataLoading: false });
-        }),
-      );
-  }
-
-  findDuplicates(arr, accessor) {
-    const seen = {};
-    const dups = [];
-    arr.forEach(obj => {
-      const item = accessor(obj);
-      if (item in seen) {
-        dups.push(item);
-      } else {
-        seen[item] = null;
-      }
-    });
-    return dups;
-  }
-
   validate(callback) {
     let errors = [];
     let dups;
@@ -496,8 +496,180 @@ class DatasourceEditor extends React.PureComponent {
     this.setState({ errors }, callback);
   }
 
-  handleTabSelect(activeTabKey) {
-    this.setState({ activeTabKey });
+  validateAndChange() {
+    this.validate(this.onChange);
+  }
+
+  renderAdvancedFieldset() {
+    const { datasource } = this.state;
+    return (
+      <Fieldset
+        title={t('Advanced')}
+        item={datasource}
+        onChange={this.onDatasourceChange}
+      >
+        <Field
+          fieldKey="cache_timeout"
+          label={t('Cache Timeout')}
+          description={t(
+            'The duration of time in seconds before the cache is invalidated',
+          )}
+          control={<TextControl controlId="cache_timeout" />}
+        />
+        <Field
+          fieldKey="offset"
+          label={t('Hours offset')}
+          control={<TextControl controlId="offset" />}
+        />
+        {this.state.isSqla && (
+          <Field
+            fieldKey="template_params"
+            label={t('Template parameters')}
+            description={t(
+              'A set of parameters that become available in the query using Jinja templating syntax',
+            )}
+            control={<TextControl controlId="template_params" />}
+          />
+        )}
+      </Fieldset>
+    );
+  }
+
+  renderErrors() {
+    if (this.state.errors.length > 0) {
+      return (
+        <Alert bsStyle="danger">
+          {this.state.errors.map(err => (
+            <div key={err}>{err}</div>
+          ))}
+        </Alert>
+      );
+    }
+    return null;
+  }
+
+  renderMetricCollection() {
+    return (
+      <CollectionTable
+        tableColumns={['metric_name', 'verbose_name', 'expression']}
+        columnLabels={{
+          metric_name: t('Metric'),
+          verbose_name: t('Label'),
+          expression: t('SQL Expression'),
+        }}
+        expandFieldset={
+          <FormContainer>
+            <Fieldset compact>
+              <Field
+                fieldKey="verbose_name"
+                label={t('Label')}
+                control={<TextControl controlId="verbose_name" />}
+              />
+              <Field
+                fieldKey="description"
+                label={t('Description')}
+                control={
+                  <TextControl
+                    controlId="description"
+                    placeholder={t('Description')}
+                  />
+                }
+              />
+              <Field
+                fieldKey="d3format"
+                label={t('D3 Format')}
+                control={
+                  <TextControl controlId="d3format" placeholder="%y/%m/%d" />
+                }
+              />
+              <Field
+                label={t('Warning Message')}
+                fieldKey="warning_text"
+                description={t(
+                  'Warning message to display in the metric selector',
+                )}
+                control={
+                  <TextControl
+                    controlId="warning_text"
+                    placeholder={t('Warning Message')}
+                  />
+                }
+              />
+              <Field
+                label={t('Certified By')}
+                fieldKey="certified_by"
+                description={t(
+                  'Person or group that has certified this metric',
+                )}
+                control={
+                  <TextControl
+                    controlId="certified_by"
+                    placeholder={t('Certified By')}
+                  />
+                }
+              />
+              <Field
+                label={t('Certification Details')}
+                fieldKey="certification_details"
+                description={t('Details of the certification')}
+                control={
+                  <TextControl
+                    controlId="certification_details"
+                    placeholder={t('Certification Details')}
+                  />
+                }
+              />
+            </Fieldset>
+          </FormContainer>
+        }
+        collection={this.state.datasource.metrics}
+        allowAddItem
+        onChange={this.onDatasourcePropChange.bind(this, 'metrics')}
+        itemGenerator={() => ({
+          metric_name: '<new metric>',
+          verbose_name: '',
+          expression: '',
+        })}
+        itemRenderers={{
+          metric_name: (v, onChange, _, record) => (
+            <FlexRowContainer>
+              {record.is_certified && (
+                <CertifiedIconWithTooltip
+                  certifiedBy={record.certified_by}
+                  details={record.certification_details}
+                />
+              )}
+              <EditableTitle canEdit title={v} onSaveTitle={onChange} />
+            </FlexRowContainer>
+          ),
+          verbose_name: (v, onChange) => (
+            <EditableTitle canEdit title={v} onSaveTitle={onChange} />
+          ),
+          expression: (v, onChange) => (
+            <EditableTitle
+              canEdit
+              title={v}
+              onSaveTitle={onChange}
+              extraClasses={['datasource-sql-expression']}
+              multiLine
+            />
+          ),
+          description: (v, onChange, label) => (
+            <StackedField
+              label={label}
+              formElement={<TextControl value={v} onChange={onChange} />}
+            />
+          ),
+          d3format: (v, onChange, label) => (
+            <StackedField
+              label={label}
+              formElement={<TextControl value={v} onChange={onChange} />}
+            />
+          ),
+        }}
+        allowDeletes
+      />
+    );
   }
 
   renderSettingsFieldset() {
@@ -581,72 +753,6 @@ class DatasourceEditor extends React.PureComponent {
           controlProps={{}}
         />
       </Fieldset>
-    );
-  }
-
-  renderAdvancedFieldset() {
-    const { datasource } = this.state;
-    return (
-      <Fieldset
-        title={t('Advanced')}
-        item={datasource}
-        onChange={this.onDatasourceChange}
-      >
-        <Field
-          fieldKey="cache_timeout"
-          label={t('Cache Timeout')}
-          description={t(
-            'The duration of time in seconds before the cache is invalidated',
-          )}
-          control={<TextControl controlId="cache_timeout" />}
-        />
-        <Field
-          fieldKey="offset"
-          label={t('Hours offset')}
-          control={<TextControl controlId="offset" />}
-        />
-        {this.state.isSqla && (
-          <Field
-            fieldKey="template_params"
-            label={t('Template parameters')}
-            description={t(
-              'A set of parameters that become available in the query using Jinja templating syntax',
-            )}
-            control={<TextControl controlId="template_params" />}
-          />
-        )}
-      </Fieldset>
-    );
-  }
-
-  renderSpatialTab() {
-    const { datasource } = this.state;
-    const { spatials, all_cols: allCols } = datasource;
-    return (
-      <Tabs.TabPane
-        tab={<CollectionTabTitle collection={spatials} title={t('Spatial')} />}
-        key={4}
-      >
-        <CollectionTable
-          tableColumns={['name', 'config']}
-          onChange={this.onDatasourcePropChange.bind(this, 'spatials')}
-          itemGenerator={() => ({
-            name: '<new spatial>',
-            type: '<no type>',
-            config: null,
-          })}
-          collection={spatials}
-          allowDeletes
-          itemRenderers={{
-            name: (d, onChange) => (
-              <EditableTitle canEdit title={d} onSaveTitle={onChange} />
-            ),
-            config: (v, onChange) => (
-              <SpatialControl value={v} onChange={onChange} choices={allCols} />
-            ),
-          }}
-        />
-      </Tabs.TabPane>
     );
   }
 
@@ -810,140 +916,34 @@ class DatasourceEditor extends React.PureComponent {
     );
   }
 
-  renderErrors() {
-    if (this.state.errors.length > 0) {
-      return (
-        <Alert bsStyle="danger">
-          {this.state.errors.map(err => (
-            <div key={err}>{err}</div>
-          ))}
-        </Alert>
-      );
-    }
-    return null;
-  }
-
-  renderMetricCollection() {
+  renderSpatialTab() {
+    const { datasource } = this.state;
+    const { spatials, all_cols: allCols } = datasource;
     return (
-      <CollectionTable
-        tableColumns={['metric_name', 'verbose_name', 'expression']}
-        columnLabels={{
-          metric_name: t('Metric'),
-          verbose_name: t('Label'),
-          expression: t('SQL Expression'),
-        }}
-        expandFieldset={
-          <FormContainer>
-            <Fieldset compact>
-              <Field
-                fieldKey="verbose_name"
-                label={t('Label')}
-                control={<TextControl controlId="verbose_name" />}
-              />
-              <Field
-                fieldKey="description"
-                label={t('Description')}
-                control={
-                  <TextControl
-                    controlId="description"
-                    placeholder={t('Description')}
-                  />
-                }
-              />
-              <Field
-                fieldKey="d3format"
-                label={t('D3 Format')}
-                control={
-                  <TextControl controlId="d3format" placeholder="%y/%m/%d" />
-                }
-              />
-              <Field
-                label={t('Warning Message')}
-                fieldKey="warning_text"
-                description={t(
-                  'Warning message to display in the metric selector',
-                )}
-                control={
-                  <TextControl
-                    controlId="warning_text"
-                    placeholder={t('Warning Message')}
-                  />
-                }
-              />
-              <Field
-                label={t('Certified By')}
-                fieldKey="certified_by"
-                description={t(
-                  'Person or group that has certified this metric',
-                )}
-                control={
-                  <TextControl
-                    controlId="certified_by"
-                    placeholder={t('Certified By')}
-                  />
-                }
-              />
-              <Field
-                label={t('Certification Details')}
-                fieldKey="certification_details"
-                description={t('Details of the certification')}
-                control={
-                  <TextControl
-                    controlId="certification_details"
-                    placeholder={t('Certification Details')}
-                  />
-                }
-              />
-            </Fieldset>
-          </FormContainer>
-        }
-        collection={this.state.datasource.metrics}
-        allowAddItem
-        onChange={this.onDatasourcePropChange.bind(this, 'metrics')}
-        itemGenerator={() => ({
-          metric_name: '<new metric>',
-          verbose_name: '',
-          expression: '',
-        })}
-        itemRenderers={{
-          metric_name: (v, onChange, _, record) => (
-            <FlexRowContainer>
-              {record.is_certified && (
-                <CertifiedIconWithTooltip
-                  certifiedBy={record.certified_by}
-                  details={record.certification_details}
-                />
-              )}
-              <EditableTitle canEdit title={v} onSaveTitle={onChange} />
-            </FlexRowContainer>
-          ),
-          verbose_name: (v, onChange) => (
-            <EditableTitle canEdit title={v} onSaveTitle={onChange} />
-          ),
-          expression: (v, onChange) => (
-            <EditableTitle
-              canEdit
-              title={v}
-              onSaveTitle={onChange}
-              extraClasses={['datasource-sql-expression']}
-              multiLine
-            />
-          ),
-          description: (v, onChange, label) => (
-            <StackedField
-              label={label}
-              formElement={<TextControl value={v} onChange={onChange} />}
-            />
-          ),
-          d3format: (v, onChange, label) => (
-            <StackedField
-              label={label}
-              formElement={<TextControl value={v} onChange={onChange} />}
-            />
-          ),
-        }}
-        allowDeletes
-      />
+      <Tabs.TabPane
+        tab={<CollectionTabTitle collection={spatials} title={t('Spatial')} />}
+        key={4}
+      >
+        <CollectionTable
+          tableColumns={['name', 'config']}
+          onChange={this.onDatasourcePropChange.bind(this, 'spatials')}
+          itemGenerator={() => ({
+            name: '<new spatial>',
+            type: '<no type>',
+            config: null,
+          })}
+          collection={spatials}
+          allowDeletes
+          itemRenderers={{
+            name: (d, onChange) => (
+              <EditableTitle canEdit title={d} onSaveTitle={onChange} />
+            ),
+            config: (v, onChange) => (
+              <SpatialControl value={v} onChange={onChange} choices={allCols} />
+            ),
+          }}
+        />
+      </Tabs.TabPane>
     );
   }
 

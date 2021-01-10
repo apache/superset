@@ -89,33 +89,10 @@ function isSafeMarkup(node) {
 }
 
 class Markdown extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      isFocused: false,
-      markdownSource: props.component.meta.code,
-      editor: null,
-      editorMode: 'preview',
-      undoLength: props.undoLength,
-      redoLength: props.redoLength,
+  static getDerivedStateFromError() {
+    return {
+      hasError: true,
     };
-    this.renderStartTime = Logger.getTimestamp();
-
-    this.handleChangeFocus = this.handleChangeFocus.bind(this);
-    this.handleChangeEditorMode = this.handleChangeEditorMode.bind(this);
-    this.handleMarkdownChange = this.handleMarkdownChange.bind(this);
-    this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
-    this.handleResizeStart = this.handleResizeStart.bind(this);
-    this.setEditor = this.setEditor.bind(this);
-  }
-
-  componentDidMount() {
-    this.props.logEvent(LOG_ACTIONS_RENDER_CHART, {
-      viz_type: 'markdown',
-      start_offset: this.renderStartTime,
-      ts: new Date().getTime(),
-      duration: Logger.getTimestamp() - this.renderStartTime,
-    });
   }
 
   static getDerivedStateFromProps(nextProps, state) {
@@ -155,10 +132,33 @@ class Markdown extends React.PureComponent {
     return state;
   }
 
-  static getDerivedStateFromError() {
-    return {
-      hasError: true,
+  constructor(props) {
+    super(props);
+    this.state = {
+      isFocused: false,
+      markdownSource: props.component.meta.code,
+      editor: null,
+      editorMode: 'preview',
+      undoLength: props.undoLength,
+      redoLength: props.redoLength,
     };
+    this.renderStartTime = Logger.getTimestamp();
+
+    this.handleChangeFocus = this.handleChangeFocus.bind(this);
+    this.handleChangeEditorMode = this.handleChangeEditorMode.bind(this);
+    this.handleMarkdownChange = this.handleMarkdownChange.bind(this);
+    this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
+    this.handleResizeStart = this.handleResizeStart.bind(this);
+    this.setEditor = this.setEditor.bind(this);
+  }
+
+  componentDidMount() {
+    this.props.logEvent(LOG_ACTIONS_RENDER_CHART, {
+      viz_type: 'markdown',
+      start_offset: this.renderStartTime,
+      ts: new Date().getTime(),
+      duration: Logger.getTimestamp() - this.renderStartTime,
+    });
   }
 
   componentDidUpdate(prevProps) {
@@ -192,13 +192,6 @@ class Markdown extends React.PureComponent {
     });
   }
 
-  handleChangeFocus(nextFocus) {
-    const nextFocused = !!nextFocus;
-    const nextEditMode = nextFocused ? 'edit' : 'preview';
-    this.setState(() => ({ isFocused: nextFocused }));
-    this.handleChangeEditorMode(nextEditMode);
-  }
-
   handleChangeEditorMode(mode) {
     const nextState = {
       ...this.state,
@@ -210,6 +203,34 @@ class Markdown extends React.PureComponent {
     }
 
     this.setState(nextState);
+  }
+
+  handleChangeFocus(nextFocus) {
+    const nextFocused = !!nextFocus;
+    const nextEditMode = nextFocused ? 'edit' : 'preview';
+    this.setState(() => ({ isFocused: nextFocused }));
+    this.handleChangeEditorMode(nextEditMode);
+  }
+
+  handleDeleteComponent() {
+    const { deleteComponent, id, parentId } = this.props;
+    deleteComponent(id, parentId);
+  }
+
+  handleMarkdownChange(nextValue) {
+    this.setState({
+      markdownSource: nextValue,
+    });
+  }
+
+  handleResizeStart(e) {
+    const { editorMode } = this.state;
+    const { editMode, onResizeStart } = this.props;
+    const isEditing = editorMode === 'edit';
+    onResizeStart(e);
+    if (editMode && isEditing) {
+      this.updateMarkdownContent();
+    }
   }
 
   updateMarkdownContent() {
@@ -224,27 +245,6 @@ class Markdown extends React.PureComponent {
           },
         },
       });
-    }
-  }
-
-  handleMarkdownChange(nextValue) {
-    this.setState({
-      markdownSource: nextValue,
-    });
-  }
-
-  handleDeleteComponent() {
-    const { deleteComponent, id, parentId } = this.props;
-    deleteComponent(id, parentId);
-  }
-
-  handleResizeStart(e) {
-    const { editorMode } = this.state;
-    const { editMode, onResizeStart } = this.props;
-    const isEditing = editorMode === 'edit';
-    onResizeStart(e);
-    if (editMode && isEditing) {
-      this.updateMarkdownContent();
     }
   }
 

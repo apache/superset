@@ -43,20 +43,12 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
     };
   }
 
-  onMouseOver() {
-    this.setState({ isHovered: true });
-  }
-
-  onMouseOut() {
-    this.setState({ isHovered: false });
+  onBlur() {
+    this.setState({ isEditable: false });
   }
 
   onClick() {
     this.setState({ isEditable: true });
-  }
-
-  onBlur() {
-    this.setState({ isEditable: false });
   }
 
   onInputBlur(e) {
@@ -64,6 +56,14 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
       this.props.onChange(e);
     }
     this.onBlur();
+  }
+
+  onMouseOut() {
+    this.setState({ isHovered: false });
+  }
+
+  onMouseOver() {
+    this.setState({ isHovered: true });
   }
 
   render() {

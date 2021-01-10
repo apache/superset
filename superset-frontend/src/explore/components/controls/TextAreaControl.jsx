@@ -66,12 +66,12 @@ export default class TextAreaControl extends React.Component {
     }, 300);
   }
 
-  onControlChange(event) {
-    this.props.onChange(event.target.value);
-  }
-
   onAceChange(value) {
     this.props.onChange(value);
+  }
+
+  onControlChange(event) {
+    this.props.onChange(event.target.value);
   }
 
   renderEditor(inModal = false) {

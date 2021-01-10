@@ -71,14 +71,6 @@ export default class AlteredSliceTag extends React.Component {
     }));
   }
 
-  getRowsFromDiffs(diffs, controlsMap) {
-    return Object.entries(diffs).map(([key, diff]) => ({
-      control: (controlsMap[key] && controlsMap[key].label) || key,
-      before: this.formatValue(diff.before, key, controlsMap),
-      after: this.formatValue(diff.after, key, controlsMap),
-    }));
-  }
-
   getDiffs(props) {
     // Returns all properties that differ in the
     // current form data and the saved form data
@@ -101,8 +93,12 @@ export default class AlteredSliceTag extends React.Component {
     return diffs;
   }
 
-  isEqualish(val1, val2) {
-    return isEqual(alterForComparison(val1), alterForComparison(val2));
+  getRowsFromDiffs(diffs, controlsMap) {
+    return Object.entries(diffs).map(([key, diff]) => ({
+      control: (controlsMap[key] && controlsMap[key].label) || key,
+      before: this.formatValue(diff.before, key, controlsMap),
+      after: this.formatValue(diff.after, key, controlsMap),
+    }));
   }
 
   formatValue(value, key, controlsMap) {
@@ -144,6 +140,10 @@ export default class AlteredSliceTag extends React.Component {
       return value;
     }
     return safeStringify(value);
+  }
+
+  isEqualish(val1, val2) {
+    return isEqual(alterForComparison(val1), alterForComparison(val2));
   }
 
   renderModalBody() {

@@ -226,26 +226,37 @@ class TabbedSqlEditors extends React.PureComponent {
     }
   }
 
-  popNewTab() {
-    queryCount += 1;
-    // Clean the url in browser history
-    window.history.replaceState({}, document.title, this.state.sqlLabUrl);
-  }
-
-  renameTab(qe) {
-    /* eslint no-alert: 0 */
-    const newTitle = prompt(t('Enter a new title for the tab'));
-    if (newTitle) {
-      this.props.actions.queryEditorSetTitle(qe, newTitle);
-    }
-  }
-
   activeQueryEditor() {
     if (this.props.tabHistory.length === 0) {
       return this.props.queryEditors[0];
     }
     const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
     return this.props.queryEditors.find(qe => qe.id === qeid) || null;
+  }
+
+  duplicateQueryEditor(qe) {
+    this.props.actions.cloneQueryToNewTab(qe, false);
+  }
+
+  handleEdit(key, action) {
+    if (action === 'remove') {
+      const qe = this.props.queryEditors.find(qe => qe.id === key);
+      this.removeQueryEditor(qe);
+    }
+    if (action === 'add') {
+      this.newQueryEditor();
+    }
+  }
+
+  handleSelect(key) {
+    const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
+    if (key !== qeid) {
+      const queryEditor = this.props.queryEditors.find(qe => qe.id === key);
+      this.props.actions.switchQueryEditor(
+        queryEditor,
+        this.props.displayLimit,
+      );
+    }
   }
 
   newQueryEditor() {
@@ -273,29 +284,10 @@ class TabbedSqlEditors extends React.PureComponent {
     this.props.actions.addQueryEditor(qe);
   }
 
-  handleSelect(key) {
-    const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
-    if (key !== qeid) {
-      const queryEditor = this.props.queryEditors.find(qe => qe.id === key);
-      this.props.actions.switchQueryEditor(
-        queryEditor,
-        this.props.displayLimit,
-      );
-    }
-  }
-
-  handleEdit(key, action) {
-    if (action === 'remove') {
-      const qe = this.props.queryEditors.find(qe => qe.id === key);
-      this.removeQueryEditor(qe);
-    }
-    if (action === 'add') {
-      this.newQueryEditor();
-    }
-  }
-
-  removeQueryEditor(qe) {
-    this.props.actions.removeQueryEditor(qe);
+  popNewTab() {
+    queryCount += 1;
+    // Clean the url in browser history
+    window.history.replaceState({}, document.title, this.state.sqlLabUrl);
   }
 
   removeAllOtherQueryEditors(cqe) {
@@ -304,8 +296,16 @@ class TabbedSqlEditors extends React.PureComponent {
     );
   }
 
-  duplicateQueryEditor(qe) {
-    this.props.actions.cloneQueryToNewTab(qe, false);
+  removeQueryEditor(qe) {
+    this.props.actions.removeQueryEditor(qe);
+  }
+
+  renameTab(qe) {
+    /* eslint no-alert: 0 */
+    const newTitle = prompt(t('Enter a new title for the tab'));
+    if (newTitle) {
+      this.props.actions.queryEditorSetTitle(qe, newTitle);
+    }
   }
 
   toggleLeftBar() {

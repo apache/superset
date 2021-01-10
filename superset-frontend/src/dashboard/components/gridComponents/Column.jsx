@@ -74,13 +74,13 @@ class Column extends React.PureComponent {
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
   }
 
+  handleChangeFocus(nextFocus) {
+    this.setState(() => ({ isFocused: Boolean(nextFocus) }));
+  }
+
   handleDeleteComponent() {
     const { deleteComponent, id, parentId } = this.props;
     deleteComponent(id, parentId);
-  }
-
-  handleChangeFocus(nextFocus) {
-    this.setState(() => ({ isFocused: Boolean(nextFocus) }));
   }
 
   handleUpdateMeta(metaKey, nextValue) {

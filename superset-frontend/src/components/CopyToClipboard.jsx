@@ -56,11 +56,6 @@ class CopyToClipboard extends React.Component {
     this.onClick = this.onClick.bind(this);
   }
 
-  onMouseOut() {
-    // delay to avoid flash of text change on tooltip
-    setTimeout(this.resetTooltipText, 200);
-  }
-
   onClick() {
     if (this.props.getText) {
       this.props.getText(d => {
@@ -71,16 +66,17 @@ class CopyToClipboard extends React.Component {
     }
   }
 
+  onMouseOut() {
+    // delay to avoid flash of text change on tooltip
+    setTimeout(this.resetTooltipText, 200);
+  }
+
   getDecoratedCopyNode() {
     return React.cloneElement(this.props.copyNode, {
       style: { cursor: 'pointer' },
       onClick: this.onClick,
       onMouseOut: this.onMouseOut,
     });
-  }
-
-  resetTooltipText() {
-    this.setState({ tooltipText: this.props.tooltipText });
   }
 
   copyToClipboard(textToCopy) {
@@ -100,20 +96,8 @@ class CopyToClipboard extends React.Component {
       });
   }
 
-  renderNotWrapped() {
-    return (
-      <Tooltip
-        id="copy-to-clipboard-tooltip"
-        placement="top"
-        style={{ cursor: 'pointer' }}
-        title={this.state.tooltipText}
-        trigger={['hover']}
-        onClick={this.onClick}
-        onMouseOut={this.onMouseOut}
-      >
-        {this.getDecoratedCopyNode()}
-      </Tooltip>
-    );
+  resetTooltipText() {
+    this.setState({ tooltipText: this.props.tooltipText });
   }
 
   renderLink() {
@@ -133,6 +117,22 @@ class CopyToClipboard extends React.Component {
           {this.getDecoratedCopyNode()}
         </Tooltip>
       </span>
+    );
+  }
+
+  renderNotWrapped() {
+    return (
+      <Tooltip
+        id="copy-to-clipboard-tooltip"
+        placement="top"
+        style={{ cursor: 'pointer' }}
+        title={this.state.tooltipText}
+        trigger={['hover']}
+        onClick={this.onClick}
+        onMouseOut={this.onMouseOut}
+      >
+        {this.getDecoratedCopyNode()}
+      </Tooltip>
     );
   }
 

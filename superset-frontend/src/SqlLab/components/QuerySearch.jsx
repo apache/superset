@@ -93,10 +93,9 @@ class QuerySearch extends React.PureComponent {
     this.refreshQueries();
   }
 
-  onUserClicked(userId) {
-    this.setState({ userId }, () => {
-      this.refreshQueries();
-    });
+  onChange(db) {
+    const val = db ? db.value : null;
+    this.setState({ databaseId: val });
   }
 
   onDbClicked(dbId) {
@@ -105,15 +104,16 @@ class QuerySearch extends React.PureComponent {
     });
   }
 
-  onChange(db) {
-    const val = db ? db.value : null;
-    this.setState({ databaseId: val });
-  }
-
   onKeyDown(event) {
     if (event.keyCode === 13) {
       this.refreshQueries();
     }
+  }
+
+  onUserClicked(userId) {
+    this.setState({ userId }, () => {
+      this.refreshQueries();
+    });
   }
 
   getTimeFromSelection(selection) {
@@ -142,6 +142,15 @@ class QuerySearch extends React.PureComponent {
     this.setState({ from: val });
   }
 
+  changeSearch(event) {
+    this.setState({ searchText: event.target.value });
+  }
+
+  changeStatus(status) {
+    const val = status ? status.value : null;
+    this.setState({ status: val });
+  }
+
   changeTo(status) {
     const val = status ? status.value : null;
     this.setState({ to: val });
@@ -150,36 +159,6 @@ class QuerySearch extends React.PureComponent {
   changeUser(user) {
     const val = user ? user.value : null;
     this.setState({ userId: val });
-  }
-
-  insertParams(baseUrl, params) {
-    const validParams = params.filter(function (p) {
-      return p !== '';
-    });
-    return `${baseUrl}?${validParams.join('&')}`;
-  }
-
-  changeStatus(status) {
-    const val = status ? status.value : null;
-    this.setState({ status: val });
-  }
-
-  changeSearch(event) {
-    this.setState({ searchText: event.target.value });
-  }
-
-  userLabel(user) {
-    if (user.first_name && user.last_name) {
-      return `${user.first_name} ${user.last_name}`;
-    }
-    return user.username;
-  }
-
-  userMutator(data) {
-    return data.result.map(({ value, text }) => ({
-      label: text,
-      value,
-    }));
   }
 
   dbMutator(data) {
@@ -194,6 +173,13 @@ class QuerySearch extends React.PureComponent {
       );
     }
     return options;
+  }
+
+  insertParams(baseUrl, params) {
+    const validParams = params.filter(function (p) {
+      return p !== '';
+    });
+    return `${baseUrl}?${validParams.join('&')}`;
   }
 
   refreshQueries() {
@@ -220,6 +206,20 @@ class QuerySearch extends React.PureComponent {
           t('An error occurred when refreshing queries'),
         );
       });
+  }
+
+  userLabel(user) {
+    if (user.first_name && user.last_name) {
+      return `${user.first_name} ${user.last_name}`;
+    }
+    return user.username;
+  }
+
+  userMutator(data) {
+    return data.result.map(({ value, text }) => ({
+      label: text,
+      value,
+    }));
   }
 
   render() {

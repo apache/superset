@@ -163,48 +163,6 @@ class Tabs extends React.PureComponent {
     }
   }
 
-  showDeleteConfirmModal = key => {
-    const { component, deleteComponent } = this.props;
-    Modal.confirm({
-      title: t('Delete dashboard tab?'),
-      content: (
-        <span>
-          Deleting a tab will remove all content within it. You may still
-          reverse this action with the <b>undo</b> button (cmd + z) until you
-          save your changes.
-        </span>
-      ),
-      onOk: () => {
-        deleteComponent(key, component.id);
-        const tabIndex = component.children.indexOf(key);
-        this.handleClickTab(Math.max(0, tabIndex - 1));
-      },
-      okType: 'danger',
-      okText: 'DELETE',
-      cancelText: 'CANCEL',
-      icon: null,
-    });
-  };
-
-  handleEdit = (key, action) => {
-    const { component, createComponent } = this.props;
-    if (action === 'add') {
-      createComponent({
-        destination: {
-          id: component.id,
-          type: component.type,
-          index: component.children.length,
-        },
-        dragging: {
-          id: NEW_TAB_ID,
-          type: TAB_TYPE,
-        },
-      });
-    } else if (action === 'remove') {
-      this.showDeleteConfirmModal(key);
-    }
-  };
-
   handleClickTab(tabIndex) {
     const { component } = this.props;
 
@@ -247,6 +205,48 @@ class Tabs extends React.PureComponent {
       }
     }
   }
+
+  handleEdit = (key, action) => {
+    const { component, createComponent } = this.props;
+    if (action === 'add') {
+      createComponent({
+        destination: {
+          id: component.id,
+          type: component.type,
+          index: component.children.length,
+        },
+        dragging: {
+          id: NEW_TAB_ID,
+          type: TAB_TYPE,
+        },
+      });
+    } else if (action === 'remove') {
+      this.showDeleteConfirmModal(key);
+    }
+  };
+
+  showDeleteConfirmModal = key => {
+    const { component, deleteComponent } = this.props;
+    Modal.confirm({
+      title: t('Delete dashboard tab?'),
+      content: (
+        <span>
+          Deleting a tab will remove all content within it. You may still
+          reverse this action with the <b>undo</b> button (cmd + z) until you
+          save your changes.
+        </span>
+      ),
+      onOk: () => {
+        deleteComponent(key, component.id);
+        const tabIndex = component.children.indexOf(key);
+        this.handleClickTab(Math.max(0, tabIndex - 1));
+      },
+      okType: 'danger',
+      okText: 'DELETE',
+      cancelText: 'CANCEL',
+      icon: null,
+    });
+  };
 
   render() {
     const {

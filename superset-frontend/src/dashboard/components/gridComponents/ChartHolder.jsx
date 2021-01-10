@@ -120,17 +120,6 @@ const FilterFocusHighlight = React.forwardRef(
 );
 
 class ChartHolder extends React.Component {
-  static renderInFocusCSS(columnName) {
-    return (
-      <style>
-        {`label[for=${columnName}] + .Select .Select__control {
-                    border-color: #00736a;
-                    transition: border-color 1s ease-in-out;
-           }`}
-      </style>
-    );
-  }
-
   static getDerivedStateFromProps(props, state) {
     const { component, directPathToChild, directPathLastUpdated } = props;
     const {
@@ -149,6 +138,17 @@ class ChartHolder extends React.Component {
       };
     }
     return null;
+  }
+
+  static renderInFocusCSS(columnName) {
+    return (
+      <style>
+        {`label[for=${columnName}] + .Select .Select__control {
+                    border-color: #00736a;
+                    transition: border-color 1s ease-in-out;
+           }`}
+      </style>
+    );
   }
 
   constructor(props) {
@@ -175,21 +175,6 @@ class ChartHolder extends React.Component {
     this.hideOutline(prevState, this.state);
   }
 
-  hideOutline(prevState, state) {
-    const { outlinedComponentId: timerKey } = state;
-    const { outlinedComponentId: prevTimerKey } = prevState;
-
-    // because of timeout, there might be multiple charts showing outline
-    if (!!timerKey && !prevTimerKey) {
-      setTimeout(() => {
-        this.setState(() => ({
-          outlinedComponentId: null,
-          outlinedColumnName: null,
-        }));
-      }, 2000);
-    }
-  }
-
   handleChangeFocus(nextFocus) {
     this.setState(() => ({ isFocused: nextFocus }));
   }
@@ -197,6 +182,10 @@ class ChartHolder extends React.Component {
   handleDeleteComponent() {
     const { deleteComponent, id, parentId } = this.props;
     deleteComponent(id, parentId);
+  }
+
+  handleToggleFullSize() {
+    this.setState(prevState => ({ isFullSize: !prevState.isFullSize }));
   }
 
   handleUpdateSliceName(nextName) {
@@ -212,8 +201,19 @@ class ChartHolder extends React.Component {
     });
   }
 
-  handleToggleFullSize() {
-    this.setState(prevState => ({ isFullSize: !prevState.isFullSize }));
+  hideOutline(prevState, state) {
+    const { outlinedComponentId: timerKey } = state;
+    const { outlinedComponentId: prevTimerKey } = prevState;
+
+    // because of timeout, there might be multiple charts showing outline
+    if (!!timerKey && !prevTimerKey) {
+      setTimeout(() => {
+        this.setState(() => ({
+          outlinedComponentId: null,
+          outlinedColumnName: null,
+        }));
+      }, 2000);
+    }
   }
 
   render() {

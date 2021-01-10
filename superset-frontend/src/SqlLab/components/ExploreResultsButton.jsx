@@ -62,12 +62,6 @@ class ExploreResultsButton extends React.PureComponent {
     return [];
   }
 
-  getQueryDuration() {
-    return moment
-      .duration(this.props.query.endDttm - this.props.query.startDttm)
-      .asSeconds();
-  }
-
   getInvalidColumns() {
     const re1 = /__\d+$/; // duplicate column name pattern
     const re2 = /^__timestamp/i; // reserved temporal column alias
@@ -75,6 +69,24 @@ class ExploreResultsButton extends React.PureComponent {
     return this.props.query.results.selected_columns
       .map(col => col.name)
       .filter(col => re1.test(col) || re2.test(col));
+  }
+
+  getQueryDuration() {
+    return moment
+      .duration(this.props.query.endDttm - this.props.query.startDttm)
+      .asSeconds();
+  }
+
+  buildVizOptions() {
+    const { schema, sql, dbId, templateParams } = this.props.query;
+    return {
+      dbId,
+      schema,
+      sql,
+      templateParams,
+      datasourceName: this.datasourceName(),
+      columns: this.getColumns(),
+    };
   }
 
   datasourceName() {
@@ -88,16 +100,24 @@ class ExploreResultsButton extends React.PureComponent {
     return datasourceName;
   }
 
-  buildVizOptions() {
-    const { schema, sql, dbId, templateParams } = this.props.query;
-    return {
-      dbId,
-      schema,
-      sql,
-      templateParams,
-      datasourceName: this.datasourceName(),
-      columns: this.getColumns(),
-    };
+  renderInvalidColumnMessage() {
+    const invalidColumns = this.getInvalidColumns();
+    if (invalidColumns.length === 0) {
+      return null;
+    }
+    return (
+      <div>
+        {t('Column name(s) ')}
+        <code>
+          <strong>{invalidColumns.join(', ')} </strong>
+        </code>
+        {t(`cannot be used as a column name. The column name/alias "__timestamp"
+          is reserved for the main temporal expression, and column aliases ending with
+          double underscores followed by a numeric value (e.g. "my_col__1") are reserved
+          for deduplicating duplicate column names. Please use aliases to rename the
+          invalid column names.`)}
+      </div>
+    );
   }
 
   renderTimeoutWarning() {
@@ -121,26 +141,6 @@ class ExploreResultsButton extends React.PureComponent {
         <strong>CREATE TABLE AS </strong>
         {t('feature to store a summarized data set that you can then explore.')}
       </Alert>
-    );
-  }
-
-  renderInvalidColumnMessage() {
-    const invalidColumns = this.getInvalidColumns();
-    if (invalidColumns.length === 0) {
-      return null;
-    }
-    return (
-      <div>
-        {t('Column name(s) ')}
-        <code>
-          <strong>{invalidColumns.join(', ')} </strong>
-        </code>
-        {t(`cannot be used as a column name. The column name/alias "__timestamp"
-          is reserved for the main temporal expression, and column aliases ending with
-          double underscores followed by a numeric value (e.g. "my_col__1") are reserved
-          for deduplicating duplicate column names. Please use aliases to rename the
-          invalid column names.`)}
-      </div>
     );
   }
 

@@ -174,6 +174,25 @@ class Header extends React.PureComponent {
     clearTimeout(this.ctrlZTimeout);
   }
 
+  forceRefresh() {
+    if (!this.props.isLoading) {
+      const chartList = Object.keys(this.props.charts);
+      this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_DASHBOARD, {
+        force: true,
+        interval: 0,
+        chartCount: chartList.length,
+      });
+
+      return this.props.fetchCharts(
+        chartList,
+        true,
+        0,
+        this.props.dashboardInfo.id,
+      );
+    }
+    return false;
+  }
+
   handleChangeText(nextText) {
     const { updateDashboardTitle, onChange } = this.props;
     if (nextText && this.props.dashboardTitle !== nextText) {
@@ -202,77 +221,8 @@ class Header extends React.PureComponent {
     });
   }
 
-  forceRefresh() {
-    if (!this.props.isLoading) {
-      const chartList = Object.keys(this.props.charts);
-      this.props.logEvent(LOG_ACTIONS_FORCE_REFRESH_DASHBOARD, {
-        force: true,
-        interval: 0,
-        chartCount: chartList.length,
-      });
-
-      return this.props.fetchCharts(
-        chartList,
-        true,
-        0,
-        this.props.dashboardInfo.id,
-      );
-    }
-    return false;
-  }
-
-  startPeriodicRender(interval) {
-    let intervalMessage;
-    if (interval) {
-      const predefinedValue = PeriodicRefreshOptions.find(
-        option => option.value === interval / 1000,
-      );
-      if (predefinedValue) {
-        intervalMessage = predefinedValue.label;
-      } else {
-        intervalMessage = moment.duration(interval, 'millisecond').humanize();
-      }
-    }
-
-    const periodicRender = () => {
-      const { fetchCharts, logEvent, charts, dashboardInfo } = this.props;
-      const { metadata } = dashboardInfo;
-      const immune = metadata.timed_refresh_immune_slices || [];
-      const affectedCharts = Object.values(charts)
-        .filter(chart => immune.indexOf(chart.id) === -1)
-        .map(chart => chart.id);
-
-      logEvent(LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD, {
-        interval,
-        chartCount: affectedCharts.length,
-      });
-      this.props.addWarningToast(
-        t(
-          `This dashboard is currently force refreshing; the next force refresh will be in %s.`,
-          intervalMessage,
-        ),
-      );
-
-      return fetchCharts(
-        affectedCharts,
-        true,
-        interval * 0.2,
-        dashboardInfo.id,
-      );
-    };
-
-    this.refreshTimer = setPeriodicRunner({
-      interval,
-      periodicRender,
-      refreshTimer: this.refreshTimer,
-    });
-  }
-
-  toggleEditMode() {
-    this.props.logEvent(LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD, {
-      edit_mode: !this.props.editMode,
-    });
-    this.props.setEditMode(!this.props.editMode);
+  hidePropertiesModal() {
+    this.setState({ showingPropertiesModal: false });
   }
 
   overwriteDashboard() {
@@ -344,8 +294,58 @@ class Header extends React.PureComponent {
     this.setState({ showingPropertiesModal: true });
   }
 
-  hidePropertiesModal() {
-    this.setState({ showingPropertiesModal: false });
+  startPeriodicRender(interval) {
+    let intervalMessage;
+    if (interval) {
+      const predefinedValue = PeriodicRefreshOptions.find(
+        option => option.value === interval / 1000,
+      );
+      if (predefinedValue) {
+        intervalMessage = predefinedValue.label;
+      } else {
+        intervalMessage = moment.duration(interval, 'millisecond').humanize();
+      }
+    }
+
+    const periodicRender = () => {
+      const { fetchCharts, logEvent, charts, dashboardInfo } = this.props;
+      const { metadata } = dashboardInfo;
+      const immune = metadata.timed_refresh_immune_slices || [];
+      const affectedCharts = Object.values(charts)
+        .filter(chart => immune.indexOf(chart.id) === -1)
+        .map(chart => chart.id);
+
+      logEvent(LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD, {
+        interval,
+        chartCount: affectedCharts.length,
+      });
+      this.props.addWarningToast(
+        t(
+          `This dashboard is currently force refreshing; the next force refresh will be in %s.`,
+          intervalMessage,
+        ),
+      );
+
+      return fetchCharts(
+        affectedCharts,
+        true,
+        interval * 0.2,
+        dashboardInfo.id,
+      );
+    };
+
+    this.refreshTimer = setPeriodicRunner({
+      interval,
+      periodicRender,
+      refreshTimer: this.refreshTimer,
+    });
+  }
+
+  toggleEditMode() {
+    this.props.logEvent(LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD, {
+      edit_mode: !this.props.editMode,
+    });
+    this.props.setEditMode(!this.props.editMode);
   }
 
   render() {

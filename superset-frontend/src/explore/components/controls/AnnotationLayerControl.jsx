@@ -109,6 +109,28 @@ class AnnotationLayerControl extends React.PureComponent {
     this.props.onChange(annotations);
   }
 
+  renderInfo(anno) {
+    const { annotationError, annotationQuery } = this.props;
+    if (annotationQuery[anno.name]) {
+      return (
+        <i className="fa fa-refresh" style={{ color: 'orange' }} aria-hidden />
+      );
+    }
+    if (annotationError[anno.name]) {
+      return (
+        <InfoTooltipWithTrigger
+          label="validation-errors"
+          bsStyle="danger"
+          tooltip={annotationError[anno.name]}
+        />
+      );
+    }
+    if (!anno.show) {
+      return <span style={{ color: 'red' }}> Hidden </span>;
+    }
+    return '';
+  }
+
   renderPopover(popoverKey, annotation, error) {
     const id = annotation?.name || '_new';
 
@@ -130,28 +152,6 @@ class AnnotationLayerControl extends React.PureComponent {
         />
       </div>
     );
-  }
-
-  renderInfo(anno) {
-    const { annotationError, annotationQuery } = this.props;
-    if (annotationQuery[anno.name]) {
-      return (
-        <i className="fa fa-refresh" style={{ color: 'orange' }} aria-hidden />
-      );
-    }
-    if (annotationError[anno.name]) {
-      return (
-        <InfoTooltipWithTrigger
-          label="validation-errors"
-          bsStyle="danger"
-          tooltip={annotationError[anno.name]}
-        />
-      );
-    }
-    if (!anno.show) {
-      return <span style={{ color: 'red' }}> Hidden </span>;
-    }
-    return '';
   }
 
   render() {

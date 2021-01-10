@@ -184,25 +184,12 @@ export default class Chart extends React.Component {
     this.headerRef = ref;
   }
 
-  resize() {
-    const { width, height } = this.props;
-    this.setState(() => ({ width, height }));
-  }
-
   changeFilter(newSelectedValues = {}) {
     this.props.logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
       id: this.props.chart.id,
       columns: Object.keys(newSelectedValues),
     });
     this.props.changeFilter(this.props.chart.id, newSelectedValues);
-  }
-
-  handleFilterMenuOpen(chartId, column) {
-    this.props.setFocusedFilterField(chartId, column);
-  }
-
-  handleFilterMenuClose(chartId, column) {
-    this.props.unsetFocusedFilterField(chartId, column);
   }
 
   exploreChart() {
@@ -235,6 +222,19 @@ export default class Chart extends React.Component {
       true,
       this.props.dashboardId,
     );
+  }
+
+  handleFilterMenuClose(chartId, column) {
+    this.props.unsetFocusedFilterField(chartId, column);
+  }
+
+  handleFilterMenuOpen(chartId, column) {
+    this.props.setFocusedFilterField(chartId, column);
+  }
+
+  resize() {
+    const { width, height } = this.props;
+    this.setState(() => ({ width, height }));
   }
 
   render() {

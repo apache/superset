@@ -136,16 +136,6 @@ class SliceAdder extends React.Component {
     }
   }
 
-  searchUpdated(searchTerm) {
-    this.setState(prevState => ({
-      searchTerm,
-      filteredSlices: this.getFilteredSortedSlices(
-        searchTerm,
-        prevState.sortBy,
-      ),
-    }));
-  }
-
   handleSelect(sortBy) {
     this.setState(prevState => ({
       sortBy,
@@ -200,6 +190,16 @@ class SliceAdder extends React.Component {
         )}
       </DragDroppable>
     );
+  }
+
+  searchUpdated(searchTerm) {
+    this.setState(prevState => ({
+      searchTerm,
+      filteredSlices: this.getFilteredSortedSlices(
+        searchTerm,
+        prevState.sortBy,
+      ),
+    }));
   }
 
   render() {

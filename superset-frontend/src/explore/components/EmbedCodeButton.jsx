@@ -56,13 +56,6 @@ export default class EmbedCodeButton extends React.Component {
       .catch(this.props.addDangerToast);
   }
 
-  handleInputChange(e) {
-    const { value, name } = e.currentTarget;
-    const data = {};
-    data[name] = value;
-    this.setState(data);
-  }
-
   generateEmbedHTML() {
     const srcLink = `${window.location.origin + getURIDirectory()}?r=${
       this.state.shortUrlId
@@ -78,6 +71,13 @@ export default class EmbedCodeButton extends React.Component {
       '>\n' +
       '</iframe>'
     );
+  }
+
+  handleInputChange(e) {
+    const { value, name } = e.currentTarget;
+    const data = {};
+    data[name] = value;
+    this.setState(data);
   }
 
   renderPopoverContent() {

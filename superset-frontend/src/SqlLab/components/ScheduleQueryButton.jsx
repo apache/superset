@@ -110,6 +110,18 @@ class ScheduleQueryButton extends React.PureComponent {
     this.onDescriptionChange = this.onDescriptionChange.bind(this);
   }
 
+  onCancel() {
+    this.saveModal.close();
+  }
+
+  onDescriptionChange(e) {
+    this.setState({ description: e.target.value });
+  }
+
+  onLabelChange(e) {
+    this.setState({ label: e.target.value });
+  }
+
   onSchedule({ formData }) {
     const query = {
       label: this.state.label,
@@ -121,18 +133,6 @@ class ScheduleQueryButton extends React.PureComponent {
     };
     this.props.onSchedule(query);
     this.saveModal.close();
-  }
-
-  onCancel() {
-    this.saveModal.close();
-  }
-
-  onLabelChange(e) {
-    this.setState({ label: e.target.value });
-  }
-
-  onDescriptionChange(e) {
-    this.setState({ description: e.target.value });
   }
 
   toggleSchedule() {

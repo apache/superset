@@ -61,19 +61,19 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
     }
   }
 
-  onSqlExpressionClauseChange(clause) {
+  onSqlExpressionChange(sqlExpression) {
     this.props.onChange(
       this.props.adhocFilter.duplicateWith({
-        clause,
+        sqlExpression,
         expressionType: EXPRESSION_TYPES.SQL,
       }),
     );
   }
 
-  onSqlExpressionChange(sqlExpression) {
+  onSqlExpressionClauseChange(clause) {
     this.props.onChange(
       this.props.adhocFilter.duplicateWith({
-        sqlExpression,
+        clause,
         expressionType: EXPRESSION_TYPES.SQL,
       }),
     );

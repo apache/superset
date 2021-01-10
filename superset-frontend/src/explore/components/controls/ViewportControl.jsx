@@ -68,6 +68,23 @@ export default class ViewportControl extends React.Component {
     });
   }
 
+  renderLabel() {
+    if (this.props.value.longitude && this.props.value.latitude) {
+      return `${decimal2sexagesimal(
+        this.props.value.longitude,
+      )} | ${decimal2sexagesimal(this.props.value.latitude)}`;
+    }
+    return 'N/A';
+  }
+
+  renderPopover() {
+    return (
+      <div id={`filter-popover-${this.props.name}`}>
+        {PARAMS.map(ctrl => this.renderTextControl(ctrl))}
+      </div>
+    );
+  }
+
   renderTextControl(ctrl) {
     return (
       <div key={ctrl}>
@@ -79,23 +96,6 @@ export default class ViewportControl extends React.Component {
         />
       </div>
     );
-  }
-
-  renderPopover() {
-    return (
-      <div id={`filter-popover-${this.props.name}`}>
-        {PARAMS.map(ctrl => this.renderTextControl(ctrl))}
-      </div>
-    );
-  }
-
-  renderLabel() {
-    if (this.props.value.longitude && this.props.value.latitude) {
-      return `${decimal2sexagesimal(
-        this.props.value.longitude,
-      )} | ${decimal2sexagesimal(this.props.value.latitude)}`;
-    }
-    return 'N/A';
   }
 
   render() {

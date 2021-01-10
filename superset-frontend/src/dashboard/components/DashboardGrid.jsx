@@ -70,6 +70,16 @@ class DashboardGrid extends React.PureComponent {
     this.grid = ref;
   }
 
+  handleChangeTab({ pathToTabIndex }) {
+    this.props.setDirectPathToChild(pathToTabIndex);
+  }
+
+  handleResize({ ref, direction }) {
+    if (direction === 'bottom' || direction === 'bottomRight') {
+      this.setState(() => ({ rowGuideTop: this.getRowGuidePosition(ref) }));
+    }
+  }
+
   handleResizeStart({ ref, direction }) {
     let rowGuideTop = null;
     if (direction === 'bottom' || direction === 'bottomRight') {
@@ -80,12 +90,6 @@ class DashboardGrid extends React.PureComponent {
       isResizing: true,
       rowGuideTop,
     }));
-  }
-
-  handleResize({ ref, direction }) {
-    if (direction === 'bottom' || direction === 'bottomRight') {
-      this.setState(() => ({ rowGuideTop: this.getRowGuidePosition(ref) }));
-    }
   }
 
   handleResizeStop({ id, widthMultiple: width, heightMultiple: height }) {
@@ -108,10 +112,6 @@ class DashboardGrid extends React.PureComponent {
         },
       });
     }
-  }
-
-  handleChangeTab({ pathToTabIndex }) {
-    this.props.setDirectPathToChild(pathToTabIndex);
   }
 
   render() {

@@ -39,6 +39,15 @@ class CacheLabel extends React.PureComponent {
     };
   }
 
+  mouseOut() {
+    this.setState({ hovered: false });
+  }
+
+  mouseOver() {
+    this.updateTooltipContent();
+    this.setState({ hovered: true });
+  }
+
   updateTooltipContent() {
     const cachedText = this.props.cachedTimestamp ? (
       <span>
@@ -55,15 +64,6 @@ class CacheLabel extends React.PureComponent {
       </span>
     );
     this.setState({ tooltipContent });
-  }
-
-  mouseOver() {
-    this.updateTooltipContent();
-    this.setState({ hovered: true });
-  }
-
-  mouseOut() {
-    this.setState({ hovered: false });
   }
 
   render() {

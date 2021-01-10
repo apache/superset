@@ -308,22 +308,6 @@ class DateFilterControl extends React.Component {
     }
   }
 
-  handleClick(e) {
-    const { target } = e;
-    // switch to `TYPES.CUSTOM_START_END` when the calendar is clicked
-    if (this.startEndSectionRef && this.startEndSectionRef.contains(target)) {
-      this.setTypeCustomStartEnd();
-    }
-
-    // if user click outside popover, popover will hide and we will call onCloseDateFilterControl,
-    // but need to exclude OverlayTrigger component to avoid handle click events twice.
-    if (target.getAttribute('name') !== 'popover-trigger') {
-      if (this.popoverContainer && !this.popoverContainer.contains(target)) {
-        this.props.onCloseDateFilterControl();
-      }
-    }
-  }
-
   close() {
     let val;
     if (
@@ -343,6 +327,31 @@ class DateFilterControl extends React.Component {
       showUntilCalendar: false,
       popoverVisible: false,
     });
+  }
+
+  handleClick(e) {
+    const { target } = e;
+    // switch to `TYPES.CUSTOM_START_END` when the calendar is clicked
+    if (this.startEndSectionRef && this.startEndSectionRef.contains(target)) {
+      this.setTypeCustomStartEnd();
+    }
+
+    // if user click outside popover, popover will hide and we will call onCloseDateFilterControl,
+    // but need to exclude OverlayTrigger component to avoid handle click events twice.
+    if (target.getAttribute('name') !== 'popover-trigger') {
+      if (this.popoverContainer && !this.popoverContainer.contains(target)) {
+        this.props.onCloseDateFilterControl();
+      }
+    }
+  }
+
+  handleVisibleChange(visible) {
+    if (visible) {
+      this.props.onOpenDateFilterControl();
+    } else {
+      this.props.onCloseDateFilterControl();
+    }
+    this.setState({ popoverVisible: visible });
   }
 
   isValidSince(date) {
@@ -373,15 +382,6 @@ class DateFilterControl extends React.Component {
       }
     }
     this.setState(nextState);
-  }
-
-  handleVisibleChange(visible) {
-    if (visible) {
-      this.props.onOpenDateFilterControl();
-    } else {
-      this.props.onCloseDateFilterControl();
-    }
-    this.setState({ popoverVisible: visible });
   }
 
   renderInput(props, key) {

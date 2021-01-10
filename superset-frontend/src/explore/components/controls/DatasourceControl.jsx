@@ -114,24 +114,6 @@ class DatasourceControl extends React.PureComponent {
     }
   }
 
-  toggleShowDatasource() {
-    this.setState(({ showDatasource }) => ({
-      showDatasource: !showDatasource,
-    }));
-  }
-
-  toggleChangeDatasourceModal() {
-    this.setState(({ showChangeDatasourceModal }) => ({
-      showChangeDatasourceModal: !showChangeDatasourceModal,
-    }));
-  }
-
-  toggleEditDatasourceModal() {
-    this.setState(({ showEditDatasourceModal }) => ({
-      showEditDatasourceModal: !showEditDatasourceModal,
-    }));
-  }
-
   handleMenuItemClick({ key }) {
     if (key === CHANGE_DATASET) {
       this.toggleChangeDatasourceModal();
@@ -147,6 +129,24 @@ class DatasourceControl extends React.PureComponent {
       };
       postForm('/superset/sqllab', payload);
     }
+  }
+
+  toggleChangeDatasourceModal() {
+    this.setState(({ showChangeDatasourceModal }) => ({
+      showChangeDatasourceModal: !showChangeDatasourceModal,
+    }));
+  }
+
+  toggleEditDatasourceModal() {
+    this.setState(({ showEditDatasourceModal }) => ({
+      showEditDatasourceModal: !showEditDatasourceModal,
+    }));
+  }
+
+  toggleShowDatasource() {
+    this.setState(({ showDatasource }) => ({
+      showDatasource: !showDatasource,
+    }));
   }
 
   render() {

@@ -110,6 +110,25 @@ class Chart extends React.PureComponent {
     }
   }
 
+  handleRenderContainerFailure(error, info) {
+    const { actions, chartId } = this.props;
+    logging.warn(error);
+    actions.chartRenderingFailed(
+      error.toString(),
+      chartId,
+      info ? info.componentStack : null,
+    );
+
+    actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
+      slice_id: chartId,
+      has_err: true,
+      error_details: error.toString(),
+      start_offset: this.renderStartTime,
+      ts: new Date().getTime(),
+      duration: Logger.getTimestamp() - this.renderStartTime,
+    });
+  }
+
   runQuery() {
     if (this.props.chartId > 0 && isFeatureEnabled(FeatureFlag.CLIENT_CACHE)) {
       // Load saved chart with a GET request
@@ -130,25 +149,6 @@ class Chart extends React.PureComponent {
         this.props.dashboardId,
       );
     }
-  }
-
-  handleRenderContainerFailure(error, info) {
-    const { actions, chartId } = this.props;
-    logging.warn(error);
-    actions.chartRenderingFailed(
-      error.toString(),
-      chartId,
-      info ? info.componentStack : null,
-    );
-
-    actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
-      slice_id: chartId,
-      has_err: true,
-      error_details: error.toString(),
-      start_offset: this.renderStartTime,
-      ts: new Date().getTime(),
-      duration: Logger.getTimestamp() - this.renderStartTime,
-    });
   }
 
   renderErrorMessage(queryResponse) {

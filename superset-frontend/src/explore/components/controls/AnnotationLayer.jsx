@@ -203,69 +203,45 @@ export default class AnnotationLayer extends React.PureComponent {
     return sources;
   }
 
-  isValidFormula(value, annotationType) {
-    if (annotationType === ANNOTATION_TYPES.FORMULA) {
-      try {
-        mathjsParse(value).compile().evaluate({ x: 0 });
-      } catch (err) {
-        return true;
+  applyAnnotation() {
+    if (this.isValidForm()) {
+      const annotationFields = [
+        'name',
+        'annotationType',
+        'sourceType',
+        'color',
+        'opacity',
+        'style',
+        'width',
+        'showMarkers',
+        'hideLine',
+        'value',
+        'overrides',
+        'show',
+        'titleColumn',
+        'descriptionColumns',
+        'timeColumn',
+        'intervalEndColumn',
+      ];
+      const newAnnotation = {};
+      annotationFields.forEach(field => {
+        if (this.state[field] !== null) {
+          newAnnotation[field] = this.state[field];
+        }
+      });
+
+      if (newAnnotation.color === AUTOMATIC_COLOR) {
+        newAnnotation.color = null;
       }
-    }
-    return false;
-  }
 
-  isValidForm() {
-    const {
-      name,
-      annotationType,
-      sourceType,
-      value,
-      timeColumn,
-      intervalEndColumn,
-    } = this.state;
-    const errors = [
-      validateNonEmpty(name),
-      validateNonEmpty(annotationType),
-      validateNonEmpty(value),
-    ];
-    if (sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE) {
-      if (annotationType === ANNOTATION_TYPES.EVENT) {
-        errors.push(validateNonEmpty(timeColumn));
-      }
-      if (annotationType === ANNOTATION_TYPES.INTERVAL) {
-        errors.push(validateNonEmpty(timeColumn));
-        errors.push(validateNonEmpty(intervalEndColumn));
-      }
-    }
-    errors.push(this.isValidFormula(value, annotationType));
-    return !errors.filter(x => x).length;
-  }
-
-  handleAnnotationType(annotationType) {
-    this.setState({
-      annotationType,
-      sourceType: null,
-      value: null,
-    });
-  }
-
-  handleAnnotationSourceType(sourceType) {
-    const { sourceType: prevSourceType } = this.state;
-
-    if (prevSourceType !== sourceType) {
-      this.setState({ sourceType, value: null, isLoadingOptions: true });
+      this.props.addAnnotationLayer(newAnnotation);
+      this.setState({ isNew: false });
     }
   }
 
-  handleValue(value) {
-    this.setState({
-      value,
-      descriptionColumns: null,
-      intervalEndColumn: null,
-      timeColumn: null,
-      titleColumn: null,
-      overrides: { time_range: null },
-    });
+  deleteAnnotation() {
+    this.props.removeAnnotationLayer();
+    this.props.close();
   }
 
   fetchOptions(annotationType, sourceType, isLoadingOptions) {
@@ -311,50 +287,177 @@ export default class AnnotationLayer extends React.PureComponent {
     }
   }
 
-  deleteAnnotation() {
-    this.props.removeAnnotationLayer();
-    this.props.close();
+  handleAnnotationSourceType(sourceType) {
+    const { sourceType: prevSourceType } = this.state;
+
+    if (prevSourceType !== sourceType) {
+      this.setState({ sourceType, value: null, isLoadingOptions: true });
+    }
   }
 
-  applyAnnotation() {
-    if (this.isValidForm()) {
-      const annotationFields = [
-        'name',
-        'annotationType',
-        'sourceType',
-        'color',
-        'opacity',
-        'style',
-        'width',
-        'showMarkers',
-        'hideLine',
-        'value',
-        'overrides',
-        'show',
-        'titleColumn',
-        'descriptionColumns',
-        'timeColumn',
-        'intervalEndColumn',
-      ];
-      const newAnnotation = {};
-      annotationFields.forEach(field => {
-        if (this.state[field] !== null) {
-          newAnnotation[field] = this.state[field];
-        }
-      });
+  handleAnnotationType(annotationType) {
+    this.setState({
+      annotationType,
+      sourceType: null,
+      value: null,
+    });
+  }
 
-      if (newAnnotation.color === AUTOMATIC_COLOR) {
-        newAnnotation.color = null;
+  handleValue(value) {
+    this.setState({
+      value,
+      descriptionColumns: null,
+      intervalEndColumn: null,
+      timeColumn: null,
+      titleColumn: null,
+      overrides: { time_range: null },
+    });
+  }
+
+  isValidForm() {
+    const {
+      name,
+      annotationType,
+      sourceType,
+      value,
+      timeColumn,
+      intervalEndColumn,
+    } = this.state;
+    const errors = [
+      validateNonEmpty(name),
+      validateNonEmpty(annotationType),
+      validateNonEmpty(value),
+    ];
+    if (sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE) {
+      if (annotationType === ANNOTATION_TYPES.EVENT) {
+        errors.push(validateNonEmpty(timeColumn));
       }
-
-      this.props.addAnnotationLayer(newAnnotation);
-      this.setState({ isNew: false });
+      if (annotationType === ANNOTATION_TYPES.INTERVAL) {
+        errors.push(validateNonEmpty(timeColumn));
+        errors.push(validateNonEmpty(intervalEndColumn));
+      }
     }
+    errors.push(this.isValidFormula(value, annotationType));
+    return !errors.filter(x => x).length;
+  }
+
+  isValidFormula(value, annotationType) {
+    if (annotationType === ANNOTATION_TYPES.FORMULA) {
+      try {
+        mathjsParse(value).compile().evaluate({ x: 0 });
+      } catch (err) {
+        return true;
+      }
+    }
+    return false;
   }
 
   submitAnnotation() {
     this.applyAnnotation();
     this.props.close();
+  }
+
+  renderDisplayConfiguration() {
+    const {
+      color,
+      opacity,
+      style,
+      width,
+      showMarkers,
+      hideLine,
+      annotationType,
+    } = this.state;
+    const colorScheme = getCategoricalSchemeRegistry()
+      .get(this.props.colorScheme)
+      .colors.concat();
+    if (
+      color &&
+      color !== AUTOMATIC_COLOR &&
+      !colorScheme.find(x => x.toLowerCase() === color.toLowerCase())
+    ) {
+      colorScheme.push(color);
+    }
+    return (
+      <PopoverSection
+        isSelected
+        onSelect={() => {}}
+        title={t('Display configuration')}
+        info={t('Configure your how you overlay is displayed here.')}
+      >
+        <SelectControl
+          name="annotation-layer-stroke"
+          label={t('Style')}
+          // see '../../../visualizations/nvd3_vis.css'
+          options={[
+            { value: 'solid', label: 'Solid' },
+            { value: 'dashed', label: 'Dashed' },
+            { value: 'longDashed', label: 'Long Dashed' },
+            { value: 'dotted', label: 'Dotted' },
+          ]}
+          value={style}
+          clearable={false}
+          onChange={v => this.setState({ style: v })}
+        />
+        <SelectControl
+          name="annotation-layer-opacity"
+          label={t('Opacity')}
+          // see '../../../visualizations/nvd3_vis.css'
+          options={[
+            { value: '', label: 'Solid' },
+            { value: 'opacityLow', label: '0.2' },
+            { value: 'opacityMedium', label: '0.5' },
+            { value: 'opacityHigh', label: '0.8' },
+          ]}
+          value={opacity}
+          onChange={v => this.setState({ opacity: v })}
+        />
+        <div>
+          <ControlHeader label={t('Color')} />
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <CompactPicker
+              color={color}
+              colors={colorScheme}
+              onChangeComplete={v => this.setState({ color: v.hex })}
+            />
+            <Button
+              style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}
+              buttonStyle={color === AUTOMATIC_COLOR ? 'success' : 'default'}
+              buttonSize="xsmall"
+              onClick={() => this.setState({ color: AUTOMATIC_COLOR })}
+            >
+              Automatic Color
+            </Button>
+          </div>
+        </div>
+        <TextControl
+          name="annotation-layer-stroke-width"
+          label={t('Line Width')}
+          isInt
+          value={width}
+          onChange={v => this.setState({ width: v })}
+        />
+        {annotationType === ANNOTATION_TYPES.TIME_SERIES && (
+          <CheckboxControl
+            hovered
+            name="annotation-layer-show-markers"
+            label="Show Markers"
+            description="Shows or hides markers for the time series"
+            value={showMarkers}
+            onChange={v => this.setState({ showMarkers: v })}
+          />
+        )}
+        {annotationType === ANNOTATION_TYPES.TIME_SERIES && (
+          <CheckboxControl
+            hovered
+            name="annotation-layer-hide-line"
+            label="Hide Line"
+            description="Hides the Line for the time series"
+            value={hideLine}
+            onChange={v => this.setState({ hideLine: v })}
+          />
+        )}
+      </PopoverSection>
+    );
   }
 
   renderOption(option) {
@@ -363,72 +466,6 @@ export default class AnnotationLayer extends React.PureComponent {
         {option.label}
       </span>
     );
-  }
-
-  renderValueConfiguration() {
-    const {
-      annotationType,
-      sourceType,
-      value,
-      valueOptions,
-      isLoadingOptions,
-    } = this.state;
-    let label = '';
-    let description = '';
-    if (requiresQuery(sourceType)) {
-      if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
-        label = 'Annotation Layer';
-        description = 'Select the Annotation Layer you would like to use.';
-      } else {
-        label = t('Chart');
-        description = `Use a pre defined Superset Chart as a source for annotations and overlays.
-        your chart must be one of these visualization types:
-        [${this.getSupportedSourceTypes(annotationType)
-          .map(x => x.label)
-          .join(', ')}]`;
-      }
-    } else if (annotationType === ANNOTATION_TYPES.FORMULA) {
-      label = 'Formula';
-      description = `Expects a formula with depending time parameter 'x'
-        in milliseconds since epoch. mathjs is used to evaluate the formulas.
-        Example: '2x+5'`;
-    }
-    if (requiresQuery(sourceType)) {
-      return (
-        <SelectControl
-          name="annotation-layer-value"
-          showHeader
-          hovered
-          description={description}
-          label={label}
-          placeholder=""
-          options={valueOptions}
-          isLoading={isLoadingOptions}
-          value={value}
-          onChange={this.handleValue}
-          validationErrors={!value ? ['Mandatory'] : []}
-          optionRenderer={this.renderOption}
-        />
-      );
-    }
-    if (annotationType === ANNOTATION_TYPES.FORMULA) {
-      return (
-        <TextControl
-          name="annotation-layer-value"
-          hovered
-          showHeader
-          description={description}
-          label={label}
-          placeholder=""
-          value={value}
-          onChange={this.handleValue}
-          validationErrors={
-            this.isValidFormula(value, annotationType) ? ['Bad formula.'] : []
-          }
-        />
-      );
-    }
-    return '';
   }
 
   renderSliceConfiguration() {
@@ -574,107 +611,70 @@ export default class AnnotationLayer extends React.PureComponent {
     return '';
   }
 
-  renderDisplayConfiguration() {
+  renderValueConfiguration() {
     const {
-      color,
-      opacity,
-      style,
-      width,
-      showMarkers,
-      hideLine,
       annotationType,
+      sourceType,
+      value,
+      valueOptions,
+      isLoadingOptions,
     } = this.state;
-    const colorScheme = getCategoricalSchemeRegistry()
-      .get(this.props.colorScheme)
-      .colors.concat();
-    if (
-      color &&
-      color !== AUTOMATIC_COLOR &&
-      !colorScheme.find(x => x.toLowerCase() === color.toLowerCase())
-    ) {
-      colorScheme.push(color);
+    let label = '';
+    let description = '';
+    if (requiresQuery(sourceType)) {
+      if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
+        label = 'Annotation Layer';
+        description = 'Select the Annotation Layer you would like to use.';
+      } else {
+        label = t('Chart');
+        description = `Use a pre defined Superset Chart as a source for annotations and overlays.
+        your chart must be one of these visualization types:
+        [${this.getSupportedSourceTypes(annotationType)
+          .map(x => x.label)
+          .join(', ')}]`;
+      }
+    } else if (annotationType === ANNOTATION_TYPES.FORMULA) {
+      label = 'Formula';
+      description = `Expects a formula with depending time parameter 'x'
+        in milliseconds since epoch. mathjs is used to evaluate the formulas.
+        Example: '2x+5'`;
     }
-    return (
-      <PopoverSection
-        isSelected
-        onSelect={() => {}}
-        title={t('Display configuration')}
-        info={t('Configure your how you overlay is displayed here.')}
-      >
+    if (requiresQuery(sourceType)) {
+      return (
         <SelectControl
-          name="annotation-layer-stroke"
-          label={t('Style')}
-          // see '../../../visualizations/nvd3_vis.css'
-          options={[
-            { value: 'solid', label: 'Solid' },
-            { value: 'dashed', label: 'Dashed' },
-            { value: 'longDashed', label: 'Long Dashed' },
-            { value: 'dotted', label: 'Dotted' },
-          ]}
-          value={style}
-          clearable={false}
-          onChange={v => this.setState({ style: v })}
+          name="annotation-layer-value"
+          showHeader
+          hovered
+          description={description}
+          label={label}
+          placeholder=""
+          options={valueOptions}
+          isLoading={isLoadingOptions}
+          value={value}
+          onChange={this.handleValue}
+          validationErrors={!value ? ['Mandatory'] : []}
+          optionRenderer={this.renderOption}
         />
-        <SelectControl
-          name="annotation-layer-opacity"
-          label={t('Opacity')}
-          // see '../../../visualizations/nvd3_vis.css'
-          options={[
-            { value: '', label: 'Solid' },
-            { value: 'opacityLow', label: '0.2' },
-            { value: 'opacityMedium', label: '0.5' },
-            { value: 'opacityHigh', label: '0.8' },
-          ]}
-          value={opacity}
-          onChange={v => this.setState({ opacity: v })}
-        />
-        <div>
-          <ControlHeader label={t('Color')} />
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <CompactPicker
-              color={color}
-              colors={colorScheme}
-              onChangeComplete={v => this.setState({ color: v.hex })}
-            />
-            <Button
-              style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}
-              buttonStyle={color === AUTOMATIC_COLOR ? 'success' : 'default'}
-              buttonSize="xsmall"
-              onClick={() => this.setState({ color: AUTOMATIC_COLOR })}
-            >
-              Automatic Color
-            </Button>
-          </div>
-        </div>
+      );
+    }
+    if (annotationType === ANNOTATION_TYPES.FORMULA) {
+      return (
         <TextControl
-          name="annotation-layer-stroke-width"
-          label={t('Line Width')}
-          isInt
-          value={width}
-          onChange={v => this.setState({ width: v })}
+          name="annotation-layer-value"
+          hovered
+          showHeader
+          description={description}
+          label={label}
+          placeholder=""
+          value={value}
+          onChange={this.handleValue}
+          validationErrors={
+            this.isValidFormula(value, annotationType) ? ['Bad formula.'] : []
+          }
         />
-        {annotationType === ANNOTATION_TYPES.TIME_SERIES && (
-          <CheckboxControl
-            hovered
-            name="annotation-layer-show-markers"
-            label="Show Markers"
-            description="Shows or hides markers for the time series"
-            value={showMarkers}
-            onChange={v => this.setState({ showMarkers: v })}
-          />
-        )}
-        {annotationType === ANNOTATION_TYPES.TIME_SERIES && (
-          <CheckboxControl
-            hovered
-            name="annotation-layer-hide-line"
-            label="Hide Line"
-            description="Hides the Line for the time series"
-            value={hideLine}
-            onChange={v => this.setState({ hideLine: v })}
-          />
-        )}
-      </PopoverSection>
-    );
+      );
+    }
+    return '';
   }
 
   render() {

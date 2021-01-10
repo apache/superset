@@ -228,12 +228,6 @@ class SqlEditor extends React.PureComponent {
     window.removeEventListener('resize', this.handleWindowResize);
   }
 
-  onResizeStart() {
-    // Set the heights on the ace editor and the ace content area after drag starts
-    // to smooth out the visual transition to the new heights when drag ends
-    document.getElementsByClassName('ace_content')[0].style.height = '100%';
-  }
-
   onResizeEnd([northPercent, southPercent]) {
     this.setState({ northPercent, southPercent });
 
@@ -246,6 +240,12 @@ class SqlEditor extends React.PureComponent {
     }
   }
 
+  onResizeStart() {
+    // Set the heights on the ace editor and the ace content area after drag starts
+    // to smooth out the visual transition to the new heights when drag ends
+    document.getElementsByClassName('ace_content')[0].style.height = '100%';
+  }
+
   onSqlChanged(sql) {
     this.setState({ sql });
     this.setQueryEditorSqlWithDebounce(sql);
@@ -254,13 +254,6 @@ class SqlEditor extends React.PureComponent {
       // NB. requestValidation is debounced
       this.requestValidation();
     }
-  }
-
-  // One layer of abstraction for easy spying in unit tests
-  getSqlEditorHeight() {
-    return this.sqlEditorRef.current
-      ? this.sqlEditorRef.current.clientHeight - SQL_EDITOR_PADDING * 2
-      : 0;
   }
 
   // Return the heights for the ace editor and the south pane as an object
@@ -320,14 +313,6 @@ class SqlEditor extends React.PureComponent {
     ];
   }
 
-  setQueryEditorSql(sql) {
-    this.props.queryEditorSetSql(this.props.queryEditor, sql);
-  }
-
-  setQueryLimit(queryLimit) {
-    this.props.queryEditorSetQueryLimit(this.props.queryEditor, queryLimit);
-  }
-
   getQueryCostEstimate() {
     if (this.props.database) {
       const qe = this.props.queryEditor;
@@ -342,36 +327,19 @@ class SqlEditor extends React.PureComponent {
     }
   }
 
-  handleToggleAutocompleteEnabled = () => {
-    this.setState(prevState => ({
-      autocompleteEnabled: !prevState.autocompleteEnabled,
-    }));
-  };
-
-  handleWindowResize() {
-    this.setState({ height: this.getSqlEditorHeight() });
+  // One layer of abstraction for easy spying in unit tests
+  getSqlEditorHeight() {
+    return this.sqlEditorRef.current
+      ? this.sqlEditorRef.current.clientHeight - SQL_EDITOR_PADDING * 2
+      : 0;
   }
 
-  elementStyle(dimension, elementSize, gutterSize) {
-    return {
-      [dimension]: `calc(${elementSize}% - ${
-        gutterSize + SQL_EDITOR_GUTTER_MARGIN
-      }px)`,
-    };
+  setQueryEditorSql(sql) {
+    this.props.queryEditorSetSql(this.props.queryEditor, sql);
   }
 
-  requestValidation() {
-    if (this.props.database) {
-      const qe = this.props.queryEditor;
-      const query = {
-        dbId: qe.dbId,
-        sql: this.state.sql,
-        sqlEditorId: qe.id,
-        schema: qe.schema,
-        templateParams: qe.templateParams,
-      };
-      this.props.validateQuery(query);
-    }
+  setQueryLimit(queryLimit) {
+    this.props.queryEditorSetQueryLimit(this.props.queryEditor, queryLimit);
   }
 
   canValidateQuery() {
@@ -384,45 +352,8 @@ class SqlEditor extends React.PureComponent {
     return false;
   }
 
-  runQuery() {
-    if (this.props.database) {
-      this.startQuery();
-    }
-  }
-
   convertToNumWithSpaces(num) {
     return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ');
-  }
-
-  startQuery(ctas = false, ctas_method = CtasEnum.TABLE) {
-    const qe = this.props.queryEditor;
-    const query = {
-      dbId: qe.dbId,
-      sql: qe.selectedText ? qe.selectedText : this.state.sql,
-      sqlEditorId: qe.id,
-      tab: qe.title,
-      schema: qe.schema,
-      tempTable: ctas ? this.state.ctas : '',
-      templateParams: qe.templateParams,
-      queryLimit: qe.queryLimit || this.props.defaultQueryLimit,
-      runAsync: this.props.database
-        ? this.props.database.allow_run_async
-        : false,
-      ctas,
-      ctas_method,
-      updateTabState: !qe.selectedText,
-    };
-    this.props.runQuery(query);
-    this.props.setActiveSouthPaneTab('Results');
-  }
-
-  stopQuery() {
-    if (
-      this.props.latestQuery &&
-      ['running', 'pending'].indexOf(this.props.latestQuery.state) >= 0
-    ) {
-      this.props.postStopQuery(this.props.latestQuery);
-    }
   }
 
   createTableAs() {
@@ -437,6 +368,24 @@ class SqlEditor extends React.PureComponent {
 
   ctasChanged(event) {
     this.setState({ ctas: event.target.value });
+  }
+
+  elementStyle(dimension, elementSize, gutterSize) {
+    return {
+      [dimension]: `calc(${elementSize}% - ${
+        gutterSize + SQL_EDITOR_GUTTER_MARGIN
+      }px)`,
+    };
+  }
+
+  handleToggleAutocompleteEnabled = () => {
+    this.setState(prevState => ({
+      autocompleteEnabled: !prevState.autocompleteEnabled,
+    }));
+  };
+
+  handleWindowResize() {
+    this.setState({ height: this.getSqlEditorHeight() });
   }
 
   queryPane() {
@@ -492,6 +441,57 @@ class SqlEditor extends React.PureComponent {
     );
   }
 
+  requestValidation() {
+    if (this.props.database) {
+      const qe = this.props.queryEditor;
+      const query = {
+        dbId: qe.dbId,
+        sql: this.state.sql,
+        sqlEditorId: qe.id,
+        schema: qe.schema,
+        templateParams: qe.templateParams,
+      };
+      this.props.validateQuery(query);
+    }
+  }
+
+  runQuery() {
+    if (this.props.database) {
+      this.startQuery();
+    }
+  }
+
+  startQuery(ctas = false, ctas_method = CtasEnum.TABLE) {
+    const qe = this.props.queryEditor;
+    const query = {
+      dbId: qe.dbId,
+      sql: qe.selectedText ? qe.selectedText : this.state.sql,
+      sqlEditorId: qe.id,
+      tab: qe.title,
+      schema: qe.schema,
+      tempTable: ctas ? this.state.ctas : '',
+      templateParams: qe.templateParams,
+      queryLimit: qe.queryLimit || this.props.defaultQueryLimit,
+      runAsync: this.props.database
+        ? this.props.database.allow_run_async
+        : false,
+      ctas,
+      ctas_method,
+      updateTabState: !qe.selectedText,
+    };
+    this.props.runQuery(query);
+    this.props.setActiveSouthPaneTab('Results');
+  }
+
+  stopQuery() {
+    if (
+      this.props.latestQuery &&
+      ['running', 'pending'].indexOf(this.props.latestQuery.state) >= 0
+    ) {
+      this.props.postStopQuery(this.props.latestQuery);
+    }
+  }
+
   renderDropdown() {
     const qe = this.props.queryEditor;
     const successful = this.props.latestQuery?.state === 'success';
@@ -536,23 +536,6 @@ class SqlEditor extends React.PureComponent {
         )}
       </Menu>
     );
-  }
-
-  renderQueryLimit() {
-    const menuDropdown = (
-      <AntdMenu>
-        {LIMIT_DROPDOWN.map(limit => (
-          <AntdMenu.Item onClick={() => this.setQueryLimit(limit)}>
-            {/* // eslint-disable-line no-use-before-define */}
-            <a role="button" styling="link">
-              {this.convertToNumWithSpaces(limit)}
-            </a>{' '}
-          </AntdMenu.Item>
-        ))}
-      </AntdMenu>
-    );
-
-    return menuDropdown;
   }
 
   renderEditorBottomBar() {
@@ -691,6 +674,23 @@ class SqlEditor extends React.PureComponent {
         </div>
       </StyledToolbar>
     );
+  }
+
+  renderQueryLimit() {
+    const menuDropdown = (
+      <AntdMenu>
+        {LIMIT_DROPDOWN.map(limit => (
+          <AntdMenu.Item onClick={() => this.setQueryLimit(limit)}>
+            {/* // eslint-disable-line no-use-before-define */}
+            <a role="button" styling="link">
+              {this.convertToNumWithSpaces(limit)}
+            </a>{' '}
+          </AntdMenu.Item>
+        ))}
+      </AntdMenu>
+    );
+
+    return menuDropdown;
   }
 
   render() {

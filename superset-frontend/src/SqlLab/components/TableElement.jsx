@@ -80,13 +80,8 @@ class TableElement extends React.PureComponent {
     this.props.actions.addQueryEditor(qe);
   }
 
-  toggleTable(e) {
-    e.preventDefault();
-    if (this.props.table.expanded) {
-      this.props.actions.collapseTable(this.props.table);
-    } else {
-      this.props.actions.expandTable(this.props.table);
-    }
+  removeFromStore() {
+    this.props.actions.removeTable(this.props.table);
   }
 
   removeTable() {
@@ -98,44 +93,46 @@ class TableElement extends React.PureComponent {
     this.setState(prevState => ({ sortColumns: !prevState.sortColumns }));
   }
 
-  removeFromStore() {
-    this.props.actions.removeTable(this.props.table);
+  toggleTable(e) {
+    e.preventDefault();
+    if (this.props.table.expanded) {
+      this.props.actions.collapseTable(this.props.table);
+    } else {
+      this.props.actions.expandTable(this.props.table);
+    }
   }
 
-  renderWell() {
+  renderBody() {
     const { table } = this.props;
-    let header;
-    if (table.partitions) {
-      let partitionQuery;
-      let partitionClipBoard;
-      if (table.partitions.partitionQuery) {
-        ({ partitionQuery } = table.partitions.partitionQuery);
-        const tt = t('Copy partition query to clipboard');
-        partitionClipBoard = (
-          <CopyToClipboard
-            text={partitionQuery}
-            shouldShowText={false}
-            tooltipText={tt}
-            copyNode={<i className="fa fa-clipboard" />}
-          />
-        );
+    let cols;
+    if (table.columns) {
+      cols = table.columns.slice();
+      if (this.state.sortColumns) {
+        cols.sort((a, b) => {
+          const colA = a.name.toUpperCase();
+          const colB = b.name.toUpperCase();
+          if (colA < colB) {
+            return -1;
+          }
+          if (colA > colB) {
+            return 1;
+          }
+          return 0;
+        });
       }
-      let latest = Object.entries(table.partitions?.latest || []).map(
-        ([key, value]) => `${key}=${value}`,
-      );
-      latest = latest.join('/');
-      header = (
-        <Well bsSize="small">
-          <div>
-            <small>
-              {t('latest partition:')} {latest}
-            </small>{' '}
-            {partitionClipBoard}
-          </div>
-        </Well>
-      );
     }
-    return header;
+    const metadata = (
+      <Collapse in={table.expanded} timeout={this.props.timeout}>
+        <div>
+          {this.renderWell()}
+          <div className="table-columns m-t-5">
+            {cols &&
+              cols.map(col => <ColumnElement column={col} key={col.name} />)}
+          </div>
+        </div>
+      </Collapse>
+    );
+    return metadata;
   }
 
   renderControls() {
@@ -250,37 +247,40 @@ class TableElement extends React.PureComponent {
     );
   }
 
-  renderBody() {
+  renderWell() {
     const { table } = this.props;
-    let cols;
-    if (table.columns) {
-      cols = table.columns.slice();
-      if (this.state.sortColumns) {
-        cols.sort((a, b) => {
-          const colA = a.name.toUpperCase();
-          const colB = b.name.toUpperCase();
-          if (colA < colB) {
-            return -1;
-          }
-          if (colA > colB) {
-            return 1;
-          }
-          return 0;
-        });
+    let header;
+    if (table.partitions) {
+      let partitionQuery;
+      let partitionClipBoard;
+      if (table.partitions.partitionQuery) {
+        ({ partitionQuery } = table.partitions.partitionQuery);
+        const tt = t('Copy partition query to clipboard');
+        partitionClipBoard = (
+          <CopyToClipboard
+            text={partitionQuery}
+            shouldShowText={false}
+            tooltipText={tt}
+            copyNode={<i className="fa fa-clipboard" />}
+          />
+        );
       }
-    }
-    const metadata = (
-      <Collapse in={table.expanded} timeout={this.props.timeout}>
-        <div>
-          {this.renderWell()}
-          <div className="table-columns m-t-5">
-            {cols &&
-              cols.map(col => <ColumnElement column={col} key={col.name} />)}
+      let latest = Object.entries(table.partitions?.latest || []).map(
+        ([key, value]) => `${key}=${value}`,
+      );
+      latest = latest.join('/');
+      header = (
+        <Well bsSize="small">
+          <div>
+            <small>
+              {t('latest partition:')} {latest}
+            </small>{' '}
+            {partitionClipBoard}
           </div>
-        </div>
-      </Collapse>
-    );
-    return metadata;
+        </Well>
+      );
+    }
+    return header;
   }
 
   render() {

@@ -85,11 +85,6 @@ export default class AdhocFilterEditPopover extends React.Component {
     this.setState({ adhocFilter });
   }
 
-  onSave() {
-    this.props.onChange(this.state.adhocFilter);
-    this.props.onClose();
-  }
-
   onDragDown(e) {
     this.dragStartX = e.clientX;
     this.dragStartY = e.clientY;
@@ -114,6 +109,11 @@ export default class AdhocFilterEditPopover extends React.Component {
 
   onMouseUp() {
     document.removeEventListener('mousemove', this.onMouseMove);
+  }
+
+  onSave() {
+    this.props.onChange(this.state.adhocFilter);
+    this.props.onClose();
   }
 
   adjustHeight(heightDifference) {

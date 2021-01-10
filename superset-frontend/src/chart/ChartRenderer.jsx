@@ -103,25 +103,6 @@ class ChartRenderer extends React.Component {
     this.props.addFilter(col, vals, merge, refresh);
   }
 
-  handleRenderSuccess() {
-    const { actions, chartStatus, chartId, vizType } = this.props;
-    if (['loading', 'rendered'].indexOf(chartStatus) < 0) {
-      actions.chartRenderingSucceeded(chartId);
-    }
-
-    // only log chart render time which is triggered by query results change
-    // currently we don't log chart re-render time, like window resize etc
-    if (this.hasQueryResponseChange) {
-      actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
-        slice_id: chartId,
-        viz_type: vizType,
-        start_offset: this.renderStartTime,
-        ts: new Date().getTime(),
-        duration: Logger.getTimestamp() - this.renderStartTime,
-      });
-    }
-  }
-
   handleRenderFailure(error, info) {
     const { actions, chartId } = this.props;
     logging.warn(error);
@@ -137,6 +118,25 @@ class ChartRenderer extends React.Component {
         slice_id: chartId,
         has_err: true,
         error_details: error.toString(),
+        start_offset: this.renderStartTime,
+        ts: new Date().getTime(),
+        duration: Logger.getTimestamp() - this.renderStartTime,
+      });
+    }
+  }
+
+  handleRenderSuccess() {
+    const { actions, chartStatus, chartId, vizType } = this.props;
+    if (['loading', 'rendered'].indexOf(chartStatus) < 0) {
+      actions.chartRenderingSucceeded(chartId);
+    }
+
+    // only log chart render time which is triggered by query results change
+    // currently we don't log chart re-render time, like window resize etc
+    if (this.hasQueryResponseChange) {
+      actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
+        slice_id: chartId,
+        viz_type: vizType,
         start_offset: this.renderStartTime,
         ts: new Date().getTime(),
         duration: Logger.getTimestamp() - this.renderStartTime,

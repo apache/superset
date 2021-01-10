@@ -73,6 +73,11 @@ class Header extends React.PureComponent {
     this.setState(() => ({ isFocused: nextFocus }));
   }
 
+  handleDeleteComponent() {
+    const { deleteComponent, id, parentId } = this.props;
+    deleteComponent(id, parentId);
+  }
+
   handleUpdateMeta(metaKey, nextValue) {
     const { updateComponents, component } = this.props;
     if (nextValue && component.meta[metaKey] !== nextValue) {
@@ -86,11 +91,6 @@ class Header extends React.PureComponent {
         },
       });
     }
-  }
-
-  handleDeleteComponent() {
-    const { deleteComponent, id, parentId } = this.props;
-    deleteComponent(id, parentId);
   }
 
   render() {

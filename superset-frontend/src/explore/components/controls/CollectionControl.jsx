@@ -69,13 +69,13 @@ export default class CollectionControl extends React.Component {
     this.onAdd = this.onAdd.bind(this);
   }
 
+  onAdd() {
+    this.props.onChange(this.props.value.concat([this.props.itemGenerator()]));
+  }
+
   onChange(i, value) {
     Object.assign(this.props.value[i], value);
     this.props.onChange(this.props.value);
-  }
-
-  onAdd() {
-    this.props.onChange(this.props.value.concat([this.props.itemGenerator()]));
   }
 
   onSortEnd({ oldIndex, newIndex }) {

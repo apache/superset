@@ -118,19 +118,19 @@ class FilterBox extends React.PureComponent {
     this.onFilterMenuClose = this.onFilterMenuClose.bind(this);
   }
 
-  onFilterMenuOpen(column) {
-    return this.props.onFilterMenuOpen(this.props.chartId, column);
-  }
+  onCloseDateFilterControl = () => this.onFilterMenuClose(TIME_RANGE);
 
   onFilterMenuClose(column) {
     return this.props.onFilterMenuClose(this.props.chartId, column);
   }
 
+  onFilterMenuOpen(column) {
+    return this.props.onFilterMenuOpen(this.props.chartId, column);
+  }
+
   onOpenDateFilterControl() {
     return this.onFilterMenuOpen(TIME_RANGE);
   }
-
-  onCloseDateFilterControl = () => this.onFilterMenuClose(TIME_RANGE);
 
   getControlData(controlName) {
     const { selectedValues } = this.state;
@@ -154,13 +154,6 @@ class FilterBox extends React.PureComponent {
       d3Max(choices || this.props.filtersChoices[key] || [], x => x.metric),
     );
     return this.maxValueCache[key];
-  }
-
-  clickApply() {
-    const { selectedValues } = this.state;
-    this.setState({ hasChanged: false }, () => {
-      this.props.onChange(selectedValues, false);
-    });
   }
 
   changeFilter(filter, options) {
@@ -192,6 +185,13 @@ class FilterBox extends React.PureComponent {
     );
   }
 
+  clickApply() {
+    const { selectedValues } = this.state;
+    this.setState({ hasChanged: false }, () => {
+      this.props.onChange(selectedValues, false);
+    });
+  }
+
   /**
    * Generate a debounce function that loads options for a specific column
    */
@@ -202,26 +202,6 @@ class FilterBox extends React.PureComponent {
       }, 500);
     }
     return this.debouncerCache[key];
-  }
-
-  /**
-   * Transform select options, add bar background
-   */
-  transformOptions(options, max) {
-    const maxValue = max === undefined ? d3Max(options, x => x.metric) : max;
-    return options.map(opt => {
-      const perc = Math.round((opt.metric / maxValue) * 100);
-      const color = 'lightgrey';
-      const backgroundImage = `linear-gradient(to right, ${color}, ${color} ${perc}%, rgba(0,0,0,0) ${perc}%`;
-      const style = { backgroundImage };
-      let label = opt.id;
-      if (label === true) {
-        label = BOOL_TRUE_DISPLAY;
-      } else if (label === false) {
-        label = BOOL_FALSE_DISPLAY;
-      }
-      return { value: opt.id, label, style };
-    });
   }
 
   async loadOptions(key, inputValue = '') {
@@ -267,32 +247,24 @@ class FilterBox extends React.PureComponent {
     return this.transformOptions(options, this.getKnownMax(key, options));
   }
 
-  renderDateFilter() {
-    const { showDateFilter } = this.props;
-    const label = TIME_FILTER_LABELS.time_range;
-    if (showDateFilter) {
-      return (
-        <div className="row space-1">
-          <div
-            className="col-lg-12 col-xs-12 filter-container"
-            data-test="date-filter-container"
-          >
-            <DateFilterControl
-              name={TIME_RANGE}
-              label={label}
-              description={t('Select start and end date')}
-              onChange={newValue => {
-                this.changeFilter(TIME_RANGE, newValue);
-              }}
-              onOpenDateFilterControl={this.onOpenDateFilterControl}
-              onCloseDateFilterControl={this.onCloseDateFilterControl}
-              value={this.state.selectedValues[TIME_RANGE] || 'No filter'}
-            />
-          </div>
-        </div>
-      );
-    }
-    return null;
+  /**
+   * Transform select options, add bar background
+   */
+  transformOptions(options, max) {
+    const maxValue = max === undefined ? d3Max(options, x => x.metric) : max;
+    return options.map(opt => {
+      const perc = Math.round((opt.metric / maxValue) * 100);
+      const color = 'lightgrey';
+      const backgroundImage = `linear-gradient(to right, ${color}, ${color} ${perc}%, rgba(0,0,0,0) ${perc}%`;
+      const style = { backgroundImage };
+      let label = opt.id;
+      if (label === true) {
+        label = BOOL_TRUE_DISPLAY;
+      } else if (label === false) {
+        label = BOOL_FALSE_DISPLAY;
+      }
+      return { value: opt.id, label, style };
+    });
   }
 
   renderDatasourceFilters() {
@@ -332,6 +304,47 @@ class FilterBox extends React.PureComponent {
       );
     }
     return datasourceFilters;
+  }
+
+  renderDateFilter() {
+    const { showDateFilter } = this.props;
+    const label = TIME_FILTER_LABELS.time_range;
+    if (showDateFilter) {
+      return (
+        <div className="row space-1">
+          <div
+            className="col-lg-12 col-xs-12 filter-container"
+            data-test="date-filter-container"
+          >
+            <DateFilterControl
+              name={TIME_RANGE}
+              label={label}
+              description={t('Select start and end date')}
+              onChange={newValue => {
+                this.changeFilter(TIME_RANGE, newValue);
+              }}
+              onOpenDateFilterControl={this.onOpenDateFilterControl}
+              onCloseDateFilterControl={this.onCloseDateFilterControl}
+              value={this.state.selectedValues[TIME_RANGE] || 'No filter'}
+            />
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }
+
+  renderFilters() {
+    const { filtersFields = [] } = this.props;
+    return filtersFields.map(filterConfig => {
+      const { label, key } = filterConfig;
+      return (
+        <div key={key} className="m-b-5 filter-container">
+          <FormLabel htmlFor={`LABEL-${key}`}>{label}</FormLabel>
+          {this.renderSelect(filterConfig)}
+        </div>
+      );
+    });
   }
 
   renderSelect(filterConfig) {
@@ -411,19 +424,6 @@ class FilterBox extends React.PureComponent {
         noResultsText={t('No results found')}
       />
     );
-  }
-
-  renderFilters() {
-    const { filtersFields = [] } = this.props;
-    return filtersFields.map(filterConfig => {
-      const { label, key } = filterConfig;
-      return (
-        <div key={key} className="m-b-5 filter-container">
-          <FormLabel htmlFor={`LABEL-${key}`}>{label}</FormLabel>
-          {this.renderSelect(filterConfig)}
-        </div>
-      );
-    });
   }
 
   render() {

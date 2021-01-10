@@ -60,6 +60,10 @@ export default class SqlEditorLeftBar extends React.PureComponent {
     this.onTableChange = this.onTableChange.bind(this);
   }
 
+  onDbChange(db) {
+    this.props.actions.queryEditorSetDb(this.props.queryEditor, db.id);
+  }
+
   onSchemaChange(schema) {
     this.props.actions.queryEditorSetSchema(this.props.queryEditor, schema);
   }
@@ -71,6 +75,10 @@ export default class SqlEditorLeftBar extends React.PureComponent {
     );
   }
 
+  onTableChange(tableName, schemaName) {
+    this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
+  }
+
   onTablesLoad(tables) {
     this.props.actions.queryEditorSetTableOptions(
       this.props.queryEditor,
@@ -78,16 +86,18 @@ export default class SqlEditorLeftBar extends React.PureComponent {
     );
   }
 
-  onDbChange(db) {
-    this.props.actions.queryEditorSetDb(this.props.queryEditor, db.id);
-  }
-
-  onTableChange(tableName, schemaName) {
-    this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
-  }
-
   getDbList(dbs) {
     this.props.actions.setDatabases(dbs);
+  }
+
+  changeTable(tableOpt) {
+    if (!tableOpt) {
+      return;
+    }
+    const schemaName = tableOpt.value.schema;
+    const tableName = tableOpt.value.table;
+    this.props.actions.queryEditorSetSchema(this.props.queryEditor, schemaName);
+    this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
   }
 
   dbMutator(data) {
@@ -106,16 +116,6 @@ export default class SqlEditorLeftBar extends React.PureComponent {
 
   resetState() {
     this.props.actions.resetState();
-  }
-
-  changeTable(tableOpt) {
-    if (!tableOpt) {
-      return;
-    }
-    const schemaName = tableOpt.value.schema;
-    const tableName = tableOpt.value.table;
-    this.props.actions.queryEditorSetSchema(this.props.queryEditor, schemaName);
-    this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
   }
 
   render() {

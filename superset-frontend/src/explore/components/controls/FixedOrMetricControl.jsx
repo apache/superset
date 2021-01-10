@@ -77,16 +77,16 @@ export default class FixedOrMetricControl extends React.Component {
     });
   }
 
-  setType(type) {
-    this.setState({ type }, this.onChange);
-  }
-
   setFixedValue(fixedValue) {
     this.setState({ fixedValue }, this.onChange);
   }
 
   setMetric(metricValue) {
     this.setState({ metricValue }, this.onChange);
+  }
+
+  setType(type) {
+    this.setState({ type }, this.onChange);
   }
 
   toggle() {

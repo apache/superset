@@ -102,13 +102,10 @@ export class ExploreChartHeader extends React.PureComponent {
     return this.props.sliceName || t('%s - untitled', this.props.table_name);
   }
 
-  postChartFormData() {
-    this.props.actions.postChartFormData(
-      this.props.form_data,
-      true,
-      this.props.timeout,
-      this.props.chart.id,
-    );
+  closePropertiesModal() {
+    this.setState({
+      isPropertiesModalOpen: false,
+    });
   }
 
   openPropertiesModal() {
@@ -117,10 +114,13 @@ export class ExploreChartHeader extends React.PureComponent {
     });
   }
 
-  closePropertiesModal() {
-    this.setState({
-      isPropertiesModalOpen: false,
-    });
+  postChartFormData() {
+    this.props.actions.postChartFormData(
+      this.props.form_data,
+      true,
+      this.props.timeout,
+      this.props.chart.id,
+    );
   }
 
   render() {

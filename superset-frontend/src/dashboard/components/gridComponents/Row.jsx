@@ -75,6 +75,11 @@ class Row extends React.PureComponent {
     this.setState(() => ({ isFocused: Boolean(nextFocus) }));
   }
 
+  handleDeleteComponent() {
+    const { deleteComponent, component, parentId } = this.props;
+    deleteComponent(component.id, parentId);
+  }
+
   handleUpdateMeta(metaKey, nextValue) {
     const { updateComponents, component } = this.props;
     if (nextValue && component.meta[metaKey] !== nextValue) {
@@ -88,11 +93,6 @@ class Row extends React.PureComponent {
         },
       });
     }
-  }
-
-  handleDeleteComponent() {
-    const { deleteComponent, component, parentId } = this.props;
-    deleteComponent(component.id, parentId);
   }
 
   render() {

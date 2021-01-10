@@ -46,26 +46,6 @@ export default class BoundsControl extends React.Component {
     this.onMaxChange = this.onMaxChange.bind(this);
   }
 
-  onMinChange(event) {
-    const min = event.target.value;
-    this.setState(
-      prevState => ({
-        minMax: [min, prevState.minMax[1]],
-      }),
-      this.onChange,
-    );
-  }
-
-  onMaxChange(event) {
-    const max = event.target.value;
-    this.setState(
-      prevState => ({
-        minMax: [prevState.minMax[0], max],
-      }),
-      this.onChange,
-    );
-  }
-
   onChange() {
     const mm = this.state.minMax;
     const errors = [];
@@ -80,6 +60,26 @@ export default class BoundsControl extends React.Component {
     } else {
       this.props.onChange([null, null], errors);
     }
+  }
+
+  onMaxChange(event) {
+    const max = event.target.value;
+    this.setState(
+      prevState => ({
+        minMax: [prevState.minMax[0], max],
+      }),
+      this.onChange,
+    );
+  }
+
+  onMinChange(event) {
+    const min = event.target.value;
+    this.setState(
+      prevState => ({
+        minMax: [min, prevState.minMax[1]],
+      }),
+      this.onChange,
+    );
   }
 
   render() {

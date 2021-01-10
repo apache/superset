@@ -112,15 +112,6 @@ const StyledDashboardContent = styled.div`
 `;
 
 class DashboardBuilder extends React.Component {
-  static shouldFocusTabs(event, container) {
-    // don't focus the tabs when we click on a tab
-    return (
-      event.target.className === 'ant-tabs-nav-wrap' ||
-      (/icon-button/.test(event.target.className) &&
-        container.contains(event.target))
-    );
-  }
-
   static getRootLevelTabIndex(dashboardLayout, directPathToChild) {
     return Math.max(
       0,
@@ -139,6 +130,15 @@ class DashboardBuilder extends React.Component {
     return rootChildId === DASHBOARD_GRID_ID
       ? dashboardLayout[DASHBOARD_ROOT_ID]
       : dashboardLayout[rootChildId];
+  }
+
+  static shouldFocusTabs(event, container) {
+    // don't focus the tabs when we click on a tab
+    return (
+      event.target.className === 'ant-tabs-nav-wrap' ||
+      (/icon-button/.test(event.target.className) &&
+        container.contains(event.target))
+    );
   }
 
   constructor(props) {
@@ -185,20 +185,6 @@ class DashboardBuilder extends React.Component {
     }
   }
 
-  toggleDashboardFiltersOpen(visible) {
-    if (visible === undefined) {
-      this.setState(state => ({
-        ...state,
-        dashboardFiltersOpen: !state.dashboardFiltersOpen,
-      }));
-    } else {
-      this.setState(state => ({
-        ...state,
-        dashboardFiltersOpen: visible,
-      }));
-    }
-  }
-
   handleChangeTab({ pathToTabIndex }) {
     this.props.setDirectPathToChild(pathToTabIndex);
   }
@@ -212,6 +198,20 @@ class DashboardBuilder extends React.Component {
       0,
     );
     this.props.setDirectPathToChild(firstTab);
+  }
+
+  toggleDashboardFiltersOpen(visible) {
+    if (visible === undefined) {
+      this.setState(state => ({
+        ...state,
+        dashboardFiltersOpen: !state.dashboardFiltersOpen,
+      }));
+    } else {
+      this.setState(state => ({
+        ...state,
+        dashboardFiltersOpen: visible,
+      }));
+    }
   }
 
   render() {

@@ -93,6 +93,13 @@ class ResizableContainer extends React.PureComponent {
     this.handleResizeStop = this.handleResizeStop.bind(this);
   }
 
+  handleResize(event, direction, ref) {
+    const { onResize, id } = this.props;
+    if (onResize) {
+      onResize({ id, direction, ref });
+    }
+  }
+
   handleResizeStart(event, direction, ref) {
     const { id, onResizeStart } = this.props;
 
@@ -101,13 +108,6 @@ class ResizableContainer extends React.PureComponent {
     }
 
     this.setState(() => ({ isResizing: true }));
-  }
-
-  handleResize(event, direction, ref) {
-    const { onResize, id } = this.props;
-    if (onResize) {
-      onResize({ id, direction, ref });
-    }
   }
 
   handleResizeStop(event, direction, ref, delta) {

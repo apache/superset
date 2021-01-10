@@ -108,6 +108,51 @@ export default class Tab extends React.PureComponent {
     }
   }
 
+  renderTab() {
+    const {
+      component,
+      parentComponent,
+      index,
+      depth,
+      editMode,
+      filters,
+      isFocused,
+    } = this.props;
+
+    return (
+      <DragDroppable
+        component={component}
+        parentComponent={parentComponent}
+        orientation="column"
+        index={index}
+        depth={depth}
+        onDrop={this.handleDrop}
+        editMode={editMode}
+      >
+        {({ dropIndicatorProps, dragSourceRef }) => (
+          <div className="dragdroppable-tab" ref={dragSourceRef}>
+            <EditableTitle
+              title={component.meta.text}
+              canEdit={editMode && isFocused}
+              onSaveTitle={this.handleChangeText}
+              showTooltip={false}
+            />
+            {!editMode && (
+              <AnchorLink
+                anchorLinkId={component.id}
+                filters={filters}
+                showShortLinkButton
+                placement={index >= 5 ? 'left' : 'right'}
+              />
+            )}
+
+            {dropIndicatorProps && <div {...dropIndicatorProps} />}
+          </div>
+        )}
+      </DragDroppable>
+    );
+  }
+
   renderTabContent() {
     const {
       component: tabComponent,
@@ -180,51 +225,6 @@ export default class Tab extends React.PureComponent {
           </DragDroppable>
         )}
       </div>
-    );
-  }
-
-  renderTab() {
-    const {
-      component,
-      parentComponent,
-      index,
-      depth,
-      editMode,
-      filters,
-      isFocused,
-    } = this.props;
-
-    return (
-      <DragDroppable
-        component={component}
-        parentComponent={parentComponent}
-        orientation="column"
-        index={index}
-        depth={depth}
-        onDrop={this.handleDrop}
-        editMode={editMode}
-      >
-        {({ dropIndicatorProps, dragSourceRef }) => (
-          <div className="dragdroppable-tab" ref={dragSourceRef}>
-            <EditableTitle
-              title={component.meta.text}
-              canEdit={editMode && isFocused}
-              onSaveTitle={this.handleChangeText}
-              showTooltip={false}
-            />
-            {!editMode && (
-              <AnchorLink
-                anchorLinkId={component.id}
-                filters={filters}
-                showShortLinkButton
-                placement={index >= 5 ? 'left' : 'right'}
-              />
-            )}
-
-            {dropIndicatorProps && <div {...dropIndicatorProps} />}
-          </div>
-        )}
-      </DragDroppable>
     );
   }
 

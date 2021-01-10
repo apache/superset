@@ -130,6 +130,11 @@ class PropertiesModal extends React.PureComponent {
     JsonEditor.preload();
   }
 
+  onChange(e) {
+    const { name, value } = e.target;
+    this.updateFormState(name, value);
+  }
+
   onColorSchemeChange(value, { updateMetadata = true } = {}) {
     // check that color_scheme is valid
     const colorChoices = getCategoricalSchemeRegistry().keys();
@@ -159,17 +164,12 @@ class PropertiesModal extends React.PureComponent {
     this.updateFormState('colorScheme', value);
   }
 
-  onOwnersChange(value) {
-    this.updateFormState('owners', value);
-  }
-
   onMetadataChange(metadata) {
     this.updateFormState('json_metadata', metadata);
   }
 
-  onChange(e) {
-    const { name, value } = e.target;
-    this.updateFormState(name, value);
+  onOwnersChange(value) {
+    this.updateFormState('owners', value);
   }
 
   fetchDashboardDetails() {
@@ -204,21 +204,6 @@ class PropertiesModal extends React.PureComponent {
       }));
       this.onOwnersChange(initialSelectedOwners);
     }, handleErrorResponse);
-  }
-
-  updateFormState(name, value) {
-    this.setState(state => ({
-      values: {
-        ...state.values,
-        [name]: value,
-      },
-    }));
-  }
-
-  toggleAdvanced() {
-    this.setState(state => ({
-      isAdvancedOpen: !state.isAdvancedOpen,
-    }));
   }
 
   submit(e) {
@@ -280,6 +265,21 @@ class PropertiesModal extends React.PureComponent {
         this.props.onHide();
       }, handleErrorResponse);
     }
+  }
+
+  toggleAdvanced() {
+    this.setState(state => ({
+      isAdvancedOpen: !state.isAdvancedOpen,
+    }));
+  }
+
+  updateFormState(name, value) {
+    this.setState(state => ({
+      values: {
+        ...state.values,
+        [name]: value,
+      },
+    }));
   }
 
   render() {

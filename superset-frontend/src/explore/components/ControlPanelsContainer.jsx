@@ -87,15 +87,15 @@ class ControlPanelsContainer extends React.Component {
     this.renderControlPanelSection = this.renderControlPanelSection.bind(this);
   }
 
+  removeAlert() {
+    this.props.actions.removeControlPanelAlert();
+  }
+
   sectionsToRender() {
     return sectionsToRender(
       this.props.form_data.viz_type,
       this.props.datasource_type,
     );
-  }
-
-  removeAlert() {
-    this.props.actions.removeControlPanelAlert();
   }
 
   renderControl({ name, config }) {

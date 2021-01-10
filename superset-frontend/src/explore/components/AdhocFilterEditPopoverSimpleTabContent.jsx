@@ -117,33 +117,17 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     }
   }
 
-  onSubjectChange(id) {
-    const option = this.props.options.find(
-      option => option.id === id || option.optionName === id,
-    );
-
-    let subject;
-    let clause;
-    // infer the new clause based on what subject was selected.
-    if (option && option.column_name) {
-      subject = option.column_name;
-      clause = CLAUSES.WHERE;
-    } else if (option && (option.saved_metric_name || option.label)) {
-      subject = option.saved_metric_name || option.label;
-      clause = CLAUSES.HAVING;
-    }
-    const { operator } = this.props.adhocFilter;
+  onComparatorChange(comparator) {
     this.props.onChange(
       this.props.adhocFilter.duplicateWith({
-        subject,
-        clause,
-        operator:
-          operator && this.isOperatorRelevant(operator, subject)
-            ? operator
-            : null,
+        comparator,
         expressionType: EXPRESSION_TYPES.SIMPLE,
       }),
     );
+  }
+
+  onInputComparatorChange(event) {
+    this.onComparatorChange(event.target.value);
   }
 
   onOperatorChange(operator) {
@@ -182,17 +166,71 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     }
   }
 
-  onInputComparatorChange(event) {
-    this.onComparatorChange(event.target.value);
-  }
+  onSubjectChange(id) {
+    const option = this.props.options.find(
+      option => option.id === id || option.optionName === id,
+    );
 
-  onComparatorChange(comparator) {
+    let subject;
+    let clause;
+    // infer the new clause based on what subject was selected.
+    if (option && option.column_name) {
+      subject = option.column_name;
+      clause = CLAUSES.WHERE;
+    } else if (option && (option.saved_metric_name || option.label)) {
+      subject = option.saved_metric_name || option.label;
+      clause = CLAUSES.HAVING;
+    }
+    const { operator } = this.props.adhocFilter;
     this.props.onChange(
       this.props.adhocFilter.duplicateWith({
-        comparator,
+        subject,
+        clause,
+        operator:
+          operator && this.isOperatorRelevant(operator, subject)
+            ? operator
+            : null,
         expressionType: EXPRESSION_TYPES.SIMPLE,
       }),
     );
+  }
+
+  createSuggestionsPlaceholder() {
+    const optionsRemaining = this.optionsRemaining();
+    const placeholder = t('%s option(s)', optionsRemaining);
+    return optionsRemaining ? placeholder : '';
+  }
+
+  focusComparator(ref, shouldFocus) {
+    if (ref && shouldFocus) {
+      ref.focus();
+    }
+  }
+
+  isOperatorRelevant(operator, subject) {
+    if (operator && CUSTOM_OPERATORS.has(operator)) {
+      const { partitionColumn } = this.props;
+      return partitionColumn && subject && subject === partitionColumn;
+    }
+
+    return !(
+      (this.props.datasource.type === 'druid' &&
+        TABLE_ONLY_OPERATORS.indexOf(operator) >= 0) ||
+      (this.props.datasource.type === 'table' &&
+        DRUID_ONLY_OPERATORS.indexOf(operator) >= 0) ||
+      (this.props.adhocFilter.clause === CLAUSES.HAVING &&
+        HAVING_OPERATORS.indexOf(operator) === -1)
+    );
+  }
+
+  optionsRemaining() {
+    const { suggestions } = this.state;
+    const { comparator } = this.props.adhocFilter;
+    // if select is multi/value is array, we show the options not selected
+    const valuesFromSuggestionsLength = Array.isArray(comparator)
+      ? comparator.filter(v => suggestions.includes(v)).length
+      : 0;
+    return suggestions?.length - valuesFromSuggestionsLength ?? 0;
   }
 
   refreshComparatorSuggestions() {
@@ -228,44 +266,6 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
           }));
         });
     }
-  }
-
-  isOperatorRelevant(operator, subject) {
-    if (operator && CUSTOM_OPERATORS.has(operator)) {
-      const { partitionColumn } = this.props;
-      return partitionColumn && subject && subject === partitionColumn;
-    }
-
-    return !(
-      (this.props.datasource.type === 'druid' &&
-        TABLE_ONLY_OPERATORS.indexOf(operator) >= 0) ||
-      (this.props.datasource.type === 'table' &&
-        DRUID_ONLY_OPERATORS.indexOf(operator) >= 0) ||
-      (this.props.adhocFilter.clause === CLAUSES.HAVING &&
-        HAVING_OPERATORS.indexOf(operator) === -1)
-    );
-  }
-
-  focusComparator(ref, shouldFocus) {
-    if (ref && shouldFocus) {
-      ref.focus();
-    }
-  }
-
-  optionsRemaining() {
-    const { suggestions } = this.state;
-    const { comparator } = this.props.adhocFilter;
-    // if select is multi/value is array, we show the options not selected
-    const valuesFromSuggestionsLength = Array.isArray(comparator)
-      ? comparator.filter(v => suggestions.includes(v)).length
-      : 0;
-    return suggestions?.length - valuesFromSuggestionsLength ?? 0;
-  }
-
-  createSuggestionsPlaceholder() {
-    const optionsRemaining = this.optionsRemaining();
-    const placeholder = t('%s option(s)', optionsRemaining);
-    return optionsRemaining ? placeholder : '';
   }
 
   renderSubjectOptionLabel(option) {

@@ -131,35 +131,6 @@ export default class SpatialControl extends React.Component {
     return null;
   }
 
-  renderSelect(name, type) {
-    return (
-      <SelectControl
-        name={name}
-        choices={this.props.choices}
-        value={this.state[name]}
-        clearable={false}
-        onFocus={() => {
-          this.setType(type);
-        }}
-        onChange={value => {
-          this.setState({ [name]: value }, this.onChange);
-        }}
-      />
-    );
-  }
-
-  renderReverseCheckbox() {
-    return (
-      <span>
-        {t('Reverse lat/long ')}
-        <Checkbox
-          checked={this.state.reverseCheckbox}
-          onChange={this.toggleCheckbox}
-        />
-      </span>
-    );
-  }
-
   renderPopoverContent() {
     return (
       <div style={{ width: '300px' }}>
@@ -210,6 +181,35 @@ export default class SpatialControl extends React.Component {
           </Row>
         </PopoverSection>
       </div>
+    );
+  }
+
+  renderReverseCheckbox() {
+    return (
+      <span>
+        {t('Reverse lat/long ')}
+        <Checkbox
+          checked={this.state.reverseCheckbox}
+          onChange={this.toggleCheckbox}
+        />
+      </span>
+    );
+  }
+
+  renderSelect(name, type) {
+    return (
+      <SelectControl
+        name={name}
+        choices={this.props.choices}
+        value={this.state[name]}
+        clearable={false}
+        onFocus={() => {
+          this.setType(type);
+        }}
+        onChange={value => {
+          this.setState({ [name]: value }, this.onChange);
+        }}
+      />
     );
   }
 
