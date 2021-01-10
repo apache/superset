@@ -441,9 +441,7 @@ if (isDevMode) {
     // and proxy everything else to Superset backend
     proxy: [
       // functions are called for every request
-      () => {
-        return proxyConfig;
-      },
+      () => proxyConfig,
     ],
     contentBase: path.join(process.cwd(), '../static/assets'),
   };

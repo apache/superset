@@ -50,7 +50,7 @@ describe('SaveDatasetModal', () => {
     const wrapper = shallow(<SaveDatasetModal {...mockedProps} />);
     expect(wrapper.find(AutoComplete)).toExist();
   });
-  it('renders an input form ', () => {
+  it('renders an input form', () => {
     // @ts-ignore
     const wrapper = shallow(<SaveDatasetModal {...mockedProps} />);
     expect(wrapper.find(Input)).toExist();

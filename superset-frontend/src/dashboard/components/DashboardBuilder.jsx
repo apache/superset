@@ -98,7 +98,7 @@ const StyledDashboardContent = styled.div`
       ${({ theme }) => theme.gridUnit * 6}px
       ${({ theme, dashboardFiltersOpen }) =>
         // eslint-disable-next-line prettier/prettier
-        (dashboardFiltersOpen ? theme.gridUnit * 4 : 0)}px;
+        dashboardFiltersOpen ? theme.gridUnit * 4 : 0}px;
   }
 
   .dashboard-component-chart-holder {
