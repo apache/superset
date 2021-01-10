@@ -246,6 +246,7 @@ module.exports = {
     'react/no-unused-prop-types': 0,
     'react/prop-types': 0,
     'react/require-default-props': 0,
+    'react/sort-comp': 0,
     'react/static-property-placement': 0, // disabled temporarily
     'prettier/prettier': 'error',
   },
