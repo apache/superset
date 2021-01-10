@@ -173,7 +173,7 @@ const babelLoader = {
       [
         '@emotion/babel-preset-css-prop',
         {
-          autoLabel: true,
+          autoLabel: 'dev-only',
           labelFormat: '[local]',
         },
       ],
