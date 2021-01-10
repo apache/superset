@@ -437,6 +437,9 @@ class CeleryConfig(object):
     CELERY_IMPORTS = ('superset.sql_lab', 'superset.tasks')
     CELERY_RESULT_BACKEND = 'redis://{}/0'.format(REDIS_ENDPOINT)
     CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+    CELERYD_PREFETCH_MULTIPLIER = 1
+    CELERYD_CONCURRENCY = 10
+    CELERY_ACKS_LATE = 1
     CELERY_DEFAULT_QUEUE = '{}-{}'.format(STAGE, TENANT)
     CELERYBEAT_SCHEDULE = {
         'cache-warmup-hourly': {

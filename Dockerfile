@@ -70,7 +70,7 @@ COPY . /home/superset
 RUN pip install --upgrade setuptools pip \
   && pip install -r requirements.txt -r requirements-dev.txt  \
   && pip install -e . \
-  && pip install gevent \
+  && pip install eventlet \
   && rm -rf /root/.cache/pip
 
 RUN cd superset/assets \

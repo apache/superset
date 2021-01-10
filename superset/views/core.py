@@ -3013,6 +3013,73 @@ class Superset(BaseSupersetView):
 
         return self.json_response("OK")
 
+    # @use_ip_auth
+    # @api
+    # @handle_api_exception
+    # @expose("/validate_sql_query/", methods=["POST", "GET"])
+    # @event_logger.log_this
+    # def validate_sql_query(self):
+    #     """Validates that arbitrary sql is acceptable for the given database.
+    #     Returns a list of error/warning annotations as json.
+    #     """
+    #     logging.info("Request Received to validate query")
+    #     g.user = security_manager.find_user(username="admin")
+    #     sql = request.form.get("sql")
+    #     database_id = request.form.get("database_id")
+    #     schema = request.form.get("schema") or None
+    #     template_params = json.loads(request.form.get("templateParams") or "{}")
+    #
+    #     if len(template_params) > 0:
+    #         # TODO: factor the Database object out of template rendering
+    #         #       or provide it as mydb so we can render template params
+    #         #       without having to also persist a Query ORM object.
+    #         return json_error_response(
+    #             "SQL validation does not support template parameters", status=400
+    #         )
+    #
+    #     session = db.session()
+    #     mydb = session.query(models.Database).filter_by(id=database_id).first()
+    #     if not mydb:
+    #         json_error_response(
+    #             "Database with id {} is missing.".format(database_id), status=400
+    #         )
+    #
+    #     spec = mydb.db_engine_spec
+    #     validators_by_engine = get_feature_flags().get("SQL_VALIDATORS_BY_ENGINE")
+    #     if not validators_by_engine or spec.engine not in validators_by_engine:
+    #         return json_error_response(
+    #             "no SQL validator is configured for {}".format(spec.engine), status=400
+    #         )
+    #     validator_name = validators_by_engine[spec.engine]
+    #     validator = get_validator_by_name(validator_name)
+    #     if not validator:
+    #         return json_error_response(
+    #             "No validator named {} found (configured for the {} engine)".format(
+    #                 validator_name, spec.engine
+    #             )
+    #         )
+    #
+    #     try:
+    #         timeout = config.get("SQLLAB_VALIDATION_TIMEOUT")
+    #         timeout_msg = f"The query exceeded the {timeout} seconds timeout."
+    #         with utils.timeout(seconds=timeout, error_message=timeout_msg):
+    #             errors = validator.validate(sql, schema, mydb)
+    #         payload = json.dumps(
+    #             [err.to_dict() for err in errors],
+    #             default=utils.pessimistic_json_iso_dttm_ser,
+    #             ignore_nan=True,
+    #             encoding=None,
+    #         )
+    #         return json_success(payload)
+    #     except Exception as e:
+    #         logging.exception(e)
+    #         msg = _(
+    #             f"{validator.name} was unable to check your query.\nPlease "
+    #             "make sure that any services it depends on are available\n"
+    #             f"Exception: {e}"
+    #         )
+    #         return json_error_response(f"{msg}")
+
 # -----------------------------------------------------------------------------------------
     @api
     @handle_api_exception

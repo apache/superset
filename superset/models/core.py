@@ -766,7 +766,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             """\
     {
         "metadata_params": {},
-        "engine_params": {},
+        "engine_params": {"isolation_level":"AUTOCOMMIT"},
         "metadata_cache_timeout": {},
         "schemas_allowed_for_csv_upload": []
     }

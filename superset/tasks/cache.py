@@ -282,6 +282,7 @@ def get_auth_cookies():
 @celery_app.task(
  name="cache-warmup",
  queue=CELERY_QUEUE,
+ priority=0,
 )
 def cache_warmup(strategy_name, *args, **kwargs):
     """

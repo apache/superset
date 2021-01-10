@@ -146,6 +146,7 @@ def session_scope(nullpool):
     name="sql_lab.get_sql_results",
     bind=True,
     queue=CELERY_QUEUE,
+    priority=9,
     time_limit=SQLLAB_HARD_TIMEOUT,
     soft_time_limit=SQLLAB_TIMEOUT,
 )
@@ -173,6 +174,7 @@ def get_sql_results(
                 start_time=start_time,
             )
         except Exception as e:
+            msg = str(e)
             logging.exception(f"Query {query_id}: {e}")
             stats_logger.incr("error_sqllab_unhandled")
             query = get_query(query_id, session)
@@ -184,6 +186,7 @@ def get_sql_results(
                 'sql-editor',
                 'superset-async-response',
                 {
+                  'error': msg,
                   'status': 'failed',
                   'queryId': query_id,
                   'tenant': TENANT,
@@ -248,16 +251,26 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
             logging.info(f"Query {query_id}: Running query: \n{sql}")
             db_engine_spec.execute(cursor, sql, async_=True)
+            session.commit()
             logging.info(f"Query {query_id}: Handling cursor")
             db_engine_spec.handle_cursor(cursor, query, session)
-
+            session.commit()
         with stats_timing("sqllab.query.time_fetching_results", stats_logger):
             logging.debug(
                 "Query {}: Fetching data for query object: {}".format(
                     query_id, query.to_dict()
                 )
             )
-            data = db_engine_spec.fetch_data(cursor, query.limit)
+            descr = cursor.description
+            # logging.info("Hello I am printing cursor: {}".format(result))
+            if cursor.description != None:
+                data = db_engine_spec.fetch_data(cursor, query.limit)
+            else:
+                data = None
+            db_engine_spec.execute(cursor, "commit;")
+            db_engine_spec.handle_cursor(cursor, query, session)
+
+            session.commit()
 
     except SoftTimeLimitExceeded as e:
         logging.exception(f"Query {query_id}: {e}")
@@ -271,7 +284,7 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
 
     logging.debug(f"Query {query_id}: Fetching cursor description")
     cursor_description = cursor.description
-    return SupersetDataFrame(data, cursor_description, db_engine_spec)
+    return SupersetDataFrame(data, descr, db_engine_spec)
 
 
 def _serialize_payload(
@@ -378,6 +391,24 @@ def execute_sql_statements(
                     if statement_count > 1:
                         msg = f"[Statement {i+1} out of {statement_count}] " + msg
                     payload = handle_query_error(msg, query, session, payload)
+
+                    logging.info(
+                     f"calling service disovery function for query_id: {query_id}"
+                    )
+                    loads(call(
+                        'ais-{}'.format(STAGE),
+                        'sql-editor',
+                        'superset-async-response',
+                        {
+                          'error': msg,
+                          'status': 'failed',
+                          'queryId': query_id,
+                          'tenant': TENANT,
+                          },
+                        {'InvocationType': 'Event'}))
+                    logging.info(
+                      f"service disovery function called successfully for query_id: {query_id}"
+                    )
                     return payload
 
     # Success, updating the query entry in database
