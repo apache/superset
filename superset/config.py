@@ -476,7 +476,9 @@ STORE_CACHE_KEYS_IN_METADATA_DB = False
 
 # CORS Options
 ENABLE_CORS = True
-CORS_OPTIONS: Dict[Any, Any] = {}
+CORS_OPTIONS = {
+    'supports_credentials': True
+}
 
 # Chrome allows up to 6 open connections per domain at a time. When there are more
 # than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
