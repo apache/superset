@@ -51,7 +51,7 @@ const FilterScope: FC<FilterScopeProps> = ({
   filterToEdit,
   form,
 }) => {
-  const formFilter = form.getFieldValue('filters')[filterId];
+  const formFilter = form.getFieldValue('filters')?.[filterId];
   const initialScope = filterToEdit?.scope || defaultScopeValue;
 
   const scoping = isScopingAll(initialScope) ? Scoping.all : Scoping.specific;
@@ -87,11 +87,11 @@ const FilterScope: FC<FilterScopeProps> = ({
         </Radio.Group>
       </CleanFormItem>
       <Typography.Text type="secondary">
-        {formFilter.scoping === Scoping.specific
+        {formFilter?.scoping === Scoping.specific
           ? t('Only selected panels will be affected by this filter')
           : t('All panels with this column will be affected by this filter')}
       </Typography.Text>
-      {formFilter.scoping === Scoping.specific && (
+      {formFilter?.scoping === Scoping.specific && (
         <ScopingTree
           initialScope={initialScope}
           form={form}
