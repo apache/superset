@@ -35,7 +35,6 @@ import GitHubButton from 'react-github-btn';
 
 import { Databases } from '../resources/data';
 import Layout from '../components/layout';
-import Image from '../components/image';
 import DbImage from '../components/DbImage';
 import 'antd/dist/antd.css';
 import SEO from '../components/seo';
@@ -109,10 +108,6 @@ const titleContainer = css`
     ${[mq[0]]} {
       width: 400px;
     }
-  }
-  .incubator {
-    margin-top: 40px;
-    margin-bottom: 30px;
   }
   .alert {
     color: #0c5460;
@@ -328,9 +323,6 @@ const Theme = () => {
                   Fork
                 </GitHubButton>
               </span>
-            </div>
-            <div className="incubator">
-              <Image imageName="incubatorSm" />
             </div>
             <div>
               <Link to="/docs/intro">
