@@ -17,7 +17,6 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
-import logging
 from typing import List, Optional
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -63,7 +62,6 @@ from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 from tests.annotation_layers.fixtures import create_annotation_layers
 from tests.utils.get_dashboards import get_dashboards_ids
 
-logger = logging.getLogger(__name__)
 CHART_DATA_URI = "api/v1/chart/data"
 CHARTS_FIXTURE_COUNT = 10
 
@@ -1703,8 +1701,6 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         resp = self.run_sql(sql, client_id, raise_on_error=True)
         db.session.query(Query).delete()
         db.session.commit()
-        logger.info("reps:")
-        logger.info(resp)
         return resp["data"][0]["rows_count"]
 
     def quote_name(self, name: str):
