@@ -91,21 +91,19 @@ export type PartialThemeConfig = RecursivePartial<ThemeConfig>;
 
 export const defaultTheme: (
   theme: SupersetTheme,
-) => PartialThemeConfig = theme => {
-  return {
-    borderRadius: theme.borderRadius,
-    zIndex: 11,
-    colors: colors(theme),
-    spacing: {
-      baseUnit: 3,
-      menuGutter: 0,
-      controlHeight: 28,
-      lineHeight: 19,
-      fontSize: 14,
-      minWidth: '7.5em', // just enough to display 'No options'
-    },
-  };
-};
+) => PartialThemeConfig = theme => ({
+  borderRadius: theme.borderRadius,
+  zIndex: 11,
+  colors: colors(theme),
+  spacing: {
+    baseUnit: 3,
+    menuGutter: 0,
+    controlHeight: 28,
+    lineHeight: 19,
+    fontSize: 14,
+    minWidth: '7.5em', // just enough to display 'No options'
+  },
+});
 
 // let styles accept serialized CSS, too
 type CSSStyles = CSSProperties | SerializedStyles;
@@ -279,6 +277,10 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
         : 'padding: 0; flex: 1 1 auto;'};
     `,
   ],
+  menuPortal: base => ({
+    ...base,
+    zIndex: 1030, // must be same or higher of antd popover
+  }),
 };
 
 const INPUT_TAG_BASE_STYLES = {
@@ -300,7 +302,7 @@ export type SelectComponentsType = Omit<
 export type InputProps = ReactSelectInputProps & {
   placeholder?: ReactNode;
   selectProps: SelectProps;
-  autocomplete?: string;
+  autoComplete?: string;
   onPaste?: SupersetStyledSelectProps<OptionType>['onPaste'];
   inputStyle?: object;
 };
@@ -352,7 +354,7 @@ export const DEFAULT_COMPONENTS: SelectComponentsType = {
         {...props}
         placeholder={isMultiWithValue ? placeholder : undefined}
         css={getStyles('input', props)}
-        autocomplete="chrome-off"
+        autoComplete="chrome-off"
         inputStyle={
           isMultiWithValue
             ? { ...INPUT_TAG_BASE_STYLES, width: '100%' }

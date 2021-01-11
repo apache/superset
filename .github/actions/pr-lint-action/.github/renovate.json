@@ -1,0 +1,13 @@
+{
+  "extends": ["config:base"],
+  "commitMessageSuffix": "#EX-123",
+  "prConcurrentLimit": 1,
+  "prHourlyLimit": 0,
+  "automerge": false,
+  "packageRules": [
+    {
+      "updateTypes": ["minor", "patch", "pin", "digest"]
+    }
+  ],
+  "labels": ["automerge", "dependencies"]
+}

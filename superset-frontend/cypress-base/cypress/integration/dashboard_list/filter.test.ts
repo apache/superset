@@ -109,7 +109,7 @@ describe('dashboard filters list view', () => {
     cy.get('[data-test="table-row"]').should('not.exist');
   });
 
-  it('should filter by published correctly', () => {
+  xit('should filter by published correctly', () => {
     // filter by published
     cy.get('.Select__control').eq(2).click();
     cy.get('.Select__menu').contains('Published').click();

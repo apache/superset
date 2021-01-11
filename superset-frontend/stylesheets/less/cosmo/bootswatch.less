@@ -368,6 +368,27 @@ label {
       color: @text-color;
     }
   }
+
+  .accordion-toggle {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: none;
+    }
+
+    .caret {
+      display: flex;
+      width: auto;
+      height: auto;
+      margin-left: 5px;
+
+      &:hover {
+        color: @gray;
+      }
+    }
+  }
 }
 
 .panel-title-large {

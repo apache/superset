@@ -126,7 +126,7 @@ class ReportScheduleWorkingTimeoutError(CommandException):
 
 class ReportScheduleNameUniquenessValidationError(ValidationError):
     """
-    Marshmallow validation error for Report Schedule name already exists
+    Marshmallow validation error for Report Schedule name and type already exists
     """
 
     def __init__(self) -> None:
@@ -149,6 +149,10 @@ class AlertQueryMultipleColumnsError(CommandException):
 
 class AlertQueryInvalidTypeError(CommandException):
     message = _("Alert query returned a non-number value.")
+
+
+class AlertQueryError(CommandException):
+    message = _("Alert found an error while executing a query.")
 
 
 class ReportScheduleAlertGracePeriodError(CommandException):
@@ -177,3 +181,7 @@ class ReportScheduleUnexpectedError(CommandException):
 
 class ReportScheduleForbiddenError(ForbiddenError):
     message = _("Changing this report is forbidden")
+
+
+class ReportSchedulePruneLogError(CommandException):
+    message = _("An error occurred while pruning logs ")

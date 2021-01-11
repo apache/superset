@@ -157,7 +157,8 @@ class SupersetAppInitializer:
             AlertLogModelView,
             AlertModelView,
             AlertObservationModelView,
-            AlertReportModelView,
+            AlertView,
+            ReportView,
         )
         from superset.views.annotations import (
             AnnotationLayerModelView,
@@ -181,6 +182,7 @@ class SupersetAppInitializer:
             ExcelToDatabaseView,
         )
         from superset.views.datasource import Datasource
+        from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
@@ -266,6 +268,15 @@ class SupersetAppInitializer:
             category="",
             category_icon="",
         )
+        if feature_flag_manager.is_feature_enabled("DYNAMIC_PLUGINS"):
+            appbuilder.add_view(
+                DynamicPluginsView,
+                "Plugins",
+                label=__("Plugins"),
+                category="Manage",
+                category_label=__("Manage"),
+                icon="fa-puzzle-piece",
+            )
         appbuilder.add_view(
             CssTemplateModelView,
             "CSS Templates",
@@ -429,8 +440,17 @@ class SupersetAppInitializer:
             )
             appbuilder.add_view_no_menu(AlertLogModelView)
             appbuilder.add_view_no_menu(AlertObservationModelView)
-            if feature_flag_manager.is_feature_enabled("SIP_34_ALERTS_UI"):
-                appbuilder.add_view_no_menu(AlertReportModelView)
+
+        if feature_flag_manager.is_feature_enabled("ALERT_REPORTS"):
+            appbuilder.add_view(
+                AlertView,
+                "Alerts & Report",
+                label=__("Alerts & Reports"),
+                category="Manage",
+                category_label=__("Manage"),
+                icon="fa-exclamation-triangle",
+            )
+            appbuilder.add_view_no_menu(ReportView)
 
         #
         # Conditionally add Access Request Model View

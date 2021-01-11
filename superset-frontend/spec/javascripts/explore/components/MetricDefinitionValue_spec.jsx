@@ -19,7 +19,6 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { MetricOption } from '@superset-ui/chart-controls';
 
 import MetricDefinitionValue from 'src/explore/components/MetricDefinitionValue';
 import AdhocMetricOption from 'src/explore/components/AdhocMetricOption';
@@ -36,7 +35,7 @@ describe('MetricDefinitionValue', () => {
     const wrapper = shallow(
       <MetricDefinitionValue option={{ metric_name: 'a_saved_metric' }} />,
     );
-    expect(wrapper.find(MetricOption)).toExist();
+    expect(wrapper.find('AdhocMetricOption')).toExist();
   });
 
   it('renders an AdhocMetricOption given an adhoc metric', () => {

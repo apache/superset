@@ -100,6 +100,11 @@ export default function PropertiesModal({
     fetchChartData();
   }, [fetchChartData]);
 
+  // update name after it's changed in another modal
+  useEffect(() => {
+    setName(slice.slice_name || '');
+  }, [slice.slice_name]);
+
   const loadOptions = (input = '') => {
     const query = rison.encode({
       filter: input,

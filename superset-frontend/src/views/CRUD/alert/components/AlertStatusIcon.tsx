@@ -22,22 +22,34 @@ import { Tooltip } from 'src/common/components/Tooltip';
 import Icon, { IconName } from 'src/components/Icon';
 import { AlertState } from '../types';
 
-const StatusIcon = styled(Icon)<{ status: string }>`
-  color: ${({ status, theme }) => {
+const StatusIcon = styled(Icon)<{ status: string; isReportEnabled: boolean }>`
+  color: ${({ status, theme, isReportEnabled }) => {
     switch (status) {
       case AlertState.working:
-        return theme.colors.alert.base;
+        return theme.colors.primary.base;
       case AlertState.error:
         return theme.colors.error.base;
       case AlertState.success:
+        return isReportEnabled
+          ? theme.colors.success.base
+          : theme.colors.alert.base;
+      case AlertState.noop:
         return theme.colors.success.base;
+      case AlertState.grace:
+        return theme.colors.alert.base;
       default:
         return theme.colors.grayscale.base;
     }
   }};
 `;
 
-export default function AlertStatusIcon({ state }: { state: string }) {
+export default function AlertStatusIcon({
+  state,
+  isReportEnabled = false,
+}: {
+  state: string;
+  isReportEnabled: boolean;
+}) {
   const lastStateConfig = {
     name: '',
     label: '',
@@ -45,30 +57,52 @@ export default function AlertStatusIcon({ state }: { state: string }) {
   };
   switch (state) {
     case AlertState.success:
-      lastStateConfig.name = 'check';
-      lastStateConfig.label = t(`${AlertState.success}`);
+      lastStateConfig.name = isReportEnabled ? 'check' : 'alert-solid-small';
+      lastStateConfig.label = isReportEnabled
+        ? t('Report Sent')
+        : t('Alert Triggered, Notification Sent');
       lastStateConfig.status = AlertState.success;
       break;
     case AlertState.working:
-      lastStateConfig.name = 'exclamation';
-      lastStateConfig.label = t(`${AlertState.working}`);
+      lastStateConfig.name = 'running';
+      lastStateConfig.label = isReportEnabled
+        ? t('Report Sending')
+        : t('Alert Running');
       lastStateConfig.status = AlertState.working;
       break;
     case AlertState.error:
       lastStateConfig.name = 'x-small';
-      lastStateConfig.label = t(`${AlertState.error}`);
+      lastStateConfig.label = isReportEnabled
+        ? t('Report Failed')
+        : t('Alert Failed');
       lastStateConfig.status = AlertState.error;
       break;
+    case AlertState.noop:
+      lastStateConfig.name = 'check';
+      lastStateConfig.label = t('Nothing Triggered');
+      lastStateConfig.status = AlertState.noop;
+      break;
+    case AlertState.grace:
+      lastStateConfig.name = 'alert-solid-small';
+      lastStateConfig.label = t('Alert Triggered, In Grace Period');
+      lastStateConfig.status = AlertState.grace;
+      break;
     default:
-      lastStateConfig.name = 'exclamation';
-      lastStateConfig.label = t(`${AlertState.working}`);
-      lastStateConfig.status = AlertState.working;
+      lastStateConfig.name = 'check';
+      lastStateConfig.label = t('Nothing Triggered');
+      lastStateConfig.status = AlertState.noop;
   }
   return (
-    <Tooltip title={lastStateConfig.label} placement="bottom">
+    <Tooltip title={lastStateConfig.label} placement="bottomLeft">
       <StatusIcon
         name={lastStateConfig.name as IconName}
         status={lastStateConfig.status}
+        isReportEnabled={isReportEnabled}
+        viewBox={
+          lastStateConfig.name === 'alert-solid-small'
+            ? '-6 -6 24 24'
+            : '0 0 24 24'
+        }
       />
     </Tooltip>
   );

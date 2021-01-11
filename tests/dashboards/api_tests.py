@@ -198,6 +198,20 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.get_assert_metric(uri, "info")
         self.assertEqual(rv.status_code, 200)
 
+    def test_info_security_database(self):
+        """
+        Dashboard API: Test info security
+        """
+        self.login(username="admin")
+        params = {"keys": ["permissions"]}
+        uri = f"api/v1/dashboard/_info?q={prison.dumps(params)}"
+        rv = self.get_assert_metric(uri, "info")
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert "can_read" in data["permissions"]
+        assert "can_write" in data["permissions"]
+        assert len(data["permissions"]) == 2
+
     def test_get_dashboard_not_found(self):
         """
         Dashboard API: Test get dashboard not found
@@ -354,7 +368,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         )
 
         arguments = {
-            "filters": [{"col": "id", "opr": "dashboard_is_fav", "value": True}],
+            "filters": [{"col": "id", "opr": "dashboard_is_favorite", "value": True}],
             "order_column": "dashboard_title",
             "order_direction": "asc",
             "keys": ["none"],
@@ -417,7 +431,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             .all()
         )
         arguments = {
-            "filters": [{"col": "id", "opr": "dashboard_is_fav", "value": False}],
+            "filters": [{"col": "id", "opr": "dashboard_is_favorite", "value": False}],
             "order_column": "dashboard_title",
             "order_direction": "asc",
             "keys": ["none"],

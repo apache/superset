@@ -45,8 +45,7 @@ class TestAsyncQueries(SupersetTestCase):
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_chart_data_into_cache(self, mock_update_job):
         async_query_manager.init_app(app)
-        table = get_table_by_name("birth_names")
-        form_data = get_query_context(table.name, table.id, table.type)
+        query_context = get_query_context("birth_names")
         job_metadata = {
             "channel_id": str(uuid4()),
             "job_id": str(uuid4()),
@@ -55,7 +54,7 @@ class TestAsyncQueries(SupersetTestCase):
             "errors": [],
         }
 
-        load_chart_data_into_cache(job_metadata, form_data)
+        load_chart_data_into_cache(job_metadata, query_context)
 
         mock_update_job.assert_called_with(job_metadata, "done", result_url=mock.ANY)
 
@@ -65,8 +64,7 @@ class TestAsyncQueries(SupersetTestCase):
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_chart_data_into_cache_error(self, mock_update_job, mock_run_command):
         async_query_manager.init_app(app)
-        table = get_table_by_name("birth_names")
-        form_data = get_query_context(table.name, table.id, table.type)
+        query_context = get_query_context("birth_names")
         job_metadata = {
             "channel_id": str(uuid4()),
             "job_id": str(uuid4()),
@@ -75,7 +73,7 @@ class TestAsyncQueries(SupersetTestCase):
             "errors": [],
         }
         with pytest.raises(ChartDataQueryFailedError):
-            load_chart_data_into_cache(job_metadata, form_data)
+            load_chart_data_into_cache(job_metadata, query_context)
 
         mock_run_command.assert_called_with(cache=True)
         errors = [{"message": "Error: foo"}]
@@ -86,11 +84,6 @@ class TestAsyncQueries(SupersetTestCase):
         async_query_manager.init_app(app)
         table = get_table_by_name("birth_names")
         form_data = {
-            "queryFields": {
-                "metrics": "metrics",
-                "groupby": "groupby",
-                "columns": "groupby",
-            },
             "datasource": f"{table.id}__table",
             "viz_type": "dist_bar",
             "time_range_endpoints": ["inclusive", "exclusive"],

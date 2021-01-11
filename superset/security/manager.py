@@ -109,7 +109,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     SecurityManager
 ):
     userstatschartview = None
-    READ_ONLY_MODEL_VIEWS = {"DatabaseAsync", "DatabaseView", "DruidClusterModelView"}
+    READ_ONLY_MODEL_VIEWS = {"Database", "DruidClusterModelView", "DynamicPlugin"}
 
     USER_MODEL_VIEWS = {
         "UserDBModelView",
@@ -120,9 +120,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     GAMMA_READ_ONLY_MODEL_VIEWS = {
-        "SqlMetricInlineView",
-        "TableColumnInlineView",
-        "TableModelView",
+        "Dataset",
         "DruidColumnInlineView",
         "DruidDatasourceModelView",
         "DruidMetricInlineView",
@@ -135,7 +133,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Refresh Druid Metadata",
         "ResetPasswordView",
         "RoleModelView",
-        "LogModelView",
+        "Log",
         "Security",
         "Row Level Security",
         "Row Level Security Filters",
@@ -160,7 +158,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "all_query_access",
     }
 
-    READ_ONLY_PERMISSION = {"can_show", "can_list", "can_get", "can_external_metadata"}
+    READ_ONLY_PERMISSION = {
+        "can_show",
+        "can_list",
+        "can_get",
+        "can_external_metadata",
+        "can_read",
+    }
 
     ALPHA_ONLY_PERMISSIONS = {
         "muldelete",

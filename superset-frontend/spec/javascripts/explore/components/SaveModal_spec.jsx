@@ -145,10 +145,8 @@ describe('SaveModal', () => {
 
       sinon.stub(defaultProps.actions, 'saveSlice').callsFake(() =>
         Promise.resolve({
-          data: {
-            dashboard_url: 'http://localhost/mock_dashboard/',
-            slice: { slice_url: '/mock_slice/' },
-          },
+          dashboard_url: 'http://localhost/mock_dashboard/',
+          slice: { slice_url: '/mock_slice/' },
         }),
       );
     });
@@ -203,8 +201,8 @@ describe('SaveModal', () => {
         Object.defineProperty(window, 'location', windowLocation);
       });
 
-      it('Save & go to dashboard', () => {
-        return new Promise(done => {
+      it('Save & go to dashboard', () =>
+        new Promise(done => {
           wrapper.instance().saveOrOverwrite(true);
           defaultProps.actions.saveSlice().then(() => {
             expect(window.location.assign.callCount).toEqual(1);
@@ -213,11 +211,10 @@ describe('SaveModal', () => {
             );
             done();
           });
-        });
-      });
+        }));
 
-      it('saveas new slice', () => {
-        return new Promise(done => {
+      it('saveas new slice', () =>
+        new Promise(done => {
           wrapper.setState({
             action: 'saveas',
             newSliceName: 'new slice name',
@@ -230,11 +227,10 @@ describe('SaveModal', () => {
             );
             done();
           });
-        });
-      });
+        }));
 
-      it('overwrite original slice', () => {
-        return new Promise(done => {
+      it('overwrite original slice', () =>
+        new Promise(done => {
           wrapper.setState({ action: 'overwrite' });
           wrapper.instance().saveOrOverwrite(false);
           defaultProps.actions.saveSlice().then(() => {
@@ -244,8 +240,7 @@ describe('SaveModal', () => {
             );
             done();
           });
-        });
-      });
+        }));
     });
   });
 

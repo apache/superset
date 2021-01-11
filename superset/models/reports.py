@@ -92,13 +92,15 @@ class ReportSchedule(Model, AuditMixinNullable):
     """
 
     __tablename__ = "report_schedule"
+    __table_args__ = (UniqueConstraint("name", "type"),)
+
     id = Column(Integer, primary_key=True)
     type = Column(String(50), nullable=False)
-    name = Column(String(150), nullable=False, unique=True)
+    name = Column(String(150), nullable=False)
     description = Column(Text)
     context_markdown = Column(Text)
     active = Column(Boolean, default=True, index=True)
-    crontab = Column(String(50), nullable=False)
+    crontab = Column(String(1000), nullable=False)
     sql = Column(Text())
     # (Alerts/Reports) M-O to chart
     chart_id = Column(Integer, ForeignKey("slices.id"), nullable=True)

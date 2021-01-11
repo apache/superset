@@ -1,0 +1,98 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Games per Genre
+viz_type: treemap
+params:
+  adhoc_filters: []
+  color_scheme: supersetColors
+  datasource: 1559__table
+  granularity_sqla: Year
+  groupby:
+  - Genre
+  label_colors:
+    '0': '#1FA8C9'
+    '1': '#454E7C'
+    '2600': '#666666'
+    3DO: '#B2B2B2'
+    3DS: '#D1C6BC'
+    Action: '#1FA8C9'
+    Adventure: '#454E7C'
+    DC: '#A38F79'
+    DS: '#8FD3E4'
+    Europe: '#5AC189'
+    Fighting: '#5AC189'
+    GB: '#FDE380'
+    GBA: '#ACE1C4'
+    GC: '#5AC189'
+    GEN: '#3CCCCB'
+    GG: '#EFA1AA'
+    Japan: '#FF7F44'
+    Microsoft Game Studios: '#D1C6BC'
+    Misc: '#FF7F44'
+    N64: '#1FA8C9'
+    NES: '#9EE5E5'
+    NG: '#A1A6BD'
+    Nintendo: '#D3B3DA'
+    North America: '#666666'
+    Other: '#E04355'
+    PC: '#EFA1AA'
+    PCFX: '#FDE380'
+    PS: '#A1A6BD'
+    PS2: '#FCC700'
+    PS3: '#3CCCCB'
+    PS4: '#B2B2B2'
+    PSP: '#FEC0A1'
+    PSV: '#FCC700'
+    Platform: '#666666'
+    Puzzle: '#E04355'
+    Racing: '#FCC700'
+    Role-Playing: '#A868B7'
+    SAT: '#A868B7'
+    SCD: '#8FD3E4'
+    SNES: '#454E7C'
+    Shooter: '#3CCCCB'
+    Simulation: '#A38F79'
+    Sports: '#8FD3E4'
+    Strategy: '#A1A6BD'
+    TG16: '#FEC0A1'
+    Take-Two Interactive: '#9EE5E5'
+    WS: '#ACE1C4'
+    Wii: '#A38F79'
+    WiiU: '#E04355'
+    X360: '#A868B7'
+    XB: '#D3B3DA'
+    XOne: '#FF7F44'
+  metrics:
+  - count
+  number_format: SMART_NUMBER
+  queryFields:
+    groupby: groupby
+    metrics: metrics
+  row_limit: null
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  treemap_ratio: 1.618033988749895
+  url_params:
+    preselect_filters: '{"1389": {"Platform": ["PS", "PS2", "PS3", "PS4"], "Genre":
+      null, "__time_range": "No filter"}}'
+  viz_type: treemap
+cache_timeout: null
+uuid: 0499bdec-0837-44f3-ae8a-8c670de81afd
+version: 1.0.0
+dataset_uuid: 53d47c0c-c03d-47f0-b9ac-81225f808283

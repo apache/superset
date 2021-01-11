@@ -305,6 +305,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Experimental feature introducing a client (browser) cache
     "CLIENT_CACHE": False,
     "DISABLE_DATASET_SOURCE_EDIT": False,
+    "DYNAMIC_PLUGINS": False,
     "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "ENABLE_TEMPLATE_PROCESSING": False,
     "KV_STORE": False,
@@ -319,7 +320,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "SQLLAB_BACKEND_PERSISTENCE": False,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
     # Enables the replacement React views for all the FAB views (list, edit, show) with
-    # designs introduced in https://github.com/apache/incubator-superset/issues/8976
+    # designs introduced in https://github.com/apache/superset/issues/8976
     # (SIP-34). This is a work in progress so not all features available in FAB have
     # been implemented.
     "ENABLE_REACT_CRUD_VIEWS": True,
@@ -327,6 +328,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DISPLAY_MARKDOWN_HTML": True,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
+    "DASHBOARD_NATIVE_FILTERS": False,
     "GLOBAL_ASYNC_QUERIES": False,
     "VERSIONED_EXPORT": False,
     # Note that: RowLevelSecurityFilter is only given by default to the Admin role
@@ -339,7 +341,6 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ROW_LEVEL_SECURITY": False,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
-    "SIP_34_ALERTS_UI": False,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.
@@ -366,6 +367,37 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 #         feature_flags_dict['some_feature'] = g.user and g.user.id == 5
 #     return feature_flags_dict
 GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] = None
+
+# EXTRA_CATEGORICAL_COLOR_SCHEMES is used for adding custom categorical color schemes
+# example code for "My custom warm to hot" color scheme
+# EXTRA_CATEGORICAL_COLOR_SCHEMES =  [
+#     {
+#         "id": 'myVisualizationColors',
+#         "description": '',
+#         "label": 'My Visualization Colors',
+#         "colors":
+#          ['#006699', '#009DD9', '#5AAA46', '#44AAAA', '#DDAA77', '#7799BB', '#88AA77',
+#          '#552288', '#5AAA46', '#CC7788', '#EEDD55', '#9977BB', '#BBAA44', '#DDCCDD']
+#     }]
+#
+
+# This is merely a default
+EXTRA_CATEGORICAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
+
+# EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
+# EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [
+#     {
+#         "id": 'warmToHot',
+#         "description": '',
+#         "isDiverging": true
+#         "label": 'My custom warm to hot',
+#         "colors":
+#          ['#552288', '#5AAA46', '#CC7788', '#EEDD55', '#9977BB', '#BBAA44', '#DDCCDD',
+#          '#006699', '#009DD9', '#5AAA46', '#44AAAA', '#DDAA77', '#7799BB', '#88AA77']
+#     }]
+
+# This is merely a default
+EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
@@ -544,6 +576,7 @@ MAX_TABLE_NAMES = 3000
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
+
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
 # http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
@@ -609,6 +642,37 @@ SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
 # query costs before they run. These EXPLAIN queries should have a small
 # timeout.
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = 10  # seconds
+# The feature is off by default, and currently only supported in Presto and Postgres.
+# It also need to be enabled on a per-database basis, by adding the key/value pair
+# `cost_estimate_enabled: true` to the database `extra` attribute.
+ESTIMATE_QUERY_COST = False
+# The cost returned by the databases is a relative value; in order to map the cost to
+# a tangible value you need to define a custom formatter that takes into consideration
+# your specific infrastructure. For example, you could analyze queries a posteriori by
+# running EXPLAIN on them, and compute a histogram of relative costs to present the
+# cost as a percentile:
+#
+# def postgres_query_cost_formatter(
+#     result: List[Dict[str, Any]]
+# ) -> List[Dict[str, str]]:
+#     # 25, 50, 75% percentiles
+#     percentile_costs = [100.0, 1000.0, 10000.0]
+#
+#     out = []
+#     for row in result:
+#         relative_cost = row["Total cost"]
+#         percentile = bisect.bisect_left(percentile_costs, relative_cost) + 1
+#         out.append({
+#             "Relative cost": relative_cost,
+#             "Percentile": str(percentile * 25) + "%",
+#         })
+#
+#     return out
+#
+# DEFAULT_FEATURE_FLAGS = {
+#     "ESTIMATE_QUERY_COST": True,
+#     "QUERY_COST_FORMATTERS_BY_ENGINE": {"postgresql": postgres_query_cost_formatter},
+# }
 
 # Flag that controls if limit should be enforced on the CTA (create table as queries).
 SQLLAB_CTAS_NO_LIMIT = False
@@ -803,6 +867,10 @@ ENABLE_SCHEDULED_EMAIL_REPORTS = False
 # if it meets the criteria
 ENABLE_ALERTS = False
 
+# Used for Alerts/Reports (Feature flask ALERT_REPORTS) to set the size for the
+# sliding cron window size, should be synced with the celery beat config minus 1 second
+ALERT_REPORTS_CRON_WINDOW_SIZE = 59
+
 # Slack API token for the superset reports
 SLACK_API_TOKEN = None
 SLACK_PROXY = None
@@ -961,7 +1029,6 @@ SIP_15_TOAST_MESSAGE = (
     'class="alert-link">here</a>.'
 )
 
-
 # SQLA table mutator, every time we fetch the metadata for a certain table
 # (superset.connectors.sqla.models.SqlaTable), we call this hook
 # to allow mutating the object with this callback.
@@ -1012,7 +1079,6 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise
-
 
 # It's possible to add a dataset health check logic which is specific to your system.
 # It will get executed each time when user open a chart's explore view.

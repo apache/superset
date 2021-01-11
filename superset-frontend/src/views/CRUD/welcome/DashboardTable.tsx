@@ -20,6 +20,7 @@ import React, { useState, useMemo } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps } from 'src/views/CRUD/types';
+import { useHistory } from 'react-router-dom';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
@@ -42,6 +43,7 @@ function DashboardTable({
   addSuccessToast,
   mine,
 }: DashboardTableProps) {
+  const history = useHistory();
   const {
     state: { loading, resourceCollection: dashboards },
     setResourceCollection: setDashboards,
@@ -64,8 +66,8 @@ function DashboardTable({
   const [editModal, setEditModal] = useState<Dashboard>();
   const [dashboardFilter, setDashboardFilter] = useState('Mine');
 
-  const handleDashboardEdit = (edits: Dashboard) => {
-    return SupersetClient.get({
+  const handleDashboardEdit = (edits: Dashboard) =>
+    SupersetClient.get({
       endpoint: `/api/v1/dashboard/${edits.id}`,
     }).then(
       ({ json = {} }) => {
@@ -84,7 +86,6 @@ function DashboardTable({
         ),
       ),
     );
-  };
 
   const getFilters = (filterName: string) => {
     const filters = [];
@@ -97,7 +98,7 @@ function DashboardTable({
     } else {
       filters.push({
         id: 'id',
-        operator: 'dashboard_is_fav',
+        operator: 'dashboard_is_favorite',
         value: true,
       });
     }
@@ -112,8 +113,8 @@ function DashboardTable({
     });
   }
 
-  const getData = (filter: string) => {
-    return fetchData({
+  const getData = (filter: string) =>
+    fetchData({
       pageIndex: 0,
       pageSize: PAGE_SIZE,
       sortBy: [
@@ -124,7 +125,6 @@ function DashboardTable({
       ],
       filters: getFilters(filter),
     });
-  };
 
   return (
     <>
@@ -155,14 +155,18 @@ function DashboardTable({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.href = '/dashboard/new';
+              window.location.assign('/dashboard/new');
             },
           },
           {
             name: 'View All »',
             buttonStyle: 'link',
             onClick: () => {
-              window.location.href = '/dashboard/list/';
+              const target =
+                dashboardFilter === 'Favorite'
+                  ? '/dashboard/list/?filters=(favorite:!t)'
+                  : '/dashboard/list/';
+              history.push(target);
             },
           },
         ]}

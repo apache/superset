@@ -20,7 +20,7 @@ import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 
 import Icon from 'src//components/Icon';
-import Modal from 'src/common/components/Modal';
+import StyledModal from 'src/common/components/Modal';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
 
@@ -28,24 +28,26 @@ export const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
 
+const HelperMessage = styled.div`
+  display: block;
+  color: ${({ theme }) => theme.colors.grayscale.base};
+  font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+`;
+
 const StyledInputContainer = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-top: ${({ theme }) => theme.gridUnit * 2}px;
+
+  & > div {
+    margin: ${({ theme }) => theme.gridUnit}px 0;
+  }
 
   &.extra-container {
     padding-top: 8px;
   }
 
-  .helper {
-    display: block;
-    padding: ${({ theme }) => theme.gridUnit}px 0;
-    color: ${({ theme }) => theme.colors.grayscale.base};
-    font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
-    text-align: left;
-
-    .required {
-      margin-left: ${({ theme }) => theme.gridUnit / 2}px;
-      color: ${({ theme }) => theme.colors.error.base};
-    }
+  .confirm-overwrite {
+    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
   }
 
   .input-container {
@@ -100,7 +102,6 @@ const StyledInputContainer = styled.div`
 export interface ImportModelsModalProps {
   resourceName: ImportResourceName;
   resourceLabel: string;
-  icon: React.ReactNode;
   passwordsNeededMessage: string;
   confirmOverwriteMessage: string;
   addDangerToast: (msg: string) => void;
@@ -115,7 +116,6 @@ export interface ImportModelsModalProps {
 const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   resourceName,
   resourceLabel,
-  icon,
   passwordsNeededMessage,
   confirmOverwriteMessage,
   addDangerToast,
@@ -140,6 +140,8 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     setUploadFile(null);
     setPasswordFields([]);
     setPasswords({});
+    setNeedsOverwriteConfirm(false);
+    setConfirmedOverwrite(false);
     if (fileInputRef && fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -161,12 +163,13 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
 
   useEffect(() => {
     setNeedsOverwriteConfirm(alreadyExists.length > 0);
-  }, [alreadyExists]);
+  }, [alreadyExists, setNeedsOverwriteConfirm]);
 
   // Functions
   const hide = () => {
     setIsHidden(true);
     onHide();
+    clearModal();
   };
 
   const onUpload = () => {
@@ -201,9 +204,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     return (
       <>
         <h5>Database passwords</h5>
-        <StyledInputContainer>
-          <div className="helper">{passwordsNeededMessage}</div>
-        </StyledInputContainer>
+        <HelperMessage>{passwordsNeededMessage}</HelperMessage>
         {passwordFields.map(fileName => (
           <StyledInputContainer key={`password-for-${fileName}`}>
             <div className="control-label">
@@ -226,18 +227,16 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   };
 
   const renderOverwriteConfirmation = () => {
-    if (alreadyExists.length === 0) {
+    if (!needsOverwriteConfirm) {
       return null;
     }
 
     return (
       <>
         <StyledInputContainer>
-          <div>{confirmOverwriteMessage}</div>
+          <div className="confirm-overwrite">{confirmOverwriteMessage}</div>
           <div className="control-label">
-            <label htmlFor="overwrite">
-              {t('Type "%s" to confirm', t('OVERWRITE'))}
-            </label>
+            {t('Type "%s" to confirm', t('OVERWRITE'))}
           </div>
           <input
             data-test="overwrite-modal-input"
@@ -256,7 +255,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   }
 
   return (
-    <Modal
+    <StyledModal
       name="model"
       className="import-model-modal"
       disablePrimaryButton={
@@ -268,12 +267,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       primaryButtonType={needsOverwriteConfirm ? 'danger' : 'primary'}
       width="750px"
       show={show}
-      title={
-        <h4>
-          {icon}
-          {t('Import %s', resourceLabel)}
-        </h4>
-      }
+      title={<h4>{t('Import %s', resourceLabel)}</h4>}
     >
       <StyledInputContainer>
         <div className="control-label">
@@ -294,7 +288,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       </StyledInputContainer>
       {renderPasswordFields()}
       {renderOverwriteConfirmation()}
-    </Modal>
+    </StyledModal>
   );
 };
 

@@ -17,24 +17,30 @@
  * under the License.
  */
 import React, { useState, useCallback, useRef, FunctionComponent } from 'react';
-import { t, useTheme } from '@superset-ui/core';
+import { styled, t, useTheme } from '@superset-ui/core';
 
-import { Input } from 'src/common/components';
+import { Input, AntdInput } from 'src/common/components';
 import { Radio } from 'src/common/components/Radio';
 import { CronPicker, CronError } from 'src/common/components/CronPicker';
 import { StyledInputContainer } from '../AlertReportModal';
 
+const HelperText = styled.div`
+  display: block;
+  color: ${({ theme }) => theme.colors.grayscale.base};
+  font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+  text-align: left;
+`;
 interface AlertReportCronSchedulerProps {
-  value?: string;
+  value: string;
   onChange: (change: string) => any;
 }
 
 export const AlertReportCronScheduler: FunctionComponent<AlertReportCronSchedulerProps> = ({
-  value = '* * * * *',
+  value,
   onChange,
 }) => {
   const theme = useTheme();
-  const inputRef = useRef<Input>(null);
+  const inputRef = useRef<AntdInput>(null);
   const [scheduleFormat, setScheduleFormat] = useState<'picker' | 'input'>(
     'picker',
   );
@@ -86,6 +92,17 @@ export const AlertReportCronScheduler: FunctionComponent<AlertReportCronSchedule
             </div>
           </StyledInputContainer>
         </div>
+        <HelperText>
+          {t('Refer to the ')}
+          <a
+            href="https://crontab.guru/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('crontab guru')}
+          </a>
+          {t(' for more information on how to structure your CRON schedule.')}
+        </HelperText>
       </Radio.Group>
     </>
   );

@@ -19,6 +19,7 @@
 """Unit tests for Superset"""
 import json
 from io import BytesIO
+from unittest import mock
 from zipfile import is_zipfile, ZipFile
 
 import prison
@@ -343,6 +344,10 @@ class TestDatabaseApi(SupersetTestCase):
             "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
         )
 
+    @mock.patch(
+        "superset.views.core.app.config",
+        {**app.config, "PREVENT_UNSAFE_DB_CONNECTIONS": True},
+    )
     def test_create_database_fail_sqllite(self):
         """
         Database API: Test create fail with sqllite
@@ -384,7 +389,9 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         response = self.client.post(uri, json=database_data)
         response_data = json.loads(response.data.decode("utf-8"))
-        expected_response = {"message": "Could not connect to database."}
+        expected_response = {
+            "message": "Connection failed, please check your connection settings"
+        }
         self.assertEqual(response.status_code, 422)
         self.assertEqual(response_data, expected_response)
 
@@ -426,7 +433,9 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         rv = self.client.put(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": "Could not connect to database."}
+        expected_response = {
+            "message": "Connection failed, please check your connection settings"
+        }
         self.assertEqual(rv.status_code, 422)
         self.assertEqual(response, expected_response)
         # Cleanup
@@ -492,6 +501,9 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertIn(
             "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
         )
+
+        db.session.delete(test_database)
+        db.session.commit()
 
     def test_delete_database(self):
         """
@@ -561,6 +573,20 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertIsNone(response["comment"])
         self.assertTrue(len(response["columns"]) > 5)
         self.assertTrue(response.get("selectStar").startswith("SELECT"))
+
+    def test_info_security_database(self):
+        """
+        Database API: Test info security
+        """
+        self.login(username="admin")
+        params = {"keys": ["permissions"]}
+        uri = f"api/v1/database/_info?q={prison.dumps(params)}"
+        rv = self.get_assert_metric(uri, "info")
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert "can_read" in data["permissions"]
+        assert "can_write" in data["permissions"]
+        assert len(data["permissions"]) == 2
 
     def test_get_invalid_database_table_metadata(self):
         """
@@ -765,11 +791,10 @@ class TestDatabaseApi(SupersetTestCase):
         }
         url = "api/v1/database/test_connection"
         rv = self.post_assert_metric(url, data, "test_connection")
-        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rv.status_code, 422)
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "driver_name": "broken",
             "message": "Could not load database driver: broken",
         }
         self.assertEqual(response, expected_response)
@@ -781,11 +806,10 @@ class TestDatabaseApi(SupersetTestCase):
             "server_cert": None,
         }
         rv = self.post_assert_metric(url, data, "test_connection")
-        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rv.status_code, 422)
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "driver_name": "mssql+pymssql",
             "message": "Could not load database driver: mssql+pymssql",
         }
         self.assertEqual(response, expected_response)
@@ -815,6 +839,8 @@ class TestDatabaseApi(SupersetTestCase):
             }
         }
         self.assertEqual(response, expected_response)
+
+        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
 
     @pytest.mark.usefixtures(
         "load_unicode_dashboard_with_position", "load_energy_table_with_slice"
@@ -874,7 +900,9 @@ class TestDatabaseApi(SupersetTestCase):
         argument = [database.id]
         uri = f"api/v1/database/export/?q={prison.dumps(argument)}"
         rv = self.client.get(uri)
-        assert rv.status_code == 401
+        # export only requires can_read now, but gamma need to have explicit access to
+        # view the database
+        assert rv.status_code == 404
 
     def test_export_database_non_existing(self):
         """

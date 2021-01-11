@@ -75,9 +75,23 @@ class TestAnnotationLayerApi(SupersetTestCase):
         Annotation API: Test info
         """
         self.login(username="admin")
-        uri = f"api/v1/annotation_layer/_info"
+        uri = "api/v1/annotation_layer/_info"
         rv = self.get_assert_metric(uri, "info")
         assert rv.status_code == 200
+
+    def test_info_security_query(self):
+        """
+        Annotation API: Test info security
+        """
+        self.login(username="admin")
+        params = {"keys": ["permissions"]}
+        uri = f"api/v1/annotation_layer/_info?q={prison.dumps(params)}"
+        rv = self.get_assert_metric(uri, "info")
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert "can_read" in data["permissions"]
+        assert "can_write" in data["permissions"]
+        assert len(data["permissions"]) == 2
 
     @pytest.mark.usefixtures("create_annotation_layers")
     def test_get_annotation_layer_not_found(self):
@@ -96,7 +110,7 @@ class TestAnnotationLayerApi(SupersetTestCase):
         Annotation Api: Test get list annotation layers
         """
         self.login(username="admin")
-        uri = f"api/v1/annotation_layer/"
+        uri = "api/v1/annotation_layer/"
         rv = self.get_assert_metric(uri, "get_list")
 
         expected_fields = [
@@ -120,7 +134,7 @@ class TestAnnotationLayerApi(SupersetTestCase):
         Annotation Api: Test sorting on get list annotation layers
         """
         self.login(username="admin")
-        uri = f"api/v1/annotation_layer/"
+        uri = "api/v1/annotation_layer/"
 
         order_columns = [
             "name",

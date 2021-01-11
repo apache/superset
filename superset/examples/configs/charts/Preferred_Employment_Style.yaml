@@ -1,0 +1,63 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Preferred Employment Style
+viz_type: treemap
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: '0'
+    expressionType: SIMPLE
+    filterOptionName: filter_s1jzmdwgeg_p3er4w56uy
+    isExtra: false
+    isNew: false
+    operator: ==
+    sqlExpression: null
+    subject: is_software_dev
+  - clause: WHERE
+    comparator: 'NULL'
+    expressionType: SIMPLE
+    filterOptionName: filter_rdlajraxs0f_lgyfv4rvdh
+    isExtra: false
+    isNew: false
+    operator: '!='
+    sqlExpression: null
+    subject: job_pref
+  color_scheme: supersetColors
+  datasource: 42__table
+  granularity_sqla: time_start
+  groupby:
+  - job_pref
+  label_colors: {}
+  metrics:
+  - count
+  number_format: SMART_NUMBER
+  queryFields:
+    groupby: groupby
+    metrics: metrics
+  row_limit: 10
+  slice_id: 1377
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  treemap_ratio: 1.618033988749895
+  url_params: {}
+  viz_type: treemap
+cache_timeout: null
+uuid: bff88053-ccc4-92f2-d6f5-de83e950e8cd
+version: 1.0.0
+dataset_uuid: d95a2865-53ce-1f82-a53d-8e3c89331469

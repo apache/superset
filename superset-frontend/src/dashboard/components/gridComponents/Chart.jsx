@@ -34,6 +34,7 @@ import {
 } from '../../../logger/LogUtils';
 import { isFilterBox } from '../../util/activeDashboardFilters';
 import getFilterValuesByFilterId from '../../util/getFilterValuesByFilterId';
+import { areObjectsEqual } from '../../../reduxUtils';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -133,19 +134,21 @@ export default class Chart extends React.Component {
         return false;
       }
 
-      for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
-        const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
-        if (nextProps[prop] !== this.props[prop]) {
-          return true;
-        }
-      }
-
       if (
         nextProps.width !== this.props.width ||
         nextProps.height !== this.props.height
       ) {
         clearTimeout(this.resizeTimeout);
         this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
+      }
+
+      for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
+        const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
+        // use deep objects equality comparison to prevent
+        // unneccessary updates when objects references change
+        if (!areObjectsEqual(nextProps[prop], this.props[prop])) {
+          return true;
+        }
       }
     }
 
@@ -266,10 +269,13 @@ export default class Chart extends React.Component {
       return <MissingChart height={this.getChartHeight()} />;
     }
 
-    const { queryResponse, chartUpdateEndTime, chartStatus } = chart;
+    const { queriesResponse, chartUpdateEndTime, chartStatus } = chart;
     const isLoading = chartStatus === 'loading';
-    const isCached = queryResponse && queryResponse.is_cached;
-    const cachedDttm = queryResponse && queryResponse.cached_dttm;
+    // eslint-disable-next-line camelcase
+    const isCached = queriesResponse?.map(({ is_cached }) => is_cached) || [];
+    const cachedDttm =
+      // eslint-disable-next-line camelcase
+      queriesResponse?.map(({ cached_dttm }) => cached_dttm) || [];
     const isOverflowable = OVERFLOWABLE_VIZ_TYPES.has(slice.viz_type);
     const initialValues = isFilterBox(id)
       ? getFilterValuesByFilterId({
@@ -277,7 +283,6 @@ export default class Chart extends React.Component {
           filterId: id,
         })
       : {};
-
     return (
       <div className="chart-slice">
         <SliceHeader
@@ -310,9 +315,9 @@ export default class Chart extends React.Component {
         {/*
           This usage of dangerouslySetInnerHTML is safe since it is being used to render
           markdown that is sanitized with bleach. See:
-             https://github.com/apache/incubator-superset/pull/4390
+             https://github.com/apache/superset/pull/4390
           and
-             https://github.com/apache/incubator-superset/commit/b6fcc22d5a2cb7a5e92599ed5795a0169385a825
+             https://github.com/apache/superset/commit/b6fcc22d5a2cb7a5e92599ed5795a0169385a825
         */}
         {isExpanded && slice.description_markeddown && (
           <div
@@ -352,7 +357,7 @@ export default class Chart extends React.Component {
             dashboardId={dashboardId}
             initialValues={initialValues}
             formData={formData}
-            queryResponse={chart.queryResponse}
+            queriesResponse={chart.queriesResponse}
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={slice.viz_type}

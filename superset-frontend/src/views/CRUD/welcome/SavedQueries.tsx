@@ -187,8 +187,8 @@ const SavedQueries = ({
     return filters;
   };
 
-  const getData = (filter: string) => {
-    return fetchData({
+  const getData = (filter: string) =>
+    fetchData({
       pageIndex: 0,
       pageSize: PAGE_SIZE,
       sortBy: [
@@ -199,7 +199,6 @@ const SavedQueries = ({
       ],
       filters: getFilters(filter),
     });
-  };
 
   const renderMenu = (query: Query) => (
     <Menu>
@@ -255,6 +254,7 @@ const SavedQueries = ({
       <SubMenu
         activeChild={queryFilter}
         tabs={[
+          /* @TODO uncomment when fav functionality is implemented
           {
             name: 'Favorite',
             label: t('Favorite'),
@@ -262,6 +262,7 @@ const SavedQueries = ({
               getData('Favorite').then(() => setQueryFilter('Favorite'));
             },
           },
+          */
           {
             name: 'Mine',
             label: t('Mine'),

@@ -14,10 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Union
+from typing import Any, Dict, Union
 
 from croniter import croniter
-from marshmallow import fields, Schema, validate
+from marshmallow import fields, Schema, validate, validates_schema
 from marshmallow.validate import Length, ValidationError
 
 from superset.models.reports import (
@@ -139,7 +139,7 @@ class ReportSchedulePostSchema(Schema):
     active = fields.Boolean()
     crontab = fields.String(
         description=crontab_description,
-        validate=[validate_crontab, Length(1, 50)],
+        validate=[validate_crontab, Length(1, 1000)],
         example="*/5 * * * *",
         allow_none=False,
         required=True,
@@ -170,6 +170,16 @@ class ReportSchedulePostSchema(Schema):
 
     recipients = fields.List(fields.Nested(ReportRecipientSchema))
 
+    @validates_schema
+    def validate_report_references(  # pylint: disable=unused-argument,no-self-use
+        self, data: Dict[str, Any], **kwargs: Any
+    ) -> None:
+        if data["type"] == ReportScheduleType.REPORT:
+            if "database" in data:
+                raise ValidationError(
+                    {"database": ["Database reference is not allowed on a report"]}
+                )
+
 
 class ReportSchedulePutSchema(Schema):
     type = fields.String(
@@ -192,7 +202,7 @@ class ReportSchedulePutSchema(Schema):
     active = fields.Boolean(required=False)
     crontab = fields.String(
         description=crontab_description,
-        validate=[validate_crontab, Length(1, 50)],
+        validate=[validate_crontab, Length(1, 1000)],
         required=False,
     )
     sql = fields.String(

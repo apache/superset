@@ -1,7 +1,11 @@
 # Python Misc unit tests
 name: Python Misc
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - "dependabot/npm_and_yarn/**"
+  pull_request:
 
 jobs:
   lint:
@@ -10,10 +14,6 @@ jobs:
       matrix:
         python-version: [3.7]
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
-        with:
-          access_token: ${{ github.token }}
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Setup Python
@@ -21,7 +21,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             apt-get-install
@@ -37,10 +37,6 @@ jobs:
       matrix:
         python-version: [3.7]
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
-        with:
-          access_token: ${{ github.token }}
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Setup Python
@@ -48,7 +44,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             apt-get-install
@@ -63,10 +59,6 @@ jobs:
       matrix:
         python-version: [3.7]
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
-        with:
-          access_token: ${{ github.token }}
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Setup Python
@@ -74,7 +66,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             apt-get-install

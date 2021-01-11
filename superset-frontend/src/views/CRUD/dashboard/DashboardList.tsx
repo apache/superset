@@ -29,7 +29,11 @@ import {
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import ListView, { ListViewProps, Filters } from 'src/components/ListView';
+import ListView, {
+  ListViewProps,
+  Filters,
+  FilterOperators,
+} from 'src/components/ListView';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import FacePile from 'src/components/FacePile';
@@ -37,9 +41,7 @@ import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import TooltipWrapper from 'src/components/TooltipWrapper';
-import ImportModelsModal, {
-  StyledIcon,
-} from 'src/components/ImportModal/index';
+import ImportModelsModal from 'src/components/ImportModal/index';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
 import DashboardCard from './DashboardCard';
@@ -51,6 +53,11 @@ const PASSWORDS_NEEDED_MESSAGE = t(
     '"Secure Extra" and "Certificate" sections of ' +
     'the database configuration are not present in export files, and ' +
     'should be added manually after the import if they are needed.',
+);
+const CONFIRM_OVERWRITE_MESSAGE = t(
+  'You are importing one or more dashboards that already exist. ' +
+    'Overwriting might cause you to lose some of your work. Are you ' +
+    'sure you want to overwrite?',
 );
 
 interface DashboardListProps {
@@ -101,6 +108,7 @@ function DashboardList(props: DashboardListProps) {
     dashboardIds,
     addDangerToast,
   );
+
   const [dashboardToEdit, setDashboardToEdit] = useState<Dashboard | null>(
     null,
   );
@@ -121,10 +129,10 @@ function DashboardList(props: DashboardListProps) {
     refreshData();
   };
 
-  const canCreate = hasPerm('can_add');
-  const canEdit = hasPerm('can_edit');
-  const canDelete = hasPerm('can_delete');
-  const canExport = hasPerm('can_mulexport');
+  const canCreate = hasPerm('can_write');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
+  const canExport = hasPerm('can_read');
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
@@ -186,7 +194,7 @@ function DashboardList(props: DashboardListProps) {
           />
         ),
         Header: '',
-        id: 'favorite',
+        id: 'id',
         disableSortBy: true,
         size: 'xs',
       },
@@ -351,7 +359,7 @@ function DashboardList(props: DashboardListProps) {
       Header: t('Owner'),
       id: 'owners',
       input: 'select',
-      operator: 'rel_m_m',
+      operator: FilterOperators.relationManyMany,
       unfilteredLabel: 'All',
       fetchSelects: createFetchRelated(
         'dashboard',
@@ -372,7 +380,7 @@ function DashboardList(props: DashboardListProps) {
       Header: t('Created By'),
       id: 'created_by',
       input: 'select',
-      operator: 'rel_o_m',
+      operator: FilterOperators.relationOneMany,
       unfilteredLabel: 'All',
       fetchSelects: createFetchRelated(
         'dashboard',
@@ -393,7 +401,7 @@ function DashboardList(props: DashboardListProps) {
       Header: t('Status'),
       id: 'published',
       input: 'select',
-      operator: 'eq',
+      operator: FilterOperators.equals,
       unfilteredLabel: 'Any',
       selects: [
         { label: t('Published'), value: true },
@@ -401,10 +409,22 @@ function DashboardList(props: DashboardListProps) {
       ],
     },
     {
+      Header: t('Favorite'),
+      id: 'id',
+      urlDisplay: 'favorite',
+      input: 'select',
+      operator: FilterOperators.dashboardIsFav,
+      unfilteredLabel: 'Any',
+      selects: [
+        { label: t('Yes'), value: true },
+        { label: t('No'), value: false },
+      ],
+    },
+    {
       Header: t('Search'),
       id: 'dashboard_title',
       input: 'search',
-      operator: 'title_or_slug',
+      operator: FilterOperators.titleOrSlug,
     },
   ];
 
@@ -541,11 +561,8 @@ function DashboardList(props: DashboardListProps) {
       <ImportModelsModal
         resourceName="dashboard"
         resourceLabel={t('dashboard')}
-        icon={<StyledIcon name="nav-dashboard" />}
         passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
-        confirmOverwriteMessage={t(
-          'One or more dashboards to be imported already exist.',
-        )}
+        confirmOverwriteMessage={CONFIRM_OVERWRITE_MESSAGE}
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         onModelImport={handleDashboardImport}

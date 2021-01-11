@@ -106,7 +106,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "metric_name": "ratio",
                     "verbose_name": "Ratio Boys/Girls",
                     "metric_type": None,
-                    "expression": "sum(sum_boys) / sum(sum_girls)",
+                    "expression": "sum(num_boys) / sum(num_girls)",
                     "description": "This represents the ratio of boys/girls",
                     "d3format": ".2%",
                     "extra": None,
@@ -159,7 +159,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "python_date_format": None,
                 },
                 {
-                    "column_name": "sum_girls",
+                    "column_name": "num_girls",
                     "verbose_name": None,
                     "is_dttm": False,
                     "is_active": None,
@@ -195,7 +195,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "python_date_format": None,
                 },
                 {
-                    "column_name": "sum_boys",
+                    "column_name": "num_boys",
                     "verbose_name": None,
                     "is_dttm": None,
                     "is_active": None,

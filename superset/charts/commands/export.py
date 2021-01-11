@@ -45,7 +45,7 @@ class ExportChartsCommand(ExportModelsCommand):
     @staticmethod
     def _export(model: Slice) -> Iterator[Tuple[str, str]]:
         chart_slug = secure_filename(model.slice_name)
-        file_name = f"charts/{chart_slug}.yaml"
+        file_name = f"charts/{chart_slug}_{model.id}.yaml"
 
         payload = model.export_to_dict(
             recursive=False,

@@ -24,7 +24,8 @@ import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 describe('Datasource control', () => {
   const newMetricName = `abc${Date.now()}`;
 
-  it('should allow edit dataset', () => {
+  // TODO: uncomment when adding metrics from dataset is fixed
+  xit('should allow edit dataset', () => {
     let numScripts = 0;
 
     cy.login();
@@ -34,6 +35,7 @@ describe('Datasource control', () => {
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
+    cy.get('[data-test="open-datasource-tab').click({ force: true });
     cy.get('[data-test="datasource-menu-trigger"]').click();
 
     cy.get('script').then(nodes => {
@@ -126,7 +128,7 @@ describe('Time range filter', () => {
     cy.route('POST', '/superset/explore_json/**').as('postJson');
   });
 
-  it('Defaults to the correct tab for time_range params', () => {
+  it('Advanced time_range params', () => {
     const formData = {
       ...FORM_DATA_DEFAULTS,
       metrics: [NUM_METRIC],
@@ -137,20 +139,99 @@ describe('Time range filter', () => {
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
-    cy.get('[data-test=time_range]').within(() => {
-      cy.get('span.label').click();
-    });
-
-    cy.get('#filter-popover').within(() => {
-      cy.get('div.ant-tabs-tabpane-active').within(() => {
-        cy.get('div.PopoverSection :not(.dimmed)').within(() => {
+    cy.get('[data-test=time-range-trigger]')
+      .click()
+      .then(() => {
+        cy.get('.footer').find('button').its('length').should('eq', 2);
+        cy.get('.ant-popover-content').within(() => {
           cy.get('input[value="100 years ago"]');
           cy.get('input[value="now"]');
         });
+        cy.get('[data-test=cancel-button]').click();
+        cy.get('.ant-popover').should('not.be.visible');
       });
-    });
-    cy.get('#filter-popover button').contains('Ok').click();
-    cy.get('#filter-popover').should('not.be.visible');
+  });
+
+  it('Common time_range params', () => {
+    const formData = {
+      ...FORM_DATA_DEFAULTS,
+      metrics: [NUM_METRIC],
+      viz_type: 'line',
+      time_range: 'Last year',
+    };
+
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+
+    cy.get('[data-test=time-range-trigger]')
+      .click()
+      .then(() => {
+        cy.get('.ant-radio-group').children().its('length').should('eq', 5);
+        cy.get('.ant-radio-checked + span').contains('last year');
+        cy.get('[data-test=cancel-button]').click();
+      });
+  });
+
+  it('Previous time_range params', () => {
+    const formData = {
+      ...FORM_DATA_DEFAULTS,
+      metrics: [NUM_METRIC],
+      viz_type: 'line',
+      time_range: 'previous calendar month',
+    };
+
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+
+    cy.get('[data-test=time-range-trigger]')
+      .click()
+      .then(() => {
+        cy.get('.ant-radio-group').children().its('length').should('eq', 3);
+        cy.get('.ant-radio-checked + span').contains('previous calendar month');
+        cy.get('[data-test=cancel-button]').click();
+      });
+  });
+
+  it('Custom time_range params', () => {
+    const formData = {
+      ...FORM_DATA_DEFAULTS,
+      metrics: [NUM_METRIC],
+      viz_type: 'line',
+      time_range: 'DATEADD(DATETIME("today"), -7, day) : today',
+    };
+
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+
+    cy.get('[data-test=time-range-trigger]')
+      .click()
+      .then(() => {
+        cy.get('[data-test=custom-frame]').then(() => {
+          cy.get('.ant-input-number-input-wrap > input')
+            .invoke('attr', 'value')
+            .should('eq', '7');
+        });
+        cy.get('[data-test=cancel-button]').click();
+      });
+  });
+
+  it('No filter time_range params', () => {
+    const formData = {
+      ...FORM_DATA_DEFAULTS,
+      metrics: [NUM_METRIC],
+      viz_type: 'line',
+      time_range: 'No filter',
+    };
+
+    cy.visitChartByParams(JSON.stringify(formData));
+    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+
+    cy.get('[data-test=time-range-trigger]')
+      .click()
+      .then(() => {
+        cy.get('[data-test=no-filter]');
+      });
+    cy.get('[data-test=cancel-button]').click();
   });
 });
 

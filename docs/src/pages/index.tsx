@@ -300,30 +300,30 @@ const Theme = () => {
             <div className="github-section">
               <span className="github-button">
                 <GitHubButton
-                  href="https://github.com/apache/incubator-superset"
+                  href="https://github.com/apache/superset"
                   data-size="large"
                   data-show-count="true"
-                  aria-label="Star apache/incubator-superset on GitHub"
+                  aria-label="Star apache/superset on GitHub"
                 >
                   Star
                 </GitHubButton>
               </span>
               <span className="github-button">
                 <GitHubButton
-                  href="https://github.com/apache/incubator-superset/subscription"
+                  href="https://github.com/apache/superset/subscription"
                   data-size="large"
                   data-show-count="true"
-                  aria-label="Watch apache/incubator-superset on GitHub"
+                  aria-label="Watch apache/superset on GitHub"
                 >
                   Watch
                 </GitHubButton>
               </span>
               <span className="github-button">
                 <GitHubButton
-                  href="https://github.com/apache/incubator-superset/fork"
+                  href="https://github.com/apache/superset/fork"
                   data-size="large"
                   data-show-count="true"
-                  aria-label="Fork apache/incubator-superset on GitHub"
+                  aria-label="Fork apache/superset on GitHub"
                 >
                   Fork
                 </GitHubButton>

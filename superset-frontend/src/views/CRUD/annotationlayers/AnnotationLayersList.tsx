@@ -68,9 +68,10 @@ function AnnotationLayersList({
     addDangerToast,
   );
 
-  const [annotationLayerModalOpen, setAnnotationLayerModalOpen] = useState<
-    boolean
-  >(false);
+  const [
+    annotationLayerModalOpen,
+    setAnnotationLayerModalOpen,
+  ] = useState<boolean>(false);
   const [
     currentAnnotationLayer,
     setCurrentAnnotationLayer,
@@ -114,9 +115,9 @@ function AnnotationLayersList({
     );
   };
 
-  const canCreate = hasPerm('can_add');
-  const canEdit = hasPerm('can_edit');
-  const canDelete = hasPerm('can_delete');
+  const canCreate = hasPerm('can_write');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
 
   function handleAnnotationLayerEdit(layer: AnnotationLayerObject | null) {
     setCurrentAnnotationLayer(layer);
