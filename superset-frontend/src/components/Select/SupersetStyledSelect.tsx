@@ -257,9 +257,7 @@ function styled<
     };
 
     const theme = useTheme();
-    const menuPortalTargetRef = React.useRef() as React.MutableRefObject<
-      HTMLDivElement
-    >;
+    const menuPortalTargetRef = React.useRef() as React.MutableRefObject<HTMLDivElement>;
 
     return (
       <div ref={menuPortalTargetRef}>
