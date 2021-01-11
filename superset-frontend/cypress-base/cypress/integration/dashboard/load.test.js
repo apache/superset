@@ -44,8 +44,8 @@ describe('Dashboard load', () => {
 
   it('should load dashboard', () => {
     // wait and verify one-by-one
-    cy.wait(aliases).then(requests => {
-      return Promise.all(
+    cy.wait(aliases).then(requests =>
+      Promise.all(
         requests.map(async xhr => {
           expect(xhr.status).to.eq(200);
           const responseBody = await readResponseBlob(xhr.response.body);
@@ -65,7 +65,7 @@ describe('Dashboard load', () => {
             .find(`#chart-id-${sliceId}`)
             .should('be.visible');
         }),
-      );
-    });
+      ),
+    );
   });
 });

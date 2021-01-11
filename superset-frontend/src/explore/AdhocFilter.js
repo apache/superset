@@ -42,9 +42,8 @@ const OPERATORS_TO_SQL = {
   REGEX: 'REGEX',
   'IS NOT NULL': 'IS NOT NULL',
   'IS NULL': 'IS NULL',
-  'LATEST PARTITION': ({ datasource }) => {
-    return `= '{{ presto.latest_partition('${datasource.schema}.${datasource.datasource_name}') }}'`;
-  },
+  'LATEST PARTITION': ({ datasource }) =>
+    `= '{{ presto.latest_partition('${datasource.schema}.${datasource.datasource_name}') }}'`,
 };
 
 function translateToSql(adhocMetric, { useSimple } = {}) {

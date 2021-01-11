@@ -79,13 +79,11 @@ export default function SaveQuery({
   const [showSave, setShowSave] = useState<boolean>(false);
   const isSaved = !!query.remoteId;
 
-  const queryPayload = () => {
-    return {
-      ...query,
-      title: label,
-      description,
-    };
-  };
+  const queryPayload = () => ({
+    ...query,
+    title: label,
+    description,
+  });
 
   const close = () => {
     setShowSave(false);
@@ -113,47 +111,45 @@ export default function SaveQuery({
     setShowSave(!showSave);
   };
 
-  const renderModalBody = () => {
-    return (
-      <FormGroup bsSize="small">
-        <Row>
-          <Col md={12}>
-            <small>
-              <FormLabel htmlFor="embed-height">{t('Name')}</FormLabel>
-            </small>
-            <FormControl type="text" value={label} onChange={onLabelChange} />
-          </Col>
-        </Row>
-        <br />
-        <Row>
-          <Col md={12}>
-            <small>
-              <FormLabel htmlFor="embed-height">{t('Description')}</FormLabel>
-            </small>
-            <FormControl
-              rows={5}
-              componentClass="textarea"
-              value={description}
-              onChange={onDescriptionChange}
-            />
-          </Col>
-        </Row>
-        {saveQueryWarning && (
-          <>
+  const renderModalBody = () => (
+    <FormGroup bsSize="small">
+      <Row>
+        <Col md={12}>
+          <small>
+            <FormLabel htmlFor="embed-height">{t('Name')}</FormLabel>
+          </small>
+          <FormControl type="text" value={label} onChange={onLabelChange} />
+        </Col>
+      </Row>
+      <br />
+      <Row>
+        <Col md={12}>
+          <small>
+            <FormLabel htmlFor="embed-height">{t('Description')}</FormLabel>
+          </small>
+          <FormControl
+            rows={5}
+            componentClass="textarea"
+            value={description}
+            onChange={onDescriptionChange}
+          />
+        </Col>
+      </Row>
+      {saveQueryWarning && (
+        <>
+          <br />
+          <div>
+            <Row>
+              <Col md={12}>
+                <small>{saveQueryWarning}</small>
+              </Col>
+            </Row>
             <br />
-            <div>
-              <Row>
-                <Col md={12}>
-                  <small>{saveQueryWarning}</small>
-                </Col>
-              </Row>
-              <br />
-            </div>
-          </>
-        )}
-      </FormGroup>
-    );
-  };
+          </div>
+        </>
+      )}
+    </FormGroup>
+  );
 
   return (
     <Styles className="SaveQuery">
