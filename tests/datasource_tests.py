@@ -18,15 +18,30 @@
 import json
 from copy import deepcopy
 
-from superset import app, db
+import pytest
+
+from superset import app, ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.utils.core import get_example_database
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 from .base_tests import SupersetTestCase
 from .fixtures.datasource import datasource_post
 
 
 class TestDatasource(SupersetTestCase):
+    def setUp(self):
+        self.original_attrs = {}
+        self.datasource = None
+
+    def tearDown(self):
+        if self.datasource:
+            for key, value in self.original_attrs.items():
+                setattr(self.datasource, key, value)
+
+            db.session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_external_metadata_for_physical_table(self):
         self.login(username="admin")
         tbl = self.get_table_by_name("birth_names")
@@ -105,6 +120,12 @@ class TestDatasource(SupersetTestCase):
     def test_save(self):
         self.login(username="admin")
         tbl_id = self.get_table_by_name("birth_names").id
+
+        self.datasource = ConnectorRegistry.get_datasource("table", tbl_id, db.session)
+
+        for key in self.datasource.export_fields:
+            self.original_attrs[key] = getattr(self.datasource, key)
+
         datasource_post["id"] = tbl_id
         data = dict(data=json.dumps(datasource_post))
         resp = self.get_json_resp("/datasource/save/", data)
@@ -130,6 +151,11 @@ class TestDatasource(SupersetTestCase):
         db_id = tbl.database_id
         datasource_post["id"] = tbl_id
 
+        self.datasource = ConnectorRegistry.get_datasource("table", tbl_id, db.session)
+
+        for key in self.datasource.export_fields:
+            self.original_attrs[key] = getattr(self.datasource, key)
+
         new_db = self.create_fake_db()
 
         datasource_post["database"]["id"] = new_db.id
@@ -145,6 +171,11 @@ class TestDatasource(SupersetTestCase):
     def test_save_duplicate_key(self):
         self.login(username="admin")
         tbl_id = self.get_table_by_name("birth_names").id
+        self.datasource = ConnectorRegistry.get_datasource("table", tbl_id, db.session)
+
+        for key in self.datasource.export_fields:
+            self.original_attrs[key] = getattr(self.datasource, key)
+
         datasource_post_copy = deepcopy(datasource_post)
         datasource_post_copy["id"] = tbl_id
         datasource_post_copy["columns"].extend(
@@ -172,6 +203,14 @@ class TestDatasource(SupersetTestCase):
     def test_get_datasource(self):
         self.login(username="admin")
         tbl = self.get_table_by_name("birth_names")
+        self.datasource = ConnectorRegistry.get_datasource("table", tbl.id, db.session)
+
+        for key in self.datasource.export_fields:
+            self.original_attrs[key] = getattr(self.datasource, key)
+
+        datasource_post["id"] = tbl.id
+        data = dict(data=json.dumps(datasource_post))
+        self.get_json_resp("/datasource/save/", data)
         url = f"/datasource/get/{tbl.type}/{tbl.id}/"
         resp = self.get_json_resp(url)
         self.assertEqual(resp.get("type"), "table")
@@ -199,6 +238,11 @@ class TestDatasource(SupersetTestCase):
 
         self.login(username="admin")
         tbl = self.get_table_by_name("birth_names")
+        self.datasource = ConnectorRegistry.get_datasource("table", tbl.id, db.session)
+
+        for key in self.datasource.export_fields:
+            self.original_attrs[key] = getattr(self.datasource, key)
+
         url = f"/datasource/get/{tbl.type}/{tbl.id}/"
         tbl.health_check(commit=True, force=True)
         resp = self.get_json_resp(url)
