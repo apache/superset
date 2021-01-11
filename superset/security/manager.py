@@ -177,6 +177,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "schema_access",
         "datasource_access",
         "metric_access",
+        "dashboard_access",
     }
 
     ACCESSIBLE_PERMS = {"can_userinfo"}
