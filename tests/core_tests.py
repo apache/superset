@@ -25,6 +25,7 @@ import json
 import logging
 from typing import Dict, List
 from urllib.parse import quote
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import pytest
 import pytz
@@ -100,6 +101,7 @@ class TestCore(SupersetTestCase):
         resp = self.client.get("/superset/dashboard/-1/")
         assert resp.status_code == 404
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_endpoint(self):
         self.login(username="admin")
         slc = self.get_slice("Girls", db.session)
@@ -114,6 +116,7 @@ class TestCore(SupersetTestCase):
         resp = self.client.get("/superset/slice/-1/")
         assert resp.status_code == 404
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_viz_cache_key(self):
         self.login(username="admin")
         slc = self.get_slice("Girls", db.session)
@@ -327,6 +330,7 @@ class TestCore(SupersetTestCase):
         assert len(resp) > 0
         assert "energy_target0" in resp
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_data(self):
         # slice data should have some required attributes
         self.login(username="admin")
@@ -372,6 +376,7 @@ class TestCore(SupersetTestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_user_slices_for_owners(self):
         self.login(username="alpha")
         user = security_manager.find_user("alpha")
@@ -577,7 +582,9 @@ class TestCore(SupersetTestCase):
         database.allow_run_async = False
         db.session.commit()
 
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @pytest.mark.usefixtures(
+        "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
+    )
     def test_warm_up_cache(self):
         self.login()
         slc = self.get_slice("Girls", db.session)
@@ -602,6 +609,7 @@ class TestCore(SupersetTestCase):
             + quote(json.dumps([{"col": "name", "op": "in", "val": ["Jennifer"]}]))
         ) == [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_cache_logging(self):
         store_cache_keys = app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = True
@@ -649,12 +657,21 @@ class TestCore(SupersetTestCase):
         assert "Charts" in self.get_resp("/chart/list/")
         assert "Dashboards" in self.get_resp("/dashboard/list/")
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_csv_endpoint(self):
         self.login()
-        sql = """
+        client_id = "{}".format(random.getrandbits(64))[:10]
+        get_name_sql = """
+                    SELECT name
+                    FROM birth_names
+                    LIMIT 1
+                """
+        resp = self.run_sql(get_name_sql, client_id, raise_on_error=True)
+        name = resp["data"][0]["name"]
+        sql = f"""
             SELECT name
             FROM birth_names
-            WHERE name = 'James'
+            WHERE name = '{name}'
             LIMIT 1
         """
         client_id = "{}".format(random.getrandbits(64))[:10]
@@ -662,18 +679,19 @@ class TestCore(SupersetTestCase):
 
         resp = self.get_resp("/superset/csv/{}".format(client_id))
         data = csv.reader(io.StringIO(resp))
-        expected_data = csv.reader(io.StringIO("name\nJames\n"))
+        expected_data = csv.reader(io.StringIO(f"name\n{name}\n"))
 
         client_id = "{}".format(random.getrandbits(64))[:10]
         self.run_sql(sql, client_id, raise_on_error=True)
 
         resp = self.get_resp("/superset/csv/{}".format(client_id))
         data = csv.reader(io.StringIO(resp))
-        expected_data = csv.reader(io.StringIO("name\nJames\n"))
+        expected_data = csv.reader(io.StringIO(f"name\n{name}\n"))
 
         self.assertEqual(list(expected_data), list(data))
         self.logout()
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_extra_table_metadata(self):
         self.login()
         example_db = utils.get_example_database()
@@ -730,6 +748,7 @@ class TestCore(SupersetTestCase):
         for k in keys:
             self.assertIn(k, resp.keys())
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_user_profile(self, username="admin"):
         self.login(username=username)
         slc = self.get_slice("Girls", db.session)
@@ -762,6 +781,7 @@ class TestCore(SupersetTestCase):
         data = self.get_json_resp(f"/superset/fave_dashboards_by_username/{username}/")
         self.assertNotIn("message", data)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_id_is_always_logged_correctly_on_web_request(self):
         # superset/explore case
         slc = db.session.query(Slice).filter_by(slice_name="Girls").one()
@@ -845,6 +865,7 @@ class TestCore(SupersetTestCase):
             "The datasource associated with this chart no longer exists",
         )
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_explore_json(self):
         tbl_id = self.table_ids.get("birth_names")
         form_data = {
@@ -867,6 +888,7 @@ class TestCore(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(data["rowcount"], 2)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
         GLOBAL_ASYNC_QUERIES=True,
@@ -897,6 +919,7 @@ class TestCore(SupersetTestCase):
             keys, ["channel_id", "job_id", "user_id", "status", "errors", "result_url"]
         )
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
         GLOBAL_ASYNC_QUERIES=True,
@@ -922,6 +945,7 @@ class TestCore(SupersetTestCase):
         )
         self.assertEqual(rv.status_code, 200)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
         "superset.utils.cache_manager.CacheManager.cache",
         new_callable=mock.PropertyMock,
@@ -1029,6 +1053,7 @@ class TestCore(SupersetTestCase):
         assert data == ["this_schema_is_allowed_too"]
         self.delete_fake_db()
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_select_star(self):
         self.login(username="admin")
         examples_db = utils.get_example_database()
