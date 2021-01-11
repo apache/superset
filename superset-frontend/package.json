@@ -14,7 +14,7 @@
     "cover": "NODE_ENV=test jest --coverage",
     "dev": "webpack --mode=development --colors --debug --watch",
     "dev-server": "NODE_ENV=development BABEL_ENV=development node --max_old_space_size=4096 ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --mode=development",
-    "prod": "node --max_old_space_size=4096 BABEL_ENV=production ./node_modules/webpack/bin/webpack.js --mode=production --colors",
+    "prod": "npm run build",
     "build-dev": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=development webpack --mode=development --colors",
     "build-instrumented": "cross-env NODE_ENV=development BABEL_ENV=instrumented webpack --mode=development --colors",
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production BABEL_ENV=production webpack --mode=production --colors",
