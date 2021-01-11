@@ -19,11 +19,7 @@ import logging
 import re
 from datetime import date, datetime, timedelta
 from time import struct_time
-from typing import (
-    List,
-    Optional,
-    Tuple,
-)
+from typing import List, Optional, Tuple
 
 import parsedatetime
 from dateutil.parser import parse
@@ -41,7 +37,9 @@ from pyparsing import (
     quotedString,
     Suppress,
 )
+
 from .core import memoized
+
 logger = logging.getLogger(__name__)
 
 
@@ -275,24 +273,24 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
         DATEADD
         + lparen
         + Group(
-        date_expr
-        + comma
-        + int_operand
-        + comma
-        + (YEAR | QUARTER | MONTH | WEEK | DAY | HOUR | MINUTE | SECOND)
-        + ppOptional(comma)
-    )
+            date_expr
+            + comma
+            + int_operand
+            + comma
+            + (YEAR | QUARTER | MONTH | WEEK | DAY | HOUR | MINUTE | SECOND)
+            + ppOptional(comma)
+        )
         + rparen
     ).setParseAction(EvalDateAddFunc)
     datetrunc_func <<= (
         DATETRUNC
         + lparen
         + Group(
-        date_expr
-        + comma
-        + (YEAR | MONTH | WEEK | DAY | HOUR | MINUTE | SECOND)
-        + ppOptional(comma)
-    )
+            date_expr
+            + comma
+            + (YEAR | MONTH | WEEK | DAY | HOUR | MINUTE | SECOND)
+            + ppOptional(comma)
+        )
         + rparen
     ).setParseAction(EvalDateTruncFunc)
     lastday_func <<= (
@@ -305,13 +303,13 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
         HOLIDAY
         + lparen
         + Group(
-        text_operand
-        + ppOptional(comma)
-        + ppOptional(date_expr)
-        + ppOptional(comma)
-        + ppOptional(text_operand)
-        + ppOptional(comma)
-    )
+            text_operand
+            + ppOptional(comma)
+            + ppOptional(date_expr)
+            + ppOptional(comma)
+            + ppOptional(text_operand)
+            + ppOptional(comma)
+        )
         + rparen
     ).setParseAction(EvalHolidayFunc)
 

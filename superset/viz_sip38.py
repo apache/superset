@@ -63,6 +63,7 @@ from superset.utils.core import (
     merge_extra_filters,
     to_adhoc,
 )
+from superset.utils.date_parser import get_since_until
 
 import dataclasses  # isort:skip
 
@@ -359,7 +360,7 @@ class BaseViz:
         # default order direction
         order_desc = form_data.get("order_desc", True)
 
-        since, until = utils.get_since_until(
+        since, until = get_since_until(
             relative_start=relative_start,
             relative_end=relative_end,
             time_range=form_data.get("time_range"),
@@ -883,7 +884,7 @@ class CalHeatmapViz(BaseViz):
                 values[str(v / 10 ** 9)] = obj.get(metric)
             data[metric] = values
 
-        start, end = utils.get_since_until(
+        start, end = get_since_until(
             relative_start=relative_start,
             relative_end=relative_end,
             time_range=form_data.get("time_range"),
