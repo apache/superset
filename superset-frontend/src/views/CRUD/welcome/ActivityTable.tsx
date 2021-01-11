@@ -146,28 +146,26 @@ export default function ActivityTable({
       }
       return e.sql ? `/superset/sqllab?savedQueryId=${e.id}` : e.url;
     };
-    return activityData[activeChild].map((e: ActivityObjects) => {
-      return (
-        <CardStyles
-          onClick={() => {
-            window.location.href = getRecentRef(e);
-          }}
-          key={e.id}
-        >
-          <ListViewCard
-            loading={loading}
-            cover={<></>}
-            url={e.sql ? `/superset/sqllab?savedQueryId=${e.id}` : e.url}
-            title={getFilterTitle(e)}
-            description={`Last Edited: ${moment(e.changed_on_utc).format(
-              'MM/DD/YYYY HH:mm:ss',
-            )}`}
-            avatar={getIconName(e)}
-            actions={null}
-          />
-        </CardStyles>
-      );
-    });
+    return activityData[activeChild].map((e: ActivityObjects) => (
+      <CardStyles
+        onClick={() => {
+          window.location.href = getRecentRef(e);
+        }}
+        key={e.id}
+      >
+        <ListViewCard
+          loading={loading}
+          cover={<></>}
+          url={e.sql ? `/superset/sqllab?savedQueryId=${e.id}` : e.url}
+          title={getFilterTitle(e)}
+          description={`Last Edited: ${moment(e.changed_on_utc).format(
+            'MM/DD/YYYY HH:mm:ss',
+          )}`}
+          avatar={getIconName(e)}
+          actions={null}
+        />
+      </CardStyles>
+    ));
   };
   if (loading) return <Loading position="inline" />;
   return (

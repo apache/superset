@@ -130,9 +130,7 @@ class FilterBox extends React.PureComponent {
     return this.onFilterMenuOpen(TIME_RANGE);
   }
 
-  onCloseDateFilterControl = () => {
-    return this.onFilterMenuClose(TIME_RANGE);
-  };
+  onCloseDateFilterControl = () => this.onFilterMenuClose(TIME_RANGE);
 
   getControlData(controlName) {
     const { selectedValues } = this.state;

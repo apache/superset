@@ -57,9 +57,9 @@ const defaultProps = {
 
 function verify(sourceProp: string) {
   const mock = jest.fn();
-  mock.mockImplementation(async (props: ControlPropsWithExtras) => {
-    return { [sourceProp]: props.validMetrics || [VALID_METRIC] };
-  });
+  mock.mockImplementation(async (props: ControlPropsWithExtras) => ({
+    [sourceProp]: props.validMetrics || [VALID_METRIC],
+  }));
   return mock;
 }
 

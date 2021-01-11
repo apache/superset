@@ -48,9 +48,9 @@ Cypress.Commands.add('visitChartByName', name => {
   });
 });
 
-Cypress.Commands.add('visitChartById', chartId => {
-  return cy.visit(`${BASE_EXPLORE_URL}{"slice_id": ${chartId}}`);
-});
+Cypress.Commands.add('visitChartById', chartId =>
+  cy.visit(`${BASE_EXPLORE_URL}{"slice_id": ${chartId}}`),
+);
 
 Cypress.Commands.add('visitChartByParams', params => {
   const queryString =

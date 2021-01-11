@@ -26,7 +26,7 @@ describe('FilterConfigurationButton', () => {
   const mockedProps = {
     createNewOnOpen: false,
   };
-  it('it is valid', () => {
+  it('is valid', () => {
     expect(
       React.isValidElement(<FilterConfigurationLink {...mockedProps} />),
     ).toBe(true);
