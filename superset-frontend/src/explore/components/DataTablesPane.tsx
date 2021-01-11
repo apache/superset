@@ -73,16 +73,21 @@ export const DataTablesPane = ({
   queryFormData,
   tableSectionHeight,
   onCollapseChange,
+  chartStatus,
 }: {
   queryFormData: Record<string, any>;
   tableSectionHeight: number;
   onCollapseChange: (openPanelName: string) => void;
+  chartStatus: string;
 }) => {
   const [data, setData] = useState<{
     [RESULT_TYPES.results]?: Record<string, any>[];
     [RESULT_TYPES.samples]?: Record<string, any>[];
   }>(NULLISH_RESULTS_STATE);
-  const [isLoading, setIsLoading] = useState(NULLISH_RESULTS_STATE);
+  const [isLoading, setIsLoading] = useState({
+    [RESULT_TYPES.results]: true,
+    [RESULT_TYPES.samples]: true,
+  });
   const [error, setError] = useState(NULLISH_RESULTS_STATE);
   const [filterText, setFilterText] = useState('');
   const [activeTabKey, setActiveTabKey] = useState<string>(
@@ -150,11 +155,18 @@ export const DataTablesPane = ({
 
   useEffect(() => {
     if (panelOpen && isRequestPending[RESULT_TYPES.results]) {
-      setIsRequestPending(prevState => ({
-        ...prevState,
-        [RESULT_TYPES.results]: false,
-      }));
-      getData(RESULT_TYPES.results);
+      if (chartStatus === 'loading') {
+        setIsLoading(prevIsLoading => ({
+          ...prevIsLoading,
+          [RESULT_TYPES.results]: true,
+        }));
+      } else {
+        setIsRequestPending(prevState => ({
+          ...prevState,
+          [RESULT_TYPES.results]: false,
+        }));
+        getData(RESULT_TYPES.results);
+      }
     }
     if (
       panelOpen &&
@@ -167,7 +179,7 @@ export const DataTablesPane = ({
       }));
       getData(RESULT_TYPES.samples);
     }
-  }, [panelOpen, isRequestPending, getData, activeTabKey]);
+  }, [panelOpen, isRequestPending, getData, activeTabKey, chartStatus]);
 
   const filteredData = {
     [RESULT_TYPES.results]: useFilteredTableData(
