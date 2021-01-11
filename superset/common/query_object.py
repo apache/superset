@@ -28,12 +28,8 @@ from superset import app, is_feature_enabled
 from superset.exceptions import QueryObjectValidationError
 from superset.typing import Metric
 from superset.utils import pandas_postprocessing
-from superset.utils.core import (
-    DTTM_ALIAS,
-    get_since_until,
-    json_int_dttm_ser,
-    parse_human_timedelta,
-)
+from superset.utils.core import DTTM_ALIAS, json_int_dttm_ser
+from superset.utils.date_parser import get_since_until, parse_human_timedelta
 from superset.views.utils import get_time_range_endpoints
 
 config = app.config
