@@ -39,8 +39,8 @@ describe('Dashboard form data', () => {
   it('should apply url params to slice requests', () => {
     const aliases = getChartAliases(dashboard.slices);
     // wait and verify one-by-one
-    cy.wait(aliases).then(requests => {
-      return Promise.all(
+    cy.wait(aliases).then(requests =>
+      Promise.all(
         requests.map(async xhr => {
           expect(xhr.status).to.eq(200);
           const responseBody = await readResponseBlob(xhr.response.body);
@@ -55,7 +55,7 @@ describe('Dashboard form data', () => {
             });
           }
         }),
-      );
-    });
+      ),
+    );
   });
 });

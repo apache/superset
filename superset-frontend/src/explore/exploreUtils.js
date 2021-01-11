@@ -222,9 +222,8 @@ export const buildV1ChartDataPayload = ({
   });
 };
 
-export const getLegacyEndpointType = ({ resultType, resultFormat }) => {
-  return resultFormat === 'csv' ? resultFormat : resultType;
-};
+export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
+  resultFormat === 'csv' ? resultFormat : resultType;
 
 export function postForm(url, payload, target = '_blank') {
   if (!url) {

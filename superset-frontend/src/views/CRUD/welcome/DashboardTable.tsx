@@ -66,8 +66,8 @@ function DashboardTable({
   const [editModal, setEditModal] = useState<Dashboard>();
   const [dashboardFilter, setDashboardFilter] = useState('Mine');
 
-  const handleDashboardEdit = (edits: Dashboard) => {
-    return SupersetClient.get({
+  const handleDashboardEdit = (edits: Dashboard) =>
+    SupersetClient.get({
       endpoint: `/api/v1/dashboard/${edits.id}`,
     }).then(
       ({ json = {} }) => {
@@ -86,7 +86,6 @@ function DashboardTable({
         ),
       ),
     );
-  };
 
   const getFilters = (filterName: string) => {
     const filters = [];
@@ -114,8 +113,8 @@ function DashboardTable({
     });
   }
 
-  const getData = (filter: string) => {
-    return fetchData({
+  const getData = (filter: string) =>
+    fetchData({
       pageIndex: 0,
       pageSize: PAGE_SIZE,
       sortBy: [
@@ -126,7 +125,6 @@ function DashboardTable({
       ],
       filters: getFilters(filter),
     });
-  };
 
   return (
     <>

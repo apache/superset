@@ -184,9 +184,8 @@ export default class ResultSet extends React.PureComponent<
     }
   }
 
-  getDefaultDatasetName = () => {
-    return `${this.props.query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
-  };
+  getDefaultDatasetName = () =>
+    `${this.props.query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
 
   handleOnChangeAutoComplete = () => {
     this.setState({ datasetToOverwrite: {} });
@@ -341,9 +340,7 @@ export default class ResultSet extends React.PureComponent<
   handleFilterAutocompleteOption = (
     inputValue: string,
     option: { value: string; datasetId: number },
-  ) => {
-    return option.value.toLowerCase().includes(inputValue.toLowerCase());
-  };
+  ) => option.value.toLowerCase().includes(inputValue.toLowerCase());
 
   clearQueryResults(query: Query) {
     this.props.actions.clearQueryResults(query);
