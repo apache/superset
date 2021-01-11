@@ -152,8 +152,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   }
 
   render() {
-    const selectValue =
-      this.state.newDashboardName || this.state.saveToDashboardId || null;
+    const dashboardSelectValue =
+      this.state.newDashboardName || this.state.saveToDashboardId;
     return (
       <Modal
         show
@@ -249,7 +249,9 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               creatable
               onChange={this.onDashboardSelectChange}
               autoSize={false}
-              value={selectValue ? { value: selectValue } : null}
+              value={
+                dashboardSelectValue ? { value: dashboardSelectValue } : null
+              }
               placeholder={
                 // Using markdown to allow for good i18n
                 <ReactMarkdown
