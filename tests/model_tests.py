@@ -17,6 +17,7 @@
 # isort:skip_file
 import textwrap
 import unittest
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import pandas
 import pytest
@@ -214,6 +215,7 @@ class TestDatabaseModel(SupersetTestCase):
 
 
 class TestSqlaTableModel(SupersetTestCase):
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_timestamp_expression(self):
         tbl = self.get_table_by_name("birth_names")
         ds_col = tbl.get_column("ds")
@@ -233,6 +235,7 @@ class TestSqlaTableModel(SupersetTestCase):
             self.assertEqual(compiled, "DATE(DATE_ADD(ds, 1))")
         ds_col.expression = prev_ds_expr
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_timestamp_expression_epoch(self):
         tbl = self.get_table_by_name("birth_names")
         ds_col = tbl.get_column("ds")
@@ -297,6 +300,7 @@ class TestSqlaTableModel(SupersetTestCase):
         self.assertFalse(qr.df.empty)
         return qr.df
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_query_with_expr_groupby_timeseries(self):
         if get_example_database().backend == "presto":
             # TODO(bkyryliuk): make it work for presto.
@@ -313,29 +317,13 @@ class TestSqlaTableModel(SupersetTestCase):
         name_list2 = cannonicalize_df(df1).name.values.tolist()
         self.assertFalse(df2.empty)
 
-        expected_namelist = [
-            "Anthony",
-            "Brian",
-            "Christopher",
-            "Daniel",
-            "David",
-            "Eric",
-            "James",
-            "Jeffrey",
-            "John",
-            "Joseph",
-            "Kenneth",
-            "Kevin",
-            "Mark",
-            "Michael",
-            "Paul",
-        ]
-        assert name_list2 == expected_namelist
-        assert name_list1 == expected_namelist
+        assert name_list2 == name_list1
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_query_with_expr_groupby(self):
         self.query_with_expr_helper(is_timeseries=False)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_mutator(self):
         tbl = self.get_table_by_name("birth_names")
         query_obj = dict(
@@ -381,14 +369,18 @@ class TestSqlaTableModel(SupersetTestCase):
 
         self.assertTrue("Metric 'invalid' does not exist", context.exception)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_data_for_slices(self):
         tbl = self.get_table_by_name("birth_names")
         slc = (
             metadata_db.session.query(Slice)
-            .filter_by(datasource_id=tbl.id, datasource_type=tbl.type)
+            .filter_by(
+                datasource_id=tbl.id,
+                datasource_type=tbl.type,
+                slice_name="Participants",
+            )
             .first()
         )
-
         data_for_slices = tbl.data_for_slices([slc])
         self.assertEqual(len(data_for_slices["columns"]), 0)
         self.assertEqual(len(data_for_slices["metrics"]), 1)
