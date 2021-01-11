@@ -128,6 +128,150 @@ def parse_past_timedelta(
     )
 
 
+# pylint: disable=too-many-arguments, too-many-locals, too-many-branches
+def get_since_until(
+    time_range: Optional[str] = None,
+    since: Optional[str] = None,
+    until: Optional[str] = None,
+    time_shift: Optional[str] = None,
+    relative_start: Optional[str] = None,
+    relative_end: Optional[str] = None,
+) -> Tuple[Optional[datetime], Optional[datetime]]:
+    """Return `since` and `until` date time tuple from string representations of
+    time_range, since, until and time_shift.
+
+    This functiom supports both reading the keys separately (from `since` and
+    `until`), as well as the new `time_range` key. Valid formats are:
+
+        - ISO 8601
+        - X days/years/hours/day/year/weeks
+        - X days/years/hours/day/year/weeks ago
+        - X days/years/hours/day/year/weeks from now
+        - freeform
+
+    Additionally, for `time_range` (these specify both `since` and `until`):
+
+        - Last day
+        - Last week
+        - Last month
+        - Last quarter
+        - Last year
+        - No filter
+        - Last X seconds/minutes/hours/days/weeks/months/years
+        - Next X seconds/minutes/hours/days/weeks/months/years
+
+    """
+    separator = " : "
+    _relative_start = relative_start if relative_start else "today"
+    _relative_end = relative_end if relative_end else "today"
+
+    if time_range == "No filter":
+        return None, None
+
+    if time_range and time_range.startswith("Last") and separator not in time_range:
+        time_range = time_range + separator + _relative_end
+
+    if time_range and time_range.startswith("Next") and separator not in time_range:
+        time_range = _relative_start + separator + time_range
+
+    if (
+        time_range
+        and time_range.startswith("previous calendar week")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, WEEK), WEEK) : DATETRUNC(DATETIME('today'), WEEK)"  # pylint: disable=line-too-long
+    if (
+        time_range
+        and time_range.startswith("previous calendar month")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, MONTH), MONTH) : DATETRUNC(DATETIME('today'), MONTH)"  # pylint: disable=line-too-long
+    if (
+        time_range
+        and time_range.startswith("previous calendar year")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, YEAR), YEAR) : DATETRUNC(DATETIME('today'), YEAR)"  # pylint: disable=line-too-long
+
+    if time_range and separator in time_range:
+        time_range_lookup = [
+            (
+                r"^last\s+(day|week|month|quarter|year)$",
+                lambda unit: f"DATEADD(DATETIME('{_relative_start}'), -1, {unit})",
+            ),
+            (
+                r"^last\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s$",
+                lambda delta, unit: f"DATEADD(DATETIME('{_relative_start}'), -{int(delta)}, {unit})",  # pylint: disable=line-too-long
+            ),
+            (
+                r"^next\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s$",
+                lambda delta, unit: f"DATEADD(DATETIME('{_relative_end}'), {int(delta)}, {unit})",  # pylint: disable=line-too-long
+            ),
+            (
+                r"^(DATETIME.*|DATEADD.*|DATETRUNC.*|LASTDAY.*|HOLIDAY.*)$",
+                lambda text: text,
+            ),
+        ]
+
+        since_and_until_partition = [_.strip() for _ in time_range.split(separator, 1)]
+        since_and_until: List[Optional[str]] = []
+        for part in since_and_until_partition:
+            if not part:
+                # if since or until is "", set as None
+                since_and_until.append(None)
+                continue
+
+            # Is it possible to match to time_range_lookup
+            matched = False
+            for pattern, fn in time_range_lookup:
+                result = re.search(pattern, part, re.IGNORECASE)
+                if result:
+                    matched = True
+                    # converted matched time_range to "formal time expressions"
+                    since_and_until.append(fn(*result.groups()))  # type: ignore
+            if not matched:
+                # default matched case
+                since_and_until.append(f"DATETIME('{part}')")
+
+        _since, _until = map(datetime_eval, since_and_until)
+    else:
+        since = since or ""
+        if since:
+            since = add_ago_to_since(since)
+        _since = parse_human_datetime(since) if since else None
+        _until = (
+            parse_human_datetime(until)
+            if until
+            else parse_human_datetime(_relative_end)
+        )
+
+    if time_shift:
+        time_delta = parse_past_timedelta(time_shift)
+        _since = _since if _since is None else (_since - time_delta)
+        _until = _until if _until is None else (_until - time_delta)
+
+    if _since and _until and _since > _until:
+        raise ValueError(_("From date cannot be larger than to date"))
+
+    return _since, _until
+
+
+def add_ago_to_since(since: str) -> str:
+    """
+    Backwards compatibility hack. Without this slices with since: 7 days will
+    be treated as 7 days in the future.
+
+    :param str since:
+    :returns: Since with ago added if necessary
+    :rtype: str
+    """
+    since_words = since.split(" ")
+    grains = ["days", "years", "hours", "day", "year", "weeks"]
+    if len(since_words) == 2 and since_words[1] in grains:
+        since += " ago"
+    return since
+
+
 class EvalText:  # pylint: disable=too-few-public-methods
     def __init__(self, tokens: ParseResults) -> None:
         self.value = tokens[0]
@@ -323,147 +467,3 @@ def datetime_eval(datetime_expression: Optional[str] = None) -> Optional[datetim
         except ParseException as error:
             raise ValueError(error)
     return None
-
-
-# pylint: disable=too-many-arguments, too-many-locals, too-many-branches
-def get_since_until(
-    time_range: Optional[str] = None,
-    since: Optional[str] = None,
-    until: Optional[str] = None,
-    time_shift: Optional[str] = None,
-    relative_start: Optional[str] = None,
-    relative_end: Optional[str] = None,
-) -> Tuple[Optional[datetime], Optional[datetime]]:
-    """Return `since` and `until` date time tuple from string representations of
-    time_range, since, until and time_shift.
-
-    This functiom supports both reading the keys separately (from `since` and
-    `until`), as well as the new `time_range` key. Valid formats are:
-
-        - ISO 8601
-        - X days/years/hours/day/year/weeks
-        - X days/years/hours/day/year/weeks ago
-        - X days/years/hours/day/year/weeks from now
-        - freeform
-
-    Additionally, for `time_range` (these specify both `since` and `until`):
-
-        - Last day
-        - Last week
-        - Last month
-        - Last quarter
-        - Last year
-        - No filter
-        - Last X seconds/minutes/hours/days/weeks/months/years
-        - Next X seconds/minutes/hours/days/weeks/months/years
-
-    """
-    separator = " : "
-    _relative_start = relative_start if relative_start else "today"
-    _relative_end = relative_end if relative_end else "today"
-
-    if time_range == "No filter":
-        return None, None
-
-    if time_range and time_range.startswith("Last") and separator not in time_range:
-        time_range = time_range + separator + _relative_end
-
-    if time_range and time_range.startswith("Next") and separator not in time_range:
-        time_range = _relative_start + separator + time_range
-
-    if (
-        time_range
-        and time_range.startswith("previous calendar week")
-        and separator not in time_range
-    ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, WEEK), WEEK) : DATETRUNC(DATETIME('today'), WEEK)"  # pylint: disable=line-too-long
-    if (
-        time_range
-        and time_range.startswith("previous calendar month")
-        and separator not in time_range
-    ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, MONTH), MONTH) : DATETRUNC(DATETIME('today'), MONTH)"  # pylint: disable=line-too-long
-    if (
-        time_range
-        and time_range.startswith("previous calendar year")
-        and separator not in time_range
-    ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, YEAR), YEAR) : DATETRUNC(DATETIME('today'), YEAR)"  # pylint: disable=line-too-long
-
-    if time_range and separator in time_range:
-        time_range_lookup = [
-            (
-                r"^last\s+(day|week|month|quarter|year)$",
-                lambda unit: f"DATEADD(DATETIME('{_relative_start}'), -1, {unit})",
-            ),
-            (
-                r"^last\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s$",
-                lambda delta, unit: f"DATEADD(DATETIME('{_relative_start}'), -{int(delta)}, {unit})",  # pylint: disable=line-too-long
-            ),
-            (
-                r"^next\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s$",
-                lambda delta, unit: f"DATEADD(DATETIME('{_relative_end}'), {int(delta)}, {unit})",  # pylint: disable=line-too-long
-            ),
-            (
-                r"^(DATETIME.*|DATEADD.*|DATETRUNC.*|LASTDAY.*|HOLIDAY.*)$",
-                lambda text: text,
-            ),
-        ]
-
-        since_and_until_partition = [_.strip() for _ in time_range.split(separator, 1)]
-        since_and_until: List[Optional[str]] = []
-        for part in since_and_until_partition:
-            if not part:
-                # if since or until is "", set as None
-                since_and_until.append(None)
-                continue
-
-            # Is it possible to match to time_range_lookup
-            matched = False
-            for pattern, fn in time_range_lookup:
-                result = re.search(pattern, part, re.IGNORECASE)
-                if result:
-                    matched = True
-                    # converted matched time_range to "formal time expressions"
-                    since_and_until.append(fn(*result.groups()))  # type: ignore
-            if not matched:
-                # default matched case
-                since_and_until.append(f"DATETIME('{part}')")
-
-        _since, _until = map(datetime_eval, since_and_until)
-    else:
-        since = since or ""
-        if since:
-            since = add_ago_to_since(since)
-        _since = parse_human_datetime(since) if since else None
-        _until = (
-            parse_human_datetime(until)
-            if until
-            else parse_human_datetime(_relative_end)
-        )
-
-    if time_shift:
-        time_delta = parse_past_timedelta(time_shift)
-        _since = _since if _since is None else (_since - time_delta)
-        _until = _until if _until is None else (_until - time_delta)
-
-    if _since and _until and _since > _until:
-        raise ValueError(_("From date cannot be larger than to date"))
-
-    return _since, _until
-
-
-def add_ago_to_since(since: str) -> str:
-    """
-    Backwards compatibility hack. Without this slices with since: 7 days will
-    be treated as 7 days in the future.
-
-    :param str since:
-    :returns: Since with ago added if necessary
-    :rtype: str
-    """
-    since_words = since.split(" ")
-    grains = ["days", "years", "hours", "day", "year", "weeks"]
-    if len(since_words) == 2 and since_words[1] in grains:
-        since += " ago"
-    return since
