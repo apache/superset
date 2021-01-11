@@ -32,8 +32,7 @@ const Wrapper = styled.div`
   /* keeping these for posterity, in case we can improve that resizing performance */
   /* &.animated {
     transition: width 0;
-    transition-delay: ${({ theme }) =>
-    theme.transitionTiming * 2}s;
+    transition-delay: ${({ theme }) => theme.transitionTiming * 2}s;
   } */
   &.open {
     width: 250px;
@@ -68,38 +67,36 @@ export const StickyVerticalBar: React.FC<SVBProps> = ({
   topOffset,
   children,
   filtersOpen,
-}) => {
-  return (
-    <Wrapper className={cx({ open: filtersOpen })}>
-      <StickyContainer>
-        <Sticky topOffset={-topOffset} bottomOffset={Infinity}>
-          {({
-            style,
-            isSticky,
-            distanceFromTop,
-          }: {
-            style: any;
-            isSticky: boolean;
-            distanceFromTop: number;
-          }) => (
-            <Contents
-              style={
-                isSticky
-                  ? {
-                      ...style,
-                      top: topOffset,
-                      height: `calc(100vh - ${topOffset}px)`,
-                    }
-                  : {
-                      height: `calc(100vh - ${distanceFromTop}px)`,
-                    }
-              }
-            >
-              {children}
-            </Contents>
-          )}
-        </Sticky>
-      </StickyContainer>
-    </Wrapper>
-  );
-};
+}) => (
+  <Wrapper className={cx({ open: filtersOpen })}>
+    <StickyContainer>
+      <Sticky topOffset={-topOffset} bottomOffset={Infinity}>
+        {({
+          style,
+          isSticky,
+          distanceFromTop,
+        }: {
+          style: any;
+          isSticky: boolean;
+          distanceFromTop: number;
+        }) => (
+          <Contents
+            style={
+              isSticky
+                ? {
+                    ...style,
+                    top: topOffset,
+                    height: `calc(100vh - ${topOffset}px)`,
+                  }
+                : {
+                    height: `calc(100vh - ${distanceFromTop}px)`,
+                  }
+            }
+          >
+            {children}
+          </Contents>
+        )}
+      </Sticky>
+    </StickyContainer>
+  </Wrapper>
+);

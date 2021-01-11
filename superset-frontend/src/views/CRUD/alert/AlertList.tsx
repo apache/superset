@@ -205,11 +205,10 @@ function AlertList({
           row: {
             original: { last_eval_dttm: lastEvalDttm },
           },
-        }: any) => {
-          return lastEvalDttm
+        }: any) =>
+          lastEvalDttm
             ? moment.utc(lastEvalDttm).local().format(DATETIME_WITH_TIME_ZONE)
-            : '';
-        },
+            : '',
         accessor: 'last_eval_dttm',
         Header: t('Last Run'),
         size: 'lg',

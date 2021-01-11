@@ -103,7 +103,7 @@ describe('SavedQueries', () => {
     expect(wrapper.find('ListViewCard')).toExist();
   });
 
-  it('it renders a submenu with clickable tables and buttons', async () => {
+  it('renders a submenu with clickable tables and buttons', async () => {
     expect(wrapper.find(SubMenu)).toExist();
     expect(wrapper.find('li')).toHaveLength(1);
     expect(wrapper.find('button')).toHaveLength(2);

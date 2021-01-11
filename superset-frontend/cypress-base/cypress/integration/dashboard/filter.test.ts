@@ -40,9 +40,7 @@ describe('Dashboard filter', () => {
   let filterId: number;
   let aliases: string[];
 
-  const getAlias = (id: number) => {
-    return `@${DASHBOARD_CHART_ALIAS_PREFIX}${id}`;
-  };
+  const getAlias = (id: number) => `@${DASHBOARD_CHART_ALIAS_PREFIX}${id}`;
 
   beforeEach(() => {
     cy.server();
@@ -87,8 +85,8 @@ describe('Dashboard filter', () => {
     });
 
     cy.get('.filter_box button').click({ force: true });
-    cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests => {
-      return Promise.all(
+    cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests =>
+      Promise.all(
         requests.map(async xhr => {
           expect(xhr.status).to.eq(200);
           const responseBody = await readResponseBlob(xhr.response.body);
@@ -108,8 +106,8 @@ describe('Dashboard filter', () => {
             val: 'South Asia',
           });
         }),
-      );
-    });
+      ),
+    );
 
     // TODO add test with South Asia{enter} type action to select filter
   });
