@@ -37,6 +37,7 @@ import Popover from 'src/common/components/Popover';
 import { Divider } from 'src/common/components';
 import Icon from 'src/components/Icon';
 import { Select } from 'src/components/Select';
+import { Tooltip } from 'src/common/components/Tooltip';
 import { SelectOptionType, FrameType } from './types';
 import {
   COMMON_RANGE_VALUES_SET,
@@ -181,27 +182,41 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
+  const [tooltipTitle, setTooltipTitle] = useState<string>(value);
 
   useEffect(() => {
-    const valueToLower = value.toLowerCase();
-    if (
-      valueToLower.startsWith('last') ||
-      valueToLower.startsWith('next') ||
-      valueToLower.startsWith('previous')
-    ) {
-      setActualTimeRange(value);
-      setValidTimeRange(true);
-    } else {
-      fetchTimeRange(value, endpoints).then(({ value, error }) => {
-        if (error) {
-          setEvalResponse(error || '');
-          setValidTimeRange(false);
+    fetchTimeRange(value, endpoints).then(({ value: actualRange, error }) => {
+      if (error) {
+        setEvalResponse(error || '');
+        setValidTimeRange(false);
+        setTooltipTitle(value || '');
+      } else {
+        /*
+          HRT == human readable text
+          ADR == actual datetime range
+          +--------------+------+----------+--------+----------+-----------+
+          |              | Last | Previous | Custom | Advanced | No Filter |
+          +--------------+------+----------+--------+----------+-----------+
+          | control pill | HRT  | HRT      | ADR    | ADR      |   ADR     |
+          +--------------+------+----------+--------+----------+-----------+
+          | tooltip      | ADR  | ADR      | HRT    | HRT      |   HRT     |
+          +--------------+------+----------+--------+----------+-----------+
+        */
+        const valueToLower = value.toLowerCase();
+        if (
+          valueToLower.startsWith('last') ||
+          valueToLower.startsWith('next') ||
+          valueToLower.startsWith('previous')
+        ) {
+          setActualTimeRange(value);
+          setTooltipTitle(actualRange || '');
         } else {
-          setActualTimeRange(value || '');
-          setValidTimeRange(true);
+          setActualTimeRange(actualRange || '');
+          setTooltipTitle(value || '');
         }
-      });
-    }
+        setValidTimeRange(true);
+      }
+    });
   }, [value]);
 
   useEffect(() => {
@@ -327,13 +342,15 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
         onVisibleChange={togglePopover}
         overlayStyle={overlayStyle}
       >
-        <Label
-          className="pointer"
-          data-test="time-range-trigger"
-          onClick={() => setShow(true)}
-        >
-          {actualTimeRange}
-        </Label>
+        <Tooltip placement="top" title={tooltipTitle}>
+          <Label
+            className="pointer"
+            data-test="time-range-trigger"
+            onClick={() => setShow(true)}
+          >
+            {actualTimeRange}
+          </Label>
+        </Tooltip>
       </StyledPopover>
     </>
   );
