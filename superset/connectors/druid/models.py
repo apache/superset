@@ -57,6 +57,7 @@ from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
 from superset.typing import FilterValues, Granularity, Metric, QueryObjectDict
 from superset.utils import core as utils
+from superset.utils.date_parser import parse_human_datetime, parse_human_timedelta
 
 try:
     import requests
@@ -777,7 +778,7 @@ class DruidDatasource(Model, BaseDatasource):
             granularity["timeZone"] = timezone
 
         if origin:
-            dttm = utils.parse_human_datetime(origin)
+            dttm = parse_human_datetime(origin)
             assert dttm
             granularity["origin"] = dttm.isoformat()
 
@@ -795,7 +796,7 @@ class DruidDatasource(Model, BaseDatasource):
         else:
             granularity["type"] = "duration"
             granularity["duration"] = (
-                utils.parse_human_timedelta(period_name).total_seconds()  # type: ignore
+                parse_human_timedelta(period_name).total_seconds()  # type: ignore
                 * 1000
             )
         return granularity
@@ -938,7 +939,7 @@ class DruidDatasource(Model, BaseDatasource):
         )
         # TODO: Use Lexicographic TopNMetricSpec once supported by PyDruid
         if self.fetch_values_from:
-            from_dttm = utils.parse_human_datetime(self.fetch_values_from)
+            from_dttm = parse_human_datetime(self.fetch_values_from)
             assert from_dttm
         else:
             from_dttm = datetime(1970, 1, 1)
@@ -1426,7 +1427,7 @@ class DruidDatasource(Model, BaseDatasource):
         time_offset = DruidDatasource.time_offset(query_obj["granularity"])
 
         def increment_timestamp(ts: str) -> datetime:
-            dt = utils.parse_human_datetime(ts).replace(tzinfo=DRUID_TZ)
+            dt = parse_human_datetime(ts).replace(tzinfo=DRUID_TZ)
             return dt + timedelta(milliseconds=time_offset)
 
         if DTTM_ALIAS in df.columns and time_offset:
