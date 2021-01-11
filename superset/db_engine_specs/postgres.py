@@ -24,6 +24,7 @@ from pytz import _FixedOffset  # type: ignore
 from sqlalchemy.dialects.postgresql.base import PGInspector
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.exceptions import SupersetException
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -132,8 +133,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
         try:
             extra = json.loads(database.extra or "{}")
         except json.JSONDecodeError as ex:
-            logger.error(ex)
-            raise ex
+            raise SupersetException("Unable to parse database extras")
 
         if database.server_cert:
             engine_params = extra.get("engine_params", {})
