@@ -18,10 +18,10 @@ from datetime import datetime, timedelta
 from unittest.mock import patch
 
 from superset.utils.date_parser import (
+    datetime_eval,
     get_since_until,
     parse_human_timedelta,
     parse_past_timedelta,
-    datetime_eval,
 )
 from tests.base_tests import SupersetTestCase
 
