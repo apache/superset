@@ -78,7 +78,7 @@ const doczLayoutStyle = css`
   margin-top: 3px;
   background-color: white;
   img {
-    max-width: 800px;
+    max-width: 100%;
     margin-bottom: 15px;
   }
   blockquote {
@@ -104,18 +104,19 @@ const doczLayoutStyle = css`
   ul {
     font-size: 16px;
   }
+  h2, h3 {
+    padding-top: 64px;
+    margin-top: -64px;
+  }
 `;
 
 const contentLayoutDocsStyle = css`
-  position: fixed;
-  top: 64px;
-  left: ${leftPaneWidth}px;
-  right: 0px;
-  bottom: 0px;
+  margin-top: 64px;
+  padding-left: ${leftPaneWidth}px;
   overflow: visible;
   ${[mq[2]]} {
-    top: 64px;
-    left: 0;
+    padding-left: 0px;
+    margin-top: 64px;
   }
   aside {
     ${[mq[2]]} {
