@@ -172,7 +172,7 @@
     "regenerator-runtime": "^0.13.5",
     "rison": "^0.1.1",
     "shortid": "^2.2.6",
-    "urijs": "^1.18.10",
+    "urijs": "^1.19.4",
     "use-query-params": "^1.1.9"
   },
   "devDependencies": {
