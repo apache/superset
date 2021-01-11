@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=no-self-use, invalid-name
+import logging
 from unittest.mock import patch
 
 import pytest
@@ -38,6 +39,8 @@ from tests.fixtures.importexport import (
     dataset_config,
     dataset_metadata_config,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class TestExportDatabasesCommand(SupersetTestCase):
@@ -78,6 +81,8 @@ class TestExportDatabasesCommand(SupersetTestCase):
             ds_type = "TIMESTAMP WITHOUT TIME ZONE"
         elif example_db.backend == "hive":
             ds_type = "TIMESTAMP"
+        elif example_db.backend == "presto":
+            ds_type = "STRING"
         else:
             ds_type = "DATETIME"
         if example_db.backend == "mysql":
@@ -105,6 +110,8 @@ class TestExportDatabasesCommand(SupersetTestCase):
         metadata.pop("uuid")
 
         metadata["columns"].sort(key=lambda x: x["column_name"])
+        logger.info("metadata:")
+        logger.info(metadata)
         expected_metadata = {
             "cache_timeout": None,
             "columns": [
