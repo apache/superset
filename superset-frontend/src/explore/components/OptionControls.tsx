@@ -60,6 +60,9 @@ const Label = styled.div`
   svg {
     margin-right: ${({ theme }) => theme.gridUnit}px;
   }
+  .option-label {
+    display: inline;
+  }
 `;
 
 const CaretContainer = styled.div`
