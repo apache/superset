@@ -93,6 +93,8 @@ const Styles = styled.div`
     border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
   .main-explore-content {
+    flex: 1;
+    min-width: ${({ theme }) => theme.gridUnit * 128}px;
     border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
   .controls-column {
@@ -167,7 +169,11 @@ function ExploreViewContainer(props) {
 
   function addHistory({ isReplace = false, title } = {}) {
     const payload = { ...props.form_data };
-    const longUrl = getExploreLongUrl(props.form_data, null, false);
+    const longUrl = getExploreLongUrl(
+      props.form_data,
+      props.standalone ? 'standalone' : null,
+      false,
+    );
     try {
       if (isReplace) {
         window.history.replaceState(payload, title, longUrl);
@@ -404,7 +410,7 @@ function ExploreViewContainer(props) {
         }
       >
         <div className="title-container">
-          <span className="horizont al-text">{t('Datasource')}</span>
+          <span className="horizont al-text">{t('Dataset')}</span>
           <span
             role="button"
             tabIndex={0}

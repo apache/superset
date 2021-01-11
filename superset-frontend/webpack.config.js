@@ -173,7 +173,7 @@ const babelLoader = {
       [
         '@emotion/babel-preset-css-prop',
         {
-          autoLabel: true,
+          autoLabel: 'dev-only',
           labelFormat: '[local]',
         },
       ],
@@ -441,9 +441,7 @@ if (isDevMode) {
     // and proxy everything else to Superset backend
     proxy: [
       // functions are called for every request
-      () => {
-        return proxyConfig;
-      },
+      () => proxyConfig,
     ],
     contentBase: path.join(process.cwd(), '../static/assets'),
   };

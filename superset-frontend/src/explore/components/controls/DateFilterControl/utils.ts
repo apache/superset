@@ -198,12 +198,16 @@ export const customTimeRangeEncode = (customRange: CustomRangeType): string => {
   // relative : specific
   if (sinceMode === 'relative' && SPECIFIC_MODE.includes(untilMode)) {
     const until = untilMode === 'specific' ? untilDatetime : untilMode;
-    const since = `DATEADD(DATETIME("${until}"), ${-Math.abs(sinceGrainValue)}, ${sinceGrain})`;  // eslint-disable-line
+    const since = `DATEADD(DATETIME("${until}"), ${-Math.abs(
+      sinceGrainValue,
+    )}, ${sinceGrain})`; // eslint-disable-line
     return `${since} : ${until}`;
   }
 
   // relative : relative
-  const since = `DATEADD(DATETIME("${anchorValue}"), ${-Math.abs(sinceGrainValue)}, ${sinceGrain})`;  // eslint-disable-line
+  const since = `DATEADD(DATETIME("${anchorValue}"), ${-Math.abs(
+    sinceGrainValue,
+  )}, ${sinceGrain})`; // eslint-disable-line
   const until = `DATEADD(DATETIME("${anchorValue}"), ${untilGrainValue}, ${untilGrain})`;
   return `${since} : ${until}`;
 };

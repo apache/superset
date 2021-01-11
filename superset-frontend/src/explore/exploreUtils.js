@@ -222,9 +222,8 @@ export const buildV1ChartDataPayload = ({
   });
 };
 
-export const getLegacyEndpointType = ({ resultType, resultFormat }) => {
-  return resultFormat === 'csv' ? resultFormat : resultType;
-};
+export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
+  resultFormat === 'csv' ? resultFormat : resultType;
 
 export function postForm(url, payload, target = '_blank') {
   if (!url) {
@@ -288,8 +287,9 @@ export const exploreChart = formData => {
   postForm(url, formData);
 };
 
-export const useDebouncedEffect = (effect, delay) => {
-  const callback = useCallback(effect, [effect]);
+export const useDebouncedEffect = (effect, delay, deps) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const callback = useCallback(effect, deps);
 
   useEffect(() => {
     const handler = setTimeout(() => {

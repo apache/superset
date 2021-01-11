@@ -96,7 +96,10 @@ export const DataTablesPane = ({
 
   const getData = useCallback(
     (resultType: string) => {
-      setIsLoading(prevIsLoading => ({ ...prevIsLoading, [resultType]: true }));
+      setIsLoading(prevIsLoading => ({
+        ...prevIsLoading,
+        [resultType]: true,
+      }));
       return getChartDataRequest({
         formData: queryFormData,
         resultFormat: 'json',
@@ -201,6 +204,8 @@ export const DataTablesPane = ({
           noDataText={t('No data')}
           emptyWrapperType={EmptyWrapperType.Small}
           className="table-condensed"
+          isPaginationSticky
+          showRowCount={false}
         />
       );
     }
@@ -209,7 +214,7 @@ export const DataTablesPane = ({
 
   const TableControls = (
     <TableControlsWrapper>
-      <RowCount data={data[activeTabKey]} />
+      <RowCount data={data[activeTabKey]} loading={isLoading[activeTabKey]} />
       <CopyToClipboardButton data={data[activeTabKey]} />
       <FilterInput onChangeHandler={setFilterText} />
     </TableControlsWrapper>
