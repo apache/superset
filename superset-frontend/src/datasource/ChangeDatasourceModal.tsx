@@ -25,7 +25,7 @@ import React, {
 } from 'react';
 import { Alert, FormControl, FormControlProps } from 'react-bootstrap';
 import { SupersetClient, t, styled } from '@superset-ui/core';
-import TableView from 'src/components/TableView';
+import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import StyledModal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -221,6 +221,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       onHide={onHide}
       responsive
       title={t('Change Dataset')}
+      height="350px"
       footer={
         <>
           {confirmChange && (
@@ -265,6 +266,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
                 data={renderTableView()}
                 pageSize={20}
                 className="table-condensed"
+                emptyWrapperType={EmptyWrapperType.Small}
               />
             )}
           </>
