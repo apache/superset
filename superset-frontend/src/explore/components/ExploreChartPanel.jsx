@@ -218,11 +218,9 @@ const ExploreChartPanel = props => {
     />
   );
 
-  const elementStyle = (dimension, elementSize, gutterSize) => {
-    return {
-      [dimension]: `calc(${elementSize}% - ${gutterSize + gutterMargin}px)`,
-    };
-  };
+  const elementStyle = (dimension, elementSize, gutterSize) => ({
+    [dimension]: `calc(${elementSize}% - ${gutterSize + gutterMargin}px)`,
+  });
 
   const panelBody = <div className="panel-body">{renderChart()}</div>;
 
