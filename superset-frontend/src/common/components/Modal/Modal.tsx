@@ -41,13 +41,13 @@ interface ModalProps {
   centered?: boolean;
   footer?: React.ReactNode;
   wrapProps?: object;
-  height?: number;
+  height?: string;
 }
 
 interface StyledModalProps extends SupersetThemeProps {
   maxWidth?: string;
   responsive?: boolean;
-  height?: number;
+  height?: string;
 }
 
 export const StyledModal = styled(BaseModal)<StyledModalProps>`
