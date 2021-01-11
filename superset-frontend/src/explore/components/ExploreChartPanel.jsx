@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
 import { ParentSize } from '@vx/responsive';
@@ -105,45 +105,42 @@ const ExploreChartPanel = props => {
   const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
 
   const panelHeadingRef = useRef(null);
-  const [headerHeight, setHeaderHeight] = useState(props.standalone ? 0 : 50);
   const [splitSizes, setSplitSizes] = useState(INITIAL_SIZES);
 
-  const calcSectionHeight = percent => {
-    const containerHeight = parseInt(props.height, 10) - headerHeight - 30;
-    return (
-      (containerHeight * percent) / 100 - (gutterHeight / 2 + gutterMargin)
-    );
-  };
+  const calcSectionHeight = useCallback(
+    percent => {
+      const headerHeight = props.standalone
+        ? 0
+        : panelHeadingRef?.current?.offsetHeight ?? 50;
+      const containerHeight = parseInt(props.height, 10) - headerHeight;
+      return (
+        (containerHeight * percent) / 100 - (gutterHeight / 2 + gutterMargin)
+      );
+    },
+    [gutterHeight, gutterMargin, props.height, props.standalone],
+  );
 
   const [tableSectionHeight, setTableSectionHeight] = useState(
     calcSectionHeight(INITIAL_SIZES[1]),
   );
-  const [displaySouthPaneBackground, setDisplaySouthPaneBackground] = useState(
-    false,
+
+  const recalcPanelSizes = useCallback(
+    ([, southPercent]) => {
+      setTableSectionHeight(calcSectionHeight(southPercent));
+    },
+    [calcSectionHeight],
   );
 
   useEffect(() => {
-    const calcHeaderSize = debounce(() => {
-      setHeaderHeight(
-        props.standalone ? 0 : panelHeadingRef?.current?.offsetHeight,
-      );
-    }, 100);
-    calcHeaderSize();
-    window.addEventListener('resize', calcHeaderSize);
-    return () => window.removeEventListener('resize', calcHeaderSize);
-  }, [props.standalone]);
+    const recalcSizes = debounce(() => recalcPanelSizes(splitSizes), 200);
 
-  const recalcPanelSizes = ([, southPercent]) => {
-    setTableSectionHeight(calcSectionHeight(southPercent));
-  };
-
-  const onDragStart = () => {
-    setDisplaySouthPaneBackground(true);
-  };
+    window.addEventListener('resize', recalcSizes);
+    return () => window.removeEventListener('resize', recalcSizes);
+  }, [props.standalone, recalcPanelSizes, splitSizes]);
 
   const onDragEnd = sizes => {
+    setSplitSizes(sizes);
     recalcPanelSizes(sizes);
-    setDisplaySouthPaneBackground(false);
   };
 
   const onCollapseChange = openPanelName => {
@@ -221,11 +218,9 @@ const ExploreChartPanel = props => {
     />
   );
 
-  const elementStyle = (dimension, elementSize, gutterSize) => {
-    return {
-      [dimension]: `calc(${elementSize}% - ${gutterSize + gutterMargin}px)`,
-    };
-  };
+  const elementStyle = (dimension, elementSize, gutterSize) => ({
+    [dimension]: `calc(${elementSize}% - ${gutterSize + gutterMargin}px)`,
+  });
 
   const panelBody = <div className="panel-body">{renderChart()}</div>;
 
@@ -245,7 +240,6 @@ const ExploreChartPanel = props => {
           minSize={MIN_SIZES}
           direction="vertical"
           gutterSize={gutterHeight}
-          onDragStart={onDragStart}
           onDragEnd={onDragEnd}
           elementStyle={elementStyle}
         >
@@ -254,7 +248,7 @@ const ExploreChartPanel = props => {
             queryFormData={props.chart.latestQueryFormData}
             tableSectionHeight={tableSectionHeight}
             onCollapseChange={onCollapseChange}
-            displayBackground={displaySouthPaneBackground}
+            chartStatus={props.chart.chartStatus}
           />
         </Split>
       )}

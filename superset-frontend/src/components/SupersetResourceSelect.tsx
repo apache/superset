@@ -90,11 +90,10 @@ export default function SupersetResourceSelect<T, V>({
     return cachedSupersetGet({
       endpoint: `/api/v1/${resource}/?q=${query}`,
     }).then(
-      response => {
-        return response.json.result
+      response =>
+        response.json.result
           .map(transformItem)
-          .sort((a: Value<V>, b: Value<V>) => a.label.localeCompare(b.label));
-      },
+          .sort((a: Value<V>, b: Value<V>) => a.label.localeCompare(b.label)),
       async badResponse => {
         onError(await getClientErrorObject(badResponse));
         return [];

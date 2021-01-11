@@ -60,9 +60,9 @@ export function useFilterConfigMap() {
 }
 
 export function useFilterState(id: string) {
-  return useSelector<any, FilterState>(state => {
-    return state.nativeFilters.filtersState[id] || getInitialFilterState(id);
-  });
+  return useSelector<any, FilterState>(
+    state => state.nativeFilters.filtersState[id] || getInitialFilterState(id),
+  );
 }
 
 export function useSetExtraFormData() {

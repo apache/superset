@@ -24,9 +24,8 @@ import rison from 'rison';
 import shortid from 'shortid';
 import { HEALTH_POP_FORM_DATA_DEFAULTS } from './visualizations/shared.helper';
 
-const apiURL = (endpoint, queryObject) => {
-  return `${endpoint}?q=${rison.encode(queryObject)}`;
-};
+const apiURL = (endpoint, queryObject) =>
+  `${endpoint}?q=${rison.encode(queryObject)}`;
 
 describe('Test explore links', () => {
   beforeEach(() => {

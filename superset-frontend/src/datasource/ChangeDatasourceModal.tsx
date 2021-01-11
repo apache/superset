@@ -118,20 +118,24 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     setConfirmedDataset(datasource);
   }, []);
 
-  useDebouncedEffect(() => {
-    if (filter) {
-      fetchData({
-        ...emptyRequest,
-        filters: [
-          {
-            id: 'table_name',
-            operator: 'ct',
-            value: filter,
-          },
-        ],
-      });
-    }
-  }, 1000);
+  useDebouncedEffect(
+    () => {
+      if (filter) {
+        fetchData({
+          ...emptyRequest,
+          filters: [
+            {
+              id: 'table_name',
+              operator: 'ct',
+              value: filter,
+            },
+          ],
+        });
+      }
+    },
+    1000,
+    [filter],
+  );
 
   useEffect(() => {
     const onEnterModal = async () => {

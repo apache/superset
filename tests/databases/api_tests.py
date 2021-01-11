@@ -21,6 +21,7 @@ import json
 from io import BytesIO
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import prison
 import pytest
@@ -389,7 +390,9 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         response = self.client.post(uri, json=database_data)
         response_data = json.loads(response.data.decode("utf-8"))
-        expected_response = {"message": "Could not connect to database."}
+        expected_response = {
+            "message": "Connection failed, please check your connection settings"
+        }
         self.assertEqual(response.status_code, 422)
         self.assertEqual(response_data, expected_response)
 
@@ -431,7 +434,9 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         rv = self.client.put(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": "Could not connect to database."}
+        expected_response = {
+            "message": "Connection failed, please check your connection settings"
+        }
         self.assertEqual(rv.status_code, 422)
         self.assertEqual(response, expected_response)
         # Cleanup
@@ -555,6 +560,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.assertEqual(response, expected_response)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_table_metadata(self):
         """
         Database API: Test get table metadata info
@@ -618,6 +624,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_select_star(self):
         """
         Database API: Test get select star
@@ -787,11 +794,10 @@ class TestDatabaseApi(SupersetTestCase):
         }
         url = "api/v1/database/test_connection"
         rv = self.post_assert_metric(url, data, "test_connection")
-        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rv.status_code, 422)
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "driver_name": "broken",
             "message": "Could not load database driver: broken",
         }
         self.assertEqual(response, expected_response)
@@ -803,11 +809,10 @@ class TestDatabaseApi(SupersetTestCase):
             "server_cert": None,
         }
         rv = self.post_assert_metric(url, data, "test_connection")
-        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rv.status_code, 422)
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "driver_name": "mssql+pymssql",
             "message": "Could not load database driver: mssql+pymssql",
         }
         self.assertEqual(response, expected_response)
@@ -841,7 +846,9 @@ class TestDatabaseApi(SupersetTestCase):
         app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
 
     @pytest.mark.usefixtures(
-        "load_unicode_dashboard_with_position", "load_energy_table_with_slice"
+        "load_unicode_dashboard_with_position",
+        "load_energy_table_with_slice",
+        "load_birth_names_dashboard_with_slices",
     )
     def test_get_database_related_objects(self):
         """

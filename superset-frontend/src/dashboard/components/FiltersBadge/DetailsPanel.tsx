@@ -45,20 +45,18 @@ export interface IndicatorProps {
 const Indicator = ({
   indicator: { column, name, value = [], path },
   onClick,
-}: IndicatorProps) => {
-  return (
-    <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
-      <Title bold>
-        <ItemIcon>
-          <SearchOutlined />
-        </ItemIcon>
-        {name.toUpperCase()}
-        {value.length ? ': ' : ''}
-      </Title>
-      <FilterValue>{value.length ? value.join(', ') : ''}</FilterValue>
-    </Item>
-  );
-};
+}: IndicatorProps) => (
+  <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
+    <Title bold>
+      <ItemIcon>
+        <SearchOutlined />
+      </ItemIcon>
+      {name.toUpperCase()}
+      {value.length ? ': ' : ''}
+    </Title>
+    <FilterValue>{value.length ? value.join(', ') : ''}</FilterValue>
+  </Item>
+);
 
 export interface DetailsPanelProps {
   appliedIndicators: Indicator[];

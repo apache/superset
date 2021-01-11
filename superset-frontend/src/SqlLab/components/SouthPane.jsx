@@ -23,7 +23,8 @@ import { Alert } from 'react-bootstrap';
 import Tabs from 'src/common/components/Tabs';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
+
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import Label from 'src/components/Label';
@@ -36,7 +37,7 @@ import {
   LOCALSTORAGE_MAX_QUERY_AGE_MS,
 } from '../constants';
 
-const TAB_HEIGHT = 44;
+const TAB_HEIGHT = 64;
 
 /*
     editorQueries are queries executed by users passed from SqlEditor component
@@ -58,6 +59,29 @@ const defaultProps = {
   activeSouthPaneTab: 'Results',
   offline: false,
 };
+
+const StyledPane = styled.div`
+  width: 100%;
+
+  .ant-tabs .ant-tabs-content-holder {
+    overflow: visible;
+  }
+
+  .SouthPaneTabs {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .tab-content {
+    .alert {
+      margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+    }
+
+    button.fetch {
+      margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+    }
+  }
+`;
 
 export class SouthPane extends React.PureComponent {
   constructor(props) {
@@ -158,7 +182,7 @@ export class SouthPane extends React.PureComponent {
     ));
 
     return (
-      <div className="SouthPane" ref={this.southPaneRef}>
+      <StyledPane className="SouthPane" ref={this.southPaneRef}>
         <Tabs
           activeKey={this.props.activeSouthPaneTab}
           className="SouthPaneTabs"
@@ -178,7 +202,7 @@ export class SouthPane extends React.PureComponent {
           </Tabs.TabPane>
           {dataPreviewTabs}
         </Tabs>
-      </div>
+      </StyledPane>
     );
   }
 }

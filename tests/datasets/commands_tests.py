@@ -234,16 +234,19 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert len(dataset.metrics) == 2
         assert dataset.main_dttm_col == "ds"
         assert dataset.filter_select_enabled
-        assert [col.column_name for col in dataset.columns] == [
+        dataset.columns.sort(key=lambda obj: obj.column_name)
+        expected_columns = [
             "num_california",
             "ds",
             "state",
             "gender",
             "name",
-            "sum_boys",
-            "sum_girls",
+            "num_boys",
+            "num_girls",
             "num",
         ]
+        expected_columns.sort()
+        assert [col.column_name for col in dataset.columns] == expected_columns
 
         db.session.delete(dataset)
         db.session.commit()
@@ -276,8 +279,8 @@ class TestImportDatasetsCommand(SupersetTestCase):
             "state",
             "gender",
             "name",
-            "sum_boys",
-            "sum_girls",
+            "num_boys",
+            "num_girls",
             "num",
         }
 

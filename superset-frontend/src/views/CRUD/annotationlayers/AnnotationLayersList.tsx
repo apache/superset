@@ -68,9 +68,10 @@ function AnnotationLayersList({
     addDangerToast,
   );
 
-  const [annotationLayerModalOpen, setAnnotationLayerModalOpen] = useState<
-    boolean
-  >(false);
+  const [
+    annotationLayerModalOpen,
+    setAnnotationLayerModalOpen,
+  ] = useState<boolean>(false);
   const [
     currentAnnotationLayer,
     setCurrentAnnotationLayer,

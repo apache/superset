@@ -131,7 +131,8 @@ const DatasourceContainer = styled.div`
     color: ${({ theme }) => theme.colors.grayscale.light1};
   }
   .form-control.input-sm {
-    margin-bottom: 0;
+    width: calc(100% - ${({ theme }) => theme.gridUnit * 2}px);
+    margin: ${({ theme }) => theme.gridUnit * 2}px auto;
   }
   .type-label {
     font-weight: ${({ theme }) => theme.typography.weights.light};
@@ -182,31 +183,18 @@ const DataSourcePanel = ({
         actions={actions}
         formData={datasourceControl.mapStateToProps}
       />
+      <input
+        type="text"
+        onChange={search}
+        className="form-control input-sm"
+        placeholder={t('Search Metrics & Columns')}
+      />
       <div className="field-selections">
-        <input
-          type="text"
-          onChange={search}
-          className="form-control input-sm"
-          placeholder={t('Search Metrics & Columns')}
-        />
         <Collapse
           bordered={false}
-          defaultActiveKey={['column', 'metrics']}
+          defaultActiveKey={['metrics', 'column']}
           expandIconPosition="right"
         >
-          <Collapse.Panel
-            header={<span className="header">{t('Columns')}</span>}
-            key="column"
-          >
-            <div className="field-length">
-              {t(`Showing %s of %s`, columnSlice.length, columns.length)}
-            </div>
-            {columnSlice.map(col => (
-              <div key={col.column_name} className="column">
-                <ColumnOption column={col} showType />
-              </div>
-            ))}
-          </Collapse.Panel>
           <Collapse.Panel
             header={<span className="header">{t('Metrics')}</span>}
             key="metrics"
@@ -217,6 +205,19 @@ const DataSourcePanel = ({
             {metricSlice.map(m => (
               <div key={m.metric_name} className="column">
                 <MetricOption metric={m} showType />
+              </div>
+            ))}
+          </Collapse.Panel>
+          <Collapse.Panel
+            header={<span className="header">{t('Columns')}</span>}
+            key="column"
+          >
+            <div className="field-length">
+              {t(`Showing %s of %s`, columnSlice.length, columns.length)}
+            </div>
+            {columnSlice.map(col => (
+              <div key={col.column_name} className="column">
+                <ColumnOption column={col} showType />
               </div>
             ))}
           </Collapse.Panel>

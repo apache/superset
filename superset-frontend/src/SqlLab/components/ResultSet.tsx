@@ -18,7 +18,6 @@
  */
 import React, { CSSProperties } from 'react';
 import { Alert, ButtonGroup } from 'react-bootstrap';
-import rison from 'rison';
 import ProgressBar from 'src/common/components/ProgressBar';
 import moment from 'moment';
 import { RadioChangeEvent } from 'antd/lib/radio';
@@ -34,6 +33,8 @@ import {
 
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import rison from 'rison';
+import { debounce } from 'lodash';
 import Loading from '../../components/Loading';
 import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';
@@ -85,11 +86,6 @@ const EXPLORE_CHART_DEFAULT = {
 
 const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
 
-interface DatasetOption {
-  datasetId: number;
-  datasetName: string;
-}
-
 interface DatasetOptionAutocomplete {
   value: string;
   datasetId: number;
@@ -114,7 +110,6 @@ interface ResultSetState {
   data: Record<string, any>[];
   showSaveDatasetModal: boolean;
   newSaveDatasetName: string;
-  userDatasetsOwned: DatasetOption[];
   saveDatasetRadioBtnState: number;
   shouldOverwriteDataSet: boolean;
   datasetToOverwrite: Record<string, any>;
@@ -153,7 +148,6 @@ export default class ResultSet extends React.PureComponent<
       data: [],
       showSaveDatasetModal: false,
       newSaveDatasetName: this.getDefaultDatasetName(),
-      userDatasetsOwned: [],
       saveDatasetRadioBtnState: DatasetRadioState.SAVE_NEW,
       shouldOverwriteDataSet: false,
       datasetToOverwrite: {},
@@ -179,8 +173,9 @@ export default class ResultSet extends React.PureComponent<
     this.handleOverwriteDatasetOption = this.handleOverwriteDatasetOption.bind(
       this,
     );
-    this.handleSaveDatasetModalSearch = this.handleSaveDatasetModalSearch.bind(
-      this,
+    this.handleSaveDatasetModalSearch = debounce(
+      this.handleSaveDatasetModalSearch.bind(this),
+      1000,
     );
     this.handleFilterAutocompleteOption = this.handleFilterAutocompleteOption.bind(
       this,
@@ -191,7 +186,7 @@ export default class ResultSet extends React.PureComponent<
     this.handleExploreBtnClick = this.handleExploreBtnClick.bind(this);
   }
 
-  async componentDidMount() {
+  componentDidMount() {
     // only do this the first time the component is rendered/mounted
     this.reRunQueryIfSessionTimeoutErrorOnMount();
   }
@@ -217,9 +212,8 @@ export default class ResultSet extends React.PureComponent<
     }
   }
 
-  getDefaultDatasetName = () => {
-    return `${this.props.query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
-  };
+  getDefaultDatasetName = () =>
+    `${this.props.query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
 
   handleOnChangeAutoComplete = () => {
     this.setState({ datasetToOverwrite: {} });
@@ -374,9 +368,7 @@ export default class ResultSet extends React.PureComponent<
   handleFilterAutocompleteOption = (
     inputValue: string,
     option: { value: string; datasetId: number },
-  ) => {
-    return option.value;
-  };
+  ) => option.value.toLowerCase().includes(inputValue.toLowerCase());
 
   clearQueryResults(query: Query) {
     this.props.actions.clearQueryResults(query);
