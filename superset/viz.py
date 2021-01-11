@@ -76,6 +76,7 @@ from superset.utils.core import (
     QueryMode,
     to_adhoc,
 )
+from superset.utils.date_parser import get_since_until, parse_past_timedelta
 from superset.utils.dates import datetime_to_epoch
 from superset.utils.hashing import md5_sha_from_str
 
@@ -354,7 +355,7 @@ class BaseViz:
         order_desc = form_data.get("order_desc", True)
 
         try:
-            since, until = utils.get_since_until(
+            since, until = get_since_until(
                 relative_start=relative_start,
                 relative_end=relative_end,
                 time_range=form_data.get("time_range"),
@@ -365,7 +366,7 @@ class BaseViz:
             raise QueryObjectValidationError(str(ex))
 
         time_shift = form_data.get("time_shift", "")
-        self.time_shift = utils.parse_past_timedelta(time_shift)
+        self.time_shift = parse_past_timedelta(time_shift)
         from_dttm = None if since is None else (since - self.time_shift)
         to_dttm = None if until is None else (until - self.time_shift)
         if from_dttm and to_dttm and from_dttm > to_dttm:
@@ -1002,7 +1003,7 @@ class CalHeatmapViz(BaseViz):
             data[metric] = values
 
         try:
-            start, end = utils.get_since_until(
+            start, end = get_since_until(
                 relative_start=relative_start,
                 relative_end=relative_end,
                 time_range=form_data.get("time_range"),
@@ -1316,7 +1317,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         for option in time_compare:
             query_object = self.query_obj()
             try:
-                delta = utils.parse_past_timedelta(option)
+                delta = parse_past_timedelta(option)
             except ValueError as ex:
                 raise QueryObjectValidationError(str(ex))
             query_object["inner_from_dttm"] = query_object["from_dttm"]
