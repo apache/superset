@@ -531,6 +531,92 @@ class TestDistBarViz(SupersetTestCase):
         ]
         self.assertEqual(expected, data)
 
+    def test_column_metrics_in_order(self):
+        form_data = {
+            "metrics": ["z_column", "votes", "a_column"],
+            "adhoc_filters": [],
+            "groupby": ["toppings"],
+            "columns": [],
+        }
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame(
+            {
+                "toppings": ["cheese", "pepperoni", "cheese", "pepperoni"],
+                "role": ["engineer", "engineer", None, None],
+                "votes": [3, 5, 1, 2],
+                "a_column": [3, 5, 1, 2],
+                "z_column": [3, 5, 1, 2],
+            }
+        )
+        test_viz = viz.DistributionBarViz(datasource, form_data)
+        data = test_viz.get_data(df)
+
+        expected = [
+            {
+                "key": "z_column",
+                "values": [{"x": "pepperoni", "y": 3.5}, {"x": "cheese", "y": 2.0}],
+            },
+            {
+                "key": "votes",
+                "values": [{"x": "pepperoni", "y": 3.5}, {"x": "cheese", "y": 2.0}],
+            },
+            {
+                "key": "a_column",
+                "values": [{"x": "pepperoni", "y": 3.5}, {"x": "cheese", "y": 2.0}],
+            },
+        ]
+
+        self.assertEqual(expected, data)
+
+    def test_column_metrics_in_order_with_breakdowns(self):
+        form_data = {
+            "metrics": ["z_column", "votes", "a_column"],
+            "adhoc_filters": [],
+            "groupby": ["toppings"],
+            "columns": ["role"],
+        }
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame(
+            {
+                "toppings": ["cheese", "pepperoni", "cheese", "pepperoni"],
+                "role": ["engineer", "engineer", None, None],
+                "votes": [3, 5, 1, 2],
+                "a_column": [3, 5, 1, 2],
+                "z_column": [3, 5, 1, 2],
+            }
+        )
+        test_viz = viz.DistributionBarViz(datasource, form_data)
+        data = test_viz.get_data(df)
+
+        expected = [
+            {
+                "key": "z_column, {}".format(NULL_STRING),
+                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
+            },
+            {
+                "key": "z_column, engineer",
+                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
+            },
+            {
+                "key": "votes, {}".format(NULL_STRING),
+                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
+            },
+            {
+                "key": "votes, engineer",
+                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
+            },
+            {
+                "key": "a_column, {}".format(NULL_STRING),
+                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
+            },
+            {
+                "key": "a_column, engineer",
+                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
+            },
+        ]
+
+        self.assertEqual(expected, data)
+
 
 class TestPairedTTest(SupersetTestCase):
     def test_get_data_transforms_dataframe(self):
