@@ -248,6 +248,7 @@ const ExploreChartPanel = props => {
             queryFormData={props.chart.latestQueryFormData}
             tableSectionHeight={tableSectionHeight}
             onCollapseChange={onCollapseChange}
+            chartStatus={props.chart.chartStatus}
           />
         </Split>
       )}
