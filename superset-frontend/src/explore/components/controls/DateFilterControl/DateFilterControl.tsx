@@ -209,13 +209,12 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           valueToLower.startsWith('previous')
         ) {
           setActualTimeRange(value);
-          setValidTimeRange(true);
           setTooltipTitle(actualRange || '');
         } else {
           setActualTimeRange(actualRange || '');
-          setValidTimeRange(true);
           setTooltipTitle(value || '');
         }
+        setValidTimeRange(true);
       }
     });
   }, [value]);
