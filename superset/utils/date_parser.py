@@ -17,7 +17,7 @@
 import calendar
 import logging
 import re
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from time import struct_time
 from typing import List, Optional, Tuple
 

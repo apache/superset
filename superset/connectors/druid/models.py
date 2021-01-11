@@ -57,7 +57,7 @@ from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, QueryResult
 from superset.typing import FilterValues, Granularity, Metric, QueryObjectDict
 from superset.utils import core as utils
-from superset.utils.date_parser import parse_human_datetime
+from superset.utils.date_parser import parse_human_datetime, parse_human_timedelta
 
 try:
     import requests
@@ -796,7 +796,7 @@ class DruidDatasource(Model, BaseDatasource):
         else:
             granularity["type"] = "duration"
             granularity["duration"] = (
-                utils.parse_human_timedelta(period_name).total_seconds()  # type: ignore
+                parse_human_timedelta(period_name).total_seconds()  # type: ignore
                 * 1000
             )
         return granularity
