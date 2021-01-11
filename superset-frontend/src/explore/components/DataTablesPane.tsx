@@ -96,7 +96,10 @@ export const DataTablesPane = ({
 
   const getData = useCallback(
     (resultType: string) => {
-      setIsLoading(prevIsLoading => ({ ...prevIsLoading, [resultType]: true }));
+      setIsLoading(prevIsLoading => ({
+        ...prevIsLoading,
+        [resultType]: true,
+      }));
       return getChartDataRequest({
         formData: queryFormData,
         resultFormat: 'json',

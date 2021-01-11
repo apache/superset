@@ -91,21 +91,19 @@ export type PartialThemeConfig = RecursivePartial<ThemeConfig>;
 
 export const defaultTheme: (
   theme: SupersetTheme,
-) => PartialThemeConfig = theme => {
-  return {
-    borderRadius: theme.borderRadius,
-    zIndex: 11,
-    colors: colors(theme),
-    spacing: {
-      baseUnit: 3,
-      menuGutter: 0,
-      controlHeight: 28,
-      lineHeight: 19,
-      fontSize: 14,
-      minWidth: '7.5em', // just enough to display 'No options'
-    },
-  };
-};
+) => PartialThemeConfig = theme => ({
+  borderRadius: theme.borderRadius,
+  zIndex: 11,
+  colors: colors(theme),
+  spacing: {
+    baseUnit: 3,
+    menuGutter: 0,
+    controlHeight: 28,
+    lineHeight: 19,
+    fontSize: 14,
+    minWidth: '7.5em', // just enough to display 'No options'
+  },
+});
 
 // let styles accept serialized CSS, too
 type CSSStyles = CSSProperties | SerializedStyles;
