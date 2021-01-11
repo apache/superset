@@ -18,17 +18,19 @@
 """Unit tests for Sql Lab"""
 import json
 from datetime import datetime, timedelta
+
+import pytest
+from parameterized import parameterized
 from random import random
 from unittest import mock
-
-from parameterized import parameterized
+from superset.extensions import db
 import prison
-import pytest
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetErrorType
+from superset.models.core import Database
 from superset.models.sql_lab import Query, SavedQuery
 from superset.result_set import SupersetResultSet
 from superset.sql_lab import execute_sql_statements, SqlLabException
@@ -41,6 +43,7 @@ from superset.utils.core import (
 
 from .base_tests import SupersetTestCase
 from .conftest import CTAS_SCHEMA_NAME
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 QUERY_1 = "SELECT * FROM birth_names LIMIT 1"
 QUERY_2 = "SELECT * FROM NO_TABLE"
@@ -64,6 +67,7 @@ class TestSqlLab(SupersetTestCase):
         db.session.commit()
         db.session.close()
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_json(self):
         self.login("admin")
 
@@ -84,6 +88,7 @@ class TestSqlLab(SupersetTestCase):
             ]
         }
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_json_to_saved_query_info(self):
         """
         SQLLab: Test SQLLab query execution info propagation to saved queries
@@ -115,6 +120,7 @@ class TestSqlLab(SupersetTestCase):
             db.session.commit()
 
     @parameterized.expand([CtasMethod.TABLE, CtasMethod.VIEW])
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_json_cta_dynamic_db(self, ctas_method):
         examples_db = get_example_database()
         if examples_db.backend == "sqlite":
@@ -146,8 +152,9 @@ class TestSqlLab(SupersetTestCase):
             data = engine.execute(
                 f"SELECT * FROM admin_database.{tmp_table_name}"
             ).fetchall()
+            names_count = engine.execute(f"SELECT COUNT(*) FROM birth_names").first()
             self.assertEqual(
-                100, len(data)
+                names_count[0], len(data)
             )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True
 
             # cleanup
@@ -155,6 +162,7 @@ class TestSqlLab(SupersetTestCase):
             examples_db.allow_ctas = old_allow_ctas
             db.session.commit()
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_multi_sql(self):
         self.login("admin")
 
@@ -165,12 +173,14 @@ class TestSqlLab(SupersetTestCase):
         data = self.run_sql(multi_sql, "2234")
         self.assertLess(0, len(data["data"]))
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_explain(self):
         self.login("admin")
 
         data = self.run_sql("EXPLAIN SELECT * FROM birth_names", "1")
         self.assertLess(0, len(data["data"]))
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_json_has_access(self):
         examples_db = get_example_database()
         examples_db_permission_view = security_manager.add_permission_view_menu(
@@ -312,6 +322,7 @@ class TestSqlLab(SupersetTestCase):
         self.assertEqual(1, len(data))
         self.assertEqual(data[0]["userId"], user_id)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_search_query_on_status(self):
         self.run_some_queries()
         self.login("admin")
@@ -481,6 +492,7 @@ class TestSqlLab(SupersetTestCase):
         )
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_limit(self):
         self.login("admin")
         test_limit = 1
@@ -589,6 +601,7 @@ class TestSqlLab(SupersetTestCase):
         )
         self.delete_fake_db()
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
         {"ENABLE_TEMPLATE_PROCESSING": True},
