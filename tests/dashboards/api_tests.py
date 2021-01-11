@@ -22,6 +22,7 @@ from io import BytesIO
 from typing import List, Optional
 from unittest.mock import patch
 from zipfile import is_zipfile, ZipFile
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import pytest
 import prison
@@ -29,7 +30,7 @@ import yaml
 from sqlalchemy.sql import func
 
 from freezegun import freeze_time
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 from superset import db, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
@@ -47,7 +48,7 @@ from tests.fixtures.importexport import (
     dataset_config,
     dataset_metadata_config,
 )
-
+from tests.utils.get_dashboards import get_dashboards_ids
 
 DASHBOARDS_FIXTURE_COUNT = 10
 
@@ -654,6 +655,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             model = db.session.query(Dashboard).get(dashboard_id)
             self.assertEqual(model, None)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_delete_dashboard_not_owned(self):
         """
         Dashboard API: Test delete try not owned
@@ -679,6 +681,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(user_alpha2)
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_delete_bulk_dashboard_not_owned(self):
         """
         Dashboard API: Test delete bulk try not owned
@@ -906,6 +909,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(model)
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_update_dashboard_chart_owners(self):
         """
         Dashboard API: Test update chart owners
@@ -1071,6 +1075,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(model)
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_update_dashboard_not_owned(self):
         """
         Dashboard API: Test update dashboard not owned
@@ -1147,8 +1152,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Dashboard API: Test dashboard export
         """
-        argument = [1, 2]
-        uri = f"api/v1/dashboard/export/?q={prison.dumps(argument)}"
+        dashboards_ids = get_dashboards_ids(db, ["world_health", "births"])
+        uri = f"api/v1/dashboard/export/?q={prison.dumps(dashboards_ids)}"
 
         self.login(username="admin")
         rv = self.client.get(uri)

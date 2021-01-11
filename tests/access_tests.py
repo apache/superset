@@ -19,6 +19,7 @@
 import json
 import unittest
 from unittest import mock
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import pytest
 
@@ -142,6 +143,7 @@ class TestRequestAccess(SupersetTestCase):
         )
         self.assertNotEqual(405, response.status_code)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_override_role_permissions_1_table(self):
         response = self.client.post(
             "/superset/override_role_permissions/",
@@ -160,6 +162,7 @@ class TestRequestAccess(SupersetTestCase):
             "datasource_access", updated_override_me.permissions[0].permission.name
         )
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_override_role_permissions_druid_and_table(self):
         response = self.client.post(
             "/superset/override_role_permissions/",
@@ -187,7 +190,9 @@ class TestRequestAccess(SupersetTestCase):
         )
         self.assertEqual(3, len(perms))
 
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @pytest.mark.usefixtures(
+        "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
+    )
     def test_override_role_permissions_drops_absent_perms(self):
         override_me = security_manager.find_role("override_me")
         override_me.permissions.append(
@@ -247,6 +252,7 @@ class TestRequestAccess(SupersetTestCase):
             gamma_user = security_manager.find_user(username="gamma")
             gamma_user.roles.remove(security_manager.find_role("test_role1"))
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_clean_requests_after_alpha_grant(self):
         session = db.session
 

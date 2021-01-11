@@ -17,9 +17,12 @@
 """Unit tests for Superset with caching"""
 import json
 
+import pytest
+
 from superset import app, db
 from superset.extensions import cache_manager
 from superset.utils.core import QueryStatus
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 from .base_tests import SupersetTestCase
 
@@ -34,6 +37,7 @@ class TestCache(SupersetTestCase):
         cache_manager.cache.clear()
         cache_manager.data_cache.clear()
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_no_data_cache(self):
         data_cache_config = app.config["DATA_CACHE_CONFIG"]
         app.config["DATA_CACHE_CONFIG"] = {"CACHE_TYPE": "null"}
@@ -54,6 +58,7 @@ class TestCache(SupersetTestCase):
         self.assertFalse(resp["is_cached"])
         self.assertFalse(resp_from_cache["is_cached"])
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_data_cache(self):
         # Override cache config
         data_cache_config = app.config["DATA_CACHE_CONFIG"]

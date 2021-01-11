@@ -41,6 +41,9 @@ from superset.tasks.schedules import (
 from superset.models.slice import Slice
 from tests.base_tests import SupersetTestCase
 from tests.utils import read_fixture
+from tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices_module_scope,
+)
 
 
 class TestSchedules(SupersetTestCase):
@@ -138,6 +141,7 @@ class TestSchedules(SupersetTestCase):
             else:
                 self.assertEqual(len(schedules), 0)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices_module_scope")
     def test_complex_schedule(self):
         # Run the job on every Friday of March and May
         # On these days, run the job at

@@ -20,6 +20,7 @@ from datetime import datetime
 import json
 import unittest
 from random import random
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import pytest
 from flask import escape, url_for
@@ -129,6 +130,7 @@ class TestDashboard(SupersetTestCase):
         dash_count_after = db.session.query(func.count(Dashboard.id)).first()[0]
         self.assertEqual(dash_count_before + 1, dash_count_after)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_dashboard_modes(self):
         self.login(username="admin")
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
@@ -142,6 +144,7 @@ class TestDashboard(SupersetTestCase):
         self.assertIn("standalone_mode&#34;: true", resp)
         self.assertIn('<body class="standalone">', resp)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_save_dash(self, username="admin"):
         self.login(username=username)
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
@@ -213,6 +216,7 @@ class TestDashboard(SupersetTestCase):
         new_url = updatedDash.url
         self.assertNotIn("region", new_url)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_save_dash_with_dashboard_title(self, username="admin"):
         self.login(username=username)
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
@@ -234,6 +238,7 @@ class TestDashboard(SupersetTestCase):
         data["dashboard_title"] = origin_title
         self.get_resp(url, data=dict(data=json.dumps(data)))
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_save_dash_with_colors(self, username="admin"):
         self.login(username=username)
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
@@ -263,7 +268,9 @@ class TestDashboard(SupersetTestCase):
         self.get_resp(url, data=dict(data=json.dumps(data)))
 
     @pytest.mark.usefixtures(
-        "cleanup_copied_dash", "load_unicode_dashboard_with_position"
+        "load_birth_names_dashboard_with_slices",
+        "cleanup_copied_dash",
+        "load_unicode_dashboard_with_position",
     )
     def test_copy_dash(self, username="admin"):
         self.login(username=username)
@@ -303,7 +310,9 @@ class TestDashboard(SupersetTestCase):
                 if key not in ["modified", "changed_on", "changed_on_humanized"]:
                     self.assertEqual(slc[key], resp["slices"][index][key])
 
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @pytest.mark.usefixtures(
+        "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
+    )
     def test_add_slices(self, username="admin"):
         self.login(username=username)
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
@@ -332,6 +341,7 @@ class TestDashboard(SupersetTestCase):
         dash.slices = [o for o in dash.slices if o.slice_name != "Energy Force Layout"]
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_remove_slices(self, username="admin"):
         self.login(username=username)
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
@@ -364,6 +374,7 @@ class TestDashboard(SupersetTestCase):
         data = dash.data
         self.assertEqual(len(data["slices"]), origin_slices_length - 1)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_public_user_dashboard_access(self):
         table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
 
@@ -404,6 +415,7 @@ class TestDashboard(SupersetTestCase):
         # Cleanup
         self.revoke_public_access_to_table(table)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_dashboard_with_created_by_can_be_accessed_by_public_users(self):
         self.logout()
         table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
@@ -419,6 +431,7 @@ class TestDashboard(SupersetTestCase):
         # Cleanup
         self.revoke_public_access_to_table(table)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_only_owners_can_save(self):
         dash = db.session.query(Dashboard).filter_by(slug="births").first()
         dash.owners = []

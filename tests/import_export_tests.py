@@ -18,6 +18,7 @@
 """Unit tests for Superset"""
 import json
 import unittest
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import pytest
 from flask import g
@@ -240,6 +241,7 @@ class TestImportExport(SupersetTestCase):
             self.assertEqual(e_slc.datasource.schema, params["schema"])
             self.assertEqual(e_slc.datasource.database.name, params["database_name"])
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_export_1_dashboard(self):
         self.login("admin")
         birth_dash = self.get_dash_by_slug("births")
@@ -268,6 +270,7 @@ class TestImportExport(SupersetTestCase):
             self.get_table_by_name("birth_names"), exported_tables[0]
         )
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_export_2_dashboards(self):
         self.login("admin")
         birth_dash = self.get_dash_by_slug("births")
