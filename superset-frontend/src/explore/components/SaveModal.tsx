@@ -29,7 +29,7 @@ import { connect } from 'react-redux';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
-const SELECT_PLACEHOLDER = t('**Select** a dashboard OR **create** a new one');
+const SELECT_PLACEHOLDER = t('Select dashboard');
 
 type SaveModalProps = {
   can_overwrite?: boolean;
@@ -152,6 +152,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   }
 
   render() {
+    const selectValue =
+      this.state.newDashboardName || this.state.saveToDashboardId || null;
     return (
       <Modal
         show
@@ -247,10 +249,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
               creatable
               onChange={this.onDashboardSelectChange}
               autoSize={false}
-              value={{
-                value:
-                  this.state.saveToDashboardId || this.state.newDashboardName,
-              }}
+              value={selectValue ? { value: selectValue } : null}
               placeholder={
                 // Using markdown to allow for good i18n
                 <ReactMarkdown
