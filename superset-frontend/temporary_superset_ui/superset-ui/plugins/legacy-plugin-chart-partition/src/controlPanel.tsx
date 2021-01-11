@@ -249,6 +249,8 @@ const config: ControlPanelConfig = {
               ),
             },
           },
+        ],
+        [
           {
             name: 'rolling_periods',
             config: {
