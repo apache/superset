@@ -56,6 +56,7 @@ const propTypes = {
   menuPortalTarget: PropTypes.element,
   menuPosition: PropTypes.string,
   menuPlacement: PropTypes.string,
+  forceOverflow: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -226,6 +227,9 @@ export default class SelectControl extends React.PureComponent {
       value,
       valueKey,
       valueRenderer,
+      forceOverflow,
+      menuPortalTarget,
+      menuPosition,
     } = this.props;
 
     const optionsRemaining = this.optionsRemaining();
@@ -263,6 +267,9 @@ export default class SelectControl extends React.PureComponent {
       value,
       valueKey,
       valueRenderer,
+      forceOverflow,
+      menuPortalTarget,
+      menuPosition,
     };
 
     let SelectComponent;

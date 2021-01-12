@@ -91,6 +91,7 @@ export type SupersetStyledSelectProps<
   valueRenderedAsLabel?: boolean;
   // callback for paste event
   onPaste?: (e: SyntheticEvent) => void;
+  forceOverflow?: boolean;
   // for simplier theme overrides
   themeConfig?: PartialThemeConfig;
   stylesConfig?: PartialStylesConfig;
@@ -146,6 +147,7 @@ function styled<
       multi = false, // same as `isMulti`, used for backward compatibility
       clearable, // same as `isClearable`
       sortable = true, // whether to enable drag & drop sorting
+      forceOverflow, // whether the dropdown should be forcefully overflowing
 
       // react-select props
       className = DEFAULT_CLASS_NAME,
@@ -258,44 +260,61 @@ function styled<
     };
 
     const theme = useTheme();
+
+    const MaybeSortableComponent = (menuPortalProps: {
+      closeMenuOnScroll?: EventListener;
+      menuPortalTarget?: HTMLElement;
+      menuPosition?: 'absolute' | 'fixed';
+    }) => (
+      <MaybeSortableSelect
+        ref={setRef}
+        className={className}
+        classNamePrefix={classNamePrefix}
+        isMulti={isMulti}
+        isClearable={isClearable}
+        options={options}
+        value={value}
+        minMenuHeight={minMenuHeight}
+        maxMenuHeight={maxMenuHeight}
+        filterOption={
+          // filterOption may be NULL
+          filterOption !== undefined
+            ? filterOption
+            : createFilter({ ignoreAccents })
+        }
+        styles={{ ...DEFAULT_STYLES, ...stylesConfig } as SelectProps['styles']}
+        // merge default theme from `react-select`, default theme for Superset,
+        // and the theme from props.
+        theme={reactSelectTheme =>
+          merge(reactSelectTheme, defaultTheme(theme), themeConfig)
+        }
+        formatOptionLabel={formatOptionLabel}
+        getOptionLabel={getOptionLabel}
+        getOptionValue={getOptionValue}
+        components={components}
+        {...restProps}
+        {...menuPortalProps}
+      />
+    );
     const menuPortalTargetRef = React.useRef() as React.MutableRefObject<HTMLDivElement>;
 
-    return (
-      <div ref={menuPortalTargetRef}>
-        <MaybeSortableSelect
-          ref={setRef}
-          className={className}
-          classNamePrefix={classNamePrefix}
-          isMulti={isMulti}
-          isClearable={isClearable}
-          options={options}
-          value={value}
-          minMenuHeight={minMenuHeight}
-          maxMenuHeight={maxMenuHeight}
-          filterOption={
-            // filterOption may be NULL
-            filterOption !== undefined
-              ? filterOption
-              : createFilter({ ignoreAccents })
-          }
-          styles={
-            { ...DEFAULT_STYLES, ...stylesConfig } as SelectProps['styles']
-          }
-          // merge default theme from `react-select`, default theme for Superset,
-          // and the theme from props.
-          theme={reactSelectTheme =>
-            merge(reactSelectTheme, defaultTheme(theme), themeConfig)
-          }
-          formatOptionLabel={formatOptionLabel}
-          getOptionLabel={getOptionLabel}
-          getOptionValue={getOptionValue}
-          components={components}
-          menuPortalTarget={menuPortalTargetRef.current}
-          menuPosition="fixed"
-          {...restProps}
-        />
-      </div>
-    );
+    if (forceOverflow) {
+      // use only when setting overflow:visible isn't possible on the containing element
+      return (
+        <div className="menu-portal-target" ref={menuPortalTargetRef}>
+          <MaybeSortableComponent
+            closeMenuOnScroll={e => {
+              const target = e.target as HTMLElement;
+              return target && !target.classList?.contains('Select__menu-list');
+            }}
+            menuPortalTarget={menuPortalTargetRef.current}
+            menuPosition="fixed"
+          />
+        </div>
+      );
+    }
+
+    return <MaybeSortableComponent />;
   }
 
   // React.memo makes sure the component does no rerender given the same props

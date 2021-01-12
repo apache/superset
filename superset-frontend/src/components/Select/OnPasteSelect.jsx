@@ -92,6 +92,7 @@ OnPasteSelect.propTypes = {
   value: PropTypes.any,
   isValidNewOption: PropTypes.func,
   noResultsText: PropTypes.string,
+  forceOverflow: PropTypes.bool,
 };
 OnPasteSelect.defaultProps = {
   separator: [',', '\n', '\t', ';'],

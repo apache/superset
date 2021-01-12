@@ -409,6 +409,7 @@ class FilterBox extends React.PureComponent {
             : CreatableSelect
         }
         noResultsText={t('No results found')}
+        forceOverflow
       />
     );
   }
