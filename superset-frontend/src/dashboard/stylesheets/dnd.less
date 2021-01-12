@@ -20,6 +20,13 @@
   position: relative;
 }
 
+// Fixes ISSUE-12181 - before in chart's contract-trigger breaks drag and drop mode
+.dashboard--editing {
+  .contract-trigger:before {
+    display: none;
+  }
+}
+
 .dragdroppable--dragging {
   opacity: 0.2;
 }
