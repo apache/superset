@@ -26,7 +26,7 @@ export type FrameType =
   | 'Calendar'
   | 'Custom'
   | 'Advanced'
-  | 'No Filter';
+  | 'No filter';
 
 export type DateTimeGrainType =
   | 'second'
