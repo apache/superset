@@ -124,9 +124,9 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
             ))}
           </Select>
           <span className="filter-edit-clause-info">
-            <strong>WHERE</strong> {t('filters by columns')}
+            <strong>WHERE</strong> {t('Filters by columns')}
             <br />
-            <strong>HAVING</strong> {t('filters by metrics')}
+            <strong>HAVING</strong> {t('Filters by metrics')}
           </span>
         </FormGroup>
         <FormGroup>
