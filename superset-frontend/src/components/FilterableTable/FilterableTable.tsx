@@ -314,7 +314,7 @@ export default class FilterableTable extends PureComponent<
             <CopyToClipboard shouldShowText={false} text={jsonString} />
           </Button>
         }
-        modalTitle={t('Cell Content')}
+        modalTitle={t('Cell content')}
         triggerNode={node}
       />
     );
