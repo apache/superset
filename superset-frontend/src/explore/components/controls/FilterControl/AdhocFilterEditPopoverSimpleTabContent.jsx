@@ -23,7 +23,6 @@ import { Select } from 'src/common/components/Select';
 import { Input } from 'src/common/components';
 import { t, SupersetClient, styled } from '@superset-ui/core';
 
-import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from './AdhocFilter';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import columnType from 'src/explore/propTypes/columnType';
 import {
@@ -37,6 +36,7 @@ import {
   DISABLE_INPUT_OPERATORS,
 } from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
+import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from './AdhocFilter';
 
 const SelectWithLabel = styled(Select)`
   .ant-select-selector::after {

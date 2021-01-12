@@ -22,9 +22,9 @@ import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
 
 import AggregateOption from 'src/explore/components/AggregateOption';
 import columnType from 'src/explore/propTypes/columnType';
-import savedMetricType from './savedMetricType';
 import aggregateOptionType from 'src/explore/propTypes/aggregateOptionType';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import savedMetricType from './savedMetricType';
 
 const propTypes = {
   option: PropTypes.oneOfType([

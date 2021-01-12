@@ -23,8 +23,10 @@ import { shallow } from 'enzyme';
 import { ColumnOption } from '@superset-ui/chart-controls';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import AdhocMetricStaticOption from 'src/explore/components/controls/MetricControl/AdhocMetricStaticOption';
-import AdhocMetric, { EXPRESSION_TYPES } from '../../../../src/explore/components/controls/MetricControl/AdhocMetric';
 import { AGGREGATES } from 'src/explore/constants';
+import AdhocMetric, {
+  EXPRESSION_TYPES,
+} from 'src/explore/components/controls/MetricControl/AdhocMetric';
 
 const sumValueAdhocMetric = new AdhocMetric({
   expressionType: EXPRESSION_TYPES.SIMPLE,

@@ -19,12 +19,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Tooltip } from 'src/common/components/Tooltip';
-import AdhocMetric from './AdhocMetric';
 import columnType from 'src/explore/propTypes/columnType';
-import savedMetricType from './savedMetricType';
 import { DraggableOptionControlLabel } from 'src/explore/components/OptionControls';
-import AdhocMetricPopoverTrigger from './AdhocMetricPopoverTrigger';
 import { OPTION_TYPES } from 'src/explore/components/optionTypes';
+import AdhocMetric from './AdhocMetric';
+import savedMetricType from './savedMetricType';
+import AdhocMetricPopoverTrigger from './AdhocMetricPopoverTrigger';
 
 const propTypes = {
   adhocMetric: PropTypes.instanceOf(AdhocMetric),
