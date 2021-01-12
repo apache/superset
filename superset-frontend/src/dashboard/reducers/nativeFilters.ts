@@ -29,22 +29,27 @@ import {
 } from 'src/dashboard/components/nativeFilters/types';
 import { getSelectExtraFormData } from 'src/filters/utils';
 
-export function getInitialFilterState(filter: Filter): FilterState {
-  let extraFormData = {};
+export function getInitialFilterState(
+  id: string,
+  extraFormData = {},
+): FilterState {
+  return {
+    id,
+    extraFormData,
+  };
+}
 
-  if (filter.defaultValue) {
+function getInitialExtraFormData(filter: Filter) {
+  if (filter?.defaultValue) {
     const [target] = filter.targets;
-    extraFormData = getSelectExtraFormData(
+    return getSelectExtraFormData(
       target.column.name,
       [filter.defaultValue],
       false,
       filter.inverseSelection,
     );
   }
-  return {
-    id: filter.id,
-    extraFormData,
-  };
+  return {};
 }
 
 export function getInitialState(
@@ -57,7 +62,9 @@ export function getInitialState(
   filterConfig.forEach(filter => {
     const { id } = filter;
     filters[id] = filter;
-    filtersState[id] = prevFiltersState?.[id] || getInitialFilterState(filter);
+    filtersState[id] =
+      prevFiltersState?.[id] ||
+      getInitialFilterState(id, getInitialExtraFormData(filter));
   });
   return state;
 }
