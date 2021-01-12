@@ -20,8 +20,8 @@ import React, { ReactNode } from 'react';
 import Popover from 'src/common/components/Popover';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle';
 import AdhocMetricEditPopover from './AdhocMetricEditPopover';
-import AdhocMetric from '../../../AdhocMetric';
-import { savedMetricType } from '../../../types';
+import AdhocMetric from './AdhocMetric';
+import { savedMetricType } from './types';
 
 export type AdhocMetricPopoverTriggerProps = {
   adhocMetric: AdhocMetric;

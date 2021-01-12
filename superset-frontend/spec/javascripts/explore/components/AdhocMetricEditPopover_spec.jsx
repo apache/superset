@@ -23,7 +23,7 @@ import { shallow } from 'enzyme';
 import { FormGroup } from 'react-bootstrap';
 import Button from 'src/components/Button';
 
-import AdhocMetric, { EXPRESSION_TYPES } from 'src/explore/AdhocMetric';
+import AdhocMetric, { EXPRESSION_TYPES } from '../../../../src/explore/components/controls/MetricControl/AdhocMetric';
 import { AGGREGATES } from 'src/explore/constants';
 import AdhocMetricEditPopover from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopover';
 

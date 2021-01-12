@@ -27,7 +27,7 @@ import AdhocFilter, {
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { LabelsContainer } from 'src/explore/components/OptionControls';
-import AdhocMetric from 'src/explore/AdhocMetric';
+import AdhocMetric from '../../../../src/explore/components/controls/MetricControl/AdhocMetric';
 import { AGGREGATES, OPERATORS } from 'src/explore/constants';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 

@@ -19,12 +19,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import AdhocMetricOption from './AdhocMetricOption';
-import AdhocMetric from '../../../AdhocMetric';
-import columnType from '../../../propTypes/columnType';
+import AdhocMetric from './AdhocMetric';
+import columnType from 'src/explore/propTypes/columnType';
 import savedMetricType from './savedMetricType';
 import adhocMetricType from './adhocMetricType';
-import { DraggableOptionControlLabel } from '../../OptionControls';
-import { OPTION_TYPES } from '../../optionTypes';
+import { DraggableOptionControlLabel } from 'src/explore/components/OptionControls';
+import { OPTION_TYPES } from 'src/explore/components/optionTypes';
 
 const propTypes = {
   option: PropTypes.oneOfType([savedMetricType, adhocMetricType]).isRequired,

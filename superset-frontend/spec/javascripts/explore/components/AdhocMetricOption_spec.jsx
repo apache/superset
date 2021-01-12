@@ -22,7 +22,7 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
 import Popover from 'src/common/components/Popover';
-import AdhocMetric from 'src/explore/AdhocMetric';
+import AdhocMetric from '../../../../src/explore/components/controls/MetricControl/AdhocMetric';
 import { AGGREGATES } from 'src/explore/constants';
 import AdhocMetricOption from 'src/explore/components/controls/MetricControl/AdhocMetricOption';
 

@@ -22,7 +22,7 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
 import { AGGREGATES } from 'src/explore/constants';
-import AdhocMetric, { EXPRESSION_TYPES } from 'src/explore/AdhocMetric';
+import AdhocMetric, { EXPRESSION_TYPES } from '../../../../src/explore/components/controls/MetricControl/AdhocMetric';
 import { LabelsContainer } from 'src/explore/components/OptionControls';
 import { supersetTheme } from '@superset-ui/core';
 import MetricsControl from 'src/explore/components/controls/MetricControl/MetricsControl';

@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { ColumnOption, ColumnTypeLabel } from '@superset-ui/chart-controls';
 
 import AdhocMetricStaticOption from './AdhocMetricStaticOption';
-import columnType from '../../../propTypes/columnType';
+import columnType from 'src/explore/propTypes/columnType';
 import adhocMetricType from './adhocMetricType';
 
 const propTypes = {
