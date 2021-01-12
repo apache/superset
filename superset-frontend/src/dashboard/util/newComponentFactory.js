@@ -50,7 +50,7 @@ const typeToDefaultMetaData = {
   [MARKDOWN_TYPE]: { width: GRID_DEFAULT_CHART_WIDTH, height: 50 },
   [ROW_TYPE]: { background: BACKGROUND_TRANSPARENT },
   [TABS_TYPE]: null,
-  [TAB_TYPE]: { text: 'New Tab' },
+  [TAB_TYPE]: { text: 'New tab' },
 };
 
 function uuid(type) {
