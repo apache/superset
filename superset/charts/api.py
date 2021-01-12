@@ -63,7 +63,7 @@ from superset.charts.schemas import (
     thumbnail_query_schema,
 )
 from superset.commands.exceptions import CommandInvalidError
-from superset.commands.importers.v1.utils import remove_root
+from superset.commands.importers.v1.utils import is_valid_config, remove_root
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger
@@ -1016,6 +1016,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             contents = {
                 remove_root(file_name): bundle.read(file_name).decode()
                 for file_name in bundle.namelist()
+                if is_valid_config(file_name)
             }
 
         passwords = (

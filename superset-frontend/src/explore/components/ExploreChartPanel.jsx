@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { ParentSize } from '@vx/responsive';
 import { styled, useTheme } from '@superset-ui/core';
-import debounce from 'lodash/debounce';
+import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/chart/ChartContainer';
 import ConnectedExploreChartHeader from './ExploreChartHeader';
@@ -55,6 +54,7 @@ const propTypes = {
 const GUTTER_SIZE_FACTOR = 1.25;
 
 const CHART_PANEL_PADDING = 30;
+const HEADER_PADDING = 15;
 
 const INITIAL_SIZES = [90, 10];
 const MIN_SIZES = [300, 50];
@@ -104,20 +104,32 @@ const ExploreChartPanel = props => {
   const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
 
-  const panelHeadingRef = useRef(null);
+  const { height: hHeight, ref: headerRef } = useResizeDetector({
+    refreshMode: 'debounce',
+    refreshRate: 300,
+  });
+  const { width: chartWidth, ref: chartRef } = useResizeDetector({
+    refreshMode: 'debounce',
+    refreshRate: 300,
+  });
   const [splitSizes, setSplitSizes] = useState(INITIAL_SIZES);
 
   const calcSectionHeight = useCallback(
     percent => {
-      const headerHeight = props.standalone
-        ? 0
-        : panelHeadingRef?.current?.offsetHeight ?? 50;
+      let headerHeight;
+      if (props.standalone) {
+        headerHeight = 0;
+      } else if (hHeight) {
+        headerHeight = hHeight + HEADER_PADDING;
+      } else {
+        headerHeight = 50;
+      }
       const containerHeight = parseInt(props.height, 10) - headerHeight;
       return (
         (containerHeight * percent) / 100 - (gutterHeight / 2 + gutterMargin)
       );
     },
-    [gutterHeight, gutterMargin, props.height, props.standalone],
+    [gutterHeight, gutterMargin, props.height, props.standalone, hHeight],
   );
 
   const [tableSectionHeight, setTableSectionHeight] = useState(
@@ -132,15 +144,11 @@ const ExploreChartPanel = props => {
   );
 
   useEffect(() => {
-    const recalcSizes = debounce(() => recalcPanelSizes(splitSizes), 200);
-
-    window.addEventListener('resize', recalcSizes);
-    return () => window.removeEventListener('resize', recalcSizes);
-  }, [props.standalone, recalcPanelSizes, splitSizes]);
+    recalcPanelSizes(splitSizes);
+  }, [recalcPanelSizes, splitSizes]);
 
   const onDragEnd = sizes => {
     setSplitSizes(sizes);
-    recalcPanelSizes(sizes);
   };
 
   const onCollapseChange = openPanelName => {
@@ -154,42 +162,46 @@ const ExploreChartPanel = props => {
       ];
     }
     setSplitSizes(splitSizes);
-    recalcPanelSizes(splitSizes);
   };
 
-  const renderChart = () => {
+  const renderChart = useCallback(() => {
     const { chart } = props;
     const newHeight = calcSectionHeight(splitSizes[0]) - CHART_PANEL_PADDING;
     return (
-      <ParentSize>
-        {({ width }) =>
-          width > 0 && (
-            <ChartContainer
-              width={Math.floor(width)}
-              height={newHeight}
-              annotationData={chart.annotationData}
-              chartAlert={chart.chartAlert}
-              chartStackTrace={chart.chartStackTrace}
-              chartId={chart.id}
-              chartStatus={chart.chartStatus}
-              triggerRender={props.triggerRender}
-              datasource={props.datasource}
-              errorMessage={props.errorMessage}
-              formData={props.form_data}
-              onQuery={props.onQuery}
-              owners={props?.slice?.owners}
-              queriesResponse={chart.queriesResponse}
-              refreshOverlayVisible={props.refreshOverlayVisible}
-              setControlValue={props.actions.setControlValue}
-              timeout={props.timeout}
-              triggerQuery={chart.triggerQuery}
-              vizType={props.vizType}
-            />
-          )
-        }
-      </ParentSize>
+      chartWidth > 0 && (
+        <ChartContainer
+          width={Math.floor(chartWidth)}
+          height={newHeight}
+          annotationData={chart.annotationData}
+          chartAlert={chart.chartAlert}
+          chartStackTrace={chart.chartStackTrace}
+          chartId={chart.id}
+          chartStatus={chart.chartStatus}
+          triggerRender={props.triggerRender}
+          datasource={props.datasource}
+          errorMessage={props.errorMessage}
+          formData={props.form_data}
+          onQuery={props.onQuery}
+          owners={props?.slice?.owners}
+          queriesResponse={chart.queriesResponse}
+          refreshOverlayVisible={props.refreshOverlayVisible}
+          setControlValue={props.actions.setControlValue}
+          timeout={props.timeout}
+          triggerQuery={chart.triggerQuery}
+          vizType={props.vizType}
+        />
+      )
     );
-  };
+  }, [calcSectionHeight, chartWidth, props, splitSizes]);
+
+  const panelBody = useMemo(
+    () => (
+      <div className="panel-body" ref={chartRef}>
+        {renderChart()}
+      </div>
+    ),
+    [chartRef, renderChart],
+  );
 
   if (props.standalone) {
     // dom manipulation hack to get rid of the boostrap theme's body background
@@ -222,14 +234,12 @@ const ExploreChartPanel = props => {
     [dimension]: `calc(${elementSize}% - ${gutterSize + gutterMargin}px)`,
   });
 
-  const panelBody = <div className="panel-body">{renderChart()}</div>;
-
   return (
     <Styles
       className="panel panel-default chart-container"
       style={{ height: props.height }}
     >
-      <div className="panel-heading" ref={panelHeadingRef}>
+      <div className="panel-heading" ref={headerRef}>
         {header}
       </div>
       {props.vizType === 'filter_box' ? (

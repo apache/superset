@@ -301,7 +301,7 @@ export function runAnnotationQuery(
             dispatch(
               annotationQueryFailed(
                 annotation,
-                { error: 'Query Timeout' },
+                { error: 'Query timeout' },
                 sliceKey,
               ),
             );
