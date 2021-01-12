@@ -141,6 +141,24 @@ const DatasourceContainer = styled.div`
   }
 `;
 
+const LabelContainer = styled.div`
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  & > span {
+    white-space: nowrap;
+  }
+
+  .option-label {
+    display: inline;
+  }
+
+  .metric-option > .option-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+`;
+
 const DataSourcePanel = ({
   datasource,
   controls: { datasource: datasourceControl },
@@ -200,9 +218,9 @@ const DataSourcePanel = ({
               {t(`Showing %s of %s`, metricSlice.length, metrics.length)}
             </div>
             {metricSlice.map(m => (
-              <div key={m.metric_name} className="column">
+              <LabelContainer key={m.metric_name} className="column">
                 <MetricOption metric={m} showType />
-              </div>
+              </LabelContainer>
             ))}
           </Collapse.Panel>
           <Collapse.Panel
@@ -213,9 +231,9 @@ const DataSourcePanel = ({
               {t(`Showing %s of %s`, columnSlice.length, columns.length)}
             </div>
             {columnSlice.map(col => (
-              <div key={col.column_name} className="column">
+              <LabelContainer key={col.column_name} className="column">
                 <ColumnOption column={col} showType />
-              </div>
+              </LabelContainer>
             ))}
           </Collapse.Panel>
         </Collapse>
