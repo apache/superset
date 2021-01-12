@@ -35,10 +35,10 @@ describe('Visualization > Line', () => {
 
   it('should preload mathjs', () => {
     cy.get('script[src*="mathjs"]').should('have.length', 1);
-    cy.contains('Add Annotation Layer').scrollIntoView().click();
+    cy.contains('Add annotation layer').scrollIntoView().click();
     // should not load additional mathjs
     cy.get('script[src*="mathjs"]').should('have.length', 1);
-    cy.contains('Layer Configuration');
+    cy.contains('Layer configuration');
   });
 
   it('should not show validator error when metric added', () => {

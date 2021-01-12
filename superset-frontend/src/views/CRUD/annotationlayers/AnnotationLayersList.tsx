@@ -64,7 +64,7 @@ function AnnotationLayersList({
     toggleBulkSelect,
   } = useListViewResource<AnnotationLayerObject>(
     'annotation_layer',
-    t('annotation layers'),
+    t('Annotation layers'),
     addDangerToast,
   );
 
@@ -178,7 +178,7 @@ function AnnotationLayersList({
 
           return moment(utc).format(MOMENT_FORMAT);
         },
-        Header: t('Last Modified'),
+        Header: t('Last modified'),
         accessor: 'changed_on',
         size: 'xl',
       },
@@ -203,14 +203,14 @@ function AnnotationLayersList({
 
           return moment(utc).format(MOMENT_FORMAT);
         },
-        Header: t('Created On'),
+        Header: t('Created on'),
         accessor: 'created_on',
         size: 'xl',
       },
       {
         accessor: 'created_by',
         disableSortBy: true,
-        Header: t('Created By'),
+        Header: t('Created by'),
         Cell: ({
           row: {
             original: { created_by: createdBy },
@@ -263,7 +263,7 @@ function AnnotationLayersList({
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t('Annotation Layer')}
+          <i className="fa fa-plus" /> {t('Annotation layer')}
         </>
       ),
       buttonStyle: 'primary',
@@ -275,7 +275,7 @@ function AnnotationLayersList({
 
   if (canDelete) {
     subMenuButtons.push({
-      name: t('Bulk Select'),
+      name: t('Bulk select'),
       onClick: toggleBulkSelect,
       buttonStyle: 'secondary',
     });
@@ -284,7 +284,7 @@ function AnnotationLayersList({
   const filters: Filters = useMemo(
     () => [
       {
-        Header: t('Created By'),
+        Header: t('Created by'),
         id: 'created_by',
         input: 'select',
         operator: 'rel_o_m',
@@ -320,7 +320,7 @@ function AnnotationLayersList({
       }}
     >
       <>
-        <i className="fa fa-plus" /> {t('Annotation Layer')}
+        <i className="fa fa-plus" /> {t('Annotation layer')}
       </>
     </Button>
   );
@@ -336,7 +336,7 @@ function AnnotationLayersList({
 
   return (
     <>
-      <SubMenu name={t('Annotation Layers')} buttons={subMenuButtons} />
+      <SubMenu name={t('Annotation layers')} buttons={subMenuButtons} />
       <AnnotationLayerModal
         addDangerToast={addDangerToast}
         layer={currentAnnotationLayer}
