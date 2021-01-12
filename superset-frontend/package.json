@@ -149,6 +149,7 @@
     "react-loadable": "^5.5.0",
     "react-markdown": "^4.3.1",
     "react-redux": "^7.2.0",
+    "react-resize-detector": "^6.0.1-rc.1",
     "react-router-dom": "^5.1.2",
     "react-search-input": "^0.11.3",
     "react-select": "^3.1.0",
