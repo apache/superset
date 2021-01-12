@@ -203,13 +203,6 @@ export default class SelectControl extends React.PureComponent {
     return remainingOptions;
   }
 
-  createPlaceholder() {
-    const optionsRemaining = this.optionsRemaining();
-    const placeholder =
-      this.props.placeholder || t('%s option(s)', optionsRemaining);
-    return optionsRemaining ? placeholder : '';
-  }
-
   createMetaSelectAllOption() {
     const option = { label: 'Select All', meta: true };
     option[this.props.valueKey] = 'Select All';
@@ -235,8 +228,18 @@ export default class SelectControl extends React.PureComponent {
       valueKey,
       valueRenderer,
     } = this.props;
-    const placeholder = this.createPlaceholder();
+
+    const optionsRemaining = this.optionsRemaining();
+    const optionRemaingText = optionsRemaining
+      ? t('%s option(s)', optionsRemaining)
+      : '';
+    const placeholder = this.props.placeholder || optionRemaingText;
     const isMulti = this.props.isMulti || this.props.multi;
+
+    let assistiveText;
+    if (isMulti && optionsRemaining && Array.isArray(value) && !!value.length) {
+      assistiveText = optionRemaingText;
+    }
 
     const selectProps = {
       autoFocus,
@@ -257,6 +260,7 @@ export default class SelectControl extends React.PureComponent {
       optionRenderer,
       options: this.state.options,
       placeholder,
+      assistiveText,
       promptTextCreator,
       selectRef: this.getSelectRef,
       value,

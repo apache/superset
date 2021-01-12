@@ -98,7 +98,7 @@ export const defaultTheme: (
   spacing: {
     baseUnit: 3,
     menuGutter: 0,
-    controlHeight: 28,
+    controlHeight: 34,
     lineHeight: 19,
     fontSize: 14,
     minWidth: '7.5em', // just enough to display 'No options'
@@ -160,9 +160,9 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
     { isFocused, menuIsOpen, theme: { borderRadius, colors } },
   ) => {
     const isPseudoFocused = isFocused && !menuIsOpen;
-    let borderColor = '#ccc';
+    let borderColor = colors.grayBorder;
     if (isPseudoFocused) {
-      borderColor = '#000';
+      borderColor = colors.grayBorderDark;
     } else if (menuIsOpen) {
       borderColor = `${colors.grayBorderDark} ${colors.grayBorder} ${colors.grayBorderLight}`;
     }
@@ -181,6 +181,7 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
           box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
         }
         flex-wrap: nowrap;
+        padding-left: 1px;
       `,
     ];
   },
@@ -312,9 +313,31 @@ const {
   DropdownIndicator,
   Option,
   Input,
+  SelectContainer,
 } = defaultComponents as Required<DeepNonNullable<SelectComponentsType>>;
 
 export const DEFAULT_COMPONENTS: SelectComponentsType = {
+  SelectContainer: ({ children, ...props }) => {
+    const {
+      selectProps: { assistiveText },
+    } = props;
+    return (
+      <div>
+        <SelectContainer {...props}>{children}</SelectContainer>
+        {assistiveText && (
+          <span
+            css={(theme: SupersetTheme) => ({
+              marginLeft: 3,
+              fontSize: theme.typography.sizes.s,
+              color: theme.colors.grayscale.light1,
+            })}
+          >
+            {assistiveText}
+          </span>
+        )}
+      </div>
+    );
+  },
   Option: ({ children, innerProps, data, ...props }) => (
     <ClassNames>
       {({ css }) => (
@@ -344,22 +367,13 @@ export const DEFAULT_COMPONENTS: SelectComponentsType = {
     </DropdownIndicator>
   ),
   Input: (props: InputProps) => {
-    const {
-      selectProps: { isMulti, value, placeholder },
-      getStyles,
-    } = props;
-    const isMultiWithValue = isMulti && Array.isArray(value) && !!value.length;
+    const { getStyles } = props;
     return (
       <Input
         {...props}
-        placeholder={isMultiWithValue ? placeholder : undefined}
         css={getStyles('input', props)}
         autoComplete="chrome-off"
-        inputStyle={
-          isMultiWithValue
-            ? { ...INPUT_TAG_BASE_STYLES, width: '100%' }
-            : INPUT_TAG_BASE_STYLES
-        }
+        inputStyle={INPUT_TAG_BASE_STYLES}
       />
     );
   },
