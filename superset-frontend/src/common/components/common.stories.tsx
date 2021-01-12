@@ -38,14 +38,14 @@ import Collapse from './Collapse';
 import { CronPicker, CronError } from './CronPicker';
 
 export default {
-  title: 'Common Components',
+  title: 'Common components',
   decorators: [withKnobs],
 };
 
 export const StyledModal = () => (
   <Modal
     disablePrimaryButton={false}
-    onHandledPrimaryAction={action('Primary Action')}
+    onHandledPrimaryAction={action('Primary action')}
     primaryButtonName="Danger"
     primaryButtonType="danger"
     show
@@ -65,14 +65,14 @@ export const StyledTabs = () => (
     <Tabs.TabPane
       tab="Tab 1"
       key="1"
-      disabled={boolean('Tab 1 Disabled', false)}
+      disabled={boolean('Tab 1 disabled', false)}
     >
       Tab 1 Content!
     </Tabs.TabPane>
     <Tabs.TabPane
       tab="Tab 2"
       key="2"
-      disabled={boolean('Tab 2 Disabled', false)}
+      disabled={boolean('Tab 2 disabled', false)}
     >
       Tab 2 Content!
     </Tabs.TabPane>
@@ -88,14 +88,14 @@ export const StyledEditableTabs = () => (
     <Tabs.TabPane
       tab="Tab 1"
       key="1"
-      disabled={boolean('Tab 1 Disabled', false)}
+      disabled={boolean('Tab 1 disabled', false)}
     >
       Tab 1 Content!
     </Tabs.TabPane>
     <Tabs.TabPane
       tab="Tab 2"
       key="2"
-      disabled={boolean('Tab 2 Disabled', false)}
+      disabled={boolean('Tab 2 disabled', false)}
     >
       Tab 2 Content!
     </Tabs.TabPane>
@@ -123,7 +123,7 @@ export const TabsWithDropdownMenu = () => (
         </>
       }
       key="1"
-      disabled={boolean('Tab 1 Disabled', false)}
+      disabled={boolean('Tab 1 disabled', false)}
     >
       Tab 1 Content!
     </Tabs.TabPane>
