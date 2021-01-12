@@ -73,3 +73,17 @@ def load_metadata(contents: Dict[str, str]) -> Dict[str, str]:
         raise exc
 
     return metadata
+
+
+def is_valid_config(file_name: str) -> bool:
+    path = Path(file_name)
+
+    # ignore system files that might've been added to the bundle
+    if path.name.startswith(".") or path.name.startswith("_"):
+        return False
+
+    # ensure extension is YAML
+    if path.suffix.lower() not in {".yaml", ".yml"}:
+        return False
+
+    return True
