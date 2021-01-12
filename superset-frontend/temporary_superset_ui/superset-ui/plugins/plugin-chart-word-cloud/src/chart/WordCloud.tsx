@@ -1,6 +1,6 @@
 import React from 'react';
 import cloudLayout, { Word } from 'd3-cloud';
-import { PlainObject, createEncoderFactory, DeriveEncoding } from 'encodable';
+import { PlainObject, createEncoderFactory, DeriveEncoding, Encoder } from 'encodable';
 import { SupersetThemeProps, withTheme, seedRandom } from '@superset-ui/core';
 
 export const ROTATION = {
@@ -38,6 +38,7 @@ export interface WordCloudProps extends WordCloudVisualProps {
 
 export interface WordCloudState {
   words: Word[];
+  scaleFactor: number;
 }
 
 const defaultProps: Required<WordCloudVisualProps> = {
@@ -46,6 +47,12 @@ const defaultProps: Required<WordCloudVisualProps> = {
 };
 
 type FullWordCloudProps = WordCloudProps & typeof defaultProps & SupersetThemeProps;
+
+const SCALE_FACTOR_STEP = 0.5;
+const MAX_SCALE_FACTOR = 3;
+// Percentage of top results that will always be displayed.
+// Needed to avoid clutter when shrinking a chart with many records.
+const TOP_RESULTS_PERCENTAGE = 0.1;
 
 class WordCloud extends React.PureComponent<FullWordCloudProps, WordCloudState> {
   static defaultProps = defaultProps;
@@ -77,6 +84,7 @@ class WordCloud extends React.PureComponent<FullWordCloudProps, WordCloudState> 
     super(props);
     this.state = {
       words: [],
+      scaleFactor: 1,
     };
     this.setWords = this.setWords.bind(this);
   }
@@ -111,13 +119,35 @@ class WordCloud extends React.PureComponent<FullWordCloudProps, WordCloudState> 
   }
 
   update() {
-    const { data, width, height, rotation, encoding } = this.props;
+    const { data, encoding } = this.props;
 
     const encoder = this.createEncoder(encoding);
     encoder.setDomainFromDataset(data);
 
+    const sortedData = [...data].sort(
+      (a, b) =>
+        encoder.channels.fontSize.encodeDatum(b, 0) - encoder.channels.fontSize.encodeDatum(a, 0),
+    );
+    const topResultsCount = Math.max(sortedData.length * TOP_RESULTS_PERCENTAGE, 10);
+    const topResults = sortedData.slice(0, topResultsCount);
+
+    // Ensure top results are always included in the final word cloud by scaling chart down if needed
+    this.generateCloud(encoder, 1, (words: Word[]) =>
+      topResults.every((d: PlainObject) =>
+        words.find(({ text }) => encoder.channels.text.getValueFromDatum(d) === text),
+      ),
+    );
+  }
+
+  generateCloud(
+    encoder: Encoder<WordCloudEncodingConfig>,
+    scaleFactor: number,
+    isValid: (word: Word[]) => boolean,
+  ) {
+    const { data, width, height, rotation } = this.props;
+
     cloudLayout()
-      .size([width, height])
+      .size([width * scaleFactor, height * scaleFactor])
       // clone the data because cloudLayout mutates input
       .words(data.map(d => ({ ...d })))
       .padding(5)
@@ -128,20 +158,36 @@ class WordCloud extends React.PureComponent<FullWordCloudProps, WordCloudState> 
       )
       .fontWeight(d => encoder.channels.fontWeight.encodeDatum(d, 'normal'))
       .fontSize(d => encoder.channels.fontSize.encodeDatum(d, 0))
-      .on('end', this.setWords)
+      .on('end', (words: Word[]) => {
+        if (isValid(words) || scaleFactor > MAX_SCALE_FACTOR) {
+          if (this.isComponentMounted) {
+            this.setState({ words, scaleFactor });
+          }
+        } else {
+          this.generateCloud(encoder, scaleFactor + SCALE_FACTOR_STEP, isValid);
+        }
+      })
       .start();
   }
 
   render() {
+    const { scaleFactor } = this.state;
     const { width, height, encoding } = this.props;
     const { words } = this.state;
 
     const encoder = this.createEncoder(encoding);
     encoder.channels.color.setDomainFromDataset(words);
 
+    const viewBoxWidth = width * scaleFactor;
+    const viewBoxHeight = height * scaleFactor;
+
     return (
-      <svg width={width} height={height}>
-        <g transform={`translate(${width / 2},${height / 2})`}>
+      <svg
+        width={width}
+        height={height}
+        viewBox={`-${viewBoxWidth / 2} -${viewBoxHeight / 2} ${viewBoxWidth} ${viewBoxHeight}`}
+      >
+        <g>
           {words.map(w => (
             <text
               key={w.text}
