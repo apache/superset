@@ -40,6 +40,7 @@ from superset.utils.core import backend, get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
 from tests.base_tests import SupersetTestCase
 from tests.conftest import CTAS_SCHEMA_NAME
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.importexport import (
     database_config,
@@ -272,13 +273,12 @@ class TestDatasetApi(SupersetTestCase):
                 )
             )
             schema_values = [
-                "",
                 "admin_database",
                 "information_schema",
                 "public",
             ]
             expected_response = {
-                "count": 4,
+                "count": 3,
                 "result": [{"text": val, "value": val} for val in schema_values],
             }
             self.login(username="admin")
@@ -302,14 +302,9 @@ class TestDatasetApi(SupersetTestCase):
 
             query_parameter = {"page": 0, "page_size": 1}
             pg_test_query_parameter(
-                query_parameter, {"count": 4, "result": [{"text": "", "value": ""}]},
-            )
-
-            query_parameter = {"page": 1, "page_size": 1}
-            pg_test_query_parameter(
                 query_parameter,
                 {
-                    "count": 4,
+                    "count": 3,
                     "result": [{"text": "admin_database", "value": "admin_database"}],
                 },
             )
@@ -1182,6 +1177,7 @@ class TestDatasetApi(SupersetTestCase):
         # gamma users by default do not have access to this dataset
         assert rv.status_code == 404
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_dataset_related_objects(self):
         """
         Dataset API: Test get chart and dashboard count related to a dataset
