@@ -90,20 +90,11 @@ export class SouthPane extends React.PureComponent {
       height: props.height,
     };
     this.southPaneRef = React.createRef();
-    this.getSouthPaneHeight = this.getSouthPaneHeight.bind(this);
     this.switchTab = this.switchTab.bind(this);
   }
 
-  UNSAFE_componentWillReceiveProps() {
-    // south pane expands the entire height of the tab content on mount
-    this.setState({ height: this.getSouthPaneHeight() });
-  }
-
-  // One layer of abstraction for easy spying in unit tests
-  getSouthPaneHeight() {
-    return this.southPaneRef.current
-      ? this.southPaneRef.current.clientHeight
-      : 0;
+  UNSAFE_componentWillReceiveProps(props) {
+    this.setState({ height: props.height });
   }
 
   switchTab(id) {
