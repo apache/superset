@@ -254,6 +254,9 @@ export default class SelectControl extends React.PureComponent {
       isMulti,
       labelKey: 'label',
       menuPlacement,
+      forceOverflow,
+      menuPortalTarget,
+      menuPosition,
       name: `select-${name}`,
       noResultsText,
       onChange: this.onChange,
@@ -267,9 +270,6 @@ export default class SelectControl extends React.PureComponent {
       value,
       valueKey,
       valueRenderer,
-      forceOverflow,
-      menuPortalTarget,
-      menuPosition,
     };
 
     let SelectComponent;

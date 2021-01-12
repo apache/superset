@@ -179,6 +179,7 @@ function styled<
         }
         return optionRenderer ? optionRenderer(option) : getOptionLabel(option);
       },
+
       ...restProps
     } = selectProps;
 
@@ -243,6 +244,18 @@ function styled<
       });
     }
 
+    // handle forcing dropdown overflow
+    // use only when setting overflow:visible isn't possible on the container element
+    if (forceOverflow) {
+      Object.assign(restProps, {
+        closeMenuOnScroll: (e: Event) => {
+          const target = e.target as HTMLElement;
+          return target && !target.classList?.contains('Select__menu-list');
+        },
+        menuPosition: 'fixed',
+      });
+    }
+
     // Make sure always return StateManager for the refs.
     // To get the real `Select` component, keep tap into `obj.select`:
     //   - for normal <Select /> component: StateManager -> Select,
@@ -261,11 +274,7 @@ function styled<
 
     const theme = useTheme();
 
-    const MaybeSortableComponent = (menuPortalProps: {
-      closeMenuOnScroll?: EventListener;
-      menuPortalTarget?: HTMLElement;
-      menuPosition?: 'absolute' | 'fixed';
-    }) => (
+    return (
       <MaybeSortableSelect
         ref={setRef}
         className={className}
@@ -293,28 +302,8 @@ function styled<
         getOptionValue={getOptionValue}
         components={components}
         {...restProps}
-        {...menuPortalProps}
       />
     );
-    const menuPortalTargetRef = React.useRef() as React.MutableRefObject<HTMLDivElement>;
-
-    if (forceOverflow) {
-      // use only when setting overflow:visible isn't possible on the containing element
-      return (
-        <div className="menu-portal-target" ref={menuPortalTargetRef}>
-          <MaybeSortableComponent
-            closeMenuOnScroll={e => {
-              const target = e.target as HTMLElement;
-              return target && !target.classList?.contains('Select__menu-list');
-            }}
-            menuPortalTarget={menuPortalTargetRef.current}
-            menuPosition="fixed"
-          />
-        </div>
-      );
-    }
-
-    return <MaybeSortableComponent />;
   }
 
   // React.memo makes sure the component does no rerender given the same props
