@@ -27,8 +27,8 @@ import AdhocFilter, {
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocMetric from 'src/explore/AdhocMetric';
-import AdhocFilterEditPopoverSimpleTabContent from '../../../../src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';
 import { AGGREGATES } from 'src/explore/constants';
+import AdhocFilterEditPopoverSimpleTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,

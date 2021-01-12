@@ -29,10 +29,10 @@ import AdhocFilter, {
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocMetric from 'src/explore/AdhocMetric';
-import AdhocFilterEditPopover from '../../../../src/explore/components/controls/FilterControl/AdhocFilterEditPopover';
-import AdhocFilterEditPopoverSimpleTabContent from '../../../../src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';
-import AdhocFilterEditPopoverSqlTabContent from '../../../../src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent';
 import { AGGREGATES } from 'src/explore/constants';
+import AdhocFilterEditPopover from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopover';
+import AdhocFilterEditPopoverSimpleTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';
+import AdhocFilterEditPopoverSqlTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
