@@ -60,7 +60,7 @@ const guessFrame = (timeRange: string): FrameType => {
     return 'Calendar';
   }
   if (timeRange === 'No filter') {
-    return 'No Filter';
+    return 'No filter';
   }
   if (customTimeRangeDecode(timeRange).matchedFlag) {
     return 'Custom';
@@ -251,7 +251,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   };
 
   function onFrame(option: SelectOptionType) {
-    if (option.value === 'No Filter') {
+    if (option.value === 'No filter') {
       setTimeRangeValue('No filter');
     }
     setFrame(option.value as FrameType);
@@ -266,7 +266,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
         onChange={onFrame}
         className="frame-dropdown"
       />
-      {frame !== 'No Filter' && <Divider />}
+      {frame !== 'No filter' && <Divider />}
       {frame === 'Common' && (
         <CommonFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
@@ -279,10 +279,10 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
       {frame === 'Custom' && (
         <CustomFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
-      {frame === 'No Filter' && <div data-test="no-filter" />}
+      {frame === 'No filter' && <div data-test="no-filter" />}
       <Divider />
       <div>
-        <div className="section-title">{t('Actual Time Range')}</div>
+        <div className="section-title">{t('Actual time range')}</div>
         {validTimeRange && <div>{evalResponse}</div>}
         {!validTimeRange && (
           <IconWrapper className="warning">
@@ -321,7 +321,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   const title = (
     <IconWrapper>
       <Icon name="edit-alt" />
-      <span className="text">{t('Edit Time Range')}</span>
+      <span className="text">{t('Edit time range')}</span>
     </IconWrapper>
   );
 
