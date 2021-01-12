@@ -702,7 +702,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             datasource_id, datasource_type = get_datasource_info(
                 datasource_id, datasource_type, form_data
             )
-        except SupersetException:
+        except SupersetException as e:
+            flash(e.message, "danger")
             return redirect(error_redirect)
 
         datasource = ConnectorRegistry.get_datasource(
