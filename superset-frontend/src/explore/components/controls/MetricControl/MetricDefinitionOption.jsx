@@ -20,11 +20,11 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
 
-import AggregateOption from './AggregateOption';
-import columnType from '../propTypes/columnType';
-import savedMetricType from './controls/MetricControl/savedMetricType';
-import aggregateOptionType from '../propTypes/aggregateOptionType';
-import withToasts from '../../messageToasts/enhancers/withToasts';
+import AggregateOption from '../../AggregateOption';
+import columnType from '../../../propTypes/columnType';
+import savedMetricType from './savedMetricType';
+import aggregateOptionType from '../../../propTypes/aggregateOptionType';
+import withToasts from '../../../../messageToasts/enhancers/withToasts';
 
 const propTypes = {
   option: PropTypes.oneOfType([
