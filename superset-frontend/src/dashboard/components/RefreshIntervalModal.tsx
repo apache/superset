@@ -120,6 +120,7 @@ class RefreshIntervalModal extends React.PureComponent<
               options={options}
               value={{ value: refreshFrequency }}
               onChange={this.handleFrequencyChange}
+              forceOverflow
             />
             {showRefreshWarning && (
               <RefreshWarningContainer>
