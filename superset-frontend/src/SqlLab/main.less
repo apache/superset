@@ -208,10 +208,6 @@ div.Workspace {
   .ace_content {
     height: 100%;
   }
-
-  .ace_editor * {
-    font: inherit!important;
-  }
 }
 
 .SqlEditorTabs li {
@@ -382,7 +378,8 @@ div.tablePopover {
   //double class is better than !important
   border: 1px solid @gray-light;
   font-feature-settings: @font-feature-settings;
-  font-family: @font-family-monospace;
+  // Fire Code causes problem with Ace under Firefox
+  font-family: 'Menlo', 'Courier New', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
 
   &.ace_autocomplete {
     // Use !important because Ace Editor applies extra CSS at the last second
