@@ -87,7 +87,7 @@ export const HeaderContainer = styled.div`
 export const LabelsContainer = styled.div`
   padding: ${({ theme }) => theme.gridUnit}px;
   border: solid 1px ${({ theme }) => theme.colors.grayscale.light2};
-  border-radius: 3px;
+  border-radius: ${({ theme }) => theme.gridUnit}px;
 `;
 
 export const AddControlLabel = styled.div`
@@ -99,7 +99,7 @@ export const AddControlLabel = styled.div`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.light1};
   border: dashed 1px ${({ theme }) => theme.colors.grayscale.light2};
-  border-radius: 3px;
+  border-radius: ${({ theme }) => theme.gridUnit}px;
   cursor: pointer;
 
   :hover {
