@@ -19,6 +19,7 @@
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
 import transformProps from '../transformProps';
+import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
   credits: ['https://uber.github.io/deck.gl'],
@@ -32,6 +33,7 @@ export default class MultiChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./Multi'),
+      controlPanel,
       metadata,
       transformProps,
     });

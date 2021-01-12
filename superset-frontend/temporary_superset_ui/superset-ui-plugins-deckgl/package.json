@@ -135,7 +135,9 @@
       "compilerOptions": {
         "emitDeclarationOnly": true,
         "skipLibCheck": true,
-        "typeRoots": ["./node_modules/@types"]
+        "typeRoots": [
+          "./node_modules/@types"
+        ]
       }
     }
   },
