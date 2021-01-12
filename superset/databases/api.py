@@ -600,9 +600,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             item = DatabaseTestConnectionSchema().load(request.json)
         # This validates custom Schema with custom validations
         except ValidationError as error:
-            return self.response_400(
-                message=f"incorrect request parameters: {', '.join(error.messages.keys())}"
-            )
+            return self.response_400(message=error.messages)
         try:
             TestConnectionDatabaseCommand(g.user, item).run()
             return self.response(200, message="OK")

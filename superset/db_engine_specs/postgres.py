@@ -128,11 +128,11 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
 
         :param database: database instance from which to extract extras
         :raises CertificateException: If certificate is not valid/unparseable
-        :raises JSONDecodeError: If database extra json payload is unparseable
+        :raises SupersetException: If database extra json payload is unparseable
         """
         try:
             extra = json.loads(database.extra or "{}")
-        except json.JSONDecodeError as ex:
+        except json.JSONDecodeError:
             raise SupersetException("Unable to parse database extras")
 
         if database.server_cert:
