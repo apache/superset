@@ -702,8 +702,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             datasource_id, datasource_type = get_datasource_info(
                 datasource_id, datasource_type, form_data
             )
-        except SupersetException as e:
-            flash(e.message, "danger")
+        except SupersetException:
+            flash("The dataset associated with this chart no longer exists", "danger")
             return redirect(error_redirect)
 
         datasource = ConnectorRegistry.get_datasource(
