@@ -62,6 +62,12 @@ export function useFilterConfigMap() {
   );
 }
 
+export function useFiltersState() {
+  return useSelector<any, { [id: string]: FilterState }>(
+    state => state.nativeFilters.filtersState,
+  );
+}
+
 export function useFilterState(id: string) {
   return useSelector<any, FilterState>(
     state => state.nativeFilters.filtersState[id] || getInitialFilterState(id),

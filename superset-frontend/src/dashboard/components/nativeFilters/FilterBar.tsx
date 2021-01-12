@@ -24,6 +24,7 @@ import {
   ExtraFormData,
 } from '@superset-ui/core';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { mapValues } from 'lodash';
 import { useSelector } from 'react-redux';
 import cx from 'classnames';
 import { Form } from 'src/common/components';
@@ -39,6 +40,7 @@ import FilterConfigurationLink from './FilterConfigurationLink';
 import {
   useCascadingFilters,
   useFilterConfiguration,
+  useFiltersState,
   useSetExtraFormData,
 } from './state';
 import { Filter, CascadeFilter } from './types';
@@ -68,14 +70,18 @@ const Bar = styled.div`
   /* &.animated {
     display: flex;
     transform: translateX(-100%);
-    transition: transform ${({ theme }) => theme.transitionTiming}s;
+    transition: transform ${({
+    theme,
+  }) => theme.transitionTiming}s;
     transition-delay: 0s;
   }  */
   &.open {
     display: flex;
     /* &.animated {
       transform: translateX(0);
-      transition-delay: ${({ theme }) => theme.transitionTiming * 2}s;
+      transition-delay: ${({
+      theme,
+    }) => theme.transitionTiming * 2}s;
     } */
   }
 `;
@@ -92,7 +98,9 @@ const CollapsedBar = styled.div`
   /* &.animated {
     display: block;
     transform: translateX(-100%);
-    transition: transform ${({ theme }) => theme.transitionTiming}s;
+    transition: transform ${({
+    theme,
+  }) => theme.transitionTiming}s;
     transition-delay: 0s;
   } */
   &.open {
@@ -102,7 +110,9 @@ const CollapsedBar = styled.div`
     padding: ${({ theme }) => theme.gridUnit * 2}px;
     /* &.animated {
       transform: translateX(0);
-      transition-delay: ${({ theme }) => theme.transitionTiming * 3}s;
+      transition-delay: ${({
+      theme,
+    }) => theme.transitionTiming * 3}s;
     } */
   }
   svg {
@@ -212,7 +222,6 @@ const FilterValue: React.FC<FilterProps> = ({
     inverseSelection,
     targets,
     currentValue,
-    defaultValue,
   } = filter;
   const cascadingFilters = useCascadingFilters(id);
   const [loading, setLoading] = useState<boolean>(true);
@@ -239,7 +248,7 @@ const FilterValue: React.FC<FilterProps> = ({
     time_range_endpoints: ['inclusive', 'exclusive'],
     url_params: {},
     viz_type: 'filter_select',
-    defaultValues: currentValue || defaultValue || [],
+    defaultValues: currentValue || [],
   });
 
   useEffect(() => {
@@ -364,6 +373,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   );
   const setExtraFormData = useSetExtraFormData();
   const filterConfigs = useFilterConfiguration();
+  const filtersState = useFiltersState();
   const canEdit = useSelector<any, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -373,7 +383,16 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     if (filterConfigs.length === 0 && filtersOpen) {
       toggleFiltersBar(false);
     }
+    setFilterData({});
   }, [filterConfigs]);
+
+  useEffect(() => {
+    const extraFormData = mapValues(
+      filtersState,
+      filter => filter.extraFormData || {},
+    );
+    setFilterData(filterData => ({ ...extraFormData, ...filterData }));
+  }, [filtersState]);
 
   const getFilterValue = useCallback(
     (filter: Filter): (string | number | boolean)[] | null => {
