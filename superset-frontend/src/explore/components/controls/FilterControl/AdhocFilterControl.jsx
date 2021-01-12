@@ -20,25 +20,25 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { t, logging, SupersetClient, withTheme } from '@superset-ui/core';
 
-import ControlHeader from '../ControlHeader';
-import adhocFilterType from '../../propTypes/adhocFilterType';
-import adhocMetricType from '../../propTypes/adhocMetricType';
-import savedMetricType from '../../propTypes/savedMetricType';
-import columnType from '../../propTypes/columnType';
-import AdhocFilter, { CLAUSES, EXPRESSION_TYPES } from '../../AdhocFilter';
-import AdhocMetric from '../../AdhocMetric';
-import { OPERATORS } from '../../constants';
-import AdhocFilterOption from '../AdhocFilterOption';
-import FilterDefinitionOption from '../FilterDefinitionOption';
+import ControlHeader from '../../ControlHeader';
+import adhocFilterType from '../../../propTypes/adhocFilterType';
+import adhocMetricType from '../../../propTypes/adhocMetricType';
+import savedMetricType from '../../../propTypes/savedMetricType';
+import columnType from '../../../propTypes/columnType';
+import AdhocFilter, { CLAUSES, EXPRESSION_TYPES } from '../../../AdhocFilter';
+import AdhocMetric from '../../../AdhocMetric';
+import { OPERATORS } from '../../../constants';
+import AdhocFilterOption from './AdhocFilterOption';
+import FilterDefinitionOption from '../../FilterDefinitionOption';
 import {
   AddControlLabel,
   AddIconButton,
   HeaderContainer,
   LabelsContainer,
-} from '../OptionControls';
-import Icon from '../../../components/Icon';
-import AdhocFilterPopoverTrigger from '../AdhocFilterPopoverTrigger';
-import DndWithHTML5Backend from '../../DndContextProvider';
+} from '../../OptionControls';
+import Icon from '../../../../components/Icon';
+import AdhocFilterPopoverTrigger from './AdhocFilterPopoverTrigger';
+import DndWithHTML5Backend from '../../../DndContextProvider';
 
 const propTypes = {
   name: PropTypes.string,

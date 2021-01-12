@@ -22,9 +22,9 @@ import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
 import Popover from 'src/common/components/Popover';
 import AdhocFilterEditPopover from './AdhocFilterEditPopover';
-import AdhocFilter from '../AdhocFilter';
-import columnType from '../propTypes/columnType';
-import adhocMetricType from '../propTypes/adhocMetricType';
+import AdhocFilter from '../../../AdhocFilter';
+import columnType from '../../../propTypes/columnType';
+import adhocMetricType from '../../../propTypes/adhocMetricType';
 
 interface AdhocFilterPopoverTriggerProps {
   adhocFilter: AdhocFilter;

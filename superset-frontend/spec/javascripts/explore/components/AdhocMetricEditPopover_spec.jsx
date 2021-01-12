@@ -24,7 +24,7 @@ import { FormGroup } from 'react-bootstrap';
 import Button from 'src/components/Button';
 
 import AdhocMetric, { EXPRESSION_TYPES } from 'src/explore/AdhocMetric';
-import AdhocMetricEditPopover from 'src/explore/components/AdhocMetricEditPopover';
+import AdhocMetricEditPopover from '../../../../src/explore/components/controls/MetricControl/AdhocMetricEditPopover';
 import { AGGREGATES } from 'src/explore/constants';
 
 const columns = [

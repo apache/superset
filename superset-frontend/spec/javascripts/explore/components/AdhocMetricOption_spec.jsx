@@ -23,7 +23,7 @@ import { shallow } from 'enzyme';
 
 import Popover from 'src/common/components/Popover';
 import AdhocMetric from 'src/explore/AdhocMetric';
-import AdhocMetricOption from 'src/explore/components/AdhocMetricOption';
+import AdhocMetricOption from '../../../../src/explore/components/controls/MetricControl/AdhocMetricOption';
 import { AGGREGATES } from 'src/explore/constants';
 
 const columns = [

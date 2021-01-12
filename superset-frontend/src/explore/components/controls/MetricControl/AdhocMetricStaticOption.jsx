@@ -16,28 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-unused-expressions */
 import React from 'react';
-import { shallow } from 'enzyme';
+import PropTypes from 'prop-types';
+import { ColumnTypeLabel } from '@superset-ui/chart-controls';
 
-import FixedOrMetricControl from '../../../../src/explore/components/controls/FixedOrMetricControl';
-import TextControl from 'src/explore/components/controls/TextControl';
-import MetricsControl from '../../../../src/explore/components/controls/MetricControl/MetricsControl';
+import adhocMetricType from '../../../propTypes/adhocMetricType';
 
-const defaultProps = {
-  value: {},
-  datasource: {},
+const propTypes = {
+  adhocMetric: adhocMetricType,
+  showType: PropTypes.bool,
 };
 
-describe('FixedOrMetricControl', () => {
-  let wrapper;
-
-  beforeEach(() => {
-    wrapper = shallow(<FixedOrMetricControl {...defaultProps} />);
-  });
-
-  it('renders a TextControl and a SelectControl', () => {
-    expect(wrapper.find(TextControl)).toExist();
-    expect(wrapper.find(MetricsControl)).toExist();
-  });
-});
+export default function AdhocMetricStaticOption({
+  adhocMetric,
+  showType = false,
+}) {
+  return (
+    <div>
+      {showType && <ColumnTypeLabel type="expression" />}
+      <span className="option-label">{adhocMetric.label}</span>
+    </div>
+  );
+}
+AdhocMetricStaticOption.propTypes = propTypes;

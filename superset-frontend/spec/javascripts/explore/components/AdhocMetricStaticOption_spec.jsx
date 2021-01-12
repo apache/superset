@@ -20,7 +20,7 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import AdhocMetricStaticOption from 'src/explore/components/AdhocMetricStaticOption';
+import AdhocMetricStaticOption from '../../../../src/explore/components/controls/MetricControl/AdhocMetricStaticOption';
 import AdhocMetric, { EXPRESSION_TYPES } from 'src/explore/AdhocMetric';
 import { AGGREGATES } from 'src/explore/constants';
 
