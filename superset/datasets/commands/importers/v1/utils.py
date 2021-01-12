@@ -24,7 +24,7 @@ from typing import Any, Dict
 from urllib import request
 
 import pandas as pd
-from sqlalchemy import BigInteger, Date, DateTime, Float, String, Text
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.visitors import VisitableType
 
@@ -41,6 +41,7 @@ JSON_KEYS = {"params", "template_params", "extra"}
 
 
 type_map = {
+    "BOOLEAN": Boolean(),
     "VARCHAR": String(255),
     "STRING": String(255),
     "TEXT": Text(),
