@@ -70,18 +70,14 @@ const Bar = styled.div`
   /* &.animated {
     display: flex;
     transform: translateX(-100%);
-    transition: transform ${({
-    theme,
-  }) => theme.transitionTiming}s;
+    transition: transform ${({ theme }) => theme.transitionTiming}s;
     transition-delay: 0s;
   }  */
   &.open {
     display: flex;
     /* &.animated {
       transform: translateX(0);
-      transition-delay: ${({
-      theme,
-    }) => theme.transitionTiming * 2}s;
+      transition-delay: ${({ theme }) => theme.transitionTiming * 2}s;
     } */
   }
 `;
@@ -98,9 +94,7 @@ const CollapsedBar = styled.div`
   /* &.animated {
     display: block;
     transform: translateX(-100%);
-    transition: transform ${({
-    theme,
-  }) => theme.transitionTiming}s;
+    transition: transform ${({ theme }) => theme.transitionTiming}s;
     transition-delay: 0s;
   } */
   &.open {
@@ -110,9 +104,7 @@ const CollapsedBar = styled.div`
     padding: ${({ theme }) => theme.gridUnit * 2}px;
     /* &.animated {
       transform: translateX(0);
-      transition-delay: ${({
-      theme,
-    }) => theme.transitionTiming * 3}s;
+      transition-delay: ${({ theme }) => theme.transitionTiming * 3}s;
     } */
   }
   svg {
