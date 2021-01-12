@@ -436,7 +436,10 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(user_alpha2)
         db.session.commit()
 
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices", "load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices",
+        "load_birth_names_dashboard_with_slices",
+    )
     def test_create_chart(self):
         """
         Chart API: Test create chart
@@ -545,15 +548,18 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             response, {"message": {"datasource_id": ["Datasource does not exist"]}}
         )
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_update_chart(self):
         """
         Chart API: Test update
         """
         admin = self.get_user("admin")
         gamma = self.get_user("gamma")
-
-        chart_id = self.insert_chart("title", [admin.id], 1, admin).id
         birth_names_table_id = SupersetTestCase.get_table_by_name("birth_names").id
+        chart_id = self.insert_chart(
+            "title", [admin.id], birth_names_table_id, admin
+        ).id
+        dash_id = db.session.query(Dashboard.id).filter_by(slug="births").first()[0]
         chart_data = {
             "slice_name": "title1_changed",
             "description": "description1",
@@ -563,14 +569,14 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             "cache_timeout": 1000,
             "datasource_id": birth_names_table_id,
             "datasource_type": "table",
-            "dashboards": [1],
+            "dashboards": [dash_id],
         }
         self.login(username="admin")
         uri = f"api/v1/chart/{chart_id}"
         rv = self.put_assert_metric(uri, chart_data, "put")
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Slice).get(chart_id)
-        related_dashboard = db.session.query(Dashboard).get(1)
+        related_dashboard = db.session.query(Dashboard).filter_by(slug="births").first()
         self.assertEqual(model.created_by, admin)
         self.assertEqual(model.slice_name, "title1_changed")
         self.assertEqual(model.description, "description1")
@@ -582,7 +588,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(model.datasource_id, birth_names_table_id)
         self.assertEqual(model.datasource_type, "table")
         self.assertEqual(model.datasource_name, "birth_names")
-        self.assertIn(related_dashboard, model.dashboards)
+        self.assertIn(model.id, [slice.id for slice in related_dashboard.slices])
         db.session.delete(model)
         db.session.commit()
 
@@ -801,7 +807,10 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         db.session.delete(chart)
         db.session.commit()
 
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices", "load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices",
+        "load_birth_names_dashboard_with_slices",
+    )
     def test_get_charts_filter(self):
         """
         Chart API: Test get charts filter
@@ -1012,7 +1021,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         "load_unicode_dashboard_with_slice",
         "load_energy_table_with_slice",
         "load_world_bank_dashboard_with_slices",
-        "load_birth_names_dashboard_with_slices"
+        "load_birth_names_dashboard_with_slices",
     )
     def test_get_charts_page(self):
         """

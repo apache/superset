@@ -232,6 +232,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "version": "1.0.0",
         }
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.security.manager.g")
     @patch("superset.views.base.g")
     def test_export_dashboard_command_no_access(self, mock_g1, mock_g2):
@@ -239,7 +240,9 @@ class TestExportDashboardsCommand(SupersetTestCase):
         mock_g1.user = security_manager.find_user("gamma")
         mock_g2.user = security_manager.find_user("gamma")
 
-        example_dashboard = db.session.query(Dashboard).filter_by(id=1).one()
+        example_dashboard = (
+            db.session.query(Dashboard).filter_by(slug="world_health").one()
+        )
         command = ExportDashboardsCommand([example_dashboard.id])
         contents = command.run()
         with self.assertRaises(DashboardNotFoundError):
