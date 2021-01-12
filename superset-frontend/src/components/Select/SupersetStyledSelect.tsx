@@ -76,6 +76,7 @@ export type SupersetStyledSelectProps<
   // additional props for easier usage or backward compatibility
   labelKey?: string;
   valueKey?: string;
+  assistiveText?: string;
   multi?: boolean;
   clearable?: boolean;
   sortable?: boolean;
