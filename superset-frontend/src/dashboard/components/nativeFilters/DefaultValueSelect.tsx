@@ -99,6 +99,7 @@ export function DefaultValueSelect({
       loadOptions={loadOptions}
       defaultOptions // load options on render
       cacheOptions
+      isClearable
     />
   );
 }
