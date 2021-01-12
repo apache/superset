@@ -404,8 +404,8 @@ function ExploreViewContainer(props) {
         />
       )}
       <Resizable
-        defaultSize={{ width: 320 }}
-        minWidth={320}
+        defaultSize={{ width: 300 }}
+        minWidth={300}
         maxWidth="33%"
         enable={{ right: true }}
         className={
