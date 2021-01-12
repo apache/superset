@@ -145,7 +145,10 @@ class TestSchedules(SupersetTestCase):
             else:
                 self.assertEqual(len(schedules), 0)
 
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices_module_scope", "load_birth_names_dashboard_with_slices_module_scope")
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices_module_scope",
+        "load_birth_names_dashboard_with_slices_module_scope",
+    )
     def test_complex_schedule(self):
         # Run the job on every Friday of March and May
         # On these days, run the job at

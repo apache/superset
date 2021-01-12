@@ -271,7 +271,10 @@ class TestImportExport(SupersetTestCase):
             self.get_table_by_name("birth_names"), exported_tables[0]
         )
 
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices", "load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices",
+        "load_birth_names_dashboard_with_slices",
+    )
     def test_export_2_dashboards(self):
         self.login("admin")
         birth_dash = self.get_dash_by_slug("births")
