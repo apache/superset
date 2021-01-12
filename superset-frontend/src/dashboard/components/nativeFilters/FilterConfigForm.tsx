@@ -33,6 +33,7 @@ import SupersetResourceSelect, {
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ColumnSelect } from './ColumnSelect';
+import { DefaultValueSelect } from './DefaultValueSelect';
 import { Filter, NativeFiltersForm } from './types';
 import FilterScope from './FilterScope';
 
@@ -102,6 +103,9 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
     filterToEdit?.targets[0].datasetId
       ? { label: '', value: filterToEdit?.targets[0].datasetId }
       : undefined,
+  );
+  const [column, setColumn] = useState<Value<string> | string | null>(
+    filterToEdit?.targets[0]?.column?.name || null,
   );
 
   const onDatasetSelectError = useCallback(
@@ -177,6 +181,19 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
           form={form}
           filterId={filterId}
           datasetId={dataset?.value}
+          onChange={setColumn}
+        />
+      </StyledFormItem>
+      <StyledFormItem
+        name={['filters', filterId, 'defaultValue']}
+        label={<StyledLabel>{t('Default Value')}</StyledLabel>}
+        initialValue={filterToEdit?.defaultValue}
+      >
+        <DefaultValueSelect
+          form={form}
+          filterId={filterId}
+          datasetId={dataset?.value}
+          column={column}
         />
       </StyledFormItem>
       <StyledFormItem
