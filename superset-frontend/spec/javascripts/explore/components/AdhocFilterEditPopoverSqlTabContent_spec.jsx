@@ -25,7 +25,7 @@ import { FormGroup } from 'react-bootstrap';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
-} from 'src/explore/AdhocFilter';
+} from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocFilterEditPopoverSqlTabContent from '../../../../src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent';
 
 const sqlAdhocFilter = new AdhocFilter({

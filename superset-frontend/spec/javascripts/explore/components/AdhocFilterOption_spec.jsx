@@ -25,7 +25,7 @@ import Popover from 'src/common/components/Popover';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
-} from 'src/explore/AdhocFilter';
+} from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocFilterOption from '../../../../src/explore/components/controls/FilterControl/AdhocFilterOption';
 
 const simpleAdhocFilter = new AdhocFilter({

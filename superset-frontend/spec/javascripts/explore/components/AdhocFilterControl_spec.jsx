@@ -25,7 +25,7 @@ import { supersetTheme } from '@superset-ui/core';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
-} from 'src/explore/AdhocFilter';
+} from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocFilterControl from '../../../../src/explore/components/controls/FilterControl/AdhocFilterControl';
 import { LabelsContainer } from 'src/explore/components/OptionControls';
 import AdhocMetric from 'src/explore/AdhocMetric';

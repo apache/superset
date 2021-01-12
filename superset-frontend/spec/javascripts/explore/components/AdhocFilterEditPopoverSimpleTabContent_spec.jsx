@@ -25,7 +25,7 @@ import { FormGroup } from 'react-bootstrap';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
-} from 'src/explore/AdhocFilter';
+} from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocMetric from 'src/explore/AdhocMetric';
 import AdhocFilterEditPopoverSimpleTabContent from '../../../../src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';
 import { AGGREGATES } from 'src/explore/constants';

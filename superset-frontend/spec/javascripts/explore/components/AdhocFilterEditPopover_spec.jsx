@@ -27,7 +27,7 @@ import Tabs from 'src/common/components/Tabs';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
-} from 'src/explore/AdhocFilter';
+} from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import AdhocMetric from 'src/explore/AdhocMetric';
 import AdhocFilterEditPopover from '../../../../src/explore/components/controls/FilterControl/AdhocFilterEditPopover';
 import AdhocFilterEditPopoverSimpleTabContent from '../../../../src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';
