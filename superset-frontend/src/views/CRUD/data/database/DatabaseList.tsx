@@ -207,7 +207,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         Header: (
           <TooltipWrapper
             label="allow-run-async-header"
-            tooltip={t('Asynchronous Query Execution')}
+            tooltip={t('Asynchronous query execution')}
             placement="top"
           >
             <span>{t('AQE')}</span>
@@ -225,7 +225,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         Header: (
           <TooltipWrapper
             label="allow-dml-header"
-            tooltip={t('Allow Data Manipulation Language')}
+            tooltip={t('Allow data manipulation language')}
             placement="top"
           >
             <span>{t('DML')}</span>
@@ -240,7 +240,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       },
       {
         accessor: 'allow_csv_upload',
-        Header: t('CSV Upload'),
+        Header: t('CSV upload'),
         Cell: ({
           row: {
             original: { allow_csv_upload: allowCSVUpload },
@@ -261,7 +261,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       {
         accessor: 'created_by',
         disableSortBy: true,
-        Header: t('Created By'),
+        Header: t('Created by'),
         Cell: ({
           row: {
             original: { created_by: createdBy },
@@ -276,7 +276,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
             original: { changed_on_delta_humanized: changedOn },
           },
         }: any) => changedOn,
-        Header: t('Last Modified'),
+        Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
       },
@@ -369,7 +369,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         Header: (
           <TooltipWrapper
             label="allow-run-async-filter-header"
-            tooltip={t('Asynchronous Query Execution')}
+            tooltip={t('Asynchronous query execution')}
             placement="top"
           >
             <span>{t('AQE')}</span>

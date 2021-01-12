@@ -55,11 +55,11 @@ describe('DatabaseModal', () => {
   });
 
   it('renders "Add Database" header when no database is included', () => {
-    expect(wrapper.find('h4').text()).toEqual('Add Database');
+    expect(wrapper.find('h4').text()).toEqual('Add database');
   });
 
   it('renders "Edit Database" header when database prop is included', () => {
-    expect(editWrapper.find('h4').text()).toEqual('Edit Database');
+    expect(editWrapper.find('h4').text()).toEqual('Edit database');
   });
 
   it('renders a Tabs menu', () => {

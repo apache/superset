@@ -97,7 +97,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
     fetchData,
   } = useListViewResource<QueryObject>(
     'query',
-    t('Query History'),
+    t('Query history'),
     addDangerToast,
     false,
   );
@@ -126,7 +126,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
   );
 
   const menuData: SubMenuProps = {
-    activeChild: 'Query History',
+    activeChild: 'Query history',
     ...commonMenuData,
   };
 
@@ -222,7 +222,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
       },
       {
         accessor: QueryObjectColumns.tab_name,
-        Header: t('Tab Name'),
+        Header: t('Tab name'),
         size: 'xl',
       },
       {
@@ -386,7 +386,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         paginate: true,
       },
       {
-        Header: t('Time Range'),
+        Header: t('Time range'),
         id: 'start_time',
         input: 'datetime_range',
         operator: FilterOperators.between,
