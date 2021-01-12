@@ -21,8 +21,8 @@ import PropTypes from 'prop-types';
 import AdhocMetricOption from './AdhocMetricOption';
 import AdhocMetric from '../../../AdhocMetric';
 import columnType from '../../../propTypes/columnType';
-import savedMetricType from '../../../propTypes/savedMetricType';
-import adhocMetricType from '../../../propTypes/adhocMetricType';
+import savedMetricType from './savedMetricType';
+import adhocMetricType from './adhocMetricType';
 import { DraggableOptionControlLabel } from '../../OptionControls';
 import { OPTION_TYPES } from '../../optionTypes';
 

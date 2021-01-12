@@ -18,9 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import AdhocFilter from '../../../AdhocFilter';
+import AdhocFilter from './AdhocFilter';
 import columnType from '../../../propTypes/columnType';
-import adhocMetricType from '../../../propTypes/adhocMetricType';
+import adhocMetricType from '../MetricControl/adhocMetricType';
 import AdhocFilterPopoverTrigger from './AdhocFilterPopoverTrigger';
 import { DraggableOptionControlLabel } from '../../OptionControls';
 import { OPTION_TYPES } from '../../optionTypes';

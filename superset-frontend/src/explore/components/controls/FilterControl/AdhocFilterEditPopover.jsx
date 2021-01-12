@@ -24,8 +24,8 @@ import { styled, t } from '@superset-ui/core';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Tabs from 'src/common/components/Tabs';
 import columnType from '../../../propTypes/columnType';
-import adhocMetricType from '../../../propTypes/adhocMetricType';
-import AdhocFilter, { EXPRESSION_TYPES } from '../../../AdhocFilter';
+import adhocMetricType from '../MetricControl/adhocMetricType';
+import AdhocFilter, { EXPRESSION_TYPES } from './AdhocFilter';
 import AdhocFilterEditPopoverSimpleTabContent from './AdhocFilterEditPopoverSimpleTabContent';
 import AdhocFilterEditPopoverSqlTabContent from './AdhocFilterEditPopoverSqlTabContent';
 

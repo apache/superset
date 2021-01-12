@@ -16,26 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import PropTypes from 'prop-types';
-import { ColumnTypeLabel } from '@superset-ui/chart-controls';
 
-import adhocMetricType from '../propTypes/adhocMetricType';
+import { OPERATORS } from '../constants';
+import { EXPRESSION_TYPES, CLAUSES } from '../components/controls/FilterControl/AdhocFilter';
 
-const propTypes = {
-  adhocMetric: adhocMetricType,
-  showType: PropTypes.bool,
-};
-
-export default function AdhocMetricStaticOption({
-  adhocMetric,
-  showType = false,
-}) {
-  return (
-    <div>
-      {showType && <ColumnTypeLabel type="expression" />}
-      <span className="option-label">{adhocMetric.label}</span>
-    </div>
-  );
-}
-AdhocMetricStaticOption.propTypes = propTypes;
+export default PropTypes.oneOfType([
+  PropTypes.shape({
+    expressionType: PropTypes.oneOf([EXPRESSION_TYPES.SIMPLE]).isRequired,
+    clause: PropTypes.oneOf([CLAUSES.HAVING, CLAUSES.WHERE]).isRequired,
+    subject: PropTypes.string.isRequired,
+    operator: PropTypes.oneOf(Object.keys(OPERATORS)).isRequired,
+    comparator: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.arrayOf(PropTypes.string),
+    ]).isRequired,
+  }),
+  PropTypes.shape({
+    expressionType: PropTypes.oneOf([EXPRESSION_TYPES.SQL]).isRequired,
+    clause: PropTypes.oneOf([CLAUSES.WHERE, CLAUSES.HAVING]).isRequired,
+    sqlExpression: PropTypes.string.isRequired,
+  }),
+]);

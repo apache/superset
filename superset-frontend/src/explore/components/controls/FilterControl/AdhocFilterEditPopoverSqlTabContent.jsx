@@ -24,8 +24,8 @@ import { t } from '@superset-ui/core';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 
-import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../../../AdhocFilter';
-import adhocMetricType from '../../../propTypes/adhocMetricType';
+import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from './AdhocFilter';
+import adhocMetricType from '../MetricControl/adhocMetricType';
 import columnType from '../../../propTypes/columnType';
 
 const propTypes = {

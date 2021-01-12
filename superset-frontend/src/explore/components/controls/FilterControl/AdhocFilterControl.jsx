@@ -21,15 +21,15 @@ import PropTypes from 'prop-types';
 import { t, logging, SupersetClient, withTheme } from '@superset-ui/core';
 
 import ControlHeader from '../../ControlHeader';
-import adhocFilterType from '../../../propTypes/adhocFilterType';
-import adhocMetricType from '../../../propTypes/adhocMetricType';
-import savedMetricType from '../../../propTypes/savedMetricType';
+import adhocFilterType from './adhocFilterType';
+import adhocMetricType from '../MetricControl/adhocMetricType';
+import savedMetricType from '../MetricControl/savedMetricType';
 import columnType from '../../../propTypes/columnType';
-import AdhocFilter, { CLAUSES, EXPRESSION_TYPES } from '../../../AdhocFilter';
+import AdhocFilter, { CLAUSES, EXPRESSION_TYPES } from './AdhocFilter';
 import AdhocMetric from '../../../AdhocMetric';
 import { OPERATORS } from '../../../constants';
 import AdhocFilterOption from './AdhocFilterOption';
-import FilterDefinitionOption from '../../FilterDefinitionOption';
+import FilterDefinitionOption from '../MetricControl/FilterDefinitionOption';
 import {
   AddControlLabel,
   AddIconButton,

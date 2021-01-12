@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { Tooltip } from 'src/common/components/Tooltip';
 import AdhocMetric from '../../../AdhocMetric';
 import columnType from '../../../propTypes/columnType';
-import savedMetricType from '../../../propTypes/savedMetricType';
+import savedMetricType from './savedMetricType';
 import { DraggableOptionControlLabel } from '../../OptionControls';
 import AdhocMetricPopoverTrigger from './AdhocMetricPopoverTrigger';
 import { OPTION_TYPES } from '../../optionTypes';

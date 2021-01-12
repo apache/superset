@@ -22,7 +22,7 @@ import { ColumnOption, ColumnTypeLabel } from '@superset-ui/chart-controls';
 
 import AdhocMetricStaticOption from './AdhocMetricStaticOption';
 import columnType from '../../../propTypes/columnType';
-import adhocMetricType from '../../../propTypes/adhocMetricType';
+import adhocMetricType from './adhocMetricType';
 
 const propTypes = {
   option: PropTypes.oneOfType([
