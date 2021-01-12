@@ -19,11 +19,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import AdhocFilter from './AdhocFilter';
-import columnType from '../../../propTypes/columnType';
-import adhocMetricType from '../MetricControl/adhocMetricType';
+import columnType from 'src/explore/propTypes/columnType';
+import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
 import AdhocFilterPopoverTrigger from './AdhocFilterPopoverTrigger';
-import { DraggableOptionControlLabel } from '../../OptionControls';
-import { OPTION_TYPES } from '../../optionTypes';
+import { DraggableOptionControlLabel } from 'src/explore/components/OptionControls';
+import { OPTION_TYPES } from 'src/explore/components/optionTypes';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,

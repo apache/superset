@@ -25,8 +25,8 @@ import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from './AdhocFilter';
-import adhocMetricType from '../MetricControl/adhocMetricType';
-import columnType from '../../../propTypes/columnType';
+import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
+import columnType from 'src/explore/propTypes/columnType';
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,

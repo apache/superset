@@ -18,7 +18,7 @@
  */
 import PropTypes from 'prop-types';
 
-import { OPERATORS } from '../../../constants';
+import { OPERATORS } from 'src/explore/constants';
 import { EXPRESSION_TYPES, CLAUSES } from './AdhocFilter';
 
 export default PropTypes.oneOfType([
