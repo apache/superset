@@ -22,6 +22,8 @@ from sqlalchemy.dialects import postgresql
 from superset.db_engine_specs import engines
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.fixtures.certificates import ssl_certificate
+from tests.fixtures.database import default_db_extra
 
 
 class TestPostgresDbEngineSpec(TestDbEngineSpec):
@@ -124,3 +126,31 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         DB Eng Specs (postgres): Test "postgres" in engine spec
         """
         self.assertIn("postgres", engines)
+
+    def test_extras_without_ssl(self):
+        db = mock.Mock()
+        db.extra = default_db_extra
+        db.server_cert = None
+        extras = PostgresEngineSpec.get_extra_params(db)
+        assert "connect_args" not in extras["engine_params"]
+
+    def test_extras_with_ssl_default(self):
+        db = mock.Mock()
+        db.extra = default_db_extra
+        db.server_cert = ssl_certificate
+        extras = PostgresEngineSpec.get_extra_params(db)
+        connect_args = extras["engine_params"]["connect_args"]
+        assert connect_args["sslmode"] == "verify-full"
+        assert "sslrootcert" in connect_args
+
+    def test_extras_with_ssl_custom(self):
+        db = mock.Mock()
+        db.extra = default_db_extra.replace(
+            '"engine_params": {}',
+            '"engine_params": {"connect_args": {"sslmode": "verify-ca"}}',
+        )
+        db.server_cert = ssl_certificate
+        extras = PostgresEngineSpec.get_extra_params(db)
+        connect_args = extras["engine_params"]["connect_args"]
+        assert connect_args["sslmode"] == "verify-ca"
+        assert "sslrootcert" in connect_args
