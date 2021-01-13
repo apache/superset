@@ -56,7 +56,7 @@ RUN cd superset-frontend \
 
 WORKDIR /home/superset/apache-superset-$VERSION
 RUN pip install --upgrade setuptools pip \
-    && pip install -r requirements.txt \
+    && pip install -r requirements/base.txt \
     && pip install --no-cache-dir .
 
 RUN flask fab babel-compile --target superset/translations
