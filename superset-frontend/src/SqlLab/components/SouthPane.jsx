@@ -86,15 +86,8 @@ const StyledPane = styled.div`
 export class SouthPane extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = {
-      height: props.height,
-    };
     this.southPaneRef = React.createRef();
     this.switchTab = this.switchTab.bind(this);
-  }
-
-  UNSAFE_componentWillReceiveProps(props) {
-    this.setState({ height: props.height });
   }
 
   switchTab(id) {
@@ -112,7 +105,7 @@ export class SouthPane extends React.PureComponent {
         </Label>
       );
     }
-    const innerTabContentHeight = this.state.height - TAB_HEIGHT;
+    const innerTabContentHeight = this.props.height - TAB_HEIGHT;
     let latestQuery;
     const { props } = this;
     if (props.editorQueries.length > 0) {
