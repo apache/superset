@@ -56,23 +56,23 @@ A modern, enterprise-ready business intelligence web application.
 
 **View Dashboards**
 
-<kbd><img title="View Dashboards" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/bank_dash.png"></kbd><br/>
+<kbd><img title="View Dashboards" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/slack_dash.png"></kbd><br/>
 
 **Slice & dice your data**
 
-<kbd><img title="Slice & dice your data" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/explore.png"></kbd><br/>
+<kbd><img title="Slice & dice your data" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/slice_and_dice.png"></kbd><br/>
 
 **Query and visualize your data with SQL Lab**
 
-<kbd><img title="SQL Lab" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/sqllab.png"></kbd><br/>
+<kbd><img title="SQL Lab" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/sql_lab.png"></kbd><br/>
 
 **Visualize geospatial data with deck.gl**
 
-<kbd><img title="Geospatial" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/deckgl_dash.png"></kbd><br/>
+<kbd><img title="Geospatial" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/geospatial_dash.png"></kbd><br/>
 
 **Choose from a wide array of visualizations**
 
-<kbd><img title="Visualizations" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/visualizations.png"></kbd><br/>
+<kbd><img title="Visualizations" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/explore_visualizations.png"></kbd><br/>
 
 
 ## Why Superset?
@@ -152,6 +152,9 @@ how to set up a development environment.
 
 ## Resources
 
+* Superset 1.0
+  * [Presentation on Superset 1.0 Public Roadmap](https://docs.google.com/presentation/d/1FGgyI8tLWLUPSQ5eEno78bylLfobj9O2W4yoUoFYHH8/edit#slide=id.g9c182b81b9_1_0)
+  * [Public Superset Roadmap](https://github.com/apache-superset/superset-roadmap/projects/1)
 * Superset 101 -- Getting Started Guide (From [Preset Blog](https://preset.io/blog/))
   * [Installing Apache Superset Locally](https://preset.io/blog/2020-05-11-getting-started-installing-superset/)
   * [Installing Database Drivers](https://preset.io/blog/2020-05-18-install-db-drivers/)
@@ -166,7 +169,7 @@ how to set up a development environment.
   * [November 2020: Virtual Meetup. Topics: Superset 1.0 & the Roadmap](https://www.youtube.com/watch?v=GwtWRUSEjk4)
   * [November 2020: Live Demo. Topic: Superset Semantic Layer](https://www.youtube.com/watch?v=8VL4ZPLFUYI)
   * [December 2020: Live Demo. Topic: Annotations](https://www.youtube.com/watch?v=Yk6bKgphj1Q)
-* [Custom Visualizations]
+* Custom Visualizations
   * [Building Custom Viz Plugins](https://superset.apache.org/docs/installation/building-custom-viz-plugins)
   * [Managing and Deploying Custom Viz Plugins](https://medium.com/nmc-techblog/apache-superset-manage-custom-viz-plugins-in-production-9fde1a708e55)
 * [Superset API](https://superset.apache.org/docs/rest-api)
