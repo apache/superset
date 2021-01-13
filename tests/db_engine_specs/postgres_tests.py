@@ -214,7 +214,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
 
     def test_query_cost_formatter_error_message(self):
         """
-        DB Eng Specs (postgres): Test test_query_cost_formatter example costs
+        DB Eng Specs (postgres): Test test_query_cost_formatter error message
         """
         raw_cost = [
             {
