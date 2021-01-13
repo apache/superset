@@ -43,6 +43,7 @@ from tests.fixtures.importexport import (
     dataset_metadata_config,
     dataset_ui_export,
 )
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 
 class TestExportDatasetsCommand(SupersetTestCase):
@@ -212,6 +213,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
 
 
 class TestImportDatasetsCommand(SupersetTestCase):
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_import_v0_dataset_cli_export(self):
         num_datasets = db.session.query(SqlaTable).count()
 
@@ -251,6 +253,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_import_v0_dataset_ui_export(self):
         num_datasets = db.session.query(SqlaTable).count()
 

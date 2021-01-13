@@ -66,6 +66,7 @@ from superset.views import core as views
 from superset.views.database.views import DatabaseView
 
 from .base_tests import SupersetTestCase
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 logger = logging.getLogger(__name__)
 
@@ -1223,6 +1224,7 @@ class TestCore(SupersetTestCase):
         {"FOO": lambda x: 1},
         clear=True,
     )
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_feature_flag_serialization(self):
         """
         Functions in feature flags don't break bootstrap data serialization.
@@ -1238,13 +1240,14 @@ class TestCore(SupersetTestCase):
             .replace("'", "&#39;")
             .replace('"', "&#34;")
         )
-
+        dash_id = db.session.query(Dashboard.id).first()[0]
+        tbl_id = self.table_ids.get("wb_health_population")
         urls = [
             "/superset/sqllab",
             "/superset/welcome",
-            "/superset/dashboard/1/",
+            f"/superset/dashboard/{dash_id}/",
             "/superset/profile/admin/",
-            "/superset/explore/table/1",
+            f"/superset/explore/table/{tbl_id}",
         ]
         for url in urls:
             data = self.get_resp(url)
