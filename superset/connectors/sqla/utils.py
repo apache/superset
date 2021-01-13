@@ -60,15 +60,14 @@ def get_where_operation(  # pylint:disable=too-many-branches
     flt: Dict[str, Any], operation: str, col_obj: Any, value: Any
 ) -> Any:
     if operation in (FilterOperator.IN.value, FilterOperator.NOT_IN.value,):
-        cond = col_obj.get_sqla_col().in_(value)
+        condition = col_obj.get_sqla_col().in_(value)
         if isinstance(value, str) and NULL_STRING in value:
-            cond = or_(
-                cond,
+            condition = or_(
+                condition,
                 col_obj.get_sqla_col() == None,  # pylint: disable=singleton-comparison
             )
         if operation == FilterOperator.NOT_IN.value:
-            cond = ~cond
-        # where_clause.append(cond)
+            condition = ~condition
     else:
         if col_obj.is_numeric:
             value = cast_to_num(flt["val"])
