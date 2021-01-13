@@ -182,7 +182,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               ? `${t('ERROR: ')}${
                   typeof error.message === 'string'
                     ? error.message
-                    : (error.message as Record<string, string[]>).sqlalchemy_uri
+                    : Object.entries(error.message as Record<string, string[]>)
+                        .map(([key, value]) => `(${key}) ${value.join(', ')}`)
+                        .join('\n')
                 }`
               : t('ERROR: Connection failed. '),
           );
