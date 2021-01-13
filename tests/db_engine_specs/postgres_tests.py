@@ -16,6 +16,7 @@
 # under the License.
 from unittest import mock
 
+from psycopg2 import errors
 from sqlalchemy import column, literal_column
 from sqlalchemy.dialects import postgresql
 
@@ -154,3 +155,42 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         connect_args = extras["engine_params"]["connect_args"]
         assert connect_args["sslmode"] == "verify-ca"
         assert "sslrootcert" in connect_args
+
+    def test_estimate_statement_cost_select_star(self):
+        """
+        DB Eng Specs (postgres): Test estimate_statement_cost select star
+        """
+
+        cursor = mock.Mock()
+        cursor.fetchone.return_value = (
+            "Seq Scan on birth_names  (cost=0.00..1537.91 rows=75691 width=46)",
+        )
+        sql = "SELECT * FROM birth_names"
+        results = PostgresEngineSpec.estimate_statement_cost(sql, cursor)
+        self.assertEqual(results, {"Start-up cost": 0.00, "Total cost": 1537.91,})
+
+    def test_estimate_statement_invalid_syntax(self):
+        """
+        DB Eng Specs (postgres): Test estimate_statement_cost invalid syntax
+        """
+
+        cursor = mock.Mock()
+        cursor.execute.side_effect = errors.SyntaxError(
+            """
+            syntax error at or near "EXPLAIN"
+            LINE 1: EXPLAIN DROP TABLE birth_names
+                            ^
+            """
+        )
+        sql = "DROP TABLE birth_names"
+        results = PostgresEngineSpec.estimate_statement_cost(sql, cursor)
+        self.assertEqual(
+            results,
+            {
+                "SyntaxError": """
+            syntax error at or near "EXPLAIN"
+            LINE 1: EXPLAIN DROP TABLE birth_names
+                            ^
+            """
+            },
+        )

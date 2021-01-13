@@ -20,6 +20,7 @@ import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
+from psycopg2 import errors
 from pytz import _FixedOffset  # type: ignore
 from sqlalchemy.dialects.postgresql.base import PGInspector
 
@@ -84,7 +85,10 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
     @classmethod
     def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:
         sql = f"EXPLAIN {statement}"
-        cursor.execute(sql)
+        try:
+            cursor.execute(sql)
+        except errors.SyntaxError as err:
+            return {"SyntaxError": str(err)}
 
         result = cursor.fetchone()[0]
         match = re.search(r"cost=([\d\.]+)\.\.([\d\.]+)", result)
