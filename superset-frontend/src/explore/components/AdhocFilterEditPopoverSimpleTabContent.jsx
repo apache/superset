@@ -44,6 +44,7 @@ const SelectWithLabel = styled(Select)`
     display: inline-block;
     white-space: nowrap;
     color: ${({ theme }) => theme.colors.grayscale.light1};
+    width: max-content;
   }
 `;
 
@@ -343,7 +344,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
                 filterBy={
                   column.saved_metric_name || column.column_name || column.label
                 }
-                key={column.id}
+                key={column.id || column.optionName}
               >
                 {this.renderSubjectOptionLabel(column)}
               </Select.Option>

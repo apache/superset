@@ -320,7 +320,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "SQLLAB_BACKEND_PERSISTENCE": False,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
     # Enables the replacement React views for all the FAB views (list, edit, show) with
-    # designs introduced in https://github.com/apache/incubator-superset/issues/8976
+    # designs introduced in https://github.com/apache/superset/issues/8976
     # (SIP-34). This is a work in progress so not all features available in FAB have
     # been implemented.
     "ENABLE_REACT_CRUD_VIEWS": True,
@@ -369,6 +369,37 @@ FEATURE_FLAGS: Dict[str, bool] = {}
 #         feature_flags_dict['some_feature'] = g.user and g.user.id == 5
 #     return feature_flags_dict
 GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] = None
+
+# EXTRA_CATEGORICAL_COLOR_SCHEMES is used for adding custom categorical color schemes
+# example code for "My custom warm to hot" color scheme
+# EXTRA_CATEGORICAL_COLOR_SCHEMES =  [
+#     {
+#         "id": 'myVisualizationColors',
+#         "description": '',
+#         "label": 'My Visualization Colors',
+#         "colors":
+#          ['#006699', '#009DD9', '#5AAA46', '#44AAAA', '#DDAA77', '#7799BB', '#88AA77',
+#          '#552288', '#5AAA46', '#CC7788', '#EEDD55', '#9977BB', '#BBAA44', '#DDCCDD']
+#     }]
+#
+
+# This is merely a default
+EXTRA_CATEGORICAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
+
+# EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
+# EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [
+#     {
+#         "id": 'warmToHot',
+#         "description": '',
+#         "isDiverging": true
+#         "label": 'My custom warm to hot',
+#         "colors":
+#          ['#552288', '#5AAA46', '#CC7788', '#EEDD55', '#9977BB', '#BBAA44', '#DDCCDD',
+#          '#006699', '#009DD9', '#5AAA46', '#44AAAA', '#DDAA77', '#7799BB', '#88AA77']
+#     }]
+
+# This is merely a default
+EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
@@ -546,6 +577,7 @@ MAX_TABLE_NAMES = 3000
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
+
 
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
@@ -999,7 +1031,6 @@ SIP_15_TOAST_MESSAGE = (
     'class="alert-link">here</a>.'
 )
 
-
 # SQLA table mutator, every time we fetch the metadata for a certain table
 # (superset.connectors.sqla.models.SqlaTable), we call this hook
 # to allow mutating the object with this callback.
@@ -1050,7 +1081,6 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise
-
 
 # It's possible to add a dataset health check logic which is specific to your system.
 # It will get executed each time when user open a chart's explore view.

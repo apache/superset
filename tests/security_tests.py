@@ -47,6 +47,7 @@ from .dashboard_utils import (
 )
 from .fixtures.energy_dashboard import load_energy_table_with_slice
 from .fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 NEW_SECURITY_CONVERGE_VIEWS = (
     "Annotation",
@@ -260,6 +261,7 @@ class TestRolePermission(SupersetTestCase):
         session.commit()
 
     def test_set_perm_druid_datasource(self):
+        self.create_druid_test_objects()
         session = db.session
         druid_cluster = (
             session.query(DruidCluster).filter_by(cluster_name="druid_test").one()
@@ -1148,6 +1150,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         assert tbl.get_extra_cache_keys(self.query_obj) == [1]
         assert "value > 1" in sql
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_rls_filter_alters_gamma_birth_names_query(self):
         g.user = self.get_user(username="gamma")
         tbl = self.get_table_by_name("birth_names")
@@ -1160,6 +1163,7 @@ class TestRowLevelSecurity(SupersetTestCase):
             in sql
         )
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_rls_filter_alters_no_role_user_birth_names_query(self):
         g.user = self.get_user(username="NoRlsRoleUser")
         tbl = self.get_table_by_name("birth_names")
@@ -1172,6 +1176,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         # base query should be present
         assert self.BASE_FILTER_REGEX.search(sql)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_rls_filter_doesnt_alter_admin_birth_names_query(self):
         g.user = self.get_user(username="admin")
         tbl = self.get_table_by_name("birth_names")

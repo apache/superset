@@ -343,7 +343,9 @@ class DatasourceEditor extends React.PureComponent {
   onDatasourcePropChange(attr, value) {
     const datasource = { ...this.state.datasource, [attr]: value };
     this.setState(
-      prevState => ({ datasource: { ...prevState.datasource, [attr]: value } }),
+      prevState => ({
+        datasource: { ...prevState.datasource, [attr]: value },
+      }),
       this.onDatasourceChange(datasource),
     );
   }

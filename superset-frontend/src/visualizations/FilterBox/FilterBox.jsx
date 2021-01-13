@@ -22,7 +22,7 @@ import { debounce } from 'lodash';
 import { max as d3Max } from 'd3-array';
 import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
 import Button from 'src/components/Button';
-import { t, styled, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
 
 import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
 import FormLabel from 'src/components/FormLabel';
@@ -95,13 +95,6 @@ const defaultProps = {
   instantFiltering: false,
 };
 
-const Styles = styled.div`
-  height: 100%;
-  min-height: 100%;
-  max-height: 100%;
-  overflow: visible;
-`;
-
 class FilterBox extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -130,9 +123,7 @@ class FilterBox extends React.PureComponent {
     return this.onFilterMenuOpen(TIME_RANGE);
   }
 
-  onCloseDateFilterControl = () => {
-    return this.onFilterMenuClose(TIME_RANGE);
-  };
+  onCloseDateFilterControl = () => this.onFilterMenuClose(TIME_RANGE);
 
   getControlData(controlName) {
     const { selectedValues } = this.state;
@@ -429,9 +420,9 @@ class FilterBox extends React.PureComponent {
   }
 
   render() {
-    const { instantFiltering } = this.props;
+    const { instantFiltering, width, height } = this.props;
     return (
-      <Styles>
+      <div style={{ width, height, overflow: 'auto' }}>
         {this.renderDateFilter()}
         {this.renderDatasourceFilters()}
         {this.renderFilters()}
@@ -445,7 +436,7 @@ class FilterBox extends React.PureComponent {
             {t('Apply')}
           </Button>
         )}
-      </Styles>
+      </div>
     );
   }
 }

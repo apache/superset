@@ -93,7 +93,7 @@ The script will output the exported variables. Here's example for 0.38.0rc1:
     SUPERSET_RELEASE_RC=apache-superset-0.38.0rc1
     SUPERSET_RELEASE_TARBALL=apache-superset-0.38.0-source.tar.gz
     SUPERSET_RELEASE_RC_TARBALL=apache-superset-0.38.0rc1-source.tar.gz
-    SUPERSET_TMP_ASF_SITE_PATH=/tmp/incubator-superset-site-0.38.0
+    SUPERSET_TMP_ASF_SITE_PATH=/tmp/superset-site-0.38.0
 ```
 
 ## Crafting a source release
@@ -260,8 +260,8 @@ into the non-"dev/" folder.
 
 Then tag the final release:
 ```bash
-    # Go to the root directory of the repo, e.g. `~/src/incubator-superset`
-    cd ~/src/incubator-superset/
+    # Go to the root directory of the repo, e.g. `~/src/superset`
+    cd ~/src/superset/
     # make sure you're on the correct branch (e.g. 0.34)
     git branch
     # Create the release tag
@@ -294,7 +294,7 @@ Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mail
 ### Github Release
 
 Finally, so the Github UI reflects the latest release, you should create a release from the
-tag corresponding with the new version. Go to https://github.com/apache/incubator-superset/tags,
+tag corresponding with the new version. Go to https://github.com/apache/superset/tags,
 click the 3-dot icon and select `Create Release`, paste the content of the ANNOUNCE thread in the
 release notes, and publish the new release.
 
