@@ -22,7 +22,7 @@ import { debounce } from 'lodash';
 import { max as d3Max } from 'd3-array';
 import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
 import Button from 'src/components/Button';
-import { t, styled, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
 
 import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
 import FormLabel from 'src/components/FormLabel';
@@ -94,13 +94,6 @@ const defaultProps = {
   showDruidTimeOrigin: false,
   instantFiltering: false,
 };
-
-const Styles = styled.div`
-  height: 100%;
-  min-height: 100%;
-  max-height: 100%;
-  overflow: visible;
-`;
 
 class FilterBox extends React.PureComponent {
   constructor(props) {
@@ -427,9 +420,9 @@ class FilterBox extends React.PureComponent {
   }
 
   render() {
-    const { instantFiltering } = this.props;
+    const { instantFiltering, width, height } = this.props;
     return (
-      <Styles>
+      <div style={{ width, height, overflow: 'auto' }}>
         {this.renderDateFilter()}
         {this.renderDatasourceFilters()}
         {this.renderFilters()}
@@ -443,7 +436,7 @@ class FilterBox extends React.PureComponent {
             {t('Apply')}
           </Button>
         )}
-      </Styles>
+      </div>
     );
   }
 }
