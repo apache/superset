@@ -886,6 +886,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         Return the appropriate row level security filters for
         this table and the current user.
 
+        :param BaseTemplateProcessor template_processor: The template
+        processor to apply to the filters.
+        :returns: A list of SQL clauses to be ANDed together.
+        :rtype: List[str]
         """
         filters_grouped: Dict[Union[int, str], List[str]] = defaultdict(list)
         try:
@@ -983,9 +987,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     outer = literal_column(f"({selected})")
                     outer = self.make_sqla_column_compatible(outer, selected)
 
-                groupby_expressions[
-                    outer.name
-                ] = outer  # outer -> elements.Label object of columns name and state
+                groupby_expressions[outer.name] = outer
                 select_expressions.append(outer)
         elif columns:
             for selected in columns:
@@ -1346,6 +1348,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         )
 
         self._update_template_kwargs(template_kwargs)
+        template_kwargs["extra_cache_keys"] = extra_cache_keys
 
         template_processor = self.get_template_processor(**template_kwargs)
 
