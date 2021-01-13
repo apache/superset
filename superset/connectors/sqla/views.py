@@ -37,6 +37,7 @@ from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
+    check_ownership,
     create_table_permissions,
     DatasourceFilter,
     DeleteMixin,
@@ -458,6 +459,9 @@ class TableModelView(  # pylint: disable=too-many-ancestors
 
     def pre_add(self, item: "TableModelView") -> None:
         validate_sqlatable(item)
+
+    def pre_update(self, item: "TableModelView") -> None:
+        check_ownership(item)
 
     def post_add(  # pylint: disable=arguments-differ
         self,
