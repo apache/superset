@@ -83,13 +83,8 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
 
     @classmethod
     def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:
-        from psycopg2 import errors
-
         sql = f"EXPLAIN {statement}"
-        try:
-            cursor.execute(sql)
-        except errors.SyntaxError as err:
-            return {"SyntaxError": str(err)}
+        cursor.execute(sql)
 
         result = cursor.fetchone()[0]
         match = re.search(r"cost=([\d\.]+)\.\.([\d\.]+)", result)

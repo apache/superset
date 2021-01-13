@@ -183,17 +183,8 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
             """
         )
         sql = "DROP TABLE birth_names"
-        results = PostgresEngineSpec.estimate_statement_cost(sql, cursor)
-        self.assertEqual(
-            results,
-            {
-                "SyntaxError": """
-            syntax error at or near "EXPLAIN"
-            LINE 1: EXPLAIN DROP TABLE birth_names
-                            ^
-            """
-            },
-        )
+        with self.assertRaises(errors.SyntaxError):
+            PostgresEngineSpec.estimate_statement_cost(sql, cursor)
 
     def test_query_cost_formatter_example_costs(self):
         """
@@ -209,32 +200,5 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
             [
                 {"Start-up cost": "0.0", "Total cost": "1537.91",},
                 {"Start-up cost": "10.0", "Total cost": "1537.0",},
-            ],
-        )
-
-    def test_query_cost_formatter_error_message(self):
-        """
-        DB Eng Specs (postgres): Test test_query_cost_formatter error message
-        """
-        raw_cost = [
-            {
-                "SyntaxError": """
-            syntax error at or near "EXPLAIN"
-            LINE 1: EXPLAIN DROP TABLE birth_names
-                            ^
-            """
-            }
-        ]
-        result = PostgresEngineSpec.query_cost_formatter(raw_cost)
-        self.assertEqual(
-            result,
-            [
-                {
-                    "SyntaxError": """
-            syntax error at or near "EXPLAIN"
-            LINE 1: EXPLAIN DROP TABLE birth_names
-                            ^
-            """
-                }
             ],
         )
