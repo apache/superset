@@ -137,7 +137,9 @@ class ExportDashboardsCommand(ExportModelsCommand):
         orphan_charts = {
             chart for chart in model.slices if str(chart.uuid) not in referenced_charts
         }
-        payload["position"] = append_charts(payload["position"], orphan_charts)
+
+        if orphan_charts:
+            payload["position"] = append_charts(payload["position"], orphan_charts)
 
         payload["version"] = EXPORT_VERSION
 

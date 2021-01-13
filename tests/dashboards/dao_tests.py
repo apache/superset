@@ -18,14 +18,18 @@
 import copy
 import json
 
+import pytest
+
 import tests.test_app  # pylint: disable=unused-import
 from superset import db
 from superset.dashboards.dao import DashboardDAO
 from superset.models.dashboard import Dashboard
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 
 class TestDashboardDAO(SupersetTestCase):
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_set_dash_metadata(self):
         dash = db.session.query(Dashboard).filter_by(slug="world_health").first()
         data = dash.data

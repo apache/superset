@@ -34,6 +34,7 @@ from superset.models import core as models
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 from .base_tests import SupersetTestCase
 
@@ -161,6 +162,7 @@ class TestDashboard(SupersetTestCase):
         resp = self.get_resp(url, data=dict(data=json.dumps(data)))
         self.assertIn("SUCCESS", resp)
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_save_dash_with_filter(self, username="admin"):
         self.login(username=username)
         dash = db.session.query(Dashboard).filter_by(slug="world_health").first()
@@ -190,6 +192,7 @@ class TestDashboard(SupersetTestCase):
         resp = self.get_resp(new_url)
         self.assertIn("North America", resp)
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_save_dash_with_invalid_filters(self, username="admin"):
         self.login(username=username)
         dash = db.session.query(Dashboard).filter_by(slug="world_health").first()

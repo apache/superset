@@ -42,13 +42,11 @@ def setup_sample_data() -> Any:
         from superset import examples
 
         examples.load_css_templates()
-        examples.load_world_bank_health_n_pop(sample=True)
 
     yield
 
     with app.app_context():
         engine = get_example_database().get_sqla_engine()
-        engine.execute("DROP TABLE wb_health_population")
 
         # drop sqlachemy tables
 

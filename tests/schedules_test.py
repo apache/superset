@@ -23,6 +23,9 @@ import pytest
 from selenium.common.exceptions import WebDriverException
 from slack import errors, WebClient
 
+from tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices_module_scope,
+)
 from tests.test_app import app
 from superset import db
 from superset.models.dashboard import Dashboard
@@ -62,7 +65,6 @@ class TestSchedules(SupersetTestCase):
                 deliver_as_group=True,
                 delivery_type=EmailDeliveryType.inline,
             )
-
             # Pick up a sample slice and dashboard
             slce = db.session.query(Slice).filter_by(slice_name="Participants").one()
             dashboard = (
@@ -99,6 +101,7 @@ class TestSchedules(SupersetTestCase):
             ).delete()
             db.session.commit()
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices_module_scope")
     def test_crontab_scheduler(self):
         crontab = "* * * * *"
 
@@ -126,6 +129,7 @@ class TestSchedules(SupersetTestCase):
         self.assertEqual(schedules[-1], stop_at - timedelta(seconds=12 * 60))
         self.assertEqual(len(schedules), 5)
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices_module_scope")
     def test_wider_schedules(self):
         crontab = "*/15 2,10 * * *"
 
@@ -141,7 +145,10 @@ class TestSchedules(SupersetTestCase):
             else:
                 self.assertEqual(len(schedules), 0)
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices_module_scope")
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices_module_scope",
+        "load_birth_names_dashboard_with_slices_module_scope",
+    )
     def test_complex_schedule(self):
         # Run the job on every Friday of March and May
         # On these days, run the job at
@@ -169,6 +176,7 @@ class TestSchedules(SupersetTestCase):
         self.assertEqual(schedules[59], datetime.strptime("2018-03-30 17:40:00", fmt))
         self.assertEqual(schedules[60], datetime.strptime("2018-05-04 17:10:00", fmt))
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices_module_scope")
     @patch("superset.tasks.schedules.firefox.webdriver.WebDriver")
     def test_create_driver(self, mock_driver_class):
         mock_driver = Mock()
@@ -178,6 +186,7 @@ class TestSchedules(SupersetTestCase):
         create_webdriver(db.session)
         mock_driver.add_cookie.assert_called_once()
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices_module_scope")
     @patch("superset.tasks.schedules.firefox.webdriver.WebDriver")
     @patch("superset.tasks.schedules.send_email_smtp")
     @patch("superset.tasks.schedules.time")
@@ -211,6 +220,7 @@ class TestSchedules(SupersetTestCase):
         driver.screenshot.assert_not_called()
         send_email_smtp.assert_called_once()
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices_module_scope")
     @patch("superset.tasks.schedules.firefox.webdriver.WebDriver")
     @patch("superset.tasks.schedules.send_email_smtp")
     @patch("superset.tasks.schedules.time")
@@ -254,6 +264,7 @@ class TestSchedules(SupersetTestCase):
             element.screenshot_as_png,
         )
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices_module_scope")
     @patch("superset.tasks.schedules.firefox.webdriver.WebDriver")
     @patch("superset.tasks.schedules.send_email_smtp")
     @patch("superset.tasks.schedules.time")
@@ -297,6 +308,7 @@ class TestSchedules(SupersetTestCase):
             driver.screenshot.return_value,
         )
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices_module_scope")
     @patch("superset.tasks.schedules.firefox.webdriver.WebDriver")
     @patch("superset.tasks.schedules.send_email_smtp")
     @patch("superset.tasks.schedules.time")
@@ -338,6 +350,7 @@ class TestSchedules(SupersetTestCase):
         self.assertEqual(send_email_smtp.call_count, 2)
         self.assertEqual(send_email_smtp.call_args[1]["bcc"], self.BCC)
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices_module_scope")
     @patch("superset.tasks.slack_util.WebClient.files_upload")
     @patch("superset.tasks.schedules.firefox.webdriver.WebDriver")
     @patch("superset.tasks.schedules.send_email_smtp")
@@ -391,6 +404,7 @@ class TestSchedules(SupersetTestCase):
             },
         )
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices_module_scope")
     @patch("superset.tasks.slack_util.WebClient.files_upload")
     @patch("superset.tasks.schedules.firefox.webdriver.WebDriver")
     @patch("superset.tasks.schedules.send_email_smtp")
@@ -445,6 +459,7 @@ class TestSchedules(SupersetTestCase):
             },
         )
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices_module_scope")
     @patch("superset.tasks.slack_util.WebClient.files_upload")
     @patch("superset.tasks.schedules.urllib.request.OpenerDirector.open")
     @patch("superset.tasks.schedules.urllib.request.urlopen")
@@ -491,6 +506,7 @@ class TestSchedules(SupersetTestCase):
             },
         )
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices_module_scope")
     @patch("superset.tasks.slack_util.WebClient.files_upload")
     @patch("superset.tasks.schedules.urllib.request.urlopen")
     @patch("superset.tasks.schedules.urllib.request.OpenerDirector.open")

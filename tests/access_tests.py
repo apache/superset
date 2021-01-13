@@ -22,6 +22,7 @@ from unittest import mock
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import pytest
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.test_app import app  # isort:skip
@@ -321,6 +322,7 @@ class TestRequestAccess(SupersetTestCase):
         gamma_user.roles.remove(security_manager.find_role(DB_ACCESS_ROLE))
         session.commit()
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_clean_requests_after_schema_grant(self):
         session = db.session
 
