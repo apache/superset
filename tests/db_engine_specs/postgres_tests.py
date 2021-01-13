@@ -16,7 +16,6 @@
 # under the License.
 from unittest import mock
 
-from psycopg2 import errors
 from sqlalchemy import column, literal_column
 from sqlalchemy.dialects import postgresql
 
@@ -173,6 +172,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         """
         DB Eng Specs (postgres): Test estimate_statement_cost invalid syntax
         """
+        from psycopg2 import errors
 
         cursor = mock.Mock()
         cursor.execute.side_effect = errors.SyntaxError(
