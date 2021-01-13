@@ -32,6 +32,7 @@ from pyparsing import (
     Group,
     Optional as ppOptional,
     ParseException,
+    ParserElement,
     ParseResults,
     pyparsing_common,
     quotedString,
@@ -39,6 +40,8 @@ from pyparsing import (
 )
 
 from .core import memoized
+
+ParserElement.enablePackrat()
 
 logger = logging.getLogger(__name__)
 
@@ -375,7 +378,7 @@ class EvalHolidayFunc:  # pylint: disable=too-few-public-methods
         raise ValueError(_("Unable to find such a holiday: [{}]").format(holiday))
 
 
-@memoized()
+@memoized
 def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
     (  # pylint: disable=invalid-name
         DATETIME,
