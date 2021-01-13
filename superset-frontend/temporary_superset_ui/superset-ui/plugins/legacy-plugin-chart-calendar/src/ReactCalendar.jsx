@@ -23,13 +23,11 @@ import Component from './Calendar';
 
 const ReactComponent = reactify(Component);
 
-const Calender = ({ className, ...otherProps }) => {
-  return (
-    <div className={className}>
-      <ReactComponent {...otherProps} />
-    </div>
-  );
-};
+const Calender = ({ className, ...otherProps }) => (
+  <div className={className}>
+    <ReactComponent {...otherProps} />
+  </div>
+);
 
 Calender.defaultProps = {
   otherProps: {},

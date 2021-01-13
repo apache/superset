@@ -87,6 +87,7 @@ describe('callApiAndParseWithTimeout()', () => {
 
       const mockTimeoutUrl = '/mock/timeout/url';
       const unresolvingPromise = new Promise(() => {});
+      let error;
       fetchMock.get(mockTimeoutUrl, () => unresolvingPromise);
 
       try {
@@ -97,7 +98,9 @@ describe('callApiAndParseWithTimeout()', () => {
         });
         jest.advanceTimersByTime(2);
         await promise;
-      } catch (error) {
+      } catch (err) {
+        error = err;
+      } finally {
         expect(fetchMock.calls(mockTimeoutUrl)).toHaveLength(1);
         expect(error).toEqual({
           error: 'Request timed out',

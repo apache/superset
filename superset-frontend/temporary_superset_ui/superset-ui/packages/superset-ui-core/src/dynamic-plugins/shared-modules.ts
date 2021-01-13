@@ -77,9 +77,7 @@ export async function defineSharedModule(name: string, fetchModule: () => Promis
  */
 export async function defineSharedModules(moduleMap: { [key: string]: () => Promise<Module> }) {
   return Promise.all(
-    Object.entries(moduleMap).map(([name, fetchModule]) => {
-      return defineSharedModule(name, fetchModule);
-    }),
+    Object.entries(moduleMap).map(([name, fetchModule]) => defineSharedModule(name, fetchModule)),
   );
 }
 
