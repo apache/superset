@@ -172,6 +172,15 @@ class TableColumnInlineView(  # pylint: disable=too-many-ancestors
 
     edit_form_extra_fields = add_form_extra_fields
 
+    def pre_add(self, item: "models.SqlMetric") -> None:
+        check_ownership(item.table)
+
+    def pre_update(self, item: "models.SqlMetric") -> None:
+        check_ownership(item.table)
+
+    def pre_delete(self, item: "models.SqlMetric") -> None:
+        check_ownership(item.table)
+
 
 class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
     CompactCRUDMixin, SupersetModelView
@@ -245,6 +254,15 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
     }
 
     edit_form_extra_fields = add_form_extra_fields
+
+    def pre_add(self, item: "models.SqlMetric") -> None:
+        check_ownership(item.table)
+
+    def pre_update(self, item: "models.SqlMetric") -> None:
+        check_ownership(item.table)
+
+    def pre_delete(self, item: "models.SqlMetric") -> None:
+        check_ownership(item.table)
 
 
 class RowLevelSecurityListWidget(
