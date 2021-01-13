@@ -21,7 +21,7 @@ from unittest import mock
 import pytest
 
 from tests.test_app import app
-from superset.db_engine_specs.hive import HiveEngineSpec
+from superset.db_engine_specs.hive import HiveEngineSpec, upload_to_s3
 from superset.exceptions import SupersetException
 from superset.sql_parse import Table, ParsedQuery
 
@@ -247,3 +247,39 @@ def test_is_readonly():
     assert is_readonly("EXPLAIN SELECT 1")
     assert is_readonly("SELECT 1")
     assert is_readonly("WITH (SELECT 1) bla SELECT * from bla")
+
+
+def test_upload_to_s3_no_bucket_path():
+    with pytest.raises(
+        Exception,
+        match="No upload bucket specified. You can specify one in the config file.",
+    ):
+        upload_to_s3("filename", "prefix", Table("table"))
+
+
+@mock.patch("boto3.client")
+@mock.patch(
+    "superset.db_engine_specs.hive.config",
+    {**app.config, "CSV_TO_HIVE_UPLOAD_S3_BUCKET": "bucket"},
+)
+def test_upload_to_s3_client_error(client):
+    from botocore.exceptions import ClientError
+
+    client.return_value.upload_file.side_effect = ClientError(
+        {"Error": {}}, "operation_name"
+    )
+
+    with pytest.raises(ClientError):
+        upload_to_s3("filename", "prefix", Table("table"))
+
+
+@mock.patch("boto3.client")
+@mock.patch(
+    "superset.db_engine_specs.hive.config",
+    {**app.config, "CSV_TO_HIVE_UPLOAD_S3_BUCKET": "bucket"},
+)
+def test_upload_to_s3_success(client):
+    client.return_value.upload_file.return_value = True
+
+    location = upload_to_s3("filename", "prefix", Table("table"))
+    assert f"s3a://bucket/prefix/table" == location
