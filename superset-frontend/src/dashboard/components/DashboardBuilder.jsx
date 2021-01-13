@@ -97,7 +97,7 @@ const StyledDashboardContent = styled.div`
       ${({ theme }) => theme.gridUnit * 8}px
       ${({ theme }) => theme.gridUnit * 6}px
       ${({ theme, dashboardFiltersOpen }) => {
-        if (dashboardFiltersOpen) return theme.gridUnit * 4;
+        if (dashboardFiltersOpen) return theme.gridUnit * 8;
         return 0;
       }}px;
   }
