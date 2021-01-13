@@ -59,7 +59,10 @@ from sqlalchemy.types import TypeEngine
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
-from superset.constants import NULL_STRING
+from superset.connectors.sqla.utils import (
+    get_expected_labels_from_select,
+    get_where_operation,
+)
 from superset.db_engine_specs.base import TimestampExpression
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -852,28 +855,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         return self.make_sqla_column_compatible(sqla_metric, label)
 
-    def _get_sqla_row_level_filters(
-        self, template_processor: BaseTemplateProcessor
-    ) -> List[str]:
-        """
-        Return the appropriate row level security filters for
-        this table and the current user.
-
-        """
-        filters_grouped: Dict[Union[int, str], List[str]] = defaultdict(list)
-        try:
-            for filter_ in security_manager.get_rls_filters(self):
-                clause = text(
-                    f"({template_processor.process_template(filter_.clause)})"
-                )
-                filters_grouped[filter_.group_key or filter_.id].append(clause)
-            return [or_(*clauses) for clauses in filters_grouped.values()]
-        except TemplateError as ex:
-            raise QueryObjectValidationError(
-                _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
-            )
-
-    def _get_template_kwargs(
+    def _get_template_kwargs(  # pylint:disable = too-many-arguments, no-self-use
         self,
         metrics: List[Metric],
         columns: List[TableColumn],
@@ -896,13 +878,29 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             "extra_cache_keys": [],
         }
 
+    def _get_sqla_row_level_filters(
+        self, template_processor: BaseTemplateProcessor
+    ) -> List[str]:
+        """
+        Return the appropriate row level security filters for
+        this table and the current user.
+
+        """
+        filters_grouped: Dict[Union[int, str], List[str]] = defaultdict(list)
+        try:
+            for filter_ in security_manager.get_rls_filters(self):
+                clause = text(
+                    f"({template_processor.process_template(filter_.clause)})"
+                )
+                filters_grouped[filter_.group_key or filter_.id].append(clause)
+            return [or_(*clauses) for clauses in filters_grouped.values()]
+        except TemplateError as ex:
+            raise QueryObjectValidationError(
+                _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
+            )
+
     def _update_template_kwargs(self, template_kwargs: Dict[str, Any]) -> None:
         template_kwargs.update(self.template_params_dict)
-
-    def _get_backward_compatible_granularity(self, granularity: str) -> str:
-        if granularity not in self.dttm_cols:
-            granularity = self.main_dttm_col
-        return granularity
 
     def _get_columns_by_name(self) -> Dict[str, TableColumn]:
         return {col.column_name: col for col in self.columns}
@@ -999,7 +997,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         return (select_expressions, groupby_expressions, metric_expressions)
 
-    def _add_timestamp_expression(
+    def _add_timestamp_expression(  # pylint:disable = too-many-arguments
         self,
         granularity: str,
         time_grain_sqla: Any,
@@ -1013,8 +1011,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         time_range_endpoints: Optional[Any],
     ) -> Tuple[List[BooleanClauseList], List[Label], Dict[str, Label]]:
         """
-        append timestamp expression in select and groupby expression of granularity column
-
+        append timestamp expression in select and groupby
+        expression of granularity column
         """
         groupby_expressions_with_ts = OrderedDict(groupby_expressions.items())
         time_filters = []
@@ -1042,15 +1040,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             )
         return time_filters, select_expressions, groupby_expressions_with_ts
 
-    def _get_expected_labels_from_select(
-        self, select_expressions: List[Label]
-    ) -> List[str]:
-        return [
-            c._df_label_expected  # pylint: disable=protected-access
-            for c in select_expressions
-        ]
-
-    def _get_where_clause(
+    def _get_where_clause(  # pylint:disable=too-many-branches
         self,
         filter_: Optional[List[Dict[str, Any]]],
         columns_by_name: Dict[str, Any],
@@ -1079,52 +1069,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     target_column_is_numeric=col_obj.is_numeric,
                     is_list_target=is_list_target,
                 )
-                if op in (
-                    utils.FilterOperator.IN.value,
-                    utils.FilterOperator.NOT_IN.value,
-                ):
-                    cond = col_obj.get_sqla_col().in_(eq)
-                    if isinstance(eq, str) and NULL_STRING in eq:
-                        cond = or_(
-                            cond,
-                            col_obj.get_sqla_col()  # pylint: disable=singleton-comparison
-                            == None,
-                        )
-                    if op == utils.FilterOperator.NOT_IN.value:
-                        cond = ~cond
-                    where_clause.append(cond)
-                else:
-                    if col_obj.is_numeric:
-                        eq = utils.cast_to_num(flt["val"])
-
-                    if op == utils.FilterOperator.EQUALS.value:
-                        where_clause.append(col_obj.get_sqla_col() == eq)
-                    elif op == utils.FilterOperator.NOT_EQUALS.value:
-                        where_clause.append(col_obj.get_sqla_col() != eq)
-                    elif op == utils.FilterOperator.GREATER_THAN.value:
-                        where_clause.append(col_obj.get_sqla_col() > eq)
-                    elif op == utils.FilterOperator.LESS_THAN.value:
-                        where_clause.append(col_obj.get_sqla_col() < eq)
-                    elif op == utils.FilterOperator.GREATER_THAN_OR_EQUALS.value:
-                        where_clause.append(col_obj.get_sqla_col() >= eq)
-                    elif op == utils.FilterOperator.LESS_THAN_OR_EQUALS.value:
-                        where_clause.append(col_obj.get_sqla_col() <= eq)
-                    elif op == utils.FilterOperator.LIKE.value:
-                        where_clause.append(col_obj.get_sqla_col().like(eq))
-                    elif op == utils.FilterOperator.IS_NULL.value:
-                        where_clause.append(
-                            col_obj.get_sqla_col()  # pylint: disable=singleton-comparison
-                            == None
-                        )
-                    elif op == utils.FilterOperator.IS_NOT_NULL.value:
-                        where_clause.append(
-                            col_obj.get_sqla_col()  # pylint: disable=singleton-comparison
-                            != None
-                        )
-                    else:
-                        raise QueryObjectValidationError(
-                            _("Invalid filter operation type: %(op)s", op=op)
-                        )
+                condition = get_where_operation(flt, op, col_obj, eq)
+                where_clause.append(condition)
 
         if is_feature_enabled("ROW_LEVEL_SECURITY"):
             where_clause += self._get_sqla_row_level_filters(template_processor)
@@ -1162,6 +1108,11 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 )
             having_clause += [sa.text("({})".format(having))]
         return having_clause
+
+    def _get_compatible_granularity(self, granularity: str) -> str:
+        if granularity not in self.dttm_cols:
+            granularity = self.main_dttm_col
+        return granularity
 
     def _get_order_by_clause(
         self,
@@ -1417,7 +1368,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         template_processor = self.get_template_processor(**template_kwargs)
 
-        granularity = self._get_backward_compatible_granularity(granularity)
+        granularity = self._get_compatible_granularity(granularity)
 
         # Database spec supports join-free timeslot grouping
         # False
@@ -1471,7 +1422,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             metric_expressions  # both elements.Lable of cols[name, state]
         )
 
-        labels_expected = self._get_expected_labels_from_select(select_expressions)
+        labels_expected = get_expected_labels_from_select(select_expressions)
 
         # SELECT EXPRESSION
         select_expressions = db_engine_spec.make_select_compatible(
