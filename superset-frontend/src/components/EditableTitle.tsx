@@ -178,7 +178,7 @@ export default function EditableTitle({
         label="title"
         tooltip={
           canEdit
-            ? t('click to edit')
+            ? t('Click to edit')
             : noPermitTooltip ||
               t("You don't have the rights to alter this title.")
         }

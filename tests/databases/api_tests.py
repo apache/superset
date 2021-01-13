@@ -200,7 +200,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "test-create-database",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
-            "server_cert": ssl_certificate,
+            "server_cert": None,
             "extra": json.dumps(extra),
         }
 
@@ -761,7 +761,7 @@ class TestDatabaseApi(SupersetTestCase):
             "extra": json.dumps(extra),
             "impersonate_user": False,
             "sqlalchemy_uri": example_db.safe_sqlalchemy_uri(),
-            "server_cert": ssl_certificate,
+            "server_cert": None,
         }
         url = "api/v1/database/test_connection"
         rv = self.post_assert_metric(url, data, "test_connection")

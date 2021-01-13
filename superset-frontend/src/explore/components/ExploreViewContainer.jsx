@@ -23,6 +23,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { styled, t, supersetTheme, css } from '@superset-ui/core';
 import { debounce } from 'lodash';
+import { Resizable } from 're-resizable';
 
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/core';
@@ -81,10 +82,8 @@ const Styles = styled.div`
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   .explore-column {
     display: flex;
-    flex: 0 0 ${({ theme }) => theme.gridUnit * 95}px;
     flex-direction: column;
     padding: ${({ theme }) => 2 * theme.gridUnit}px 0;
-    max-width: ${({ theme }) => theme.gridUnit * 95}px;
     max-height: 100%;
   }
   .data-source-selection {
@@ -404,7 +403,11 @@ function ExploreViewContainer(props) {
           dashboardId={props.dashboardId}
         />
       )}
-      <div
+      <Resizable
+        defaultSize={{ width: 300 }}
+        minWidth={300}
+        maxWidth="33%"
+        enable={{ right: true }}
         className={
           isCollapsed ? 'no-show' : 'explore-column data-source-selection'
         }
@@ -430,7 +433,7 @@ function ExploreViewContainer(props) {
           controls={props.controls}
           actions={props.actions}
         />
-      </div>
+      </Resizable>
       {isCollapsed ? (
         <div
           className="sidebar"
@@ -452,7 +455,13 @@ function ExploreViewContainer(props) {
           <Icon name="dataset-physical" width={16} />
         </div>
       ) : null}
-      <div className="col-sm-3 explore-column controls-column">
+      <Resizable
+        defaultSize={{ width: 320 }}
+        minWidth={320}
+        maxWidth="33%"
+        enable={{ right: true }}
+        className="col-sm-3 explore-column controls-column"
+      >
         <QueryAndSaveBtns
           canAdd={!!(props.can_add || props.can_overwrite)}
           onQuery={onQuery}
@@ -470,7 +479,7 @@ function ExploreViewContainer(props) {
           datasource_type={props.datasource_type}
           isDatasourceMetaLoading={props.isDatasourceMetaLoading}
         />
-      </div>
+      </Resizable>
       <div
         className={`main-explore-content ${
           isCollapsed ? 'col-sm-9' : 'col-sm-7'
