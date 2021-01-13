@@ -18,9 +18,11 @@
  */
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
+import { uniqWith } from 'lodash';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import {
   selectIndicatorsForChart,
+  Indicator,
   IndicatorStatus,
   selectNativeIndicatorsForChart,
 } from 'src/dashboard/components/FiltersBadge/selectors';
@@ -38,6 +40,17 @@ const mapDispatchToProps = (dispatch: Dispatch) =>
     dispatch,
   );
 
+const sortByStatus = (indicators: Indicator[]): Indicator[] => {
+  const statuses = [
+    IndicatorStatus.Applied,
+    IndicatorStatus.Unset,
+    IndicatorStatus.Incompatible,
+  ];
+  return indicators.sort(
+    (a, b) => statuses.indexOf(a.status) - statuses.indexOf(b.status),
+  );
+};
+
 const mapStateToProps = (
   { datasources, dashboardFilters, nativeFilters, charts }: any,
   { chartId }: FiltersBadgeProps,
@@ -51,16 +64,13 @@ const mapStateToProps = (
 
   const nativeIndicators = selectNativeIndicatorsForChart(nativeFilters);
 
-  const indicators = nativeIndicators.reduce((acc, indicator) => {
-    const sameColumnIndicator = acc.find(
-      ({ column }) => column === indicator.column,
-    );
-    // deduplicate unapplied filters for the same column
-    if (sameColumnIndicator?.status !== IndicatorStatus.Applied) {
-      return [...acc.filter(ind => ind !== sameColumnIndicator), indicator];
-    }
-    return [...acc, indicator];
-  }, dashboardIndicators);
+  const indicators = uniqWith(
+    sortByStatus([...dashboardIndicators, ...nativeIndicators]),
+    (ind1, ind2) =>
+      ind1.column === ind2.column &&
+      (ind1.status !== IndicatorStatus.Applied ||
+        ind2.status !== IndicatorStatus.Applied),
+  );
 
   const appliedIndicators = indicators.filter(
     indicator => indicator.status === IndicatorStatus.Applied,
