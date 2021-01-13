@@ -33,13 +33,11 @@ function componentWillUnmount() {
 
 const ReactNVD3 = reactify(Component, { componentWillUnmount });
 
-const NVD3 = ({ className, ...otherProps }) => {
-  return (
-    <div className={className}>
-      <ReactNVD3 {...otherProps} />
-    </div>
-  );
-};
+const NVD3 = ({ className, ...otherProps }) => (
+  <div className={className}>
+    <ReactNVD3 {...otherProps} />
+  </div>
+);
 
 NVD3.propTypes = {
   className: PropTypes.string.isRequired,

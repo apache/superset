@@ -52,8 +52,8 @@ describe('reactify(renderFn)', () => {
     }
   }
 
-  it('returns a React component class', () => {
-    return new Promise(done => {
+  it('returns a React component class', () =>
+    new Promise(done => {
       const wrapper = mount(<TestComponent />);
 
       expect(renderFn).toHaveBeenCalledTimes(1);
@@ -64,8 +64,7 @@ describe('reactify(renderFn)', () => {
         wrapper.unmount();
         done();
       }, 20);
-    });
-  });
+    }));
   describe('displayName', () => {
     it('has displayName if renderFn.displayName is defined', () => {
       expect(TheChart.displayName).toEqual('BoldText');
@@ -104,14 +103,13 @@ describe('reactify(renderFn)', () => {
     new AnotherChart({ id: 'test' }).execute();
     expect(anotherRenderFn).not.toHaveBeenCalled();
   });
-  it('calls willUnmount hook when it is provided', () => {
-    return new Promise(done => {
+  it('calls willUnmount hook when it is provided', () =>
+    new Promise(done => {
       const wrapper = mount(<AnotherTestComponent />);
       setTimeout(() => {
         wrapper.unmount();
         expect(willUnmountCb).toHaveBeenCalledTimes(1);
         done();
       }, 20);
-    });
-  });
+    }));
 });

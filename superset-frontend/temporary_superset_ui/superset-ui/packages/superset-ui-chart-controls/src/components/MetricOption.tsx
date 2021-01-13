@@ -49,7 +49,7 @@ export function MetricOption({
 }: MetricOptionProps) {
   const verbose = metric.verbose_name || metric.metric_name || metric.label;
   const link = url ? (
-    <a href={url} target={openInNewWindow ? '_blank' : ''}>
+    <a href={url} target={openInNewWindow ? '_blank' : ''} rel="noreferrer">
       {verbose}
     </a>
   ) : (

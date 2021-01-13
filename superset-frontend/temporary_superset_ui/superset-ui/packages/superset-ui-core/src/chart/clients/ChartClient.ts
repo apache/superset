@@ -100,9 +100,9 @@ export default class ChartClient {
             ...options,
           };
 
-      return this.client.post(requestConfig).then(response => {
-        return Array.isArray(response.json) ? response.json : [response.json];
-      });
+      return this.client
+        .post(requestConfig)
+        .then(response => (Array.isArray(response.json) ? response.json : [response.json]));
     }
 
     return Promise.reject(new Error(`Unknown chart type: ${visType}`));

@@ -38,9 +38,10 @@ export function evalFormula(
   const { value } = formula;
   const node = mathjsParse(value);
   const func = node.compile();
-  return data.map(row => {
-    return [new Date(Number(row.__timestamp)), func.evaluate({ x: row.__timestamp }) as number];
-  });
+  return data.map(row => [
+    new Date(Number(row.__timestamp)),
+    func.evaluate({ x: row.__timestamp }) as number,
+  ]);
 }
 
 export function parseAnnotationOpacity(opacity?: AnnotationOpacity): number {

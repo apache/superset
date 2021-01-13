@@ -114,9 +114,7 @@ export default function DataTable<D extends object>({
   const defaultGlobalFilter: FilterType<D> = useCallback(
     (rows: Row<D>[], columnIds: IdType<D>[], filterValue: string) => {
       // allow searching by "col1 col2"
-      const joinedString = (row: Row<D>) => {
-        return columnIds.map(x => row.values[x]).join(' ');
-      };
+      const joinedString = (row: Row<D>) => columnIds.map(x => row.values[x]).join(' ');
       return matchSorter(rows, filterValue, {
         keys: [...columnIds, joinedString],
         threshold: matchSorter.rankings.ACRONYM,
@@ -164,12 +162,12 @@ export default function DataTable<D extends object>({
           const { key: headerGroupKey, ...headerGroupProps } = headerGroup.getHeaderGroupProps();
           return (
             <tr key={headerGroupKey || headerGroup.id} {...headerGroupProps}>
-              {headerGroup.headers.map(column => {
-                return column.render('Header', {
+              {headerGroup.headers.map(column =>
+                column.render('Header', {
                   key: column.id,
                   ...column.getSortByToggleProps(),
-                });
-              })}
+                }),
+              )}
             </tr>
           );
         })}

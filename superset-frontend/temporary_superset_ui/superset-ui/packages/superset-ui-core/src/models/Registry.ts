@@ -86,6 +86,7 @@ export default class Registry<V, W extends V | Promise<V> = V | Promise<V>> {
       this.has(key) && (('value' in item && item.value !== value) || 'loader' in item);
     if (willOverwrite) {
       if (this.overwritePolicy === OverwritePolicy.WARN) {
+        // eslint-disable-next-line no-console
         console.warn(`Item with key "${key}" already exists. You are assigning a new value.`);
       } else if (this.overwritePolicy === OverwritePolicy.PROHIBIT) {
         throw new Error(`Item with key "${key}" already exists. Cannot overwrite.`);
@@ -105,6 +106,7 @@ export default class Registry<V, W extends V | Promise<V> = V | Promise<V>> {
       this.has(key) && (('loader' in item && item.loader !== loader) || 'value' in item);
     if (willOverwrite) {
       if (this.overwritePolicy === OverwritePolicy.WARN) {
+        // eslint-disable-next-line no-console
         console.warn(`Item with key "${key}" already exists. You are assigning a new value.`);
       } else if (this.overwritePolicy === OverwritePolicy.PROHIBIT) {
         throw new Error(`Item with key "${key}" already exists. Cannot overwrite.`);

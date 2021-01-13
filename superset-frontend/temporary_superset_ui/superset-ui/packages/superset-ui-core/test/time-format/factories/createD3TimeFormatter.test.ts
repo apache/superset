@@ -59,13 +59,15 @@ describe('createD3TimeFormatter(config)', () => {
         formatString: TimeFormats.DATABASE_DATETIME,
         useLocalTime: true,
       });
-      const offset = new Date().getTimezoneOffset();
-      // eslint-disable-next-line jest/no-if
-      if (offset === 0) {
-        expect(formatter.format(PREVIEW_TIME)).toEqual('2017-02-14 11:22:33');
-      } else {
-        expect(formatter.format(PREVIEW_TIME)).not.toEqual('2017-02-14 11:22:33');
-      }
+      const formatterInUTC = createD3TimeFormatter({
+        formatString: TimeFormats.DATABASE_DATETIME,
+      });
+      const offset = new Date().getTimezoneOffset(); // in minutes
+      const expected =
+        offset === 0
+          ? '2017-02-14 11:22:33'
+          : formatterInUTC(new Date(PREVIEW_TIME.valueOf() - 60 * 1000 * offset));
+      expect(formatter.format(PREVIEW_TIME)).toEqual(expected);
     });
   });
 
@@ -84,13 +86,16 @@ describe('createD3TimeFormatter(config)', () => {
         locale: thLocale,
         useLocalTime: true,
       });
+      const formatterInUTC = createD3TimeFormatter({
+        formatString: '%c',
+        locale: thLocale,
+      });
       const offset = new Date().getTimezoneOffset();
-      // eslint-disable-next-line jest/no-if
-      if (offset === 0) {
-        expect(formatter(TEST_TIME)).toEqual('อา. 20 ธ.ค. 2015 00:00:00');
-      } else {
-        expect(formatter(TEST_TIME)).not.toEqual('อา. 20 ธ.ค. 2015 00:00:00');
-      }
+      const expected =
+        offset === 0
+          ? 'อา. 20 ธ.ค. 2015 00:00:00'
+          : formatterInUTC(new Date(TEST_TIME.valueOf() - 60 * 1000 * offset));
+      expect(formatter(TEST_TIME)).toEqual(expected);
     });
   });
 });

@@ -222,10 +222,9 @@ export function transformEventAnnotation(
           position: 'insideEndTop',
           emphasis: {
             // @ts-ignore
-            formatter: params => {
+            formatter: params =>
               // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-              return params.name;
-            },
+              params.name,
             // @ts-ignore
             fontWeight: 'bold',
             show: true,

@@ -23,13 +23,11 @@ import Component from './ForceDirected';
 
 const ReactComponent = reactify(Component);
 
-const ForceDirected = ({ className, ...otherProps }) => {
-  return (
-    <div className={className}>
-      <ReactComponent {...otherProps} />
-    </div>
-  );
-};
+const ForceDirected = ({ className, ...otherProps }) => (
+  <div className={className}>
+    <ReactComponent {...otherProps} />
+  </div>
+);
 
 ForceDirected.propTypes = {
   className: PropTypes.string.isRequired,

@@ -88,9 +88,8 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     };
   });
 
-  const formatter = (params: { name: string; value: number; percent: number }) => {
-    return formatPieLabel({ params, numberFormatter, pieLabelType });
-  };
+  const formatter = (params: { name: string; value: number; percent: number }) =>
+    formatPieLabel({ params, numberFormatter, pieLabelType });
 
   const defaultLabel = {
     formatter,
@@ -109,13 +108,12 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     tooltip: {
       ...defaultTooltip,
       trigger: 'item',
-      formatter: params => {
-        return formatPieLabel({
+      formatter: params =>
+        formatPieLabel({
           params: params as echarts.EChartOption.Tooltip.Format,
           numberFormatter,
           pieLabelType: 'key_value_percent',
-        });
-      },
+        }),
     },
     legend: showLegend
       ? {

@@ -248,19 +248,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           // render `Cell`. This saves some time for large tables.
           return <td {...cellProps}>{text}</td>;
         },
-        Header: ({ column: col, title, onClick, style }) => {
-          return (
-            <th
-              title={title}
-              className={col.isSorted ? `${className || ''} is-sorted` : className}
-              style={style}
-              onClick={onClick}
-            >
-              {label}
-              <SortIcon column={col} />
-            </th>
-          );
-        },
+        Header: ({ column: col, title, onClick, style }) => (
+          <th
+            title={title}
+            className={col.isSorted ? `${className || ''} is-sorted` : className}
+            style={style}
+            onClick={onClick}
+          >
+            {label}
+            <SortIcon column={col} />
+          </th>
+        ),
         sortDescFirst: sortDesc,
         sortType: getSortTypeByDataType(dataType),
       };
@@ -277,9 +275,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     ],
   );
 
-  const columns = useMemo(() => {
-    return columnsMeta.map(getColumnConfigs);
-  }, [columnsMeta, getColumnConfigs]);
+  const columns = useMemo(() => columnsMeta.map(getColumnConfigs), [columnsMeta, getColumnConfigs]);
 
   return (
     <Styles>
