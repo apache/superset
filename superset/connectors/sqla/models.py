@@ -1198,6 +1198,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         extras: Optional[Dict[str, Any]] = None,
         columns: Optional[List[str]] = None,
         groupby: Optional[List[str]] = None,
+        orderby: Optional[List[Tuple[ColumnElement, bool]]] = None,
         inner_from_dttm: Optional[datetime] = None,
         inner_to_dttm: Optional[datetime] = None,
     ) -> Tuple[TableClause, List[str]]:
@@ -1474,6 +1475,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 extras,
                 columns,
                 groupby,
+                orderby,
                 inner_from_dttm,
                 inner_to_dttm,
             )
