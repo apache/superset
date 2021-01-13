@@ -61,6 +61,7 @@ from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.utils import (
     get_expected_labels_from_select,
+    get_having_clause,
     get_where_operation,
 )
 from superset.db_engine_specs.base import TimestampExpression
@@ -945,7 +946,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             )
         return main_metric_expression
 
-    def _get_expressions(
+    def _get_expressions(  # pylint:disable=too-many-arguments,too-many-local-variables
         self,
         is_sip_38: bool,
         metrics: List[Metric],
@@ -1040,7 +1041,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             )
         return time_filters, select_expressions, groupby_expressions_with_ts
 
-    def _get_where_clause(  # pylint:disable=too-many-branches
+    def _get_where_clause(
         self,
         filter_: Optional[List[Dict[str, Any]]],
         columns_by_name: Dict[str, Any],
@@ -1088,26 +1089,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             where_clause += [sa.text("({})".format(where))]
 
         return where_clause
-
-    def _get_having_clause(
-        self, extra_having: Any, template_processor: BaseTemplateProcessor
-    ) -> List[BooleanClauseList]:
-        """
-        generate complete having clause from extra arg 'have'
-        """
-        having_clause = []
-        if extra_having:
-            try:
-                having = template_processor.process_template(extra_having)
-            except TemplateError as ex:
-                raise QueryObjectValidationError(
-                    _(
-                        "Error in jinja expression in HAVING clause: %(msg)s",
-                        msg=ex.message,
-                    )
-                )
-            having_clause += [sa.text("({})".format(having))]
-        return having_clause
 
     def _get_compatible_granularity(self, granularity: str) -> str:
         if granularity not in self.dttm_cols:
@@ -1163,7 +1144,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         inner_select_expressions += [inner_main_metric_expr]
         return inner_select_expressions, inner_groupby_expressions
 
-    def _get_subquery(
+    def _get_subquery(  # pylint:disable=too-many-arguments
         self,
         inner_select_expressions: List[Label],
         query_table: TableClause,
@@ -1194,7 +1175,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         subquery = subquery.limit(timeseries_limit)
         return subquery
 
-    def _get_inner_query(
+    def _get_inner_query(  # pylint:disable=too-many-arguments,too-many-locals
         self,
         timeseries_limit: int,
         is_sip_38: bool,
@@ -1446,9 +1427,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         else:
             query = query.where(and_(*where_clause))
 
-        having_clause = self._get_having_clause(
-            extras.get("having"), template_processor
-        )
+        having_clause = get_having_clause(extras.get("having"), template_processor)
         query = query.having(and_(*having_clause))
 
         # ORDER EXPRESSION

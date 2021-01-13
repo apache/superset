@@ -1,12 +1,52 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 from typing import Any, Dict, List
 
+import sqlalchemy as sa
 from flask_babel import lazy_gettext as _
+from jinja2.exceptions import TemplateError
 from sqlalchemy import or_
-from sqlalchemy.sql.expression import Label
+from sqlalchemy.sql.expression import BooleanClauseList, Label
 
 from superset.constants import NULL_STRING
 from superset.exceptions import QueryObjectValidationError
+from superset.jinja_context import BaseTemplateProcessor
 from superset.utils.core import cast_to_num, FilterOperator
+
+
+def get_having_clause(
+    extra_having: Any, template_processor: BaseTemplateProcessor
+) -> List[BooleanClauseList]:
+    """
+    generate complete having clause from extra arg 'have'
+    """
+    having_clause = []
+    if extra_having:
+        try:
+            having = template_processor.process_template(extra_having)
+        except TemplateError as ex:
+            raise QueryObjectValidationError(
+                _(
+                    "Error in jinja expression in HAVING clause: %(msg)s",
+                    msg=ex.message,
+                )
+            )
+        having_clause += [sa.text("({})".format(having))]
+    return having_clause
 
 
 def get_expected_labels_from_select(select_expressions: List[Label]) -> List[str]:
