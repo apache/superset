@@ -32,6 +32,7 @@ from pyparsing import (
     Group,
     Optional as ppOptional,
     ParseException,
+    ParserElement,
     ParseResults,
     pyparsing_common,
     quotedString,
@@ -39,6 +40,8 @@ from pyparsing import (
 )
 
 from .core import memoized
+
+ParserElement.enablePackrat()
 
 logger = logging.getLogger(__name__)
 
