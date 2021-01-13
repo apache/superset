@@ -24,8 +24,10 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from superset import db
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.exceptions import SupersetException
+from superset.datasets.commands.exceptions import DatasetForbiddenError
+from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.typing import FlaskResponse
+from superset.views.base import check_ownership
 
 from .base import api, BaseSupersetView, handle_api_exception, json_error_response
 
@@ -52,6 +54,14 @@ class Datasource(BaseSupersetView):
         orm_datasource.database_id = database_id
 
         if "owners" in datasource_dict and orm_datasource.owner_class is not None:
+            # Check ownership
+            try:
+                check_ownership(orm_datasource)
+            except SupersetSecurityException:
+                return json_error_response(
+                    f"{DatasetForbiddenError.message}", DatasetForbiddenError.status
+                )
+
             datasource_dict["owners"] = (
                 db.session.query(orm_datasource.owner_class)
                 .filter(orm_datasource.owner_class.id.in_(datasource_dict["owners"]))
