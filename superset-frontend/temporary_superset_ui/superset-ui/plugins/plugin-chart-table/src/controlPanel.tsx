@@ -68,9 +68,7 @@ function getQueryMode(controls: ControlStateMapping): QueryMode {
  * Visibility check
  */
 function isQueryMode(mode: QueryMode) {
-  return ({ controls }: ControlPanelsContainerProps) => {
-    return getQueryMode(controls) === mode;
-  };
+  return ({ controls }: ControlPanelsContainerProps) => getQueryMode(controls) === mode;
 }
 
 const isAggMode = isQueryMode(QueryMode.aggregate);
@@ -90,9 +88,7 @@ const queryMode: ControlConfig<'RadioButtonControl'> = {
       value: QueryMode.raw,
     },
   ],
-  mapStateToProps: ({ controls }) => {
-    return { value: getQueryMode(controls) };
-  },
+  mapStateToProps: ({ controls }) => ({ value: getQueryMode(controls) }),
 };
 
 const all_columns: typeof sharedControls.groupby = {
@@ -120,14 +116,12 @@ const percent_metrics: typeof sharedControls.metrics = {
   description: t('Metrics for which percentage of total are to be displayed'),
   multi: true,
   visibility: isAggMode,
-  mapStateToProps: ({ datasource, controls }) => {
-    return {
-      columns: datasource?.columns || [],
-      savedMetrics: datasource?.metrics || [],
-      datasourceType: datasource?.type,
-      queryMode: getQueryMode(controls),
-    };
-  },
+  mapStateToProps: ({ datasource, controls }) => ({
+    columns: datasource?.columns || [],
+    savedMetrics: datasource?.metrics || [],
+    datasourceType: datasource?.type,
+    queryMode: getQueryMode(controls),
+  }),
   default: [],
   validators: [],
 };
