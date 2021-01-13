@@ -23,13 +23,11 @@ import WorldMap from './WorldMap';
 
 const ReactWorldMap = reactify(WorldMap);
 
-const WorldMapComponent = ({ className, ...otherProps }) => {
-  return (
-    <div className={className}>
-      <ReactWorldMap {...otherProps} />
-    </div>
-  );
-};
+const WorldMapComponent = ({ className, ...otherProps }) => (
+  <div className={className}>
+    <ReactWorldMap {...otherProps} />
+  </div>
+);
 
 WorldMapComponent.propTypes = {
   className: PropTypes.string.isRequired,

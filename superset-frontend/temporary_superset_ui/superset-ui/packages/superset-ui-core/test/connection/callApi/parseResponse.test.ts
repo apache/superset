@@ -69,13 +69,15 @@ describe('parseResponse()', () => {
       '<html><head></head><body>I could be a stack trace or something</body></html>';
     fetchMock.get(mockTextUrl, mockTextResponse);
 
+    let error;
     try {
       await parseResponse(callApi({ url: mockTextUrl, method: 'GET' }));
-    } catch (error) {
-      const err = error as Error;
+    } catch (err) {
+      error = err as Error;
+    } finally {
       expect(fetchMock.calls(mockTextUrl)).toHaveLength(1);
-      expect(err.stack).toBeDefined();
-      expect(err.message).toContain('Unexpected token');
+      expect(error?.stack).toBeDefined();
+      expect(error?.message).toContain('Unexpected token');
     }
   });
 
@@ -97,12 +99,16 @@ describe('parseResponse()', () => {
 
   it('throws if parseMethod is not null|json|text', async () => {
     expect.assertions(1);
+
+    let error;
     try {
       await parseResponse(
         callApi({ url: mockNoParseUrl, method: 'GET' }),
         'something-else' as never,
       );
-    } catch (error) {
+    } catch (err) {
+      error = err;
+    } finally {
       expect(error.message).toEqual(expect.stringContaining('Expected parseResponse=json'));
     }
   });
@@ -123,13 +129,15 @@ describe('parseResponse()', () => {
 
     const apiPromise = callApi({ url: mockNotOkayUrl, method: 'GET' });
 
+    let error;
     try {
       await parseResponse(apiPromise);
-    } catch (error) {
-      const err = error as { ok: boolean; status: number };
+    } catch (err) {
+      error = err as { ok: boolean; status: number };
+    } finally {
       expect(fetchMock.calls(mockNotOkayUrl)).toHaveLength(1);
-      expect(err.ok).toBe(false);
-      expect(err.status).toBe(404);
+      expect(error?.ok).toBe(false);
+      expect(error?.status).toBe(404);
     }
   });
 });

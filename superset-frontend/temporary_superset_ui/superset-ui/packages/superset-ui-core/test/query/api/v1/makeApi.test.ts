@@ -75,9 +75,8 @@ describe('makeApi()', () => {
     const api = makeApi({
       method: 'POST',
       endpoint: '/test',
-      processResponse: (json: typeof responseJson) => {
-        return json.items.reduce((a: number, b: number) => a + b);
-      },
+      processResponse: (json: typeof responseJson) =>
+        json.items.reduce((a: number, b: number) => a + b),
     });
     expect(api.method).toEqual('POST');
     expect(await api({})).toBe(6);
@@ -155,10 +154,15 @@ describe('makeApi()', () => {
       endpoint: '/test-formdata',
       requestType: 'form',
     });
+    let error;
+
     fetchMock.post('glob:*/test-formdata', { test: 'ok' });
+
     try {
       await api('<This is an invalid JSON string>');
-    } catch (error) {
+    } catch (err) {
+      error = err;
+    } finally {
       expect((error as SupersetApiError).message).toContain('Invalid payload');
     }
   });
@@ -171,9 +175,13 @@ describe('makeApi()', () => {
       requestType: 'json',
     });
     fetchMock.post('glob:*/test-200-error', { error: 'not ok' });
+
+    let error;
     try {
       await api({});
-    } catch (error) {
+    } catch (err) {
+      error = err;
+    } finally {
       expect((error as SupersetApiError).message).toContain('not ok');
     }
   });

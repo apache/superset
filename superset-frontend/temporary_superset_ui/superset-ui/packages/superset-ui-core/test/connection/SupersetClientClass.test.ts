@@ -103,9 +103,13 @@ describe('SupersetClientClass', () => {
       fetchMock.get(LOGIN_GLOB, () => Promise.reject(rejectError), {
         overwriteRoutes: true,
       });
+
+      let error;
       try {
         await new SupersetClientClass({}).init();
-      } catch (error) {
+      } catch (err) {
+        error = err;
+      } finally {
         expect(error as typeof rejectError).toEqual(rejectError);
       }
     });
@@ -115,9 +119,13 @@ describe('SupersetClientClass', () => {
     it('throws if superset/csrf_token/ does not return a token', async () => {
       expect.assertions(1);
       fetchMock.get(LOGIN_GLOB, {}, { overwriteRoutes: true });
+
+      let error;
       try {
         await new SupersetClientClass({}).init();
-      } catch (error) {
+      } catch (err) {
+        error = err;
+      } finally {
         expect(error as typeof invalidCsrfTokenError).toEqual(invalidCsrfTokenError);
       }
     });
@@ -127,9 +135,13 @@ describe('SupersetClientClass', () => {
       fetchMock.get(LOGIN_GLOB, '123', {
         overwriteRoutes: true,
       });
+
+      let error;
       try {
         await new SupersetClientClass({}).init();
-      } catch (error) {
+      } catch (err) {
+        error = err;
+      } finally {
         expect(error as typeof invalidCsrfTokenError).toEqual(invalidCsrfTokenError);
       }
     });
@@ -160,9 +172,13 @@ describe('SupersetClientClass', () => {
       expect.assertions(2);
 
       const client = new SupersetClientClass({});
+      let error;
+
       try {
         await client.ensureAuth();
-      } catch (error) {
+      } catch (err) {
+        error = err;
+      } finally {
         expect(error).toEqual({ error: expect.any(String) });
       }
       expect(client.isAuthenticated()).toBe(false);
@@ -187,15 +203,21 @@ describe('SupersetClientClass', () => {
       });
 
       const client = new SupersetClientClass({});
+      let error;
+      let error2;
 
       try {
         await client.init();
-      } catch (error) {
+      } catch (err) {
+        error = err;
+      } finally {
         expect(error).toEqual(expect.objectContaining(rejectValue));
         expect(client.isAuthenticated()).toBe(false);
         try {
           await client.ensureAuth();
-        } catch (error2) {
+        } catch (err) {
+          error2 = err;
+        } finally {
           expect(error2).toEqual(expect.objectContaining(rejectValue));
           expect(client.isAuthenticated()).toBe(false);
         }

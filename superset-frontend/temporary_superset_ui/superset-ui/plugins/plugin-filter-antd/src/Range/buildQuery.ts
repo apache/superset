@@ -35,36 +35,34 @@ import { buildQueryContext, ColumnType, QueryFormData } from '@superset-ui/core'
 export default function buildQuery(formData: QueryFormData) {
   const { groupby } = formData;
   const [column] = groupby || [];
-  return buildQueryContext(formData, baseQueryObject => {
-    return [
-      {
-        ...baseQueryObject,
-        groupby: [],
-        metrics: [
-          {
-            aggregate: 'MIN',
-            column: {
-              columnName: column,
-              id: 1,
-              type: ColumnType.FLOAT,
-            },
-            expressionType: 'SIMPLE',
-            hasCustomLabel: true,
-            label: 'min',
+  return buildQueryContext(formData, baseQueryObject => [
+    {
+      ...baseQueryObject,
+      groupby: [],
+      metrics: [
+        {
+          aggregate: 'MIN',
+          column: {
+            columnName: column,
+            id: 1,
+            type: ColumnType.FLOAT,
           },
-          {
-            aggregate: 'MAX',
-            column: {
-              columnName: column,
-              id: 2,
-              type: ColumnType.FLOAT,
-            },
-            expressionType: 'SIMPLE',
-            hasCustomLabel: true,
-            label: 'max',
+          expressionType: 'SIMPLE',
+          hasCustomLabel: true,
+          label: 'min',
+        },
+        {
+          aggregate: 'MAX',
+          column: {
+            columnName: column,
+            id: 2,
+            type: ColumnType.FLOAT,
           },
-        ],
-      },
-    ];
-  });
+          expressionType: 'SIMPLE',
+          hasCustomLabel: true,
+          label: 'max',
+        },
+      ],
+    },
+  ]);
 }
