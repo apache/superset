@@ -833,10 +833,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         """
         Turn an adhoc metric into a sqlalchemy column.
 
-        :param dict metric: Adhoc metric definition
-        :param dict columns_by_name: Columns for the current table
-        :returns: The metric defined as a sqlalchemy column
-        :rtype: sqlalchemy.sql.column
         """
         expression_type = metric.get("expressionType")
         label = utils.get_metric_name(metric)
@@ -863,10 +859,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         Return the appropriate row level security filters for
         this table and the current user.
 
-        :param BaseTemplateProcessor template_processor: The template
-        processor to apply to the filters.
-        :returns: A list of SQL clauses to be ANDed together.
-        :rtype: List[str]
         """
         filters_grouped: Dict[Union[int, str], List[str]] = defaultdict(list)
         try:
@@ -968,7 +960,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     ) -> Tuple[List[Label], "OrderedDict[str, Any]", List[Label]]:
         """
         generate select, groupby expressions
-        eg: select expresions is list of elements of columns
         """
         select_expressions: List[Column] = []
         groupby_expressions = OrderedDict()
@@ -1065,8 +1056,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         columns_by_name: Dict[str, Any],
         template_processor: BaseTemplateProcessor,
         extra_where: Any,
-        granularity: str,
-        time_filters: List[BooleanClauseList],
     ) -> List[BooleanClauseList]:
         """
         generates complete where clause from filters and columns
@@ -1140,9 +1129,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         if is_feature_enabled("ROW_LEVEL_SECURITY"):
             where_clause += self._get_sqla_row_level_filters(template_processor)
 
-        if granularity:
-            where_clause += time_filters
-
         if extra_where:
             try:
                 where = template_processor.process_template(extra_where)
@@ -1185,8 +1171,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
     ) -> List[BooleanClauseList]:
         """
         generate complete order by clause
-        # To ensure correct handling of the ORDER BY labeling we need to reference the
-        # metric instance if defined in the SELECT clause.
+        To ensure correct handling of the ORDER BY labeling we need to reference the
+        metric instance if defined in the SELECT clause.
         """
         order_by = []
 
@@ -1290,53 +1276,21 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             # some sql dialects require for order by expressions
             # to also be in the select clause -- others, e.g. vertica,
             # require a unique inner alias
-            """
-            <sqlalchemy.sql.elements.Label object at 0x7fd9a0ebfc90>
-                -> str -> 'sum(num)'
-                -> name -> mme_inner
-            """
             inner_main_metric_expr: Label = self.make_sqla_column_compatible(
                 main_metric_expression, "mme_inner__"
             )
 
-            """
-            inner_select_expressions
-                [<sqlalchemy.sql.elements.Label object at 0x7fd9a0ebe690>,
-                <sqlalchemy.sql.elements.Label object at 0x7fd9a0ebfc90>]
-                    -> str: [name, sum(num)]
-                    -> name: [name__, mme_inner__]
-            inner_groupbt_expressions
-                [<sqlalchemy.sql.elements.Label object at 0x7fd9a0ebe690>]
-                    -> str: [name]
-                    -> name: [name__]
-            """
             (
                 inner_select_expressions,
                 inner_groupby_expressions,
             ) = self._get_inner_expressions(groupby_expressions, inner_main_metric_expr)
 
-            """
-            inner_time_filter:
-                -> <sqlalchemy.sql.elements.BooleanClauseList object at 0x7fd993936050>
-                -> str: "ds >= '1921-01-12 00:00:00.000000' AND ds < '2021-01-12 18:51:56.000000'"
-            """
             inner_time_filter = columns_by_name[granularity].get_time_filter(
                 inner_from_dttm or from_dttm,
                 inner_to_dttm or to_dttm,
                 time_range_endpoints,
             )
 
-            """
-            subquery:
-                -> <sqlalchemy.sql.selectable.Select at 0x7fd9a0d11210; Select object>
-                -> str: SELECT name AS name__, sum(num) AS mme_inner__
-                    FROM birth_names
-                    WHERE ds >= '1921-01-12 00:00:00.000000' AND
-                     ds < '2021-01-12 18:51:56.000000' AND ds >= '1921-01-12 00:00:00.000000'
-                     AND ds < '2021-01-12 18:51:56.000000'
-                      GROUP BY name ORDER BY mme_inner__ DESC
-                       LIMIT :param_1"
-            """
             subquery = self._get_subquery(
                 inner_select_expressions,
                 query_table,
@@ -1352,15 +1306,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             )
 
             # join outer source with inner query on groupby expressions
-            """
-            groupby_expressions:
-                OrderedDict([('name', <sqlalchemy.sql.elements.Label object at 0x7fd9a0d4d6d0>)])
 
-            on_clause:
-                [<sqlalchemy.sql.elements.BinaryExpression object at 0x7fd9a0e85690>]
-                -> str: 'name = name__'
-
-            """
             on_clause = []
             for gby_name, gby_obj in groupby_expressions.items():
                 # in this case the column name, not the alias, needs to be
@@ -1369,22 +1315,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 col_name = db_engine_spec.make_label_compatible(gby_name + "__")
                 on_clause.append(gby_obj == column(col_name))
 
-            """
-            query_table:
-                <sqlalchemy.sql.selectable.Join at 0x7fd993936f10; Join
-                     object on birth_names(140572682974352) and %(140572460542480 anon)s(140572460542480)>
-                -> str: "birth_names JOIN
-                            (SELECT name AS name__, sum(num) AS mme_inner__
-                            FROM birth_names
-                            WHERE ds >= '1921-01-12 00:00:00.000000' AND
-                             ds < '2021-01-12 18:51:56.000000' AND
-                             ds >= '1921-01-12 00:00:00.000000' AND
-                             ds < '2021-01-12 18:51:56.000000'
-                             GROUP BY name ORDER BY mme_inner__ DESC
-                             LIMIT :param_1) AS anon_1 ON name = name__"
-
-
-            """
             query_table = query_table.join(subquery.alias(), and_(*on_clause))
 
         else:
@@ -1451,27 +1381,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         order_desc: bool = True,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface
-        input eg:
-            metrics: [
-                {'aggregate': 'SUM', 'column': {'column_name': 'num', 'type': 'BIGINT'},
-                'expressionType': 'SIMPLE', 'label': 'Births', 'optionName': 'metric_11'}]
-
-            granularity: "ds"
-            from_dttm
-                datetime.datetime(1921, 1, 12, 0, 0)
-            columns: None
-            groupby: ['name']
-            filter: []
-            is_timeseries: True
-            timeseries_limit: 25
-            timeseries_limit_metric: None
-            row_limit: 50000
-            row_offset: None
-            inner_from_dttm: None
-            inner_to_dttm: None
-            orderby: None
-            extras: {'druid_time_origin': '', 'having': '', 'having_druid': [], 'time_grain_sqla': 'P1D', 'time_range_endpoints': (<TimeRangeEndpoint.INCLUSIVE: 'inclusive'>, <TimeRangeEndpoint.EXCLUSIVE: 'exclusive'>), 'where': ''}
-            order_desc: True
         """
         extra_cache_keys: List[Any] = []
         is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
@@ -1493,16 +1402,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         ):
             raise QueryObjectValidationError(_("Empty query?"))
 
-        """
-        {'from_dttm': '1921-01-12T00:00:00', 'groupby': ['name'],
-        'metrics': [
-            {'aggregate': 'SUM', 'column': {'column_name': 'num', 'type': 'BIGINT'},
-                'expressionType': 'SIMPLE', 'label': 'Births', 'optionName': 'metric_11'
-            }],
-          'row_limit': 50000, 'row_offset': None, 'to_dttm': '2021-01-12T16:57:57',
-          'filter': [], 'columns': ['ds', 'gender', 'name', 'num', 'state', 'sum_boys', 'sum_girls',
-           'num_california'], 'extra_cache_keys': []}
-        """
         template_kwargs = self._get_template_kwargs(
             metrics,
             self.columns,
@@ -1524,49 +1423,18 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         # False
         time_groupby_inline = db_engine_spec.time_groupby_inline
 
-        """
-        {'ds': ds, 'gender': gender, 'name': name,
-        'num': num, 'state': state, 'sum_boys': sum_boys,
-         'sum_girls': sum_girls,
-         'num_california': num_california}
-
-         every value is object of -> superset.connectors.sqla.models.TableColumn
-        """
         columns_by_name: Dict[str, TableColumn] = self._get_columns_by_name()
 
-        """
-        {'count': <superset.connectors.sqla.models.SqlMetric object at 0x7f185409a610>,
-         'sum__num': <superset.connectors.sqla.models.SqlMetric object at 0x7f185409a8d0>}
-        """
         metrics_by_name: Dict[str, SqlMetric] = self._get_metrics_by_name()
 
-        """
-        [<sqlalchemy.sql.elements.Label object at 0x7f18540821d0>]
-        name: 'Births'
-        """
         metric_expressions = self._get_metric_expressions(
             metrics, columns_by_name, metrics_by_name
         )
 
-        """
-        <sqlalchemy.sql.elements.Label object at 0x7f18540821d0>
-        name: 'Births'
-        """
         main_metric_expression: Label = self._get_main_metric_expression(
             metric_expressions
         )
 
-        """
-        select_expressions
-            [<sqlalchemy.sql.elements.Label object at 0x7f185407ac90>] -> name
-
-        metric_expressions
-            [<sqlalchemy.sql.elements.Label object at 0x7f18540821d0>] -> Births
-
-        groupby_expressions
-            OrderedDict([('name', <sqlalchemy.sql.elements.Label object at 0x7f185407ac90>)]) -> name
-
-        """
         (
             select_expressions,
             groupby_expressions,
@@ -1582,19 +1450,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             columns,
         )
 
-        """
-        time_filters
-            [<sqlalchemy.sql.elements.BooleanClauseList object at 0x7f8b2c167b50>] -> No Idea
-
-        select_expressions:
-            [<sqlalchemy.sql.elements.Label object at 0x7f8b2c6837d0>,  -> name
-            <sqlalchemy.sql.elements.Label object at 0x7f8b2c1677d0>]   -> __timestamp of ds column
-
-        groupby_expression_with_ts
-            OrderedDict([('name', <sqlalchemy.sql.elements.Label object at 0x7f8b2c6837d0>),
-            ('__timestamp', <sqlalchemy.sql.elements.Label object at 0x7f8b2c1677d0>)]) -> __timestamp of column ds
-
-        """
         (
             time_filters,
             select_expressions,
@@ -1612,19 +1467,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             extras.get("time_range_endpoints"),
         )
 
-        """
-        [<sqlalchemy.sql.elements.Label object at 0x7f8b2c6837d0>,  -> name
-        <sqlalchemy.sql.elements.Label object at 0x7f8b2c1677d0>,   -> __timestamp of ds
-         <sqlalchemy.sql.elements.Label object at 0x7f8b2c6befd0>]  -> Births
-
-        """
         select_expressions += (
             metric_expressions  # both elements.Lable of cols[name, state]
         )
 
-        """
-        ['name', '__timestamp', 'Births']
-        """
         labels_expected = self._get_expected_labels_from_select(select_expressions)
 
         # SELECT EXPRESSION
@@ -1632,43 +1478,22 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             groupby_expressions_with_ts.values(), select_expressions
         )  # elements.Lable of cols[name, state, Births]
 
-        """
-        query:
-            <sqlalchemy.sql.selectable.Select at 0x7f8b2c167c50; Select object>
-                -> SELECT name AS name, DATE(ds) AS __timestamp, sum(num) AS "Births"
-
-        query_table:
-            <sqlalchemy.sql.selectable.TableClause at 0x7f8b2c164310; birth_names>
-                name: birth_names
-                str: ''
-        """
         query = sa.select(select_expressions)
         inner_query_table: TableClause = self.get_from_clause(template_processor)
 
         # GROUP BY EXPRESSION
-        """
-        query:
-            <sqlalchemy.sql.selectable.Select at 0x7f8b2c167c50; Select object>
-                -> 'SELECT name AS name, DATE(ds) AS __timestamp, sum(num) AS "Births" GROUP BY name, DATE(ds)'
-        """
+
         if (is_sip_38 and metrics) or (not is_sip_38 and not columns):
             query = query.group_by(*groupby_expressions_with_ts.values())
 
-        """
-        where clause:
-            [<sqlalchemy.sql.elements.BooleanClauseList object at 0x7f8b2c167b50>]
-                -> "ds >= '1921-01-12 00:00:00.000000' AND ds < '2021-01-12 17:38:58.000000'"
-        """
         # WHERE AND HAVING EXPRESSION
         where_clause = self._get_where_clause(
-            filter,
-            columns_by_name,
-            template_processor,
-            extras.get("where"),
-            granularity,
-            time_filters,
+            filter, columns_by_name, template_processor, extras.get("where"),
         )
-        query = query.where(and_(*where_clause))
+        if granularity:
+            query = query.where(and_(*(where_clause + time_filters)))
+        else:
+            query = query.where(and_(*where_clause))
 
         having_clause = self._get_having_clause(
             extras.get("having"), template_processor
@@ -1687,35 +1512,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         if row_offset:
             query = query.offset(row_offset)
 
-        """
-        query:
-            'SELECT name AS name, DATE(ds) AS __timestamp, sum(num) AS "Births"
-                WHERE ds >= \'1921-01-12 00:00:00.000000\' AND ds < \'2021-01-12 18:42:36.000000\'
-                    GROUP BY name, DATE(ds)\n LIMIT :param_1'
-        """
-
         # ON AND WHERE CLAUSE ON JOINED TABLES IF REQUIRED
-        """
-        inner_query_table:
-            <sqlalchemy.sql.selectable.Join at 0x7fe0c414d750; Join object on birth_names(140603344174288)
-                and %(140603339102416 anon)s(140603339102416)>
-                -> "birth_names JOIN
-                        (SELECT name AS name__, sum(num) AS mme_inner__
-                        FROM birth_names
-                        WHERE ds >= '1921-01-12 00:00:00.000000' AND ds < '2021-01-12 18:42:36.000000'
-                        AND ds >= '1921-01-12 00:00:00.000000' AND ds < '2021-01-12 18:42:36.000000'
-                        GROUP BY name ORDER BY mme_inner__ DESC
-                        LIMIT :param_1)
-                    AS anon_1 ON name = name__"
 
-        where_clause:
-            [<sqlalchemy.sql.elements.BooleanClauseList object at 0x7fe0c4623c90>]
-                -> "ds >= '1921-01-12 00:00:00.000000' AND ds < '2021-01-12 18:42:36.000000'"
-
-        prequeries:
-            []
-
-        """
         prequeries: List[str] = []
         if (
             is_timeseries  # pylint: disable=too-many-boolean-expressions
