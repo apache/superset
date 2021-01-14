@@ -21,8 +21,8 @@ params:
   color_scheme: supersetColors
   datasource: 69__table
   groupby:
-  - Product_Category
-  - Clinical Stage
+  - product_category
+  - clinical_stage
   linear_color_scheme: schemeYlOrBr
   metric: count
   queryFields:

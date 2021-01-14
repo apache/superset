@@ -38,7 +38,7 @@ metrics:
   extra: null
   warning_text: null
 columns:
-- column_name: Highest Degree Earned
+- column_name: highest_degree_earned
   verbose_name: Highest Degree Earned
   is_dttm: false
   is_active: null
@@ -60,8 +60,8 @@ columns:
     \ MD, JD, etc.)\"\nEND"
   description: Highest Degree Earned
   python_date_format: null
-- column_name: Job Location Preference
-  verbose_name: null
+- column_name: job_location_preference
+  verbose_name: Job Location Preference
   is_dttm: false
   is_active: null
   type: null
@@ -73,7 +73,7 @@ columns:
     \ 'In an Office (with Other Developers)'\nelse job_lctn_pref\nend "
   description: null
   python_date_format: null
-- column_name: Ethnic Minority
+- column_name: ethnic_minority
   verbose_name: Ethnic Minority
   is_dttm: null
   is_active: null
@@ -85,7 +85,7 @@ columns:
     END"
   description: null
   python_date_format: null
-- column_name: Willing To Relocate
+- column_name: willing_to_relocate
   verbose_name: Willing To Relocate
   is_dttm: false
   is_active: null
@@ -96,7 +96,7 @@ columns:
     \ = 1 THEN 'Yes: Willing To'\nELSE 'No Answer'\nEND"
   description: null
   python_date_format: null
-- column_name: Developer Type
+- column_name: developer_type
   verbose_name: Developer Type
   is_dttm: false
   is_active: null
@@ -107,8 +107,8 @@ columns:
     = 1 THEN 'Currently A Developer' END
   description: null
   python_date_format: null
-- column_name: First Time Developer
-  verbose_name: null
+- column_name: first_time_developer
+  verbose_name: First Time Developer
   is_dttm: false
   is_active: null
   type: null
@@ -118,7 +118,7 @@ columns:
     \ = 1 THEN 'Yes' \nELSE 'No Answer'\nEND"
   description: null
   python_date_format: null
-- column_name: Gender
+- column_name: gender
   verbose_name: null
   is_dttm: null
   is_active: null

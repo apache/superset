@@ -38,21 +38,21 @@ metrics:
   extra: null
   warning_text: null
 columns:
-- column_name: Clinical Stage
+- column_name: clinical_stage
   verbose_name: null
   is_dttm: null
   is_active: null
   type: STRING
   groupby: true
   filterable: true
-  expression: "CASE \nWHEN Stage_of_Development = 'Pre-clinical' THEN '0. Pre-clinical'\n\
-    WHEN Stage_of_Development = 'Phase I' THEN '1. Phase I' \nWHEN Stage_of_Development\
-    \ = 'Phase I/II' or Stage_of_Development = 'Phase II' THEN '2. Phase II or\
-    \ Combined I/II'\nWHEN Stage_of_Development = 'Phase III' THEN '3. Phase III'\n\
-    WHEN Stage_of_Development = 'Authorized' THEN '4. Authorized'\nEND"
+  expression: "CASE \nWHEN stage_of_development = 'Pre-clinical' THEN '0. Pre-clinical'\n\
+    WHEN stage_of_development = 'Phase I' THEN '1. Phase I' \nWHEN stage_of_development\
+    \ = 'Phase I/II' or stage_of_development = 'Phase II' THEN '2. Phase II or\
+    \ Combined I/II'\nWHEN stage_of_development = 'Phase III' THEN '3. Phase III'\n\
+    WHEN stage_of_development = 'Authorized' THEN '4. Authorized'\nEND"
   description: null
   python_date_format: null
-- column_name: FDA_Approved_Indications
+- column_name: fda_approved_indications
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -62,7 +62,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Anticipated_Next_Steps
+- column_name: anticipated_next_steps
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -72,7 +72,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: IOC_Country_Code
+- column_name: ioc_country_code
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -82,7 +82,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Clinical_Trials_for_Other_Diseases_or_Related_Use
+- column_name: clinical_trials_for_other_diseases_or_related_use
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -92,7 +92,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Country_Name
+- column_name: country_name
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -102,7 +102,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Product_Category
+- column_name: product_category
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -112,7 +112,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Clinical_Trials
+- column_name: clinical_trials
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -122,7 +122,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Date_Last_Updated
+- column_name: date_last_updated
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -132,7 +132,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Product_Description
+- column_name: product_description
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -142,7 +142,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Developer_or_Researcher
+- column_name: developer_or_researcher
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -152,7 +152,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Stage_of_Development
+- column_name: stage_of_development
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -162,7 +162,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Funder
+- column_name: funder
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -172,7 +172,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Published_Results
+- column_name: published_results
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -182,7 +182,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Sources
+- column_name: sources
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -192,7 +192,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Treatment_vs_Vaccine
+- column_name: treatment_vs_vaccine
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -204,4 +204,4 @@ columns:
   python_date_format: null
 version: 1.0.0
 database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
-data: https://raw.githubusercontent.com/apache-superset/examples-data/master/datasets/examples/covid_vaccines.csv
+data: https://raw.githubusercontent.com/apache-superset/examples-data/lowercase_columns_examples/datasets/examples/covid_vaccines.csv
