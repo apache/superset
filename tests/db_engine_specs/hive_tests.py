@@ -19,7 +19,8 @@ from datetime import datetime
 from unittest import mock
 
 import pytest
-
+import pandas as pd
+from sqlalchemy.sql import select
 from tests.test_app import app
 from superset.db_engine_specs.hive import HiveEngineSpec, upload_to_s3
 from superset.exceptions import SupersetException
@@ -328,3 +329,18 @@ def test_fetch_data_success(fetch_data_mock):
     fetch_data_mock.return_value = return_value
     cursor = mock.Mock()
     assert HiveEngineSpec.fetch_data(cursor) == return_value
+
+
+@mock.patch("superset.db_engine_specs.hive.HiveEngineSpec._latest_partition_from_df")
+def test_where_latest_partition(mock_method):
+    mock_method.return_value = ("01-01-19", 1)
+    db = mock.Mock()
+    db.get_indexes = mock.Mock(return_value=[{"column_names": ["ds", "hour"]}])
+    db.get_extra = mock.Mock(return_value={})
+    db.get_df = mock.Mock()
+    columns = [{"name": "ds"}, {"name": "hour"}]
+    result = HiveEngineSpec.where_latest_partition(
+        "test_table", "test_schema", db, select(), columns
+    )
+    query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
+    assert "SELECT  \nWHERE ds = '01-01-19' AND hour = 1" == query_result
