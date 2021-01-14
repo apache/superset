@@ -14,16 +14,32 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_appbuilder import Model
-from sqlalchemy import Column, ForeignKey, Integer, String, Table
+"""add roles relationship to dashboard
+Revision ID: e11ccdd12658
+Revises: c878781977c6
+Create Date: 2021-01-14 19:12:43.406230
+"""
+# revision identifiers, used by Alembic.
+revision = "e11ccdd12658"
+down_revision = "c878781977c6"
+import sqlalchemy as sa
+from alembic import op
 
-metadata = Model.metadata  # pylint: disable=no-member
 
-RBACTable = Table(
-    "rbac",
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("role_id", Integer, ForeignKey("ab_role.id")),
-    Column("type", String(50)),
-    Column("object_to_access_id", Integer),
-)
+def upgrade():
+    op.create_table(
+        "dashboard_roles",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("role_id", sa.Integer(), nullable=False),
+        sa.Column("dashboard_id", sa.Integer(), nullable=True),
+        sa.ForeignKeyConstraint(["dashboard_id"], ["dashboards.id"]),
+        sa.ForeignKeyConstraint(["role_id"], ["ab_role.id"]),
+        sa.PrimaryKeyConstraint("id"),
+    )
+
+    pass
+
+
+def downgrade():
+    op.drop_table("dashboard_roles")
+    pass

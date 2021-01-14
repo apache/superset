@@ -81,7 +81,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .join(Dashboard.slices)
             .filter(
                 and_(
-                    Dashboard.published == True,  # pylint: disable=singleton-comparison
+                    Dashboard.published.is_(True),
                     not Dashboard.roles,
                     or_(
                         Slice.perm.in_(datasource_perms),
@@ -97,7 +97,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .join(Dashboard.roles)
             .filter(
                 and_(
-                    Dashboard.published == True,  # pylint: disable=singleton-comparison
+                    Dashboard.published.is_(True),
                     Role.user.id == security_manager.user_model.get_user_id(),
                 )
             )
