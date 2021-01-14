@@ -283,3 +283,31 @@ def test_upload_to_s3_success(client):
 
     location = upload_to_s3("filename", "prefix", Table("table"))
     assert f"s3a://bucket/prefix/table" == location
+
+
+def test_fetch_data_query_error():
+    from TCLIService import ttypes
+
+    err_msg = "error message"
+    cursor = mock.Mock()
+    cursor.poll.return_value.operationState = ttypes.TOperationState.ERROR_STATE
+    cursor.poll.return_value.errorMessage = err_msg
+    with pytest.raises(Exception, match=f"('Query error', '{err_msg})'"):
+        HiveEngineSpec.fetch_data(cursor)
+
+
+@mock.patch("superset.db_engine_specs.base.BaseEngineSpec.fetch_data")
+def test_fetch_data_programming_error(fetch_data_mock):
+    from pyhive.exc import ProgrammingError
+
+    fetch_data_mock.side_effect = ProgrammingError
+    cursor = mock.Mock()
+    assert HiveEngineSpec.fetch_data(cursor) == []
+
+
+@mock.patch("superset.db_engine_specs.base.BaseEngineSpec.fetch_data")
+def test_fetch_data_success(fetch_data_mock):
+    return_value = ["a", "b"]
+    fetch_data_mock.return_value = return_value
+    cursor = mock.Mock()
+    assert HiveEngineSpec.fetch_data(cursor) == return_value
