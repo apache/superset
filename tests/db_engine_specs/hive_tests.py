@@ -168,6 +168,23 @@ def test_create_table_from_csv_append() -> None:
         )
 
 
+@mock.patch(
+    "superset.db_engine_specs.hive.config",
+    {**app.config, "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC": lambda *args: True},
+)
+@mock.patch("superset.db_engine_specs.hive.g", spec={})
+@mock.patch("tableschema.Table")
+def test_create_table_from_csv_if_exists_fail(mock_table, mock_g):
+    mock_table.infer.return_value = {}
+    mock_g.user = True
+    mock_database = mock.MagicMock()
+    mock_database.get_df.return_value.empty = False
+    with pytest.raises(SupersetException, match="Table already exists"):
+        HiveEngineSpec.create_table_from_csv(
+            "foo.csv", Table("foobar"), mock_database, {}, {"if_exists": "fail"}
+        )
+
+
 def test_get_create_table_stmt() -> None:
     table = Table("employee")
     schema_def = """eid int, name String, salary String, destination String"""
