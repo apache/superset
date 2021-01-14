@@ -860,7 +860,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         self,
         metrics: List[Metric],
         columns: List[TableColumn],
-        filter_: Optional[List[Dict[str, Any]]],
+        extra_cache_keys: List[Any],
+        filter_: Optional[List[Dict[str, Any]]] = None,
         from_dttm: Optional[datetime] = None,
         to_dttm: Optional[datetime] = None,
         groupby: Optional[List[str]] = None,
@@ -876,7 +877,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             "to_dttm": to_dttm.isoformat() if to_dttm else None,
             "filter": filter_,
             "columns": [col.column_name for col in columns],
-            "extra_cache_keys": [],
+            "extra_cache_keys": extra_cache_keys,
         }
 
     def _get_sqla_row_level_filters(
@@ -950,7 +951,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             )
         return main_metric_expression
 
-    def _get_expressions(  # pylint:disable=too-many-arguments,too-many-local-variables
+    def _get_expressions(  # pylint:disable=too-many-arguments,too-many-locals
         self,
         is_sip_38: bool,
         metrics: List[Metric],
@@ -1055,7 +1056,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         """
 
         where_clause = []
-
         for flt in filter_:  # type: ignore
             if not all([flt.get(s) for s in ["col", "op"]]):
                 continue
@@ -1340,6 +1340,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         template_kwargs = self._get_template_kwargs(
             metrics,
             self.columns,
+            extra_cache_keys,
             filter,
             from_dttm,
             to_dttm,
@@ -1349,7 +1350,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         )
 
         self._update_template_kwargs(template_kwargs)
-        template_kwargs["extra_cache_keys"] = extra_cache_keys
 
         template_processor = self.get_template_processor(**template_kwargs)
 
