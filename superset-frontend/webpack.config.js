@@ -274,8 +274,12 @@ const config = {
     modules: [APP_DIR, 'node_modules'],
     alias: {
       'react-dom': '@hot-loader/react-dom',
-      // force using absolute import path of the @superset-ui/core and @superset-ui/chart-controls
-      // so that we can `npm link` viz plugins without linking these two base packages
+      // Force using absolute import path of some packages in the root node_modules,
+      // as they can be dependencies of other packages via `npm link`.
+      // Both `@emotion/core` and `@superset-ui/core` remember some globals within
+      // module after imported, which will not be available everywhere if two
+      // different copies of the same module are imported in different places.
+      '@emotion/core': path.resolve(APP_DIR, './node_modules/@emotion/core'),
       '@superset-ui/core': path.resolve(
         APP_DIR,
         './node_modules/@superset-ui/core',
