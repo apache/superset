@@ -21,6 +21,7 @@ import json
 from io import BytesIO
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import prison
@@ -200,7 +201,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "test-create-database",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
-            "server_cert": ssl_certificate,
+            "server_cert": None,
             "extra": json.dumps(extra),
         }
 
@@ -761,7 +762,7 @@ class TestDatabaseApi(SupersetTestCase):
             "extra": json.dumps(extra),
             "impersonate_user": False,
             "sqlalchemy_uri": example_db.safe_sqlalchemy_uri(),
-            "server_cert": ssl_certificate,
+            "server_cert": None,
         }
         url = "api/v1/database/test_connection"
         rv = self.post_assert_metric(url, data, "test_connection")
@@ -848,6 +849,7 @@ class TestDatabaseApi(SupersetTestCase):
     @pytest.mark.usefixtures(
         "load_unicode_dashboard_with_position",
         "load_energy_table_with_slice",
+        "load_world_bank_dashboard_with_slices",
         "load_birth_names_dashboard_with_slices",
     )
     def test_get_database_related_objects(self):

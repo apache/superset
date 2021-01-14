@@ -23,6 +23,7 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
+- [11509](https://github.com/apache/superset/pull/12491): Dataset metadata updates check user ownership, only owners or an Admin are allowed.
 - Security simplification (SIP-19), the following permission domains were simplified:
     - [12072](https://github.com/apache/superset/pull/12072): `Query` with `can_read`, `can_write`
     - [12036](https://github.com/apache/superset/pull/12036): `Database` with `can_read`, `can_write`.
