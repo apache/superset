@@ -86,13 +86,9 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     }
   }
 
-  .ant-modal-content {
-    overflow-x: auto;
-  }
-
   .ant-modal-body {
     padding: ${({ theme }) => theme.gridUnit * 4}px;
-    overflow-y: visible;
+    overflow-x: auto;
     ${({ height }) => height && `height: ${height};`}
   }
 
