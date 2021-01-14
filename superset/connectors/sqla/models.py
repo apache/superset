@@ -1056,7 +1056,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         """
         generates complete where clause from filters and columns
         """
-
         where_clause = []
         for flt in filter_:  # type: ignore
             if not all([flt.get(s) for s in ["col", "op"]]):
@@ -1115,7 +1114,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         metric_expressions_by_label = {
             m._label: m for m in metric_expressions  # pylint: disable=protected-access
         }
-        direction = asc
+
         for col, ascending in orderby:
             direction = asc if ascending else desc
             if utils.is_adhoc_metric(col):

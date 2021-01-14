@@ -22,11 +22,14 @@ import pytest
 
 import tests.test_app
 from superset import db
-from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.exceptions import QueryObjectValidationError
 from superset.models.core import Database
 from superset.utils.core import DbColumnType, get_example_database, FilterOperator
+from collections import OrderedDict
+from superset.utils.core import TimeRangeEndpoint
+from datetime import datetime
 
 from .base_tests import SupersetTestCase
 
@@ -306,3 +309,161 @@ class TestDatabaseModel(SupersetTestCase):
         assert cols["mycase"].expression == ""
         assert VIRTUAL_TABLE_STRING_TYPES[backend].match(cols["mycase"].type)
         assert cols["expr"].expression == "case when 1 then 1 else 0 end"
+
+    def test_get_metric_expressions(self):
+        table = SqlaTable(
+            table_name="test_get_metric",
+            sql="SELECT * FROM foo",
+            database=get_example_database(),
+        )
+        metrics = [
+            {
+                "aggregate": "SUM",
+                "column": {"column_name": "num", "type": "BIGINT"},
+                "expressionType": "SIMPLE",
+                "label": "sample_label",
+                "optionName": "metric_1",
+            }
+        ]
+        metrics_by_name = {
+            "sum": SqlMetric(expression="SUM(num)", metric_name="sum", table=table)
+        }
+        columns_by_name = {
+            "col_1": TableColumn(column_name="num", type="FLOAT", table=table)
+        }
+        expressions = table._get_metric_expressions(
+            metrics, columns_by_name, metrics_by_name
+        )
+        assert len(expressions) == 1
+        assert str(expressions[0]) == "sum(num)"
+
+        metrics = ["sum"]
+        metrics_by_name = {
+            "sum": SqlMetric(expression="SUM(num)", metric_name="sum", table=table)
+        }
+        expressions = table._get_metric_expressions(
+            metrics, columns_by_name, metrics_by_name
+        )
+        assert len(expressions) == 1
+        assert str(expressions[0]) == "SUM(num)"
+
+        metrics_by_name = {}
+        with pytest.raises(QueryObjectValidationError):
+            _ = table._get_metric_expressions(metrics, columns_by_name, metrics_by_name)
+
+    def test_get_expressions(self):
+        table = SqlaTable(
+            table_name="test_get_expressions",
+            sql="SELECT * FROM foo",
+            database=get_example_database(),
+        )
+        metrics = [
+            {"aggregate": "SUM", "column": {"column_name": "num", "type": "BIGINT"}}
+        ]
+        granularity = "ds"
+        columns_by_name = {
+            granularity: TableColumn(column_name="ds", type="FLOAT", table=table),
+            "name": TableColumn(column_name="name", type="STRING", table=table),
+        }
+
+        input_ = {
+            "is_sip_38": False,
+            "metrics": metrics,
+            "columns_by_name": columns_by_name,
+            "groupby": [granularity],
+            "granularity": granularity,
+            "extras": {"time_grain_sqla": "P1D"},
+            "metric_expressions": [],
+            "columns": None,
+        }
+        select_expr, groupby_expr, _ = table._get_expressions(**input_)
+
+        assert len(select_expr) == 1
+        assert len(groupby_expr) == 1
+        assert select_expr[0]._df_label_expected == granularity
+        assert groupby_expr[granularity]._df_label_expected == granularity
+
+        input_["groupby"] = ["name"]
+        select_expr, groupby_expr, _ = table._get_expressions(**input_)
+        assert len(select_expr) == 1
+        assert len(groupby_expr) == 1
+        assert select_expr[0]._df_label_expected == "name"
+        assert groupby_expr["name"]._df_label_expected == "name"
+
+        input_["groupby"] = ["not-in-names"]
+        select_expr, groupby_expr, _ = table._get_expressions(**input_)
+        assert len(select_expr) == 1
+        assert len(groupby_expr) == 1
+        assert select_expr[0]._df_label_expected == "not-in-names"
+        assert groupby_expr["not-in-names"]._df_label_expected == "not-in-names"
+
+    def test_add_timestamp_expression(self):
+        table = SqlaTable(
+            table_name="test_add_ts",
+            sql="SELECT * FROM foo",
+            database=get_example_database(),
+        )
+
+        granularity = "ds"
+        from_dttm = datetime(2020, 1, 12, 0, 0)
+        to_dttm = datetime(2021, 1, 12, 0, 0)
+        endpoints = (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.INCLUSIVE)
+
+        columns_by_name = {
+            granularity: TableColumn(column_name="ds", type="FLOAT", table=table),
+            "name": TableColumn(column_name="name", type="STRING", table=table),
+        }
+        sqla_col = columns_by_name[granularity].get_sqla_col()
+        select_expr = [sqla_col]
+        groupby_expr = OrderedDict([(sqla_col.name, sqla_col)])
+
+        input_ = {
+            "granularity": "ds",
+            "time_grain_sqla": "P1D",
+            "select_expressions": select_expr,
+            "groupby_expressions": groupby_expr,
+            "columns_by_name": columns_by_name,
+            "is_timeseries": True,
+            "time_secondary_columns": False,
+            "from_dttm": from_dttm,
+            "to_dttm": to_dttm,
+            "time_range_endpoints": endpoints,
+        }
+        time_filters, select_expr, groupby_expr = table._add_timestamp_expression(
+            **input_
+        )
+        assert len(time_filters) == 1
+        assert len(select_expr) == 2
+        assert len(groupby_expr) == 2
+        assert str(time_filters[0]) == str(
+            columns_by_name[granularity].get_time_filter(from_dttm, to_dttm, endpoints)
+        )
+
+    def test_get_where_clause(self):
+        table = self.get_table_by_name("birth_names")
+        tamplate_processor = table.get_template_processor()
+        columns_by_name = {
+            "ds": TableColumn(column_name="ds", type="FLOAT", table=table),
+            "name": TableColumn(column_name="name", type="STRING", table=table),
+        }
+
+        filters = [
+            [{"col": "name", "op": "NOT IN", "val": ["Anna"]}, "NOT IN"],
+            [{"col": "name", "op": "==", "val": "Anna"}, "="],
+            [{"col": "name", "op": "!=", "val": "Anna"}, "!="],
+        ]
+
+        for filter_, expected_op in filters:
+            clause = table._get_where_clause(
+                [filter_], columns_by_name, tamplate_processor, None
+            )
+            self.assertIn(expected_op, str(clause[0]))
+
+        columns_by_name = {
+            "ds": TableColumn(column_name="ds", type="FLOAT", table=table)
+        }
+        for filter_, expected_op in filters:
+            clause = table._get_where_clause(
+                [filter_], columns_by_name, tamplate_processor, None
+            )
+            assert len(clause) == 0
