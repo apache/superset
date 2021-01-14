@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { FormInstance } from 'antd/lib/form';
 import { SupersetClient, t } from '@superset-ui/core';
 import { useChangeEffect } from 'src/common/hooks/useChangeEffect';
@@ -62,11 +62,18 @@ export function ColumnSelect({
       { name: ['filters', filterId, 'column'], touched: false, value: null },
     ]);
   }, [form, filterId]);
+
   useChangeEffect(datasetId, previous => {
     if (previous != null) {
       resetColumnField();
     }
   });
+
+  useEffect(() => {
+    if (datasetId == null) {
+      resetColumnField();
+    }
+  }, [datasetId, resetColumnField]);
 
   function loadOptions() {
     if (datasetId == null) return [];
