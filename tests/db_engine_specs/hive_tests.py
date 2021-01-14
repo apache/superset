@@ -339,8 +339,9 @@ def test_where_latest_partition(mock_method):
     db.get_extra = mock.Mock(return_value={})
     db.get_df = mock.Mock()
     columns = [{"name": "ds"}, {"name": "hour"}]
-    result = HiveEngineSpec.where_latest_partition(
-        "test_table", "test_schema", db, select(), columns
-    )
+    with app.app_context():
+        result = HiveEngineSpec.where_latest_partition(
+            "test_table", "test_schema", db, select(), columns
+        )
     query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
     assert "SELECT  \nWHERE ds = '01-01-19' AND hour = 1" == query_result
