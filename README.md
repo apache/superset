@@ -52,27 +52,27 @@ A modern, enterprise-ready business intelligence web application.
 
 **Gallery**
 
-<kbd><a href="https://superset.apache.org/gallery"><img title="Gallery" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/gallery.png"></a></kbd><br/>
+<kbd><a href="https://superset.apache.org/gallery"><img title="Gallery" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/gallery.jpg"></a></kbd><br/>
 
 **View Dashboards**
 
-<kbd><img title="View Dashboards" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/slack_dash.png"></kbd><br/>
+<kbd><img title="View Dashboards" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/slack_dash.jpg"></kbd><br/>
 
 **Slice & dice your data**
 
-<kbd><img title="Slice & dice your data" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/slice_and_dice.png"></kbd><br/>
+<kbd><img title="Slice & dice your data" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/explore.jpg"></kbd><br/>
 
 **Query and visualize your data with SQL Lab**
 
-<kbd><img title="SQL Lab" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/sql_lab.png"></kbd><br/>
+<kbd><img title="SQL Lab" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/sql_lab.jpg"></kbd><br/>
 
 **Visualize geospatial data with deck.gl**
 
-<kbd><img title="Geospatial" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/geospatial_dash.png"></kbd><br/>
+<kbd><img title="Geospatial" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/geospatial_dash.jpg"></kbd><br/>
 
 **Choose from a wide array of visualizations**
 
-<kbd><img title="Visualizations" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/explore_visualizations.png"></kbd><br/>
+<kbd><img title="Visualizations" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/explore_visualizations.jpg"></kbd><br/>
 
 
 ## Why Superset?
