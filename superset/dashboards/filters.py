@@ -16,6 +16,7 @@
 # under the License.
 from typing import Any
 
+from flask_appbuilder.security.sqla.models import Role
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
@@ -74,17 +75,29 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
-        published_dash_query = (
+        published_dash_datesource_perm_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.slices)
             .filter(
                 and_(
-                    Dashboard.published == True,  # pylint: disable=singleton-comparison
+                    Dashboard.published.is_(True),
+                    not Dashboard.roles,
                     or_(
                         Slice.perm.in_(datasource_perms),
                         Slice.schema_perm.in_(schema_perms),
                         security_manager.can_access_all_datasources(),
                     ),
+                )
+            )
+        )
+
+        published_dash_roles_based_query = (
+            db.session.query(Dashboard.id)
+            .join(Dashboard.roles)
+            .filter(
+                and_(
+                    Dashboard.published.is_(True),
+                    Role.user.id == security_manager.user_model.get_user_id(),
                 )
             )
         )
@@ -107,8 +120,9 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         query = query.filter(
             or_(
                 Dashboard.id.in_(owner_ids_query),
-                Dashboard.id.in_(published_dash_query),
+                Dashboard.id.in_(published_dash_datesource_perm_query),
                 Dashboard.id.in_(users_favorite_dash_query),
+                Dashboard.id.in_(published_dash_roles_based_query),
             )
         )
 

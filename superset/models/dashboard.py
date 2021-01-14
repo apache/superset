@@ -22,7 +22,7 @@ from typing import Any, Callable, Dict, List, Set, Union
 import sqlalchemy as sqla
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
-from flask_appbuilder.security.sqla.models import User
+from flask_appbuilder.security.sqla.models import Role, User
 from markupsafe import escape, Markup
 from sqlalchemy import (
     Boolean,
@@ -115,6 +115,15 @@ dashboard_user = Table(
 )
 
 
+DashboardRoles = Table(
+    "dashboard_roles",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("dashboard_id", Integer, ForeignKey("dashboards.id"), nullable=False),
+    Column("role_id", Integer, ForeignKey("ab_role.id"), nullable=False),
+)
+
+
 class Dashboard(  # pylint: disable=too-many-instance-attributes
     Model, AuditMixinNullable, ImportExportMixin
 ):
@@ -132,7 +141,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     slices = relationship(Slice, secondary=dashboard_slices, backref="dashboards")
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
     published = Column(Boolean, default=False)
-
+    roles = relationship(security_manager.role_model, secondary=DashboardRoles)
     export_fields = [
         "dashboard_title",
         "position_json",
