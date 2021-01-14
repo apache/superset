@@ -88,7 +88,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
 
   .ant-modal-body {
     padding: ${({ theme }) => theme.gridUnit * 4}px;
-    overflow-x: auto;
+    overflow: auto;
     ${({ height }) => height && `height: ${height};`}
   }
 
