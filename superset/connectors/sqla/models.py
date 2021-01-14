@@ -388,7 +388,9 @@ class SqlMetric(Model, BaseMetric):
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.metric_name
+        print("label ", label)
         sqla_col = literal_column(self.expression)
+        print("sqla col ", str(sqla_col))
         return self.table.make_sqla_column_compatible(sqla_col, label)
 
     @property
@@ -919,7 +921,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         metrics: List[Metric],
         columns_by_name: Dict[str, TableColumn],
         metrics_by_name: Dict[str, SqlMetric],
-    ) -> List[Any]:
+    ) -> List[Label]:
         """
         returns metric expressions columns like sum(num)
         """
@@ -1113,7 +1115,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         metric_expressions_by_label = {
             m._label: m for m in metric_expressions  # pylint: disable=protected-access
         }
-        # {'Births': <sqlalchemy.sql.elements.Label object at 0x7f419c49ca50>}
         direction = asc
         for col, ascending in orderby:
             direction = asc if ascending else desc
@@ -1357,7 +1358,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         granularity = self._get_compatible_granularity(granularity)
 
         # Database spec supports join-free timeslot grouping
-        # False
         time_groupby_inline = db_engine_spec.time_groupby_inline
 
         columns_by_name: Dict[str, TableColumn] = self._get_columns_by_name()
@@ -1419,7 +1419,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         inner_query_table: TableClause = self.get_from_clause(template_processor)
 
         # GROUP BY EXPRESSION
-
         if (is_sip_38 and metrics) or (not is_sip_38 and not columns):
             query = query.group_by(*groupby_expressions_with_ts.values())
 
@@ -1448,7 +1447,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             query = query.offset(row_offset)
 
         # ON AND WHERE CLAUSE ON JOINED TABLES IF REQUIRED
-
         prequeries: List[str] = []
         if (
             is_timeseries  # pylint: disable=too-many-boolean-expressions
