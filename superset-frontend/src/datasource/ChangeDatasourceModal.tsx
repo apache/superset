@@ -222,7 +222,8 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       responsive
       title={t('Change Dataset')}
       width={confirmChange ? '432px' : ''}
-      height="350px"
+      height={confirmChange ? 'auto' : '450px'}
+      hideFooter={!confirmChange}
       footer={
         <>
           {confirmChange && (
