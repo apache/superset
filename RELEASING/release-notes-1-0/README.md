@@ -28,15 +28,19 @@ Superset 1.0 is the first major release for Apache Superset. This release holds 
 # User Experience
 We have taken the Superset user experience to the next level with a much simpler, more intuitive UI.
 
-Lists of Charts and Dashboards are shown in a new format using a grid of thumbnails. This makes it easier to discover and find Charts and Dashboards, especially when there is a lot of them in your Superset instance.
+Lists of Charts and Dashboards are shown in a new format using a grid of thumbnails. This makes it easier to discover and find Charts and Dashboards, especially when there are a lot of them in your Superset instance.
 
 <kbd><img src="media/card_view.png" width="800"/></kbd>
 
-Visualization controls have been updated to create a more consistent and modernized interface. Refactoring includes updates to the content/labeling/ordering of these controls as well as updating their styling and simplifying their interactions and layout. This will line us up for features like drag-and-drop controls, and dynamically populated control inputs.
+Visualization controls have been updated to create a more consistent and modernized interface. Refactoring includes updates to the content/labeling/ordering of these controls as well as updating their styling and simplifying their interactions and layout. This will line us up for features like drag-and-drop controls, and dynamically populated control inputs in future releases.
 
-Users now have the ability to create and name a new dataset or update an existing dataset when moving from SQL Lab to Explore. When going back to SQL Lab, the underlying query for the dataset will be shown, allowing users to easily make changes and update their dataset when moving between SQL Lab and Explore.
+<kbd><img src="media/explore.png" width="800"/></kbd>
+
+Users also now have the ability to create and name a new dataset or update an existing dataset when moving from SQL Lab to Explore. When going back to SQL Lab, the underlying query for the dataset will be shown, allowing users to easily make changes and update their dataset when moving between SQL Lab and Explore.
 
 The [Superset 1.0 documentation](https://superset.apache.org/docs/intro) has been updated to reflect the current design and functionality.
+
+See related PR highlights [**here**](#user-experience).
 
 # Developer Experience
 Superset 1.0 makes it easier for developers to build, deploy, and maintain Superset functionality. This release is a major milestone in an ongoing effort to modernize, consolidate, and simplify the interface elements of Superset. Highly-used components have been visually updated, refactored to modern component libraries, and integrated with React Storybook for immediate visibility with consolidated test/styles. This improves the developer experience and creates a more consistent and modern aesthetic for the user.
