@@ -161,6 +161,9 @@ const StyledFilterControlTitle = styled.h4`
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   margin: 0;
   text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 `;
 
 const StyledFilterControlTitleBox = styled.div`

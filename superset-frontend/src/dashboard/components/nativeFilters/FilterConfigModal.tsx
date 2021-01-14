@@ -82,6 +82,7 @@ const FilterTabs = styled(LineEditableTabs)`
 const FilterTabTitle = styled.span`
   transition: color ${({ theme }) => theme.transitionTiming}s;
   width: 100%;
+  max-width: 200px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -105,6 +106,12 @@ const FilterTabTitle = styled.span`
     animation-name: tabTitleRemovalAnimation;
     animation-duration: ${REMOVAL_DELAY_SECS}s;
   }
+`;
+
+const StyledFilterTitle = styled.div`
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 `;
 
 const StyledAddFilterBox = styled.div`
@@ -523,11 +530,11 @@ export function FilterConfigModal({
                     <FilterTabTitle
                       className={removedFilters[id] ? 'removed' : ''}
                     >
-                      <div>
+                      <StyledFilterTitle>
                         {removedFilters[id]
                           ? t('(Removed)')
                           : getFilterTitle(id)}
-                      </div>
+                      </StyledFilterTitle>
                       {removedFilters[id] && (
                         <StyledSpan
                           role="button"
