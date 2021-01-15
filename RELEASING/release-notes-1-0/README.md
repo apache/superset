@@ -40,20 +40,24 @@ Users also now have the ability to create and name a new dataset or update an ex
 
 The [Superset 1.0 documentation](https://superset.apache.org/docs/intro) has been updated to reflect the current design and functionality.
 
-See related PR highlights [**here**](#user-experience).
+See related PR highlights [here](#user-experience-1).
 
 # Developer Experience
 Superset 1.0 makes it easier for developers to build, deploy, and maintain Superset functionality. This release is a major milestone in an ongoing effort to modernize, consolidate, and simplify the interface elements of Superset. Highly-used components have been visually updated, refactored to modern component libraries, and integrated with React Storybook for immediate visibility with consolidated test/styles. This improves the developer experience and creates a more consistent and modern aesthetic for the user.
 
+See related PR highlights [here](#developer-experience-1).
+
 # Performance
 This the most performant Superset release to date, with enhanced scalability and efficiency. In addition to many small tweaks, Charts and SQL Lab both now support asynchronous data loading. Users will feel this improvement when loading query results, especially when there are many charts in a Dashboard or when queries are long running.
+
+See related PR highlights [here](#performance-1).
 
 # New Features
 Superset 1.0 includes some other new features and enhancements. New visualization plugin architecture will make it easier to build, test, style and configure custom visualizations for Superset. Dynamic viz plugin imports will allow Superset to load data viz plugins, allowing developers to more easily use or share their custom plugins and load custom plugins on-demand. Superset has also adopted Apache ECharts as the core library for new visualizations.
 
 <kbd><img src="media/echarts_timeseries_prophet.png" width="800"/></kbd>
 
-Along with the Echarts integration, we are also introducing a better set of annotation features. Formula annotation, which allows users to plot any mathematical function on the chart; Interval and Event annotations, will allow users to add context to the trent in Time-Series; and Line annotation, which use a predefined chart as the source of annotation. 
+Along with the Echarts integration, we are also introducing a better set of annotation features. Formula annotation, which allows users to plot any mathematical function on the chart; Interval and Event annotations, will allow users to add context to the trent in Time-Series; and Line annotation, which use a predefined chart as the source of annotation.
 
 <kbd><img src="media/annotations.png" width="800"/></kbd>
 
@@ -73,6 +77,8 @@ Alerts and reporting have received a robust backend and UI overhaul.
 
 <kbd><img src="media/alerts_reports.png" width="800"/></kbd>
 
+See related PR highlights [here](#new-features-1).
+
 # Stability and Bugfixes
 This release emphasizes hardening and squashing bugs, with hundreds of bugfixes. Future major releases will see a continued emphasis on providing a stable and bug-free experience.
 
@@ -80,18 +86,17 @@ This release emphasizes hardening and squashing bugs, with hundreds of bugfixes.
 blurb
 
 # PR Highlights
-# User Experience
-We have taken the Superset user experience to the next level with a much simpler, more intuitive UI.
-
+## User Experience
 - Revert "refactor: Remove usages of reactable from TimeTable (#11046)" (#[11150](https://github.com/apache/incubator-superset/pull/11150))
 - style: Restoring menu highlights (#[12024](https://github.com/apache/incubator-superset/pull/12024))
 - style: eslint curly rule (#[11913](https://github.com/apache/incubator-superset/pull/11913))
 - style: remove react bootstrap fade component (#[11843](https://github.com/apache/incubator-superset/pull/11843))
 - style: dark filter popover background (#[11611](https://github.com/apache/incubator-superset/pull/11611))
-## Card Layout
+
+### Card Layout
 Lists of Charts and Dashboards are shown in a new format using a grid of thumbnails. This makes it easier to discover and find Charts and Dashboards, especially when there is a lot of them in your Superset instance.
 
-## Explore Controls
+### Explore Controls
 Visualization controls have been updated to create a more consistent and modernized interface. Refactoring includes updates to the content/labeling/ordering of these controls as well as updating their styling and simplifying their interactions and layout. This will line us up for features like drag-and-drop controls, and dynamically populated control inputs.
 
 - feat: Global nav menus open on hover (#[12025](https://github.com/apache/incubator-superset/pull/12025))
@@ -127,7 +132,7 @@ Users now have the ability to create and name a new dataset or update an existin
 - feat(saved queries): security perm simplification (#[11764](https://github.com/apache/incubator-superset/pull/11764))
 - feat(welcome): add SQL snippets to saved queries card (#[11678](https://github.com/apache/incubator-superset/pull/11678))
 ## Documentation
-The [Superset 1.0 documentation](https://superset.apache.org/docs/intro) has been updated to reflect the current design and functionality. 
+The [Superset 1.0 documentation](https://superset.apache.org/docs/intro) has been updated to reflect the current design and functionality.
 
 - docs: restored page on roles in security, executed other touchups, and… (#[11978](https://github.com/apache/incubator-superset/pull/11978))
 - docs: 0.38.0 CHANGELOG and UPDATING (#[11809](https://github.com/apache/incubator-superset/pull/11809))
@@ -188,7 +193,7 @@ Charts and SQL Lab both now support asynchronous data loading. This will improve
 Superset 1.0 includes some other new features and enhancements.
 
 ## Improved Data Visualizations
-New visualization plugin architecture will make it easier to build, test, style and configure custom visualizations for Superset. Dynamic viz plugin imports will allow Superset to load data viz plugins, allowing  developers to more easily use or share their custom plugins and load custom plugins on-demand. Superset has also adopted Apache ECharts as the core library for new visualizations. 
+New visualization plugin architecture will make it easier to build, test, style and configure custom visualizations for Superset. Dynamic viz plugin imports will allow Superset to load data viz plugins, allowing  developers to more easily use or share their custom plugins and load custom plugins on-demand. Superset has also adopted Apache ECharts as the core library for new visualizations.
 
 - feat: add event and interval annotation support to chart data ep (#[11665](https://github.com/apache/incubator-superset/pull/11665))
 - feat: add ECharts BoxPlot chart (#[11199](https://github.com/apache/incubator-superset/pull/11199))
