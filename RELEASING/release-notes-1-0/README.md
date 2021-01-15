@@ -30,7 +30,7 @@ We have taken the Superset user experience to the next level with a much simpler
 
 Lists of Charts and Dashboards are shown in a new format using a grid of thumbnails. This makes it easier to discover and find Charts and Dashboards, especially when there are a lot of them in your Superset instance.
 
-<kbd><img src="media/card_view.png" width="800"/></kbd>
+<kbd><img alt="card view" src="media/card_view.png" width="800"/></kbd>
 
 Visualization controls have been updated to create a more consistent and modernized interface. Refactoring includes updates to the content/labeling/ordering of these controls as well as updating their styling and simplifying their interactions and layout. This will line us up for features like drag-and-drop controls, and dynamically populated control inputs in future releases.
 
@@ -97,8 +97,6 @@ blurb
 Lists of Charts and Dashboards are shown in a new format using a grid of thumbnails. This makes it easier to discover and find Charts and Dashboards, especially when there is a lot of them in your Superset instance.
 
 ### Explore Controls
-Visualization controls have been updated to create a more consistent and modernized interface. Refactoring includes updates to the content/labeling/ordering of these controls as well as updating their styling and simplifying their interactions and layout. This will line us up for features like drag-and-drop controls, and dynamically populated control inputs.
-
 - feat: Global nav menus open on hover (#[12025](https://github.com/apache/incubator-superset/pull/12025))
 - feat: add hook for dataset health check (#[11970](https://github.com/apache/incubator-superset/pull/11970))
 - feat: add modal to import dashboards (#[11924](https://github.com/apache/incubator-superset/pull/11924))
@@ -113,7 +111,7 @@ Visualization controls have been updated to create a more consistent and moderni
 - feat(explore): metrics and filters controls redesign (#[12095](https://github.com/apache/incubator-superset/pull/12095))
 - feat(explore): change save button text when users cannot override (#[11281](https://github.com/apache/incubator-superset/pull/11281))
 - feat(explore): update the order of datasource dropdown menu (#[11424](https://github.com/apache/incubator-superset/pull/11424))
-## SQL Lab
+### SQL Lab
 Users now have the ability to create and name a new dataset or update an existing dataset when moving from SQL Lab to Explore. When going back to SQL Lab, the underlying query for the dataset will be shown, allowing users to easily make changes and update their dataset when moving between SQL Lab and Explore.
 
 - feat: initial custom error messages for SQL Lab (#[12080](https://github.com/apache/incubator-superset/pull/12080))
@@ -131,7 +129,8 @@ Users now have the ability to create and name a new dataset or update an existin
 - feat: saved query preview modal (#[11135](https://github.com/apache/incubator-superset/pull/11135))
 - feat(saved queries): security perm simplification (#[11764](https://github.com/apache/incubator-superset/pull/11764))
 - feat(welcome): add SQL snippets to saved queries card (#[11678](https://github.com/apache/incubator-superset/pull/11678))
-## Documentation
+
+### Documentation
 The [Superset 1.0 documentation](https://superset.apache.org/docs/intro) has been updated to reflect the current design and functionality.
 
 - docs: restored page on roles in security, executed other touchups, and… (#[11978](https://github.com/apache/incubator-superset/pull/11978))
@@ -158,14 +157,14 @@ The [Superset 1.0 documentation](https://superset.apache.org/docs/intro) has bee
 - docs(release): small fixes and deprecate apache docs (#[11827](https://github.com/apache/incubator-superset/pull/11827))
 - docs(releasing): update release automation and docs for Apache graduation (#[12117](https://github.com/apache/incubator-superset/pull/12117))
 - feat: Add new default dashboard (#[12044](https://github.com/apache/incubator-superset/pull/12044))
-# Developer Experience
-Superset 1.0 makes it easier for developers to build, deploy, and maintain Superset functionality.
 
+## Developer Experience
 - feat: add endpoint to export saved queries using new format (#[11447](https://github.com/apache/incubator-superset/pull/11447))
-## Single Page Application
+
+### Single Page Application
 deprecated
 
-## Component Library
+### Component Library
 This release is a major milestone in an ongoing effort to modernize, consolidate, and simplify the interface elements of Superset. Highly-used components have been visually updated, refactored to modern component libraries, and integrated with React Storybook for immediate visibility with consolidated test/styles. This will ease developer experience and create a more consistent and modern aesthetic for the user.
 
 - build(deps-dev): update cypress to 5.5.0, improvements for running locally (#[11603](https://github.com/apache/incubator-superset/pull/11603))
@@ -178,27 +177,25 @@ This release is a major milestone in an ongoing effort to modernize, consolidate
 - build(deps): bump lodash in /superset-frontend/cypress-base (#[11483](https://github.com/apache/incubator-superset/pull/11483))
 - chore: bump nvd3 plugin version (#[11947](https://github.com/apache/incubator-superset/pull/11947))
 - chore: bump pypi cryptography from 2.4.2 to 3.2.1 (#[11511](https://github.com/apache/incubator-superset/pull/11511))
-# Performance
-This the most performant Superset release to date, with enhanced scalability and efficiency.
+
+## Performance
 
 - perf: cache dashboard bootstrap data (#[11234](https://github.com/apache/incubator-superset/pull/11234))
 - perf:  speed up uuid column generation (#[11209](https://github.com/apache/incubator-superset/pull/11209))
 - perf(api): improve API info performance (#[11346](https://github.com/apache/incubator-superset/pull/11346))
 
-## Global Async Query Support
+### Global Async Query Support
 Charts and SQL Lab both now support asynchronous data loading. This will improve performance and user experience when loading query results, especially when there are many charts in a Dashboard or when queries are long running.
 
 - feat(SIP-39): Async query support for charts (#[11499](https://github.com/apache/incubator-superset/pull/11499))
-# New Features
-Superset 1.0 includes some other new features and enhancements.
+###New Features
 
-## Improved Data Visualizations
-New visualization plugin architecture will make it easier to build, test, style and configure custom visualizations for Superset. Dynamic viz plugin imports will allow Superset to load data viz plugins, allowing  developers to more easily use or share their custom plugins and load custom plugins on-demand. Superset has also adopted Apache ECharts as the core library for new visualizations.
-
+### Improved Data Visualizations
 - feat: add event and interval annotation support to chart data ep (#[11665](https://github.com/apache/incubator-superset/pull/11665))
 - feat: add ECharts BoxPlot chart (#[11199](https://github.com/apache/incubator-superset/pull/11199))
 - feat(sankey-viz): allow sort by metric and bump superset-ui packages (#[11626](https://github.com/apache/incubator-superset/pull/11626))
-## Discovery and Navigation
+
+### Discovery and Navigation
 A redesigned home screen and landing page makes discoverability much easier. Global Search gives users the ability to access search from all pages in the app. This can be used to search across databases, datasets, charts, dashboards, and queries.
 
 - chore: Add home link to navbar (#[11851](https://github.com/apache/incubator-superset/pull/11851))
@@ -206,7 +203,8 @@ A redesigned home screen and landing page makes discoverability much easier. Glo
 - feat: alert/report execution log list view (#[11937](https://github.com/apache/incubator-superset/pull/11937))
 - feat: home screen mvp  (#[11206](https://github.com/apache/incubator-superset/pull/11206))
 - style: various little tweaks to home screen stylin' (#[11650](https://github.com/apache/incubator-superset/pull/11650))
-## Alerts and Reporting
+
+### Alerts and Reporting
 Alerts and reporting have received a robust backend and UI overhaul.
 
 - feat: update alert/report icons and column order (#[12081](https://github.com/apache/incubator-superset/pull/12081))
@@ -219,10 +217,7 @@ Alerts and reporting have received a robust backend and UI overhaul.
 - feat(alerts/reports): delete and bulk delete actions (#[12053](https://github.com/apache/incubator-superset/pull/12053))
 - feat(releasing): support changelog csv export (#[11893](https://github.com/apache/incubator-superset/pull/11893))
 
-# Breaking Changes
-## Breaking Changes
-[List of backwards incompatible changes](https://github.com/apache/incubator-superset/blob/master/UPDATING.md#0380)
-
 ## Complete Changelog
-For the complete changelog, see [apache/incubator-superset/CHANGELOG.md](https://github.com/apache/incubator-superset/blob/master/CHANGELOG.md)
-``
+Backwards incompatible changes can be found [here](../../UPDATING.md).
+
+For the complete changelog, see [apache/incubator-superset/CHANGELOG.md](https://github.com/apache/superset/blob/master/CHANGELOG.md)
