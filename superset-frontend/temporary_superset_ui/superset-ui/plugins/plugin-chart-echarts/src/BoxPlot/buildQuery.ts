@@ -45,6 +45,7 @@ export default function buildQuery(formData: BoxPlotQueryFormData) {
         ...baseQueryObject,
         is_timeseries: distributionColumns.length === 0,
         groupby: (groupby || []).concat(distributionColumns),
+        columns: [],
         post_processing: [
           {
             operation: 'boxplot',
