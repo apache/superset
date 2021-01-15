@@ -62,6 +62,7 @@ from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetr
 from superset.connectors.sqla.utils import (
     get_expected_labels_from_select,
     get_having_clause,
+    get_top_groups,
     get_where_operation,
 )
 from superset.db_engine_specs.base import TimestampExpression
@@ -1288,9 +1289,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 for c in result.df.columns
                 if c not in metrics and c in groupby_expressions
             ]
-            where_clause = self._get_top_groups(
-                result.df, dimensions, groupby_expressions
-            )
+            where_clause = get_top_groups(result.df, dimensions, groupby_expressions)
 
         return query_table, prequeries
 
@@ -1403,16 +1402,14 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             extras.get("time_range_endpoints"),
         )
 
-        select_expressions += (
-            metric_expressions  # both elements.Lable of cols[name, state]
-        )
+        select_expressions += metric_expressions
 
         labels_expected = get_expected_labels_from_select(select_expressions)
 
         # SELECT EXPRESSION
         select_expressions = db_engine_spec.make_select_compatible(
             groupby_expressions_with_ts.values(), select_expressions
-        )  # elements.Lable of cols[name, state, Births]
+        )
 
         query = sa.select(select_expressions)
         inner_query_table: TableClause = self.get_from_clause(template_processor)
@@ -1506,21 +1503,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             )
 
         return ob
-
-    def _get_top_groups(  # pylint: disable=no-self-use
-        self,
-        df: pd.DataFrame,
-        dimensions: List[str],
-        groupby_exprs: "OrderedDict[str, Any]",
-    ) -> ColumnElement:
-        groups = []
-        for _unused, row in df.iterrows():
-            group = []
-            for dimension in dimensions:
-                group.append(groupby_exprs[dimension] == row[dimension])
-            groups.append(and_(*group))
-
-        return or_(*groups)
 
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
         qry_start_dttm = datetime.now()

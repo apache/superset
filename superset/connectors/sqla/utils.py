@@ -14,12 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from collections import OrderedDict
 from typing import Any, Dict, List
 
+import pandas as pd
 import sqlalchemy as sa
 from flask_babel import lazy_gettext as _
 from jinja2.exceptions import TemplateError
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
+from sqlalchemy.sql import ColumnElement
 from sqlalchemy.sql.expression import BooleanClauseList, Label
 
 from superset.constants import NULL_STRING
@@ -99,3 +102,16 @@ def get_where_operation(  # pylint:disable=too-many-branches
                 _("Invalid filter operation type: %(op)s", op=operation,)
             )
     return condition
+
+
+def get_top_groups(
+    df: pd.DataFrame, dimensions: List[str], groupby_exprs: "OrderedDict[str, Any]",
+) -> ColumnElement:
+    groups = []
+    for _unused, row in df.iterrows():
+        group = []
+        for dimension in dimensions:
+            group.append(groupby_exprs[dimension] == row[dimension])
+        groups.append(and_(*group))
+
+    return or_(*groups)
