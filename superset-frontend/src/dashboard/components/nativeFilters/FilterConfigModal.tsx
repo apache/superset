@@ -125,11 +125,12 @@ const StyledAlert = styled(Alert)`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: ${({ theme }) => theme.gridUnit}px;
+  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 const StyledAlertText = styled.div`
   text-align: left;
+  margin-right: ${({ theme }) => theme.gridUnit}px;
 `;
 
 type FilterRemoval =
@@ -246,6 +247,7 @@ export function FilterConfigModal({
     const newFilterId = generateFilterId();
     setNewFilterIds([...newFilterIds, newFilterId]);
     setCurrentFilterId(newFilterId);
+    setSaveAlertVisible(false);
   }, [newFilterIds, setCurrentFilterId]);
 
   // if this is a "create" modal rather than an "edit" modal,
@@ -434,18 +436,16 @@ export function FilterConfigModal({
     validateForm,
   ]);
 
-  const newFiltersNames = newFilterIds.map(getFilterTitle).join(', ');
-
   const confirmCancel = () => {
     resetForm();
     onCancel();
   };
 
+  const unsavedFiltersIds = newFilterIds.filter(id => !removedFilters[id]);
+  const unsavedFiltersNames = unsavedFiltersIds.map(getFilterTitle).join(', ');
+
   const handleCancel = () => {
-    const savedFilterIds = getFilterIds(filterConfig);
-    if (
-      !newFilterIds.every(newFilterId => savedFilterIds.includes(newFilterId))
-    ) {
+    if (unsavedFiltersIds.length > 0) {
       setSaveAlertVisible(true);
     } else {
       confirmCancel();
@@ -468,7 +468,7 @@ export function FilterConfigModal({
               <StyledAlertText>
                 <i className="fa fa-exclamation-triangle" />{' '}
                 <span>
-                  {t(`Are you sure you want to cancel?`)} {newFiltersNames}{' '}
+                  {t(`Are you sure you want to cancel?`)} {unsavedFiltersNames}{' '}
                   {t(`will not be saved.`)}
                 </span>
               </StyledAlertText>
@@ -477,7 +477,6 @@ export function FilterConfigModal({
                   key="submit"
                   buttonStyle="primary"
                   onClick={confirmCancel}
-                  style={{ marginLeft: 16 }}
                 >
                   {t('Confirm')}
                 </Button>
