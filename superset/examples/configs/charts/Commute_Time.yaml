@@ -26,7 +26,7 @@ params:
     isNew: false
     operator: ==
     sqlExpression: null
-    subject: Developer Type
+    subject: developer_type
   - clause: WHERE
     comparator: 'NULL'
     expressionType: SIMPLE
