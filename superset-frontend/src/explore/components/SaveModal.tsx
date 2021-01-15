@@ -19,7 +19,7 @@
 /* eslint camelcase: 0 */
 import React from 'react';
 import { Alert, FormControl, FormGroup, Radio } from 'react-bootstrap';
-import { JsonObject, t } from '@superset-ui/core';
+import { JsonObject, t, styled } from '@superset-ui/core';
 import ReactMarkdown from 'react-markdown';
 import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
@@ -54,6 +54,12 @@ type SaveModalState = {
   alert: string | null;
   action: ActionType;
 };
+
+export const StyledModal = styled(Modal)`
+  .ant-modal-body {
+    overflow: visible;
+  }
+`;
 
 class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   constructor(props: SaveModalProps) {
@@ -153,7 +159,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
 
   render() {
     return (
-      <Modal
+      <StyledModal
         show
         onHide={this.props.onHide}
         title={t('Save Chart')}
@@ -261,7 +267,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             />
           </FormGroup>
         </div>
-      </Modal>
+      </StyledModal>
     );
   }
 }
