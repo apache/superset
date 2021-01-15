@@ -22,7 +22,7 @@ class SolrEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     """Engine spec for Apache Solr"""
 
     engine = "solr"
-    engine_name = "Apach Solr"
+    engine_name = "Apache Solr"
 
     time_groupby_inline = False
     time_secondary_columns = False
