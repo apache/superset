@@ -29,10 +29,9 @@ import Button from 'src/components/Button';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 
-import Modal from 'src/common/components/Modal';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
-import SaveModal from 'src/explore/components/SaveModal';
+import SaveModal, { StyledModal } from 'src/explore/components/SaveModal';
 
 describe('SaveModal', () => {
   const middlewares = [thunk];
@@ -79,11 +78,11 @@ describe('SaveModal', () => {
 
   it('renders a Modal with the right set of components', () => {
     const wrapper = getWrapper();
-    expect(wrapper.find(Modal)).toExist();
+    expect(wrapper.find(StyledModal)).toExist();
     expect(wrapper.find(FormControl)).toExist();
     expect(wrapper.find(Radio)).toHaveLength(2);
 
-    const footerWrapper = shallow(wrapper.find('Modal').props().footer);
+    const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
     expect(footerWrapper.find(Button)).toHaveLength(3);
   });
 

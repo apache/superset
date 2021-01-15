@@ -55,7 +55,7 @@ type SaveModalState = {
   action: ActionType;
 };
 
-const StyledModal = styled(Modal)`
+export const StyledModal = styled(Modal)`
   .ant-modal-body {
     overflow: visible;
   }
