@@ -21,6 +21,7 @@ import { findLastIndex, uniq } from 'lodash';
 import shortid from 'shortid';
 import { DeleteFilled, PlusOutlined } from '@ant-design/icons';
 import { styled, t } from '@superset-ui/core';
+import Alert from 'react-bootstrap/lib/Alert';
 import { Form } from 'src/common/components';
 import { StyledModal } from 'src/common/components/Modal';
 import Button from 'src/components/Button';
@@ -120,6 +121,17 @@ const StyledAddFilterBox = styled.div`
   }
 `;
 
+const StyledAlert = styled(Alert)`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: ${({ theme }) => theme.gridUnit}px;
+`;
+
+const StyledAlertText = styled.div`
+  text-align: left;
+`;
+
 type FilterRemoval =
   | null
   | {
@@ -174,6 +186,8 @@ export function FilterConfigModal({
   const [removedFilters, setRemovedFilters] = useState<
     Record<string, FilterRemoval>
   >({});
+
+  const [saveAlertVisible, setSaveAlertVisible] = useState<boolean>(false);
 
   // brings back a filter that was previously removed ("Undo")
   const restoreFilter = useCallback(
@@ -249,6 +263,7 @@ export function FilterConfigModal({
     setNewFilterIds([]);
     setCurrentFilterId(getInitialCurrentFilterId());
     setRemovedFilters({});
+    setSaveAlertVisible(false);
   }, [form, getInitialCurrentFilterId]);
 
   const completeFilterRemoval = (filterId: string) => {
@@ -273,6 +288,7 @@ export function FilterConfigModal({
         ...removedFilters,
         [filterId]: { isPending: true, timerId },
       }));
+      setSaveAlertVisible(false);
     } else if (action === 'add') {
       addFilter();
     }
@@ -418,9 +434,22 @@ export function FilterConfigModal({
     validateForm,
   ]);
 
-  const handleCancel = () => {
+  const newFiltersNames = newFilterIds.map(getFilterTitle).join(', ');
+
+  const confirmCancel = () => {
     resetForm();
     onCancel();
+  };
+
+  const handleCancel = () => {
+    const savedFilterIds = getFilterIds(filterConfig);
+    if (
+      !newFilterIds.every(newFilterId => savedFilterIds.includes(newFilterId))
+    ) {
+      setSaveAlertVisible(true);
+    } else {
+      confirmCancel();
+    }
   };
 
   return (
@@ -433,12 +462,35 @@ export function FilterConfigModal({
       centered
       data-test="filter-modal"
       footer={[
-        <Button key="cancel" buttonStyle="secondary" onClick={handleCancel}>
-          {t('Cancel')}
-        </Button>,
-        <Button key="submit" buttonStyle="primary" onClick={onOk}>
-          {t('Save')}
-        </Button>,
+        <>
+          {saveAlertVisible && (
+            <StyledAlert bsStyle="warning">
+              <StyledAlertText>
+                <i className="fa fa-exclamation-triangle" />{' '}
+                <span>
+                  {t(`Are you sure you want to cancel?`)} {newFiltersNames}{' '}
+                  {t(`will not be saved.`)}
+                </span>
+              </StyledAlertText>
+              <div>
+                <Button
+                  key="submit"
+                  buttonStyle="primary"
+                  onClick={confirmCancel}
+                  style={{ marginLeft: 16 }}
+                >
+                  {t('Confirm')}
+                </Button>
+              </div>
+            </StyledAlert>
+          )}
+          <Button key="cancel" buttonStyle="secondary" onClick={handleCancel}>
+            {t('Cancel')}
+          </Button>
+          <Button key="submit" buttonStyle="primary" onClick={onOk}>
+            {t('Save')}
+          </Button>
+        </>,
       ]}
     >
       <ErrorBoundary>
@@ -455,6 +507,7 @@ export function FilterConfigModal({
                 // we only need to set this if a name changed
                 setFormValues(values);
               }
+              setSaveAlertVisible(false);
             }}
             layout="vertical"
           >
