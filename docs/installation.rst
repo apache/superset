@@ -533,6 +533,8 @@ Here's a list of some of the recommended packages.
 | Apache Pinot     | ``"apache-superset[pinot]"``                                      | ``pinot+http://CONTROLLER:5436/``               |
 |                  |                                                                   | ``query?server=http://CONTROLLER:5983/``        |
 +------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Apache Solr      | ``pip install sqlalchemy-solr``                                   | ``solr://``                                     |
++------------------+---------------------------------------+-----------------------------------------------------------------------------+
 | Apache Spark SQL | ``"apache-superset[hive]"``                                       | ``jdbc+hive://``                                |
 +------------------+-------------------------------------------------------------------+-------------------------------------------------+
 | BigQuery         | ``"apache-superset[bigquery]"``                                   | ``bigquery://``                                 |
@@ -684,6 +686,13 @@ You should then be able to connect to your BigQuery datasets.
 
 To be able to upload data, e.g. sample data, the python library `pandas_gbq` is required.
 
+
+Apache Solr
+------------
+
+The connection string for Apache Solr looks like this ::
+
+    solr://{username}:{password}@{host}:{port}/{server_path}/{collection}[/?use_ssl=true|false]
 
 Elasticsearch
 -------------
