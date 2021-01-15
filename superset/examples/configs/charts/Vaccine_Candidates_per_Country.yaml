@@ -21,7 +21,7 @@ params:
   color_scheme: presetColors
   datasource: 69__table
   groupby:
-  - Country_Name
+  - country_name
   label_colors: {}
   metrics:
   - count

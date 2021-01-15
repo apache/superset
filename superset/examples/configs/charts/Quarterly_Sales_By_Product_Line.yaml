@@ -24,9 +24,9 @@ params:
   color_scheme: supersetColors
   comparison_type: null
   datasource: 23__table
-  granularity_sqla: OrderDate
+  granularity_sqla: order_date
   groupby:
-  - ProductLine
+  - product_line
   label_colors:
     Classic Cars: '#5AC189'
     Motorcycles: '#666666'
@@ -42,7 +42,7 @@ params:
   metrics:
   - aggregate: SUM
     column:
-      column_name: Sales
+      column_name: sales
       description: null
       expression: null
       filterable: true

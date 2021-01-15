@@ -23,17 +23,19 @@ params:
   filter_configs:
   - asc: true
     clearable: true
-    column: ProductLine
+    column: product_line
     key: 7oUjq15eQ
+    label: Product Line
     multiple: true
     searchAllOptions: false
   - asc: true
     clearable: true
-    column: DealSize
+    column: deal_size
     key: c3hO6Eub8
+    label: Deal Size
     multiple: true
     searchAllOptions: false
-  granularity_sqla: OrderDate
+  granularity_sqla: order_date
   queryFields: {}
   slice_id: 671
   time_range: '2003-01-01T00:00:00 : 2005-06-01T00:00:00'
