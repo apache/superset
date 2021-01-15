@@ -512,7 +512,7 @@ function nvd3Vis(element, props) {
         throw new Error(`Unrecognized visualization for nvd3${vizType}`);
     }
     // Assuming the container has padding already other than for top margin
-    chart.margin({ left: 0, right: 0, bottom: 0 });
+    chart.margin({ left: 0, bottom: 0 });
 
     if (showBarValue) {
       drawBarValues(svg, data, isBarStacked, yAxisFormat);
