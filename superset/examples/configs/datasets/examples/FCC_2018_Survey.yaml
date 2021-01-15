@@ -45,19 +45,19 @@ columns:
   type: STRING
   groupby: true
   filterable: true
-  expression: "CASE \n  WHEN school_degree = \"no high school (secondary school)\"\
-    \ THEN \"A. No high school (secondary school)\"\n  WHEN school_degree =  \"some\
-    \ high school\" THEN \"B. Some high school\"\n  WHEN school_degree = \"high school\
-    \ diploma or equivalent (GED)\" THEN \"C. High school diploma or equivalent (GED)\"\
-    \n  WHEN school_degree = \"associate's degree\" THEN \"D. Associate's degree\"\
-    \n  WHEN school_degree = \"some college credit, no degree\" THEN \"E. Some college\
-    \ credit, no degree\"\n  WHEN school_degree = \"bachelor's degree\" THEN \"F.\
-    \ Bachelor's degree\"\n  WHEN school_degree = \"trade, technical, or vocational\
-    \ training\" THEN \"G. Trade, technical, or vocational training\"\n  WHEN school_degree\
-    \ = \"master's degree (non-professional)\" THEN \"H. Master's degree (non-professional)\"\
-    \n  WHEN school_degree = \"Ph.D.\" THEN \"I. Ph.D.\"\n  WHEN school_degree = \"\
-    professional degree (MBA, MD, JD, etc.)\" THEN \"J. Professional degree (MBA,\
-    \ MD, JD, etc.)\"\nEND"
+  expression: "CASE \n  WHEN school_degree = 'no high school (secondary school)'\
+    \ THEN 'A. No high school (secondary school)'\n  WHEN school_degree =  'some\
+    \ high school' THEN 'B. Some high school'\n  WHEN school_degree = 'high school\
+    \ diploma or equivalent (GED)' THEN 'C. High school diploma or equivalent (GED)'\
+    \n  WHEN school_degree = 'associate''s degree' THEN 'D. Associate''s degree'\
+    \n  WHEN school_degree = 'some college credit, no degree' THEN 'E. Some college\
+    \ credit, no degree'\n  WHEN school_degree = 'bachelor''s degree' THEN 'F.\
+    \ Bachelor''s degree'\n  WHEN school_degree = 'trade, technical, or vocational\
+    \ training' THEN 'G. Trade, technical, or vocational training'\n  WHEN school_degree\
+    \ = 'master''s degree (non-professional)' THEN 'H. Master''s degree (non-professional)'\
+    \n  WHEN school_degree = 'Ph.D.' THEN 'I. Ph.D.'\n  WHEN school_degree = '\
+    professional degree (MBA, MD, JD, etc.)' THEN 'J. Professional degree (MBA,\
+    \ MD, JD, etc.)'\nEND"
   description: Highest Degree Earned
   python_date_format: null
 - column_name: job_location_preference
