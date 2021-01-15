@@ -31,7 +31,7 @@ from marshmallow import ValidationError
 
 from superset import event_logger, is_feature_enabled
 from superset.commands.exceptions import CommandInvalidError
-from superset.commands.importers.v1.utils import remove_root
+from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
@@ -687,10 +687,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         if not upload:
             return self.response_400()
         with ZipFile(upload) as bundle:
-            contents = {
-                remove_root(file_name): bundle.read(file_name).decode()
-                for file_name in bundle.namelist()
-            }
+            contents = get_contents_from_bundle(bundle)
 
         passwords = (
             json.loads(request.form["passwords"])
