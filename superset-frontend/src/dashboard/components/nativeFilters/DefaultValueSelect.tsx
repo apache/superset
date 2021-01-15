@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { FormInstance } from 'antd/lib/form';
 import { useChangeEffect } from 'src/common/hooks/useChangeEffect';
 import { AsyncSelect } from 'src/components/Select';
@@ -67,12 +67,6 @@ export function DefaultValueSelect({
       resetFieldValue();
     }
   });
-
-  useEffect(() => {
-    if (datasetId == null || column == null) {
-      resetFieldValue();
-    }
-  }, [datasetId, column, resetFieldValue]);
 
   async function loadOptions() {
     if (datasetId == null || !column) return [];
