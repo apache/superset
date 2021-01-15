@@ -585,22 +585,21 @@ SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
 
 class CeleryConfig:  # pylint: disable=too-few-public-methods
-    BROKER_URL = "sqla+sqlite:///celerydb.sqlite"
-    CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks")
-    CELERY_RESULT_BACKEND = "db+sqlite:///celery_results.sqlite"
-    CELERYD_LOG_LEVEL = "DEBUG"
-    CELERYD_PREFETCH_MULTIPLIER = 1
-    CELERY_ACKS_LATE = False
-    CELERY_ANNOTATIONS = {
+    broker_url = "sqla+sqlite:///celerydb.sqlite"
+    imports = ("superset.sql_lab", "superset.tasks")
+    result_backend = "db+sqlite:///celery_results.sqlite"
+    worker_prefetch_multiplier = 1
+    task_acks_late = False
+    task_annotations = {
         "sql_lab.get_sql_results": {"rate_limit": "100/s"},
         "email_reports.send": {
             "rate_limit": "1/s",
             "time_limit": 120,
-            "soft_time_limit": 150,
+            "soft_time_limit": 60,
             "ignore_result": True,
         },
     }
-    CELERYBEAT_SCHEDULE = {
+    beat_schedule = {
         "email_reports.schedule_hourly": {
             "task": "email_reports.schedule_hourly",
             "schedule": crontab(minute=1, hour="*"),

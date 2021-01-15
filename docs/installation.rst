@@ -456,11 +456,11 @@ An example config where images are stored on S3 could be:
     ...
 
     class CeleryConfig(object):
-        BROKER_URL = "redis://localhost:6379/0"
-        CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks", "superset.tasks.thumbnails")
-        CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
-        CELERYD_PREFETCH_MULTIPLIER = 10
-        CELERY_ACKS_LATE = True
+        broker_url = "redis://localhost:6379/0"
+        imports = ("superset.sql_lab", "superset.tasks", "superset.tasks.thumbnails")
+        result_backend = "redis://localhost:6379/0"
+        worker_prefetch_multiplier = 10
+        task_acks_late = True
 
 
     CELERY_CONFIG = CeleryConfig
@@ -1049,27 +1049,26 @@ have the same configuration.
 .. code-block:: python
 
     class CeleryConfig(object):
-        BROKER_URL = 'redis://localhost:6379/0'
-        CELERY_IMPORTS = (
+        broker_url = 'redis://localhost:6379/0'
+        imports = (
             'superset.sql_lab',
             'superset.tasks',
         )
-        CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-        CELERYD_LOG_LEVEL = 'DEBUG'
-        CELERYD_PREFETCH_MULTIPLIER = 10
-        CELERY_ACKS_LATE = True
-        CELERY_ANNOTATIONS = {
+        result_backend = 'redis://localhost:6379/0'
+        worker_prefetch_multiplier = 10
+        task_acks_late = True
+        task_annotations = {
             'sql_lab.get_sql_results': {
                 'rate_limit': '100/s',
             },
             'email_reports.send': {
                 'rate_limit': '1/s',
                 'time_limit': 120,
-                'soft_time_limit': 150,
+                'soft_time_limit': 60,
                 'ignore_result': True,
             },
         }
-        CELERYBEAT_SCHEDULE = {
+        beat_schedule = {
             'email_reports.schedule_hourly': {
                 'task': 'email_reports.schedule_hourly',
                 'schedule': crontab(minute=1, hour='*'),
