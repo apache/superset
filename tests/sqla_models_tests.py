@@ -441,6 +441,7 @@ class TestDatabaseModel(SupersetTestCase):
             columns_by_name[granularity].get_time_filter(from_dttm, to_dttm, endpoints)
         )
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_where_clause(self):
         table = self.get_table_by_name("birth_names")
         tamplate_processor = table.get_template_processor()
