@@ -71,19 +71,29 @@ def parse_human_datetime(human_readable: str) -> datetime:
     >>> year_after_1 == year_after_2
     True
     """
+    x_periods = r"^\s*([0-9]+)\s+(second|minute|hour|day|week|month|quarter|year)s?\s*$"
+    if re.search(x_periods, human_readable, re.IGNORECASE):
+        raise ValueError(
+            _("X periods are used without the look back/forward descriptors.")
+        )
+
+    error_msg = ValueError(_("Couldn't parse date string [{}]".format(human_readable)))
     try:
         dttm = parse(human_readable)
     except Exception:  # pylint: disable=broad-except
         try:
             cal = parsedatetime.Calendar()
             parsed_dttm, parsed_flags = cal.parseDT(human_readable)
+            # 0 = not parsed at all
+            if parsed_flags == 0:
+                raise error_msg
             # when time is not extracted, we 'reset to midnight'
             if parsed_flags & 2 == 0:
                 parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
             dttm = dttm_from_timetuple(parsed_dttm.utctimetuple())
         except Exception as ex:
             logger.exception(ex)
-            raise ValueError("Couldn't parse date string [{}]".format(human_readable))
+            raise error_msg
     return dttm
 
 

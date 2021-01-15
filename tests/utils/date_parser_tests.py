@@ -20,6 +20,7 @@ from unittest.mock import patch
 from superset.utils.date_parser import (
     datetime_eval,
     get_since_until,
+    parse_human_datetime,
     parse_human_timedelta,
     parse_past_timedelta,
 )
@@ -261,3 +262,13 @@ class TestDateParser(SupersetTestCase):
         self.assertEqual(parse_past_timedelta("-1 year"), timedelta(365))
         self.assertEqual(parse_past_timedelta("52 weeks"), timedelta(364))
         self.assertEqual(parse_past_timedelta("1 month"), timedelta(31))
+
+    def test_parse_human_datetime(self):
+        with self.assertRaises(ValueError):
+            parse_human_datetime("  2 days  ")
+
+        with self.assertRaises(ValueError):
+            parse_human_datetime("2 day")
+
+        with self.assertRaises(ValueError):
+            parse_human_datetime("xxxxxxx")

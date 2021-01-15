@@ -197,16 +197,17 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           +--------------+------+----------+--------+----------+-----------+
           |              | Last | Previous | Custom | Advanced | No Filter |
           +--------------+------+----------+--------+----------+-----------+
-          | control pill | HRT  | HRT      | ADR    | ADR      |   ADR     |
+          | control pill | HRT  | HRT      | ADR    | ADR      |   HRT     |
           +--------------+------+----------+--------+----------+-----------+
-          | tooltip      | ADR  | ADR      | HRT    | HRT      |   HRT     |
+          | tooltip      | ADR  | ADR      | HRT    | HRT      |   ADR     |
           +--------------+------+----------+--------+----------+-----------+
         */
         const valueToLower = value.toLowerCase();
         if (
           valueToLower.startsWith('last') ||
           valueToLower.startsWith('next') ||
-          valueToLower.startsWith('previous')
+          valueToLower.startsWith('previous') ||
+          valueToLower === 'no filter'
         ) {
           setActualTimeRange(value);
           setTooltipTitle(actualRange || '');
