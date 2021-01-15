@@ -18,9 +18,11 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/core';
+import { sections } from '@superset-ui/chart-controls';
 
 export default {
   controlPanelSections: [
+    sections.legacyTimeseriesTime,
     {
       label: t('Filters Configuration'),
       expanded: true,

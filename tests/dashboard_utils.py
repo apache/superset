@@ -17,7 +17,7 @@
 """Utils to provide dashboards for tests"""
 
 import json
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from pandas import DataFrame
 
@@ -71,7 +71,9 @@ def create_slice(
     )
 
 
-def create_dashboard(slug: str, title: str, position: str, slice: Slice) -> Dashboard:
+def create_dashboard(
+    slug: str, title: str, position: str, slices: List[Slice]
+) -> Dashboard:
     dash = db.session.query(Dashboard).filter_by(slug=slug).one_or_none()
 
     if not dash:
@@ -82,8 +84,8 @@ def create_dashboard(slug: str, title: str, position: str, slice: Slice) -> Dash
         pos = json.loads(js)
         dash.position_json = json.dumps(pos, indent=4)
     dash.slug = slug
-    if slice is not None:
-        dash.slices = [slice]
+    if slices is not None:
+        dash.slices = slices
     db.session.merge(dash)
     db.session.commit()
 
