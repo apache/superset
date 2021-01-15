@@ -201,4 +201,6 @@ This release emphasizes hardening and squashing bugs, with hundreds of bugfixes.
 ## Complete Changelog
 Backwards incompatible changes can be found [here](../../UPDATING.md).
 
-For the complete changelog, see [apache/incubator-superset/CHANGELOG.md](https://github.com/apache/superset/blob/master/CHANGELOG.md)
+To see the complete changelog, see [apache/incubator-superset/CHANGELOG.md](https://github.com/apache/superset/blob/master/CHANGELOG.md)
+
+See ya next time!
