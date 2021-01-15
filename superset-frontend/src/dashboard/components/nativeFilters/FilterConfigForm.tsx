@@ -98,7 +98,11 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   form,
   parentFilters,
 }) => {
-  const [dataset, setDataset] = useState<Value<number> | undefined>();
+  const [dataset, setDataset] = useState<Value<number> | undefined>(
+    filterToEdit?.targets[0].datasetId
+      ? { label: '', value: filterToEdit?.targets[0].datasetId }
+      : undefined,
+  );
 
   const onDatasetSelectError = useCallback(
     ({ error, message }: ClientErrorObject) => {

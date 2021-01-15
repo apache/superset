@@ -69,21 +69,20 @@ export function ColumnSelect({
     }
   });
 
-  useEffect(() => {
-    if (datasetId == null) {
-      resetColumnField();
-    }
-  }, [datasetId, resetColumnField]);
-
   function loadOptions() {
     if (datasetId == null) return [];
     return cachedSupersetGet({
       endpoint: `/api/v1/dataset/${datasetId}`,
     }).then(
-      ({ json: { result } }) =>
-        result.columns
+      ({ json: { result } }) => {
+        const columns = result.columns
           .map((col: any) => col.column_name)
-          .sort((a: string, b: string) => a.localeCompare(b)),
+          .sort((a: string, b: string) => a.localeCompare(b));
+        if (!columns.includes(value)) {
+          resetColumnField();
+        }
+        return columns;
+      },
       async badResponse => {
         const { error, message } = await getClientErrorObject(badResponse);
         let errorText = message || error || t('An error has occurred');
