@@ -18,8 +18,8 @@ slice_name: Vaccine Candidates per Country & Stage
 viz_type: heatmap
 params:
   adhoc_filters: []
-  all_columns_x: Clinical Stage
-  all_columns_y: Country_Name
+  all_columns_x: clinical_stage
+  all_columns_y: country_name
   bottom_margin: auto
   canvas_image_rendering: pixelated
   datasource: 14__table
