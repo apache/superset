@@ -539,9 +539,13 @@ class SqlEditor extends React.PureComponent {
   }
 
   renderQueryLimit() {
-    const menuDropdown = (
+    // Adding SQL_MAX_ROW value to dropdown
+    const { maxRow } = this.props;
+    LIMIT_DROPDOWN.push(maxRow);
+
+    return (
       <AntdMenu>
-        {LIMIT_DROPDOWN.map(limit => (
+        {[...new Set(LIMIT_DROPDOWN)].map(limit => (
           <AntdMenu.Item onClick={() => this.setQueryLimit(limit)}>
             {/* // eslint-disable-line no-use-before-define */}
             <a role="button" styling="link">
@@ -551,8 +555,6 @@ class SqlEditor extends React.PureComponent {
         ))}
       </AntdMenu>
     );
-
-    return menuDropdown;
   }
 
   renderEditorBottomBar() {
