@@ -81,7 +81,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .filter(
                 and_(
                     Dashboard.published.is_(True),
-                    not_(Dashboard.roles),
+                    ~Dashboard.roles.any(),
                     or_(
                         Slice.perm.in_(datasource_perms),
                         Slice.schema_perm.in_(schema_perms),
