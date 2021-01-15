@@ -18,7 +18,17 @@ under the License.
 -->
 ## Change Log
 
-### 1.0 (Tue Jan 12 12:56:26 2021 -0800)
+### 1.0.0 (Fri Jan 15 05:11:56 2021 -0800)
+- [#12337](https://github.com/apache/superset/pull/12337) chore: rename docker image from incubator-superset to superset (#1337) (@amitmiran137)
+- [#12403](https://github.com/apache/superset/pull/12403) feat(db-engine): Add support for Apache Solr (#12403) (@aadel)
+- [#12497](https://github.com/apache/superset/pull/12497) Fix list filters vertical alignment (#12497) (@michael-s-molina)
+- [#12522](https://github.com/apache/superset/pull/12522) fix: Select options overflowing Save chart modal on Explore view (#12522) (@kgabryje)
+- [#12536](https://github.com/apache/superset/pull/12536) Fixing Pinot queries for time granularities: WEEKS/MONTHS/QUARTERS/YEARS (#12536) (@fx19880617)
+- [#12537](https://github.com/apache/superset/pull/12537) fix(explore): Add Time section back to FilterBox (#12537) (@ktmud)
+- [#12532](https://github.com/apache/superset/pull/12532) fix(explore): time table control panel (#12532) (@ktmud)
+- [#12530](https://github.com/apache/superset/pull/12530) fix: lowercase all columns in examples (#12530) (@betodealmeida)
+- [#12518](https://github.com/apache/superset/pull/12518) ci: remove refs/tags from docker tags on a release (#12518) (@dpgaspar)
+- [#12491](https://github.com/apache/superset/pull/12491) fix: impose dataset ownership check on old API (#12491) (@dpgaspar)
 - [#12425](https://github.com/apache/superset/pull/12425) fix: import ZIP files that have been modified (#12425) (@betodealmeida)
 - [#12472](https://github.com/apache/superset/pull/12472) fix (SQL Lab): disappearing results on tab switch (#12472) (@betodealmeida)
 - [#12489](https://github.com/apache/superset/pull/12489) fix(timepicker): make pyparsing thread safe (#12489) (@zhaoyongjie)
