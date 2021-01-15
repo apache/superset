@@ -84,7 +84,7 @@ def parse_human_datetime(human_readable: str) -> datetime:
         try:
             cal = parsedatetime.Calendar()
             parsed_dttm, parsed_flags = cal.parseDT(human_readable)
-            # 0 = not parsed at all
+            # 0 == not parsed at all
             if parsed_flags == 0:
                 raise error_msg
             # when time is not extracted, we 'reset to midnight'
