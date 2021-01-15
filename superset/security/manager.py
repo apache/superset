@@ -592,7 +592,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         sesh = self.get_session
         pvms = sesh.query(PermissionView).filter(
             or_(
-                PermissionView.permission.is_(None), PermissionView.view_menu.is_(None),
+                PermissionView.permission is None,
+                PermissionView.view_menu is None,
             )
         )
         deleted_count = pvms.delete()
