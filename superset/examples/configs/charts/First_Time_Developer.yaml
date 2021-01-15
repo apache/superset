@@ -26,13 +26,13 @@ params:
     isNew: false
     operator: ==
     sqlExpression: null
-    subject: Developer Type
+    subject: developer_type
   color_scheme: supersetColors
   datasource: 42__table
   donut: true
   granularity_sqla: time_start
   groupby:
-  - First Time Developer
+  - first_time_developer
   innerRadius: 43
   labels_outside: true
   metric: count
