@@ -18,12 +18,12 @@ from typing import Any
 
 from flask_appbuilder.security.sqla.models import Role
 from flask_babel import lazy_gettext as _
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, not_
 from sqlalchemy.orm.query import Query
 
 from superset import db, security_manager
 from superset.models.core import FavStar
-from superset.models.dashboard import Dashboard
+from superset.models.dashboard import Dashboard, DashboardRoles
 from superset.models.slice import Slice
 from superset.views.base import BaseFilter, get_user_roles
 from superset.views.base_api import BaseFavoriteFilter
@@ -82,7 +82,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .filter(
                 and_(
                     Dashboard.published.is_(True),
-                    not Dashboard.roles,
+                    not_(Dashboard.roles),
                     or_(
                         Slice.perm.in_(datasource_perms),
                         Slice.schema_perm.in_(schema_perms),
@@ -91,16 +91,10 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 )
             )
         )
-
         published_dash_roles_based_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.roles)
-            .filter(
-                and_(
-                    Dashboard.published.is_(True),
-                    Role.user.id == security_manager.user_model.get_user_id(),
-                )
-            )
+            .filter(and_(Dashboard.published.is_(True), Role.id.in_(user_roles)),)
         )
 
         users_favorite_dash_query = db.session.query(FavStar.obj_id).filter(
