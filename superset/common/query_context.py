@@ -142,7 +142,7 @@ class QueryContext:
     def df_metrics_to_num(df: pd.DataFrame, query_object: QueryObject) -> None:
         """Converting metrics to numeric when pandas.read_sql cannot"""
         for col, dtype in df.dtypes.items():
-            if dtype.type == np.object_ and col in query_object.metrics:
+            if dtype.type == np.object_ and col in query_object.metric_names:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
 
     def get_data(self, df: pd.DataFrame,) -> Union[str, List[Dict[str, Any]]]:
