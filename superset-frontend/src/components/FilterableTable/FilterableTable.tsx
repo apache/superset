@@ -463,43 +463,45 @@ export default class FilterableTable extends PureComponent<
 
     // fix height of filterable table
     return (
-      <ScrollSync>
-        {({ onScroll, scrollTop }) => (
-          <div
-            style={{ height }}
-            className="filterable-table-container Table"
-            data-test="filterable-table-container"
-            ref={this.container}
-          >
-            <div className="LeftColumn">
-              <Grid
-                cellRenderer={this.renderGridCellHeader}
-                columnCount={orderedColumnKeys.length}
-                columnWidth={getColumnWidth}
-                height={rowHeight}
-                rowCount={1}
-                rowHeight={rowHeight}
-                scrollTop={scrollTop}
-                width={this.totalTableWidth}
-              />
+      <StyledFilterableTable>
+        <ScrollSync>
+          {({ onScroll, scrollTop }) => (
+            <div
+              style={{ height }}
+              className="filterable-table-container Table"
+              data-test="filterable-table-container"
+              ref={this.container}
+            >
+              <div className="LeftColumn">
+                <Grid
+                  cellRenderer={this.renderGridCellHeader}
+                  columnCount={orderedColumnKeys.length}
+                  columnWidth={getColumnWidth}
+                  height={rowHeight}
+                  rowCount={1}
+                  rowHeight={rowHeight}
+                  scrollTop={scrollTop}
+                  width={this.totalTableWidth}
+                />
+              </div>
+              <div className="RightColumn">
+                <Grid
+                  cellRenderer={this.renderGridCell}
+                  columnCount={orderedColumnKeys.length}
+                  columnWidth={getColumnWidth}
+                  height={totalTableHeight - rowHeight}
+                  onScroll={onScroll}
+                  overscanColumnCount={overscanColumnCount}
+                  overscanRowCount={overscanRowCount}
+                  rowCount={this.list.size}
+                  rowHeight={rowHeight}
+                  width={this.totalTableWidth}
+                />
+              </div>
             </div>
-            <div className="RightColumn">
-              <Grid
-                cellRenderer={this.renderGridCell}
-                columnCount={orderedColumnKeys.length}
-                columnWidth={getColumnWidth}
-                height={totalTableHeight - rowHeight}
-                onScroll={onScroll}
-                overscanColumnCount={overscanColumnCount}
-                overscanRowCount={overscanRowCount}
-                rowCount={this.list.size}
-                rowHeight={rowHeight}
-                width={this.totalTableWidth}
-              />
-            </div>
-          </div>
-        )}
-      </ScrollSync>
+          )}
+        </ScrollSync>
+      </StyledFilterableTable>
     );
   }
 
