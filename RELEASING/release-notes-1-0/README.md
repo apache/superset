@@ -63,7 +63,7 @@ Along with the Echarts integration, we are also introducing a better set of anno
 
 A redesigned home screen provides a personalized landing page that the user sees when they log into Superset, improving discoverability. It shows items relevant to the user (Charts, Dashboards, Saved Queries, etc) and serves as a hub to discover content and access recent items quickly.
 
-<kbd><img alt="home screen" rc="media/home_screen.png" width="800"/></kbd>
+<kbd><img alt="home screen" src="media/home_screen.png" width="800"/></kbd>
 
 Charts on dashboards have been updated to concisely show which filters are in scope, have been applied, or are in error. Context around filter changes has been increased by highlighting scoped charts when a filter is selected and increasing visibility of charts with incompatible filters applied.
 
