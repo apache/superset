@@ -16,7 +16,7 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
-# Release Notes for Superset 1.0
+# Release Notes for Superset 1.0.0
 
 Superset 1.0 is the first major release for Apache Superset. This release holds a higher quality standard than any previous version and raises the bar for releases to come. Superset 1.0 improves on usability and delivers a new set of long awaited features focused on five major themes:
 - [**User Experience**](#user-experience)
@@ -28,13 +28,13 @@ Superset 1.0 is the first major release for Apache Superset. This release holds 
 # User Experience
 We have taken the Superset user experience to the next level with a much simpler, more intuitive UI.
 
-Lists of Charts and Dashboards are shown in a new format using a grid of thumbnails. This makes it easier to discover and find Charts and Dashboards, especially when there are a lot of them in your Superset instance.
+Lists of Charts and Dashboards can be shown in a new format using a grid of thumbnails. This makes it easier to discover and find Charts and Dashboards, especially when there are a lot of them in your Superset instance.
 
-<kbd><img alt="card view" src="media/card_view.png" width="800"/></kbd>
+<kbd><img alt="card view" src="media/dashboard_card_view.png" width="800"/></kbd>
 
 Visualization controls have been updated to create a more consistent and modernized interface. Refactoring includes updates to the content/labeling/ordering of these controls as well as updating their styling and simplifying their interactions and layout. This will line us up for features like drag-and-drop controls, and dynamically populated control inputs in future releases.
 
-<kbd><img src="media/explore.png" width="800"/></kbd>
+<kbd><img src="media/explore_ui.png" width="800"/></kbd>
 
 Users also now have the ability to create and name a new dataset or update an existing dataset when moving from SQL Lab to Explore. When going back to SQL Lab, the underlying query for the dataset will be shown, allowing users to easily make changes and update their dataset when moving between SQL Lab and Explore.
 
@@ -53,7 +53,7 @@ This the most performant Superset release to date, with enhanced scalability and
 See related PR highlights [here](#performance-1).
 
 # New Features
-Superset 1.0 includes some other new features and enhancements. New visualization plugin architecture will make it easier to build, test, style and configure custom visualizations for Superset. Dynamic viz plugin imports will allow Superset to load data viz plugins, allowing developers to more easily use or share their custom plugins and load custom plugins on-demand. Superset has also adopted Apache ECharts as the core library for new visualizations.
+Superset 1.0 includes some other new features and enhancements. New visualization plugin architecture will make it easier to build, test, style and configure custom visualizations for Superset. Dynamic viz plugin imports will allow Superset to load data viz plugins, allowing developers to more easily use or share their custom plugins and load custom plugins on-demand from anywhere on the web. Superset has also adopted Apache ECharts as the core library for new visualizations.
 
 <kbd><img src="media/echarts_timeseries_prophet.png" width="800"/></kbd>
 
@@ -71,7 +71,7 @@ A redesigned home screen provides a personalized landing page that the user sees
 
 Charts on dashboards have been updated to concisely show which filters are in scope, have been applied, or are in error. Context around filter changes has been increased by highlighting scoped charts when a filter is selected and increasing visibility of charts with incompatible filters applied.
 
-<kbd><img src="media/dashboard_filter.png" width="800"/></kbd>
+<kbd><img src="media/chart_alerts_scope.png" width="800"/></kbd>
 
 Alerts and reporting have received a robust backend and UI overhaul.
 
@@ -80,7 +80,7 @@ Alerts and reporting have received a robust backend and UI overhaul.
 See related PR highlights [here](#new-features-1).
 
 # Stability and Bugfixes
-This release emphasizes hardening and squashing bugs, with hundreds of bugfixes. Future major releases will see a continued emphasis on providing a stable and bug-free experience.
+This release includes hundreds of bugfixes and stability enhancements. Future major releases will see a continued emphasis on providing a stable and bug-free experience for the user.
 
 # PR Highlights
 ## User Experience
@@ -202,5 +202,3 @@ This release emphasizes hardening and squashing bugs, with hundreds of bugfixes.
 Backwards incompatible changes can be found [here](../../UPDATING.md).
 
 To see the complete changelog, see [apache/incubator-superset/CHANGELOG.md](https://github.com/apache/superset/blob/master/CHANGELOG.md)
-
-See ya next time!
