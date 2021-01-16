@@ -47,11 +47,11 @@ Superset 1.0 makes it easier for developers to build, deploy, and maintain Super
 
 The **REST API** continues to see improvement as well, with new endpoints and improvements to existing endpoints. More details [here](https://superset.apache.org/docs/rest-api).
 
-<kbd><img alt="explore ui" src="media/rest_api.png" width="600"/></kbd>
+<kbd><img alt="rest api" src="media/rest_api.png" width="600"/></kbd>
 
 The Swagger interface can be used to explore and try out these changes.
 
-<kbd><img alt="explore ui" src="media/rest_api_swagger.png" width="600"/></kbd>
+<kbd><img alt="rest api swagger" src="media/rest_api_swagger.png" width="600"/></kbd>
 
 See related PR highlights [here](#developer-experience-1).
 
@@ -75,7 +75,7 @@ A redesigned home screen provides a **personalized landing page** that the user 
 
 Charts on dashboards have been updated to concisely show which **filters** are in scope, have been applied, or are in error. Context around filter changes has been increased by highlighting scoped charts when a filter is selected and increasing visibility of charts with incompatible filters applied.
 
-<kbd><img alt="chart alerts scope" src="media/chart_alerts_scope.png" width="600"/></kbd>
+<kbd><img alt="filter status" src="media/filter_status.png" width="600"/></kbd>
 
 **Alerts and reporting** have received a robust backend and UI overhaul.
 
@@ -84,7 +84,7 @@ Charts on dashboards have been updated to concisely show which **filters** are i
 See related PR highlights [here](#new-features-1).
 
 # Stability and Bugfixes
-This release includes hundreds of bugfixes and stability enhancements. Future major releases will have a continued emphasis on providing a stable and bug-free experience for the user.
+This release includes **hundreds** of bugfixes and stability enhancements. Future major releases will have a continued emphasis on providing a stable and bug-free experience for the user.
 
 # PR Highlights
 ## User Experience
