@@ -23,7 +23,11 @@ import { Input } from 'src/common/components';
 import { FrameComponentProps } from '../types';
 
 export function AdvancedFrame(props: FrameComponentProps) {
-  const [since, until] = getAdvancedRange(props.value || '').split(SEPARATOR);
+  const advancedRange = getAdvancedRange(props.value || '');
+  const [since, until] = advancedRange.split(SEPARATOR);
+  if (advancedRange !== props.value) {
+    props.onChange(getAdvancedRange(props.value || ''));
+  }
 
   function getAdvancedRange(value: string): string {
     if (value.includes(SEPARATOR)) {

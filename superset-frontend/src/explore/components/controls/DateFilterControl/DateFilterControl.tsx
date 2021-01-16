@@ -202,12 +202,10 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           | tooltip      | ADR  | ADR      | HRT    | HRT      |   ADR     |
           +--------------+------+----------+--------+----------+-----------+
         */
-        const valueToLower = value.toLowerCase();
         if (
-          valueToLower.startsWith('last') ||
-          valueToLower.startsWith('next') ||
-          valueToLower.startsWith('previous') ||
-          valueToLower === 'no filter'
+          frame === 'Common' ||
+          frame === 'Calendar' ||
+          frame === 'No filter'
         ) {
           setActualTimeRange(value);
           setTooltipTitle(actualRange || '');
