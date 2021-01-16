@@ -9,7 +9,7 @@ on:
 
 jobs:
   test-mysql:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         python-version: [3.7]
@@ -55,7 +55,7 @@ jobs:
           bash <(curl -s https://codecov.io/bash) -cF python
 
   test-postgres:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         python-version: [3.7, 3.8]
@@ -102,7 +102,7 @@ jobs:
           bash <(curl -s https://codecov.io/bash) -cF python
 
   test-sqlite:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         python-version: [3.7]

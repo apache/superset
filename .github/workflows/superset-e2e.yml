@@ -10,7 +10,7 @@ on:
 
 jobs:
   cypress-matrix:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       # when one test fails, DO NOT cancel the other
       # containers, because this will kill Cypress processes
@@ -105,7 +105,7 @@ jobs:
   Cypress:
     if: ${{ always() }}
     name: Cypress (chrome)
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     needs: cypress-matrix
     steps:
       - name: Check build matrix status
