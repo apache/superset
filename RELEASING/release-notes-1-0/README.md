@@ -61,10 +61,6 @@ Along with the Echarts integration, we are also introducing a better set of anno
 
 <kbd><img src="media/annotations.png" width="800"/></kbd>
 
-Unlike many other BI tools, Superset's dashboard filter lives as a chart, which needs to be created in the Explore view and added to dashboard as a chart/component. To improve the usability and user experience, we are introducing a new dashboard filter as a dashboard-native component, allowing users to create, add, and edit filters quickly at the dashboard level.
-
-<kbd><img src="media/dashboard_filter.png" width="800"/></kbd>
-
 A redesigned home screen provides a personalized landing page that the user sees when they log into Superset, improving discoverability. It shows items relevant to the user (Charts, Dashboards, Saved Queries, etc) and serves as a hub to discover content and access recent items quickly.
 
 <kbd><img src="media/home_screen.png" width="800"/></kbd>
