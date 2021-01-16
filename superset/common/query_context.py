@@ -142,7 +142,7 @@ class QueryContext:
     def df_metrics_to_num(df: pd.DataFrame, query_object: QueryObject) -> None:
         """Converting metrics to numeric when pandas.read_sql cannot"""
         for col, dtype in df.dtypes.items():
-            if dtype.type == np.object_ and col in query_object.metrics:
+            if dtype.type == np.object_ and col in query_object.metric_names:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
 
     def get_data(self, df: pd.DataFrame,) -> Union[str, List[Dict[str, Any]]]:
@@ -166,6 +166,7 @@ class QueryContext:
         if self.result_type == utils.ChartDataResultType.SAMPLES:
             row_limit = query_obj.row_limit or math.inf
             query_obj = copy.copy(query_obj)
+            query_obj.is_timeseries = False
             query_obj.orderby = []
             query_obj.groupby = []
             query_obj.metrics = []
