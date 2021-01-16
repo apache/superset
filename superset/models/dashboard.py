@@ -22,7 +22,7 @@ from typing import Any, Callable, Dict, List, Set, Union
 import sqlalchemy as sqla
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
-from flask_appbuilder.security.sqla.models import  User
+from flask_appbuilder.security.sqla.models import User
 from markupsafe import escape, Markup
 from sqlalchemy import (
     Boolean,
