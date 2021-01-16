@@ -18,7 +18,13 @@ under the License.
 -->
 ## Change Log
 
-### 1.0.0 (Fri Jan 15 05:11:56 2021 -0800)
+### 1.0.0 (Fri Jan 15 15:33:21 2021 -0800)
+- [#12535](https://github.com/apache/superset/pull/12535) Fix 500 error when loading dashboards with slice having deleted dataset (#12535) (@bechob)
+- [#12562](https://github.com/apache/superset/pull/12562) fix: case expression should not have double quotes (#12562) (@betodealmeida)
+- [#12558](https://github.com/apache/superset/pull/12558) fix: height on grid results (#12558) (@betodealmeida)
+- [#12556](https://github.com/apache/superset/pull/12556) fix(viz): missing groupby and broken adhoc metrics for boxplot (#12556) (@ktmud)
+- [#12555](https://github.com/apache/superset/pull/12555) fix: Add MAX_SQL_ROW value to LIMIT_DROPDOWN (#12555) (@hughhhh)
+- [#1410](https://github.com/apache/superset/pull/12410) fix: Popover closes on change of dropdowns values (#12410) (@geido)
 - [#12337](https://github.com/apache/superset/pull/12337) chore: rename docker image from incubator-superset to superset (#1337) (@amitmiran137)
 - [#12403](https://github.com/apache/superset/pull/12403) feat(db-engine): Add support for Apache Solr (#12403) (@aadel)
 - [#12497](https://github.com/apache/superset/pull/12497) Fix list filters vertical alignment (#12497) (@michael-s-molina)
