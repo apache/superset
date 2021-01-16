@@ -993,6 +993,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         time_range_endpoints = extras.get("time_range_endpoints")
         groupby_exprs_with_timestamp = OrderedDict(groupby_exprs_sans_timestamp.items())
+
         if granularity:
             dttm_col = columns_by_name[granularity]
             time_grain = extras.get("time_grain_sqla")
@@ -1032,7 +1033,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         tbl = self.get_from_clause(template_processor)
 
-        if (is_sip_38 and metrics) or (not is_sip_38 and not columns):
+        if groupby_exprs_with_timestamp:
             qry = qry.group_by(*groupby_exprs_with_timestamp.values())
 
         where_clause_and = []

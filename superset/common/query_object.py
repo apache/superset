@@ -28,7 +28,7 @@ from superset import app, is_feature_enabled
 from superset.exceptions import QueryObjectValidationError
 from superset.typing import Metric
 from superset.utils import pandas_postprocessing
-from superset.utils.core import DTTM_ALIAS, json_int_dttm_ser
+from superset.utils.core import DTTM_ALIAS, get_metric_names, json_int_dttm_ser
 from superset.utils.date_parser import get_since_until, parse_human_timedelta
 from superset.views.utils import get_time_range_endpoints
 
@@ -211,6 +211,10 @@ class QueryObject:
                             field.old_name,
                         )
                     self.extras[field.new_name] = value
+
+    @property
+    def metric_names(self) -> List[str]:
+        return get_metric_names(self.metrics)
 
     def to_dict(self) -> Dict[str, Any]:
         query_object_dict = {
