@@ -18,12 +18,12 @@ from typing import Any
 
 from flask_appbuilder.security.sqla.models import Role
 from flask_babel import lazy_gettext as _
-from sqlalchemy import and_, not_, or_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
 
 from superset import db, security_manager
 from superset.models.core import FavStar
-from superset.models.dashboard import Dashboard, DashboardRoles
+from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.views.base import BaseFilter, get_user_roles
 from superset.views.base_api import BaseFavoriteFilter
