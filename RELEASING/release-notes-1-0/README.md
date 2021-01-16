@@ -53,7 +53,7 @@ This the most performant Superset release to date, with enhanced scalability and
 See related PR highlights [here](#performance-1).
 
 # New Features
-Superset 1.0 includes some other new features and enhancements. New visualization plugin architecture will make it easier to build, test, style and configure custom visualizations for Superset. Dynamic viz plugin imports will allow Superset to load data viz plugins, allowing developers to more easily use or share their custom plugins and load custom plugins on-demand from anywhere on the web. Superset has also adopted Apache ECharts as the core library for new visualizations.
+Superset 1.0 includes a slew of other new features and enhancements. New visualization plugin architecture will make it easier to build, test, style and configure custom visualizations for Superset. Dynamic viz plugin imports will allow Superset to load data viz plugins, allowing developers to more easily use or share their custom plugins and load custom plugins on-demand from anywhere on the web. Superset has also adopted Apache ECharts as the core library for new visualizations.
 
 <kbd><img alt="timeseries prophet" src="media/echarts_timeseries_prophet.png" width="800"/></kbd>
 
