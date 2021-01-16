@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from collections import OrderedDict
+from collections import OrderedDict  # pylint:disable = unused-import
 from typing import Any, Dict, List
 
 import pandas as pd
