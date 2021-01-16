@@ -18,7 +18,7 @@ under the License.
 -->
 # Release Notes for Superset 1.0.0
 
-Superset 1.0 is a **huge milestone** for Apache Superset. This release holds a higher quality standard than any previous version and raises the bar for releases to come. Superset 1.0 improves on usability and delivers a new set of long awaited features focused on five major themes:
+Superset 1.0 is a ***huge milestone*** for Apache Superset. This release holds a higher quality standard than any previous version and raises the bar for releases to come. Superset 1.0 improves on usability and delivers a new set of long awaited features focused on five major themes:
 - [**User Experience**](#user-experience)
 - [**Developer Experience**](#developer-experience)
 - [**Performance**](#performance)
@@ -45,9 +45,11 @@ See related PR highlights [here](#user-experience-1).
 # Developer Experience
 Superset 1.0 makes it easier for developers to build, deploy, and maintain Superset functionality. This release is a major milestone in an ongoing effort to **modernize**, **consolidate**, and **simplify** the interface elements of Superset. Highly-used components have been visually updated, refactored to modern component libraries, and integrated with React Storybook for immediate visibility with consolidated test/styles. This improves the developer experience and creates a more consistent and modern aesthetic for the user.
 
-The **REST API** continues to see improvement as well, with new endpoints and improvements to existing endpoints. More details [here](https://superset.apache.org/docs/rest-api)
+The **REST API** continues to see improvement as well, with new endpoints and improvements to existing endpoints. More details [here](https://superset.apache.org/docs/rest-api).
 
 <kbd><img alt="explore ui" src="media/rest_api.png" width="600"/></kbd>
+
+The Swagger interface can be used to explore and try out these changes.
 
 <kbd><img alt="explore ui" src="media/rest_api_swagger.png" width="600"/></kbd>
 
@@ -59,7 +61,7 @@ This the most performant Superset release to date, with enhanced scalability and
 See related PR highlights [here](#performance-1).
 
 # New Features
-Superset 1.0 includes a slew of other new features and enhancements. **New visualization plugin architecture** will make it easier to build, test, style and configure custom visualizations for Superset. **Dynamic viz plugin** imports will allow Superset to load data viz plugins, allowing developers to more easily use or share their custom plugins and load custom plugins on-demand from anywhere on the web. Superset has also adopted [**Apache ECharts**](https://echarts.apache.org/en/index.html) as the core library for new visualizations.
+Superset 1.0 includes a slew of new features and other enhancements. **New visualization plugin architecture** will make it easier to build, test, style and configure custom visualizations for Superset. **Dynamic viz plugin** imports will allow Superset to load data viz plugins, allowing developers to more easily use or share their custom plugins and **load custom plugins on-demand** from anywhere on the web. Superset has also adopted [**Apache ECharts**](https://echarts.apache.org/en/index.html) as the core library for new visualizations.
 
 <kbd><img alt="timeseries prophet" src="media/echarts_timeseries_prophet.png" width="600"/></kbd>
 
@@ -201,6 +203,6 @@ This release includes hundreds of bugfixes and stability enhancements. Future ma
 - feat(releasing): support changelog csv export (#[11893](https://github.com/apache/incubator-superset/pull/11893))
 
 ## Complete Changelog
-Backwards incompatible changes can be found [here](../../UPDATING.md).
+Backwards incompatible changes and can be found [here](../../UPDATING.md).
 
 To see the complete changelog, see [apache/incubator-superset/CHANGELOG.md](https://github.com/apache/superset/blob/master/CHANGELOG.md)
