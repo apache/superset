@@ -94,7 +94,7 @@ This release includes **hundreds** of bugfixes and stability enhancements. Futur
 - style: remove react bootstrap fade component (#[11843](https://github.com/apache/incubator-superset/pull/11843))
 - style: dark filter popover background (#[11611](https://github.com/apache/incubator-superset/pull/11611))
 
-### Card Layout
+<!--### Card Layout-->
 
 ### Explore Controls
 - feat: Global nav menus open on hover (#[12025](https://github.com/apache/incubator-superset/pull/12025))
