@@ -30,11 +30,11 @@ We have taken the Superset user experience to the next level with a much simpler
 
 Lists of Charts and Dashboards can be shown in a new format using a grid of thumbnails. This makes it easier to discover and find Charts and Dashboards, especially when there are a lot of them in your Superset instance.
 
-<kbd><img alt="card view" src="media/dashboard_card_view.png" width="800"/></kbd>
+<kbd><img alt="card view" src="media/dashboard_card_view.png" width="600"/></kbd>
 
 Visualization controls have been updated to create a more consistent and modernized interface. Refactoring includes updates to the content/labeling/ordering of these controls as well as updating their styling and simplifying their interactions and layout. This will line us up for features like drag-and-drop controls, and dynamically populated control inputs in future releases.
 
-<kbd><img alt="explore ui" src="media/explore_ui.png" width="800"/></kbd>
+<kbd><img alt="explore ui" src="media/explore_ui.png" width="600"/></kbd>
 
 Users also now have the ability to create and name a new dataset or update an existing dataset when moving from SQL Lab to Explore. When going back to SQL Lab, the underlying query for the dataset will be shown, allowing users to easily make changes and update their dataset when moving between SQL Lab and Explore.
 
@@ -55,23 +55,23 @@ See related PR highlights [here](#performance-1).
 # New Features
 Superset 1.0 includes a slew of other new features and enhancements. New visualization plugin architecture will make it easier to build, test, style and configure custom visualizations for Superset. Dynamic viz plugin imports will allow Superset to load data viz plugins, allowing developers to more easily use or share their custom plugins and load custom plugins on-demand from anywhere on the web. Superset has also adopted Apache ECharts as the core library for new visualizations.
 
-<kbd><img alt="timeseries prophet" src="media/echarts_timeseries_prophet.png" width="800"/></kbd>
+<kbd><img alt="timeseries prophet" src="media/echarts_timeseries_prophet.png" width="600"/></kbd>
 
 Along with the Echarts integration, we are also introducing a better set of annotation features. Formula annotation, which allows users to plot any mathematical function on the chart; Interval and Event annotations, will allow users to add context to the trent in Time-Series; and Line annotation, which use a predefined chart as the source of annotation.
 
-<kbd><img alt="annotations" src="media/annotations.png" width="800"/></kbd>
+<kbd><img alt="annotations" src="media/annotations.png" width="600"/></kbd>
 
 A redesigned home screen provides a personalized landing page that the user sees when they log into Superset, improving discoverability. It shows items relevant to the user (Charts, Dashboards, Saved Queries, etc) and serves as a hub to discover content and access recent items quickly.
 
-<kbd><img alt="home screen" src="media/home_screen.png" width="800"/></kbd>
+<kbd><img alt="home screen" src="media/home_screen.png" width="600"/></kbd>
 
 Charts on dashboards have been updated to concisely show which filters are in scope, have been applied, or are in error. Context around filter changes has been increased by highlighting scoped charts when a filter is selected and increasing visibility of charts with incompatible filters applied.
 
-<kbd><img alt="chart alerts scope" src="media/chart_alerts_scope.png" width="800"/></kbd>
+<kbd><img alt="chart alerts scope" src="media/chart_alerts_scope.png" width="600"/></kbd>
 
 Alerts and reporting have received a robust backend and UI overhaul.
 
-<kbd><img alt="alerts reports" src="media/alerts_reports.png" width="800"/></kbd>
+<kbd><img alt="alerts reports" src="media/alerts_reports.png" width="600"/></kbd>
 
 See related PR highlights [here](#new-features-1).
 
