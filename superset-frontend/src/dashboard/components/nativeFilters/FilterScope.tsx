@@ -37,10 +37,10 @@ type FilterScopeProps = {
   form: FormInstance<NativeFiltersForm>;
 };
 
-export const defaultScopeValue = {
+export const getDefaultScopeValue = () => ({
   rootPath: [DASHBOARD_ROOT_ID],
   excluded: [],
-};
+});
 
 const CleanFormItem = styled(Form.Item)`
   margin-bottom: 0;
@@ -52,7 +52,7 @@ const FilterScope: FC<FilterScopeProps> = ({
   form,
 }) => {
   const formFilter = form.getFieldValue('filters')?.[filterId];
-  const initialScope = filterToEdit?.scope || defaultScopeValue;
+  const initialScope = filterToEdit?.scope || getDefaultScopeValue();
 
   const scoping = isScopingAll(initialScope) ? Scoping.all : Scoping.specific;
 
@@ -74,7 +74,7 @@ const FilterScope: FC<FilterScopeProps> = ({
           onChange={({ target: { value } }) => {
             if (value === Scoping.all) {
               setFilterFieldValues(form, filterId, {
-                scope: defaultScopeValue,
+                scope: getDefaultScopeValue(),
               });
             }
             forceUpdate();

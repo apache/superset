@@ -62,7 +62,8 @@ const ScopingTree: FC<ScopingTreeProps> = ({
   };
 
   const checkedKeys = useMemo(
-    () => getTreeCheckedItems(formFilter.scope || initialScope, layout),
+    () =>
+      getTreeCheckedItems({ ...(formFilter.scope || initialScope) }, layout),
     [formFilter.scope, initialScope, layout],
   );
 
