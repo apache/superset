@@ -87,6 +87,8 @@ See related PR highlights [here](#new-features-1).
 This release includes **hundreds** of bugfixes and stability enhancements. Future major releases will have a continued emphasis on providing a stable and bug-free experience for the user.
 
 # PR Highlights
+Below is a highlight of the PRs included in this update. The full list is much longer, and can be found [here](apache/incubator-superset/CHANGELOG.md).
+
 ## User Experience
 - Revert "refactor: Remove usages of reactable from TimeTable (#11046)" (#[11150](https://github.com/apache/incubator-superset/pull/11150))
 - style: Restoring menu highlights (#[12024](https://github.com/apache/incubator-superset/pull/12024))
