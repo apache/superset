@@ -1,0 +1,98 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: How much do you expect to earn? ($0 - 100k)
+viz_type: histogram
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: Aspiring Developer
+    expressionType: SIMPLE
+    filterOptionName: filter_dfz5l631lx_lb7f2rlmjdl
+    isExtra: false
+    isNew: false
+    operator: ==
+    sqlExpression: null
+    subject: developer_type
+  - clause: WHERE
+    comparator: '200000'
+    expressionType: SIMPLE
+    filterOptionName: filter_6nmi4fk837u_6lvcpn3zzvf
+    isExtra: false
+    isNew: false
+    operator: <=
+    sqlExpression: null
+    subject: expected_earn
+  all_columns_x:
+  - expected_earn
+  color_scheme: supersetColors
+  datasource: 42__table
+  granularity_sqla: time_start
+  groupby: null
+  label_colors:
+    '0': '#FCC700'
+    '1': '#A868B7'
+    '15': '#3CCCCB'
+    '30': '#A38F79'
+    '45': '#8FD3E4'
+    <NULL>: '#5AC189'
+    Female: '#454E7C'
+    From Home: '#1FA8C9'
+    I: '#FEC0A1'
+    In an Office (with Other Developers): '#9EE5E5'
+    Less: '#ACE1C4'
+    Male: '#666666'
+    More: '#A1A6BD'
+    'No': '#666666'
+    No Answer: '#D3B3DA'
+    No Preference: '#D1C6BC'
+    No,: '#FF7F44'
+    No, not an ethnic minority: '#1FA8C9'
+    'No: Not Willing to': '#FDE380'
+    Ph.D.: '#FCC700'
+    Prefer: '#5AC189'
+    Prefer not to say: '#E04355'
+    'Yes': '#FF7F44'
+    Yes,: '#1FA8C9'
+    Yes, an ethnic minority: '#454E7C'
+    'Yes: Willing To': '#EFA1AA'
+    age: '#1FA8C9'
+    associate's degree: '#A868B7'
+    bachelor's degree: '#3CCCCB'
+    expected_earn: '#B2B2B2'
+    high school diploma or equivalent (GED): '#A38F79'
+    last_yr_income: '#E04355'
+    master's degree (non-professional): '#8FD3E4'
+    no high school (secondary school): '#A1A6BD'
+    professional degree (MBA, MD, JD, etc.): '#ACE1C4'
+    some college credit, no degree: '#FEC0A1'
+    some high school: '#B2B2B2'
+    trade, technical, or vocational training: '#EFA1AA'
+  link_length: '10'
+  queryFields:
+    groupby: groupby
+  row_limit: null
+  slice_id: 1366
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  url_params: {}
+  viz_type: histogram
+cache_timeout: null
+uuid: 6d0ceb30-2008-d19c-d285-cf77dc764433
+version: 1.0.0
+dataset_uuid: d95a2865-53ce-1f82-a53d-8e3c89331469

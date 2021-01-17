@@ -19,7 +19,10 @@
 """Unit tests for Superset"""
 import json
 from io import BytesIO
+from unittest import mock
 from zipfile import is_zipfile, ZipFile
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import prison
 import pytest
@@ -198,7 +201,7 @@ class TestDatabaseApi(SupersetTestCase):
         database_data = {
             "database_name": "test-create-database",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
-            "server_cert": ssl_certificate,
+            "server_cert": None,
             "extra": json.dumps(extra),
         }
 
@@ -343,6 +346,10 @@ class TestDatabaseApi(SupersetTestCase):
             "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
         )
 
+    @mock.patch(
+        "superset.views.core.app.config",
+        {**app.config, "PREVENT_UNSAFE_DB_CONNECTIONS": True},
+    )
     def test_create_database_fail_sqllite(self):
         """
         Database API: Test create fail with sqllite
@@ -384,7 +391,9 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         response = self.client.post(uri, json=database_data)
         response_data = json.loads(response.data.decode("utf-8"))
-        expected_response = {"message": "Could not connect to database."}
+        expected_response = {
+            "message": "Connection failed, please check your connection settings"
+        }
         self.assertEqual(response.status_code, 422)
         self.assertEqual(response_data, expected_response)
 
@@ -426,7 +435,9 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         rv = self.client.put(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": "Could not connect to database."}
+        expected_response = {
+            "message": "Connection failed, please check your connection settings"
+        }
         self.assertEqual(rv.status_code, 422)
         self.assertEqual(response, expected_response)
         # Cleanup
@@ -493,6 +504,9 @@ class TestDatabaseApi(SupersetTestCase):
             "Invalid connection string", response["message"]["sqlalchemy_uri"][0],
         )
 
+        db.session.delete(test_database)
+        db.session.commit()
+
     def test_delete_database(self):
         """
         Database API: Test delete
@@ -547,6 +561,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.assertEqual(response, expected_response)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_table_metadata(self):
         """
         Database API: Test get table metadata info
@@ -610,6 +625,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_select_star(self):
         """
         Database API: Test get select star
@@ -746,7 +762,7 @@ class TestDatabaseApi(SupersetTestCase):
             "extra": json.dumps(extra),
             "impersonate_user": False,
             "sqlalchemy_uri": example_db.safe_sqlalchemy_uri(),
-            "server_cert": ssl_certificate,
+            "server_cert": None,
         }
         url = "api/v1/database/test_connection"
         rv = self.post_assert_metric(url, data, "test_connection")
@@ -779,11 +795,10 @@ class TestDatabaseApi(SupersetTestCase):
         }
         url = "api/v1/database/test_connection"
         rv = self.post_assert_metric(url, data, "test_connection")
-        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rv.status_code, 422)
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "driver_name": "broken",
             "message": "Could not load database driver: broken",
         }
         self.assertEqual(response, expected_response)
@@ -795,11 +810,10 @@ class TestDatabaseApi(SupersetTestCase):
             "server_cert": None,
         }
         rv = self.post_assert_metric(url, data, "test_connection")
-        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rv.status_code, 422)
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "driver_name": "mssql+pymssql",
             "message": "Could not load database driver: mssql+pymssql",
         }
         self.assertEqual(response, expected_response)
@@ -830,8 +844,13 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.assertEqual(response, expected_response)
 
+        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
+
     @pytest.mark.usefixtures(
-        "load_unicode_dashboard_with_position", "load_energy_table_with_slice"
+        "load_unicode_dashboard_with_position",
+        "load_energy_table_with_slice",
+        "load_world_bank_dashboard_with_slices",
+        "load_birth_names_dashboard_with_slices",
     )
     def test_get_database_related_objects(self):
         """

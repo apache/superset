@@ -17,10 +17,8 @@
 # isort:skip_file
 """Unit tests for Superset"""
 from datetime import datetime
-from typing import List, Optional
 import json
 
-from flask_appbuilder.security.sqla.models import User
 import pytest
 import prison
 from sqlalchemy.sql import func
@@ -48,6 +46,32 @@ REPORTS_COUNT = 10
 
 
 class TestReportSchedulesApi(SupersetTestCase):
+    @pytest.fixture()
+    def create_working_report_schedule(self):
+        with self.create_app().app_context():
+
+            admin_user = self.get_user("admin")
+            alpha_user = self.get_user("alpha")
+            chart = db.session.query(Slice).first()
+            example_db = get_example_database()
+
+            report_schedule = insert_report_schedule(
+                type=ReportScheduleType.ALERT,
+                name=f"name_working",
+                crontab=f"* * * * *",
+                sql=f"SELECT value from table",
+                description=f"Report working",
+                chart=chart,
+                database=example_db,
+                owners=[admin_user, alpha_user],
+                last_state=ReportState.WORKING,
+            )
+
+            yield
+
+            db.session.delete(report_schedule)
+            db.session.commit()
+
     @pytest.fixture()
     def create_report_schedules(self):
         with self.create_app().app_context():
@@ -260,8 +284,11 @@ class TestReportSchedulesApi(SupersetTestCase):
             "changed_on",
             "changed_on_delta_humanized",
             "created_on",
+            "crontab",
+            "last_eval_dttm",
             "name",
             "type",
+            "crontab_humanized",
         ]
 
         for order_column in order_columns:
@@ -441,6 +468,46 @@ class TestReportSchedulesApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data == {"message": {"name": ["Name must be unique"]}}
 
+        # Check that uniqueness is composed by name and type
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name3",
+            "description": "description",
+            "crontab": "0 9 * * *",
+            "chart": chart.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        assert rv.status_code == 201
+        data = json.loads(rv.data.decode("utf-8"))
+
+        # Rollback changes
+        created_model = db.session.query(ReportSchedule).get(data.get("id"))
+        db.session.delete(created_model)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_create_report_schedule_schema(self):
+        """
+        ReportSchedule Api: Test create report schedule schema check
+        """
+        self.login(username="admin")
+        chart = db.session.query(Slice).first()
+        example_db = get_example_database()
+
+        # Check that a report does not have a database reference
+        report_schedule_data = {
+            "type": ReportScheduleType.REPORT,
+            "name": "name3",
+            "description": "description",
+            "crontab": "0 9 * * *",
+            "chart": chart.id,
+            "database": example_db.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        assert rv.status_code == 400
+
     @pytest.mark.usefixtures("create_report_schedules")
     def test_create_report_schedule_chart_dash_validation(self):
         """
@@ -577,6 +644,29 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert updated_model.crontab == report_schedule_data["crontab"]
         assert updated_model.chart_id == report_schedule_data["chart"]
         assert updated_model.database_id == report_schedule_data["database"]
+
+    @pytest.mark.usefixtures("create_working_report_schedule")
+    def test_update_report_schedule_state_working(self):
+        """
+        ReportSchedule Api: Test update state in a working report
+        """
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name_working")
+            .one_or_none()
+        )
+
+        self.login(username="admin")
+        report_schedule_data = {"active": False}
+        uri = f"api/v1/report/{report_schedule.id}"
+        rv = self.client.put(uri, json=report_schedule_data)
+        assert rv.status_code == 200
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name_working")
+            .one_or_none()
+        )
+        assert report_schedule.last_state == ReportState.NOOP
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_update_report_schedule_uniqueness(self):
@@ -864,12 +954,15 @@ class TestReportSchedulesApi(SupersetTestCase):
             "error_message",
             "end_dttm",
             "start_dttm",
+            "scheduled_dttm",
         ]
 
         for order_column in order_columns:
             arguments = {"order_column": order_column, "order_direction": "asc"}
             uri = f"api/v1/report/{report_schedule.id}/log/?q={prison.dumps(arguments)}"
             rv = self.get_assert_metric(uri, "get_list")
+            if rv.status_code == 400:
+                raise Exception(json.loads(rv.data.decode("utf-8")))
             assert rv.status_code == 200
 
     @pytest.mark.usefixtures("create_report_schedules")

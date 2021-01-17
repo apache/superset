@@ -1,0 +1,36 @@
+name: "Test the build"
+on: # rebuild any PRs and main branch changes
+  pull_request:
+  push:
+
+jobs:
+  pre-commit: # make sure pre-commits work properly
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: Cache npm env
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-npm-v1
+        with:
+          path: node_modules
+          key: ${{ env.cache-name }}-${{ github.job }}-${{ hashFiles('package.json','package-lock.json') }}
+      - name: "Install dependencies for npm"
+        run: |
+          npm ci
+      - name: Cache pre-commit env
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-pre-commit-v1
+        with:
+          path: ~/.cache/pre-commit
+          key: ${{ env.cache-name }}-${{ github.job }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: "Install pre-commit"
+        run: |
+          pip install pre-commit
+      - name: "Run pre-commit"
+        run: |
+          pre-commit run --all-files --show-diff-on-failure --color always

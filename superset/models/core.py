@@ -175,7 +175,7 @@ class Database(
             return self.db_engine_spec.get_function_names(self)
         except Exception as ex:  # pylint: disable=broad-except
             # function_names property is used in bulk APIs and should not hard crash
-            # more info in: https://github.com/apache/incubator-superset/issues/9678
+            # more info in: https://github.com/apache/superset/issues/9678
             logger.error(
                 "Failed to fetch database function names with error: %s", str(ex)
             )

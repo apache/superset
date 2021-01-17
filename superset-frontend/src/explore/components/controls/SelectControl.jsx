@@ -56,6 +56,7 @@ const propTypes = {
   menuPortalTarget: PropTypes.element,
   menuPosition: PropTypes.string,
   menuPlacement: PropTypes.string,
+  forceOverflow: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -203,13 +204,6 @@ export default class SelectControl extends React.PureComponent {
     return remainingOptions;
   }
 
-  createPlaceholder() {
-    const optionsRemaining = this.optionsRemaining();
-    const placeholder =
-      this.props.placeholder || t('%s option(s)', optionsRemaining);
-    return optionsRemaining ? placeholder : '';
-  }
-
   createMetaSelectAllOption() {
     const option = { label: 'Select All', meta: true };
     option[this.props.valueKey] = 'Select All';
@@ -225,8 +219,6 @@ export default class SelectControl extends React.PureComponent {
       filterOption,
       isLoading,
       menuPlacement,
-      menuPortalTarget,
-      menuPosition,
       name,
       noResultsText,
       onFocus,
@@ -235,9 +227,22 @@ export default class SelectControl extends React.PureComponent {
       value,
       valueKey,
       valueRenderer,
+      forceOverflow,
+      menuPortalTarget,
+      menuPosition,
     } = this.props;
-    const placeholder = this.createPlaceholder();
+
+    const optionsRemaining = this.optionsRemaining();
+    const optionRemaingText = optionsRemaining
+      ? t('%s option(s)', optionsRemaining)
+      : '';
+    const placeholder = this.props.placeholder || optionRemaingText;
     const isMulti = this.props.isMulti || this.props.multi;
+
+    let assistiveText;
+    if (isMulti && optionsRemaining && Array.isArray(value) && !!value.length) {
+      assistiveText = optionRemaingText;
+    }
 
     const selectProps = {
       autoFocus,
@@ -249,6 +254,7 @@ export default class SelectControl extends React.PureComponent {
       isMulti,
       labelKey: 'label',
       menuPlacement,
+      forceOverflow,
       menuPortalTarget,
       menuPosition,
       name: `select-${name}`,
@@ -258,6 +264,7 @@ export default class SelectControl extends React.PureComponent {
       optionRenderer,
       options: this.state.options,
       placeholder,
+      assistiveText,
       promptTextCreator,
       selectRef: this.getSelectRef,
       value,

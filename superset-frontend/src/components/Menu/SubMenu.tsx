@@ -30,6 +30,7 @@ const StyledHeader = styled.header`
   }
   .navbar-header .navbar-brand {
     font-weight: ${({ theme }) => theme.typography.weights.bold};
+    margin-right: ${({ theme }) => theme.gridUnit * 3}px;
   }
   .navbar-right {
     padding: 8px 0;
@@ -47,6 +48,7 @@ const StyledHeader = styled.header`
         a {
           margin: 0;
           padding: ${({ theme }) => theme.gridUnit * 4}px;
+          line-height: ${({ theme }) => theme.gridUnit * 5}px;
         }
       }
 
@@ -136,41 +138,44 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
             props.tabs.map(tab => {
               if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
                 return (
-                  <li
-                    className={tab.name === props.activeChild ? 'active' : ''}
-                    key={`${tab.label}`}
-                  >
-                    <div>
-                      <Link to={tab.url || ''}>{tab.label}</Link>
-                    </div>
-                  </li>
+                  <React.Fragment key={tab.label}>
+                    <li
+                      className={tab.name === props.activeChild ? 'active' : ''}
+                    >
+                      <div>
+                        <Link to={tab.url || ''}>{tab.label}</Link>
+                      </div>
+                    </li>
+                  </React.Fragment>
                 );
               }
 
               return (
-                <li
-                  className={cx('no-router', {
-                    active: tab.name === props.activeChild,
-                  })}
-                  key={`${tab.label}`}
-                >
-                  <a href={tab.url} onClick={tab.onClick}>
-                    {tab.label}
-                  </a>
-                </li>
+                <React.Fragment key={tab.label}>
+                  <li
+                    className={cx('no-router', {
+                      active: tab.name === props.activeChild,
+                    })}
+                  >
+                    <a href={tab.url} onClick={tab.onClick}>
+                      {tab.label}
+                    </a>
+                  </li>
+                </React.Fragment>
               );
             })}
         </Nav>
         <Nav className="navbar-right">
           {props.buttons?.map((btn, i) => (
-            <Button
-              key={`${i}`}
-              buttonStyle={btn.buttonStyle}
-              onClick={btn.onClick}
-              data-test={btn['data-test']}
-            >
-              {btn.name}
-            </Button>
+            <React.Fragment key={`${i}`}>
+              <Button
+                buttonStyle={btn.buttonStyle}
+                onClick={btn.onClick}
+                data-test={btn['data-test']}
+              >
+                {btn.name}
+              </Button>
+            </React.Fragment>
           ))}
         </Nav>
       </Navbar>

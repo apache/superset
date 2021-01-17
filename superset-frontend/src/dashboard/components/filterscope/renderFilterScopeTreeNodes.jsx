@@ -35,7 +35,7 @@ function traverse({ currentNode = {}, selectedChartId }) {
     return {
       ...currentNode,
       label: (
-        <a
+        <span
           className={cx(`filter-scope-type ${type.toLowerCase()}`, {
             'selected-filter': selectedChartId === value,
           })}
@@ -46,7 +46,7 @@ function traverse({ currentNode = {}, selectedChartId }) {
             </span>
           )}
           {label}
-        </a>
+        </span>
       ),
       children: updatedChildren,
     };
@@ -54,13 +54,13 @@ function traverse({ currentNode = {}, selectedChartId }) {
   return {
     ...currentNode,
     label: (
-      <a
+      <span
         className={cx(`filter-scope-type ${type.toLowerCase()}`, {
           'selected-filter': selectedChartId === value,
         })}
       >
         {label}
-      </a>
+      </span>
     ),
   };
 }

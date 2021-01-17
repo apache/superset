@@ -187,8 +187,8 @@ const SavedQueries = ({
     return filters;
   };
 
-  const getData = (filter: string) => {
-    return fetchData({
+  const getData = (filter: string) =>
+    fetchData({
       pageIndex: 0,
       pageSize: PAGE_SIZE,
       sortBy: [
@@ -199,7 +199,6 @@ const SavedQueries = ({
       ],
       filters: getFilters(filter),
     });
-  };
 
   const renderMenu = (query: Query) => (
     <Menu>

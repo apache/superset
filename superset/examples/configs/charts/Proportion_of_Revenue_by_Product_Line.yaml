@@ -24,15 +24,15 @@ params:
   comparison_type: values
   contribution: true
   datasource: 23__table
-  granularity_sqla: OrderDate
+  granularity_sqla: order_date
   groupby:
-  - ProductLine
+  - product_line
   label_colors: {}
   line_interpolation: linear
   metrics:
   - aggregate: SUM
     column:
-      column_name: Sales
+      column_name: sales
       description: null
       expression: null
       filterable: true

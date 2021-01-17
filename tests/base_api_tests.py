@@ -16,7 +16,9 @@
 # under the License.
 # isort:skip_file
 import json
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
+import pytest
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 import prison
 
@@ -66,6 +68,7 @@ class TestOpenApiSpec(SupersetTestCase):
 
 
 class TestBaseModelRestApi(SupersetTestCase):
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_default_missing_declaration_get(self):
         """
         API: Test default missing declaration on get
@@ -148,6 +151,7 @@ class TestBaseModelRestApi(SupersetTestCase):
         }
         self.assertEqual(response, expected_response)
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_default_missing_declaration_put(self):
         """
         API: Test default missing declaration on put

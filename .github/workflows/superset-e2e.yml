@@ -1,10 +1,16 @@
 name: E2E
 
-on: [push, pull_request_target]
+on:
+  push:
+    branches-ignore:
+      - "dependabot/**/docs/**"
+    paths-ignore:
+      - "docs/**"
+  pull_request:
 
 jobs:
   cypress-matrix:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       # when one test fails, DO NOT cancel the other
       # containers, because this will kill Cypress processes
@@ -35,10 +41,6 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
-        with:
-          access_token: ${{ github.token }}
       - name: Checkout code (push)
         if: github.event_name == 'push'
         uses: actions/checkout@v2
@@ -46,52 +48,52 @@ jobs:
         if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
         uses: actions/checkout@v2
         with:
-          ref: 'refs/pull/${{ github.event.number }}/merge'
+          ref: "refs/pull/${{ github.event.number }}/merge"
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
           python-version: "3.7"
       - name: OS dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             apt-get-install
       - name: Install python dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             pip-upgrade
             pip install -r requirements/testing.txt
       - name: Setup postgres
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             setup-postgres
       - name: Import test data
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             testdata
       - name: Install npm dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             npm-install
       - name: Build javascript packages
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             build-instrumented-assets
       - name: Install cypress
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             cypress-install
       - name: Run Cypress
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
-          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          CYPRESS_KEY: YjljODE2MzAtODcwOC00NTA3LWE4NmMtMTU3YmFmMjIzOTRhCg==
         with:
           run: cypress-run-all
       - name: Upload Artifacts
@@ -103,7 +105,7 @@ jobs:
   Cypress:
     if: ${{ always() }}
     name: Cypress (chrome)
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     needs: cypress-matrix
     steps:
       - name: Check build matrix status

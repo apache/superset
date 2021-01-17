@@ -47,6 +47,14 @@ const StyledForm = styled(Form)`
   width: 100%;
 `;
 
+const StyledSpan = styled.span`
+  cursor: pointer;
+  color: ${({ theme }) => theme.colors.primary.dark1};
+  &: hover {
+    color: ${({ theme }) => theme.colors.primary.dark2};
+  }
+`;
+
 const FilterTabs = styled(LineEditableTabs)`
   // extra selector specificity:
   &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
@@ -469,13 +477,13 @@ export function FilterConfigModal({
                           : getFilterTitle(id)}
                       </div>
                       {removedFilters[id] && (
-                        <a
+                        <StyledSpan
                           role="button"
                           tabIndex={0}
                           onClick={() => restoreFilter(id)}
                         >
                           {t('Undo?')}
-                        </a>
+                        </StyledSpan>
                       )}
                     </FilterTabTitle>
                   }

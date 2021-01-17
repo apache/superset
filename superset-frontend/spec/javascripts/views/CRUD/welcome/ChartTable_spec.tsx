@@ -58,11 +58,11 @@ describe('ChartTable', () => {
     },
   };
   const wrapper = mount(<ChartTable store={store} {...mockedProps} />);
-  it('it renders', () => {
+  it('renders', () => {
     expect(wrapper.find(ChartTable)).toExist();
   });
 
-  it('fetches chart favorites and renders chart cards ', async () => {
+  it('fetches chart favorites and renders chart cards', async () => {
     act(() => {
       const handler = wrapper.find('li.no-router a').at(0).prop('onClick');
       if (handler) {
