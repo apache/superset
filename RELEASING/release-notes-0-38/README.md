@@ -48,7 +48,7 @@ Database CRUD screen refactor/redesign ([Roadmap](https://github.com/apache-supe
 
 Database list view refactor/redesign ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/55))
 - feat: database delete warning  (#[10800](https://github.com/apache/superset/pull/10800))\
-<kbd><img src="media/10800.gif" width="400"/></kbd>
+<kbd><img alt="10800" src="media/10800.gif" width="400"/></kbd>
 - feat: filters for database list view  (#[10772](https://github.com/apache/superset/pull/10772))
 - feat: SIP-34 table list view for databases  (#[10705](https://github.com/apache/superset/pull/10705))
 
@@ -61,17 +61,17 @@ Database list view refactor/redesign #55 ([Roadmap](https://github.com/apache-su
 
 Datasets CRUD screen refactor/redesign ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/13))
 - feat: dataset editor improvements  (#[10444](https://github.com/apache/superset/pull/10444))\
-<kbd><img src="media/10444.gif" width="400"/></kbd>
+<kbd><img alt="10444" src="media/10444.gif" width="400"/></kbd>
 
 
 Datasets CRUD screen refactor/redesign #13 ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/13))
 - feat(datasource): remove deleted columns and update column type on metadata refresh  (#[10619](https://github.com/apache/superset/pull/10619))\
-  <kbd><img src="media/10619.png" width="400"/></kbd>
+  <kbd><img alt="10619" src="media/10619.png" width="400"/></kbd>
 
 
 Datasets list view refactor/redesign #12 ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/12))
 - feat: update dataset editor modal  (#[10347](https://github.com/apache/superset/pull/10347))\
-  <kbd><img src="media/10347.gif" width="400"/></kbd>
+  <kbd><img alt="10347" src="media/10347.gif" width="400"/></kbd>
 
 
 - feat(datasets): REST API bulk delete  (#[11237](https://github.com/apache/superset/pull/11237))
@@ -80,7 +80,7 @@ Datasets list view refactor/redesign #12 ([Roadmap](https://github.com/apache-su
 Saved queries CRUD screen + list view refactor/redesign #15 ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/15))
 - feat: CRUD REST API for saved queries  (#[10777](https://github.com/apache/superset/pull/10777))
 - feat: saved query list actions  (#[11109](https://github.com/apache/superset/pull/11109))\
-<kbd><img src="media/11109.gif" width="400"/></kbd>
+<kbd><img alt="11109" src="media/11109.gif" width="400"/></kbd>
 
 - feat: saved query list view + sort/filters  (#[11005](https://github.com/apache/superset/pull/11005))
 - feat: SavedQuery REST API for bulk delete and new API fields  (#[10793](https://github.com/apache/superset/pull/10793))
@@ -96,30 +96,30 @@ Other features
 
 [SIP-40] Proposal for Custom Error Messages #9194 ([SIP](https://github.com/apache/superset/issues/9194))
 - feat: add download as image button to explore  (#[10297](https://github.com/apache/superset/pull/10297))\
-<kbd><img src="media/10297.gif" width="400"/></kbd>
+<kbd><img alt="10297" src="media/10297.gif" width="400"/></kbd>
 
 
 [SIP-34] Proposal to establish a new design direction, system, and process for Superset ([SIP](https://github.com/apache/superset/issues/8976))
 - feat: SIP-34 explore save modal  (#[10355](https://github.com/apache/superset/pull/10355))\
-<kbd><img src="media/10355.gif" width="400"/></kbd>
+<kbd><img alt="10355" src="media/10355.gif" width="400"/></kbd>
 
 
 Charts list view refactor/redesign ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/47))
 - feat(charts): modify custom api filter to include more fields  (#[11054](https://github.com/apache/superset/pull/11054))
 
 
-Echarts integration ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/48))  
+Echarts integration ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/48))
 - feat: add linear color scale to sunburst chart  (#[10474](https://github.com/apache/superset/pull/10474))\
-<kbd><img src="media/10474.gif" width="400"/></kbd>
+<kbd><img alt="10474" src="media/10474.gif" width="400"/></kbd>
 
 - feat: add optional prophet forecasting functionality to chart data api  (#[10324](https://github.com/apache/superset/pull/10324))
 - feat(viz): add ECharts Timeseries chart  (#[10752](https://github.com/apache/superset/pull/10752))\
-<kbd><img src="media/10752.gif" width="400"/></kbd>
+<kbd><img alt="10752" src="media/10752.gif" width="400"/></kbd>
 
 
 Improvements to cache handling #74 ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/74))
 - feat: add ECharts Pie chart  (#[10966](https://github.com/apache/superset/pull/10966))\
-<kbd><img src="media/10966.gif" width="400"/></kbd>
+<kbd><img alt="10966" src="media/10966.gif" width="400"/></kbd>
 
 - feat: implement cache invalidation api  (#[10761](https://github.com/apache/superset/pull/10761))
 - feat: Adding extra_filters to warm_up_cache  (#[10675](https://github.com/apache/superset/pull/10675))
@@ -127,10 +127,10 @@ Improvements to cache handling #74 ([Roadmap](https://github.com/apache-superset
 
 [SIP-34] Proposal to establish a new design direction, system, and process for Superset ([SIP](https://github.com/apache/superset/issues/8976))
 - feat: add favorite star to dashboard and chart lists  (#[10510](https://github.com/apache/superset/pull/10510))\
-<kbd><img src="media/10510.png" width="400"/></kbd>
+<kbd><img alt="10510" src="media/10510.png" width="400"/></kbd>
 
 - feat: use svg for checkbox component  (#[10799](https://github.com/apache/superset/pull/10799))\
-<kbd><img src="media/10799.gif" width="400"/></kbd>
+<kbd><img alt="10799" src="media/10799.gif" width="400"/></kbd>
 
 
 Other features
@@ -138,7 +138,7 @@ Other features
 
 
 - feat: adding dashboard toggle fullscreen button  (#[10840](https://github.com/apache/superset/pull/10840))\
-<kbd><img src="media/10840.png" width="400"/></kbd>
+<kbd><img alt="10840" src="media/10840.png" width="400"/></kbd>
 - feat: enable ETag header for dashboard GET requests  (#[10963](https://github.com/apache/superset/pull/10963))
 - feat: move ace-editor and mathjs to async modules  (#[10837](https://github.com/apache/superset/pull/10837))
 - feat: server side dashboard css for less repaint  (#[10850](https://github.com/apache/superset/pull/10850))
