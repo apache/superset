@@ -137,10 +137,8 @@ export const findFilterScope = (
   );
 
   const excluded: number[] = [];
-  const isExcluded = (parent: string, item: string) => {
-    return rootPath.includes(parent) && !checkedKeys.includes(item);
-  };
-
+  const isExcluded = (parent: string, item: string) =>
+    rootPath.includes(parent) && !checkedKeys.includes(item);
   // looking for charts to be excluded: iterate over all charts
   // and looking for charts that have one of their parents in `rootPath` and not in selected items
   Object.entries(layout).forEach(([key, value]) => {

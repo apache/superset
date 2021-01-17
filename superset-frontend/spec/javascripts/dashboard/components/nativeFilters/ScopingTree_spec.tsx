@@ -23,14 +23,14 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import { mockStore } from 'spec/fixtures/mockStore';
 import { FormInstance } from 'src/common/components';
 import { NativeFiltersForm } from 'src/dashboard/components/nativeFilters/types';
-import { defaultScopeValue } from 'src/dashboard/components/nativeFilters/FilterScope';
+import { getDefaultScopeValue } from 'src/dashboard/components/nativeFilters/FilterScope';
 
 describe('ScopingTree', () => {
   const filterId = '1';
   const form = {
     getFieldValue: () => ({
       [filterId]: {
-        scope: defaultScopeValue,
+        scope: getDefaultScopeValue(),
       },
     }),
   };
@@ -38,7 +38,7 @@ describe('ScopingTree', () => {
     <Provider store={mockStore}>
       <ScopingTree
         filterId={filterId}
-        initialScope={defaultScopeValue}
+        initialScope={getDefaultScopeValue()}
         form={(form as unknown) as FormInstance<NativeFiltersForm>}
       />
     </Provider>,
@@ -48,12 +48,13 @@ describe('ScopingTree', () => {
       React.isValidElement(
         <ScopingTree
           filterId={filterId}
-          initialScope={defaultScopeValue}
+          initialScope={getDefaultScopeValue()}
           form={(form as unknown) as FormInstance<NativeFiltersForm>}
         />,
       ),
     ).toBe(true);
   });
+
   it('renders a tree', () => {
     expect(wrapper.find('TreeNode')).toExist();
   });
