@@ -17,9 +17,9 @@
 dependencies:
 - name: postgresql
   version: 8.1.4
-  repository: https://kubernetes-charts.storage.googleapis.com/
+  repository: https://charts.helm.sh/stable
   condition: postgresql.enabled
 - name: redis
   version: 10.3.4
-  repository: https://kubernetes-charts.storage.googleapis.com/
+  repository: https://charts.helm.sh/stable
   condition: redis.enabled
