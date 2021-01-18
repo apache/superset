@@ -946,6 +946,8 @@ def get_or_create_db(database_name, sqlalchemy_uri, *args, **kwargs):
     if not database:
         logging.info(f"Creating database reference for {database_name}")
         database = models.Database(database_name=database_name, *args, **kwargs)
+        if(database_name == 'RedshiftDB'):
+            database.allow_dml = True
         db.session.add(database)
 
     database.set_sqlalchemy_uri(sqlalchemy_uri)
