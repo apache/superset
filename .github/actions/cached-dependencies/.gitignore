@@ -1,0 +1,6 @@
+lib
+coverage
+node_modules
+
+!dist
+!dist/cache

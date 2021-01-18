@@ -104,7 +104,6 @@ class AdhocFilterPopoverTrigger extends React.PureComponent<
           defaultVisible={this.state.popoverVisible}
           visible={this.state.popoverVisible}
           onVisibleChange={this.togglePopover}
-          overlayStyle={{ zIndex: 1 }}
           destroyTooltipOnHide={this.props.createNew}
         >
           {this.props.children}

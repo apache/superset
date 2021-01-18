@@ -39,7 +39,7 @@ describe('chart list view', () => {
     cy.get('[data-test="table-row"]').should('have.length', 25);
   });
 
-  it('should sort correctly', () => {
+  xit('should sort correctly', () => {
     cy.get('[data-test="sort-header"]').eq(2).click();
     cy.get('[data-test="sort-header"]').eq(2).click();
     cy.get('[data-test="table-row"]')

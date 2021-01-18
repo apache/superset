@@ -22,6 +22,8 @@ from sqlalchemy.dialects import postgresql
 from superset.db_engine_specs import engines
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.fixtures.certificates import ssl_certificate
+from tests.fixtures.database import default_db_extra
 
 
 class TestPostgresDbEngineSpec(TestDbEngineSpec):
@@ -124,3 +126,79 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         DB Eng Specs (postgres): Test "postgres" in engine spec
         """
         self.assertIn("postgres", engines)
+
+    def test_extras_without_ssl(self):
+        db = mock.Mock()
+        db.extra = default_db_extra
+        db.server_cert = None
+        extras = PostgresEngineSpec.get_extra_params(db)
+        assert "connect_args" not in extras["engine_params"]
+
+    def test_extras_with_ssl_default(self):
+        db = mock.Mock()
+        db.extra = default_db_extra
+        db.server_cert = ssl_certificate
+        extras = PostgresEngineSpec.get_extra_params(db)
+        connect_args = extras["engine_params"]["connect_args"]
+        assert connect_args["sslmode"] == "verify-full"
+        assert "sslrootcert" in connect_args
+
+    def test_extras_with_ssl_custom(self):
+        db = mock.Mock()
+        db.extra = default_db_extra.replace(
+            '"engine_params": {}',
+            '"engine_params": {"connect_args": {"sslmode": "verify-ca"}}',
+        )
+        db.server_cert = ssl_certificate
+        extras = PostgresEngineSpec.get_extra_params(db)
+        connect_args = extras["engine_params"]["connect_args"]
+        assert connect_args["sslmode"] == "verify-ca"
+        assert "sslrootcert" in connect_args
+
+    def test_estimate_statement_cost_select_star(self):
+        """
+        DB Eng Specs (postgres): Test estimate_statement_cost select star
+        """
+
+        cursor = mock.Mock()
+        cursor.fetchone.return_value = (
+            "Seq Scan on birth_names  (cost=0.00..1537.91 rows=75691 width=46)",
+        )
+        sql = "SELECT * FROM birth_names"
+        results = PostgresEngineSpec.estimate_statement_cost(sql, cursor)
+        self.assertEqual(results, {"Start-up cost": 0.00, "Total cost": 1537.91,})
+
+    def test_estimate_statement_invalid_syntax(self):
+        """
+        DB Eng Specs (postgres): Test estimate_statement_cost invalid syntax
+        """
+        from psycopg2 import errors
+
+        cursor = mock.Mock()
+        cursor.execute.side_effect = errors.SyntaxError(
+            """
+            syntax error at or near "EXPLAIN"
+            LINE 1: EXPLAIN DROP TABLE birth_names
+                            ^
+            """
+        )
+        sql = "DROP TABLE birth_names"
+        with self.assertRaises(errors.SyntaxError):
+            PostgresEngineSpec.estimate_statement_cost(sql, cursor)
+
+    def test_query_cost_formatter_example_costs(self):
+        """
+        DB Eng Specs (postgres): Test test_query_cost_formatter example costs
+        """
+        raw_cost = [
+            {"Start-up cost": 0.00, "Total cost": 1537.91,},
+            {"Start-up cost": 10.00, "Total cost": 1537.00,},
+        ]
+        result = PostgresEngineSpec.query_cost_formatter(raw_cost)
+        self.assertEqual(
+            result,
+            [
+                {"Start-up cost": "0.0", "Total cost": "1537.91",},
+                {"Start-up cost": "10.0", "Total cost": "1537.0",},
+            ],
+        )

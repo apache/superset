@@ -20,6 +20,7 @@ import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import moment from 'moment';
 import { configure } from '@superset-ui/core';
+import ColorScheme from '@superset-ui/core/lib/color/ColorScheme';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
@@ -28,10 +29,12 @@ if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
 }
 
+let bootstrapData: any;
 // Configure translation
 if (typeof window !== 'undefined') {
   const root = document.getElementById('app');
-  const bootstrapData = root
+
+  bootstrapData = root
     ? JSON.parse(root.getAttribute('data-bootstrap') || '{}')
     : {};
   if (bootstrapData.common && bootstrapData.common.language_pack) {
@@ -49,7 +52,25 @@ if (typeof window !== 'undefined') {
 setupClient();
 
 // Setup color palettes
-setupColors();
+let extraCategoricalColorSchemes: ColorScheme[] = [];
+let extraSequentialColorSchemes: ColorScheme[] = [];
+
+if (
+  bootstrapData.common &&
+  bootstrapData.common.extra_categorical_color_schemes
+) {
+  extraCategoricalColorSchemes =
+    bootstrapData.common.extra_categorical_color_schemes;
+}
+if (
+  bootstrapData.common &&
+  bootstrapData.common.extra_sequential_color_schemes
+) {
+  extraSequentialColorSchemes =
+    bootstrapData.common.extra_sequential_color_schemes;
+}
+
+setupColors(extraCategoricalColorSchemes, extraSequentialColorSchemes);
 
 // Setup number formatters
 setupFormatters();

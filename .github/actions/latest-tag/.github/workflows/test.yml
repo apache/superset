@@ -1,0 +1,19 @@
+name: Test
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  build:
+    name: Test build
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i
+      - run: npm run build
+
+  lint:
+    name: Check linting
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm i
+      - run: npm run lint

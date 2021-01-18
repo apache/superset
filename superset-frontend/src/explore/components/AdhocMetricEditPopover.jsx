@@ -58,6 +58,12 @@ const ResizeIcon = styled.i`
   margin-left: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
+const ColumnOptionStyle = styled.span`
+  .option-label {
+    display: inline;
+  }
+`;
+
 const SAVED_TAB_KEY = 'SAVED';
 
 const startingWidth = 320;
@@ -67,6 +73,7 @@ export default class AdhocMetricEditPopover extends React.Component {
   constructor(props) {
     super(props);
     this.onSave = this.onSave.bind(this);
+    this.onResetStateAndClose = this.onResetStateAndClose.bind(this);
     this.onColumnChange = this.onColumnChange.bind(this);
     this.onAggregateChange = this.onAggregateChange.bind(this);
     this.onSavedMetricChange = this.onSavedMetricChange.bind(this);
@@ -115,6 +122,16 @@ export default class AdhocMetricEditPopover extends React.Component {
       oldMetric,
     );
     this.props.onClose();
+  }
+
+  onResetStateAndClose() {
+    this.setState(
+      {
+        adhocMetric: this.props.adhocMetric,
+        savedMetric: this.props.savedMetric,
+      },
+      this.props.onClose,
+    );
   }
 
   onColumnChange(columnId) {
@@ -209,7 +226,11 @@ export default class AdhocMetricEditPopover extends React.Component {
     if (column.metric_name && !column.verbose_name) {
       column.verbose_name = column.metric_name;
     }
-    return <ColumnOption column={column} showType />;
+    return (
+      <ColumnOptionStyle>
+        <ColumnOption column={column} showType />
+      </ColumnOptionStyle>
+    );
   }
 
   render() {
@@ -390,7 +411,7 @@ export default class AdhocMetricEditPopover extends React.Component {
         <div>
           <Button
             buttonSize="small"
-            onClick={this.props.onClose}
+            onClick={this.onResetStateAndClose}
             data-test="AdhocMetricEdit#cancel"
             cta
           >
