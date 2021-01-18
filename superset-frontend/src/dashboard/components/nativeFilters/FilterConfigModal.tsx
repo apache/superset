@@ -442,7 +442,24 @@ export function FilterConfigModal({
   };
 
   const unsavedFiltersIds = newFilterIds.filter(id => !removedFilters[id]);
-  const unsavedFiltersNames = unsavedFiltersIds.map(getFilterTitle).join(', ');
+
+  const getUnsavedFilterNames = (): string => {
+    const unsavedFiltersNames = unsavedFiltersIds.map(
+      id => `"${getFilterTitle(id)}"`,
+    );
+
+    if (unsavedFiltersNames.length === 0) {
+      return '';
+    }
+
+    if (unsavedFiltersNames.length === 1) {
+      return unsavedFiltersNames[0];
+    }
+
+    const lastFilter = unsavedFiltersNames.pop();
+
+    return `${unsavedFiltersNames.join(', ')} ${t('and')} ${lastFilter}`;
+  };
 
   const handleCancel = () => {
     if (unsavedFiltersIds.length > 0) {
@@ -468,8 +485,8 @@ export function FilterConfigModal({
               <StyledAlertText>
                 <i className="fa fa-exclamation-triangle" />{' '}
                 <span>
-                  {t(`Are you sure you want to cancel?`)} {unsavedFiltersNames}{' '}
-                  {t(`will not be saved.`)}
+                  {t(`Are you sure you want to cancel?`)}{' '}
+                  {getUnsavedFilterNames()} {t(`will not be saved.`)}
                 </span>
               </StyledAlertText>
               <div>
