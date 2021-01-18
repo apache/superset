@@ -561,6 +561,24 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         tables = PrestoEngineSpec.get_table_names(mock.Mock(), mock.Mock(), None)
         assert tables == []
 
+    def test_get_full_name(self):
+        names = [
+            ("part1", "part2"),
+            ("part11", "part22"),
+        ]
+        result = PrestoEngineSpec._get_full_name(names)
+        assert result == "part1.part11"
+
+    def test_get_full_name_empty_tuple(self):
+        names = [
+            ("part1", "part2"),
+            ("", "part3"),
+            ("part4", "part5"),
+            ("", "part6"),
+        ]
+        result = PrestoEngineSpec._get_full_name(names)
+        assert result == "part1.part4"
+
 
 def test_is_readonly():
     def is_readonly(sql: str) -> bool:
