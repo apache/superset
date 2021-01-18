@@ -307,6 +307,14 @@ export default class AdhocMetricEditPopover extends React.Component {
       ) &&
         savedMetric?.metric_name !== propsSavedMetric?.metric_name);
 
+    // "Saved" is a default tab unless there are no saved metrics for dataset
+    const defaultActiveTabKey =
+      (propsSavedMetric.metric_name || adhocMetric.isNew) &&
+      Array.isArray(savedMetrics) &&
+      savedMetrics.length > 0
+        ? SAVED_TAB_KEY
+        : adhocMetric.expressionType;
+
     return (
       <div
         id="metrics-edit-popover"
@@ -316,16 +324,33 @@ export default class AdhocMetricEditPopover extends React.Component {
         <Tabs
           id="adhoc-metric-edit-tabs"
           data-test="adhoc-metric-edit-tabs"
-          defaultActiveKey={
-            propsSavedMetric.metric_name
-              ? SAVED_TAB_KEY
-              : adhocMetric.expressionType
-          }
+          defaultActiveKey={defaultActiveTabKey}
           className="adhoc-metric-edit-tabs"
           style={{ height: this.state.height, width: this.state.width }}
           onChange={this.refreshAceEditor}
           allowOverflow
         >
+          <Tabs.TabPane key={SAVED_TAB_KEY} tab={t('Saved')}>
+            <FormGroup>
+              <FormLabel>
+                <strong>{t('Saved metric')}</strong>
+              </FormLabel>
+              <Select name="select-saved" {...savedSelectProps}>
+                {Array.isArray(savedMetrics) &&
+                  savedMetrics.map(savedMetric => (
+                    <Select.Option
+                      value={savedMetric.id}
+                      filterBy={
+                        savedMetric.verbose_name || savedMetric.metric_name
+                      }
+                      key={savedMetric.id}
+                    >
+                      {this.renderColumnOption(savedMetric)}
+                    </Select.Option>
+                  ))}
+              </Select>
+            </FormGroup>
+          </Tabs.TabPane>
           <Tabs.TabPane key={EXPRESSION_TYPES.SIMPLE} tab={t('Simple')}>
             <FormGroup>
               <FormLabel>
@@ -353,27 +378,6 @@ export default class AdhocMetricEditPopover extends React.Component {
                     {option}
                   </Select.Option>
                 ))}
-              </Select>
-            </FormGroup>
-          </Tabs.TabPane>
-          <Tabs.TabPane key={SAVED_TAB_KEY} tab={t('Saved')}>
-            <FormGroup>
-              <FormLabel>
-                <strong>{t('Saved metric')}</strong>
-              </FormLabel>
-              <Select name="select-saved" {...savedSelectProps}>
-                {Array.isArray(savedMetrics) &&
-                  savedMetrics.map(savedMetric => (
-                    <Select.Option
-                      value={savedMetric.id}
-                      filterBy={
-                        savedMetric.verbose_name || savedMetric.metric_name
-                      }
-                      key={savedMetric.id}
-                    >
-                      {this.renderColumnOption(savedMetric)}
-                    </Select.Option>
-                  ))}
               </Select>
             </FormGroup>
           </Tabs.TabPane>

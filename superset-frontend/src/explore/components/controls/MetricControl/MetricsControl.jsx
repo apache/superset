@@ -263,7 +263,7 @@ class MetricsControl extends React.PureComponent {
     }
     return (
       <AdhocMetricPopoverTrigger
-        adhocMetric={new AdhocMetric({})}
+        adhocMetric={new AdhocMetric({ isNew: true })}
         onMetricEdit={this.onNewMetric}
         columns={this.props.columns}
         savedMetrics={this.props.savedMetrics}
