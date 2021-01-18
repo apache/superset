@@ -515,13 +515,19 @@ pip3 install -r requirements/integration.txt
 pre-commit install
 ```
 
+Alternatively it possible to run pre-commit via tox:
+
+```bash
+tox -e pre-commit
+```
+
 ## Linting
 
 Lint the project with:
 
 ```bash
 # for python
-tox -e flake8
+tox -e pylint
 
 # for frontend
 cd superset-frontend
