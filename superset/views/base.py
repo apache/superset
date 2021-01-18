@@ -246,6 +246,11 @@ def get_user_roles() -> List[Role]:
     return g.user.roles
 
 
+def is_user_admin() -> bool:
+    user_roles = [role.name.lower() for role in list(get_user_roles())]
+    return "admin" in user_roles
+
+
 class BaseSupersetView(BaseView):
     @staticmethod
     def json_response(
@@ -500,8 +505,7 @@ def check_ownership(obj: Any, raise_if_false: bool = True) -> bool:
         if raise_if_false:
             raise security_exception
         return False
-    roles = [r.name for r in get_user_roles()]
-    if "Admin" in roles:
+    if is_user_admin():
         return True
     scoped_session = db.create_scoped_session()
     orig_obj = scoped_session.query(obj.__class__).filter_by(id=obj.id).first()
