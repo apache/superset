@@ -18,7 +18,7 @@
  */
 import React, { ReactNode } from 'react';
 import shortid from 'shortid';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import Fieldset from './Fieldset';
 import { recurseReactClone } from './utils';
@@ -41,6 +41,7 @@ interface CRUDCollectionProps {
   ) => ReactNode)[];
   onChange?: (arg0: any) => void;
   tableColumns: Array<any>;
+  scrollTable?: boolean;
 }
 
 interface CRUDCollectionState {
@@ -59,6 +60,21 @@ function createKeyedCollection(arr: Array<object>) {
   });
   return map;
 }
+
+const CrudWrapper = styled.div<{ scrollTable?: boolean }>`
+  ${({ scrollTable }) =>
+    scrollTable &&
+    `
+      height: 450px;
+      overflow: auto;
+
+      thead th {
+        background: #fff;
+        position: sticky;
+        top: 0;
+      }
+    `}
+`;
 
 export default class CRUDCollection extends React.PureComponent<
   CRUDCollectionProps,
@@ -281,7 +297,7 @@ export default class CRUDCollection extends React.PureComponent<
 
   render() {
     return (
-      <div className="CRUD">
+      <CrudWrapper className="CRUD" scrollTable={this.props.scrollTable}>
         <span className="float-right m-t-10 m-r-10">
           {this.props.allowAddItem && (
             <Button
@@ -299,7 +315,7 @@ export default class CRUDCollection extends React.PureComponent<
           {this.renderHeaderRow()}
           {this.renderTableBody()}
         </table>
-      </div>
+      </CrudWrapper>
     );
   }
 }

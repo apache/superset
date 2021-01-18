@@ -121,6 +121,7 @@ function ColumnCollectionTable({
       allowDeletes
       allowAddItem={allowAddItem}
       itemGenerator={itemGenerator}
+      scrollTable
       expandFieldset={
         <FormContainer>
           <Fieldset compact>
