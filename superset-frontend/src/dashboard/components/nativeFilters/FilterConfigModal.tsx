@@ -34,6 +34,7 @@ import { CancelConfirmationAlert } from './CancelConfirmationAlert';
 
 // how long to show the "undo" button when removing a filter
 const REMOVAL_DELAY_SECS = 5;
+const FILTER_WIDTH = 200;
 
 const StyledModalBody = styled.div`
   display: flex;
@@ -59,7 +60,7 @@ const StyledSpan = styled.span`
 const FilterTabs = styled(LineEditableTabs)`
   // extra selector specificity:
   &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
-    min-width: 200px;
+    min-width: ${FILTER_WIDTH}px;
     margin-left: 0;
     padding: 0 ${({ theme }) => theme.gridUnit * 2}px
       ${({ theme }) => theme.gridUnit}px;
@@ -82,7 +83,7 @@ const FilterTabs = styled(LineEditableTabs)`
 const FilterTabTitle = styled.span`
   transition: color ${({ theme }) => theme.transitionTiming}s;
   width: 100%;
-  max-width: 200px;
+  max-width: ${FILTER_WIDTH}px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
