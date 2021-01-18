@@ -222,6 +222,9 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       responsive
       title={t('Change Dataset')}
       width={confirmChange ? '432px' : ''}
+      height={confirmChange ? 'auto' : '450px'}
+      hideFooter={!confirmChange}
+      overflow="hidden"
       footer={
         <>
           {confirmChange && (
@@ -267,6 +270,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
                 pageSize={20}
                 className="table-condensed"
                 emptyWrapperType={EmptyWrapperType.Small}
+                scrollTable
               />
             )}
           </>

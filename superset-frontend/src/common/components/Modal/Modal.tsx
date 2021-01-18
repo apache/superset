@@ -42,12 +42,14 @@ interface ModalProps {
   footer?: React.ReactNode;
   wrapProps?: object;
   height?: string;
+  overflow?: string;
 }
 
 interface StyledModalProps extends SupersetThemeProps {
   maxWidth?: string;
   responsive?: boolean;
   height?: string;
+  overflow?: string;
 }
 
 export const StyledModal = styled(BaseModal)<StyledModalProps>`
@@ -88,7 +90,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
 
   .ant-modal-body {
     padding: ${({ theme }) => theme.gridUnit * 4}px;
-    overflow: auto;
+    overflow: ${({ overflow }) => overflow || `auto`};
     ${({ height }) => height && `height: ${height};`}
   }
 

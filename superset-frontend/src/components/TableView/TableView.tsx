@@ -43,6 +43,7 @@ export interface TableViewProps {
   className?: string;
   isPaginationSticky?: boolean;
   showRowCount?: boolean;
+  scrollTable?: boolean;
 }
 
 const EmptyWrapper = styled.div`
@@ -51,7 +52,10 @@ const EmptyWrapper = styled.div`
 
 const TableViewStyles = styled.div<{
   isPaginationSticky?: boolean;
+  scrollTable?: boolean;
 }>`
+  ${({ scrollTable }) => scrollTable && `height: 100%; overflow: auto;`}
+
   .table-cell.table-cell {
     vertical-align: top;
   }
