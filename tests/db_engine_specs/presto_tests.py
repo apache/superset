@@ -619,6 +619,19 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             f'SHOW COLUMNS FROM "{schema}"."{table_name}"'
         )
 
+    def test_is_column_name_quoted(self):
+        column_name = "mock"
+        assert PrestoEngineSpec._is_column_name_quoted(column_name) is False
+
+        column_name = '"mock'
+        assert PrestoEngineSpec._is_column_name_quoted(column_name) is False
+
+        column_name = '"moc"k'
+        assert PrestoEngineSpec._is_column_name_quoted(column_name) is False
+
+        column_name = '"moc"k"'
+        assert PrestoEngineSpec._is_column_name_quoted(column_name) is True
+
 
 def test_is_readonly():
     def is_readonly(sql: str) -> bool:
