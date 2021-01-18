@@ -186,6 +186,85 @@ def test_create_table_from_csv_if_exists_fail(mock_table, mock_g):
         )
 
 
+@mock.patch(
+    "superset.db_engine_specs.hive.config",
+    {**app.config, "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC": lambda *args: True},
+)
+@mock.patch("superset.db_engine_specs.hive.g", spec={})
+@mock.patch("tableschema.Table")
+def test_create_table_from_csv_if_exists_fail_with_schema(mock_table, mock_g):
+    mock_table.infer.return_value = {}
+    mock_g.user = True
+    mock_database = mock.MagicMock()
+    mock_database.get_df.return_value.empty = False
+    with pytest.raises(SupersetException, match="Table already exists"):
+        HiveEngineSpec.create_table_from_csv(
+            "foo.csv",
+            Table(table="foobar", schema="schema"),
+            mock_database,
+            {},
+            {"if_exists": "fail"},
+        )
+
+
+@mock.patch(
+    "superset.db_engine_specs.hive.config",
+    {**app.config, "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC": lambda *args: True},
+)
+@mock.patch("superset.db_engine_specs.hive.g", spec={})
+@mock.patch("tableschema.Table")
+@mock.patch("superset.db_engine_specs.hive.upload_to_s3")
+def test_create_table_from_csv_if_exists_replace(mock_upload_to_s3, mock_table, mock_g):
+    mock_upload_to_s3.return_value = "mock-location"
+    mock_table.infer.return_value = {}
+    mock_g.user = True
+    mock_database = mock.MagicMock()
+    mock_database.get_df.return_value.empty = False
+    mock_execute = mock.MagicMock(return_value=True)
+    mock_database.get_sqla_engine.return_value.execute = mock_execute
+    table_name = "foobar"
+
+    HiveEngineSpec.create_table_from_csv(
+        "foo.csv",
+        Table(table=table_name),
+        mock_database,
+        {"sep": "mock", "header": 1, "na_values": "mock"},
+        {"if_exists": "replace"},
+    )
+
+    mock_execute.assert_any_call(f"DROP TABLE IF EXISTS {table_name}")
+
+
+@mock.patch(
+    "superset.db_engine_specs.hive.config",
+    {**app.config, "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC": lambda *args: True},
+)
+@mock.patch("superset.db_engine_specs.hive.g", spec={})
+@mock.patch("tableschema.Table")
+@mock.patch("superset.db_engine_specs.hive.upload_to_s3")
+def test_create_table_from_csv_if_exists_replace_with_schema(
+    mock_upload_to_s3, mock_table, mock_g
+):
+    mock_upload_to_s3.return_value = "mock-location"
+    mock_table.infer.return_value = {}
+    mock_g.user = True
+    mock_database = mock.MagicMock()
+    mock_database.get_df.return_value.empty = False
+    mock_execute = mock.MagicMock(return_value=True)
+    mock_database.get_sqla_engine.return_value.execute = mock_execute
+    table_name = "foobar"
+    schema = "schema"
+    HiveEngineSpec.create_table_from_csv(
+        "foo.csv",
+        Table(table=table_name, schema=schema),
+        mock_database,
+        {"sep": "mock", "header": 1, "na_values": "mock"},
+        {"if_exists": "replace"},
+    )
+
+    mock_execute.assert_any_call(f"DROP TABLE IF EXISTS {schema}.{table_name}")
+
+
 def test_get_create_table_stmt() -> None:
     table = Table("employee")
     schema_def = """eid int, name String, salary String, destination String"""
@@ -345,3 +424,27 @@ def test_where_latest_partition(mock_method):
         )
     query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
     assert "SELECT  \nWHERE ds = '01-01-19' AND hour = 1" == query_result
+
+
+@mock.patch("superset.db_engine_specs.presto.PrestoEngineSpec.latest_partition")
+def test_where_latest_partition_super_method_exception(mock_method):
+    mock_method.side_effect = Exception()
+    db = mock.Mock()
+    columns = [{"name": "ds"}, {"name": "hour"}]
+    with app.app_context():
+        result = HiveEngineSpec.where_latest_partition(
+            "test_table", "test_schema", db, select(), columns
+        )
+    assert result is None
+    mock_method.assert_called()
+
+
+@mock.patch("superset.db_engine_specs.presto.PrestoEngineSpec.latest_partition")
+def test_where_latest_partition_no_columns_no_values(mock_method):
+    mock_method.return_value = ("01-01-19", None)
+    db = mock.Mock()
+    with app.app_context():
+        result = HiveEngineSpec.where_latest_partition(
+            "test_table", "test_schema", db, select()
+        )
+    assert result is None
