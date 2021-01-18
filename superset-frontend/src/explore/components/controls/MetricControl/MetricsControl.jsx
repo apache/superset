@@ -191,7 +191,9 @@ class MetricsControl extends React.PureComponent {
             // compare saved metrics
             value === oldMetric.metric_name ||
             // compare adhoc metrics
-            value.optionName === oldMetric.optionName
+            typeof value.optionName !== 'undefined'
+              ? value.optionName === oldMetric.optionName
+              : false
           ) {
             return changedMetric;
           }
