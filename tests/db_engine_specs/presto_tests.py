@@ -632,6 +632,52 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         column_name = '"moc"k"'
         assert PrestoEngineSpec._is_column_name_quoted(column_name) is True
 
+    @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.select_star")
+    def test_select_star_no_presto_expand_data(self, mock_select_star):
+        database = mock.Mock()
+        table_name = "table_name"
+        engine = mock.Mock()
+        cols = [
+            {"col1": "val1"},
+            {"col2": "val2"},
+        ]
+        PrestoEngineSpec.select_star(database, table_name, engine, cols=cols)
+        mock_select_star.assert_called_once_with(
+            database, table_name, engine, None, 100, False, True, True, cols
+        )
+
+    @mock.patch("superset.db_engine_specs.presto.is_feature_enabled")
+    @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.select_star")
+    def test_select_star_presto_expand_data(
+        self, mock_select_star, mock_is_feature_enabled
+    ):
+        mock_is_feature_enabled.return_value = True
+        database = mock.Mock()
+        table_name = "table_name"
+        engine = mock.Mock()
+        cols = [
+            {"name": "val1"},
+            {"name": "val2<?!@#$312,/'][p098"},
+            {"name": ".val2"},
+            {"name": "val2."},
+            {"name": "val.2"},
+            {"name": ".val2."},
+        ]
+        PrestoEngineSpec.select_star(
+            database, table_name, engine, show_cols=True, cols=cols
+        )
+        mock_select_star.assert_called_once_with(
+            database,
+            table_name,
+            engine,
+            None,
+            100,
+            True,
+            True,
+            True,
+            [{"name": "val1"}, {"name": "val2<?!@#$312,/'][p098"},],
+        )
+
 
 def test_is_readonly():
     def is_readonly(sql: str) -> bool:
