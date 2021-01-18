@@ -112,6 +112,8 @@ function ColumnCollectionTable({
   showExpression,
   allowAddItem,
   allowEditDataType,
+  allowSyncFromSource,
+  onSyncFromSource,
   itemGenerator,
 }) {
   return (
@@ -120,6 +122,8 @@ function ColumnCollectionTable({
       tableColumns={['column_name', 'type', 'is_dttm', 'filterable', 'groupby']}
       allowDeletes
       allowAddItem={allowAddItem}
+      allowSyncFromSource={allowSyncFromSource}
+      onSyncFromSource={onSyncFromSource}
       itemGenerator={itemGenerator}
       scrollTable
       expandFieldset={
@@ -944,6 +948,7 @@ class DatasourceEditor extends React.PureComponent {
           ),
         }}
         allowDeletes
+        scrollTable
       />
     );
   }
@@ -997,14 +1002,9 @@ class DatasourceEditor extends React.PureComponent {
                 onChange={databaseColumns =>
                   this.setColumns({ databaseColumns })
                 }
+                onSyncFromSource={this.syncMetadata}
+                allowSyncFromSource
               />
-              <Button
-                buttonStyle="primary"
-                onClick={this.syncMetadata}
-                className="sync-from-source"
-              >
-                {t('Sync columns from source')}
-              </Button>
               {this.state.metadataLoading && <Loading />}
             </div>
           </Tabs.TabPane>

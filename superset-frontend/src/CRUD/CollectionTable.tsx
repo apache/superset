@@ -27,6 +27,8 @@ import './crud.less';
 interface CRUDCollectionProps {
   allowAddItem?: boolean;
   allowDeletes?: boolean;
+  allowSyncFromSource?: boolean;
+  onSyncFromSource?: () => void;
   collection: Array<object>;
   columnLabels?: object;
   emptyMessage?: ReactNode;
@@ -61,7 +63,7 @@ function createKeyedCollection(arr: Array<object>) {
   return map;
 }
 
-const CrudWrapper = styled.div<{ scrollTable?: boolean }>`
+const CrudTableWrapper = styled.div<{ scrollTable?: boolean }>`
   ${({ scrollTable }) =>
     scrollTable &&
     `
@@ -72,8 +74,14 @@ const CrudWrapper = styled.div<{ scrollTable?: boolean }>`
         background: #fff;
         position: sticky;
         top: 0;
+        z-index: 9;
       }
     `}
+`;
+
+const CrudButtonsWrapper = styled.div`
+  text-align: right;
+  ${({ theme }) => `margin-bottom: ${theme.gridUnit * 2}px`}
 `;
 
 export default class CRUDCollection extends React.PureComponent<
@@ -297,25 +305,41 @@ export default class CRUDCollection extends React.PureComponent<
 
   render() {
     return (
-      <CrudWrapper className="CRUD" scrollTable={this.props.scrollTable}>
-        <span className="float-right m-t-10 m-r-10">
-          {this.props.allowAddItem && (
-            <Button
-              buttonSize="sm"
-              buttonStyle="primary"
-              onClick={this.onAddItem}
-              data-test="add-item-button"
-            >
-              <i data-test="crud-add-table-item" className="fa fa-plus" />{' '}
-              {t('Add Item')}
-            </Button>
+      <>
+        <CrudButtonsWrapper>
+          {this.props.allowSyncFromSource && (
+            <span className="m-t-10 m-r-10">
+              <Button
+                buttonSize="sm"
+                buttonStyle="primary"
+                onClick={this.props.onSyncFromSource}
+                className="sync-from-source"
+              >
+                {t('Sync columns from source')}
+              </Button>
+            </span>
           )}
-        </span>
-        <table data-test="crud-table" className="table">
-          {this.renderHeaderRow()}
-          {this.renderTableBody()}
-        </table>
-      </CrudWrapper>
+          {this.props.allowAddItem && (
+            <span className="m-t-10 m-r-10">
+              <Button
+                buttonSize="sm"
+                buttonStyle="primary"
+                onClick={this.onAddItem}
+                data-test="add-item-button"
+              >
+                <i data-test="crud-add-table-item" className="fa fa-plus" />{' '}
+                {t('Add Item')}
+              </Button>
+            </span>
+          )}
+        </CrudButtonsWrapper>
+        <CrudTableWrapper className="CRUD" scrollTable={this.props.scrollTable}>
+          <table data-test="crud-table" className="table">
+            {this.renderHeaderRow()}
+            {this.renderTableBody()}
+          </table>
+        </CrudTableWrapper>
+      </>
     );
   }
 }

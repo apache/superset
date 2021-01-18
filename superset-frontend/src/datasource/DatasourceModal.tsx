@@ -213,6 +213,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         </>
       }
       responsive
+      scrollTableMode
     >
       <DatasourceEditor
         showLoadingForImport

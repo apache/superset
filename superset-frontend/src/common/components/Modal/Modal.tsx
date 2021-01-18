@@ -42,14 +42,15 @@ interface ModalProps {
   footer?: React.ReactNode;
   wrapProps?: object;
   height?: string;
-  overflow?: string;
+  scrollTableMode?: boolean;
 }
 
 interface StyledModalProps extends SupersetThemeProps {
   maxWidth?: string;
   responsive?: boolean;
   height?: string;
-  overflow?: string;
+  scrollTableMode?: boolean;
+  hideFooter?: boolean;
 }
 
 export const StyledModal = styled(BaseModal)<StyledModalProps>`
@@ -90,8 +91,9 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
 
   .ant-modal-body {
     padding: ${({ theme }) => theme.gridUnit * 4}px;
-    overflow: ${({ overflow }) => overflow || `auto`};
     ${({ height }) => height && `height: ${height};`}
+    ${({ scrollTableMode, hideFooter }) =>
+      scrollTableMode && !hideFooter && `padding-bottom: 0;`}
   }
 
   .ant-modal-footer {

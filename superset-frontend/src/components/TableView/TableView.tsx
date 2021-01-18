@@ -54,7 +54,7 @@ const TableViewStyles = styled.div<{
   isPaginationSticky?: boolean;
   scrollTable?: boolean;
 }>`
-  ${({ scrollTable }) => scrollTable && `height: 100%; overflow: auto;`}
+  ${({ scrollTable }) => scrollTable && `height: 320px; overflow: auto;`}
 
   .table-cell.table-cell {
     vertical-align: top;
