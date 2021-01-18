@@ -592,6 +592,33 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         result = PrestoEngineSpec._split_data_type(data_type, ",")
         assert result == ['"value,1"', "value2"]
 
+    def test_show_columns(self):
+        inspector = mock.MagicMock()
+        inspector.engine.dialect.identifier_preparer.quote_identifier = (
+            lambda x: f'"{x}"'
+        )
+        mock_execute = mock.MagicMock(return_value=["a", "b"])
+        inspector.bind.execute = mock_execute
+        table_name = "table_name"
+        result = PrestoEngineSpec._show_columns(inspector, table_name, None)
+        assert result == ["a", "b"]
+        mock_execute.assert_called_once_with(f'SHOW COLUMNS FROM "{table_name}"')
+
+    def test_show_columns_with_schema(self):
+        inspector = mock.MagicMock()
+        inspector.engine.dialect.identifier_preparer.quote_identifier = (
+            lambda x: f'"{x}"'
+        )
+        mock_execute = mock.MagicMock(return_value=["a", "b"])
+        inspector.bind.execute = mock_execute
+        table_name = "table_name"
+        schema = "schema"
+        result = PrestoEngineSpec._show_columns(inspector, table_name, schema)
+        assert result == ["a", "b"]
+        mock_execute.assert_called_once_with(
+            f'SHOW COLUMNS FROM "{schema}"."{table_name}"'
+        )
+
 
 def test_is_readonly():
     def is_readonly(sql: str) -> bool:
