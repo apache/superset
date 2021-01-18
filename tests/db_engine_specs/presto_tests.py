@@ -579,6 +579,19 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         result = PrestoEngineSpec._get_full_name(names)
         assert result == "part1.part4"
 
+    def test_split_data_type(self):
+        data_type = "value1 value2"
+        result = PrestoEngineSpec._split_data_type(data_type, " ")
+        assert result == ["value1", "value2"]
+
+        data_type = "value1,value2"
+        result = PrestoEngineSpec._split_data_type(data_type, ",")
+        assert result == ["value1", "value2"]
+
+        data_type = '"value,1",value2'
+        result = PrestoEngineSpec._split_data_type(data_type, ",")
+        assert result == ['"value,1"', "value2"]
+
 
 def test_is_readonly():
     def is_readonly(sql: str) -> bool:
