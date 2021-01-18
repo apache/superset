@@ -29,6 +29,7 @@ import { ColumnOption } from '@superset-ui/chart-controls';
 import FormLabel from 'src/components/FormLabel';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
+import { noOp } from 'src/utils/common';
 
 import { AGGREGATES_OPTIONS } from 'src/explore/constants';
 import columnType from 'src/explore/propTypes/columnType';
@@ -40,6 +41,7 @@ const propTypes = {
   onChange: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
   onResize: PropTypes.func.isRequired,
+  getCurrentTab: PropTypes.func,
   columns: PropTypes.arrayOf(columnType),
   savedMetrics: PropTypes.arrayOf(savedMetricType),
   savedMetric: savedMetricType,
@@ -52,6 +54,7 @@ const propTypes = {
 
 const defaultProps = {
   columns: [],
+  getCurrentTab: noOp,
 };
 
 const ResizeIcon = styled.i`
@@ -64,7 +67,7 @@ const ColumnOptionStyle = styled.span`
   }
 `;
 
-const SAVED_TAB_KEY = 'SAVED';
+export const SAVED_TAB_KEY = 'SAVED';
 
 const startingWidth = 320;
 const startingHeight = 240;
@@ -81,6 +84,7 @@ export default class AdhocMetricEditPopover extends React.Component {
     this.onDragDown = this.onDragDown.bind(this);
     this.onMouseMove = this.onMouseMove.bind(this);
     this.onMouseUp = this.onMouseUp.bind(this);
+    this.onTabChange = this.onTabChange.bind(this);
     this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
     this.refreshAceEditor = this.refreshAceEditor.bind(this);
 
@@ -92,6 +96,17 @@ export default class AdhocMetricEditPopover extends React.Component {
     };
 
     document.addEventListener('mouseup', this.onMouseUp);
+  }
+
+  componentDidMount() {
+    const { savedMetric, adhocMetric, savedMetrics } = this.props;
+    const tab =
+      (savedMetric.metric_name || adhocMetric.isNew) &&
+      Array.isArray(savedMetrics) &&
+      savedMetrics.length > 0
+        ? SAVED_TAB_KEY
+        : adhocMetric.expressionType;
+    this.props.getCurrentTab(tab);
   }
 
   componentWillUnmount() {
@@ -205,6 +220,11 @@ export default class AdhocMetricEditPopover extends React.Component {
 
   onMouseUp() {
     document.removeEventListener('mousemove', this.onMouseMove);
+  }
+
+  onTabChange(tab) {
+    this.refreshAceEditor();
+    this.props.getCurrentTab(tab);
   }
 
   handleAceEditorRef(ref) {
@@ -327,7 +347,7 @@ export default class AdhocMetricEditPopover extends React.Component {
           defaultActiveKey={defaultActiveTabKey}
           className="adhoc-metric-edit-tabs"
           style={{ height: this.state.height, width: this.state.width }}
-          onChange={this.refreshAceEditor}
+          onChange={this.onTabChange}
           allowOverflow
         >
           <Tabs.TabPane key={SAVED_TAB_KEY} tab={t('Saved')}>

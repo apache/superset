@@ -27,6 +27,7 @@ const propTypes = {
     hasCustomLabel: PropTypes.bool,
   }),
   onChange: PropTypes.func.isRequired,
+  isEditDisabled: PropTypes.bool,
 };
 
 export default class AdhocMetricEditPopoverTitle extends React.Component {
@@ -39,7 +40,7 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
     this.onInputBlur = this.onInputBlur.bind(this);
     this.state = {
       isHovered: false,
-      isEditable: false,
+      isEditMode: false,
     };
   }
 
@@ -52,11 +53,11 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
   }
 
   onClick() {
-    this.setState({ isEditable: true });
+    this.setState({ isEditMode: true });
   }
 
   onBlur() {
-    this.setState({ isEditable: false });
+    this.setState({ isEditMode: false });
   }
 
   onInputBlur(e) {
@@ -67,9 +68,13 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
   }
 
   render() {
-    const { title, onChange } = this.props;
+    const { title, onChange, isEditDisabled } = this.props;
 
-    return this.state.isEditable ? (
+    if (isEditDisabled) {
+      return <span data-test="AdhocMetricTitle">My Metric</span>;
+    }
+
+    return this.state.isEditMode ? (
       <FormControl
         className="metric-edit-popover-label-input"
         type="text"
