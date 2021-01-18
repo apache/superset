@@ -215,6 +215,7 @@ const FilterValue: React.FC<FilterProps> = ({
   const cascadingFilters = useCascadingFilters(id);
   const [loading, setLoading] = useState<boolean>(true);
   const [state, setState] = useState([]);
+  const [error, setError] = useState<boolean>(false);
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
   const [target] = targets;
   const { datasetId = 18, column } = target;
@@ -247,10 +248,16 @@ const FilterValue: React.FC<FilterProps> = ({
         formData: newFormData,
         force: false,
         requestParams: { dashboardId: 0 },
-      }).then(response => {
-        setState(response.result);
-        setLoading(false);
-      });
+      })
+        .then(response => {
+          setState(response.result);
+          setError(false);
+          setLoading(false);
+        })
+        .catch(() => {
+          setError(true);
+          setLoading(false);
+        });
     }
   }, [cascadingFilters]);
 
@@ -263,6 +270,10 @@ const FilterValue: React.FC<FilterProps> = ({
         <Loading />
       </StyledLoadingBox>
     );
+  }
+
+  if (error) {
+    return <span>{t('Cannot load this filter. Check configuration.')}</span>;
   }
 
   return (
