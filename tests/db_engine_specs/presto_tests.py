@@ -516,6 +516,51 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         sqla_type = PrestoEngineSpec.get_sqla_column_type(None)
         assert sqla_type is None
 
+    @mock.patch(
+        "superset.utils.feature_flag_manager.FeatureFlagManager.is_feature_enabled"
+    )
+    @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.get_table_names")
+    @mock.patch("superset.db_engine_specs.presto.PrestoEngineSpec.get_view_names")
+    def test_get_table_names_no_split_views_from_tables(
+        self, mock_get_view_names, mock_get_table_names, mock_is_feature_enabled
+    ):
+        mock_get_view_names.return_value = ["view1", "view2"]
+        table_names = ["table1", "table2", "view1", "view2"]
+        mock_get_table_names.return_value = table_names
+        mock_is_feature_enabled.return_value = False
+        tables = PrestoEngineSpec.get_table_names(mock.Mock(), mock.Mock(), None)
+        assert tables == table_names
+
+    @mock.patch(
+        "superset.utils.feature_flag_manager.FeatureFlagManager.is_feature_enabled"
+    )
+    @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.get_table_names")
+    @mock.patch("superset.db_engine_specs.presto.PrestoEngineSpec.get_view_names")
+    def test_get_table_names_split_views_from_tables(
+        self, mock_get_view_names, mock_get_table_names, mock_is_feature_enabled
+    ):
+        mock_get_view_names.return_value = ["view1", "view2"]
+        table_names = ["table1", "table2", "view1", "view2"]
+        mock_get_table_names.return_value = table_names
+        mock_is_feature_enabled.return_value = True
+        tables = PrestoEngineSpec.get_table_names(mock.Mock(), mock.Mock(), None)
+        assert sorted(tables) == sorted(table_names)
+
+    @mock.patch(
+        "superset.utils.feature_flag_manager.FeatureFlagManager.is_feature_enabled"
+    )
+    @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.get_table_names")
+    @mock.patch("superset.db_engine_specs.presto.PrestoEngineSpec.get_view_names")
+    def test_get_table_names_split_views_from_tables_no_tables(
+        self, mock_get_view_names, mock_get_table_names, mock_is_feature_enabled
+    ):
+        mock_get_view_names.return_value = []
+        table_names = []
+        mock_get_table_names.return_value = table_names
+        mock_is_feature_enabled.return_value = True
+        tables = PrestoEngineSpec.get_table_names(mock.Mock(), mock.Mock(), None)
+        assert tables == []
+
 
 def test_is_readonly():
     def is_readonly(sql: str) -> bool:
