@@ -73,6 +73,14 @@ const startingWidth = 320;
 const startingHeight = 240;
 
 export default class AdhocMetricEditPopover extends React.Component {
+  // "Saved" is a default tab unless there are no saved metrics for dataset
+  defaultActiveTabKey =
+    (this.props.savedMetric.metric_name || this.props.adhocMetric.isNew) &&
+    Array.isArray(this.props.savedMetrics) &&
+    this.props.savedMetrics.length > 0
+      ? SAVED_TAB_KEY
+      : this.props.adhocMetric.expressionType;
+
   constructor(props) {
     super(props);
     this.onSave = this.onSave.bind(this);
@@ -99,14 +107,7 @@ export default class AdhocMetricEditPopover extends React.Component {
   }
 
   componentDidMount() {
-    const { savedMetric, adhocMetric, savedMetrics } = this.props;
-    const tab =
-      (savedMetric.metric_name || adhocMetric.isNew) &&
-      Array.isArray(savedMetrics) &&
-      savedMetrics.length > 0
-        ? SAVED_TAB_KEY
-        : adhocMetric.expressionType;
-    this.props.getCurrentTab(tab);
+    this.props.getCurrentTab(this.defaultActiveTabKey);
   }
 
   componentWillUnmount() {
@@ -327,14 +328,6 @@ export default class AdhocMetricEditPopover extends React.Component {
       ) &&
         savedMetric?.metric_name !== propsSavedMetric?.metric_name);
 
-    // "Saved" is a default tab unless there are no saved metrics for dataset
-    const defaultActiveTabKey =
-      (propsSavedMetric.metric_name || adhocMetric.isNew) &&
-      Array.isArray(savedMetrics) &&
-      savedMetrics.length > 0
-        ? SAVED_TAB_KEY
-        : adhocMetric.expressionType;
-
     return (
       <div
         id="metrics-edit-popover"
@@ -344,7 +337,7 @@ export default class AdhocMetricEditPopover extends React.Component {
         <Tabs
           id="adhoc-metric-edit-tabs"
           data-test="adhoc-metric-edit-tabs"
-          defaultActiveKey={defaultActiveTabKey}
+          defaultActiveKey={this.defaultActiveTabKey}
           className="adhoc-metric-edit-tabs"
           style={{ height: this.state.height, width: this.state.width }}
           onChange={this.onTabChange}
