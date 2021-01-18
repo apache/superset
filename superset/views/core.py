@@ -421,9 +421,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
     def get_raw_results(self, viz_obj: BaseViz) -> FlaskResponse:
-        return self.json_response(
-            {"data": viz_obj.get_df_payload()["df"].to_dict("records")}
-        )
+        payload = viz_obj.get_df_payload()
+        if viz_obj.has_error(payload):
+            return json_error_response(payload=payload, status=400)
+        return self.json_response({"data": payload["df"].to_dict("records")})
 
     def get_samples(self, viz_obj: BaseViz) -> FlaskResponse:
         return self.json_response({"data": viz_obj.get_samples()})
