@@ -94,7 +94,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             actual = BigQueryEngineSpec.get_timestamp_expr(
                 col=col, pdf=None, time_grain="PT5M", type_=type_
             )
-            self.assertEqual(str(actual), expected)
+            assert str(actual) == expected
 
     def test_fetch_data(self):
         """
