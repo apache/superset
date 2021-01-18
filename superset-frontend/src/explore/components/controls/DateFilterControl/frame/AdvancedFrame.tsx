@@ -27,94 +27,76 @@ import {ClassNames} from "@emotion/core";
 
 const TIME_PICKER_HELPER = <>
   <div>
-    <h3>1. Datetime</h3>
+    <h3>1. datetime</h3>
     <p>Return to specific datetime</p>
     <h4>Syntax</h4>
     <pre>
-      <code>{`
-        Datetime([string])
-      `}</code>
+      <code>{`datetime([string])`}</code>
     </pre>
     <h4>Example</h4>
     <pre>
-      <code>{`
-        DATETIME("2020-03-01 12:00:00")
-        DATETIME("now")
-        DATETIME("last year")
-      `}</code>
+      <code>{`datetime("2020-03-01 12:00:00")
+datetime("now")
+datetime("last year")`}</code>
     </pre>
   </div>
   <div>
-    <h3>2. Dateadd</h3>
+    <h3>2. dateadd</h3>
     <p>Moves the given set of dates by a specified interval.</p>
     <h4>Syntax</h4>
     <pre>
-      <code>{`
-          Dateadd([datetime], [integer], [dateunit])
-          dateunit = (YEAR | QUARTER | MONTH | WEEK | DAY | HOUR | MINUTE | SECOND)
-      `}</code>
+      <code>{`dateadd([datetime], [integer], [dateunit])
+dateunit = (year | quarter | month | week | day | hour | minute | second)`}</code>
     </pre>
     <h4>Example</h4>
     <pre>
-      <code>{`
-        DATEADD(DATETIME("TODAY"), -13, DAY)
-        DATEADD(DATETIME("2020-03-01"), 2, DAY)
-      `}</code>
+      <code>{`dateadd(datetime("today"), -13, day)
+dateadd(datetime("2020-03-01"), 2, day)`}</code>
     </pre>
   </div>
   <div>
-    <h3>3. Datetrunc</h3>
+    <h3>3. datetrunc</h3>
     <p>Truncates the specified date to the accuracy specified by the date unit.</p>
     <h4>Syntax</h4>
     <pre>
-      <code>{`
-          Datetrunc([datetime], [dateunit])
-      `}</code>
+      <code>{`datetrunc([datetime], [dateunit])
+dateunit = (year | month | week)`}</code>
     </pre>
     <h4>Example</h4>
     <pre>
-      <code>{`
-          Datetrunc(DATETIME("2020-03-01"), week)
-          Datetrunc(DATETIME("2020-03-01"), month)
-      `}</code>
+      <code>{`datetrunc(datetime("2020-03-01"), week)
+datetrunc(datetime("2020-03-01"), month)`}</code>
     </pre>
   </div>
   <div>
-    <h3>4. Lastday</h3>
+    <h3>4. lastday</h3>
     <p>Get the last date by the date unit</p>
     <h4>Syntax</h4>
     <pre>
-      <code>{`
-          Lastday([datetime], [dateunit])
-          dateunit = (YEAR | MONTH | WEEK)
-      `}</code>
+      <code>{`lastday([datetime], [dateunit])
+dateunit = (year | month | week)`}</code>
     </pre>
     <h4>Example</h4>
     <pre>
-      <code>{`
-        lastday(DATETIME("today"), month)
-      `}</code>
+      <code>{`lastday(datetime("today"), month)`}</code>
     </pre>
   </div>
   <div>
-    <h3>5. Holiday</h3>
-    <p>Get the last date by the date unit</p>
+    <h3>5. holiday</h3>
+    <p>Get the specify date for the holiday</p>
     <h4>Syntax</h4>
     <pre>
-      <code>{`
-          Holiday([string])
-          Python-holidays library（https://github.com/dr-prodigy/python-holidays）
-      `}</code>
+      <code>{`holiday([string])
+holiday([holiday string], [datetime])
+holiday([holiday string], [datetime], [country name])`}</code>
     </pre>
     <h4>Example</h4>
     <pre>
-      <code>{`
-        HOLIDAY("new year")
-        HOLIDAY("christmas", datetime("2019"))
-        HOLIDAY("christmas", dateadd(datetime("2019"), 1, year))
-        HOLIDAY("christmas", datetime("2 years ago"))
-        HOLIDAY("Easter Monday", datetime("2019"), "UK")
-      `}</code>
+      <code>{`holiday("new year")
+holiday("christmas", datetime("2019"))
+holiday("christmas", dateadd(datetime("2019"), 1, year))
+holiday("christmas", datetime("2 years ago"))
+holiday("Easter Monday", datetime("2019"), "UK")`}</code>
     </pre>
   </div>
 </>
@@ -127,16 +109,24 @@ const StyledTooltip = (props: any) => {
         <Tooltip
           overlayClassName={css`
             .ant-tooltip-content{
-              min-width: 600px;
+              min-width: ${theme.gridUnit * 125}px;
+              max-height: 600px;
+              overflow-y: scroll;
 
               .ant-tooltip-inner {
                 max-width: ${theme.gridUnit * 125}px;
-                overflow: auto;
+                h3 {
+                  font-size: ${theme.typography.sizes.m}px;
+                }
+                h4 {
+                  font-size: ${theme.typography.sizes.m}px;
+                  font-weight: ${theme.typography.weights.bold};
+                }
                 pre {
-                  // background: transparent;
                   border: none;
                   text-align: left;
-                  font-size: ${theme.typography.sizes.xs}px;
+                  word-break: break-word;
+                  font-size: ${theme.typography.sizes.s}px;
                 }
               }
             }
@@ -179,9 +169,9 @@ export function AdvancedFrame(props: FrameComponentProps) {
   return (
     <>
       <div className="section-title">
-        {t('Configure Advanced Time Range')}
-        <StyledTooltip title={TIME_PICKER_HELPER} placement="right" trigger="click">
-          <Icon name="info" />
+        {t('Configure Advanced Time Range ')}
+        <StyledTooltip title={TIME_PICKER_HELPER} placement="right">
+          <Icon name="info" width={20} height={20} />
         </StyledTooltip>
       </div>
       <div className="section-title">{t('Configure advanced time range')}</div>
