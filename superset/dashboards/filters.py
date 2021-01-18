@@ -24,7 +24,7 @@ from superset import db, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.views.base import BaseFilter, get_user_roles
+from superset.views.base import BaseFilter, is_user_admin
 from superset.views.base_api import BaseFavoriteFilter
 
 
@@ -69,8 +69,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """
 
     def apply(self, query: Query, value: Any) -> Query:
-        user_roles = [role.name.lower() for role in list(get_user_roles())]
-        if "admin" in user_roles:
+        if is_user_admin():
             return query
 
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
