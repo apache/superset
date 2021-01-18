@@ -74,7 +74,10 @@ def parse_human_datetime(human_readable: str) -> datetime:
     x_periods = r"^\s*([0-9]+)\s+(second|minute|hour|day|week|month|quarter|year)s?\s*$"
     if re.search(x_periods, human_readable, re.IGNORECASE):
         raise ValueError(
-            _("X periods are used without the look back/forward descriptors.")
+            _(
+                "date string is unclear."
+                " Please specify [{0} ago] or [{0} later]".format(human_readable)
+            )
         )
 
     error_msg = ValueError(_("Couldn't parse date string [{}]".format(human_readable)))
