@@ -22,7 +22,7 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { Tooltip } from 'src/common/components/Tooltip';
 
-import AdhocMetricEditPopoverTitle from 'src/explore/components/AdhocMetricEditPopoverTitle';
+import AdhocMetricEditPopoverTitle from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle';
 
 const title = {
   label: 'Title',

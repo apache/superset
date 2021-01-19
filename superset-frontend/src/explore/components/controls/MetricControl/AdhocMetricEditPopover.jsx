@@ -30,10 +30,10 @@ import FormLabel from 'src/components/FormLabel';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 
-import { AGGREGATES_OPTIONS } from '../constants';
-import columnType from '../propTypes/columnType';
-import savedMetricType from '../propTypes/savedMetricType';
-import AdhocMetric, { EXPRESSION_TYPES } from '../AdhocMetric';
+import { AGGREGATES_OPTIONS } from 'src/explore/constants';
+import columnType from 'src/explore/propTypes/columnType';
+import savedMetricType from './savedMetricType';
+import AdhocMetric, { EXPRESSION_TYPES } from './AdhocMetric';
 
 const propTypes = {
   adhocMetric: PropTypes.instanceOf(AdhocMetric).isRequired,
