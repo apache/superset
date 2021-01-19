@@ -176,10 +176,10 @@ const DataSourcePanel = ({
     }
     setList({
       columns: matchSorter(columns, value, {
-        keys: ['column_name', 'expression', 'description', 'verbose_name'],
+        keys: ['column_name', 'description', 'verbose_name', 'expression'],
       }),
       metrics: matchSorter(metrics, value, {
-        keys: ['metric_name', 'expression', 'description', 'verbose_name'],
+        keys: ['metric_name', 'description', 'verbose_name', 'expression'],
       }),
     });
   };
