@@ -557,7 +557,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             try:
                 json_body = json.loads(request.form["form_data"])
             except (TypeError, json.JSONDecodeError):
-                json_body = None
+                pass
 
         if json_body is None:
             return self.response_400(message=_("Request is not JSON"))
