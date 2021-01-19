@@ -28,14 +28,15 @@ function openDashboardEditProperties() {
 
 describe('Dashboard save action', () => {
   beforeEach(() => {
-    cy.server();
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
     cy.get('#app').then(data => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
       const dashboard = bootstrapData.dashboard_data;
       const dashboardId = dashboard.id;
-      cy.intercept('POST', `/superset/copy_dash/${dashboardId}/`).as('copyRequest');
+      cy.intercept('POST', `/superset/copy_dash/${dashboardId}/`).as(
+        'copyRequest',
+      );
 
       cy.get('[data-test="more-horiz"]').trigger('click', { force: true });
       cy.get('[data-test="save-as-menu-item"]').trigger('click', {

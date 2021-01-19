@@ -71,7 +71,6 @@ function openDashboardEditProperties() {
 
 describe('Dashboard edit action', () => {
   beforeEach(() => {
-    cy.server();
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
     cy.intercept(`/api/v1/dashboard/1`).as('dashboardGet');

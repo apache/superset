@@ -29,7 +29,6 @@ describe('Datasource control', () => {
     let numScripts = 0;
 
     cy.login();
-    cy.server();
     cy.intercept('GET', '/superset/explore_json/**').as('getJson');
     cy.intercept('POST', '/superset/explore_json/**').as('postJson');
     cy.visitChartByName('Num Births Trend');
@@ -91,7 +90,6 @@ describe('Datasource control', () => {
 describe('VizType control', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.intercept('GET', '/superset/explore_json/**').as('getJson');
     cy.intercept('POST', '/superset/explore_json/**').as('postJson');
   });
@@ -123,7 +121,6 @@ describe('VizType control', () => {
 describe('Time range filter', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.intercept('GET', '/superset/explore_json/**').as('getJson');
     cy.intercept('POST', '/superset/explore_json/**').as('postJson');
   });
@@ -237,7 +234,6 @@ describe('Time range filter', () => {
 
 describe('Groupby control', () => {
   it('Set groupby', () => {
-    cy.server();
     cy.login();
     cy.intercept('GET', '/superset/explore_json/**').as('getJson');
     cy.intercept('POST', '/superset/explore_json/**').as('postJson');

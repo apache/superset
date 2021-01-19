@@ -21,7 +21,6 @@ import { selectResultsTab } from './sqllab.helper';
 describe('SqlLab datasource panel', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.visit('/superset/sqllab');
   });
 

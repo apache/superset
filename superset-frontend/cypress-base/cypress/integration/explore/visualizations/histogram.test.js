@@ -42,7 +42,6 @@ describe('Visualization > Histogram', () => {
   }
 
   beforeEach(() => {
-    cy.server();
     cy.login();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });

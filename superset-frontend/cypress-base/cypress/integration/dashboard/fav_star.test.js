@@ -25,7 +25,6 @@ describe('Dashboard add to favorite', () => {
   let isFavoriteDashboard = false;
 
   beforeEach(() => {
-    cy.server();
     cy.login();
 
     cy.intercept(CHECK_DASHBOARD_FAVORITE_ENDPOINT).as('countFavStar');

@@ -40,7 +40,6 @@ describe('Visualization > Table', () => {
 
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
@@ -156,7 +155,7 @@ describe('Visualization > Table', () => {
       row_limit: limit,
     };
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.wait('@getJson').then(async ({ response }) => {
+    cy.wait('@getJson').then(({ response }) => {
       cy.verifySliceContainer('table');
       expect(response?.body.data.records.length).to.eq(limit);
     });
@@ -201,7 +200,7 @@ describe('Visualization > Table', () => {
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.wait('@getJson').then(async ({ response }) => {
+    cy.wait('@getJson').then(({ response }) => {
       cy.verifySliceContainer('table');
       const responseBody = response?.body;
       const { records } = responseBody.data;

@@ -19,7 +19,6 @@
 describe('Advanced analytics', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.intercept('GET', '/superset/explore_json/**').as('getJson');
     cy.intercept('POST', '/superset/explore_json/**').as('postJson');
   });
@@ -60,7 +59,6 @@ describe('Advanced analytics', () => {
 describe('Annotations', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.intercept('GET', '/superset/explore_json/**').as('getJson');
     cy.intercept('POST', '/superset/explore_json/**').as('postJson');
   });

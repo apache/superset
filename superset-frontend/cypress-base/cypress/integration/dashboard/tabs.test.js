@@ -35,7 +35,6 @@ describe('Dashboard tabs', () => {
   };
 
   beforeEach(() => {
-    cy.server();
     cy.login();
 
     cy.visit(TABBED_DASHBOARD);

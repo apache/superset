@@ -26,7 +26,6 @@ describe('Visualization > Big Number Total', () => {
 
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 

@@ -20,7 +20,6 @@ import { TABBED_DASHBOARD, drag, resize } from './dashboard.helper';
 
 describe('Dashboard edit markdown', () => {
   beforeEach(() => {
-    cy.server();
     cy.login();
     cy.visit(TABBED_DASHBOARD);
   });

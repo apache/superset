@@ -42,7 +42,6 @@ describe('Dashboard filter', () => {
   const getAlias = (id: number) => `@${DASHBOARD_CHART_ALIAS_PREFIX}${id}`;
 
   beforeEach(() => {
-    cy.server();
     cy.login();
 
     cy.visit(WORLD_HEALTH_DASHBOARD);

@@ -30,7 +30,6 @@ const apiURL = (endpoint, queryObject) =>
 describe('Test explore links', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.intercept('GET', '/superset/explore_json/**').as('getJson');
     cy.intercept('POST', '/superset/explore_json/**').as('postJson');
   });

@@ -19,7 +19,6 @@
 describe('AdhocFilters', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.intercept('GET', '/superset/explore_json/**').as('getJson');
     cy.intercept('POST', '/superset/explore_json/**').as('postJson');
     cy.intercept('GET', '/superset/filter/table/*/name').as('filterValues');

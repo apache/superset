@@ -23,7 +23,6 @@ describe('Visualization > Time TableViz', () => {
 
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 

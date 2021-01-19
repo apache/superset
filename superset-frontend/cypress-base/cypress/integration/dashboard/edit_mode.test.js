@@ -20,7 +20,6 @@ import { WORLD_HEALTH_DASHBOARD, drag } from './dashboard.helper';
 
 describe('Dashboard edit mode', () => {
   beforeEach(() => {
-    cy.server();
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
     cy.get('[data-test="dashboard-header"]')

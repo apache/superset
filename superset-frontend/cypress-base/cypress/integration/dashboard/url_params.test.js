@@ -24,7 +24,6 @@ describe('Dashboard form data', () => {
   let dashboard;
 
   beforeEach(() => {
-    cy.server();
     cy.login();
 
     cy.visit(WORLD_HEALTH_DASHBOARD, { qs: urlParams });

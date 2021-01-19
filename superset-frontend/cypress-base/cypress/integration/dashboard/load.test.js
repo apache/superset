@@ -27,7 +27,6 @@ describe('Dashboard load', () => {
   let dashboard;
   let aliases;
   beforeEach(() => {
-    cy.server();
     cy.login();
 
     cy.visit(WORLD_HEALTH_DASHBOARD);

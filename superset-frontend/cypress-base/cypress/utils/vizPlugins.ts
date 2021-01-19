@@ -23,21 +23,24 @@ export const DASHBOARD_CHART_ALIAS_PREFIX = 'getJson_';
 export function isLegacyChart(vizType: string): boolean {
   return !V1_PLUGINS.includes(vizType);
 }
+
 export function isLegacyResponse(response: any): boolean {
   return !response.result;
 }
-export function getSliceIdFromRequestUrl(url: string): string {
+
+export function getSliceIdFromRequestUrl(url: string) {
   const address = new URL(url);
   const query = address.searchParams.get('form_data');
-  return query?.match(/\d+/)[0];
+  return query?.match(/\d+/)?.[0];
 }
+
 export function getChartAliases(slices: any[]): string[] {
   const aliases: string[] = [];
   Array.from(slices).forEach(slice => {
     const vizType = slice.form_data.viz_type;
     const isLegacy = isLegacyChart(vizType);
     const alias = `${DASHBOARD_CHART_ALIAS_PREFIX}${slice.slice_id}`;
-    const formData = `{"slice_id":${slice.slice_id}}`;
+    const formData = encodeURIComponent(`{"slice_id":${slice.slice_id}}`);
     if (isLegacy) {
       const route = `/superset/explore_json/?*${formData}*`;
       cy.intercept('POST', `${route}`).as(alias);

@@ -28,7 +28,6 @@ describe('Dashboard top-level controls', () => {
   let aliases: string[];
 
   beforeEach(() => {
-    cy.server();
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
 
@@ -50,10 +49,11 @@ describe('Dashboard top-level controls', () => {
     cy.get(`#slice_${mapId}-controls`).click();
     cy.get(`[data-test="slice_${mapId}-menu"]`)
       .find('[data-test="refresh-chart-menu-item"]')
-      .click({ force: true })
-      .then($el => {
-        cy.get($el).should('have.class', 'ant-dropdown-menu-item-disabled');
-      });
+      .click({ force: true });
+    cy.get('[data-test="refresh-chart-menu-item"]').should(
+      'have.class',
+      'ant-dropdown-menu-item-disabled',
+    );
 
     cy.wait(`@${DASHBOARD_CHART_ALIAS_PREFIX}${mapId}`);
     cy.get('[data-test="refresh-chart-menu-item"]').should(
@@ -63,7 +63,6 @@ describe('Dashboard top-level controls', () => {
   });
 
   it('should allow dashboard level force refresh', () => {
-    // wait the all dash finish loading.
     cy.wait(aliases);
     // when charts are not start loading, for example, under a secondary tab,
     // should allow force refresh
@@ -80,7 +79,7 @@ describe('Dashboard top-level controls', () => {
     );
 
     // wait all charts force refreshed.
-    cy.wait(aliases, { responseTimeout: 15000 }).then(xhrs => {
+    cy.wait(aliases).then(xhrs => {
       xhrs.forEach(async ({ response, request }) => {
         const responseBody = response?.body;
         const isCached = isLegacyResponse(responseBody)
