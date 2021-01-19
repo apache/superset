@@ -549,6 +549,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        json_body = None
         if request.is_json:
             json_body = request.json
         elif request.form.get("form_data"):
@@ -556,9 +557,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             try:
                 json_body = json.loads(request.form["form_data"])
             except (TypeError, json.JSONDecodeError):
-                return self.response_400(message=_("Request is not JSON"))
-        else:
-            return self.response_400(message="Request is not JSON")
+                json_body = None
+
+        if json_body is None:
+            return self.response_400(message=_("Request is not JSON"))
 
         try:
             command = ChartDataCommand()
