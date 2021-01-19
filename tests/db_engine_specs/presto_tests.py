@@ -23,6 +23,7 @@ from sqlalchemy.sql import select
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.sql_parse import ParsedQuery
+from superset.utils.core import DatasourceName
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
@@ -735,6 +736,19 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             PrestoEngineSpec.estimate_statement_cost(
                 "DROP TABLE brth_names", mock_cursor
             )
+
+    def test_get_all_datasource_names(self):
+        df = pd.DataFrame.from_dict(
+            {"table_schema": ["schema1", "schema2"], "table_name": ["name1", "name2"]}
+        )
+        database = mock.MagicMock()
+        database.get_df.return_value = df
+        result = PrestoEngineSpec.get_all_datasource_names(database, "table")
+        expected_result = [
+            DatasourceName(schema="schema1", table="name1"),
+            DatasourceName(schema="schema2", table="name2"),
+        ]
+        assert result == expected_result
 
 
 def test_is_readonly():
