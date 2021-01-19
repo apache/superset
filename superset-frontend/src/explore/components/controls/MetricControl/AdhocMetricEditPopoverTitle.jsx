@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { t } from '@superset-ui/core';
 import PropTypes from 'prop-types';
 import { FormControl } from 'react-bootstrap';
 import { Tooltip } from 'src/common/components/Tooltip';
@@ -27,6 +28,7 @@ const propTypes = {
     hasCustomLabel: PropTypes.bool,
   }),
   onChange: PropTypes.func.isRequired,
+  isEditDisabled: PropTypes.bool,
 };
 
 export default class AdhocMetricEditPopoverTitle extends React.Component {
@@ -39,7 +41,7 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
     this.onInputBlur = this.onInputBlur.bind(this);
     this.state = {
       isHovered: false,
-      isEditable: false,
+      isEditMode: false,
     };
   }
 
@@ -52,11 +54,11 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
   }
 
   onClick() {
-    this.setState({ isEditable: true });
+    this.setState({ isEditMode: true });
   }
 
   onBlur() {
-    this.setState({ isEditable: false });
+    this.setState({ isEditMode: false });
   }
 
   onInputBlur(e) {
@@ -67,9 +69,16 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
   }
 
   render() {
-    const { title, onChange } = this.props;
+    const { title, onChange, isEditDisabled } = this.props;
+    const defaultLabel = t('My Metric');
 
-    return this.state.isEditable ? (
+    if (isEditDisabled) {
+      return (
+        <span data-test="AdhocMetricTitle">{title.label || defaultLabel}</span>
+      );
+    }
+
+    return this.state.isEditMode ? (
       <FormControl
         className="metric-edit-popover-label-input"
         type="text"
@@ -92,7 +101,7 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
           role="button"
           tabIndex={0}
         >
-          {title.hasCustomLabel ? title.label : 'My Metric'}
+          {title.label || defaultLabel}
           &nbsp;
           <i
             className="fa fa-pencil"

@@ -191,7 +191,9 @@ class MetricsControl extends React.PureComponent {
             // compare saved metrics
             value === oldMetric.metric_name ||
             // compare adhoc metrics
-            value.optionName === oldMetric.optionName
+            typeof value.optionName !== 'undefined'
+              ? value.optionName === oldMetric.optionName
+              : false
           ) {
             return changedMetric;
           }
@@ -263,7 +265,7 @@ class MetricsControl extends React.PureComponent {
     }
     return (
       <AdhocMetricPopoverTrigger
-        adhocMetric={new AdhocMetric({})}
+        adhocMetric={new AdhocMetric({ isNew: true })}
         onMetricEdit={this.onNewMetric}
         columns={this.props.columns}
         savedMetrics={this.props.savedMetrics}
