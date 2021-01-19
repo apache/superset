@@ -193,9 +193,21 @@ def vote_pmc(base_parameters, receiver_email):
     type=str,
     prompt="A List of people with -1 vote (ex: John)",
 )
+@click.option(
+    "--vote_thread",
+    default="",
+    type=str,
+    prompt="Permalink to the vote thread "
+    "(see https://lists.apache.org/list.html?dev@superset.apache.org)",
+)
 @click.pass_obj
 def result_pmc(
-    base_parameters, receiver_email, vote_bindings, vote_nonbindings, vote_negatives
+    base_parameters,
+    receiver_email,
+    vote_bindings,
+    vote_nonbindings,
+    vote_negatives,
+    vote_thread,
 ):
     template_file = "email_templates/result_pmc.j2"
     base_parameters.template_arguments["receiver_email"] = receiver_email
@@ -208,6 +220,7 @@ def result_pmc(
     base_parameters.template_arguments["vote_negatives"] = string_comma_to_list(
         vote_negatives
     )
+    base_parameters.template_arguments["vote_thread"] = vote_thread
     message = render_template(template_file, **base_parameters.template_arguments)
     inter_send_email(
         base_parameters.username,
