@@ -46,7 +46,7 @@ describe('AdhocMetricEditPopoverTitle', () => {
     expect(wrapper.find(Tooltip)).toExist();
     expect(
       wrapper.find('[data-test="AdhocMetricEditTitle#trigger"]').text(),
-    ).toBe('My Metric\xa0');
+    ).toBe(`${title.label}\xa0`);
   });
 
   it('transfers to edit mode when clicked', () => {

@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { t } from '@superset-ui/core';
 import PropTypes from 'prop-types';
 import { FormControl } from 'react-bootstrap';
 import { Tooltip } from 'src/common/components/Tooltip';
@@ -69,9 +70,12 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
 
   render() {
     const { title, onChange, isEditDisabled } = this.props;
+    const defaultLabel = t('My Metric');
 
     if (isEditDisabled) {
-      return <span data-test="AdhocMetricTitle">My Metric</span>;
+      return (
+        <span data-test="AdhocMetricTitle">{title.label || defaultLabel}</span>
+      );
     }
 
     return this.state.isEditMode ? (
@@ -97,7 +101,7 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
           role="button"
           tabIndex={0}
         >
-          {title.hasCustomLabel ? title.label : 'My Metric'}
+          {title.label || defaultLabel}
           &nbsp;
           <i
             className="fa fa-pencil"

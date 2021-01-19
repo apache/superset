@@ -93,11 +93,12 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
   }
 
   render() {
-    const { adhocMetric } = this.props;
+    const { adhocMetric, savedMetric } = this.props;
+    const { verbose_name, metric_name } = savedMetric;
     const { label, hasCustomLabel } = adhocMetric;
     const title = this.state.labelModified
       ? this.state.title
-      : { label, hasCustomLabel };
+      : { label: verbose_name || metric_name || label, hasCustomLabel };
 
     const overlayContent = (
       <AdhocMetricEditPopover
