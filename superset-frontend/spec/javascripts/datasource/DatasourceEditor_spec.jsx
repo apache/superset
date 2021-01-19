@@ -30,6 +30,7 @@ import Field from 'src/CRUD/Field';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import * as featureFlags from 'src/featureFlags';
 import TableSelector from 'src/components/TableSelector';
+import CollectionTable from 'src/CRUD/CollectionTable';
 
 const props = {
   datasource: mockDatasource['7__table'],
@@ -67,7 +68,9 @@ describe('DatasourceEditor', () => {
   it('makes an async request', () =>
     new Promise(done => {
       wrapper.setState({ activeTabKey: 2 });
-      const syncButton = wrapper.find('.sync-from-source');
+      const collection = wrapper.find('.columns-table').shallow();
+      expect(collection).toHaveLength(1);
+      const syncButton = collection.dive().find('.sync-from-source');
       expect(syncButton).toHaveLength(1);
       syncButton.simulate('click');
 

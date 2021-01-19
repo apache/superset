@@ -998,6 +998,7 @@ class DatasourceEditor extends React.PureComponent {
           >
             <div>
               <ColumnCollectionTable
+                className="columns-table"
                 columns={this.state.databaseColumns}
                 onChange={databaseColumns =>
                   this.setColumns({ databaseColumns })
