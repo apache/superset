@@ -50,6 +50,10 @@ describe('Visualization > Line', () => {
     cy.get('[data-test=metrics]')
       .find('[data-test="add-metric-button"]')
       .click();
+
+    // Title edit for saved metrics is disabled - switch to Simple
+    cy.get('[id="adhoc-metric-edit-tabs-tab-SIMPLE"]').click();
+
     cy.get('[name="select-column"]').click().type('num{enter}');
     cy.get('[name="select-aggregate"]').click().type('sum{enter}');
     cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
