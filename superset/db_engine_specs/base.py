@@ -245,6 +245,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 date_trunc_function = cls._date_trunc_functions.get(type_)
                 if date_trunc_function:
                     time_expr = time_expr.replace("{func}", date_trunc_function)
+            if type_ and "{type}" in time_expr:
+                date_trunc_function = cls._date_trunc_functions.get(type_)
+                if date_trunc_function:
+                    time_expr = time_expr.replace("{type}", type_)
         else:
             time_expr = "{col}"
 
