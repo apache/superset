@@ -367,7 +367,9 @@ function ExploreViewContainer(props) {
 
   function onResize(evt) {
     const { x } = evt;
-    localStorage.setItem('explore_sidebar_widths', x);
+    if (x > 0) {
+      localStorage.setItem('explore_sidebar_widths', x);
+    }
   }
 
   if (props.standalone) {
