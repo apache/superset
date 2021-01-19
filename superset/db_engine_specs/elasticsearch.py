@@ -46,3 +46,18 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
         if target_type.upper() == utils.TemporalType.DATETIME:
             return f"""CAST('{dttm.isoformat(timespec="seconds")}' AS DATETIME)"""
         return None
+
+
+class OpenDistro(ElasticSearchEngineSpec):
+
+    _time_grain_expressions = {
+        None: "{col}",
+    }
+
+    engine = "odelasticsearch"
+    engine_name = "ElasticSearch"
+
+    @classmethod
+    def make_label_compatible(cls, label: str) -> str:
+        new_label = super().make_label_compatible(label)
+        return new_label.replace(".", "_")
