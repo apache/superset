@@ -74,7 +74,6 @@ const fetchTimeRange = async (
 ) => {
   const query = rison.encode(timeRange);
   const endpoint = `/api/v1/time_range/?q=${query}`;
-
   try {
     const response = await SupersetClient.get({ endpoint });
     const timeRangeString = buildTimeRangeString(
@@ -171,27 +170,39 @@ interface DateFilterLabelProps {
   onChange: (timeRange: string) => void;
   value?: string;
   endpoints?: TimeRangeEndpoints;
+  defaultSelect?: boolean;
+  actions: {
+    setControlPanelDefaults: (arg0: boolean) => void;
+  };
 }
 
 export default function DateFilterControl(props: DateFilterLabelProps) {
-  const { value = 'Last week', endpoints, onChange } = props;
+  const {
+    value = 'Last week',
+    endpoints,
+    onChange,
+    defaultSelect,
+    actions: { setControlPanelDefaults },
+  } = props;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
   const [frame, setFrame] = useState<FrameType>(guessFrame(value));
+  const [resetRangeType, setRangeType] = useState(true);
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
   const [tooltipTitle, setTooltipTitle] = useState<string>(value);
 
   useEffect(() => {
-    fetchTimeRange(value, endpoints).then(({ value: actualRange, error }) => {
-      if (error) {
-        setEvalResponse(error || '');
-        setValidTimeRange(false);
-        setTooltipTitle(value || '');
-      } else {
-        /*
+    if (!defaultSelect) {
+      fetchTimeRange(value, endpoints).then(({ value: actualRange, error }) => {
+        if (error) {
+          setEvalResponse(error || '');
+          setValidTimeRange(false);
+          setTooltipTitle(value || '');
+        } else {
+          /*
           HRT == human readable text
           ADR == actual datetime range
           +--------------+------+----------+--------+----------+-----------+
@@ -202,33 +213,52 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           | tooltip      | ADR  | ADR      | HRT    | HRT      |   HRT     |
           +--------------+------+----------+--------+----------+-----------+
         */
-        const valueToLower = value.toLowerCase();
-        if (
-          valueToLower.startsWith('last') ||
-          valueToLower.startsWith('next') ||
-          valueToLower.startsWith('previous')
-        ) {
-          setActualTimeRange(value);
-          setTooltipTitle(actualRange || '');
-        } else {
-          setActualTimeRange(actualRange || '');
-          setTooltipTitle(value || '');
+          const valueToLower = value.toLowerCase();
+          if (
+            valueToLower.startsWith('last') ||
+            valueToLower.startsWith('next') ||
+            valueToLower.startsWith('previous')
+          ) {
+            setActualTimeRange(value);
+            setTooltipTitle(actualRange || '');
+          } else {
+            setActualTimeRange(actualRange || '');
+            setTooltipTitle(value || '');
+          }
+          setValidTimeRange(true);
         }
-        setValidTimeRange(true);
-      }
-    });
+      });
+    }
   }, [value]);
 
   useEffect(() => {
-    fetchTimeRange(timeRangeValue, endpoints).then(({ value, error }) => {
-      if (error) {
-        setEvalResponse(error || '');
-        setValidTimeRange(false);
-      } else {
-        setEvalResponse(value || '');
-        setValidTimeRange(true);
-      }
-    });
+    if (defaultSelect) {
+      fetchTimeRange('Last week', endpoints).then(
+        ({ value: actualRange, error }) => {
+          setActualTimeRange('Last week');
+          setTooltipTitle(actualRange || '');
+          setEvalResponse(actualRange || '');
+          setFrame('Common');
+          setControlPanelDefaults(false);
+        },
+      );
+      // set
+      // se
+    }
+  }, [defaultSelect]);
+
+  useEffect(() => {
+    if (!resetRangeType) {
+      fetchTimeRange(timeRangeValue, endpoints).then(({ value, error }) => {
+        if (error) {
+          setEvalResponse(error || '');
+          setValidTimeRange(false);
+        } else {
+          setEvalResponse(value || '');
+          setValidTimeRange(true);
+        }
+      });
+    }
   }, [timeRangeValue]);
 
   function onSave() {
@@ -237,7 +267,8 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   }
 
   function onHide() {
-    setFrame(guessFrame(value));
+    if (resetRangeType) setFrame(guessFrame('Last week'));
+    else setFrame(guessFrame(value));
     setTimeRangeValue(value);
     setShow(false);
   }
@@ -251,6 +282,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   };
 
   function onFrame(option: SelectOptionType) {
+    setRangeType(false);
     if (option.value === 'No filter') {
       setTimeRangeValue('No filter');
     }
@@ -262,7 +294,11 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
       <div className="control-label">{t('RANGE TYPE')}</div>
       <Select
         options={FRAME_OPTIONS}
-        value={FRAME_OPTIONS.filter(({ value }) => value === frame)}
+        value={
+          resetRangeType && defaultSelect
+            ? 'Last'
+            : FRAME_OPTIONS.filter(({ value }) => value === frame)
+        }
         onChange={onFrame}
         className="frame-dropdown"
       />

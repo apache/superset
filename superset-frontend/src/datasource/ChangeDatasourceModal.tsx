@@ -57,6 +57,7 @@ interface ChangeDatasourceModalProps {
   onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
   onHide: () => void;
   show: boolean;
+  setControlDefault: (arg0: boolean) => void;
 }
 
 const ConfirmModalStyled = styled.div`
@@ -102,6 +103,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   onDatasourceSave,
   onHide,
   show,
+  setControlDefault,
 }) => {
   const [filter, setFilter] = useState<any>(undefined);
   const [confirmChange, setConfirmChange] = useState(false);
@@ -186,6 +188,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
           },
         );
       });
+    setControlDefault(true);
     onHide();
     addSuccessToast('Successfully changed dataset!');
   };
