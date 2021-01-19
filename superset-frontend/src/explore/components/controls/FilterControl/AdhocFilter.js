@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CUSTOM_OPERATORS } from './constants';
-import { getSimpleSQLExpression } from './exploreUtils';
+import { CUSTOM_OPERATORS } from 'src/explore/constants';
+import { getSimpleSQLExpression } from 'src/explore/exploreUtils';
 
 export const EXPRESSION_TYPES = {
   SIMPLE: 'SIMPLE',
