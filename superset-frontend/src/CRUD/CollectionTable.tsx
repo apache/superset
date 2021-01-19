@@ -67,7 +67,7 @@ const CrudTableWrapper = styled.div<{ scrollTable?: boolean }>`
   ${({ scrollTable }) =>
     scrollTable &&
     `
-      height: 450px;
+      height: 350px;
       overflow: auto;
 
       thead th {
@@ -315,7 +315,7 @@ export default class CRUDCollection extends React.PureComponent<
                 onClick={this.props.onSyncFromSource}
                 className="sync-from-source"
               >
-                {t('Sync columns from source')}
+                <i className="fa fa-database" /> {t('Sync columns from source')}
               </Button>
             </span>
           )}

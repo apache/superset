@@ -224,7 +224,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       width={confirmChange ? '432px' : ''}
       height={confirmChange ? 'auto' : '480px'}
       hideFooter={!confirmChange}
-      scrollTableMode
+      scrollTableMode={!confirmChange}
       footer={
         <>
           {confirmChange && (
