@@ -9,7 +9,19 @@ version: 1
 ## Google BigQuery
 
 The recommended connector library for BigQuery is
-[pybigquery](https://github.com/mxmzdlv/pybigquery).
+[pybigquery](https://github.com/mxmzdlv/pybigquery). 
+
+In order to use pybigquery with docker-compose it is needed to make this dependency included in requirements. You can make this by adding file ```docker/requirements-local.txt``` with lines:
+```flask-cors
+vertica-python
+fbprophet
+sqlalchemy-vertica-python
+redis
+pybigquery
+pandas-gbq
+pydruid```
+
+With this modification all required dependencies will be installed with docker-compose up command.
 
 The connection string for BigQuery looks like:
 
@@ -23,7 +35,9 @@ credentials file (as a JSON).
 1. Create your Service Account via the Google Cloud Platform control panel, provide it access to the
    appropriate BigQuery datasets, and download the JSON configuration file for the service account.
 
-2. n Superset, Add a JSON blob to the **Secure Extra** field in the database configuration form with
+2. Make sure your Service Account meets required permissions from groups: BigQueryDataEditor,BigQueryUser. 
+
+3. In Superset, Add a JSON blob to the **Secure Extra** field in the database configuration form with
    the following format:
 
 ```
