@@ -19,12 +19,12 @@
 import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { act } from 'react-dom/test-utils';
+import { ReactWrapper } from 'enzyme';
 import { Provider } from 'react-redux';
 import Alert from 'react-bootstrap/lib/Alert';
 import { FilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterConfigModal';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { mockStore } from 'spec/fixtures/mockStore';
-import { ReactWrapper } from 'enzyme';
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -84,7 +84,7 @@ describe('FiltersConfigModal', () => {
     beforeEach(() => {
       onCancel = jest.fn();
       wrapper = setup({ onCancel, createNewOnOpen: false });
-    })
+    });
 
     async function clickCancel() {
       act(() => {
@@ -108,16 +108,19 @@ describe('FiltersConfigModal', () => {
       addFilter();
       await clickCancel();
       expect(onCancel.mock.calls).toHaveLength(0);
-      expect(wrapper.find(Alert).text()).toContain('Are you sure you want to cancel? "New Filter" will not be saved.');
+      expect(wrapper.find(Alert).text()).toContain(
+        'Are you sure you want to cancel? "New Filter" will not be saved.',
+      );
     });
-
 
     it('shows correct alert message for 2 unsaved filters', async () => {
       addFilter();
       addFilter();
       await clickCancel();
       expect(onCancel.mock.calls).toHaveLength(0);
-      expect(wrapper.find(Alert).text()).toContain('Are you sure you want to cancel? "New Filter" and "New Filter" will not be saved.');
+      expect(wrapper.find(Alert).text()).toContain(
+        'Are you sure you want to cancel? "New Filter" and "New Filter" will not be saved.',
+      );
     });
   });
 });
