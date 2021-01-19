@@ -124,5 +124,5 @@ class TestAsyncQueries(SupersetTestCase):
         with pytest.raises(SupersetException):
             load_explore_json_into_cache(job_metadata, form_data)
 
-        errors = ["The datasource associated with this chart no longer exists"]
+        errors = ["The dataset associated with this chart no longer exists"]
         mock_update_job.assert_called_with(job_metadata, "error", errors=errors)

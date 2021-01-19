@@ -220,7 +220,7 @@ def get_datasource_info(
 
     if not datasource_id:
         raise SupersetException(
-            "The datasource associated with this chart no longer exists"
+            "The dataset associated with this chart no longer exists"
         )
 
     datasource_id = int(datasource_id)
