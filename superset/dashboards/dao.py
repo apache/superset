@@ -23,6 +23,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.dao.base import BaseDAO
 from superset.dashboards.filters import DashboardFilter
 from superset.extensions import db
+from superset.models.slice import Slice
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -34,6 +35,11 @@ logger = logging.getLogger(__name__)
 class DashboardDAO(BaseDAO):
     model_cls = Dashboard
     base_filter = DashboardFilter
+
+    @staticmethod
+    def get_charts_for_dashboard(dashboard_id: int) -> List[Slice]:
+        query = db.session.query(Dashboard).filter(Dashboard.id == dashboard_id)
+        logger.info(query.__dict__)
 
     @staticmethod
     def validate_slug_uniqueness(slug: str) -> bool:

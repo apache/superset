@@ -210,6 +210,52 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             self.include_route_methods = self.include_route_methods | {"thumbnail"}
         super().__init__()
 
+    @expose("/<pk>/charts/", methods=["GET"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_charts",
+        log_to_statsd=False,
+    )
+    def get_charts(self, pk: int) -> Response:
+        """Change this later
+        ---
+        post:
+          description: >-
+            Create a new Dashboard.
+          requestBody:
+            description: Dashboard schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+          responses:
+            201:
+              description: Dashboard added
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+            302:
+              description: Redirects to the current digest
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        DashboardDAO.get_charts_for_dashboard(pk)
+
     @expose("/", methods=["POST"])
     @protect()
     @safe
