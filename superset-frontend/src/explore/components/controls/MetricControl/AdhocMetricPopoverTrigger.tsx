@@ -19,7 +19,9 @@
 import React, { ReactNode } from 'react';
 import Popover from 'src/common/components/Popover';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle';
-import AdhocMetricEditPopover from './AdhocMetricEditPopover';
+import AdhocMetricEditPopover, {
+  SAVED_TAB_KEY,
+} from './AdhocMetricEditPopover';
 import AdhocMetric from './AdhocMetric';
 import { savedMetricType } from './types';
 
@@ -38,6 +40,7 @@ export type AdhocMetricPopoverTriggerState = {
   popoverVisible: boolean;
   title: { label: string; hasCustomLabel: boolean };
   labelModified: boolean;
+  isTitleEditDisabled: boolean;
 };
 
 class AdhocMetricPopoverTrigger extends React.PureComponent<
@@ -57,6 +60,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
         hasCustomLabel: props.adhocMetric.hasCustomLabel,
       },
       labelModified: false,
+      isTitleEditDisabled: false,
     };
   }
 
@@ -89,11 +93,12 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
   }
 
   render() {
-    const { adhocMetric } = this.props;
+    const { adhocMetric, savedMetric } = this.props;
+    const { verbose_name, metric_name } = savedMetric;
     const { label, hasCustomLabel } = adhocMetric;
     const title = this.state.labelModified
       ? this.state.title
-      : { label, hasCustomLabel };
+      : { label: verbose_name || metric_name || label, hasCustomLabel };
 
     const overlayContent = (
       <AdhocMetricEditPopover
@@ -106,6 +111,11 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
         onResize={this.onPopoverResize}
         onClose={this.closePopover}
         onChange={this.props.onMetricEdit}
+        getCurrentTab={(tab: string) =>
+          this.setState({
+            isTitleEditDisabled: tab === SAVED_TAB_KEY,
+          })
+        }
       />
     );
 
@@ -113,6 +123,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
       <AdhocMetricEditPopoverTitle
         title={title}
         onChange={this.onLabelChange}
+        isEditDisabled={this.state.isTitleEditDisabled}
       />
     );
 
