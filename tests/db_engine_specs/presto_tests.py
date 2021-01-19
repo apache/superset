@@ -750,6 +750,49 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         ]
         assert result == expected_result
 
+    def test_get_create_view(self):
+        mock_execute = mock.MagicMock()
+        mock_fetchall = mock.MagicMock(return_value=[["a", "b,", "c"], ["d", "e"]])
+        database = mock.MagicMock()
+        database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.execute = (
+            mock_execute
+        )
+        database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.fetchall = (
+            mock_fetchall
+        )
+        database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.poll.return_value = (
+            False
+        )
+        schema = "schema"
+        table = "table"
+        result = PrestoEngineSpec.get_create_view(database, schema=schema, table=table)
+        assert result == "a"
+        mock_execute.assert_called_once_with(f"SHOW CREATE VIEW {schema}.{table}")
+
+    def test_get_create_view_exception(self):
+        mock_execute = mock.MagicMock(side_effect=Exception())
+        database = mock.MagicMock()
+        database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.execute = (
+            mock_execute
+        )
+        schema = "schema"
+        table = "table"
+        with self.assertRaises(Exception):
+            PrestoEngineSpec.get_create_view(database, schema=schema, table=table)
+
+    def test_get_create_view_database_error(self):
+        from pyhive.exc import DatabaseError
+
+        mock_execute = mock.MagicMock(side_effect=DatabaseError())
+        database = mock.MagicMock()
+        database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.execute = (
+            mock_execute
+        )
+        schema = "schema"
+        table = "table"
+        result = PrestoEngineSpec.get_create_view(database, schema=schema, table=table)
+        assert result is None
+
 
 def test_is_readonly():
     def is_readonly(sql: str) -> bool:
