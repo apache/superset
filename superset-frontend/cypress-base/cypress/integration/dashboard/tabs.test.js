@@ -63,7 +63,7 @@ describe('Dashboard tabs', () => {
       const filterRequest = `/superset/explore_json/?form_data=${JSON.stringify(
         filterFormdata,
       )}&dashboard_id=${dashboardId}`;
-      cy.route('POST', filterRequest).as('filterRequest');
+      cy.intercept('POST', filterRequest).as('filterRequest');
 
       const treemapFormdata = {
         slice_id: treemapId,
@@ -71,7 +71,7 @@ describe('Dashboard tabs', () => {
       const treemapRequest = `/superset/explore_json/?form_data=${JSON.stringify(
         treemapFormdata,
       )}&dashboard_id=${dashboardId}`;
-      cy.route('POST', treemapRequest).as('treemapRequest');
+      cy.intercept('POST', treemapRequest).as('treemapRequest');
 
       const linechartFormdata = {
         slice_id: linechartId,
@@ -79,7 +79,7 @@ describe('Dashboard tabs', () => {
       const linechartRequest = `/superset/explore_json/?form_data=${JSON.stringify(
         linechartFormdata,
       )}&dashboard_id=${dashboardId}`;
-      cy.route('POST', linechartRequest).as('linechartRequest');
+      cy.intercept('POST', linechartRequest).as('linechartRequest');
 
       const boxplotFormdata = {
         slice_id: boxplotId,
@@ -87,7 +87,7 @@ describe('Dashboard tabs', () => {
       const boxplotRequest = `/superset/explore_json/?form_data=${JSON.stringify(
         boxplotFormdata,
       )}&dashboard_id=${dashboardId}`;
-      cy.route('POST', boxplotRequest).as('boxplotRequest');
+      cy.intercept('POST', boxplotRequest).as('boxplotRequest');
     });
   });
 

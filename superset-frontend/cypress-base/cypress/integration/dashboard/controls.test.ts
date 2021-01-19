@@ -17,7 +17,6 @@
  * under the License.
  */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
-import readResponseBlob from '../../utils/readResponseBlob';
 import {
   getChartAliases,
   isLegacyResponse,
@@ -25,8 +24,8 @@ import {
 } from '../../utils/vizPlugins';
 
 describe('Dashboard top-level controls', () => {
-  let mapId;
-  let aliases;
+  let mapId: string;
+  let aliases: string[];
 
   beforeEach(() => {
     cy.server();
@@ -34,10 +33,11 @@ describe('Dashboard top-level controls', () => {
     cy.visit(WORLD_HEALTH_DASHBOARD);
 
     cy.get('#app').then(data => {
-      const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
+      const bootstrapData = JSON.parse(data[0].dataset.bootstrap || '');
       const dashboard = bootstrapData.dashboard_data;
       mapId = dashboard.slices.find(
-        slice => slice.form_data.viz_type === 'world_map',
+        (slice: { form_data: { viz_type: string }; slice_id: number }) =>
+          slice.form_data.viz_type === 'world_map',
       ).slice_id;
       aliases = getChartAliases(dashboard.slices);
     });
@@ -81,13 +81,13 @@ describe('Dashboard top-level controls', () => {
 
     // wait all charts force refreshed.
     cy.wait(aliases, { responseTimeout: 15000 }).then(xhrs => {
-      xhrs.forEach(async xhr => {
-        const responseBody = await readResponseBlob(xhr.response.body);
+      xhrs.forEach(async ({ response, request }) => {
+        const responseBody = response?.body;
         const isCached = isLegacyResponse(responseBody)
           ? responseBody.is_cached
           : responseBody.result[0].is_cached;
         // request url should indicate force-refresh operation
-        expect(xhr.url).to.have.string('force=true');
+        expect(request.url).to.have.string('force=true');
         // is_cached in response should be false
         expect(isCached).to.equal(false);
       });

@@ -54,7 +54,7 @@ describe('Visualization > Bubble', () => {
   beforeEach(() => {
     cy.server();
     cy.login();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
   // Number of circles are pretty unstable when there are a lot of circles

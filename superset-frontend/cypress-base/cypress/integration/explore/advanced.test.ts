@@ -20,8 +20,8 @@ describe('Advanced analytics', () => {
   beforeEach(() => {
     cy.login();
     cy.server();
-    cy.route('GET', '/superset/explore_json/**').as('getJson');
-    cy.route('POST', '/superset/explore_json/**').as('postJson');
+    cy.intercept('GET', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('postJson');
   });
 
   it('Create custom time compare', () => {
@@ -61,8 +61,8 @@ describe('Annotations', () => {
   beforeEach(() => {
     cy.login();
     cy.server();
-    cy.route('GET', '/superset/explore_json/**').as('getJson');
-    cy.route('POST', '/superset/explore_json/**').as('postJson');
+    cy.intercept('GET', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('postJson');
   });
 
   it('Create formula annotation y-axis goal line', () => {

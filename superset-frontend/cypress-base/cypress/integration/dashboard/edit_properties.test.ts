@@ -74,7 +74,7 @@ describe('Dashboard edit action', () => {
     cy.server();
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
-    cy.route(`/api/v1/dashboard/1`).as('dashboardGet');
+    cy.intercept(`/api/v1/dashboard/1`).as('dashboardGet');
     cy.get('.dashboard-grid', { timeout: 50000 })
       .should('be.visible') // wait for 50 secs to load dashboard
       .then(() => {

@@ -28,7 +28,7 @@ describe('Dashboard add to favorite', () => {
     cy.server();
     cy.login();
 
-    cy.route(CHECK_DASHBOARD_FAVORITE_ENDPOINT).as('countFavStar');
+    cy.intercept(CHECK_DASHBOARD_FAVORITE_ENDPOINT).as('countFavStar');
     cy.visit(WORLD_HEALTH_DASHBOARD);
 
     cy.wait('@countFavStar').then(xhr => {

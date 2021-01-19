@@ -23,7 +23,6 @@ import {
   MAX_STATE,
   SIMPLE_FILTER,
 } from './shared.helper';
-import readResponseBlob from '../../../utils/readResponseBlob';
 
 // Table
 describe('Visualization > Table', () => {
@@ -42,7 +41,7 @@ describe('Visualization > Table', () => {
   beforeEach(() => {
     cy.login();
     cy.server();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
   it('Use default time column', () => {
@@ -157,11 +156,9 @@ describe('Visualization > Table', () => {
       row_limit: limit,
     };
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.wait('@getJson').then(async xhr => {
-      cy.verifyResponseCodes(xhr);
+    cy.wait('@getJson').then(async ({ response }) => {
       cy.verifySliceContainer('table');
-      const responseBody = await readResponseBlob(xhr.response.body);
-      expect(responseBody.data.records.length).to.eq(limit);
+      expect(response?.body.data.records.length).to.eq(limit);
     });
     cy.get('span.label-danger').contains('10 rows');
   });
@@ -204,10 +201,9 @@ describe('Visualization > Table', () => {
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.wait('@getJson').then(async xhr => {
-      cy.verifyResponseCodes(xhr);
+    cy.wait('@getJson').then(async ({ response }) => {
       cy.verifySliceContainer('table');
-      const responseBody = await readResponseBlob(xhr.response.body);
+      const responseBody = response?.body;
       const { records } = responseBody.data;
       expect(records[0].num).greaterThan(records[records.length - 1].num);
     });

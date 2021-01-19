@@ -40,11 +40,11 @@ export function getChartAliases(slices: any[]): string[] {
     const formData = `{"slice_id":${slice.slice_id}}`;
     if (isLegacy) {
       const route = `/superset/explore_json/?*${formData}*`;
-      cy.route('POST', `${route}`).as(alias);
+      cy.intercept('POST', `${route}`).as(alias);
       aliases.push(`@${alias}`);
     } else {
       const route = `/api/v1/chart/data?*${formData}*`;
-      cy.route('POST', `${route}`).as(alias);
+      cy.intercept('POST', `${route}`).as(alias);
       aliases.push(`@${alias}`);
     }
   });

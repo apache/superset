@@ -29,7 +29,7 @@ describe('Edit FilterBox Chart', () => {
   beforeEach(() => {
     cy.server();
     cy.login();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
   it('should work with default date filter', () => {

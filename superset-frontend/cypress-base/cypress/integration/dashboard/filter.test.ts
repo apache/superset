@@ -22,7 +22,6 @@ import {
   DASHBOARD_CHART_ALIAS_PREFIX,
   isLegacyResponse,
 } from '../../utils/vizPlugins';
-import readResponseBlob from '../../utils/readResponseBlob';
 
 interface Slice {
   slice_id: number;
@@ -87,18 +86,17 @@ describe('Dashboard filter', () => {
     cy.get('.filter_box button').click({ force: true });
     cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests =>
       Promise.all(
-        requests.map(async xhr => {
-          expect(xhr.status).to.eq(200);
-          const responseBody = await readResponseBlob(xhr.response.body);
+        requests.map(async ({ response, request }) => {
+          const responseBody = response?.body;
           let requestFilter;
           if (isLegacyResponse(responseBody)) {
-            const requestFormData = xhr.request.body as FormData;
+            const requestFormData = request.body as FormData;
             const requestParams = JSON.parse(
               requestFormData.get('form_data') as string,
             );
             requestFilter = requestParams.extra_filters[0];
           } else {
-            requestFilter = xhr.request.body.queries[0].filters[0];
+            requestFilter = request.body.queries[0].filters[0];
           }
           expect(requestFilter).deep.eq({
             col: 'region',

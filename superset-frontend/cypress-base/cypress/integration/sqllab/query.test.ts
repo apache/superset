@@ -43,7 +43,7 @@ describe('SqlLab query panel', () => {
       expanded_columns: [],
     };
 
-    cy.route({
+    cy.intercept({
       method: 'POST',
       url: '/superset/sql_json/',
       delay: 1000,
@@ -93,8 +93,8 @@ describe('SqlLab query panel', () => {
   });
 
   it.skip('successfully saves a query', () => {
-    cy.route('savedqueryviewapi/**').as('getSavedQuery');
-    cy.route('superset/tables/**').as('getTables');
+    cy.intercept('savedqueryviewapi/**').as('getSavedQuery');
+    cy.intercept('superset/tables/**').as('getTables');
 
     const query =
       'SELECT ds, gender, name, num FROM main.birth_names ORDER BY name LIMIT 3';

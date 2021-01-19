@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import readResponseBlob from '../../utils/readResponseBlob';
 import {
   getChartAliases,
   isLegacyResponse,
@@ -46,16 +45,15 @@ describe('Dashboard load', () => {
     // wait and verify one-by-one
     cy.wait(aliases).then(requests =>
       Promise.all(
-        requests.map(async xhr => {
-          expect(xhr.status).to.eq(200);
-          const responseBody = await readResponseBlob(xhr.response.body);
+        requests.map(async ({ response, request }) => {
+          const responseBody = response?.body;
           let sliceId;
           if (isLegacyResponse(responseBody)) {
             expect(responseBody).to.have.property('errors');
             expect(responseBody.errors.length).to.eq(0);
             sliceId = responseBody.form_data.slice_id;
           } else {
-            sliceId = getSliceIdFromRequestUrl(xhr.url);
+            sliceId = getSliceIdFromRequestUrl(request.url);
             responseBody.result.forEach(element => {
               expect(element).to.have.property('error', null);
               expect(element).to.have.property('status', 'success');

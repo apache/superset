@@ -35,7 +35,7 @@ describe('Dashboard save action', () => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
       const dashboard = bootstrapData.dashboard_data;
       const dashboardId = dashboard.id;
-      cy.route('POST', `/superset/copy_dash/${dashboardId}/`).as('copyRequest');
+      cy.intercept('POST', `/superset/copy_dash/${dashboardId}/`).as('copyRequest');
 
       cy.get('[data-test="more-horiz"]').trigger('click', { force: true });
       cy.get('[data-test="save-as-menu-item"]').trigger('click', {
@@ -72,7 +72,7 @@ describe('Dashboard save action', () => {
       .find('.box_plot')
       .should('not.be.visible');
 
-    cy.route('POST', '/superset/save_dash/**/').as('saveRequest');
+    cy.intercept('POST', '/superset/save_dash/**/').as('saveRequest');
     cy.get('[data-test="dashboard-header"]')
       .find('[data-test="header-save-button"]')
       .contains('Save')
