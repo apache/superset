@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from collections import namedtuple
 from unittest import mock, skipUnless
 
 import pandas as pd
@@ -792,6 +793,28 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         table = "table"
         result = PrestoEngineSpec.get_create_view(database, schema=schema, table=table)
         assert result is None
+
+    def test_extract_error_message_orig(self):
+        DatabaseError = namedtuple("DatabaseError", ["error_dict"])
+        db_err = DatabaseError(
+            {"errorName": "name", "errorLocation": "location", "message": "msg"}
+        )
+        exception = Exception()
+        exception.orig = db_err
+        result = PrestoEngineSpec._extract_error_message(exception)
+        assert result == "name at location: msg"
+
+    def test_extract_error_message_db_errr(self):
+        from pyhive.exc import DatabaseError
+
+        exception = DatabaseError({"message": "Err message"})
+        result = PrestoEngineSpec._extract_error_message(exception)
+        assert result == "Err message"
+
+    def test_extract_error_message_general_exception(self):
+        exception = Exception("Err message")
+        result = PrestoEngineSpec._extract_error_message(exception)
+        assert result == "Err message"
 
 
 def test_is_readonly():
