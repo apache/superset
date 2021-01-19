@@ -83,6 +83,7 @@ little bit helps, and credit will always be given.
     - [Adding a DB migration](#adding-a-db-migration)
     - [Merging DB migrations](#merging-db-migrations)
     - [SQL Lab Async](#sql-lab-async)
+    - [Async Chart Queries](#async-chart-queries)
   - [Chart Parameters](#chart-parameters)
     - [Datasource & Chart Type](#datasource--chart-type)
     - [Time](#time)
@@ -977,6 +978,29 @@ Note that:
 - In some cases, you may want to create a context that is more aligned
   to your production environment, and use the similar broker as well as
   results backend configuration
+
+### Async Chart Queries
+
+It's possible to configure database queries for charts to operate in `async` mode. This is especially useful for dashboards with many charts that may otherwise be affected by browser connection limits. To enable async queries for dashboards and Explore, the following dependencies are required:
+
+- Redis 5.0+ (the feature utilizes [Redis Streams](https://redis.io/topics/streams-intro))
+- Cache backends enabled via the `CACHE_CONFIG` and `DATA_CACHE_CONFIG` config settings
+- Celery workers configured and running to process async tasks
+
+The following configuration settings are available for async queries (see config.py for default values)
+
+- `GLOBAL_ASYNC_QUERIES` (feature flag) - enable or disable async query operation
+- `GLOBAL_ASYNC_QUERIES_REDIS_CONFIG` - Redis connection info
+- `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX` - the prefix used with Redis Streams
+- `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT` - the maximum number of events for each user-specific event stream (FIFO eviction)
+- `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE` - the maximum number of events for all users (FIFO eviction)
+- `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME` - the async query feature uses a [JWT](https://tools.ietf.org/html/rfc7519) cookie for authentication, this setting is the cookie's name
+- `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE` - JWT cookie secure option
+- `GLOBAL_ASYNC_QUERIES_JWT_SECRET` - JWT's use a secret key to sign and validate the contents. This value should be at least 32 bytes and have sufficient randomness for proper security
+- `GLOBAL_ASYNC_QUERIES_TRANSPORT` - currently the only available option is (HTTP) `polling`, but support for a WebSocket will be added in future versions
+- `GLOBAL_ASYNC_QUERIES_POLLING_DELAY` - the time (in ms) between polling requests
+
+More information on the async query feature can be found in [SIP-39](https://github.com/apache/superset/issues/9190).
 
 ## Chart Parameters
 
