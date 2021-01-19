@@ -863,7 +863,7 @@ class TestCore(SupersetTestCase):
 
         self.assertEqual(
             data["errors"][0]["message"],
-            "The datasource associated with this chart no longer exists",
+            "The dataset associated with this chart no longer exists",
         )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
