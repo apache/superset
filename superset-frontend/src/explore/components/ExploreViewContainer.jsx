@@ -365,9 +365,17 @@ function ExploreViewContainer(props) {
     );
   }
 
+  function onResize(evt) {
+    const { x } = evt;
+    localStorage.setItem('explore_sidebar_widths', x);
+  }
+
   if (props.standalone) {
     return renderChartContainer();
   }
+
+  const exploreSidebarWidth =
+    localStorage.getItem('explore_sidebar_widths') || 320;
 
   return (
     <Styles id="explore-container" height={height}>
@@ -404,7 +412,8 @@ function ExploreViewContainer(props) {
         />
       )}
       <Resizable
-        defaultSize={{ width: 300 }}
+        onResize={onResize}
+        defaultSize={{ width: exploreSidebarWidth }}
         minWidth={300}
         maxWidth="33%"
         enable={{ right: true }}
@@ -456,7 +465,8 @@ function ExploreViewContainer(props) {
         </div>
       ) : null}
       <Resizable
-        defaultSize={{ width: 320 }}
+        onResize={onResize}
+        defaultSize={{ width: exploreSidebarWidth }}
         minWidth={320}
         maxWidth="33%"
         enable={{ right: true }}
