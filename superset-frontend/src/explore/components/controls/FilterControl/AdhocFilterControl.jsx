@@ -20,25 +20,25 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { t, logging, SupersetClient, withTheme } from '@superset-ui/core';
 
-import ControlHeader from '../ControlHeader';
-import adhocFilterType from '../../propTypes/adhocFilterType';
-import adhocMetricType from '../../propTypes/adhocMetricType';
-import savedMetricType from '../../propTypes/savedMetricType';
-import columnType from '../../propTypes/columnType';
-import AdhocFilter, { CLAUSES, EXPRESSION_TYPES } from '../../AdhocFilter';
-import AdhocMetric from '../../AdhocMetric';
-import { OPERATORS } from '../../constants';
-import AdhocFilterOption from '../AdhocFilterOption';
-import FilterDefinitionOption from '../FilterDefinitionOption';
+import ControlHeader from 'src/explore/components/ControlHeader';
+import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
+import savedMetricType from 'src/explore/components/controls/MetricControl/savedMetricType';
+import columnType from 'src/explore/propTypes/columnType';
+import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import { OPERATORS } from 'src/explore/constants';
+import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
 import {
   AddControlLabel,
   AddIconButton,
   HeaderContainer,
   LabelsContainer,
-} from '../OptionControls';
-import Icon from '../../../components/Icon';
-import AdhocFilterPopoverTrigger from '../AdhocFilterPopoverTrigger';
-import DndWithHTML5Backend from '../../DndContextProvider';
+} from 'src/explore/components/OptionControls';
+import Icon from 'src/components/Icon';
+import DndWithHTML5Backend from 'src/explore/DndContextProvider';
+import AdhocFilterPopoverTrigger from './AdhocFilterPopoverTrigger';
+import AdhocFilterOption from './AdhocFilterOption';
+import AdhocFilter, { CLAUSES, EXPRESSION_TYPES } from './AdhocFilter';
+import adhocFilterType from './adhocFilterType';
 
 const propTypes = {
   name: PropTypes.string,
