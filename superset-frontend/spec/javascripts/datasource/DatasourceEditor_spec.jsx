@@ -30,7 +30,6 @@ import Field from 'src/CRUD/Field';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import * as featureFlags from 'src/featureFlags';
 import TableSelector from 'src/components/TableSelector';
-import CollectionTable from 'src/CRUD/CollectionTable';
 
 const props = {
   datasource: mockDatasource['7__table'],
