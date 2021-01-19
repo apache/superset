@@ -38,6 +38,45 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             [], PrestoEngineSpec.get_view_names(mock.ANY, mock.ANY, mock.ANY)
         )
 
+    @mock.patch("superset.db_engine_specs.presto.is_feature_enabled")
+    def test_get_view_names(self, mock_is_feature_enabled):
+        mock_is_feature_enabled.return_value = True
+        mock_execute = mock.MagicMock()
+        mock_fetchall = mock.MagicMock(return_value=[["a", "b,", "c"], ["d", "e"]])
+        database = mock.MagicMock()
+        database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.execute = (
+            mock_execute
+        )
+        database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.fetchall = (
+            mock_fetchall
+        )
+        result = PrestoEngineSpec.get_view_names(database, mock.Mock(), None)
+        mock_execute.assert_called_once_with(
+            "SELECT table_name FROM information_schema.views", {}
+        )
+        assert result == ["a", "d"]
+
+    @mock.patch("superset.db_engine_specs.presto.is_feature_enabled")
+    def test_get_view_names_with_shcema(self, mock_is_feature_enabled):
+        mock_is_feature_enabled.return_value = True
+        mock_execute = mock.MagicMock()
+        mock_fetchall = mock.MagicMock(return_value=[["a", "b,", "c"], ["d", "e"]])
+        database = mock.MagicMock()
+        database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.execute = (
+            mock_execute
+        )
+        database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.fetchall = (
+            mock_fetchall
+        )
+        schema = "schema"
+        result = PrestoEngineSpec.get_view_names(database, mock.Mock(), schema)
+        mock_execute.assert_called_once_with(
+            "SELECT table_name FROM information_schema.views "
+            "WHERE table_schema=%(schema)s",
+            {"schema": schema},
+        )
+        assert result == ["a", "d"]
+
     def verify_presto_column(self, column, expected_results):
         inspector = mock.Mock()
         inspector.engine.dialect.identifier_preparer.quote_identifier = mock.Mock()
