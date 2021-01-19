@@ -479,34 +479,32 @@ export function FilterConfigModal({
       centered
       data-test="filter-modal"
       footer={[
-        <>
-          {saveAlertVisible && (
-            <StyledAlert bsStyle="warning">
-              <StyledAlertText>
-                <i className="fa fa-exclamation-triangle" />{' '}
-                <span>
-                  {t(`Are you sure you want to cancel?`)}{' '}
-                  {getUnsavedFilterNames()} {t(`will not be saved.`)}
-                </span>
-              </StyledAlertText>
-              <div>
-                <Button
-                  key="submit"
-                  buttonStyle="primary"
-                  onClick={confirmCancel}
-                >
-                  {t('Confirm')}
-                </Button>
-              </div>
-            </StyledAlert>
-          )}
-          <Button key="cancel" buttonStyle="secondary" onClick={handleCancel}>
-            {t('Cancel')}
-          </Button>
-          <Button key="submit" buttonStyle="primary" onClick={onOk}>
-            {t('Save')}
-          </Button>
-        </>,
+        saveAlertVisible && (
+          <StyledAlert bsStyle="warning" key="alert">
+            <StyledAlertText>
+              <i className="fa fa-exclamation-triangle" />{' '}
+              <span>
+                {t(`Are you sure you want to cancel?`)}{' '}
+                {getUnsavedFilterNames()} {t(`will not be saved.`)}
+              </span>
+            </StyledAlertText>
+            <div>
+              <Button
+                key="submit"
+                buttonStyle="primary"
+                onClick={confirmCancel}
+              >
+                {t('Confirm')}
+              </Button>
+            </div>
+          </StyledAlert>
+        ),
+        <Button key="cancel" buttonStyle="secondary" onClick={handleCancel}>
+          {t('Cancel')}
+        </Button>,
+        <Button key="submit" buttonStyle="primary" onClick={onOk}>
+          {t('Save')}
+        </Button>,
       ]}
     >
       <ErrorBoundary>
