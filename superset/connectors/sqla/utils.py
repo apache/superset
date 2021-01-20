@@ -15,24 +15,25 @@
 # specific language governing permissions and limitations
 # under the License.
 from collections import OrderedDict  # pylint:disable = unused-import
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 import sqlalchemy as sa
 from flask_babel import lazy_gettext as _
 from jinja2.exceptions import TemplateError
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, Column, or_
 from sqlalchemy.sql import ColumnElement
-from sqlalchemy.sql.expression import BooleanClauseList, Label
+from sqlalchemy.sql.expression import BinaryExpression, BooleanClauseList, Label
 
 from superset.constants import NULL_STRING
 from superset.exceptions import QueryObjectValidationError
 from superset.jinja_context import BaseTemplateProcessor
+from superset.typing import FilterValues
 from superset.utils.core import cast_to_num, FilterOperator
 
 
 def get_having_clause(
-    extra_having: Any, template_processor: BaseTemplateProcessor
+    extra_having: Optional[str], template_processor: BaseTemplateProcessor
 ) -> List[BooleanClauseList]:
     """
     generate complete having clause from extra arg 'have'
@@ -60,8 +61,8 @@ def get_expected_labels_from_select(select_expressions: List[Label]) -> List[str
 
 
 def get_where_operation(  # pylint:disable=too-many-branches
-    flt: Dict[str, Any], operation: str, col_obj: Any, value: Any
-) -> Any:
+    flt: Dict[str, Any], operation: str, col_obj: Column, value: Optional[FilterValues]
+) -> BinaryExpression:
     if operation in (FilterOperator.IN.value, FilterOperator.NOT_IN.value,):
         condition = col_obj.get_sqla_col().in_(value)
         if isinstance(value, str) and NULL_STRING in value:
@@ -74,7 +75,6 @@ def get_where_operation(  # pylint:disable=too-many-branches
     else:
         if col_obj.is_numeric:
             value = cast_to_num(flt["val"])
-
         if operation == FilterOperator.EQUALS.value:
             condition = col_obj.get_sqla_col() == value
         elif operation == FilterOperator.NOT_EQUALS.value:

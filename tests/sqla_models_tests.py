@@ -426,7 +426,6 @@ class TestDatabaseModel(SupersetTestCase):
             "groupby_expressions": groupby_expr,
             "columns_by_name": columns_by_name,
             "is_timeseries": True,
-            "time_secondary_columns": False,
             "from_dttm": from_dttm,
             "to_dttm": to_dttm,
             "time_range_endpoints": endpoints,

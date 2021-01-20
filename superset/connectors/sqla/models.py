@@ -389,9 +389,7 @@ class SqlMetric(Model, BaseMetric):
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.metric_name
-        print("label ", label)
         sqla_col = literal_column(self.expression)
-        print("sqla col ", str(sqla_col))
         return self.table.make_sqla_column_compatible(sqla_col, label)
 
     @property
@@ -1012,7 +1010,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         groupby_expressions: Dict[str, Label],
         columns_by_name: Dict[str, ColumnElement],
         is_timeseries: bool,
-        time_secondary_columns: bool,
         from_dttm: Optional[datetime],
         to_dttm: Optional[datetime],
         time_range_endpoints: Optional[Any],
@@ -1033,7 +1030,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
             # Use main dttm column to support index with secondary dttm columns.
             if (
-                time_secondary_columns
+                self.database.db_engine_spec.time_secondary_columns
                 and self.main_dttm_col in self.dttm_cols
                 and self.main_dttm_col != dttm_col.column_name
             ):
@@ -1193,7 +1190,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         to_dttm: Optional[datetime],
         where_clause: List[BooleanClauseList],
         timeseries_limit_metric: Optional[Metric],
-        db_engine_spec: SqliteEngineSpec,
         metrics: List[Metric],
         granularity: str,
         filter_: Optional[List[Dict[str, Any]]] = None,
@@ -1249,7 +1245,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 # in this case the column name, not the alias, needs to be
                 # conditionally mutated, as it refers to the column alias in
                 # the inner query
-                col_name = db_engine_spec.make_label_compatible(gby_name + "__")
+                col_name = self.database.db_engine_spec.make_label_compatible(
+                    gby_name + "__"
+                )
                 on_clause.append(gby_obj == column(col_name))
 
             query_table = query_table.join(subquery.alias(), and_(*on_clause))
@@ -1319,7 +1317,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         """
         extra_cache_keys: List[Any] = []
         is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
-        db_engine_spec = self.database.db_engine_spec
         orderby = orderby or []
         assert extras is not None
 
@@ -1356,7 +1353,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         granularity = self._get_compatible_granularity(granularity)
 
         # Database spec supports join-free timeslot grouping
-        time_groupby_inline = db_engine_spec.time_groupby_inline
+        time_groupby_inline = self.database.db_engine_spec.time_groupby_inline
 
         columns_by_name: Dict[str, TableColumn] = self._get_columns_by_name()
 
@@ -1396,7 +1393,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             groupby_expressions,
             columns_by_name,
             is_timeseries,
-            db_engine_spec.time_secondary_columns,
             from_dttm,
             to_dttm,
             extras.get("time_range_endpoints"),
@@ -1407,7 +1403,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         labels_expected = get_expected_labels_from_select(select_expressions)
 
         # SELECT EXPRESSION
-        select_expressions = db_engine_spec.make_select_compatible(
+        select_expressions = self.database.db_engine_spec.make_select_compatible(
             groupby_expressions_with_ts.values(), select_expressions
         )
 
@@ -1464,7 +1460,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 to_dttm,
                 where_clause,
                 timeseries_limit_metric,
-                db_engine_spec,
                 metrics,
                 granularity,
                 filter,
