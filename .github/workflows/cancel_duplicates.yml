@@ -1,25 +1,34 @@
 name: Cancel Duplicates
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: ["requested"]
+  # Checks for duplicate jobs on every push (merge) and every 10 minutes
+  push:
+  schedule:
+    - cron: "*/10 * * * *"
 
 jobs:
-  cancel-duplicate-workflow-runs:
-    name: "Cancel duplicate workflow runs"
-    runs-on: ubuntu-latest
+  cancel-duplicate-runs:
+    name: Cancel duplicate workflow runs
+    runs-on: ubuntu-20.04
     steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v2
-        with:
-          persist-credentials: false
-          submodules: recursive
-      - uses: ./.github/actions/cancel-workflow-runs/
+      - name: Check number of queued tasks
+        id: check_queued
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
+        run: |
+          get_count() {
+            echo $(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+                    "https://api.github.com/repos/$GITHUB_REPO/actions/runs?status=$1" | \
+                    jq ".total_count")
+          }
+          count=$(( `get_count queued` + `get_count in_progress` ))
+          echo "Found $count unfinished jobs."
+          echo "::set-output name=count::$count"
+
+      - uses: potiuk/cancel-workflow-runs@953e057dc81d3458935a18d1184c386b0f6b5738
         name: "Cancel duplicate workflow runs"
+        if: steps.check_queued.outputs.count >= 20
         with:
-          cancelMode: duplicates
-          cancelFutureDuplicates: true
+          cancelMode: allDuplicates
           token: ${{ secrets.GITHUB_TOKEN }}
-          sourceRunId: ${{ github.event.workflow_run.id }}
-          notifyPRCancel: true
-          skipEventTypes: '["push", "pull_request", "pull_request_target"]'
+          notifyPRCancel: false
