@@ -86,22 +86,6 @@ const StyledTabsContainer = styled.div`
     position: relative;
   }
 
-  .drop-indicator--left {
-    left: ${({ theme }) => -theme.gridUnit * 3}px !important;
-  }
-  .drop-indicator--right {
-    left: ${({ theme }) => `calc(100% + ${theme.gridUnit * 6}px)`} !important;
-  }
-
-  .drop-indicator--bottom,
-  .drop-indicator--top {
-    width: ${({ theme }) => `calc(100% + ${theme.gridUnit * 6}px)`} !important;
-  }
-
-  .drop-indicator--top {
-    top: ${({ theme }) => theme.gridUnit * 2}px;
-  }
-
   .ant-tabs {
     overflow: visible;
 
