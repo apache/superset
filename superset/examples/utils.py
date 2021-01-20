@@ -40,7 +40,7 @@ def load_contents(load_test_data: bool = False) -> Dict[str, Any]:
     contents: Dict[Path, str] = {}
     while queue:
         path_name = queue.pop()
-        test_re = re.compile("\.test\.|metadata\.yaml$")
+        test_re = re.compile(r"\.test\.|metadata\.yaml$")
 
         if resource_isdir("superset", str(path_name)):
             queue.extend(
