@@ -25,6 +25,8 @@ import {
   TimeseriesDataRecord,
 } from '@superset-ui/core';
 import { NULL_STRING } from '../constants';
+import { LegendOrientation, LegendType } from '../types';
+import { defaultLegendPadding } from '../defaults';
 
 export function extractTimeseriesSeries(
   data: TimeseriesDataRecord[],
@@ -85,4 +87,63 @@ export function extractGroupbyLabel({
   return (groupby || [])
     .map(val => formatSeriesName(datum[val], { numberFormatter, timeFormatter }))
     .join(', ');
+}
+
+export function getLegendProps(
+  type: LegendType,
+  orientation: LegendOrientation,
+  show: boolean,
+): echarts.EChartOption.Legend {
+  const legend: echarts.EChartOption.Legend = {
+    orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(orientation)
+      ? 'horizontal'
+      : 'vertical',
+    show,
+    type,
+  };
+  switch (orientation) {
+    case LegendOrientation.Left:
+      legend.left = 0;
+      break;
+    case LegendOrientation.Right:
+      legend.right = 0;
+      break;
+    case LegendOrientation.Bottom:
+      legend.bottom = 0;
+      break;
+    case LegendOrientation.Top:
+    default:
+      legend.top = 0;
+      break;
+  }
+  return legend;
+}
+
+export function getChartPadding(
+  show: boolean,
+  orientation: LegendOrientation,
+  margin?: string | number | null,
+  padding?: { top?: number; bottom?: number; left?: number; right?: number },
+): {
+  bottom: number;
+  left: number;
+  right: number;
+  top: number;
+} {
+  let legendMargin;
+  if (!show) {
+    legendMargin = 0;
+  } else if (margin === null || margin === undefined || typeof margin === 'string') {
+    legendMargin = defaultLegendPadding[orientation];
+  } else {
+    legendMargin = margin;
+  }
+
+  const { bottom = 0, left = 0, right = 0, top = 0 } = padding || {};
+  return {
+    left: left + (orientation === LegendOrientation.Left ? legendMargin : 0),
+    right: right + (orientation === LegendOrientation.Right ? legendMargin : 0),
+    top: top + (orientation === LegendOrientation.Top ? legendMargin : 0),
+    bottom: bottom + (orientation === LegendOrientation.Bottom ? legendMargin : 0),
+  };
 }

@@ -16,8 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import { ControlPanelConfig, D3_FORMAT_OPTIONS, sections } from '@superset-ui/chart-controls';
+import { DEFAULT_FORM_DATA } from './types';
+import {
+  legendMarginControl,
+  legendOrientationControl,
+  legendTypeControl,
+  showLegendControl,
+} from '../controls';
+
+const {
+  donut,
+  innerRadius,
+  labelsOutside,
+  labelType,
+  labelLine,
+  outerRadius,
+  numberFormat,
+  showLabels,
+} = DEFAULT_FORM_DATA;
 
 const noopControl = { name: 'noop', config: { type: '', renderTrigger: true } };
 
@@ -33,13 +52,21 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
+        ['color_scheme', noopControl],
+        // eslint-disable-next-line react/jsx-key
+        [<h1 className="section-header">{t('Legend')}</h1>],
+        [showLegendControl],
+        [legendTypeControl, legendOrientationControl],
+        [legendMarginControl, noopControl],
+        // eslint-disable-next-line react/jsx-key
+        [<h1 className="section-header">{t('Labels')}</h1>],
         [
           {
             name: 'pie_label_type',
             config: {
               type: 'SelectControl',
               label: t('Label Type'),
-              default: 'key',
+              default: labelType,
               renderTrigger: true,
               choices: [
                 ['key', 'Category Name'],
@@ -59,33 +86,11 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Number format'),
               renderTrigger: true,
-              default: 'SMART_NUMBER',
+              default: numberFormat,
               choices: D3_FORMAT_OPTIONS,
               description: `${t('D3 format syntax: https://github.com/d3/d3-format')} ${t(
                 'Only applies when "Label Type" is set to show values.',
               )}`,
-            },
-          },
-        ],
-        [
-          {
-            name: 'donut',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Donut'),
-              default: false,
-              renderTrigger: true,
-              description: t('Do you want a donut or a pie?'),
-            },
-          },
-          {
-            name: 'show_legend',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Legend'),
-              renderTrigger: true,
-              default: true,
-              description: t('Whether to display a legend for the chart'),
             },
           },
         ],
@@ -96,7 +101,7 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Show Labels'),
               renderTrigger: true,
-              default: true,
+              default: showLabels,
               description: t('Whether to display the labels.'),
             },
           },
@@ -107,7 +112,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               label: t('Put labels outside'),
-              default: true,
+              default: labelsOutside,
               renderTrigger: true,
               description: t('Put the labels outside of the pie?'),
             },
@@ -117,13 +122,14 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               label: t('Label Line'),
-              default: false,
+              default: labelLine,
               renderTrigger: true,
               description: t('Draw line from Pie to label when labels outside?'),
             },
           },
         ],
-        ['color_scheme', noopControl],
+        // eslint-disable-next-line react/jsx-key
+        [<h1 className="section-header">{t('Pie shape')}</h1>],
         [
           {
             name: 'outerRadius',
@@ -134,8 +140,21 @@ const config: ControlPanelConfig = {
               min: 10,
               max: 100,
               step: 1,
-              default: 80,
+              default: outerRadius,
               description: t('Outer edge of Pie chart'),
+            },
+          },
+          noopControl,
+        ],
+        [
+          {
+            name: 'donut',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Donut'),
+              default: donut,
+              renderTrigger: true,
+              description: t('Do you want a donut or a pie?'),
             },
           },
         ],
@@ -149,10 +168,11 @@ const config: ControlPanelConfig = {
               min: 0,
               max: 100,
               step: 1,
-              default: 30,
+              default: innerRadius,
               description: t('Inner radius of donut hole'),
             },
           },
+          noopControl,
         ],
       ],
     },

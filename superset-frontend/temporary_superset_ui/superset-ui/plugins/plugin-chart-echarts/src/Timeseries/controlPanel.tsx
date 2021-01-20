@@ -25,6 +25,13 @@ import {
   EchartsTimeseriesContributionType,
   EchartsTimeseriesSeriesType,
 } from './types';
+import {
+  legendMarginControl,
+  legendOrientationControl,
+  legendTypeControl,
+  noopControl,
+  showLegendControl,
+} from '../controls';
 
 const {
   area,
@@ -301,7 +308,10 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        // eslint-disable-next-line react/jsx-key
+        [<h1 className="section-header">{t('Legend')}</h1>],
+        [showLegendControl],
+        [legendTypeControl, legendOrientationControl],
+        [legendMarginControl, noopControl],
         [<h1 className="section-header">{t('X Axis')}</h1>],
         ['x_axis_time_format'],
         [
@@ -328,7 +338,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        // eslint-disable-next-line react/jsx-key
         [<h1 className="section-header">{t('Y Axis')}</h1>],
         ['y_axis_format'],
         [
