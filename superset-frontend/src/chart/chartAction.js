@@ -361,6 +361,13 @@ export function exploreJSON(
     };
     if (dashboardId) requestParams.dashboard_id = dashboardId;
 
+    formData.metrics = formData.metrics.map(metric => {
+      if (metric.metric_name) {
+        return metric.metric_name;
+      }
+      return metric;
+    });
+
     const chartDataRequest = getChartDataRequest({
       formData,
       resultFormat: 'json',

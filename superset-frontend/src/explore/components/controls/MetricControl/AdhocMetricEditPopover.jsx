@@ -125,7 +125,15 @@ export default class AdhocMetricEditPopover extends React.Component {
       label = metricLabel;
     }
 
-    const metric = savedMetric?.metric_name ? savedMetric : adhocMetric;
+    // if saved metric, generate a unique savedMetricId
+    const metric = savedMetric?.metric_name
+      ? {
+          ...savedMetric,
+          savedMetricId: `${Math.random()
+            .toString(36)
+            .substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`,
+        }
+      : adhocMetric;
     const oldMetric = this.props.savedMetric?.metric_name
       ? this.props.savedMetric
       : this.props.adhocMetric;

@@ -184,15 +184,29 @@ class MetricsControl extends React.PureComponent {
   }
 
   onMetricEdit(changedMetric, oldMetric) {
+    // if saved metric, use savedMetricId if available, otherwise use metric_name
+    // required for compatibility with metrics added before implementing savedMetricId
+    const oldMetricKey = oldMetric.metric_name
+      ? oldMetric.savedMetricId || oldMetric.metric_name
+      : oldMetric.optionName;
     this.setState(
       prevState => ({
         value: prevState.value.map(value => {
+          let valueKey;
+          if (typeof value === 'string') {
+            valueKey = value;
+          } else if (value.metric_name) {
+            valueKey = value.savedMetricId || value.metric_name;
+          } else {
+            valueKey = value.optionName;
+          }
+
           if (
             // compare saved metrics
-            value === oldMetric.metric_name ||
+            valueKey === oldMetricKey ||
             // compare adhoc metrics
-            typeof value.optionName !== 'undefined'
-              ? value.optionName === oldMetric.optionName
+            typeof valueKey !== 'undefined'
+              ? valueKey === oldMetricKey
               : false
           ) {
             return changedMetric;
@@ -232,15 +246,7 @@ class MetricsControl extends React.PureComponent {
     } else {
       transformedOpts = opts ? [opts] : [];
     }
-    const optionValues = transformedOpts
-      .map(option => {
-        // pre-defined metric
-        if (option.metric_name) {
-          return option.metric_name;
-        }
-        return option;
-      })
-      .filter(option => option);
+    const optionValues = transformedOpts.filter(option => option);
     this.props.onChange(this.props.multi ? optionValues : optionValues[0]);
   }
 
