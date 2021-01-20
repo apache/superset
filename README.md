@@ -153,6 +153,8 @@ how to set up a development environment.
 ## Resources
 
 * Superset 1.0
+  * [Superset 1.0 Milestone](https://superset.apache.org/docs/version-one)
+  * [Superset 1.0 Release Notes](https://github.com/apache/superset/tree/master/RELEASING/release-notes-1-0)
   * [Presentation on Superset 1.0 Public Roadmap](https://docs.google.com/presentation/d/1FGgyI8tLWLUPSQ5eEno78bylLfobj9O2W4yoUoFYHH8/edit#slide=id.g9c182b81b9_1_0)
   * [Public Superset Roadmap](https://github.com/apache-superset/superset-roadmap/projects/1)
 * Superset 101 -- Getting Started Guide (From [Preset Blog](https://preset.io/blog/))
