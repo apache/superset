@@ -634,6 +634,7 @@ npm run test
 ```
 
 To run a single test file:
+
 ```bash
 npm run test -- path/to/file.js
 ```
@@ -685,14 +686,14 @@ See [`superset-frontend/cypress_build.sh`](https://github.com/apache/superset/bl
 As an alternative you can use docker-compose environment for testing:
 
 Make sure you have added below line to your /etc/hosts file:
-```127.0.0.1 db```
+`127.0.0.1 db`
 
 If you already have launched Docker environment please use the following command to assure a fresh database instance:
-```docker-compose down -v```
+`docker-compose down -v`
 
 Launch environment:
 
-```CYPRESS_CONFIG=true docker-compose up```
+`CYPRESS_CONFIG=true docker-compose up`
 
 It will serve backend and frontend on port 8088.
 
@@ -756,22 +757,35 @@ LANGUAGES = {
 ### Extracting new strings for translation
 
 ```bash
-flask fab babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _ -k __ -k t -k tn -k tct
+pybabel extract -F superset/translations/babel.cfg -o superset/translations/messages.pot -k _ -k __ -k t -k tn -k tct .
 ```
+
+This will update the template file `superset/translations/messages.pot` with current application strings. Do not forget to update
+this file with the appropriate license information.
+
+### Updating language files
+
+```bash
+ pybabel update -i superset/translations/messages.pot -d superset/translations --ignore-obsolete
+```
+
+This will update language files with the new extracted strings.
 
 You can then translate the strings gathered in files located under
 `superset/translation`, where there's one per language. You can use [Poedit](https://poedit.net/features)
 to translate the `po` file more conveniently.
 There are some [tutorials in the wiki](https://wiki.lxde.org/en/Translate_*.po_files_with_Poedit).
 
-For the translations to take effect:
+In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the npm package po2json.
 
 ```bash
-# In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the npm package po2json.
 npm install -g po2json
-flask fab babel-compile --target superset/translations
-# Convert the en PO file into a JSON file
-po2json -d superset -f jed1.x superset/translations/en/LC_MESSAGES/messages.po superset/translations/en/LC_MESSAGES/messages.json
+```
+
+To convert all PO files to formatted JSON files you can use the `po2json.sh` script.
+
+```bash
+./scripts/po2json.sh
 ```
 
 If you get errors running `po2json`, you might be running the Ubuntu package with the same
@@ -780,6 +794,12 @@ there is a conflict, you may need to update your `PATH` environment variable or 
 the executable path (e.g. `/usr/local/bin/po2json` instead of `po2json`).
 If you get a lot of `[null,***]` in `messages.json`, just delete all the `null,`.
 For example, `"year":["年"]` is correct while `"year":[null,"年"]`is incorrect.
+
+For the translations to take effect we need to compile translation catalogs into binary MO files.
+
+```bash
+pybabel compile -d superset/translations
+```
 
 ### Creating a new language dictionary
 
