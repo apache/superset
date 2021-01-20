@@ -47,6 +47,7 @@ export {
   Slider,
   Radio,
   Row,
+  Space,
   Select,
   Skeleton,
   Switch,

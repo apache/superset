@@ -36,8 +36,8 @@ import TextControl from './TextControl';
 import TimeSeriesColumnControl from './TimeSeriesColumnControl';
 import ViewportControl from './ViewportControl';
 import VizTypeControl from './VizTypeControl';
-import MetricsControl from './MetricsControl';
-import AdhocFilterControl from './AdhocFilterControl';
+import MetricsControl from './MetricControl/MetricsControl';
+import AdhocFilterControl from './FilterControl/AdhocFilterControl';
 import FilterBoxItemControl from './FilterBoxItemControl';
 
 const controlMap = {

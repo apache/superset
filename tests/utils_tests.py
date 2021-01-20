@@ -925,7 +925,7 @@ class TestUtils(SupersetTestCase):
 
             self.assertEqual(
                 form_data,
-                {"time_range_endpoints": get_time_range_endpoints(form_data={}),},
+                {"time_range_endpoints": get_time_range_endpoints(form_data={})},
             )
 
             self.assertEqual(slc, None)
@@ -990,6 +990,20 @@ class TestUtils(SupersetTestCase):
                     "foo": "bar",
                     "time_range_endpoints": get_time_range_endpoints(form_data={}),
                 },
+            )
+
+            self.assertEqual(slc, None)
+
+    def test_get_form_data_corrupted_json(self) -> None:
+        with app.test_request_context(
+            data={"form_data": "{x: '2324'}"},
+            query_string={"form_data": '{"baz": "bar"'},
+        ):
+            form_data, slc = get_form_data()
+
+            self.assertEqual(
+                form_data,
+                {"time_range_endpoints": get_time_range_endpoints(form_data={})},
             )
 
             self.assertEqual(slc, None)
