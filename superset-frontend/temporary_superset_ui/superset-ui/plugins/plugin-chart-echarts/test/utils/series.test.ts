@@ -21,7 +21,11 @@ import {
   extractGroupbyLabel,
   extractTimeseriesSeries,
   formatSeriesName,
+  getChartPadding,
+  getLegendProps,
 } from '../../src/utils/series';
+import { LegendOrientation, LegendType } from '../../src/types';
+import { defaultLegendPadding } from '../../src/defaults';
 
 describe('extractTimeseriesSeries', () => {
   it('should generate a valid ECharts timeseries series object', () => {
@@ -128,5 +132,115 @@ describe('formatSeriesName', () => {
     expect(formatSeriesName(new Date('2020-09-11'), { timeFormatter })).toEqual(
       '2020-09-11 00:00:00',
     );
+  });
+
+  describe('getLegendProps', () => {
+    it('should return the correct props for scroll type with top orientation', () => {
+      expect(getLegendProps(LegendType.Scroll, LegendOrientation.Top, true)).toEqual({
+        show: true,
+        top: 0,
+        orient: 'horizontal',
+        type: 'scroll',
+      });
+    });
+
+    it('should return the correct props for plain type with left orientation', () => {
+      expect(getLegendProps(LegendType.Plain, LegendOrientation.Left, true)).toEqual({
+        show: true,
+        left: 0,
+        orient: 'vertical',
+        type: 'plain',
+      });
+    });
+
+    it('should return the correct props for plain type with right orientation', () => {
+      expect(getLegendProps(LegendType.Plain, LegendOrientation.Right, false)).toEqual({
+        show: false,
+        right: 0,
+        orient: 'vertical',
+        type: 'plain',
+      });
+    });
+
+    it('should return the correct props for plain type with bottom orientation', () => {
+      expect(getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false)).toEqual({
+        show: false,
+        bottom: 0,
+        orient: 'horizontal',
+        type: 'plain',
+      });
+    });
+  });
+
+  describe('getChartPadding', () => {
+    it('should handle top default', () => {
+      expect(getChartPadding(true, LegendOrientation.Top)).toEqual({
+        bottom: 0,
+        left: 0,
+        right: 0,
+        top: defaultLegendPadding[LegendOrientation.Top],
+      });
+    });
+
+    it('should handle left default', () => {
+      expect(getChartPadding(true, LegendOrientation.Left)).toEqual({
+        bottom: 0,
+        left: defaultLegendPadding[LegendOrientation.Left],
+        right: 0,
+        top: 0,
+      });
+    });
+
+    it('should return the default padding when show is false', () => {
+      expect(
+        getChartPadding(false, LegendOrientation.Left, 100, {
+          top: 10,
+          bottom: 20,
+          left: 30,
+          right: 40,
+        }),
+      ).toEqual({
+        bottom: 20,
+        left: 30,
+        right: 40,
+        top: 10,
+      });
+    });
+
+    it('should return the correct padding for left orientation', () => {
+      expect(getChartPadding(true, LegendOrientation.Left, 100)).toEqual({
+        bottom: 0,
+        left: 100,
+        right: 0,
+        top: 0,
+      });
+    });
+
+    it('should return the correct padding for right orientation', () => {
+      expect(getChartPadding(true, LegendOrientation.Right, 50)).toEqual({
+        bottom: 0,
+        left: 0,
+        right: 50,
+        top: 0,
+      });
+    });
+
+    it('should return the correct padding for top orientation', () => {
+      expect(getChartPadding(true, LegendOrientation.Top, 20)).toEqual({
+        bottom: 0,
+        left: 0,
+        right: 0,
+        top: 20,
+      });
+    });
+
+    it('should return the correct padding for bottom orientation', () => {
+      expect(getChartPadding(true, LegendOrientation.Bottom, 10)).toEqual({
+        bottom: 10,
+        left: 0,
+        right: 0,
+        top: 0,
+      });
+    });
   });
 });

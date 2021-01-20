@@ -39,10 +39,36 @@ export type ForecastSeriesContext = {
   type: ForecastSeriesEnum;
 };
 
+export enum LegendOrientation {
+  Top = 'top',
+  Bottom = 'bottom',
+  Left = 'left',
+  Right = 'right',
+}
+
+export enum LegendType {
+  Scroll = 'scroll',
+  Plain = 'plain',
+}
+
 export type ProphetValue = {
   marker: string;
   observation?: number;
   forecastTrend?: number;
   forecastLower?: number;
   forecastUpper?: number;
+};
+
+export type EchartsLegendFormData = {
+  legendMargin: number | null | string;
+  legendOrientation: LegendOrientation.Top;
+  legendType: LegendType;
+  showLegend: boolean;
+};
+
+export const DEFAULT_LEGEND_FORM_DATA: EchartsLegendFormData = {
+  legendMargin: null,
+  legendOrientation: LegendOrientation.Top,
+  legendType: LegendType.Scroll,
+  showLegend: false,
 };
