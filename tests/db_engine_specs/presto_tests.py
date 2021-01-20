@@ -59,7 +59,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         assert result == ["a", "d"]
 
     @mock.patch("superset.db_engine_specs.presto.is_feature_enabled")
-    def test_get_view_names_with_shcema(self, mock_is_feature_enabled):
+    def test_get_view_names_with_schema(self, mock_is_feature_enabled):
         mock_is_feature_enabled.return_value = True
         mock_execute = mock.MagicMock()
         mock_fetchall = mock.MagicMock(return_value=[["a", "b,", "c"], ["d", "e"]])
