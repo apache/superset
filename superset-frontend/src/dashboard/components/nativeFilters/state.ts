@@ -23,7 +23,10 @@ import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { ExtraFormData, t } from '@superset-ui/core';
 import { Charts, Layout, RootState } from 'src/dashboard/types';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { DASHBOARD_ROOT_TYPE } from 'src/dashboard/util/componentTypes';
+import {
+  CHART_TYPE,
+  DASHBOARD_ROOT_TYPE,
+} from 'src/dashboard/util/componentTypes';
 import {
   Filter,
   FilterConfiguration,
@@ -83,14 +86,29 @@ export function useFilterScopeTree(): {
   );
 
   const charts = useSelector<RootState, Charts>(({ charts }) => charts);
-
   const tree = {
     children: [],
     key: DASHBOARD_ROOT_ID,
     type: DASHBOARD_ROOT_TYPE,
     title: t('All Panels'),
   };
-  buildTree(layout[DASHBOARD_ROOT_ID], tree, layout, charts);
+
+  // We need to get only nodes that have charts as children or grandchildren
+  const validNodes = useMemo(
+    () =>
+      Object.values(layout).reduce<string[]>((acc, cur) => {
+        if (cur?.type === CHART_TYPE) {
+          return [...new Set([...acc, ...cur?.parents, cur.id])];
+        }
+        return acc;
+      }, []),
+    [layout],
+  );
+
+  useMemo(() => {
+    buildTree(layout[DASHBOARD_ROOT_ID], tree, layout, charts, validNodes);
+  }, [charts, layout, tree]);
+
   return { treeData: [tree], layout };
 }
 
