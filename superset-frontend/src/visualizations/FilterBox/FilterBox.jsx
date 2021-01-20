@@ -423,7 +423,7 @@ class FilterBox extends React.PureComponent {
   render() {
     const { instantFiltering, width, height } = this.props;
     return (
-      <div style={{ width, height }}>
+      <div style={{ width, height, overflowY: 'auto' }}>
         {this.renderDateFilter()}
         {this.renderDatasourceFilters()}
         {this.renderFilters()}
