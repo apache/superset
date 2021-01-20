@@ -26,7 +26,7 @@ from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.exceptions import QueryObjectValidationError
 from superset.models.core import Database
-from superset.utils.core import DbColumnType, get_example_database, FilterOperator
+from superset.utils.core import GenericDataType, get_example_database, FilterOperator
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 from .base_tests import SupersetTestCase
@@ -76,33 +76,33 @@ class TestDatabaseModel(SupersetTestCase):
         assert col.is_temporal is True
 
     def test_db_column_types(self):
-        test_cases: Dict[str, DbColumnType] = {
+        test_cases: Dict[str, GenericDataType] = {
             # string
-            "CHAR": DbColumnType.STRING,
-            "VARCHAR": DbColumnType.STRING,
-            "NVARCHAR": DbColumnType.STRING,
-            "STRING": DbColumnType.STRING,
-            "TEXT": DbColumnType.STRING,
-            "NTEXT": DbColumnType.STRING,
+            "CHAR": GenericDataType.STRING,
+            "VARCHAR": GenericDataType.STRING,
+            "NVARCHAR": GenericDataType.STRING,
+            "STRING": GenericDataType.STRING,
+            "TEXT": GenericDataType.STRING,
+            "NTEXT": GenericDataType.STRING,
             # numeric
-            "INT": DbColumnType.NUMERIC,
-            "BIGINT": DbColumnType.NUMERIC,
-            "FLOAT": DbColumnType.NUMERIC,
-            "DECIMAL": DbColumnType.NUMERIC,
-            "MONEY": DbColumnType.NUMERIC,
+            "INT": GenericDataType.NUMERIC,
+            "BIGINT": GenericDataType.NUMERIC,
+            "FLOAT": GenericDataType.NUMERIC,
+            "DECIMAL": GenericDataType.NUMERIC,
+            "MONEY": GenericDataType.NUMERIC,
             # temporal
-            "DATE": DbColumnType.TEMPORAL,
-            "DATETIME": DbColumnType.TEMPORAL,
-            "TIME": DbColumnType.TEMPORAL,
-            "TIMESTAMP": DbColumnType.TEMPORAL,
+            "DATE": GenericDataType.TEMPORAL,
+            "DATETIME": GenericDataType.TEMPORAL,
+            "TIME": GenericDataType.TEMPORAL,
+            "TIMESTAMP": GenericDataType.TEMPORAL,
         }
 
         tbl = SqlaTable(table_name="col_type_test_tbl", database=get_example_database())
         for str_type, db_col_type in test_cases.items():
             col = TableColumn(column_name="foo", type=str_type, table=tbl)
-            self.assertEqual(col.is_temporal, db_col_type == DbColumnType.TEMPORAL)
-            self.assertEqual(col.is_numeric, db_col_type == DbColumnType.NUMERIC)
-            self.assertEqual(col.is_string, db_col_type == DbColumnType.STRING)
+            self.assertEqual(col.is_temporal, db_col_type == GenericDataType.TEMPORAL)
+            self.assertEqual(col.is_numeric, db_col_type == GenericDataType.NUMERIC)
+            self.assertEqual(col.is_string, db_col_type == GenericDataType.STRING)
 
     @patch("superset.jinja_context.g")
     def test_extra_cache_keys(self, flask_g):

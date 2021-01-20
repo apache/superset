@@ -129,7 +129,7 @@ class AnnotationType(str, Enum):
     TIME_SERIES = "TIME_SERIES"
 
 
-class DbColumnType(Enum):
+class GenericDataType(Enum):
     """
     Generic database column type
     """
