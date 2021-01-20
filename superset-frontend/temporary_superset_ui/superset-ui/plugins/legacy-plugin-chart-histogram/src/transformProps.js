@@ -18,7 +18,15 @@
  */
 export default function transformProps(chartProps) {
   const { width, height, formData, queriesData } = chartProps;
-  const { colorScheme, linkLength, normalized, globalOpacity, xAxisLabel, yAxisLabel } = formData;
+  const {
+    colorScheme,
+    linkLength,
+    normalized,
+    globalOpacity,
+    xAxisLabel,
+    yAxisLabel,
+    showLegend,
+  } = formData;
 
   return {
     width,
@@ -30,5 +38,6 @@ export default function transformProps(chartProps) {
     opacity: globalOpacity,
     xAxisLabel,
     yAxisLabel,
+    showLegend,
   };
 }
