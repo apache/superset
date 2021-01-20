@@ -29,6 +29,9 @@ import {
   isTimeseriesAnnotationLayer,
   smartDateVerboseFormatter,
   TimeseriesDataRecord,
+  getTimeFormatter,
+  getTimeFormatterForGranularity,
+  smartDateFormatter,
 } from '@superset-ui/core';
 import { DEFAULT_FORM_DATA, EchartsTimeseriesFormData } from './types';
 import { EchartsProps, ForecastSeriesEnum } from '../types';
@@ -67,7 +70,11 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     minorSplitLine,
     truncateYAxis,
     yAxisFormat,
+    xAxisShowMinLabel,
+    xAxisShowMaxLabel,
+    xAxisTimeFormat,
     yAxisBounds,
+    timeGrainSqla,
     zoomable,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
@@ -117,6 +124,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
   }
 
   const echartOptions: echarts.EChartOption = {
+    useUTC: true,
     grid: {
       ...defaultGrid,
       top: 30,
@@ -124,7 +132,26 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
       left: 20,
       right: 20,
     },
-    xAxis: { type: 'time' },
+    xAxis: {
+      type: 'time',
+      axisLabel: {
+        showMinLabel: xAxisShowMinLabel,
+        showMaxLabel: xAxisShowMaxLabel,
+        formatter: (value: any) => {
+          let dateFormatter;
+
+          if (xAxisTimeFormat === smartDateFormatter.id) {
+            dateFormatter = getTimeFormatterForGranularity(timeGrainSqla);
+          } else if (xAxisTimeFormat) {
+            dateFormatter = getTimeFormatter(xAxisTimeFormat);
+          } else {
+            dateFormatter = String;
+          }
+
+          return dateFormatter(value);
+        },
+      },
+    },
     yAxis: {
       ...defaultYAxis,
       type: logAxis ? 'log' : 'value',
