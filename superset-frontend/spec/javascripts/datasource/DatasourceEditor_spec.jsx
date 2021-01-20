@@ -69,7 +69,7 @@ describe('DatasourceEditor', () => {
       wrapper.setState({ activeTabKey: 2 });
       const collection = wrapper.find('.columns-table').shallow();
       expect(collection).toHaveLength(1);
-      const syncButton = collection.dive().find('.sync-from-source');
+      const syncButton = collection.find('.sync-from-source');
       expect(syncButton).toHaveLength(1);
       syncButton.simulate('click');
 

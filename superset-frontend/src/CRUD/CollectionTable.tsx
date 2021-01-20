@@ -27,8 +27,6 @@ import './crud.less';
 interface CRUDCollectionProps {
   allowAddItem?: boolean;
   allowDeletes?: boolean;
-  allowSyncFromSource?: boolean;
-  onSyncFromSource?: () => void;
   collection: Array<object>;
   columnLabels?: object;
   emptyMessage?: ReactNode;
@@ -43,7 +41,7 @@ interface CRUDCollectionProps {
   ) => ReactNode)[];
   onChange?: (arg0: any) => void;
   tableColumns: Array<any>;
-  scrollTable?: boolean;
+  stickyHeader?: boolean;
 }
 
 interface CRUDCollectionState {
@@ -63,9 +61,9 @@ function createKeyedCollection(arr: Array<object>) {
   return map;
 }
 
-const CrudTableWrapper = styled.div<{ scrollTable?: boolean }>`
-  ${({ scrollTable }) =>
-    scrollTable &&
+const CrudTableWrapper = styled.div<{ stickyHeader?: boolean }>`
+  ${({ stickyHeader }) =>
+    stickyHeader &&
     `
       height: 350px;
       overflow: auto;
@@ -79,7 +77,7 @@ const CrudTableWrapper = styled.div<{ scrollTable?: boolean }>`
     `}
 `;
 
-const CrudButtonsWrapper = styled.div`
+const CrudButtonWrapper = styled.div`
   text-align: right;
   ${({ theme }) => `margin-bottom: ${theme.gridUnit * 2}px`}
 `;
@@ -306,19 +304,7 @@ export default class CRUDCollection extends React.PureComponent<
   render() {
     return (
       <>
-        <CrudButtonsWrapper>
-          {this.props.allowSyncFromSource && (
-            <span className="m-t-10 m-r-10">
-              <Button
-                buttonSize="sm"
-                buttonStyle="primary"
-                onClick={this.props.onSyncFromSource}
-                className="sync-from-source"
-              >
-                <i className="fa fa-database" /> {t('Sync columns from source')}
-              </Button>
-            </span>
-          )}
+        <CrudButtonWrapper>
           {this.props.allowAddItem && (
             <span className="m-t-10 m-r-10">
               <Button
@@ -332,8 +318,11 @@ export default class CRUDCollection extends React.PureComponent<
               </Button>
             </span>
           )}
-        </CrudButtonsWrapper>
-        <CrudTableWrapper className="CRUD" scrollTable={this.props.scrollTable}>
+        </CrudButtonWrapper>
+        <CrudTableWrapper
+          className="CRUD"
+          stickyHeader={this.props.stickyHeader}
+        >
           <table data-test="crud-table" className="table">
             {this.renderHeaderRow()}
             {this.renderTableBody()}

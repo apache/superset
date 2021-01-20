@@ -22,7 +22,7 @@ import { Alert, Col, Radio, Well } from 'react-bootstrap';
 import Badge from 'src/common/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
-
+import Button from 'src/components/Button';
 import Tabs from 'src/common/components/Tabs';
 import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
 import DatabaseSelector from 'src/components/DatabaseSelector';
@@ -77,6 +77,11 @@ const EditLockContainer = styled.div`
   }
 `;
 
+const ColumnButtonWrapper = styled.div`
+  text-align: right;
+  ${({ theme }) => `margin-bottom: ${theme.gridUnit * 2}px`}
+`;
+
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
@@ -111,79 +116,95 @@ function ColumnCollectionTable({
   showExpression,
   allowAddItem,
   allowEditDataType,
-  allowSyncFromSource,
   onSyncFromSource,
   itemGenerator,
 }) {
   return (
-    <CollectionTable
-      collection={columns}
-      tableColumns={['column_name', 'type', 'is_dttm', 'filterable', 'groupby']}
-      allowDeletes
-      allowAddItem={allowAddItem}
-      allowSyncFromSource={allowSyncFromSource}
-      onSyncFromSource={onSyncFromSource}
-      itemGenerator={itemGenerator}
-      scrollTable
-      expandFieldset={
-        <FormContainer>
-          <Fieldset compact>
-            {showExpression && (
+    <>
+      <ColumnButtonWrapper>
+        <span className="m-t-10 m-r-10">
+          <Button
+            buttonSize="sm"
+            buttonStyle="primary"
+            onClick={onSyncFromSource}
+            className="sync-from-source"
+          >
+            <i className="fa fa-database" /> {t('Sync columns from source')}
+          </Button>
+        </span>
+      </ColumnButtonWrapper>
+      <CollectionTable
+        collection={columns}
+        tableColumns={[
+          'column_name',
+          'type',
+          'is_dttm',
+          'filterable',
+          'groupby',
+        ]}
+        allowDeletes
+        allowAddItem={allowAddItem}
+        itemGenerator={itemGenerator}
+        stickyHeader
+        expandFieldset={
+          <FormContainer>
+            <Fieldset compact>
+              {showExpression && (
+                <Field
+                  fieldKey="expression"
+                  label={t('SQL Expression')}
+                  control={
+                    <TextAreaControl
+                      language="markdown"
+                      offerEditInModal={false}
+                    />
+                  }
+                />
+              )}
               <Field
-                fieldKey="expression"
-                label={t('SQL Expression')}
+                fieldKey="verbose_name"
+                label={t('Label')}
                 control={
-                  <TextAreaControl
-                    language="markdown"
-                    offerEditInModal={false}
+                  <TextControl
+                    controlId="verbose_name"
+                    placeholder={t('Label')}
                   />
                 }
               />
-            )}
-            <Field
-              fieldKey="verbose_name"
-              label={t('Label')}
-              control={
-                <TextControl
-                  controlId="verbose_name"
-                  placeholder={t('Label')}
-                />
-              }
-            />
-            <Field
-              fieldKey="description"
-              label={t('Description')}
-              control={
-                <TextControl
-                  controlId="description"
-                  placeholder={t('Description')}
-                />
-              }
-            />
-            {allowEditDataType && (
               <Field
-                fieldKey="type"
-                label={t('Data Type')}
+                fieldKey="description"
+                label={t('Description')}
                 control={
-                  <SelectControl choices={DATA_TYPES} name="type" freeForm />
+                  <TextControl
+                    controlId="description"
+                    placeholder={t('Description')}
+                  />
                 }
               />
-            )}
-            <Field
-              fieldKey="python_date_format"
-              label={t('Datetime Format')}
-              description={
-                /* Note the fragmented translations may not work. */
-                <div>
-                  {t('The pattern of timestamp format. For strings use ')}
-                  <a href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
-                    {t('python datetime string pattern')}
-                  </a>
-                  {t(' expression which needs to adhere to the ')}
-                  <a href="https://en.wikipedia.org/wiki/ISO_8601">
-                    {t('ISO 8601')}
-                  </a>
-                  {t(` standard to ensure that the lexicographical ordering
+              {allowEditDataType && (
+                <Field
+                  fieldKey="type"
+                  label={t('Data Type')}
+                  control={
+                    <SelectControl choices={DATA_TYPES} name="type" freeForm />
+                  }
+                />
+              )}
+              <Field
+                fieldKey="python_date_format"
+                label={t('Datetime Format')}
+                description={
+                  /* Note the fragmented translations may not work. */
+                  <div>
+                    {t('The pattern of timestamp format. For strings use ')}
+                    <a href="https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior">
+                      {t('python datetime string pattern')}
+                    </a>
+                    {t(' expression which needs to adhere to the ')}
+                    <a href="https://en.wikipedia.org/wiki/ISO_8601">
+                      {t('ISO 8601')}
+                    </a>
+                    {t(` standard to ensure that the lexicographical ordering
                       coincides with the chronological ordering. If the
                       timestamp format does not adhere to the ISO 8601 standard
                       you will need to define an expression and type for
@@ -192,39 +213,40 @@ function ColumnCollectionTable({
                       in epoch format, put \`epoch_s\` or \`epoch_ms\`. If no pattern
                       is specified we fall back to using the optional defaults on a per
                       database/column name level via the extra parameter.`)}
-                </div>
-              }
-              control={
-                <TextControl
-                  controlId="python_date_format"
-                  placeholder="%Y/%m/%d"
-                />
-              }
-            />
-          </Fieldset>
-        </FormContainer>
-      }
-      columnLabels={{
-        column_name: t('Column'),
-        type: t('Data Type'),
-        groupby: t('Is Dimension'),
-        is_dttm: t('Is Temporal'),
-        filterable: t('Is Filterable'),
-      }}
-      onChange={onChange}
-      itemRenderers={{
-        column_name: (v, onItemChange) =>
-          editableColumnName ? (
-            <EditableTitle canEdit title={v} onSaveTitle={onItemChange} />
-          ) : (
-            v
-          ),
-        type: d => <Label>{d}</Label>,
-        is_dttm: checkboxGenerator,
-        filterable: checkboxGenerator,
-        groupby: checkboxGenerator,
-      }}
-    />
+                  </div>
+                }
+                control={
+                  <TextControl
+                    controlId="python_date_format"
+                    placeholder="%Y/%m/%d"
+                  />
+                }
+              />
+            </Fieldset>
+          </FormContainer>
+        }
+        columnLabels={{
+          column_name: t('Column'),
+          type: t('Data Type'),
+          groupby: t('Is Dimension'),
+          is_dttm: t('Is Temporal'),
+          filterable: t('Is Filterable'),
+        }}
+        onChange={onChange}
+        itemRenderers={{
+          column_name: (v, onItemChange) =>
+            editableColumnName ? (
+              <EditableTitle canEdit title={v} onSaveTitle={onItemChange} />
+            ) : (
+              v
+            ),
+          type: d => <Label>{d}</Label>,
+          is_dttm: checkboxGenerator,
+          filterable: checkboxGenerator,
+          groupby: checkboxGenerator,
+        }}
+      />
+    </>
   );
 }
 ColumnCollectionTable.propTypes = {
@@ -947,7 +969,7 @@ class DatasourceEditor extends React.PureComponent {
           ),
         }}
         allowDeletes
-        scrollTable
+        stickyHeader
       />
     );
   }
@@ -1003,7 +1025,6 @@ class DatasourceEditor extends React.PureComponent {
                   this.setColumns({ databaseColumns })
                 }
                 onSyncFromSource={this.syncMetadata}
-                allowSyncFromSource
               />
               {this.state.metadataLoading && <Loading />}
             </div>
