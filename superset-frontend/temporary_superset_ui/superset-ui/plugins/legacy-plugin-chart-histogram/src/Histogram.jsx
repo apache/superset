@@ -42,6 +42,7 @@ const propTypes = {
   opacity: PropTypes.number,
   xAxisLabel: PropTypes.string,
   yAxisLabel: PropTypes.string,
+  showLegend: PropTypes.bool,
 };
 const defaultProps = {
   binCount: 15,
@@ -66,6 +67,7 @@ class CustomHistogram extends React.PureComponent {
       opacity,
       xAxisLabel,
       yAxisLabel,
+      showLegend,
     } = this.props;
 
     const colorFn = CategoricalColorNamespace.getScale(colorScheme);
@@ -81,15 +83,17 @@ class CustomHistogram extends React.PureComponent {
         width={width}
         height={height}
         position="top"
-        renderLegend={({ direction, style }) => (
-          <LegendOrdinal
-            style={style}
-            scale={colorScale}
-            direction={direction}
-            shape="rect"
-            labelMargin="0 15px 0 0"
-          />
-        )}
+        renderLegend={({ direction, style }) =>
+          showLegend && (
+            <LegendOrdinal
+              style={style}
+              scale={colorScale}
+              direction={direction}
+              shape="rect"
+              labelMargin="0 15px 0 0"
+            />
+          )
+        }
         renderChart={parent => (
           <Histogram
             width={parent.width}
