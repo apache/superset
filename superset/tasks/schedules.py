@@ -538,11 +538,10 @@ def schedule_email_report(
 @celery_app.task(
     name="alerts.run_query",
     bind=True,
-    soft_time_limit=config["EMAIL_ASYNC_TIME_LIMIT_SEC"],
     # TODO: find cause of https://github.com/apache/superset/issues/10530
     # and remove retry
     autoretry_for=(NoSuchColumnError, ResourceClosedError,),
-    retry_kwargs={"max_retries": 5},
+    retry_kwargs={"max_retries": 1},
     retry_backoff=True,
 )
 def schedule_alert_query(
@@ -847,8 +846,8 @@ def schedule_alerts() -> None:
     resolution = 0
     now = datetime.utcnow()
     start_at = now - timedelta(
-        seconds=3600
-    )  # process any missed tasks in the past hour
+        seconds=300
+    )  # process any missed tasks in the past few minutes
     stop_at = now + timedelta(seconds=1)
     with session_scope(nullpool=True) as session:
         schedule_window(ScheduleType.alert, start_at, stop_at, resolution, session)
