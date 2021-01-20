@@ -21,6 +21,9 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { SuperChart, logging } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
+import Frame from 'react-frame-component';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -205,23 +208,28 @@ class ChartRenderer extends React.Component {
         : '';
 
     return (
-      <SuperChart
-        disableErrorBoundary
-        key={`${chartId}${webpackHash}`}
-        id={`chart-id-${chartId}`}
-        className={chartClassName}
-        chartType={vizType}
-        width={width}
-        height={height}
-        annotationData={annotationData}
-        datasource={datasource}
-        initialValues={initialValues}
-        formData={formData}
-        hooks={this.hooks}
-        queriesData={queriesResponse}
-        onRenderSuccess={this.handleRenderSuccess}
-        onRenderFailure={this.handleRenderFailure}
-      />
+      <Frame>
+        <ThemeProvider theme={supersetTheme}> 
+          <StyledSuperChart
+            disableErrorBoundary
+            key={`${chartId}${webpackHash}`}
+            id={`chart-id-${chartId}`}
+            className={chartClassName}
+            chartType={vizType}
+            width={width}
+            height={height}
+            annotationData={annotationData}
+            datasource={datasource}
+            initialValues={initialValues}
+            formData={formData}
+            hooks={this.hooks}
+            queriesData={queriesResponse}
+            onRenderSuccess={this.handleRenderSuccess}
+            onRenderFailure={this.handleRenderFailure}
+          />
+        </ThemeProvider>
+      </Frame>
+      
     );
   }
 }

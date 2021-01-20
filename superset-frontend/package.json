@@ -141,6 +141,7 @@
     "react-dnd": "^2.5.4",
     "react-dnd-html5-backend": "^2.5.4",
     "react-dom": "^16.13.0",
+    "react-frame-component": "^4.1.3",
     "react-gravatar": "^2.6.1",
     "react-hot-loader": "^4.12.20",
     "react-js-cron": "^1.2.0",
