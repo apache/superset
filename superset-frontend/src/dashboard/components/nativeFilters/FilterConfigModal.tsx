@@ -25,7 +25,6 @@ import { Form } from 'src/common/components';
 import { StyledModal } from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 import { LineEditableTabs } from 'src/common/components/Tabs';
-import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { useFilterConfigMap, useFilterConfiguration } from './state';
@@ -396,10 +395,7 @@ export function FilterConfigModal({
           cascadeParentIds: formInputs.parentFilter
             ? [formInputs.parentFilter.value]
             : [],
-          scope: {
-            rootPath: [DASHBOARD_ROOT_ID],
-            excluded: [],
-          },
+          scope: formInputs.scope,
           inverseSelection: !!formInputs.inverseSelection,
           isInstant: !!formInputs.isInstant,
           allowsMultipleValues: !!formInputs.allowsMultipleValues,
