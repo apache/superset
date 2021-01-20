@@ -60,8 +60,8 @@ class QueryContext:
     queries: List[QueryObject]
     force: bool
     custom_cache_timeout: Optional[int]
-    result_type: Union[utils.ChartDataResultType, str]
-    result_format: Union[utils.ChartDataResultFormat, str]
+    result_type: utils.ChartDataResultType
+    result_format: utils.ChartDataResultFormat
 
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
     #  a vanilla python type https://github.com/python/mypy/issues/5288
@@ -71,8 +71,8 @@ class QueryContext:
         queries: List[Dict[str, Any]],
         force: bool = False,
         custom_cache_timeout: Optional[int] = None,
-        result_type: Optional[Union[utils.ChartDataResultType, str]] = None,
-        result_format: Optional[Union[utils.ChartDataResultFormat, str]] = None,
+        result_type: Optional[utils.ChartDataResultType] = None,
+        result_format: Optional[utils.ChartDataResultFormat] = None,
     ) -> None:
         self.datasource = ConnectorRegistry.get_datasource(
             str(datasource["type"]), int(datasource["id"]), db.session
@@ -80,8 +80,8 @@ class QueryContext:
         self.queries = [QueryObject(**query_obj) for query_obj in queries]
         self.force = force
         self.custom_cache_timeout = custom_cache_timeout
-        self.result_type = result_type or utils.ChartDataResultType.FULL.value
-        self.result_format = result_format or utils.ChartDataResultFormat.JSON.value
+        self.result_type = result_type or utils.ChartDataResultType.FULL
+        self.result_format = result_format or utils.ChartDataResultFormat.JSON
         self.cache_values = {
             "datasource": datasource,
             "queries": queries,

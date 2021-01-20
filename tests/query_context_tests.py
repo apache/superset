@@ -79,10 +79,10 @@ class TestQueryContext(SupersetTestCase):
 
         response = query_context.get_payload(cache_query_context=True)
         cache_key = response["cache_key"]
-        assert cache_key
+        assert cache_key is not None
 
         cached = cache_manager.cache.get(cache_key)
-        assert cached
+        assert cached is not None
 
         rehydrated_qc = ChartDataQueryContextSchema().load(cached["data"])
         rehydrated_qo = rehydrated_qc.queries[0]
