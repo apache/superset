@@ -18,7 +18,7 @@
  */
 import { t } from '@superset-ui/core';
 import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
-import { xAxisFormat, yAxis2Format } from '../NVD3Controls';
+import { xAxisFormat, yAxis2Format, showLegend } from '../NVD3Controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -26,7 +26,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [['color_scheme', 'label_colors'], [xAxisFormat]],
+      controlSetRows: [['color_scheme', 'label_colors'], [showLegend], [xAxisFormat]],
     },
     {
       label: t('Y Axis 1'),
