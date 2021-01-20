@@ -668,11 +668,6 @@ function nvd3Vis(element, props) {
       chart.interactiveLayer.tooltip.contentGenerator(d =>
         generateMultiLineTooltipContent(d, xAxisFormatter, yAxisFormatters),
       );
-      if (vizType === 'dual_line') {
-        chart.showLegend(width > BREAKPOINTS.small);
-      } else {
-        chart.showLegend(showLegend);
-      }
     }
     // This is needed for correct chart dimensions if a chart is rendered in a hidden container
     chart.width(width);

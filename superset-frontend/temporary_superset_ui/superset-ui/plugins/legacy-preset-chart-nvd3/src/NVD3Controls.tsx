@@ -135,7 +135,7 @@ export const showLegend: CustomControlItem = {
     type: 'CheckboxControl',
     label: t('Legend'),
     renderTrigger: true,
-    default: true,
+    default: false,
     description: t('Whether to display the legend (toggles)'),
   },
 };
