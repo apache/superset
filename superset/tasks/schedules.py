@@ -14,8 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-"""Utility functions used across Superset"""
+"""
+DEPRECATION NOTICE: this module is deprecated as of v1.0.0.
+It will be removed in future versions of Superset. Please
+migrate to the new scheduler: `superset.tasks.scheduler`.
+"""
 
 import logging
 import time
