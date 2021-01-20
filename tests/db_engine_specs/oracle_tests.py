@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from unittest import mock
+
 from sqlalchemy import column
 from sqlalchemy.dialects import oracle
 from sqlalchemy.dialects.oracle import DATE, NVARCHAR, VARCHAR
@@ -53,7 +55,15 @@ class TestOracleDbEngineSpec(TestDbEngineSpec):
                 OracleEngineSpec.convert_dttm("TIMESTAMP", dttm),
                 """TO_TIMESTAMP('2019-01-02T03:04:05.678900', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""",
             ),
+            (
+                OracleEngineSpec.convert_dttm("timestamp", dttm),
+                """TO_TIMESTAMP('2019-01-02T03:04:05.678900', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""",
+            ),
+            (OracleEngineSpec.convert_dttm("Other", dttm), None,),
         )
+
+        for result, expected_result in test_cases:
+            assert result == expected_result
 
     def test_column_datatype_to_string(self):
         test_cases = (
@@ -68,3 +78,14 @@ class TestOracleDbEngineSpec(TestDbEngineSpec):
                 original, oracle.dialect()
             )
             self.assertEqual(actual, expected)
+
+    def test_fetch_data_no_description(self):
+        cursor = mock.MagicMock()
+        cursor.description = []
+        assert OracleEngineSpec.fetch_data(cursor) == []
+
+    def test_fetch_data(self):
+        cursor = mock.MagicMock()
+        result = ["a", "b"]
+        cursor.fetchall.return_value = result
+        assert OracleEngineSpec.fetch_data(cursor) == result
