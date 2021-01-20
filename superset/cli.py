@@ -167,8 +167,8 @@ def load_examples_run(
         print("Loading DECK.gl demo")
         examples.load_deck_dash()
 
-        # load examples that are stored as YAML config files
-        examples.load_from_configs(force)
+    # load examples that are stored as YAML config files
+    examples.load_from_configs(force, load_test_data)
 
 
 @with_appcontext
