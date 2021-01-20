@@ -1052,7 +1052,7 @@ def start_date_filter(default: Optional[str] = None) -> Optional[Any]:
         return '\'{}\''.format(since)
     return default
 
-def uri_filter(cond="none",default: Optional[str] = None) -> Optional[Any]:
+def uri_filter(cond="none",default="") -> Optional[Any]:
 
     logger.info(cond)
 
@@ -1061,78 +1061,38 @@ def uri_filter(cond="none",default: Optional[str] = None) -> Optional[Any]:
 
     #returning default value if form is null
     if form_data is None:
-        if cond=="start_date" or cond=="end_date":
-            return "'2020-12-31'"
-        return "not in('-1')"
+        return default
     
     #convrting form_data into json node
-    temp_dict=json.loads(form_data)
+    form_dict=json.loads(form_data)
     logger.info("form data is:" +form_data)
 
     #fetching url_params 
-    filter_dict=temp_dict.get("url_params")
+    url_params_dict=form_dict.get("url_params")
     # logger.info(filter_dict) 
 
     #returning default value if url_params is null
-    if filter_dict is None:
-        if cond=="start_date" or cond=="end_date":
-            return "'2020-12-31'"
-        return "not in('-1')"
+    if url_params_dict is None:
+        return default
 
     #fetching mobi_filter from url_params 
-    mobi_filter=filter_dict.get("mobi_filter")
+    mobi_filter=url_params_dict.get("mobi_filter")
 
     #returning default value if mobi_filter is null
     if mobi_filter is None:
-        if cond=="start_date" or cond=="end_date":
-            return "'2020-12-31'"
-        return "not in('-1')"
+        return default
     
     #convrting mobi_filter into json node
-    filter_json=json.loads(mobi_filter)
+    mobi_filter_dict=json.loads(mobi_filter)
     
-    # logger.info(filter_dict1) 
-    # filter_json=json.loads(filter_dict1)
-    # if cond=="none":
-    #     return ""
+    param=mobi_filter_dict.get(cond)
+    if len(param) == 0 or param == "-1":
+        return default
+    else:
+        return param
 
 
-    if cond=="user_id":
-        user_id_list=filter_json.get("user_id")
-        if len(user_id_list) == 0 or user_id_list == "-1":
-            return "not in('-1')"
-        else:
-            return "in ("+user_id_list+")"
-
-
-    if cond=="start_date":
-        start_date=filter_json.get("start_date")
-        if start_date is not None:
-            return "'"+start_date+"'"
-        else:
-            return "'2020-12-31'"
-
-    if cond=="end_date":
-        end_date=filter_json.get("end_date")
-        if end_date is not None:
-            return end_date
-        else:
-            return "'2020-12-31'"
-
-    if cond=="city_id":
-        city_id_list=filter_json.get("city_id")
-        if len(city_id_list) == 0 or city_id_list== "-1":
-            return "not in ('-1')"
-        else:
-            return "in ("+city_id_list+")"
-
-    if cond=="hub_id":
-        hub_id_list=filter_json.get("hub_id")
-        if len(hub_id_list) == 0 or hub_id_list == "-1":
-            return "not in ('-1')"
-        else:
-            return "in ("+hub_id_list+")"
-
+ 
 JINJA_CONTEXT_ADDONS = {
     'time_filter': time_filter,
     'end_date_filter': end_date_filter,
