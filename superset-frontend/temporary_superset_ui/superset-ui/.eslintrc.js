@@ -132,6 +132,9 @@ module.exports = {
         'class-methods-use-this': 0,
         'func-names': 0,
         'guard-for-in': 0,
+        // there is a bug related to re-exports with this rule
+        // which doesn't seem to have been fixed: https://github.com/benmosher/eslint-plugin-import/issues/1460
+        'import/named': 0,
         'import/no-cycle': 0, // re-enable up for discussion, might require some major refactors
         'import/extensions': [
           'error',

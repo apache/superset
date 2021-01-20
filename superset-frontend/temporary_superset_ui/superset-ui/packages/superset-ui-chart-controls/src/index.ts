@@ -32,3 +32,6 @@ export * from './components/MetricOption';
 // React control components
 export * from './components/RadioButtonControl';
 export * from './types';
+
+// hack for fixing invalid webpack builds when using `npm link`
+export { default as __hack_reexport__ } from './types';

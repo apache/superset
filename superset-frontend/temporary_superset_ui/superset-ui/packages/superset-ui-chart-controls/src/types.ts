@@ -325,3 +325,5 @@ export type ControlOverrides = {
 export type SectionOverrides = {
   [P in SharedSectionAlias]?: Partial<ControlPanelSectionConfig>;
 };
+
+export default {};
