@@ -59,6 +59,18 @@ const config: ControlPanelConfig = {
         ['color_scheme', 'label_colors'],
         [
           {
+            name: 'show_legend',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Legend'),
+              renderTrigger: true,
+              default: false,
+              description: t('Whether to display the legend (toggles)'),
+            },
+          },
+        ],
+        [
+          {
             name: 'link_length',
             config: {
               type: 'SelectControl',
