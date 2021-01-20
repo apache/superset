@@ -32,6 +32,7 @@ import Icon from 'src/components/Icon';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import { areObjectsEqual } from 'src/reduxUtils';
 import Loading from 'src/components/Loading';
+import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import FilterConfigurationLink from './FilterConfigurationLink';
 // import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 
@@ -273,7 +274,13 @@ const FilterValue: React.FC<FilterProps> = ({
   }
 
   if (error) {
-    return <span>{t('Cannot load this filter. Check configuration.')}</span>;
+    return (
+      <BasicErrorAlert
+        title={t('Cannot load filter')}
+        body={t('Check configuration')}
+        level="error"
+      />
+    );
   }
 
   return (
