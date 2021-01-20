@@ -160,10 +160,7 @@ const StyledFilterControlTitle = styled.h4`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   margin: 0;
-  text-transform: uppercase;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
+  white-space: normal;
 `;
 
 const StyledFilterControlTitleBox = styled.div`
