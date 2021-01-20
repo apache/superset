@@ -27,6 +27,20 @@ export function getFormDataFromControls(controlsState) {
     const control = controlsState[controlName];
     formData[controlName] = control.value;
   });
+
+  // extract metric_name from saved metric object
+  if (formData.metric && formData.metric.metric_name) {
+    formData.metric = formData.metric.metric_name;
+  }
+  if (Array.isArray(formData.metrics)) {
+    formData.metrics = formData.metrics.map(metric => {
+      if (metric.metric_name) {
+        return metric.metric_name;
+      }
+      return metric;
+    });
+  }
+
   return formData;
 }
 
