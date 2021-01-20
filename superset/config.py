@@ -1086,7 +1086,7 @@ def uri_filter(cond="none",default="") -> Optional[Any]:
     mobi_filter_dict=json.loads(mobi_filter)
     
     param=mobi_filter_dict.get(cond)
-    if len(param) == 0 or param == "-1":
+    if len(param) == 0:
         return default
     else:
         return param
@@ -1100,5 +1100,3 @@ JINJA_CONTEXT_ADDONS = {
     'uri_filter' : uri_filter
 
 }
-
-FEATURE_FLAGS = { 'ENABLE_TEMPLATE_PROCESSING': True }
