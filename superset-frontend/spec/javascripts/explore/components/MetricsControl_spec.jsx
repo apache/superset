@@ -158,7 +158,7 @@ describe('MetricsControl', () => {
     it('handles creating a new metric', () => {
       const { component, onChange } = setup();
       component.instance().onNewMetric({ metric_name: 'sum__value' });
-      expect(onChange.lastCall.args).toEqual([['sum__value']]);
+      expect(onChange.lastCall.args).toEqual([[{ metric_name: 'sum__value' }]]);
     });
   });
 
