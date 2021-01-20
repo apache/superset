@@ -8,8 +8,10 @@ version: 1
 
 ## Creating Your First Dashboard
 
-This section is focused on documentation for end-users (data analysts, business analysts, data
-scientists, etc.). In addition to this site, Preset.io maintains an upto-date set of end-user
+This section is focused on documentation for end-users who will be using Superset
+for the data analysis and exploration workflow
+ (data analysts, business analysts, data
+scientists, etc). In addition to this site, [Preset.io](http://preset.io/) maintains an updated set of end-user
 documentation at [docs.preset.io](https://docs.preset.io/).
 
 This tutorial targets someone who wants to create charts and dashboards in Superset. We’ll show you
@@ -19,258 +21,153 @@ feel for the end-to-end user experience.
 
 ### Connecting to a new database
 
-We assume you already have a database configured and can connect to it from the instance on which
-you’re running Superset. If you’re just testing Superset and want to explore sample data, you can
-load some sample PostgreSQL datasets into a fresh DB, or configure the
-[example weather data](https://github.com/dylburger/noaa-ghcn-weather-data) we use here.
+Superset itself doesn't have a storage layer to store your data but instead pairs with
+your existing SQL-speaking database or data store.
 
-Under the **Sources** menu, select the _Databases_ option:
+First things first, we need to add the connection credentials to your database to be able
+to query and visualize data from it. If you're using Superset locally via
+[Docker compose](/docs/installation/installing-superset-using-docker-compose), you can
+skip this step because a Postgres database, named **examples**, is included and
+pre-configured in Superset for you.
 
-<img src="/images/tutorial_01_sources_database.png" />{' '}
+Under the **Data** menu, select the _Databases_ option:
 
-On the resulting page, click on the green plus sign, near the top right:
+<img src="/images/tutorial_01_sources_database.png" />{' '} <br/><br/>
 
-<img src="/images/tutorial_02_add_database.png" />{' '}
+Next, click the green **+ Database** button in the top right corner:
 
-You can configure a number of advanced options on this page, but for this walkthrough, you’ll only
-need to do **two things**:
+<img src="/images/tutorial_02_add_database.png" />{' '} <br/><br/>
 
-1. Name your database connection:
+You can configure a number of advanced options in this window, but for this walkthrough you only
+need to specify two things (the database name and SQLAlchemy URI):
 
 <img src="/images/tutorial_03_database_name.png" />
 
-Provide the SQLAlchemy Connection URI and test the connection:
-
-<img src="/images/tutorial_04_sqlalchemy_connection_string.png" />
-
-This example shows the connection string for our test weather database. As noted in the text below
+As noted in the text below
 the URI, you should refer to the SQLAlchemy documentation on
 [creating new connection URIs](https://docs.sqlalchemy.org/en/12/core/engines.html#database-urls)
 for your target database.
 
-Click the **Test Connection** button to confirm things work end to end. Once Superset can
-successfully connect and authenticate, you should see a popup like this:
+Click the **Test Connection** button to confirm things work end to end. If the connection looks good, save the configuration
+by clicking the **Add** button in the bottom right corner of the modal window:
 
-<img src="/images/tutorial_05_connection_popup.png" />
+<img src="/images/tutorial_04_add_button.png" />
 
-Moreover, you should also see the list of tables Superset can read from the schema you’re connected
-to, at the bottom of the page:
+Congratulations, you've just added a new data source in Superset!
 
-<img src="/images/tutorial_06_list_of_tables.png" />
+### Registering a new table
 
-If the connection looks good, save the configuration by clicking the **Save** button at the bottom
-of the page:
+Now that you’ve configured a data source, you can select specific tables (called **Datasets** in Superset)
+that you want exposed in Superset for querying.
 
-<img src="/images/tutorial_07_save_button.png" />
-
-### Adding a new table
-
-Now that you’ve configured a database, you’ll need to add specific tables to Superset that you’d
-like to query.
-
-Under the **Sources** menu, select the _Tables_ option:
+Navigate to **Data ‣ Datasets** and select the **+ Dataset** button in the top right corner.
 
 <img src="/images/tutorial_08_sources_tables.png" />
 
-On the resulting page, click on the green plus sign, near the top left:
+A modal window should pop up in front of you. Select your **Database**,
+**Schema**, and **Table** using the drop downs that appear. In the following example,
+we register the **cleaned_sales_data** table from the **examples** database.
 
 <img src="/images/tutorial_09_add_new_table.png" />
 
-You only need a few pieces of information to add a new table to Superset:
+To finish, click the **Add** button in the bottom right corner. You should now see your dataset in the list of datasets.
 
-- The name of the table
+### Customizing column properties
 
-<img src="/images/tutorial_10_table_name.png" />
+Now that you've registered your dataset, you can configure column properties
+ for how the column should be treated in the Explore workflow:
 
-- The target database from the **Database** drop-down menu (i.e. the one you just added above)
+- Is the column temporal? (should it be used for slicing & dicing in time series charts?)
+- Should the column be filterable?
+- Is the column dimensional?
+- If it's a datetime column, how should Superset parse
+the datetime format? (using the [ISO-8601 string pattern](https://en.wikipedia.org/wiki/ISO_8601))
 
-<img src="/images/tutorial_11_choose_db.png" />
+<img src="/images/tutorial_column_properties.png" />
 
-- Optionally, the database schema. If the table exists in the “default” schema (e.g. the public
-  schema in PostgreSQL or Redshift), you can leave the schema field blank.
+### Superset semantic layer
 
-Click on the **Save** button to save the configuration:
+Superset has a thin semantic layer that adds many quality of life improvements for analysts.
+The Superset semantic layer can store 2 types of computed data:
 
-<img src="/images/tutorial_07_save_button.png" />
+1. Virtual metrics: you can write SQL queries that aggregate values
+from multiple column (e.g. `SUM(recovered) / SUM(confirmed)`) and make them
+available as columns for (e.g. `recovery_rate`) visualization in Explore.
+Agggregate functions are allowed and encouraged for metrics.
 
-When redirected back to the list of tables, you should see a message indicating that your table was
-created:
+<img src="/images/tutorial_sql_metric.png" />
 
-<img src="/images/tutorial_12_table_creation_success_msg.png" />
+You can also certify metrics if you'd like for your team in this view.
 
-This message also directs you to edit the table configuration. We’ll edit a limited portion of the
-configuration now - just to get you started - and leave the rest for a more advanced tutorial.
+2. Virtual calculated columns: you can write SQL queries that
+customize the appearance and behavior
+of a specific column (e.g. `CAST(recovery_rate) as float`).
+Aggregate functions aren't allowed in calculated columns.
 
-Click on the edit button next to the table you’ve created:
+<img src="/images/tutorial_calculated_column.png" />
 
-<img src="/images/tutorial_13_edit_table_config.png" />
+### Creating charts in Explore view
 
-On the resulting page, click on the **List Table Column** tab. Here, you’ll define the way you can
-use specific columns of your table when exploring your data. We’ll run through these options to
-describe their purpose:
+Superset has 2 main interfaces for exploring data:
 
-If you want users to group metrics by a specific field, mark it as **Groupable**.
+- **Explore**: no-code viz builder. Select your dataset, select the chart,
+customize the appearance, and publish.
+- **SQL Lab**: SQL IDE for cleaning, joining, and preparing data for Explore workflow
 
-If you need to filter on a specific field, mark it as **Filterable**.
+We'll focus on the Explore view for creating charts right now.
+To start the Explore workflow from the **Datasets** tab, start by clicking the name
+of the dataset that will be powering your chart.
 
-Is this field something you’d like to get the distinct count of? Check the **Count Distinct** box.
+<img src="/images/tutorial_launch_explore.png" /><br/><br/>
 
-Is this a metric you want to sum, or get basic summary statistics for? The **Sum, Min**, and **Max**
-columns will help.
+You're now presented with a powerful workflow for exploring data and iterating on charts.
 
-The **is temporal** field should be checked for any date or time fields. We’ll cover how this
-manifests itself in analyses in a moment.
+- The **Dataset** view on the left-hand side has a list of columns and metrics,
+scoped to the current dataset you selected.
+- The **Data** preview below the chart area also gives you helpful data context.
+- Using the **Data** tab and **Customize** tabs, you can change the visualization type,
+select the temporal column, select the metric to group by, and customize
+the aesthetics of the chart.
 
-Here’s how we’ve configured fields for the weather data. Even for measures like the weather
-measurements (precipitation, snowfall, etc.), it’s ideal to group and filter by these values:
+As you customize your chart using drop-down menus, make sure to click the **Run** button
+to get visual feedback.
 
-<img src="/images/tutorial_14_field_config.png" />
+<img src="/images/tutorial_explore_run.jpg" />
 
-As with the configurations above, click the **Save** button to save these settings.
+In the following screenshot, we craft a grouped Time-series Bar Chart to visualize
+our quarterly sales data by product line just be clicking options in drop-down menus.
 
-### Exploring your data
-
-To start exploring your data, simply click on the table name you just created in the list of
-available tables:
-
-<img src="/images/tutorial_15_click_table_name.png" />
-
-By default, you’ll be presented with a Table View:
-
-<img src="/images/tutorial_16_datasource_chart_type.png" />
-
-Let’s walk through a basic query to get the count of all records in our table. First, we’ll need to
-change the **Since** filter to capture the range of our data. You can use simple phrases to apply
-these filters, like “3 years ago”:
-
-<img src="/images/tutorial_17_choose_time_range.png" />
-
-The upper limit for time, the **Until** filter, defaults to “now”, which may or may not be what you
-want. Look for the Metrics section under the **GROUP BY** header, and start typing “Count” - you’ll
-see a list of metrics matching what you type:
-
-<img src="/images/tutorial_18_choose_metric.png" />
-
-Select the _COUNT(\*)_ metric, then click the green **Query** button near the top of the explore:
-
-<img src="/images/tutorial_19_click_query.png" />
-
-You’ll see your results in the table:
-
-<img src="/images/tutorial_20_count_star_result.png" />
-
-Let’s group this by the weather_description field to get the count of records by the type of weather
-recorded by adding it to the Group by section:
-
-<img src="/images/tutorial_21_group_by.png" />
-
-and run the query:
-
-<img src="/images/tutorial_22_group_by_result.png" />
-
-Let’s find a more useful data point: the top 10 times and places that recorded the highest
-temperature in 2015. We replace weather_description with latitude, longitude and measurement_date in
-the **Group by** section:
-
-<img src="/images/tutorial_23_group_by_more_dimensions.png" />
-
-And replace _COUNT(\*)_ with _max\_\_measurement_flag_:
-
-<img src="/images/tutorial_24_max_metric.png" />
-
-The _max\_\_measurement_flag_ metric was created when we checked the box under **Max** and next to
-the _measurement_flag_ field, indicating that this field was numeric and that we wanted to find its
-maximum value when grouped by specific fields.
-
-In our case, _measurement_flag_ is the value of the measurement taken, which clearly depends on the
-type of measurement (the researchers recorded different values for precipitation and temperature).
-Therefore, we must filter our query only on records where the _weather_description_ is equal to
-“Maximum temperature”, which we do in the **Filters** section at the bottom of the explore:
-
-<img src="/images/tutorial_25_max_temp_filter.png" />
-
-Finally, since we only care about the top 10 measurements, we limit our results to 10 records using
-the Row _limit_ option under the **Options** header:
-
-<img src="/images/tutorial_26_row_limit.png" />
-
-We click **Query** and get the following results:
-
-<img src="/images/tutorial_27_top_10_max_temps.png" />
-
-In this dataset, the maximum temperature is recorded in tenths of a degree Celsius. The top value of
-1370, measured in the middle of Nevada, is equal to 137 C, or roughly 278 degrees F. It’s unlikely
-this value was correctly recorded. We’ve already been able to investigate some outliers with
-Superset, but this just scratches the surface of what we can do.
-
-You may want to do a couple more things with this measure:
-
-- The default formatting shows values like 1.37k, which may be difficult for some users to read.
-  It’s likely you may want to see the full, comma-separated value. You can change the formatting of
-  any measure by editing its config (**Edit Table Config > List Sql Metric > Edit Metric >
-  D3Format**)
-
-= Moreover, you may want to see the temperature measurements in plain degrees C, not tenths of a
-degree. Or you may want to convert the temperature to degrees Fahrenheit. You can change the SQL
-that gets executed against the database, baking the logic into the measure itself (**Edit Table
-Config > List Sql Metric > Edit Metric > SQL Expression**).
-
-For now, though, let’s create a better visualization of these data and add it to a dashboard. We can
-change the Chart Type to “Distribution - Bar Chart”:
-
-<img src="/images/tutorial_28_bar_chart.png" />
-
-Our filter on Maximum temperature measurements was retained, but the query and formatting options
-are dependent on the chart type, so you’ll have to set the values again:
-
-<img src="/images/tutorial_29_bar_chart_series_metrics.png" />
-
-You should note the extensive formatting options for this chart: the ability to set axis labels,
-margins, ticks, etc. To make the data presentable to a broad audience, you’ll want to apply many of
-these to slices that end up in dashboards. For now, though, we run our query and get the following
-chart:
-
-<img src="/images/tutorial_30_bar_chart_results.png" />
+<img src="/images/tutorial_explore_settings.jpg" />
 
 ### Creating a slice and dashboard
 
-This view might be interesting to researchers, so let’s save it. In Superset, a saved query is
-called a **Slice**.
+To save your chart, first click the **Save** button. You can either:
 
-To create a slice, click the **Save as** button near the top-left of the explore:
+- Save your chart and add it to an existing dashboard
+- Save your chart and add it to a new dashboard
 
-<img src="/images/tutorial_19_click_query.png" />
+In the following screenshot, we save the chart to a new "Superset Duper Sales Dashboard":
 
-A popup should appear, asking you to name the slice, and optionally add it to a dashboard. Since we
-haven’t yet created any dashboards, we can create one and immediately add our slice to it. Let’s do
-it:
+<img src="/images/tutorial_save_slice.png" />
 
-<img src="/images/tutorial_31_save_slice_to_dashboard.png" />
+To publish, click **Save and goto Dashboard**.
 
-Click **Save**, which will direct you back to your original query. We see that our slice and
-dashboard were successfully created:
+Behind the scenes, Superset will create a slice and store all the information needed
+to create your chart in its thin data layer
+ (the query, chart type, options selected, name, etc).
 
-<img src="/images/tutorial_32_save_slice_confirmation.png" />
+ <img src="/images/tutorial_first_dashboard.png" />
 
-Let’s check out our new dashboard. We click on the **Dashboards** menu:
+ To resize the chart, start by clicking the pencil button in the top right corner.
 
-<img src="/images/tutorial_33_dashboard.png" />
+ <img src="/images/tutorial_pencil_edit.png" />
 
-and find the dashboard we just created:
+Then, click and drag the bottom right corner of the chart until the chart layout snaps
+into a position you like onto the underlying grid.
 
-<img src="/images/tutorial_34_weather_dashboard.png" />
+ <img src="/images/tutorial_chart_resize.png" />
 
-Things seemed to have worked - our slice is here!
-
-<img src="/images/tutorial_35_slice_on_dashboard.png" />
-
-But it’s a bit smaller than we might like. Luckily, you can adjust the size of slices in a dashboard
-by clicking, holding and dragging the bottom-right corner to your desired dimensions:
-
-<img src="/images/tutorial_36_adjust_dimensions.gif" />
-
-After adjusting the size, you’ll be asked to click on the icon near the top-right of the dashboard
-to save the new configuration.
+ Click **Save** to persist the changes.
 
 Congrats! You’ve successfully linked, analyzed, and visualized data in Superset. There are a wealth
 of other table configuration and visualization options, so please start exploring and creating
