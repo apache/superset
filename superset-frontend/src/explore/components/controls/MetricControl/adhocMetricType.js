@@ -18,9 +18,9 @@
  */
 import PropTypes from 'prop-types';
 
-import { AGGREGATES } from '../constants';
-import columnType from './columnType';
-import { EXPRESSION_TYPES } from '../AdhocMetric';
+import { AGGREGATES } from 'src/explore/constants';
+import columnType from 'src/explore/propTypes/columnType';
+import { EXPRESSION_TYPES } from './AdhocMetric';
 
 export default PropTypes.oneOfType([
   PropTypes.shape({

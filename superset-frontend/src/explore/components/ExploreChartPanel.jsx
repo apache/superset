@@ -203,6 +203,11 @@ const ExploreChartPanel = props => {
     [chartRef, renderChart],
   );
 
+  const standaloneChartBody = useMemo(
+    () => <div ref={chartRef}>{renderChart()}</div>,
+    [chartRef, renderChart],
+  );
+
   if (props.standalone) {
     // dom manipulation hack to get rid of the boostrap theme's body background
     const standaloneClass = 'background-transparent';
@@ -210,7 +215,7 @@ const ExploreChartPanel = props => {
     if (!bodyClasses.includes(standaloneClass)) {
       document.body.className += ` ${standaloneClass}`;
     }
-    return renderChart();
+    return standaloneChartBody;
   }
 
   const header = (

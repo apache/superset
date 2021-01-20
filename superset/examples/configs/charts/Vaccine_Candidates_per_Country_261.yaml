@@ -25,7 +25,7 @@ params:
     r: 0
   country_fieldtype: name
   datasource: 14__table
-  entity: Country_Name
+  entity: country_name
   linear_color_scheme: schemeYlOrBr
   max_bubble_size: '25'
   metric: count
@@ -33,7 +33,7 @@ params:
   secondary_metric:
     aggregate: COUNT
     column:
-      column_name: Country_Name
+      column_name: country_name
       description: null
       expression: null
       filterable: true

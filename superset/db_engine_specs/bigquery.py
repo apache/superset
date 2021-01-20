@@ -66,6 +66,18 @@ class BigQueryEngineSpec(BaseEngineSpec):
         None: "{col}",
         "PT1S": "{func}({col}, SECOND)",
         "PT1M": "{func}({col}, MINUTE)",
+        "PT5M": "CAST(TIMESTAMP_SECONDS("
+        "5*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 5*60)"
+        ") AS {type})",
+        "PT10M": "CAST(TIMESTAMP_SECONDS("
+        "10*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 10*60)"
+        ") AS {type})",
+        "PT15M": "CAST(TIMESTAMP_SECONDS("
+        "15*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 15*60)"
+        ") AS {type})",
+        "PT0.5H": "CAST(TIMESTAMP_SECONDS("
+        "30*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 30*60)"
+        ") AS {type})",
         "PT1H": "{func}({col}, HOUR)",
         "P1D": "{func}({col}, DAY)",
         "P1W": "{func}({col}, WEEK)",

@@ -63,7 +63,7 @@ from superset.charts.schemas import (
     thumbnail_query_schema,
 )
 from superset.commands.exceptions import CommandInvalidError
-from superset.commands.importers.v1.utils import is_valid_config, remove_root
+from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger
@@ -549,13 +549,18 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        json_body = None
         if request.is_json:
             json_body = request.json
         elif request.form.get("form_data"):
             # CSV export submits regular form data
-            json_body = json.loads(request.form["form_data"])
-        else:
-            return self.response_400(message="Request is not JSON")
+            try:
+                json_body = json.loads(request.form["form_data"])
+            except (TypeError, json.JSONDecodeError):
+                pass
+
+        if json_body is None:
+            return self.response_400(message=_("Request is not JSON"))
 
         try:
             command = ChartDataCommand()
@@ -1013,11 +1018,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if not upload:
             return self.response_400()
         with ZipFile(upload) as bundle:
-            contents = {
-                remove_root(file_name): bundle.read(file_name).decode()
-                for file_name in bundle.namelist()
-                if is_valid_config(file_name)
-            }
+            contents = get_contents_from_bundle(bundle)
 
         passwords = (
             json.loads(request.form["passwords"])
