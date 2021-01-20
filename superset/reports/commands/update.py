@@ -26,7 +26,7 @@ from superset.commands.utils import populate_owners
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.databases.dao import DatabaseDAO
 from superset.exceptions import SupersetSecurityException
-from superset.models.reports import ReportSchedule, ReportScheduleType
+from superset.models.reports import ReportSchedule, ReportScheduleType, ReportState
 from superset.reports.commands.base import BaseReportScheduleCommand
 from superset.reports.commands.exceptions import (
     DatabaseNotFoundValidationError,
@@ -70,15 +70,26 @@ class UpdateReportScheduleCommand(BaseReportScheduleCommand):
         if not self._model:
             raise ReportScheduleNotFoundError()
 
-        # Validate name uniqueness
-        if not ReportScheduleDAO.validate_update_uniqueness(
-            name, report_schedule_id=self._model_id
+        # Change the state to not triggered when the user deactivates
+        # A report that is currently in a working state. This prevents
+        # an alert/report from being kept in a working state if activated back
+        if (
+            self._model.last_state == ReportState.WORKING
+            and "active" in self._properties
+            and not self._properties["active"]
         ):
-            exceptions.append(ReportScheduleNameUniquenessValidationError())
+            self._properties["last_state"] = ReportState.NOOP
 
         # validate relation by report type
         if not report_type:
             report_type = self._model.type
+
+        # Validate name type uniqueness
+        if not ReportScheduleDAO.validate_update_uniqueness(
+            name, report_type, report_schedule_id=self._model_id
+        ):
+            exceptions.append(ReportScheduleNameUniquenessValidationError())
+
         if report_type == ReportScheduleType.ALERT:
             database_id = self._properties.get("database")
             # If database_id was sent let's validate it exists

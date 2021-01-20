@@ -78,7 +78,7 @@ const TARGETS = {
 const HREFS = {
   label: 'HREF',
   options: {
-    Superset: 'http://https://superset.incubator.apache.org/',
+    Superset: 'http://https://superset.apache.org/',
     None: null,
   },
   defaultValue: null,

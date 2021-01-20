@@ -92,9 +92,11 @@ class ReportSchedule(Model, AuditMixinNullable):
     """
 
     __tablename__ = "report_schedule"
+    __table_args__ = (UniqueConstraint("name", "type"),)
+
     id = Column(Integer, primary_key=True)
     type = Column(String(50), nullable=False)
-    name = Column(String(150), nullable=False, unique=True)
+    name = Column(String(150), nullable=False)
     description = Column(Text)
     context_markdown = Column(Text)
     active = Column(Boolean, default=True, index=True)

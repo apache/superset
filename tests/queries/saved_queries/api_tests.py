@@ -534,6 +534,8 @@ class TestSavedQueryApi(SupersetTestCase):
         uri = f"api/v1/saved_query/{max_id + 1}"
         rv = self.client.get(uri)
         assert rv.status_code == 404
+        db.session.delete(query)
+        db.session.commit()
 
     def test_create_saved_query(self):
         """

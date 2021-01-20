@@ -74,9 +74,9 @@ export function useFilterConfigMap() {
 }
 
 export function useFilterState(id: string) {
-  return useSelector<any, FilterState>(state => {
-    return state.nativeFilters.filtersState[id] || getInitialFilterState(id);
-  });
+  return useSelector<any, FilterState>(
+    state => state.nativeFilters.filtersState[id] || getInitialFilterState(id),
+  );
 }
 
 export function useSetExtraFormData() {
@@ -105,14 +105,16 @@ export function useFilterScopeTree(): {
   };
 
   // We need to get only nodes that have charts as children or grandchildren
-  const validNodes = useMemo(() => {
-    return Object.values(layout).reduce<string[]>((acc, cur) => {
-      if (cur?.type === CHART_TYPE) {
-        return [...new Set([...acc, ...cur?.parents, cur.id])];
-      }
-      return acc;
-    }, []);
-  }, [layout]);
+  const validNodes = useMemo(
+    () =>
+      Object.values(layout).reduce<string[]>((acc, cur) => {
+        if (cur?.type === CHART_TYPE) {
+          return [...new Set([...acc, ...cur?.parents, cur.id])];
+        }
+        return acc;
+      }, []),
+    [layout],
+  );
 
   useMemo(() => {
     buildTree(layout[DASHBOARD_ROOT_ID], tree, layout, charts, validNodes);

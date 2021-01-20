@@ -81,21 +81,26 @@ describe('ChangeDatasourceModal', () => {
   });
 
   it('fetches datasources', async () => {
-    expect(fetchMock.calls(/api\/v1\/dataset/)).toHaveLength(6);
+    expect(fetchMock.calls(/api\/v1\/dataset/)).toHaveLength(3);
   });
 
   it('renders confirmation message', async () => {
+    await waitForComponentToPaint(wrapper, 1000);
+
     act(() => {
-      wrapper.find('.datasource-link').at(0).props().onClick();
+      wrapper.find('[data-test="datasource-link"]').at(0).props().onClick();
     });
+
     await waitForComponentToPaint(wrapper);
 
     expect(wrapper.find('.proceed-btn')).toExist();
   });
 
   it('changes the datasource', async () => {
+    await waitForComponentToPaint(wrapper, 1000);
+
     act(() => {
-      wrapper.find('.datasource-link').at(0).props().onClick();
+      wrapper.find('[data-test="datasource-link"]').at(0).props().onClick();
     });
     await waitForComponentToPaint(wrapper);
 

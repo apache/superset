@@ -79,7 +79,7 @@ describe('Dashboard top-level controls', () => {
       'ant-dropdown-menu-item-disabled',
     );
 
-    // wait all charts force refreshed
+    // wait all charts force refreshed.
     cy.wait(aliases, { responseTimeout: 15000 }).then(xhrs => {
       xhrs.forEach(async xhr => {
         const responseBody = await readResponseBlob(xhr.response.body);

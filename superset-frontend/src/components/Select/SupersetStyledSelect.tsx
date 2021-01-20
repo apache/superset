@@ -76,6 +76,7 @@ export type SupersetStyledSelectProps<
   // additional props for easier usage or backward compatibility
   labelKey?: string;
   valueKey?: string;
+  assistiveText?: string;
   multi?: boolean;
   clearable?: boolean;
   sortable?: boolean;
@@ -90,6 +91,7 @@ export type SupersetStyledSelectProps<
   valueRenderedAsLabel?: boolean;
   // callback for paste event
   onPaste?: (e: SyntheticEvent) => void;
+  forceOverflow?: boolean;
   // for simplier theme overrides
   themeConfig?: PartialThemeConfig;
   stylesConfig?: PartialStylesConfig;
@@ -99,9 +101,9 @@ function styled<
   OptionType extends OptionTypeBase,
   SelectComponentType extends
     | WindowedSelectComponentType<OptionType>
-    | ComponentType<SelectProps<OptionType>> = WindowedSelectComponentType<
-    OptionType
-  >
+    | ComponentType<
+        SelectProps<OptionType>
+      > = WindowedSelectComponentType<OptionType>
 >(SelectComponent: SelectComponentType) {
   type SelectProps = SupersetStyledSelectProps<OptionType>;
   type Components = SelectComponents<OptionType>;
@@ -113,8 +115,8 @@ function styled<
   // default components for the given OptionType
   const supersetDefaultComponents: SelectComponentsConfig<OptionType> = DEFAULT_COMPONENTS;
 
-  const getSortableMultiValue = (MultiValue: Components['MultiValue']) => {
-    return SortableElement((props: MultiValueProps<OptionType>) => {
+  const getSortableMultiValue = (MultiValue: Components['MultiValue']) =>
+    SortableElement((props: MultiValueProps<OptionType>) => {
       const onMouseDown = (e: SyntheticEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -122,7 +124,6 @@ function styled<
       const innerProps = { onMouseDown };
       return <MultiValue {...props} innerProps={innerProps} />;
     });
-  };
 
   /**
    * Superset styled `Select` component. Apply Superset themed stylesheets and
@@ -146,6 +147,7 @@ function styled<
       multi = false, // same as `isMulti`, used for backward compatibility
       clearable, // same as `isClearable`
       sortable = true, // whether to enable drag & drop sorting
+      forceOverflow, // whether the dropdown should be forcefully overflowing
 
       // react-select props
       className = DEFAULT_CLASS_NAME,
@@ -177,6 +179,7 @@ function styled<
         }
         return optionRenderer ? optionRenderer(option) : getOptionLabel(option);
       },
+
       ...restProps
     } = selectProps;
 
@@ -238,6 +241,18 @@ function styled<
         label: label || inputValue,
         [valueKey]: inputValue,
         isNew: true,
+      });
+    }
+
+    // handle forcing dropdown overflow
+    // use only when setting overflow:visible isn't possible on the container element
+    if (forceOverflow) {
+      Object.assign(restProps, {
+        closeMenuOnScroll: (e: Event) => {
+          const target = e.target as HTMLElement;
+          return target && !target.classList?.contains('Select__menu-list');
+        },
+        menuPosition: 'fixed',
       });
     }
 

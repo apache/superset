@@ -23,6 +23,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { styled, t, supersetTheme, css } from '@superset-ui/core';
 import { debounce } from 'lodash';
+import { Resizable } from 're-resizable';
 
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/core';
@@ -50,6 +51,8 @@ import {
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,
+  height: PropTypes.string,
+  width: PropTypes.string,
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
   dashboardId: PropTypes.number,
@@ -89,6 +92,8 @@ const Styles = styled.div`
     border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
   .main-explore-content {
+    flex: 1;
+    min-width: ${({ theme }) => theme.gridUnit * 128}px;
     border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
   .controls-column {
@@ -119,9 +124,6 @@ const Styles = styled.div`
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
     padding: ${({ theme }) => 2 * theme.gridUnit}px;
     width: ${({ theme }) => 8 * theme.gridUnit}px;
-  }
-  .data-tab {
-    min-width: 288px;
   }
   .callpase-icon > svg {
     color: ${({ theme }) => theme.colors.primary.base};
@@ -156,7 +158,7 @@ function ExploreViewContainer(props) {
 
   const [showingModal, setShowingModal] = useState(false);
   const [chartIsStale, setChartIsStale] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const width = `${windowSize.width}px`;
   const navHeight = props.standalone ? 0 : 90;
@@ -166,7 +168,11 @@ function ExploreViewContainer(props) {
 
   function addHistory({ isReplace = false, title } = {}) {
     const payload = { ...props.form_data };
-    const longUrl = getExploreLongUrl(props.form_data, null, false);
+    const longUrl = getExploreLongUrl(
+      props.form_data,
+      props.standalone ? 'standalone' : null,
+      false,
+    );
     try {
       if (isReplace) {
         window.history.replaceState(payload, title, longUrl);
@@ -264,7 +270,6 @@ function ExploreViewContainer(props) {
     }
   }, [isDynamicPluginLoading]);
 
-  // effect to run when controls change
   useEffect(() => {
     const hasError = Object.values(props.controls).some(
       control =>
@@ -273,7 +278,10 @@ function ExploreViewContainer(props) {
     if (!hasError) {
       props.actions.triggerQuery(true, props.chart.id);
     }
+  }, []);
 
+  // effect to run when controls change
+  useEffect(() => {
     if (previousControls) {
       if (props.controls.viz_type.value !== previousControls.viz_type.value) {
         props.actions.resetControls();
@@ -395,15 +403,17 @@ function ExploreViewContainer(props) {
           dashboardId={props.dashboardId}
         />
       )}
-      <div
+      <Resizable
+        defaultSize={{ width: 300 }}
+        minWidth={300}
+        maxWidth="33%"
+        enable={{ right: true }}
         className={
-          isCollapsed
-            ? 'no-show'
-            : 'data-tab explore-column data-source-selection'
+          isCollapsed ? 'no-show' : 'explore-column data-source-selection'
         }
       >
         <div className="title-container">
-          <span className="horizont al-text">{t('Datasource')}</span>
+          <span className="horizont al-text">{t('Dataset')}</span>
           <span
             role="button"
             tabIndex={0}
@@ -423,7 +433,7 @@ function ExploreViewContainer(props) {
           controls={props.controls}
           actions={props.actions}
         />
-      </div>
+      </Resizable>
       {isCollapsed ? (
         <div
           className="sidebar"
@@ -445,7 +455,13 @@ function ExploreViewContainer(props) {
           <Icon name="dataset-physical" width={16} />
         </div>
       ) : null}
-      <div className="col-sm-3 explore-column controls-column">
+      <Resizable
+        defaultSize={{ width: 320 }}
+        minWidth={320}
+        maxWidth="33%"
+        enable={{ right: true }}
+        className="col-sm-3 explore-column controls-column"
+      >
         <QueryAndSaveBtns
           canAdd={!!(props.can_add || props.can_overwrite)}
           onQuery={onQuery}
@@ -463,7 +479,7 @@ function ExploreViewContainer(props) {
           datasource_type={props.datasource_type}
           isDatasourceMetaLoading={props.isDatasourceMetaLoading}
         />
-      </div>
+      </Resizable>
       <div
         className={`main-explore-content ${
           isCollapsed ? 'col-sm-9' : 'col-sm-7'

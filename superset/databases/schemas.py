@@ -139,7 +139,7 @@ def sqlalchemy_uri_validator(value: str) -> str:
             [
                 _(
                     "Invalid connection string, a valid string usually follows: "
-                    "dirver://user:password@database-host/database-name"
+                    "driver://user:password@database-host/database-name"
                 )
             ]
         )

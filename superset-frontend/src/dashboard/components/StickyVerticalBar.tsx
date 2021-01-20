@@ -26,14 +26,13 @@ export const SUPERSET_HEADER_HEIGHT = 59;
 
 const Wrapper = styled.div`
   position: relative;
-  width: 16px;
-  flex: 0 0 16px;
+  width: ${({ theme }) => theme.gridUnit * 8}px;
+  flex: 0 0 ${({ theme }) => theme.gridUnit * 8}px;
   /* these animations (which can be enabled with the "animated" class) look glitchy due to chart resizing */
   /* keeping these for posterity, in case we can improve that resizing performance */
   /* &.animated {
     transition: width 0;
-    transition-delay: ${({ theme }) =>
-    theme.transitionTiming * 2}s;
+    transition-delay: ${({ theme }) => theme.transitionTiming * 2}s;
   } */
   &.open {
     width: 250px;
@@ -68,18 +67,36 @@ export const StickyVerticalBar: React.FC<SVBProps> = ({
   topOffset,
   children,
   filtersOpen,
-}) => {
-  return (
-    <Wrapper className={cx({ open: filtersOpen })}>
-      <StickyContainer>
-        <Sticky topOffset={-topOffset} bottomOffset={Infinity}>
-          {({ style, isSticky }: { style: any; isSticky: boolean }) => (
-            <Contents style={isSticky ? { ...style, top: topOffset } : null}>
-              {children}
-            </Contents>
-          )}
-        </Sticky>
-      </StickyContainer>
-    </Wrapper>
-  );
-};
+}) => (
+  <Wrapper className={cx({ open: filtersOpen })}>
+    <StickyContainer>
+      <Sticky topOffset={-topOffset} bottomOffset={Infinity}>
+        {({
+          style,
+          isSticky,
+          distanceFromTop,
+        }: {
+          style: any;
+          isSticky: boolean;
+          distanceFromTop: number;
+        }) => (
+          <Contents
+            style={
+              isSticky
+                ? {
+                    ...style,
+                    top: topOffset,
+                    height: `calc(100vh - ${topOffset}px)`,
+                  }
+                : {
+                    height: `calc(100vh - ${distanceFromTop}px)`,
+                  }
+            }
+          >
+            {children}
+          </Contents>
+        )}
+      </Sticky>
+    </StickyContainer>
+  </Wrapper>
+);

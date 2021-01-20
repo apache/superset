@@ -27,6 +27,7 @@ from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.exceptions import QueryObjectValidationError
 from superset.models.core import Database
 from superset.utils.core import DbColumnType, get_example_database, FilterOperator
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 from .base_tests import SupersetTestCase
 
@@ -165,6 +166,7 @@ class TestDatabaseModel(SupersetTestCase):
             db.session.delete(table)
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_where_operators(self):
         class FilterTestCase(NamedTuple):
             operator: str

@@ -76,7 +76,7 @@ export const buildTree = (
 };
 
 const addInvisibleParents = (layout: Layout, item: string) => [
-  ...layout[item].children,
+  ...(layout[item]?.children || []),
   ...Object.values(layout)
     .filter(
       val =>
@@ -102,8 +102,8 @@ const checkTreeItem = (
       excluded,
     );
     if (
-      layout[item].type === CHART_TYPE &&
-      !excluded.includes(layout[item].meta.chartId)
+      layout[item]?.type === CHART_TYPE &&
+      !excluded.includes(layout[item]?.meta.chartId)
     ) {
       checkedItems.push(item);
     }
@@ -112,10 +112,7 @@ const checkTreeItem = (
 
 export const getTreeCheckedItems = (scope: Scope, layout: Layout) => {
   const checkedItems: string[] = [];
-  if (isScopingAll(scope)) {
-    return [];
-  }
-  checkTreeItem(checkedItems, layout, scope.rootPath, scope.excluded);
+  checkTreeItem(checkedItems, layout, [...scope.rootPath], [...scope.excluded]);
   return [...new Set(checkedItems)];
 };
 
@@ -133,13 +130,11 @@ export const findFilterScope = (
 
   // Get arrays of parents for selected charts
   const checkedItemParents = checkedKeys
-    .filter(item => layout[item].type === CHART_TYPE)
-    .map(key =>
-      (layout[key].parents || []).filter(parent =>
-        isShowTypeInTree(layout[parent]),
-      ),
-    );
-
+    .filter(item => layout[item]?.type === CHART_TYPE)
+    .map(key => {
+      const parents = [DASHBOARD_ROOT_ID, ...(layout[key]?.parents || [])];
+      return parents.filter(parent => isShowTypeInTree(layout[parent]));
+    });
   // Sort arrays of parents to get first shortest array of parents,
   // that means on it's level of parents located common parent, from this place parents start be different
   checkedItemParents.sort((p1, p2) => p1.length - p2.length);
@@ -150,13 +145,14 @@ export const findFilterScope = (
   const excluded: number[] = [];
   const isExcluded = (parent: string, item: string) =>
     rootPath.includes(parent) && !checkedKeys.includes(item);
-
   // looking for charts to be excluded: iterate over all charts
   // and looking for charts that have one of their parents in `rootPath` and not in selected items
   Object.entries(layout).forEach(([key, value]) => {
     if (
       value.type === CHART_TYPE &&
-      value.parents?.find(parent => isExcluded(parent, key))
+      [DASHBOARD_ROOT_ID, ...value.parents]?.find(parent =>
+        isExcluded(parent, key),
+      )
     ) {
       excluded.push(value.meta.chartId);
     }

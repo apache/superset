@@ -49,20 +49,22 @@ class TestExportChartsCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("admin")
 
         example_chart = (
-            db.session.query(Slice).filter_by(slice_name="Energy Sankey").one_or_none()
+            db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
         )
         command = ExportChartsCommand([example_chart.id])
         contents = dict(command.run())
 
         expected = [
             "metadata.yaml",
-            "charts/Energy_Sankey.yaml",
+            f"charts/Energy_Sankey_{example_chart.id}.yaml",
             "datasets/examples/energy_usage.yaml",
             "databases/examples.yaml",
         ]
         assert expected == list(contents.keys())
 
-        metadata = yaml.safe_load(contents["charts/Energy_Sankey.yaml"])
+        metadata = yaml.safe_load(
+            contents[f"charts/Energy_Sankey_{example_chart.id}.yaml"]
+        )
         assert metadata == {
             "slice_name": "Energy Sankey",
             "viz_type": "sankey",
@@ -107,12 +109,14 @@ class TestExportChartsCommand(SupersetTestCase):
         mock_g.user = security_manager.find_user("admin")
 
         example_chart = (
-            db.session.query(Slice).filter_by(slice_name="Energy Sankey").one_or_none()
+            db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
         )
         command = ExportChartsCommand([example_chart.id])
         contents = dict(command.run())
 
-        metadata = yaml.safe_load(contents["charts/Energy_Sankey.yaml"])
+        metadata = yaml.safe_load(
+            contents[f"charts/Energy_Sankey_{example_chart.id}.yaml"]
+        )
         assert list(metadata.keys()) == [
             "slice_name",
             "viz_type",
@@ -136,10 +140,13 @@ class TestImportChartsCommand(SupersetTestCase):
         command = ImportChartsCommand(contents)
         command.run()
 
-        chart = db.session.query(Slice).filter_by(uuid=chart_config["uuid"]).one()
+        chart: Slice = db.session.query(Slice).filter_by(
+            uuid=chart_config["uuid"]
+        ).one()
+        dataset = chart.datasource
         assert json.loads(chart.params) == {
             "color_picker": {"a": 1, "b": 135, "g": 122, "r": 0},
-            "datasource": "12__table",
+            "datasource": dataset.uid,
             "js_columns": ["color"],
             "js_data_mutator": "data => data.map(d => ({\\n    ...d,\\n    color: colors.hexToRGB(d.extraProps.color)\\n}));",
             "js_onclick_href": "",
