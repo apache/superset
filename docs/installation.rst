@@ -533,6 +533,8 @@ Here's a list of some of the recommended packages.
 | Apache Pinot     | ``"apache-superset[pinot]"``                                      | ``pinot+http://CONTROLLER:5436/``               |
 |                  |                                                                   | ``query?server=http://CONTROLLER:5983/``        |
 +------------------+-------------------------------------------------------------------+-------------------------------------------------+
+| Apache Solr      | ``pip install sqlalchemy-solr``                                   | ``solr://``                                     |
++------------------+---------------------------------------+-----------------------------------------------------------------------------+
 | Apache Spark SQL | ``"apache-superset[hive]"``                                       | ``jdbc+hive://``                                |
 +------------------+-------------------------------------------------------------------+-------------------------------------------------+
 | BigQuery         | ``"apache-superset[bigquery]"``                                   | ``bigquery://``                                 |
@@ -684,6 +686,13 @@ You should then be able to connect to your BigQuery datasets.
 
 To be able to upload data, e.g. sample data, the python library `pandas_gbq` is required.
 
+
+Apache Solr
+------------
+
+The connection string for Apache Solr looks like this ::
+
+    solr://{username}:{password}@{host}:{port}/{server_path}/{collection}[/?use_ssl=true|false]
 
 Elasticsearch
 -------------
@@ -1103,6 +1112,32 @@ and `PyArrow <https://arrow.apache.org/docs/python/>`_ are now used for results
 serialization. This can be disabled by setting ``RESULTS_BACKEND_USE_MSGPACK = False``
 in your configuration, should any issues arise. Please clear your existing results
 cache store when upgrading an existing environment.
+
+**Async queries for dashboards and Explore**
+
+It's also possible to configure database queries for charts to operate in `async` mode.
+This is especially useful for dashboards with many charts that may otherwise be affected
+by browser connection limits. To enable async queries for dashboards and Explore, the
+following dependencies are required:
+
+- Redis 5.0+ (the feature utilizes `Redis Streams <https://redis.io/topics/streams-intro>`_)
+- Cache backends enabled via the ``CACHE_CONFIG`` and ``DATA_CACHE_CONFIG`` config settings
+- Celery workers configured and running to process async tasks
+
+The following configuration settings are available for async queries (see config.py for default values)
+
+- ``GLOBAL_ASYNC_QUERIES`` (feature flag) - enable or disable async query operation
+- ``GLOBAL_ASYNC_QUERIES_REDIS_CONFIG`` - Redis connection info
+- ``GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX`` - the prefix used with Redis Streams
+- ``GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT`` - the maximum number of events for each user-specific event stream (FIFO eviction)
+- ``GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE`` - the maximum number of events for all users (FIFO eviction)
+- ``GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME`` - the async query feature uses a `JWT <https://tools.ietf.org/html/rfc7519>`_ cookie for authentication, this setting is the cookie's name
+- ``GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE`` - JWT cookie secure option
+- ``GLOBAL_ASYNC_QUERIES_JWT_SECRET`` - JWT's use a secret key to sign and validate the contents. This value should be at least 32 bytes and have sufficient randomness for proper security
+- ``GLOBAL_ASYNC_QUERIES_TRANSPORT`` - currently the only available option is (HTTP) `polling`, but support for a WebSocket will be added in future versions
+- ``GLOBAL_ASYNC_QUERIES_POLLING_DELAY`` - the time (in ms) between polling requests
+
+More information on the async query feature can be found in `SIP-39 <https://github.com/apache/superset/issues/9190>`_.
 
 **Important notes**
 

@@ -18,6 +18,7 @@
 """Unit tests for Superset"""
 import json
 import unittest
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import pytest
 from flask import g
@@ -40,6 +41,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_example_database
 
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 from .base_tests import SupersetTestCase
 
 
@@ -240,6 +242,7 @@ class TestImportExport(SupersetTestCase):
             self.assertEqual(e_slc.datasource.schema, params["schema"])
             self.assertEqual(e_slc.datasource.database.name, params["database_name"])
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_export_1_dashboard(self):
         self.login("admin")
         birth_dash = self.get_dash_by_slug("births")
@@ -268,6 +271,10 @@ class TestImportExport(SupersetTestCase):
             self.get_table_by_name("birth_names"), exported_tables[0]
         )
 
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices",
+        "load_birth_names_dashboard_with_slices",
+    )
     def test_export_2_dashboards(self):
         self.login("admin")
         birth_dash = self.get_dash_by_slug("births")
@@ -308,6 +315,7 @@ class TestImportExport(SupersetTestCase):
             self.get_table_by_name("wb_health_population"), exported_tables[1]
         )
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_import_1_slice(self):
         expected_slice = self.create_slice("Import Me", id=10001)
         slc_id = import_chart(expected_slice, None, import_time=1989)
@@ -318,6 +326,7 @@ class TestImportExport(SupersetTestCase):
         table_id = self.get_table_by_name("wb_health_population").id
         self.assertEqual(table_id, self.get_slice(slc_id).datasource_id)
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_import_2_slices_for_same_table(self):
         table_id = self.get_table_by_name("wb_health_population").id
         # table_id != 666, import func will have to find the table
@@ -360,6 +369,7 @@ class TestImportExport(SupersetTestCase):
         imported_dash = self.get_dash(imported_dash_id)
         self.assert_dash_equals(empty_dash, imported_dash, check_position=False)
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_import_dashboard_1_slice(self):
         slc = self.create_slice("health_slc", id=10006)
         dash_with_1_slice = self.create_dashboard(

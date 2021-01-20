@@ -17,9 +17,11 @@
  * under the License.
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
+import { sections } from '@superset-ui/chart-controls';
 
 export default {
   controlPanelSections: [
+    sections.legacyTimeseriesTime,
     {
       label: t('Query'),
       expanded: true,
@@ -59,14 +61,6 @@ export default {
   controlOverrides: {
     groupby: {
       multiple: false,
-    },
-  },
-  sectionOverrides: {
-    druidTimeSeries: {
-      controlSetRows: [['granularity', 'druid_time_origin'], ['time_range']],
-    },
-    sqlaTimeSeries: {
-      controlSetRows: [['granularity_sqla', 'time_grain_sqla'], ['time_range']],
     },
   },
 };

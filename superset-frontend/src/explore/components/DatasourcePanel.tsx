@@ -24,6 +24,7 @@ import {
   MetricOption,
   ControlType,
 } from '@superset-ui/chart-controls';
+import matchSorter from 'match-sorter';
 import { ExploreActions } from '../actions/exploreActions';
 import Control from './Control';
 
@@ -89,9 +90,6 @@ const DatasourceContainer = styled.div`
     padding-left: ${({ theme }) => theme.gridUnit * 2}px;
     padding-bottom: 0px;
   }
-  .form-control.input-sm {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
-  }
   .ant-collapse-item {
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
     .anticon.anticon-right.ant-collapse-arrow > svg {
@@ -118,7 +116,10 @@ const DatasourceContainer = styled.div`
     padding: 0px;
   }
   .field-selections {
-    padding: ${({ theme }) => 2 * theme.gridUnit}px;
+    padding: ${({ theme }) =>
+      `${2 * theme.gridUnit}px ${2 * theme.gridUnit}px ${
+        4 * theme.gridUnit
+      }px`};
     overflow: auto;
   }
   .field-length {
@@ -126,8 +127,9 @@ const DatasourceContainer = styled.div`
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
     color: ${({ theme }) => theme.colors.grayscale.light1};
   }
-  .form-control.input-sm {
-    margin-bottom: 0;
+  .form-control.input-md {
+    width: calc(100% - ${({ theme }) => theme.gridUnit * 4}px);
+    margin: ${({ theme }) => theme.gridUnit * 2}px auto;
   }
   .type-label {
     font-weight: ${({ theme }) => theme.typography.weights.light};
@@ -136,6 +138,24 @@ const DatasourceContainer = styled.div`
   }
   .Control {
     padding-bottom: 0;
+  }
+`;
+
+const LabelContainer = styled.div`
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  & > span {
+    white-space: nowrap;
+  }
+
+  .option-label {
+    display: inline;
+  }
+
+  .metric-option > .option-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 `;
 
@@ -154,13 +174,14 @@ const DataSourcePanel = ({
       setList({ columns, metrics });
       return;
     }
-    const filteredColumns = lists.columns.filter(
-      column => column.column_name.indexOf(value) !== -1,
-    );
-    const filteredMetrics = lists.metrics.filter(
-      metric => metric.metric_name.indexOf(value) !== -1,
-    );
-    setList({ columns: filteredColumns, metrics: filteredMetrics });
+    setList({
+      columns: matchSorter(columns, value, {
+        keys: ['column_name', 'expression', 'description', 'verbose_name'],
+      }),
+      metrics: matchSorter(metrics, value, {
+        keys: ['metric_name', 'expression', 'description', 'verbose_name'],
+      }),
+    });
   };
   useEffect(() => {
     setList({
@@ -181,34 +202,18 @@ const DataSourcePanel = ({
         actions={actions}
         formData={datasourceControl.mapStateToProps}
       />
+      <input
+        type="text"
+        onChange={search}
+        className="form-control input-md"
+        placeholder={t('Search Metrics & Columns')}
+      />
       <div className="field-selections">
-        <input
-          type="text"
-          onChange={search}
-          className="form-control input-sm"
-          placeholder={t('Search Metrics & Columns')}
-        />
         <Collapse
-          accordion
           bordered={false}
-          defaultActiveKey={['column', 'metrics']}
+          defaultActiveKey={['metrics', 'column']}
           expandIconPosition="right"
         >
-          <Collapse.Panel
-            header={<span className="header">{t('Columns')}</span>}
-            key="column"
-          >
-            <div className="field-length">
-              {t(`Showing %s of %s`, columnSlice.length, columns.length)}
-            </div>
-            {columnSlice.map(col => (
-              <div key={col.column_name} className="column">
-                <ColumnOption column={col} showType />
-              </div>
-            ))}
-          </Collapse.Panel>
-        </Collapse>
-        <Collapse accordion bordered={false} expandIconPosition="right">
           <Collapse.Panel
             header={<span className="header">{t('Metrics')}</span>}
             key="metrics"
@@ -217,9 +222,22 @@ const DataSourcePanel = ({
               {t(`Showing %s of %s`, metricSlice.length, metrics.length)}
             </div>
             {metricSlice.map(m => (
-              <div key={m.metric_name} className="column">
+              <LabelContainer key={m.metric_name} className="column">
                 <MetricOption metric={m} showType />
-              </div>
+              </LabelContainer>
+            ))}
+          </Collapse.Panel>
+          <Collapse.Panel
+            header={<span className="header">{t('Columns')}</span>}
+            key="column"
+          >
+            <div className="field-length">
+              {t(`Showing %s of %s`, columnSlice.length, columns.length)}
+            </div>
+            {columnSlice.map(col => (
+              <LabelContainer key={col.column_name} className="column">
+                <ColumnOption column={col} showType />
+              </LabelContainer>
             ))}
           </Collapse.Panel>
         </Collapse>

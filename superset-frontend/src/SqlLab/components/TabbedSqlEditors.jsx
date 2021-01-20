@@ -28,6 +28,7 @@ import { styled, t } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import { areArraysShallowEqual } from 'src/reduxUtils';
+import { Tooltip } from 'src/common/components/Tooltip';
 import * as Actions from '../actions/sqlLab';
 import SqlEditor from './SqlEditor';
 import TabStatusIcon from './TabStatusIcon';
@@ -324,7 +325,7 @@ class TabbedSqlEditors extends React.PureComponent {
       const state = latestQuery ? latestQuery.state : '';
 
       const menu = (
-        <Menu>
+        <Menu style={{ width: 176 }}>
           <Menu.Item
             className="close-btn"
             key="1"
@@ -382,7 +383,7 @@ class TabbedSqlEditors extends React.PureComponent {
         >
           <SqlEditor
             tables={this.props.tables.filter(xt => xt.queryEditorId === qe.id)}
-            queryEditor={qe}
+            queryEditorId={qe.id}
             editorQueries={this.state.queriesArray}
             dataPreviewQueries={this.state.dataPreviewQueries}
             latestQuery={latestQuery}
@@ -409,7 +410,11 @@ class TabbedSqlEditors extends React.PureComponent {
         fullWidth={false}
         hideAdd={this.props.offline}
         onEdit={this.handleEdit}
-        addIcon={<i data-test="add-tab-icon" className="fa fa-plus-circle" />}
+        addIcon={
+          <Tooltip id="add-tab" placement="bottom" title="New tab (Ctrl + t)">
+            <i data-test="add-tab-icon" className="fa fa-plus-circle" />
+          </Tooltip>
+        }
       >
         {editors}
       </EditableTabs>

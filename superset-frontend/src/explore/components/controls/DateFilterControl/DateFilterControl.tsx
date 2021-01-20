@@ -37,6 +37,7 @@ import Popover from 'src/common/components/Popover';
 import { Divider } from 'src/common/components';
 import Icon from 'src/components/Icon';
 import { Select } from 'src/components/Select';
+import { Tooltip } from 'src/common/components/Tooltip';
 import { SelectOptionType, FrameType } from './types';
 import {
   COMMON_RANGE_VALUES_SET,
@@ -59,7 +60,7 @@ const guessFrame = (timeRange: string): FrameType => {
     return 'Calendar';
   }
   if (timeRange === 'No filter') {
-    return 'No Filter';
+    return 'No filter';
   }
   if (customTimeRangeDecode(timeRange).matchedFlag) {
     return 'Custom';
@@ -181,27 +182,41 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
+  const [tooltipTitle, setTooltipTitle] = useState<string>(value);
 
   useEffect(() => {
-    const valueToLower = value.toLowerCase();
-    if (
-      valueToLower.startsWith('last') ||
-      valueToLower.startsWith('next') ||
-      valueToLower.startsWith('previous')
-    ) {
-      setActualTimeRange(value);
-      setValidTimeRange(true);
-    } else {
-      fetchTimeRange(value, endpoints).then(({ value, error }) => {
-        if (error) {
-          setEvalResponse(error || '');
-          setValidTimeRange(false);
+    fetchTimeRange(value, endpoints).then(({ value: actualRange, error }) => {
+      if (error) {
+        setEvalResponse(error || '');
+        setValidTimeRange(false);
+        setTooltipTitle(value || '');
+      } else {
+        /*
+          HRT == human readable text
+          ADR == actual datetime range
+          +--------------+------+----------+--------+----------+-----------+
+          |              | Last | Previous | Custom | Advanced | No Filter |
+          +--------------+------+----------+--------+----------+-----------+
+          | control pill | HRT  | HRT      | ADR    | ADR      |   ADR     |
+          +--------------+------+----------+--------+----------+-----------+
+          | tooltip      | ADR  | ADR      | HRT    | HRT      |   HRT     |
+          +--------------+------+----------+--------+----------+-----------+
+        */
+        const valueToLower = value.toLowerCase();
+        if (
+          valueToLower.startsWith('last') ||
+          valueToLower.startsWith('next') ||
+          valueToLower.startsWith('previous')
+        ) {
+          setActualTimeRange(value);
+          setTooltipTitle(actualRange || '');
         } else {
-          setActualTimeRange(value || '');
-          setValidTimeRange(true);
+          setActualTimeRange(actualRange || '');
+          setTooltipTitle(value || '');
         }
-      });
-    }
+        setValidTimeRange(true);
+      }
+    });
   }, [value]);
 
   useEffect(() => {
@@ -236,7 +251,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   };
 
   function onFrame(option: SelectOptionType) {
-    if (option.value === 'No Filter') {
+    if (option.value === 'No filter') {
       setTimeRangeValue('No filter');
     }
     setFrame(option.value as FrameType);
@@ -251,7 +266,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
         onChange={onFrame}
         className="frame-dropdown"
       />
-      {frame !== 'No Filter' && <Divider />}
+      {frame !== 'No filter' && <Divider />}
       {frame === 'Common' && (
         <CommonFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
@@ -264,10 +279,10 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
       {frame === 'Custom' && (
         <CustomFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
-      {frame === 'No Filter' && <div data-test="no-filter" />}
+      {frame === 'No filter' && <div data-test="no-filter" />}
       <Divider />
       <div>
-        <div className="section-title">{t('Actual Time Range')}</div>
+        <div className="section-title">{t('Actual time range')}</div>
         {validTimeRange && <div>{evalResponse}</div>}
         {!validTimeRange && (
           <IconWrapper className="warning">
@@ -306,7 +321,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   const title = (
     <IconWrapper>
       <Icon name="edit-alt" />
-      <span className="text">{t('Edit Time Range')}</span>
+      <span className="text">{t('Edit time range')}</span>
     </IconWrapper>
   );
 
@@ -327,13 +342,15 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
         onVisibleChange={togglePopover}
         overlayStyle={overlayStyle}
       >
-        <Label
-          className="pointer"
-          data-test="time-range-trigger"
-          onClick={() => setShow(true)}
-        >
-          {actualTimeRange}
-        </Label>
+        <Tooltip placement="top" title={tooltipTitle}>
+          <Label
+            className="pointer"
+            data-test="time-range-trigger"
+            onClick={() => setShow(true)}
+          >
+            {actualTimeRange}
+          </Label>
+        </Tooltip>
       </StyledPopover>
     </>
   );

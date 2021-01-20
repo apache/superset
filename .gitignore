@@ -22,6 +22,8 @@
 *.swp
 __pycache__
 
+.local
+.cache
 .bento*
 .cache-loader
 .coverage

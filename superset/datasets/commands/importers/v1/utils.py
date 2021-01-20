@@ -24,13 +24,13 @@ from typing import Any, Dict
 from urllib import request
 
 import pandas as pd
-from sqlalchemy import BigInteger, Date, DateTime, Float, String, Text
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.visitors import VisitableType
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
-from superset.utils.core import get_example_database, get_main_database
+from superset.utils.core import get_example_database
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +41,7 @@ JSON_KEYS = {"params", "template_params", "extra"}
 
 
 type_map = {
+    "BOOLEAN": Boolean(),
     "VARCHAR": String(255),
     "STRING": String(255),
     "TEXT": Text(),
@@ -136,7 +137,7 @@ def load_data(
             df[column_name] = pd.to_datetime(df[column_name])
 
     # reuse session when loading data if possible, to make import atomic
-    if example_database.sqlalchemy_uri == get_main_database().sqlalchemy_uri:
+    if example_database.sqlalchemy_uri == get_example_database().sqlalchemy_uri:
         logger.info("Loading data inside the import transaction")
         connection = session.connection()
     else:
