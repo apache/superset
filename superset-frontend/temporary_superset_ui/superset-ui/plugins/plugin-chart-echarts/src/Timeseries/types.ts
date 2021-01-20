@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AnnotationLayer } from '@superset-ui/core';
+import { AnnotationLayer, TimeGranularity } from '@superset-ui/core';
 
 export enum EchartsTimeseriesContributionType {
   Row = 'row',
@@ -55,6 +55,10 @@ export type EchartsTimeseriesFormData = {
   stack: boolean;
   truncateYAxis: boolean;
   yAxisFormat?: string;
+  xAxisShowMinLabel?: boolean;
+  xAxisShowMaxLabel?: boolean;
+  xAxisTimeFormat?: string;
+  timeGrainSqla?: TimeGranularity;
   yAxisBounds: [number | undefined | null, number | undefined | null];
   zoomable: boolean;
 };
@@ -79,5 +83,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   rowLimit: 10000,
   truncateYAxis: true,
   yAxisBounds: [null, null],
+  xAxisShowMinLabel: true,
+  xAxisShowMaxLabel: true,
   zoomable: false,
 };

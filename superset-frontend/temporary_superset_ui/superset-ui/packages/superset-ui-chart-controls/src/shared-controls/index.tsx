@@ -41,6 +41,7 @@ import {
   SequentialScheme,
   legacyValidateInteger,
   validateNonEmpty,
+  smartDateFormatter,
 } from '@superset-ui/core';
 
 import { mainMetric, formatSelectOptions } from '../utils';
@@ -90,6 +91,8 @@ export const D3_TIME_FORMAT_OPTIONS = [
   ['%d-%m-%Y %H:%M:%S', '%Y-%m-%d %H:%M:%S | 14-01-2019 01:32:10'],
   ['%H:%M:%S', '%H:%M:%S | 01:32:10'],
 ];
+
+export const D3_TIME_FORMAT_DOCS = t('D3 time format syntax: https://github.com/d3/d3-time-format');
 
 const timeColumnOption = {
   verbose_name: t('Time'),
@@ -425,6 +428,16 @@ const y_axis_format: SharedControlConfig<'SelectControl'> = {
   },
 };
 
+const x_axis_time_format: SharedControlConfig<'SelectControl'> = {
+  type: 'SelectControl',
+  freeForm: true,
+  label: t('Time format'),
+  renderTrigger: true,
+  default: smartDateFormatter.id,
+  choices: D3_TIME_FORMAT_OPTIONS,
+  description: D3_TIME_FORMAT_DOCS,
+};
+
 const adhoc_filters: SharedControlConfig<'AdhocFilterControl'> = {
   type: 'AdhocFilterControl',
   label: t('Filters'),
@@ -486,6 +499,7 @@ const sharedControls = {
   y,
   size,
   y_axis_format,
+  x_axis_time_format,
   adhoc_filters,
   color_scheme,
   label_colors,
