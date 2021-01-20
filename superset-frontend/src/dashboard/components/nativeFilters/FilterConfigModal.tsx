@@ -21,7 +21,6 @@ import { findLastIndex, uniq } from 'lodash';
 import shortid from 'shortid';
 import { DeleteFilled, PlusOutlined } from '@ant-design/icons';
 import { styled, t } from '@superset-ui/core';
-import Alert from 'react-bootstrap/lib/Alert';
 import { Form } from 'src/common/components';
 import { StyledModal } from 'src/common/components/Modal';
 import Button from 'src/components/Button';
@@ -32,6 +31,7 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import { useFilterConfigMap, useFilterConfiguration } from './state';
 import FilterConfigForm from './FilterConfigForm';
 import { FilterConfiguration, NativeFiltersForm } from './types';
+import { CancelConfirmationAlert } from './CancelConfirmationAlert';
 
 // how long to show the "undo" button when removing a filter
 const REMOVAL_DELAY_SECS = 5;
@@ -119,18 +119,6 @@ const StyledAddFilterBox = styled.div`
   &:hover {
     color: ${({ theme }) => theme.colors.primary.base};
   }
-`;
-
-const StyledAlert = styled(Alert)`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-`;
-
-const StyledAlertText = styled.div`
-  text-align: left;
-  margin-right: ${({ theme }) => theme.gridUnit}px;
 `;
 
 type FilterRemoval =
@@ -469,6 +457,30 @@ export function FilterConfigModal({
     }
   };
 
+  const renderFooterElements = (): React.ReactNode[] => {
+    if (saveAlertVisible) {
+      return [
+        <CancelConfirmationAlert
+          title={`${unsavedFiltersIds.length} ${t('unsaved filters')}`}
+          onConfirm={confirmCancel}
+          onDismiss={() => setSaveAlertVisible(false)}
+        >
+          {t(`Are you sure you want to cancel?`)} {getUnsavedFilterNames()}{' '}
+          {t(`will not be saved.`)}
+        </CancelConfirmationAlert>,
+      ];
+    }
+
+    return [
+      <Button key="cancel" buttonStyle="secondary" onClick={handleCancel}>
+        {t('Cancel')}
+      </Button>,
+      <Button key="submit" buttonStyle="primary" onClick={onOk}>
+        {t('Save')}
+      </Button>,
+    ];
+  };
+
   return (
     <StyledModal
       visible={isOpen}
@@ -478,34 +490,7 @@ export function FilterConfigModal({
       onOk={onOk}
       centered
       data-test="filter-modal"
-      footer={[
-        saveAlertVisible && (
-          <StyledAlert bsStyle="warning" key="alert">
-            <StyledAlertText>
-              <i className="fa fa-exclamation-triangle" />{' '}
-              <span>
-                {t(`Are you sure you want to cancel?`)}{' '}
-                {getUnsavedFilterNames()} {t(`will not be saved.`)}
-              </span>
-            </StyledAlertText>
-            <div>
-              <Button
-                key="submit"
-                buttonStyle="primary"
-                onClick={confirmCancel}
-              >
-                {t('Confirm')}
-              </Button>
-            </div>
-          </StyledAlert>
-        ),
-        <Button key="cancel" buttonStyle="secondary" onClick={handleCancel}>
-          {t('Cancel')}
-        </Button>,
-        <Button key="submit" buttonStyle="primary" onClick={onOk}>
-          {t('Save')}
-        </Button>,
-      ]}
+      footer={renderFooterElements()}
     >
       <ErrorBoundary>
         <StyledModalBody>
