@@ -23,20 +23,23 @@ params:
   filter_configs:
   - asc: true
     clearable: true
-    column: Platform
+    column: platform
     key: s3ItH9vhG
+    label: Platform
     multiple: true
     searchAllOptions: false
   - asc: true
     clearable: true
-    column: Genre
+    column: genre
     key: 202hDeMsG
+    label: Genre
     multiple: true
     searchAllOptions: false
   - asc: true
     clearable: true
-    column: Publisher
+    column: publisher
     key: 5Os6jsJFK
+    label: Publisher
     multiple: true
     searchAllOptions: false
   granularity_sqla: Year
@@ -46,7 +49,7 @@ params:
   - inclusive
   - exclusive
   url_params:
-    preselect_filters: '{"1389": {"Platform": ["PS", "PS2", "PS3", "PS4"], "Genre":
+    preselect_filters: '{"1389": {"platform": ["PS", "PS2", "PS3", "PS4"], "genre":
       null, "__time_range": "No filter"}}'
   viz_type: filter_box
 cache_timeout: null

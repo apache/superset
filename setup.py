@@ -123,6 +123,7 @@ setup(
         "dremio": ["sqlalchemy-dremio>=1.1.5, <1.2"],
         "drill": ["sqlalchemy-drill==0.1.dev"],
         "druid": ["pydruid>=0.6.1,<0.7"],
+        "solr": ["sqlalchemy-solr >= 0.2.0"],
         "elasticsearch": ["elasticsearch-dbapi>=0.1.0, <0.2.0"],
         "exasol": ["sqlalchemy-exasol>=2.1.0, <2.2"],
         "excel": ["xlrd>=1.2.0, <1.3"],

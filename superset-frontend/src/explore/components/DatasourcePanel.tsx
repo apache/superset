@@ -175,8 +175,12 @@ const DataSourcePanel = ({
       return;
     }
     setList({
-      columns: matchSorter(columns, value, { keys: ['column_name'] }),
-      metrics: matchSorter(metrics, value, { keys: ['metric_name'] }),
+      columns: matchSorter(columns, value, {
+        keys: ['column_name', 'expression', 'description', 'verbose_name'],
+      }),
+      metrics: matchSorter(metrics, value, {
+        keys: ['metric_name', 'expression', 'description', 'verbose_name'],
+      }),
     });
   };
   useEffect(() => {

@@ -18,39 +18,34 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
+import { ColumnOption, ColumnTypeLabel } from '@superset-ui/chart-controls';
 
-import AggregateOption from './AggregateOption';
-import columnType from '../propTypes/columnType';
-import savedMetricType from '../propTypes/savedMetricType';
-import aggregateOptionType from '../propTypes/aggregateOptionType';
-import withToasts from '../../messageToasts/enhancers/withToasts';
+import columnType from 'src/explore/propTypes/columnType';
+import AdhocMetricStaticOption from './AdhocMetricStaticOption';
+import adhocMetricType from './adhocMetricType';
 
 const propTypes = {
   option: PropTypes.oneOfType([
     columnType,
-    savedMetricType,
-    aggregateOptionType,
+    PropTypes.shape({ saved_metric_name: PropTypes.string.isRequired }),
+    adhocMetricType,
   ]).isRequired,
-  addWarningToast: PropTypes.func.isRequired,
 };
 
-function MetricDefinitionOption({ option, addWarningToast }) {
-  if (option.metric_name) {
-    return <MetricOption metric={option} showType />;
+export default function FilterDefinitionOption({ option }) {
+  if (option.saved_metric_name) {
+    return (
+      <div>
+        <ColumnTypeLabel type="expression" />
+        <span className="option-label">{option.saved_metric_name}</span>
+      </div>
+    );
   }
   if (option.column_name) {
     return <ColumnOption column={option} showType />;
   }
-  if (option.aggregate_name) {
-    return <AggregateOption aggregate={option} showType />;
+  if (option.label) {
+    return <AdhocMetricStaticOption adhocMetric={option} showType />;
   }
-  addWarningToast(
-    'You must supply either a saved metric, column or aggregate to MetricDefinitionOption',
-  );
-  return null;
 }
-
-MetricDefinitionOption.propTypes = propTypes;
-
-export default withToasts(MetricDefinitionOption);
+FilterDefinitionOption.propTypes = propTypes;
