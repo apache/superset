@@ -28,6 +28,10 @@ synchronous communications, we recommend using the `#apache-releases` channel
 on the Superset Slack. People crafting releases and those interested in
 partaking in the process should join the channel.
 
+## Release notes for recent releases
+- [1.0.0](release-notes-1-0/README.md)
+- [0.38](release-notes-0-38/README.md)
+
 ## Release setup (First Time Only)
 
 First you need to setup a few things. This is a one-off and doesn't
