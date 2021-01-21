@@ -48,6 +48,7 @@ interface StyledModalProps extends SupersetThemeProps {
   maxWidth?: string;
   responsive?: boolean;
   height?: string;
+  hideFooter?: boolean;
 }
 
 export const StyledModal = styled(BaseModal)<StyledModalProps>`
