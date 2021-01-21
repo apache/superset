@@ -229,7 +229,7 @@ const TimeTable = ({
           }
         >
           {errorMsg ? (
-            { errorMsg }
+            errorMsg
           ) : (
             <span style={{ color }}>
               <FormattedNumber num={v} format={column.d3format} />
