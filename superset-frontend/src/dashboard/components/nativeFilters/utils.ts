@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ExtraFormData, QueryObject } from '@superset-ui/core';
+import {
+  ExtraFormData,
+  getChartMetadataRegistry,
+  QueryObject,
+} from '@superset-ui/core';
 import { Charts, Layout, LayoutItem } from 'src/dashboard/types';
 import {
   CHART_TYPE,
@@ -33,6 +37,7 @@ import {
   TreeItem,
 } from './types';
 import { DASHBOARD_ROOT_ID } from '../../util/constants';
+import { FeatureFlag, isFeatureEnabled } from '../../../featureFlags';
 
 export const useForceUpdate = () => {
   const [, updateState] = React.useState({});
@@ -196,6 +201,7 @@ export function mergeExtraFormData(
 
 export function getExtraFormData(
   nativeFilters: NativeFiltersState,
+  charts: Charts,
 ): ExtraFormData {
   let extraFormData: ExtraFormData = {};
   Object.keys(nativeFilters.filters).forEach(key => {
@@ -203,6 +209,19 @@ export function getExtraFormData(
     const { extraFormData: newExtra = {} } = filterState;
     extraFormData = mergeExtraFormData(extraFormData, newExtra);
   });
+  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+    Object.entries(charts).forEach(([key, chart]) => {
+      const { isNativeFilter } = getChartMetadataRegistry().items[
+        chart?.formData?.viz_type
+        // @ts-ignore need export from superset-ui `ItemWithValue`
+      ].value;
+      if (isNativeFilter) {
+        const filterState = nativeFilters.filtersState[key] || {};
+        const { extraFormData: newExtra = {} } = filterState;
+        extraFormData = mergeExtraFormData(extraFormData, newExtra);
+      }
+    });
+  }
   return extraFormData;
 }
 

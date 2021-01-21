@@ -58,6 +58,7 @@ function mapStateToProps(
   // note: this method caches filters if possible to prevent render cascades
   const formData = getFormDataWithExtraFilters({
     chart,
+    charts: chartQueries,
     filters: getAppliedFilterValues(id),
     colorScheme,
     colorNamespace,

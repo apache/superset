@@ -27,6 +27,7 @@ import Label from 'src/components/Label';
 
 import ControlHeader from '../ControlHeader';
 import './VizTypeControl.less';
+import { FeatureFlag, isFeatureEnabled } from '../../../featureFlags';
 
 const propTypes = {
   description: PropTypes.string,
@@ -166,7 +167,11 @@ const VizTypeControl = props => {
   const filterString = filter.toLowerCase();
 
   const filteredTypes = DEFAULT_ORDER.filter(type => registry.has(type))
-    .filter(type => !registry.get(type).isNativeFilter)
+    .filter(
+      type =>
+        isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ||
+        !registry.get(type).isNativeFilter,
+    )
     .map(type => ({
       key: type,
       value: registry.get(type),
@@ -174,7 +179,11 @@ const VizTypeControl = props => {
     .concat(
       registry
         .entries()
-        .filter(entry => !entry.value.isNativeFilter)
+        .filter(
+          entry =>
+            isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ||
+            !entry.value.isNativeFilter,
+        )
         .filter(({ key }) => !typesWithDefaultOrder.has(key)),
     )
     .filter(entry => entry.value.name.toLowerCase().includes(filterString));
