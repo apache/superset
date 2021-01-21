@@ -50,14 +50,20 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
 
 class OpenDistro(ElasticSearchEngineSpec):
 
+    # allows_column_aliases = False
     _time_grain_expressions = {
         None: "{col}",
+        "PT1S": "date_format({col}, 'yyyy-MM-dd HH:mm:ss.000')",
+        "PT1M": "date_format({col}, 'yyyy-MM-dd HH:mm:00.000')",
+        "PT1H": "date_format({col}, 'yyyy-MM-dd HH:00:00.000')",
+        "P1D": "date_format({col}, 'yyyy-MM-dd 00:00:00.000')",
+        "P1M": "date_format({col}, 'yyyy-MM-01 00:00:00.000')",
+        "P1Y": "date_format({col}, 'yyyy-01-01 00:00:00.000')",
     }
 
     engine = "odelasticsearch"
     engine_name = "ElasticSearch"
 
-    @classmethod
-    def make_label_compatible(cls, label: str) -> str:
-        new_label = super().make_label_compatible(label)
-        return new_label.replace(".", "_")
+    @staticmethod
+    def _mutate_label(label: str) -> str:
+        return label.replace(".", "_")
