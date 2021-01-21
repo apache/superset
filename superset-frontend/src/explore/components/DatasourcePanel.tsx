@@ -169,18 +169,27 @@ const DataSourcePanel = ({
     columns,
     metrics,
   });
+
+  function searchByRelevance(datasource: any, value: string) {
+    const properties = [
+      'column_name', 'description', 'verbose_name', 'expression'
+    ];
+    let sortedResults = new Array;
+    properties.forEach(property => {
+      sortedResults.push(matchSorter(datasource, value, {keys: [property]}));
+    })
+    return [...new Set(sortedResults.flat())];
+  }
+
   const search = ({ target: { value } }: { target: { value: string } }) => {
     if (value === '') {
       setList({ columns, metrics });
       return;
     }
+
     setList({
-      columns: matchSorter(columns, value, {
-        keys: ['column_name', 'description', 'verbose_name', 'expression'],
-      }),
-      metrics: matchSorter(metrics, value, {
-        keys: ['metric_name', 'description', 'verbose_name', 'expression'],
-      }),
+      columns: searchByRelevance(columns, value),
+      metrics: searchByRelevance(metrics, value),
     });
   };
   useEffect(() => {
@@ -192,6 +201,7 @@ const DataSourcePanel = ({
 
   const metricSlice = lists.metrics.slice(0, 50);
   const columnSlice = lists.columns.slice(0, 50);
+  console.log(columnSlice);
 
   return (
     <DatasourceContainer>
