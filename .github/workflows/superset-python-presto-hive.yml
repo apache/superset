@@ -9,6 +9,7 @@ on:
 
 jobs:
   test-postgres-presto:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -67,6 +68,7 @@ jobs:
           bash <(curl -s https://codecov.io/bash) -cF python
 
   test-postgres-hive:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
