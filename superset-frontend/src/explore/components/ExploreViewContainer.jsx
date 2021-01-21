@@ -95,6 +95,9 @@ const Styles = styled.div`
     flex: 1;
     min-width: ${({ theme }) => theme.gridUnit * 128}px;
     border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    .panel {
+      margin-bottom: 0;
+    }
   }
   .controls-column {
     align-self: flex-start;
