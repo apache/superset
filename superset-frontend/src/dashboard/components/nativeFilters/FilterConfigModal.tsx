@@ -30,6 +30,7 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import { useFilterConfigMap, useFilterConfiguration } from './state';
 import FilterConfigForm from './FilterConfigForm';
 import { FilterConfiguration, NativeFiltersForm } from './types';
+import { CancelConfirmationAlert } from './CancelConfirmationAlert';
 
 // how long to show the "undo" button when removing a filter
 const REMOVAL_DELAY_SECS = 5;
@@ -174,6 +175,8 @@ export function FilterConfigModal({
     Record<string, FilterRemoval>
   >({});
 
+  const [saveAlertVisible, setSaveAlertVisible] = useState<boolean>(false);
+
   // brings back a filter that was previously removed ("Undo")
   const restoreFilter = useCallback(
     (id: string) => {
@@ -231,6 +234,7 @@ export function FilterConfigModal({
     const newFilterId = generateFilterId();
     setNewFilterIds([...newFilterIds, newFilterId]);
     setCurrentFilterId(newFilterId);
+    setSaveAlertVisible(false);
   }, [newFilterIds, setCurrentFilterId]);
 
   // if this is a "create" modal rather than an "edit" modal,
@@ -248,6 +252,7 @@ export function FilterConfigModal({
     setNewFilterIds([]);
     setCurrentFilterId(getInitialCurrentFilterId());
     setRemovedFilters({});
+    setSaveAlertVisible(false);
   }, [form, getInitialCurrentFilterId]);
 
   const completeFilterRemoval = (filterId: string) => {
@@ -272,6 +277,7 @@ export function FilterConfigModal({
         ...removedFilters,
         [filterId]: { isPending: true, timerId },
       }));
+      setSaveAlertVisible(false);
     } else if (action === 'add') {
       addFilter();
     }
@@ -414,9 +420,61 @@ export function FilterConfigModal({
     validateForm,
   ]);
 
-  const handleCancel = () => {
+  const confirmCancel = () => {
     resetForm();
     onCancel();
+  };
+
+  const unsavedFiltersIds = newFilterIds.filter(id => !removedFilters[id]);
+
+  const getUnsavedFilterNames = (): string => {
+    const unsavedFiltersNames = unsavedFiltersIds.map(
+      id => `"${getFilterTitle(id)}"`,
+    );
+
+    if (unsavedFiltersNames.length === 0) {
+      return '';
+    }
+
+    if (unsavedFiltersNames.length === 1) {
+      return unsavedFiltersNames[0];
+    }
+
+    const lastFilter = unsavedFiltersNames.pop();
+
+    return `${unsavedFiltersNames.join(', ')} ${t('and')} ${lastFilter}`;
+  };
+
+  const handleCancel = () => {
+    if (unsavedFiltersIds.length > 0) {
+      setSaveAlertVisible(true);
+    } else {
+      confirmCancel();
+    }
+  };
+
+  const renderFooterElements = (): React.ReactNode[] => {
+    if (saveAlertVisible) {
+      return [
+        <CancelConfirmationAlert
+          title={`${unsavedFiltersIds.length} ${t('unsaved filters')}`}
+          onConfirm={confirmCancel}
+          onDismiss={() => setSaveAlertVisible(false)}
+        >
+          {t(`Are you sure you want to cancel?`)} {getUnsavedFilterNames()}{' '}
+          {t(`will not be saved.`)}
+        </CancelConfirmationAlert>,
+      ];
+    }
+
+    return [
+      <Button key="cancel" buttonStyle="secondary" onClick={handleCancel}>
+        {t('Cancel')}
+      </Button>,
+      <Button key="submit" buttonStyle="primary" onClick={onOk}>
+        {t('Save')}
+      </Button>,
+    ];
   };
 
   return (
@@ -428,14 +486,7 @@ export function FilterConfigModal({
       onOk={onOk}
       centered
       data-test="filter-modal"
-      footer={[
-        <Button key="cancel" buttonStyle="secondary" onClick={handleCancel}>
-          {t('Cancel')}
-        </Button>,
-        <Button key="submit" buttonStyle="primary" onClick={onOk}>
-          {t('Save')}
-        </Button>,
-      ]}
+      footer={renderFooterElements()}
     >
       <ErrorBoundary>
         <StyledModalBody>
@@ -451,6 +502,7 @@ export function FilterConfigModal({
                 // we only need to set this if a name changed
                 setFormValues(values);
               }
+              setSaveAlertVisible(false);
             }}
             layout="vertical"
           >
