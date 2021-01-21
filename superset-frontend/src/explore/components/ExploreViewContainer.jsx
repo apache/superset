@@ -166,6 +166,16 @@ function ExploreViewContainer(props) {
     ? `${props.forcedHeight}px`
     : `${windowSize.height - navHeight}px`;
 
+  const storageKeys = {
+    controlsWidth: 'controls_width',
+    dataSourceWidth: 'datasource_width',
+  };
+
+  const defaultSidebarsWidth = {
+    controls_width: 320,
+    datasource_width: 300,
+  };
+
   function addHistory({ isReplace = false, title } = {}) {
     const payload = { ...props.form_data };
     const longUrl = getExploreLongUrl(
@@ -365,19 +375,26 @@ function ExploreViewContainer(props) {
     );
   }
 
-  function onResize(evt) {
-    const { x } = evt;
-    if (x > 0) {
-      localStorage.setItem('explore_sidebar_widths', x);
+  function getSidebarWidths(key) {
+    try {
+      return localStorage.getItem(key) || defaultSidebarsWidth[key];
+    } catch {
+      return defaultSidebarsWidth[key];
+    }
+  }
+
+  function setSidebarWidths(key, dimension) {
+    try {
+      const newDimension = Number(getSidebarWidths(key)) + dimension.width;
+      localStorage.setItem(key, newDimension);
+    } catch {
+      // Catch in case localStorage is unavailable
     }
   }
 
   if (props.standalone) {
     return renderChartContainer();
   }
-
-  const exploreSidebarWidth =
-    localStorage.getItem('explore_sidebar_widths') || 320;
 
   return (
     <Styles id="explore-container" height={height}>
@@ -414,9 +431,11 @@ function ExploreViewContainer(props) {
         />
       )}
       <Resizable
-        onResize={onResize}
-        defaultSize={{ width: exploreSidebarWidth }}
-        minWidth={300}
+        onResizeStop={(evt, direction, ref, d) =>
+          setSidebarWidths(storageKeys.dataSourceWidth, d)
+        }
+        defaultSize={{ width: getSidebarWidths(storageKeys.dataSourceWidth) }}
+        minWidth={defaultSidebarsWidth[storageKeys.dataSourceWidth]}
         maxWidth="33%"
         enable={{ right: true }}
         className={
@@ -467,9 +486,11 @@ function ExploreViewContainer(props) {
         </div>
       ) : null}
       <Resizable
-        onResize={onResize}
-        defaultSize={{ width: exploreSidebarWidth }}
-        minWidth={320}
+        onResizeStop={(evt, direction, ref, d) =>
+          setSidebarWidths(storageKeys.controlsWidth, d)
+        }
+        defaultSize={{ width: getSidebarWidths(storageKeys.controlsWidth) }}
+        minWidth={defaultSidebarsWidth[storageKeys.controlsWidth]}
         maxWidth="33%"
         enable={{ right: true }}
         className="col-sm-3 explore-column controls-column"
