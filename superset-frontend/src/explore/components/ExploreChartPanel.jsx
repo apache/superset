@@ -66,6 +66,7 @@ const Styles = styled.div`
   align-items: stretch;
   align-content: stretch;
   overflow: auto;
+  box-shadow: none;
 
   & > div:last-of-type {
     flex-basis: 100%;
