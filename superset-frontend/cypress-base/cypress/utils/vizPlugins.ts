@@ -53,3 +53,12 @@ export function getChartAliases(slices: any[]): string[] {
   });
   return aliases;
 }
+
+export function interceptChart(sliceId: number, isLegacy = true) {
+  const formData = { slice_id: sliceId };
+  const encodedFormData = encodeURIComponent(JSON.stringify(formData));
+  const url = isLegacy
+    ? `**/superset/explore_json/?form_data=${encodedFormData}*`
+    : `**/api/v1/chart/data?form_data=${encodedFormData}*`;
+  return cy.intercept('POST', url);
+}

@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import parsePostForm from '../../utils/parsePostForm';
+import { interceptChart } from '../../utils/vizPlugins';
 import { TABBED_DASHBOARD } from './dashboard.helper';
 
 describe('Dashboard tabs', () => {
@@ -23,7 +25,6 @@ describe('Dashboard tabs', () => {
   let treemapId;
   let linechartId;
   let boxplotId;
-  let dashboardId;
 
   // cypress can not handle window.scrollTo
   // https://github.com/cypress-io/cypress/issues/2761
@@ -42,7 +43,6 @@ describe('Dashboard tabs', () => {
     cy.get('#app').then(data => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
       const dashboard = bootstrapData.dashboard_data;
-      dashboardId = dashboard.id;
       filterId = dashboard.slices.find(
         slice => slice.form_data.viz_type === 'filter_box',
       ).slice_id;
@@ -55,38 +55,10 @@ describe('Dashboard tabs', () => {
       linechartId = dashboard.slices.find(
         slice => slice.form_data.viz_type === 'line',
       ).slice_id;
-
-      const filterFormdata = {
-        slice_id: filterId,
-      };
-      const filterRequest = `/superset/explore_json/?form_data=${JSON.stringify(
-        filterFormdata,
-      )}&dashboard_id=${dashboardId}`;
-      cy.intercept('POST', filterRequest).as('filterRequest');
-
-      const treemapFormdata = {
-        slice_id: treemapId,
-      };
-      const treemapRequest = `/superset/explore_json/?form_data=${JSON.stringify(
-        treemapFormdata,
-      )}&dashboard_id=${dashboardId}`;
-      cy.intercept('POST', treemapRequest).as('treemapRequest');
-
-      const linechartFormdata = {
-        slice_id: linechartId,
-      };
-      const linechartRequest = `/superset/explore_json/?form_data=${JSON.stringify(
-        linechartFormdata,
-      )}&dashboard_id=${dashboardId}`;
-      cy.intercept('POST', linechartRequest).as('linechartRequest');
-
-      const boxplotFormdata = {
-        slice_id: boxplotId,
-      };
-      const boxplotRequest = `/superset/explore_json/?form_data=${JSON.stringify(
-        boxplotFormdata,
-      )}&dashboard_id=${dashboardId}`;
-      cy.intercept('POST', boxplotRequest).as('boxplotRequest');
+      interceptChart(filterId).as('filterRequest');
+      interceptChart(treemapId).as('treemapRequest');
+      interceptChart(linechartId).as('linechartRequest');
+      interceptChart(boxplotId, false).as('boxplotRequest');
     });
   });
 
@@ -128,10 +100,8 @@ describe('Dashboard tabs', () => {
       .should('be.visible');
     cy.get('[data-test="grid-container"]')
       .find('.box_plot')
-      .should('not.be.visible');
-    cy.get('[data-test="grid-container"]')
-      .find('.line')
-      .should('not.be.visible');
+      .should('not.exist');
+    cy.get('[data-test="grid-container"]').find('.line').should('not.exist');
 
     // click row level tab, see 1 more chart
     cy.get('[data-test="dashboard-component-tabs"]')
@@ -169,61 +139,51 @@ describe('Dashboard tabs', () => {
       .first()
       .should('be.visible')
       .type('South Asia{enter}', { force: true });
+    cy.get('.filter_box button').contains('Apply').click();
 
     // send new query from same tab
-    cy.wait('@treemapRequest').then(xhr => {
-      const requestFormData = xhr.request.body;
-      const requestParams = JSON.parse(requestFormData.get('form_data'));
+    cy.wait('@treemapRequest').then(({ request }) => {
+      const requestBody = parsePostForm(request.body);
+      const requestParams = JSON.parse(requestBody.form_data);
       expect(requestParams.extra_filters[0]).deep.eq({
         col: 'region',
-        op: 'IN',
-        val: ['South Asia'],
+        op: '==',
+        val: 'South Asia',
       });
     });
 
     // click row level tab, send 1 more query
-    cy.get('[data-test="dashboard-component-tabs"]')
-      .last()
-      .find('[data-test="nav-list"]')
-      .children()
-      .as('row-level-tabs');
-    cy.get('@row-level-tabs').last().click();
+    cy.get('.ant-tabs-tab').contains('row tab 2').click();
 
-    cy.wait('@linechartRequest').then(xhr => {
-      const requestFormData = xhr.request.body;
-      const requestParams = JSON.parse(requestFormData.get('form_data'));
+    cy.wait('@linechartRequest').then(({ request }) => {
+      const requestBody = parsePostForm(request.body);
+      const requestParams = JSON.parse(requestBody.form_data);
       expect(requestParams.extra_filters[0]).deep.eq({
         col: 'region',
-        op: 'IN',
-        val: ['South Asia'],
+        op: '==',
+        val: 'South Asia',
       });
     });
 
     // click top level tab, send 1 more query
-    cy.get('[data-test="dashboard-component-tabs"]')
-      .first()
-      .find('[data-test="nav-list"]')
-      .children()
-      .as('top-level-tabs');
+    cy.get('.ant-tabs-tab').contains('Tab B').click();
 
-    cy.get('@top-level-tabs').last().click();
-
-    cy.wait('@boxplotRequest').then(xhr => {
-      const requestFormData = xhr.request.body;
-      const requestParams = JSON.parse(requestFormData.get('form_data'));
-      expect(requestParams.extra_filters[0]).deep.eq({
+    cy.wait('@boxplotRequest').then(({ request }) => {
+      const requestBody = request.body;
+      const requestParams = requestBody.queries[0];
+      expect(requestParams.filters[0]).deep.eq({
         col: 'region',
-        op: 'IN',
-        val: ['South Asia'],
+        op: '==',
+        val: 'South Asia',
       });
     });
 
     // navigate to filter and clear filter
-    cy.get('@top-level-tabs').first().click();
-
-    cy.get('@top-level-tabs').first().click();
+    cy.get('.ant-tabs-tab').contains('Tab A').click();
+    cy.get('.ant-tabs-tab').contains('row tab 1').click();
 
     cy.get('.Select__clear-indicator').click();
+    cy.get('.filter_box button').contains('Apply').click();
 
     // trigger 1 new query
     cy.wait('@treemapRequest');
