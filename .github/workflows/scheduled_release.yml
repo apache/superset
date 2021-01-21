@@ -12,9 +12,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Get current date # following pair of steps taken from this example: https://stackoverflow.com/questions/60942067/get-current-date-and-time-in-github-workflows
-          id: date
-          run: echo "name=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+      - name: Get current date
+        id: date
+        run: echo "name=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
       - name: Test with environment variables
         run: echo $TAG_NAME - $RELEASE_NAME
         env:
