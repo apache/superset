@@ -22,9 +22,8 @@ import { Alert, Col, Radio, Well } from 'react-bootstrap';
 import Badge from 'src/common/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
-
-import Tabs from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
+import Tabs from 'src/common/components/Tabs';
 import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
 import DatabaseSelector from 'src/components/DatabaseSelector';
 import Icon from 'src/components/Icon';
@@ -78,6 +77,11 @@ const EditLockContainer = styled.div`
   }
 `;
 
+const ColumnButtonWrapper = styled.div`
+  text-align: right;
+  ${({ theme }) => `margin-bottom: ${theme.gridUnit * 2}px`}
+`;
+
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
@@ -121,6 +125,7 @@ function ColumnCollectionTable({
       allowDeletes
       allowAddItem={allowAddItem}
       itemGenerator={itemGenerator}
+      stickyHeader
       expandFieldset={
         <FormContainer>
           <Fieldset compact>
@@ -943,6 +948,7 @@ class DatasourceEditor extends React.PureComponent {
           ),
         }}
         allowDeletes
+        stickyHeader
       />
     );
   }
@@ -991,19 +997,26 @@ class DatasourceEditor extends React.PureComponent {
             key={2}
           >
             <div>
+              <ColumnButtonWrapper>
+                <span className="m-t-10 m-r-10">
+                  <Button
+                    buttonSize="sm"
+                    buttonStyle="primary"
+                    onClick={this.syncMetadata}
+                    className="sync-from-source"
+                  >
+                    <i className="fa fa-database" />{' '}
+                    {t('Sync columns from source')}
+                  </Button>
+                </span>
+              </ColumnButtonWrapper>
               <ColumnCollectionTable
+                className="columns-table"
                 columns={this.state.databaseColumns}
                 onChange={databaseColumns =>
                   this.setColumns({ databaseColumns })
                 }
               />
-              <Button
-                buttonStyle="primary"
-                onClick={this.syncMetadata}
-                className="sync-from-source"
-              >
-                {t('Sync columns from source')}
-              </Button>
               {this.state.metadataLoading && <Loading />}
             </div>
           </Tabs.TabPane>
