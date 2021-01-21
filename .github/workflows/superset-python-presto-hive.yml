@@ -6,6 +6,7 @@ on:
     branches-ignore:
       - "dependabot/npm_and_yarn/**"
   pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
   test-postgres-presto:

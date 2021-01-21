@@ -5,7 +5,7 @@ on:
     branches:
       - 'master'
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
   build:
