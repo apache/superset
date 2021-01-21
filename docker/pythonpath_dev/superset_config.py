@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 #
 # This file is included in the final Docker image and SHOULD be overridden when
 # deploying the image to prod. Settings configured here are intended for use in local
@@ -65,7 +64,6 @@ REDIS_HOST = get_env_variable("REDIS_HOST")
 REDIS_PORT = get_env_variable("REDIS_PORT")
 REDIS_CELERY_DB = get_env_variable("REDIS_CELERY_DB", 0)
 REDIS_RESULTS_DB = get_env_variable("REDIS_CELERY_DB", 1)
-
 
 RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 
