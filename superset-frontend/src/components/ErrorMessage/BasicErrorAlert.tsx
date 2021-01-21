@@ -29,6 +29,7 @@ const StyledContainer = styled.div<{ level: ErrorLevel }>`
   border: 1px solid ${({ level, theme }) => theme.colors[level].base};
   color: ${({ level, theme }) => theme.colors[level].dark2};
   padding: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-bottom: ${({ theme }) => theme.gridUnit}px;
   width: 100%;
 `;
 
