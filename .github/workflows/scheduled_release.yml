@@ -1,0 +1,34 @@
+on:
+
+  schedule:
+    - cron: '0 0 * * 2'  # https://crontab.guru/#0_0_*_*_2
+
+name: Create Release
+
+jobs:
+  build:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Get current date # following pair of steps taken from this example: https://stackoverflow.com/questions/60942067/get-current-date-and-time-in-github-workflows
+          id: date
+          run: echo "name=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+      - name: Test with environment variables
+        run: echo $TAG_NAME - $RELEASE_NAME
+        env:
+          TAG_NAME: weekly-tag-${{ steps.date.outputs.date }}
+          RELEASE_NAME: weekly-release-${{ steps.date.outputs.date }}
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: weekly-tag-${{ steps.date.outputs.date }}
+          release_name: Reekly-release-${{ steps.date.outputs.date }}
+          body: |
+            ##todo: list of commits
+          draft: false
+          prerelease: false
