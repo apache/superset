@@ -29,7 +29,7 @@ export type AdhocMetricPopoverTriggerProps = {
   adhocMetric: AdhocMetric;
   onMetricEdit: () => void;
   columns: { column_name: string; type: string }[];
-  savedMetrics: savedMetricType[];
+  savedMetricsOptions: savedMetricType[];
   savedMetric: savedMetricType;
   datasourceType: string;
   children: ReactNode;
@@ -105,7 +105,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
         adhocMetric={adhocMetric}
         title={title}
         columns={this.props.columns}
-        savedMetrics={this.props.savedMetrics}
+        savedMetricsOptions={this.props.savedMetricsOptions}
         savedMetric={this.props.savedMetric}
         datasourceType={this.props.datasourceType}
         onResize={this.onPopoverResize}
