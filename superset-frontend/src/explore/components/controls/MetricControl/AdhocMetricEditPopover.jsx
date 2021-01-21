@@ -43,7 +43,7 @@ const propTypes = {
   onResize: PropTypes.func.isRequired,
   getCurrentTab: PropTypes.func,
   columns: PropTypes.arrayOf(columnType),
-  savedMetrics: PropTypes.arrayOf(savedMetricType),
+  savedMetricsOptions: PropTypes.arrayOf(savedMetricType),
   savedMetric: savedMetricType,
   datasourceType: PropTypes.string,
   title: PropTypes.shape({
@@ -76,8 +76,8 @@ export default class AdhocMetricEditPopover extends React.Component {
   // "Saved" is a default tab unless there are no saved metrics for dataset
   defaultActiveTabKey =
     (this.props.savedMetric.metric_name || this.props.adhocMetric.isNew) &&
-    Array.isArray(this.props.savedMetrics) &&
-    this.props.savedMetrics.length > 0
+    Array.isArray(this.props.savedMetricsOptions) &&
+    this.props.savedMetricsOptions.length > 0
       ? SAVED_TAB_KEY
       : this.props.adhocMetric.expressionType;
 
@@ -173,7 +173,7 @@ export default class AdhocMetricEditPopover extends React.Component {
   }
 
   onSavedMetricChange(savedMetricId) {
-    const savedMetric = this.props.savedMetrics.find(
+    const savedMetric = this.props.savedMetricsOptions.find(
       metric => metric.id === savedMetricId,
     );
     this.setState(prevState => ({
@@ -259,7 +259,7 @@ export default class AdhocMetricEditPopover extends React.Component {
       adhocMetric: propsAdhocMetric,
       savedMetric: propsSavedMetric,
       columns,
-      savedMetrics,
+      savedMetricsOptions,
       onChange,
       onClose,
       onResize,
@@ -303,7 +303,7 @@ export default class AdhocMetricEditPopover extends React.Component {
     };
 
     const savedSelectProps = {
-      placeholder: t('%s saved metric(s)', savedMetrics?.length ?? 0),
+      placeholder: t('%s saved metric(s)', savedMetricsOptions?.length ?? 0),
       value: savedMetric?.verbose_name || savedMetric?.metric_name,
       onChange: this.onSavedMetricChange,
       allowClear: true,
@@ -349,8 +349,8 @@ export default class AdhocMetricEditPopover extends React.Component {
                 <strong>{t('Saved metric')}</strong>
               </FormLabel>
               <Select name="select-saved" {...savedSelectProps}>
-                {Array.isArray(savedMetrics) &&
-                  savedMetrics.map(savedMetric => (
+                {Array.isArray(savedMetricsOptions) &&
+                  savedMetricsOptions.map(savedMetric => (
                     <Select.Option
                       value={savedMetric.id}
                       filterBy={
