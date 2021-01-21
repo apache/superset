@@ -174,11 +174,11 @@ const DataSourcePanel = ({
     const properties = [
       'column_name', 'description', 'verbose_name', 'expression'
     ];
-    let sortedResults = new Array;
-    properties.forEach(property => {
-      sortedResults.push(matchSorter(datasource, value, {keys: [property]}));
+    let result = new Array;
+    result = properties.map(property => {
+      return matchSorter(datasource, value, {keys: [property]});
     })
-    return [...new Set(sortedResults.flat())];
+    return [...new Set(result.flat())];
   }
 
   const search = ({ target: { value } }: { target: { value: string } }) => {
