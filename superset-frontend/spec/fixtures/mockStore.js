@@ -22,7 +22,10 @@ import thunk from 'redux-thunk';
 import rootReducer from 'src/dashboard/reducers/index';
 
 import mockState from './mockState';
-import { dashboardLayoutWithTabs } from './mockDashboardLayout';
+import {
+  dashboardLayoutWithTabs,
+  dashboardLayoutWithTabsCombined,
+} from './mockDashboardLayout';
 import { sliceId } from './mockChartQueries';
 import { dashboardFilters } from './mockDashboardFilters';
 
@@ -42,7 +45,19 @@ export const getMockStoreWithTabs = () =>
     compose(applyMiddleware(thunk)),
   );
 
+export const getMockStoreWithTabsCombined = () =>
+  createStore(
+    rootReducer,
+    {
+      ...mockState,
+      dashboardLayout: dashboardLayoutWithTabsCombined,
+      dashboardFilters: {},
+    },
+    compose(applyMiddleware(thunk)),
+  );
+
 export const mockStoreWithTabs = getMockStoreWithTabs();
+export const mockStoreWithTabsCombined = getMockStoreWithTabsCombined();
 
 export const sliceIdWithAppliedFilter = sliceId + 1;
 export const sliceIdWithRejectedFilter = sliceId + 2;
