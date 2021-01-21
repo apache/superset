@@ -22,6 +22,7 @@ import {
   DASHBOARD_CHART_ALIAS_PREFIX,
   isLegacyResponse,
 } from '../../utils/vizPlugins';
+import parsePostForm from 'cypress/utils/parsePostForm';
 
 interface Slice {
   slice_id: number;
@@ -89,9 +90,9 @@ describe('Dashboard filter', () => {
           const responseBody = response?.body;
           let requestFilter;
           if (isLegacyResponse(responseBody)) {
-            const requestFormData = request.body as FormData;
+            const requestFormData = parsePostForm(request.body);
             const requestParams = JSON.parse(
-              requestFormData.get('form_data') as string,
+              requestFormData.form_data as string,
             );
             requestFilter = requestParams.extra_filters[0];
           } else {

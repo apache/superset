@@ -84,6 +84,6 @@ describe('Dashboard edit markdown', () => {
     cy.get('@component-background-first').click('right');
     cy.get('[data-test="dashboard-component-chart-holder"]')
       .find('.ace_content')
-      .should('not.be.visible');
+      .should('not.exist');
   });
 });

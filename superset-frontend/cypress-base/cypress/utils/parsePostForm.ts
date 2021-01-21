@@ -20,11 +20,12 @@
  * Parse multipart form data sent via POST requests.
  */
 export default function parsePostForm(requestBody: ArrayBuffer) {
+  type ParsedFields = Record<string, string[] | string>;
   if (requestBody.constructor.name !== 'ArrayBuffer') {
-    return requestBody;
+    return (requestBody as unknown) as ParsedFields;
   }
   const lines = new TextDecoder('utf-8').decode(requestBody).split('\n');
-  const fields: Record<string, string[] | string> = {};
+  const fields: ParsedFields = {};
   let key = '';
   let value: string[] = [];
 

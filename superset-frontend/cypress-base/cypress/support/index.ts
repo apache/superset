@@ -54,7 +54,8 @@ Cypress.Commands.add('visitChartById', chartId =>
 Cypress.Commands.add('visitChartByParams', params => {
   const queryString =
     typeof params === 'string' ? params : JSON.stringify(params);
-  return cy.visit(`${BASE_EXPLORE_URL}${queryString}`);
+  const url = `${BASE_EXPLORE_URL}${queryString}`;
+  return cy.visit(url);
 });
 
 Cypress.Commands.add('verifySliceContainer', chartSelector => {

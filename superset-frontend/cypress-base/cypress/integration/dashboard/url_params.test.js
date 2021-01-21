@@ -18,6 +18,7 @@
  */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 import { isLegacyResponse, getChartAliases } from '../../utils/vizPlugins';
+import parsePostForm from '../../utils/parsePostForm';
 
 describe('Dashboard form data', () => {
   const urlParams = { param1: '123', param2: 'abc' };
@@ -42,8 +43,9 @@ describe('Dashboard form data', () => {
         requests.map(async ({ response, request }) => {
           const responseBody = response?.body;
           if (isLegacyResponse(responseBody)) {
-            const requestFormData = request.body;
-            const requestParams = JSON.parse(requestFormData.get('form_data'));
+            const requestParams = JSON.parse(
+              parsePostForm(request.body).form_data,
+            );
             expect(requestParams.url_params).deep.eq(urlParams);
           } else {
             request.body.queries.forEach(query => {
