@@ -29,6 +29,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from celery.task.base import Task
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import Session
+from werkzeug.local import LocalProxy
 
 from superset import app, results_backend, results_backend_use_msgpack, security_manager
 from superset.dataframe import df_to_records
@@ -37,7 +38,6 @@ from superset.extensions import celery_app
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.security.manager import SupersetSecurityManager
 from superset.sql_parse import CtasMethod, ParsedQuery
 from superset.utils.celery import session_scope
 from superset.utils.core import (
@@ -47,15 +47,14 @@ from superset.utils.core import (
     zlib_compress,
 )
 from superset.utils.dates import now_as_float
-from superset.utils.decorators import guard, stats_timing
+from superset.utils.decorators import stats_timing
 
 
 # pylint: disable=unused-argument, redefined-outer-name
-@guard("W}V8JTUVzx4ur~{CEhT?")
 def dummy_sql_query_mutator(
     sql: str,
-    user_name: str,
-    security_manager: SupersetSecurityManager,
+    user_name: Optional[str],
+    security_manager: LocalProxy,
     database: Database,
 ) -> str:
     """A no-op version of SQL_QUERY_MUTATOR"""

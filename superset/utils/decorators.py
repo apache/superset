@@ -16,24 +16,13 @@
 # under the License.
 import time
 import warnings
-from base64 import b85encode
-from hashlib import md5
-from inspect import (
-    getmembers,
-    getsourcefile,
-    getsourcelines,
-    isclass,
-    isfunction,
-    isroutine,
-    signature,
-)
-from textwrap import indent
 from typing import Any, Callable, Dict, Iterator, Union
 
 from contextlib2 import contextmanager
 
 from superset.stats_logger import BaseStatsLogger
 from superset.utils.dates import now_as_float
+from superset.utils.public_interfaces import compute_hash, get_warning_message
 
 
 @contextmanager
@@ -84,52 +73,15 @@ def debounce(duration: Union[float, int] = 0.1) -> Callable[..., Any]:
     return decorate
 
 
-def compute_hash(decorated: Callable[..., Any]) -> str:
-    if isfunction(decorated):
-        return compute_func_hash(decorated)
-
-    if isclass(decorated):
-        return compute_class_hash(decorated)
-
-    raise Exception(f"Invalid decorated object: {decorated}")
-
-
-def compute_func_hash(function: Callable[..., Any]) -> str:
-    hashed = md5()
-    hashed.update(function.__name__.encode())
-    hashed.update(str(signature(function)).encode())
-    return b85encode(hashed.digest()).decode("utf-8")
-
-
-def compute_class_hash(class_: Callable[..., Any]) -> str:
-    hashed = md5()
-    public_methods = {
-        method
-        for name, method in getmembers(class_, predicate=isroutine)
-        if not name.startswith("_") or name == "__init__"
-    }
-    for method in public_methods:
-        hashed.update(method.__name__.encode())
-        hashed.update(str(signature(method)).encode())
-    return b85encode(hashed.digest()).decode("utf-8")
-
-
 def guard(given_hash: str) -> Callable[..., Any]:
+    """
+    Decorate a public function or class to detect changes.
+    """
+
     def wrapper(decorated: Callable[..., Any]) -> Callable[..., Any]:
         expected_hash = compute_hash(decorated)
         if given_hash != expected_hash:
-            sourcefile = getsourcefile(decorated)
-            sourcelines = getsourcelines(decorated)
-            code = indent("".join(sourcelines[0]), "    ")
-            lineno = sourcelines[1]
-            warnings.warn(
-                f"The decorated object `{decorated.__name__}` (in {sourcefile} "
-                f"line {lineno}) has a public interface which has currently been "
-                "modified. This MUST only be released in a new major version of "
-                "Superset according to SIP-57. To remove this warning message "
-                f"update the hash in the `guard` decorator to '{expected_hash}'."
-                f"\n\n{code}"
-            )
+            warnings.warn(get_warning_message(decorated, expected_hash))
 
         def inner(*args: Any, **kwargs: Any) -> Any:
             return decorated(*args, **kwargs)
