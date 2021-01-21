@@ -62,7 +62,11 @@ const mapStateToProps = (
     charts,
   );
 
-  const nativeIndicators = selectNativeIndicatorsForChart(nativeFilters);
+  const nativeIndicators = selectNativeIndicatorsForChart(
+    nativeFilters,
+    chartId,
+    charts,
+  );
 
   const indicators = uniqWith(
     sortByStatus([...dashboardIndicators, ...nativeIndicators]),

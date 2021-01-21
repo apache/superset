@@ -115,6 +115,20 @@ const selectIndicatorsForChartFromFilter = (
     }));
 };
 
+const getAppliedColumns = (chart: any): Set<string> =>
+  new Set(
+    (chart?.queriesResponse?.[0]?.applied_filters || []).map(
+      (filter: any) => filter.column,
+    ),
+  );
+
+const getRejectedColumns = (chart: any): Set<string> =>
+  new Set(
+    (chart?.queriesResponse?.[0]?.rejected_filters || []).map(
+      (filter: any) => filter.column,
+    ),
+  );
+
 export type Indicator = {
   column: string;
   name: string;
@@ -136,16 +150,9 @@ export const selectIndicatorsForChart = (
 
   // for now we only need to know which columns are compatible/incompatible,
   // so grab the columns from the applied/rejected filters
-  const appliedColumns: Set<string> = new Set(
-    (chart?.queriesResponse?.[0]?.applied_filters || []).map(
-      (filter: any) => filter.column,
-    ),
-  );
-  const rejectedColumns: Set<string> = new Set(
-    (chart?.queriesResponse?.[0]?.rejected_filters || []).map(
-      (filter: any) => filter.column,
-    ),
-  );
+  const appliedColumns = getAppliedColumns(chart);
+  const rejectedColumns = getRejectedColumns(chart);
+
   const indicators = Object.values(filters)
     .filter(filter => filter.chartId !== chartId)
     .reduce(
@@ -184,7 +191,22 @@ const selectNativeIndicatorValue = (
 
 export const selectNativeIndicatorsForChart = (
   nativeFilters: NativeFiltersState,
+  chartId: number,
+  charts: any,
 ): Indicator[] => {
+  const chart = charts[chartId];
+
+  const appliedColumns = getAppliedColumns(chart);
+  const rejectedColumns = getRejectedColumns(chart);
+
+  const getStatus = (column: string, value: string[]): IndicatorStatus => {
+    if (rejectedColumns.has(column)) return IndicatorStatus.Incompatible;
+    if (appliedColumns.has(column) && value.length > 0) {
+      return IndicatorStatus.Applied;
+    }
+    return IndicatorStatus.Unset;
+  };
+
   const indicators = Object.values(nativeFilters.filters).map(nativeFilter => {
     const column = nativeFilter.targets[0].column.name;
     const filterState = nativeFilters.filtersState[nativeFilter.id];
@@ -193,7 +215,7 @@ export const selectNativeIndicatorsForChart = (
       column,
       name: nativeFilter.name,
       path: [nativeFilter.id],
-      status: value.length ? IndicatorStatus.Applied : IndicatorStatus.Unset,
+      status: getStatus(column, value),
       value,
     };
   });
