@@ -38,70 +38,68 @@ Superset
 
 A modern, enterprise-ready business intelligence web application.
 
-[**Why Superset**](#why-superset) |
+[**Why Superset?**](#why-superset) |
 [**Supported Databases**](#supported-databases) |
 [**Installation and Configuration**](#installation-and-configuration) |
 [**Release Notes**](RELEASING/release-notes-0-38/README.md) |
-[**Get Help**](#get-help) |
+[**Get Involved**](#get-involved) |
 [**Contributor Guide**](#contributor-guide) |
 [**Resources**](#resources) |
-[**Superset Users**](INTHEWILD.md)
+[**Organizations Using Superset**](INTHEWILD.md)
 
 
 ## Screenshots & Gifs
 
 **Gallery**
 
-<kbd><a href="https://superset.apache.org/gallery"><img title="Gallery" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/gallery.png"></a></kbd><br/>
+<kbd><a href="https://superset.apache.org/gallery"><img title="Gallery" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/gallery.jpg"></a></kbd><br/>
 
 **View Dashboards**
 
-<kbd><img title="View Dashboards" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/bank_dash.png"></kbd><br/>
+<kbd><img title="View Dashboards" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/slack_dash.jpg"></kbd><br/>
 
 **Slice & dice your data**
 
-<kbd><img title="Slice & dice your data" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/explore.png"></kbd><br/>
+<kbd><img title="Slice & dice your data" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/explore.jpg"></kbd><br/>
 
 **Query and visualize your data with SQL Lab**
 
-<kbd><img title="SQL Lab" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/sqllab.png"></kbd><br/>
+<kbd><img title="SQL Lab" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/sql_lab.jpg"></kbd><br/>
 
 **Visualize geospatial data with deck.gl**
 
-<kbd><img title="Geospatial" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/deckgl_dash.png"></kbd><br/>
+<kbd><img title="Geospatial" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/geospatial_dash.jpg"></kbd><br/>
 
 **Choose from a wide array of visualizations**
 
-<kbd><img title="Visualizations" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/visualizations.png"></kbd><br/>
+<kbd><img title="Visualizations" src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/screenshots/explore_visualizations.jpg"></kbd><br/>
 
 
-## Why Superset
+## Why Superset?
 
 Superset provides:
-* An intuitive interface to explore and visualize datasets, and
-    create interactive dashboards
-* A wide array of beautiful visualizations to showcase your data.
-* Easy, code-free, user flows to drill down and slice and dice the data
-    underlying exposed dashboards. The dashboards and charts act as a starting
-    point for deeper analysis
-* A state of the art SQL editor/IDE exposing a rich metadata browser, and
-    an easy workflow to create visualizations out of any result set.
-* An extensible, high granularity security model allowing intricate rules
-    on who can access which product features and datasets.
-    Integration with major
-    authentication backends (database, OpenID, LDAP, OAuth, REMOTE_USER, ...)
-* A lightweight semantic layer, allowing to control how data sources are
-    exposed to the user by defining dimensions and metrics
-* Out of the box support for most SQL-speaking databases
-* Deep integration with Druid allows for Superset to stay blazing fast while
-    slicing and dicing large, realtime datasets
-* Fast loading dashboards with configurable caching
 
+* An intuitive interface for visualizing datasets and
+    crafting interactive dashboards
+* A wide array of beautiful visualizations to showcase your data
+* Code-free visualization builder to extract and present datasets
+* A world-class SQL IDE for preparing data for visualization, including a rich metadata browser
+* A lightweight semantic layer which empowers data analysts to quickly define custom dimensions and metrics
+* Out-of-the-box support for most SQL-speaking databases
+* Seamless, in-memory asynchronous caching and queries
+* An extensible security model that allows configuration of very intricate rules on
+    on who can access which product features and datasets.
+* Integration with major
+    authentication backends (database, OpenID, LDAP, OAuth, REMOTE_USER, etc)
+* The ability to add custom visualization plugins
+* An API for programmatic customization
+* A cloud-native archiecture designed from the ground up for scale
 
 ## Supported Databases
 
-Superset speaks many SQL dialects through SQLAlchemy - a Python
-SQL toolkit that is compatible with most databases. Here are some of the major database solutions that are supported:
+Superset can query data from any SQL-speaking datastore or data engine (e.g. Presto or Athena) that has a Python DB-API driver and a SQLAlchemy dialect.
+
+Here are some of the major database solutions that are supported:
 
 <p align="center">
   <img src="superset-frontend/images/redshift.png" alt="redshift" border="0" width="106" height="41"/>
@@ -126,17 +124,19 @@ SQL toolkit that is compatible with most databases. Here are some of the major d
   <img src="superset-frontend/images/apache-kylin.png" alt="apache-kylin" border="0" width="56" height="64"/>
 </p>
 
-A complete list of supported databases can be found
+**A more comprehensive list of supported databases** along with the configuration instructions can be found
 [here](https://superset.apache.org/docs/databases/installing-database-drivers).
+
+Want to add support for your datastore or data engine? Read more [here](https://superset.apache.org/docs/frequently-asked-questions#does-superset-work-with-insert-database-engine-here) about the technical requirements.
 
 
 ## Installation and Configuration
 
-[See in the documentation](https://superset.apache.org/docs/installation/installing-superset-using-docker-compose)
+[Extended documentation for Superset](https://superset.apache.org/docs/installation/installing-superset-using-docker-compose)
 
 ## Get Involved
 
-* Ask and answer questions on [StackOverflow](https://stackoverflow.com/questions/tagged/apache-superset)
+* Ask and answer questions on [StackOverflow](https://stackoverflow.com/questions/tagged/apache-superset) using the **apache-superset** tag
 * [Join our community's Slack](https://join.slack.com/t/apache-superset/shared_invite/zt-g8lpruog-HeqpgYrwdfrD5OYhlU7hPQ)
   and please read our [Slack Community Guidelines](CODE_OF_CONDUCT.md#slack-community-guidelines)
 * [Join our dev@superset.apache.org Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org)
@@ -152,16 +152,26 @@ how to set up a development environment.
 
 ## Resources
 
+* Superset 1.0
+  * [Superset 1.0 Milestone](https://superset.apache.org/docs/version-one)
+  * [Superset 1.0 Release Notes](https://github.com/apache/superset/tree/master/RELEASING/release-notes-1-0)
+  * [Presentation on Superset 1.0 Public Roadmap](https://docs.google.com/presentation/d/1FGgyI8tLWLUPSQ5eEno78bylLfobj9O2W4yoUoFYHH8/edit#slide=id.g9c182b81b9_1_0)
+  * [Public Superset Roadmap](https://github.com/apache-superset/superset-roadmap/projects/1)
 * Superset 101 -- Getting Started Guide (From [Preset Blog](https://preset.io/blog/))
   * [Installing Apache Superset Locally](https://preset.io/blog/2020-05-11-getting-started-installing-superset/)
   * [Installing Database Drivers](https://preset.io/blog/2020-05-18-install-db-drivers/)
   * [Connect Superset To Google Sheets](https://preset.io/blog/2020-06-01-connect-superset-google-sheets/)
   * [Create Your First Chart](https://preset.io/blog/2020-06-08-first-chart/)
   * [Create Time Series Charts](https://preset.io/blog/2020-06-26-timeseries-chart/)
+* [Documentation for End-Users (by Preset)](https://docs.preset.io/)
 * [Docker image](https://hub.docker.com/r/apache/superset)
-* [Youtube Channel](https://www.youtube.com/channel/UCMuwrvBsg_jjI2gLcm04R0g)
-  * [May 2020: Virtual Meetup Recording. Topics: 0.36 Overview, Committers Self-Intro, Roadmap](https://www.youtube.com/watch?v=tXGDmqjmcTs&t=20s)
-  * [July 2020: Virtual Meetup Recording. Topics: Visualization Plugins, 0.37 Preview, Demo](https://www.youtube.com/watch?v=f6up5x_iRbI)
-  * [November 2020: Superset 1.0](https://www.youtube.com/watch?v=GwtWRUSEjk4)
-* [Building Custom Viz Plugins](https://superset.apache.org/docs/installation/building-custom-viz-plugins)
+* [Recordings of Community Events](https://www.youtube.com/channel/UCMuwrvBsg_jjI2gLcm04R0g)
+  * [May 2020: Virtual Meetup. Topics: 0.36 Overview, Committers Self-Intro, Roadmap](https://www.youtube.com/watch?v=tXGDmqjmcTs&t=20s)
+  * [July 2020: Virtual Meetup. Topics: Visualization Plugins, 0.37 Preview, Demo](https://www.youtube.com/watch?v=f6up5x_iRbI)
+  * [November 2020: Virtual Meetup. Topics: Superset 1.0 & the Roadmap](https://www.youtube.com/watch?v=GwtWRUSEjk4)
+  * [November 2020: Live Demo. Topic: Superset Semantic Layer](https://www.youtube.com/watch?v=8VL4ZPLFUYI)
+  * [December 2020: Live Demo. Topic: Annotations](https://www.youtube.com/watch?v=Yk6bKgphj1Q)
+* Custom Visualizations
+  * [Building Custom Viz Plugins](https://superset.apache.org/docs/installation/building-custom-viz-plugins)
+  * [Managing and Deploying Custom Viz Plugins](https://medium.com/nmc-techblog/apache-superset-manage-custom-viz-plugins-in-production-9fde1a708e55)
 * [Superset API](https://superset.apache.org/docs/rest-api)
