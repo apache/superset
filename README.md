@@ -41,7 +41,7 @@ A modern, enterprise-ready business intelligence web application.
 [**Why Superset?**](#why-superset) |
 [**Supported Databases**](#supported-databases) |
 [**Installation and Configuration**](#installation-and-configuration) |
-[**Release Notes**](RELEASING/release-notes-0-38/README.md) |
+[**Release Notes**](RELEASING/README.md#release-notes-for-recent-releases) |
 [**Get Involved**](#get-involved) |
 [**Contributor Guide**](#contributor-guide) |
 [**Resources**](#resources) |
@@ -118,7 +118,7 @@ Here are some of the major database solutions that are supported:
   <img src="superset-frontend/images/oracle.png" alt="oracle" border="0" width="121" height="66" />
   <img src="superset-frontend/images/firebird.png" alt="firebird" border="0" width="86" height="56" />
   <img src="superset-frontend/images/greenplum.png" alt="greenplum" border="0" width="140" height="45" />
-  <img src="superset-frontend/images/clickhouse.png" alt="clickhouse" border="0" width="133" height="34" />  
+  <img src="superset-frontend/images/clickhouse.png" alt="clickhouse" border="0" width="133" height="34" />
   <img src="superset-frontend/images/exasol.png" alt="exasol" border="0" width="106" height="59" />
   <img src="superset-frontend/images/monet-db.png" alt="monet-db" border="0" width="106" height="46" />
   <img src="superset-frontend/images/apache-kylin.png" alt="apache-kylin" border="0" width="56" height="64"/>
