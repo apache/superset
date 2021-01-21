@@ -48,9 +48,13 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
         return None
 
 
-class OpenDistro(ElasticSearchEngineSpec):
+class OpenDistro(BaseEngineSpec):  # pylint: disable=abstract-method
 
-    # allows_column_aliases = False
+    time_groupby_inline = True
+    time_secondary_columns = True
+    allows_joins = False
+    allows_subqueries = True
+
     _time_grain_expressions = {
         None: "{col}",
         "PT1S": "date_format({col}, 'yyyy-MM-dd HH:mm:ss.000')",
@@ -63,6 +67,12 @@ class OpenDistro(ElasticSearchEngineSpec):
 
     engine = "odelasticsearch"
     engine_name = "ElasticSearch"
+
+    @classmethod
+    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+        if target_type.upper() == utils.TemporalType.DATETIME:
+            return f"""'{dttm.isoformat(timespec="seconds")}'"""
+        return None
 
     @staticmethod
     def _mutate_label(label: str) -> str:
