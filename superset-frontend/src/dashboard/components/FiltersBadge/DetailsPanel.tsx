@@ -103,6 +103,9 @@ const DetailsPanelPopover = ({
     }
   }
 
+  const indicatorKey = (indicator: Indicator): string =>
+    `${indicator.column} - ${indicator.name}`;
+
   const content = (
     <Panel>
       <Global
@@ -173,7 +176,7 @@ const DetailsPanelPopover = ({
               <Indent>
                 {appliedIndicators.map(indicator => (
                   <Indicator
-                    key={indicator.column}
+                    key={indicatorKey(indicator)}
                     indicator={indicator}
                     onClick={onHighlightFilterSource}
                   />
@@ -197,7 +200,7 @@ const DetailsPanelPopover = ({
               <Indent>
                 {incompatibleIndicators.map(indicator => (
                   <Indicator
-                    key={indicator.column}
+                    key={indicatorKey(indicator)}
                     indicator={indicator}
                     onClick={onHighlightFilterSource}
                   />
@@ -219,7 +222,7 @@ const DetailsPanelPopover = ({
               <Indent>
                 {unsetIndicators.map(indicator => (
                   <Indicator
-                    key={indicator.column}
+                    key={indicatorKey(indicator)}
                     indicator={indicator}
                     onClick={onHighlightFilterSource}
                   />

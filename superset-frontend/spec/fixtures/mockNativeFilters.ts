@@ -1,5 +1,3 @@
-import { NativeFiltersState } from 'src/dashboard/components/nativeFilters/types';
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,6 +16,8 @@ import { NativeFiltersState } from 'src/dashboard/components/nativeFilters/types
  * specific language governing permissions and limitations
  * under the License.
  */
+import { NativeFiltersState } from 'src/dashboard/components/nativeFilters/types';
+
 export const nativeFilters: NativeFiltersState = {
   filters: {
     'NATIVE_FILTER-e7Q8zKixx': {
