@@ -210,7 +210,7 @@ function AlertList({
             ? moment.utc(lastEvalDttm).local().format(DATETIME_WITH_TIME_ZONE)
             : '',
         accessor: 'last_eval_dttm',
-        Header: t('Last Run'),
+        Header: t('Last run'),
         size: 'lg',
       },
       {
@@ -242,7 +242,7 @@ function AlertList({
             <RecipientIcon key={r.id} type={r.type} />
           )),
         accessor: 'recipients',
-        Header: t('Notification Method'),
+        Header: t('Notification method'),
         disableSortBy: true,
         size: 'xl',
       },
@@ -289,7 +289,7 @@ function AlertList({
             canEdit
               ? {
                   label: 'execution-log-action',
-                  tooltip: t('Execution Log'),
+                  tooltip: t('Execution log'),
                   placement: 'bottom',
                   icon: 'note' as IconName,
                   onClick: handleGotoExecutionLog,
@@ -344,7 +344,7 @@ function AlertList({
   }
   if (canDelete) {
     subMenuButtons.push({
-      name: t('Bulk Select'),
+      name: t('Bulk select'),
       onClick: toggleBulkSelect,
       buttonStyle: 'secondary',
       'data-test': 'bulk-select-toggle',
@@ -365,7 +365,7 @@ function AlertList({
   const filters: Filters = useMemo(
     () => [
       {
-        Header: t('Created By'),
+        Header: t('Created by'),
         id: 'created_by',
         input: 'select',
         operator: FilterOperators.relationOneMany,
@@ -408,7 +408,7 @@ function AlertList({
     <>
       <SubMenu
         activeChild={pathName}
-        name={t('Alerts & Reports')}
+        name={t('Alerts & reports')}
         tabs={[
           {
             name: 'Alerts',
