@@ -133,7 +133,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         }),
       });
     },
-    1000,
+    300,
     [filter],
   );
 
