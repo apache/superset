@@ -95,7 +95,7 @@ ${extra.issue_codes.map(issueCode => issueCode.message).join('\n')}`;
 
   return (
     <ErrorAlert
-      title={t('Timeout Error')}
+      title={t('Timeout error')}
       subtitle={subtitle}
       level={level}
       source={source}
