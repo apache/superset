@@ -1052,10 +1052,51 @@ def start_date_filter(default: Optional[str] = None) -> Optional[Any]:
         return '\'{}\''.format(since)
     return default
 
+def uri_filter(cond="none",default="") -> Optional[Any]:
 
+    logger.info(cond)
+
+    #fetching form data
+    form_data = request.form.get("form_data")
+
+    #returning default value if form is null
+    if form_data is None:
+        return default
+    
+    #convrting form_data into json node
+    form_dict=json.loads(form_data)
+    logger.info("form data is:" +form_data)
+
+    #fetching url_params 
+    url_params_dict=form_dict.get("url_params")
+    # logger.info(filter_dict) 
+
+    #returning default value if url_params is null
+    if url_params_dict is None:
+        return default
+
+    #fetching mobi_filter from url_params 
+    mobi_filter=url_params_dict.get("mobi_filter")
+
+    #returning default value if mobi_filter is null
+    if mobi_filter is None:
+        return default
+    
+    #convrting mobi_filter into json node
+    mobi_filter_dict=json.loads(mobi_filter)
+    
+    param=mobi_filter_dict.get(cond)
+    if len(param) == 0:
+        return default
+    else:
+        return param
+
+
+ 
 JINJA_CONTEXT_ADDONS = {
     'time_filter': time_filter,
     'end_date_filter': end_date_filter,
-    'start_date_filter': start_date_filter
+    'start_date_filter': start_date_filter,
+    'uri_filter' : uri_filter
 
 }
