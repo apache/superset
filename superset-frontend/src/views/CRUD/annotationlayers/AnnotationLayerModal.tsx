@@ -215,17 +215,17 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
             <StyledIcon name="plus-large" />
           )}
           {isEditMode
-            ? t('Edit Annotation Layer Properties')
-            : t('Add Annotation Layer')}
+            ? t('Edit annotation layer properties')
+            : t('Add annotation layer')}
         </h4>
       }
     >
       <StyledAnnotationLayerTitle>
-        <h4>{t('Basic Information')}</h4>
+        <h4>{t('Basic information')}</h4>
       </StyledAnnotationLayerTitle>
       <LayerContainer>
         <div className="control-label">
-          {t('annotation layer name')}
+          {t('Annotation layer name')}
           <span className="required">*</span>
         </div>
         <input

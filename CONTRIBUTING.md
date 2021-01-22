@@ -50,11 +50,13 @@ little bit helps, and credit will always be given.
     - [Flask server](#flask-server)
       - [OS Dependencies](#os-dependencies)
       - [Logging to the browser console](#logging-to-the-browser-console)
-    - [Frontend Assets](#frontend-assets)
-      - [nvm and node](#nvm-and-node)
+    - [Frontend](#frontend)
       - [Prerequisite](#prerequisite)
-      - [Installing Dependencies](#installing-dependencies)
-      - [Building](#building)
+        - [nvm and node](#nvm-and-node)
+      - [Install dependencies](#install-dependencies)
+      - [Build assets](#build-assets)
+      - [Webpack dev server](#webpack-dev-server)
+      - [Other npm commands](#other-npm-commands)
       - [Docker (docker-compose)](#docker-docker-compose)
       - [Updating NPM packages](#updating-npm-packages)
       - [Feature flags](#feature-flags)
@@ -81,6 +83,7 @@ little bit helps, and credit will always be given.
     - [Adding a DB migration](#adding-a-db-migration)
     - [Merging DB migrations](#merging-db-migrations)
     - [SQL Lab Async](#sql-lab-async)
+    - [Async Chart Queries](#async-chart-queries)
   - [Chart Parameters](#chart-parameters)
     - [Datasource & Chart Type](#datasource--chart-type)
     - [Time](#time)
@@ -198,6 +201,7 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 
 - Fill in all sections of the PR template.
 - Title the PR with one of the following semantic prefixes (inspired by [Karma](http://karma-runner.github.io/0.10/dev/git-commit-msg.html])):
+
   - `feat` (new feature)
   - `fix` (bug fix)
   - `docs` (changes to the documentation)
@@ -404,11 +408,13 @@ app.logger.error('An exception occurred!')
 app.logger.info(form_data)
 ```
 
-### Frontend Assets
+### Frontend
 
-Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in order to properly display the web UI. The `superset-frontend` directory contains all NPM-managed front end assets. Note that there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap); these are not managed by NPM, and may be phased out in the future.
+Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in order to properly display the web UI. The `superset-frontend` directory contains all NPM-managed frontend assets. Note that for some legacy pages there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap). These are not managed by NPM and may be phased out in the future.
 
-#### nvm and node
+#### Prerequisite
+
+##### nvm and node
 
 First, be sure you are using recent versions of NodeJS and npm. We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
 
@@ -422,11 +428,9 @@ nvm use
 
 For those interested, you may also try out [avn](https://github.com/nvm-sh/nvm#deeper-shell-integration) to automatically switch to the node version that is required to run Superset frontend.
 
-#### Prerequisite
+#### Install dependencies
 
-#### Installing Dependencies
-
-Install third-party dependencies listed in `package.json`:
+Install third-party dependencies listed in `package.json` via:
 
 ```bash
 # From the root of the repository
@@ -436,40 +440,40 @@ cd superset-frontend
 npm ci
 ```
 
-#### Building
+#### Build assets
 
-You can run the Webpack dev server (in a separate terminal from Flask), which runs on port 9000 and proxies non-asset requests to the Flask server on port 8088. After pointing your browser to `http://localhost:9000`, updates to asset sources will be reflected in-browser without a refresh.
+There are three types of assets you can build:
+
+1. `npm run build`: the production assets, CSS/JSS minified and optimized
+2. `npm run dev-server`: local development assets, with sourcemaps and hot refresh support
+3. `npm run build-instrumented`: instrumented application code for collecting code coverage from Cypress tests
+
+#### Webpack dev server
+
+The dev server by default starts at `http://localhost:9000` and proxies the backend requests to `http://localhost:8080`. It's possible to change these settings:
 
 ```bash
-# Run the dev server
+# Start the dev server at http://localhost:9000
 npm run dev-server
 
 # Run the dev server on a non-default port
 npm run dev-server -- --devserverPort=9001
 
-# Run the dev server proxying to a Flask server on a non-default port
+# Proxy backend requests to a Flask server running on a non-default port
 npm run dev-server -- --supersetPort=8081
 
-# Or proxy it to a remote backend so you can test frontend changes without
-# starting the backend locally
+# Proxy to a remote backend but serve local assets
 npm run dev-server -- --superset=https://superset-dev.example.com
 ```
 
-Alternatively you can use one of the following commands.
+The `--superset=` option is useful in case you want to debug a production issue or have to setup Superset behind a firewall. It allows you to run Flask server in another environment while keep assets building locally for the best developer experience.
 
-```bash
-# Start a watcher that recompiles your assets as you modify them (but have to manually reload your browser to see changes.)
-npm run dev
+#### Other npm commands
 
-# Compile the TypeScript/JavaScript and CSS in production/optimized mode for official releases
-npm run prod
-```
+Alternatively, there are other NPM commands you may find useful:
 
-If you run this service from somewhere other than your local machine, you may need to add hostname value to webpack.config.js at .devServer.public specifying the endpoint at which you will access the app. For example: myhost:9001. For convenience you may want to install webpack, webpack-cli and webpack-dev-server globally so that you can run them directly:
-
-```bash
-npm install --global webpack webpack-cli webpack-dev-server
-```
+1. `npm run build-dev`: build assets in development mode.
+2. `npm run dev`: built dev assets in watch mode, will automatically rebuild when a file changes
 
 #### Docker (docker-compose)
 
@@ -495,7 +499,7 @@ If you want to use the same flag in the client code, also add it to the FeatureF
 
 ```typescript
 export enum FeatureFlag {
-  SCOPED_FILTER = 'SCOPED_FILTER',
+  SCOPED_FILTER = "SCOPED_FILTER",
 }
 ```
 
@@ -512,13 +516,19 @@ pip3 install -r requirements/integration.txt
 pre-commit install
 ```
 
+Alternatively it possible to run pre-commit via tox:
+
+```bash
+tox -e pre-commit
+```
+
 ## Linting
 
 Lint the project with:
 
 ```bash
 # for python
-tox -e flake8
+tox -e pylint
 
 # for frontend
 cd superset-frontend
@@ -624,6 +634,7 @@ npm run test
 ```
 
 To run a single test file:
+
 ```bash
 npm run test -- path/to/file.js
 ```
@@ -675,14 +686,14 @@ See [`superset-frontend/cypress_build.sh`](https://github.com/apache/superset/bl
 As an alternative you can use docker-compose environment for testing:
 
 Make sure you have added below line to your /etc/hosts file:
-```127.0.0.1 db```
+`127.0.0.1 db`
 
 If you already have launched Docker environment please use the following command to assure a fresh database instance:
-```docker-compose down -v```
+`docker-compose down -v`
 
 Launch environment:
 
-```CYPRESS_CONFIG=true docker-compose up```
+`CYPRESS_CONFIG=true docker-compose up`
 
 It will serve backend and frontend on port 8088.
 
@@ -726,7 +737,7 @@ In TypeScript/JavaScript, the technique is similar:
 we import `t` (simple translation), `tn` (translation containing a number).
 
 ```javascript
-import { t, tn } from '@superset-ui/translation';
+import { t, tn } from "@superset-ui/translation";
 ```
 
 ### Enabling language selection
@@ -746,22 +757,35 @@ LANGUAGES = {
 ### Extracting new strings for translation
 
 ```bash
-flask fab babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _ -k __ -k t -k tn -k tct
+pybabel extract -F superset/translations/babel.cfg -o superset/translations/messages.pot -k _ -k __ -k t -k tn -k tct .
 ```
+
+This will update the template file `superset/translations/messages.pot` with current application strings. Do not forget to update
+this file with the appropriate license information.
+
+### Updating language files
+
+```bash
+ pybabel update -i superset/translations/messages.pot -d superset/translations --ignore-obsolete
+```
+
+This will update language files with the new extracted strings.
 
 You can then translate the strings gathered in files located under
 `superset/translation`, where there's one per language. You can use [Poedit](https://poedit.net/features)
 to translate the `po` file more conveniently.
 There are some [tutorials in the wiki](https://wiki.lxde.org/en/Translate_*.po_files_with_Poedit).
 
-For the translations to take effect:
+In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the npm package po2json.
 
 ```bash
-# In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the npm package po2json.
 npm install -g po2json
-flask fab babel-compile --target superset/translations
-# Convert the en PO file into a JSON file
-po2json -d superset -f jed1.x superset/translations/en/LC_MESSAGES/messages.po superset/translations/en/LC_MESSAGES/messages.json
+```
+
+To convert all PO files to formatted JSON files you can use the `po2json.sh` script.
+
+```bash
+./scripts/po2json.sh
 ```
 
 If you get errors running `po2json`, you might be running the Ubuntu package with the same
@@ -770,6 +794,12 @@ there is a conflict, you may need to update your `PATH` environment variable or 
 the executable path (e.g. `/usr/local/bin/po2json` instead of `po2json`).
 If you get a lot of `[null,***]` in `messages.json`, just delete all the `null,`.
 For example, `"year":["年"]` is correct while `"year":[null,"年"]`is incorrect.
+
+For the translations to take effect we need to compile translation catalogs into binary MO files.
+
+```bash
+pybabel compile -d superset/translations
+```
 
 ### Creating a new language dictionary
 
@@ -831,7 +861,6 @@ When `superset-ui` packages are linked with `npm link`, the dev server will auto
 
 Note that every time you do `npm install`, you will lose the symlink(s) and may have to run `npm link` again.
 
-
 ### Visualization Plugins
 
 The topic of authoring new plugins, whether you'd like to contribute
@@ -839,15 +868,16 @@ it back or not has been well documented in the
 [So, You Want to Build a Superset Viz Plugin...](https://preset.io/blog/2020-07-02-hello-world/) blog post
 
 To contribute a plugin to Superset-UI, your plugin must meet the following criteria:
-* The plugin should be applicable to the community at large, not a particularly specialized use case
-* The plugin should be written with TypeScript
-* The plugin should contain sufficient unit/e2e tests
-* The plugin should use appropriate namespacing, e.g. a folder name of `plugin-chart-whatever` and a package name of `@superset-ui/plugin-chart-whatever`
-* The plugin should use them variables via Emotion, as passed in by the ThemeProvider
-* The plugin should provide adequate error handling (no data returned, malformatted data, invalid controls, etc.)
-* The plugin should contain documentation in the form of a populated `README.md` file
-* The plugin should have a meaningful and unique icon
-* Above all else, the plugin should come with a *commitment to maintenance* from the original author(s)
+
+- The plugin should be applicable to the community at large, not a particularly specialized use case
+- The plugin should be written with TypeScript
+- The plugin should contain sufficient unit/e2e tests
+- The plugin should use appropriate namespacing, e.g. a folder name of `plugin-chart-whatever` and a package name of `@superset-ui/plugin-chart-whatever`
+- The plugin should use them variables via Emotion, as passed in by the ThemeProvider
+- The plugin should provide adequate error handling (no data returned, malformatted data, invalid controls, etc.)
+- The plugin should contain documentation in the form of a populated `README.md` file
+- The plugin should have a meaningful and unique icon
+- Above all else, the plugin should come with a _commitment to maintenance_ from the original author(s)
 
 Submissions will be considered for submission (or removal) on a case-by-case basis.
 
@@ -969,6 +999,29 @@ Note that:
   to your production environment, and use the similar broker as well as
   results backend configuration
 
+### Async Chart Queries
+
+It's possible to configure database queries for charts to operate in `async` mode. This is especially useful for dashboards with many charts that may otherwise be affected by browser connection limits. To enable async queries for dashboards and Explore, the following dependencies are required:
+
+- Redis 5.0+ (the feature utilizes [Redis Streams](https://redis.io/topics/streams-intro))
+- Cache backends enabled via the `CACHE_CONFIG` and `DATA_CACHE_CONFIG` config settings
+- Celery workers configured and running to process async tasks
+
+The following configuration settings are available for async queries (see config.py for default values)
+
+- `GLOBAL_ASYNC_QUERIES` (feature flag) - enable or disable async query operation
+- `GLOBAL_ASYNC_QUERIES_REDIS_CONFIG` - Redis connection info
+- `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX` - the prefix used with Redis Streams
+- `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT` - the maximum number of events for each user-specific event stream (FIFO eviction)
+- `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE` - the maximum number of events for all users (FIFO eviction)
+- `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME` - the async query feature uses a [JWT](https://tools.ietf.org/html/rfc7519) cookie for authentication, this setting is the cookie's name
+- `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE` - JWT cookie secure option
+- `GLOBAL_ASYNC_QUERIES_JWT_SECRET` - JWT's use a secret key to sign and validate the contents. This value should be at least 32 bytes and have sufficient randomness for proper security
+- `GLOBAL_ASYNC_QUERIES_TRANSPORT` - currently the only available option is (HTTP) `polling`, but support for a WebSocket will be added in future versions
+- `GLOBAL_ASYNC_QUERIES_POLLING_DELAY` - the time (in ms) between polling requests
+
+More information on the async query feature can be found in [SIP-39](https://github.com/apache/superset/issues/9190).
+
 ## Chart Parameters
 
 Chart parameters are stored as a JSON encoded string the `slices.params` column and are often referenced throughout the code as form-data. Currently the form-data is neither versioned nor typed as thus is somewhat free-formed. Note in the future there may be merit in using something like [JSON Schema](https://json-schema.org/) to both annotate and validate the JSON object in addition to using a Mypy `TypedDict` (introduced in Python 3.8) for typing the form-data in the backend. This section serves as a potential primer for that work.
@@ -990,22 +1043,22 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 
 ### Time
 
-| Field                  | Type            | Notes                                 |
-| ---------------------- | --------------- | ------------------------------------- |
-| `druid_time_origin`    | _string_        | The Druid **Origin** widget           |
-| `granularity`          | _string_        | The Druid **Time Granularity** widget |
-| `granularity_sqla`     | _string_        | The SQLA **Time Column** widget       |
-| `time_grain_sqla`      | _string_        | The SQLA **Time Grain** widget        |
-| `time_range`           | _string_        | The **Time range** widget             |
+| Field               | Type     | Notes                                 |
+| ------------------- | -------- | ------------------------------------- |
+| `druid_time_origin` | _string_ | The Druid **Origin** widget           |
+| `granularity`       | _string_ | The Druid **Time Granularity** widget |
+| `granularity_sqla`  | _string_ | The SQLA **Time Column** widget       |
+| `time_grain_sqla`   | _string_ | The SQLA **Time Grain** widget        |
+| `time_range`        | _string_ | The **Time range** widget             |
 
 ### GROUP BY
 
-| Field                     | Type            | Notes                       |
-| ------------------------- | --------------- | --------------------------- |
-| `metrics`                 | _array(string)_ | See Query section           |
-| `order_asc`               | -               | See Query section           |
-| `row_limit`               | -               | See Query section           |
-| `timeseries_limit_metric` | -               | See Query section           |
+| Field                     | Type            | Notes             |
+| ------------------------- | --------------- | ----------------- |
+| `metrics`                 | _array(string)_ | See Query section |
+| `order_asc`               | -               | See Query section |
+| `row_limit`               | -               | See Query section |
+| `timeseries_limit_metric` | -               | See Query section |
 
 ### NOT GROUPED BY
 
@@ -1023,9 +1076,9 @@ Note not all fields are correctly catagorized. The fields vary based on visualiz
 
 ### Y Axis 2
 
-| Field             | Type     | Notes                                               |
-| ----------------- | -------- | --------------------------------------------------- |
-| `metric_2`        | -        | The **Right Axis Metric** widget. See Query section |
+| Field      | Type | Notes                                               |
+| ---------- | ---- | --------------------------------------------------- |
+| `metric_2` | -    | The **Right Axis Metric** widget. See Query section |
 
 ### Query
 
@@ -1044,68 +1097,68 @@ The `metric` (or equivalent) and `timeseries_limit_metric` fields are all compos
 
 ### Chart Options
 
-| Field                 | Type      | Notes                                            |
-| --------------------- | --------- | ------------------------------------------------ |
-| `color_picker`        | _object_  | The **Fixed Color** widget                       |
-| `label_colors`        | _object_  | The **Color Scheme** widget                      |
-| `normalized`          | _boolean_ | The **Normalized** widget                        |
+| Field          | Type      | Notes                       |
+| -------------- | --------- | --------------------------- |
+| `color_picker` | _object_  | The **Fixed Color** widget  |
+| `label_colors` | _object_  | The **Color Scheme** widget |
+| `normalized`   | _boolean_ | The **Normalized** widget   |
 
 ### Y Axis
 
-| Field               | Type            | Notes                        |
-| ------------------- | --------------- | ---------------------------- |
-| `y_axis_2_label`    | _N/A_           | _Deprecated?_                |
-| `y_axis_format`     | _string_        | The **Y Axis Format** widget |
-| `y_axis_zero`       | _N/A_           | _Deprecated?_                |
+| Field            | Type     | Notes                        |
+| ---------------- | -------- | ---------------------------- |
+| `y_axis_2_label` | _N/A_    | _Deprecated?_                |
+| `y_axis_format`  | _string_ | The **Y Axis Format** widget |
+| `y_axis_zero`    | _N/A_    | _Deprecated?_                |
 
 Note the `y_axis_format` is defined under various section for some charts.
 
 ### Other
 
-| Field          | Type     | Notes        |
-| -------------- | -------- | ------------ |
-| `color_scheme` | _string_ |              |
+| Field          | Type     | Notes |
+| -------------- | -------- | ----- |
+| `color_scheme` | _string_ |       |
 
 ### Unclassified
 
-| Field                           | Type  | Notes |
-| ------------------------------- | ----- | ----- |
-| `add_to_dash`                   | _N/A_ |       |
-| `code`                          | _N/A_ |       |
-| `collapsed_fieldsets`           | _N/A_ |       |
-| `comparison type`               | _N/A_ |       |
-| `country_fieldtype`             | _N/A_ |       |
-| `default_filters`               | _N/A_ |       |
-| `entity`                        | _N/A_ |       |
-| `expanded_slices`               | _N/A_ |       |
-| `extra_filters`                 | _N/A_ |       |
-| `filter_immune_slice_fields`    | _N/A_ |       |
-| `filter_immune_slices`          | _N/A_ |       |
-| `flt_col_0`                     | _N/A_ |       |
-| `flt_col_1`                     | _N/A_ |       |
-| `flt_eq_0`                      | _N/A_ |       |
-| `flt_eq_1`                      | _N/A_ |       |
-| `flt_op_0`                      | _N/A_ |       |
-| `flt_op_1`                      | _N/A_ |       |
-| `goto_dash`                     | _N/A_ |       |
-| `import_time`                   | _N/A_ |       |
-| `label`                         | _N/A_ |       |
-| `linear_color_scheme`           | _N/A_ |       |
-| `new_dashboard_name`            | _N/A_ |       |
-| `new_slice_name`                | _N/A_ |       |
-| `num_period_compare`            | _N/A_ |       |
-| `period_ratio_type`             | _N/A_ |       |
-| `perm`                          | _N/A_ |       |
-| `rdo_save`                      | _N/A_ |       |
-| `refresh_frequency`             | _N/A_ |       |
-| `remote_id`                     | _N/A_ |       |
-| `resample_fillmethod`           | _N/A_ |       |
-| `resample_how`                  | _N/A_ |       |
-| `rose_area_proportion`          | _N/A_ |       |
-| `save_to_dashboard_id`          | _N/A_ |       |
-| `schema`                        | _N/A_ |       |
-| `series`                        | _N/A_ |       |
-| `show_bubbles`                  | _N/A_ |       |
-| `slice_name`                    | _N/A_ |       |
-| `timed_refresh_immune_slices`   | _N/A_ |       |
-| `userid`                        | _N/A_ |       |
+| Field                         | Type  | Notes |
+| ----------------------------- | ----- | ----- |
+| `add_to_dash`                 | _N/A_ |       |
+| `code`                        | _N/A_ |       |
+| `collapsed_fieldsets`         | _N/A_ |       |
+| `comparison type`             | _N/A_ |       |
+| `country_fieldtype`           | _N/A_ |       |
+| `default_filters`             | _N/A_ |       |
+| `entity`                      | _N/A_ |       |
+| `expanded_slices`             | _N/A_ |       |
+| `extra_filters`               | _N/A_ |       |
+| `filter_immune_slice_fields`  | _N/A_ |       |
+| `filter_immune_slices`        | _N/A_ |       |
+| `flt_col_0`                   | _N/A_ |       |
+| `flt_col_1`                   | _N/A_ |       |
+| `flt_eq_0`                    | _N/A_ |       |
+| `flt_eq_1`                    | _N/A_ |       |
+| `flt_op_0`                    | _N/A_ |       |
+| `flt_op_1`                    | _N/A_ |       |
+| `goto_dash`                   | _N/A_ |       |
+| `import_time`                 | _N/A_ |       |
+| `label`                       | _N/A_ |       |
+| `linear_color_scheme`         | _N/A_ |       |
+| `new_dashboard_name`          | _N/A_ |       |
+| `new_slice_name`              | _N/A_ |       |
+| `num_period_compare`          | _N/A_ |       |
+| `period_ratio_type`           | _N/A_ |       |
+| `perm`                        | _N/A_ |       |
+| `rdo_save`                    | _N/A_ |       |
+| `refresh_frequency`           | _N/A_ |       |
+| `remote_id`                   | _N/A_ |       |
+| `resample_fillmethod`         | _N/A_ |       |
+| `resample_how`                | _N/A_ |       |
+| `rose_area_proportion`        | _N/A_ |       |
+| `save_to_dashboard_id`        | _N/A_ |       |
+| `schema`                      | _N/A_ |       |
+| `series`                      | _N/A_ |       |
+| `show_bubbles`                | _N/A_ |       |
+| `slice_name`                  | _N/A_ |       |
+| `timed_refresh_immune_slices` | _N/A_ |       |
+| `userid`                      | _N/A_ |       |

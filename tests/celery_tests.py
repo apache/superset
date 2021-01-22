@@ -23,6 +23,7 @@ import string
 import time
 import unittest.mock as mock
 from typing import Optional
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import pytest
 
@@ -160,6 +161,7 @@ def test_run_sync_query_dont_exist(setup_sqllab, ctas_method):
         }
 
 
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 def test_run_sync_query_cta(setup_sqllab, ctas_method):
     tmp_table_name = f"{TEST_SYNC}_{ctas_method.lower()}"
@@ -173,7 +175,10 @@ def test_run_sync_query_cta(setup_sqllab, ctas_method):
     assert QueryStatus.SUCCESS == results["status"], results
     assert len(results["data"]) > 0
 
+    delete_tmp_view_or_table(tmp_table_name, ctas_method)
 
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 def test_run_sync_query_cta_no_data(setup_sqllab):
     sql_empty_result = "SELECT * FROM birth_names WHERE name='random'"
     result = run_sql(sql_empty_result)
@@ -184,6 +189,7 @@ def test_run_sync_query_cta_no_data(setup_sqllab):
     assert QueryStatus.SUCCESS == query.status
 
 
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 @mock.patch(
     "superset.views.core.get_cta_schema_name", lambda d, u, s, sql: CTAS_SCHEMA_NAME
@@ -208,7 +214,10 @@ def test_run_sync_query_cta_config(setup_sqllab, ctas_method):
     results = run_sql(query.select_sql)
     assert QueryStatus.SUCCESS == results["status"], result
 
+    delete_tmp_view_or_table(f"{CTAS_SCHEMA_NAME}.{tmp_table_name}", ctas_method)
 
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 @mock.patch(
     "superset.views.core.get_cta_schema_name", lambda d, u, s, sql: CTAS_SCHEMA_NAME
@@ -232,7 +241,10 @@ def test_run_async_query_cta_config(setup_sqllab, ctas_method):
         == query.executed_sql
     )
 
+    delete_tmp_view_or_table(f"{CTAS_SCHEMA_NAME}.{tmp_table_name}", ctas_method)
 
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 def test_run_async_cta_query(setup_sqllab, ctas_method):
     table_name = f"{TEST_ASYNC_CTA}_{ctas_method.lower()}"
@@ -252,7 +264,10 @@ def test_run_async_cta_query(setup_sqllab, ctas_method):
     assert query.select_as_cta
     assert query.select_as_cta_used
 
+    delete_tmp_view_or_table(table_name, ctas_method)
 
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
 def test_run_async_cta_query_with_lower_limit(setup_sqllab, ctas_method):
     tmp_table = f"{TEST_ASYNC_LOWER_LIMIT}_{ctas_method.lower()}"
@@ -271,6 +286,8 @@ def test_run_async_cta_query_with_lower_limit(setup_sqllab, ctas_method):
     assert query.limit is None
     assert query.select_as_cta
     assert query.select_as_cta_used
+
+    delete_tmp_view_or_table(tmp_table, ctas_method)
 
 
 SERIALIZATION_DATA = [("a", 4, 4.0, datetime.datetime(2019, 8, 18, 16, 39, 16, 660000))]
@@ -306,6 +323,7 @@ def test_new_data_serialization():
     assert isinstance(data[0], bytes)
 
 
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 def test_default_payload_serialization():
     use_new_deserialization = False
     db_engine_spec = BaseEngineSpec()
@@ -338,6 +356,7 @@ def test_default_payload_serialization():
     assert isinstance(serialized, str)
 
 
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 def test_msgpack_payload_serialization():
     use_new_deserialization = True
     db_engine_spec = BaseEngineSpec()
@@ -406,3 +425,7 @@ def test_in_app_context():
         my_task()
     finally:
         flask._app_ctx_stack.push(popped_app)
+
+
+def delete_tmp_view_or_table(name: str, db_object_type: str):
+    db.get_engine().execute(f"DROP {db_object_type} IF EXISTS {name}")

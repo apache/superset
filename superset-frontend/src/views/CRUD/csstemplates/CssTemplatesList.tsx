@@ -63,7 +63,7 @@ function CssTemplatesList({
     toggleBulkSelect,
   } = useListViewResource<TemplateObject>(
     'css_template',
-    t('css templates'),
+    t('CSS templates'),
     addDangerToast,
   );
   const [cssTemplateModalOpen, setCssTemplateModalOpen] = useState<boolean>(
@@ -155,7 +155,7 @@ function CssTemplatesList({
             </TooltipWrapper>
           );
         },
-        Header: t('Last Modified'),
+        Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
         disableSortBy: true,
@@ -181,7 +181,7 @@ function CssTemplatesList({
 
           return moment(utc).fromNow();
         },
-        Header: t('Created On'),
+        Header: t('Created on'),
         accessor: 'created_on',
         size: 'xl',
         disableSortBy: true,
@@ -189,7 +189,7 @@ function CssTemplatesList({
       {
         accessor: 'created_by',
         disableSortBy: true,
-        Header: t('Created By'),
+        Header: t('Created by'),
         Cell: ({
           row: {
             original: { created_by: createdBy },
@@ -237,7 +237,7 @@ function CssTemplatesList({
   );
 
   const menuData: SubMenuProps = {
-    name: t('CSS Templates'),
+    name: t('CSS templates'),
   };
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
@@ -246,7 +246,7 @@ function CssTemplatesList({
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t('Css Template')}
+          <i className="fa fa-plus" /> {t('CSS template')}
         </>
       ),
       buttonStyle: 'primary',
@@ -259,7 +259,7 @@ function CssTemplatesList({
 
   if (canDelete) {
     subMenuButtons.push({
-      name: t('Bulk Select'),
+      name: t('Bulk select'),
       onClick: toggleBulkSelect,
       buttonStyle: 'secondary',
     });
@@ -270,7 +270,7 @@ function CssTemplatesList({
   const filters: Filters = useMemo(
     () => [
       {
-        Header: t('Created By'),
+        Header: t('Created by'),
         id: 'created_by',
         input: 'select',
         operator: 'rel_o_m',

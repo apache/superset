@@ -181,7 +181,7 @@ export default class FilterBoxItemControl extends React.Component {
           }
         />
         <FormRow
-          label={t('Sort Metric')}
+          label={t('Sort metric')}
           tooltip={t('Metric to sort the results by')}
           control={
             <SelectControl
@@ -201,7 +201,7 @@ export default class FilterBoxItemControl extends React.Component {
           }
         />
         <FormRow
-          label={t('Sort Ascending')}
+          label={t('Sort ascending')}
           tooltip={t('Check for sorting ascending')}
           isCheckbox
           control={
@@ -212,7 +212,7 @@ export default class FilterBoxItemControl extends React.Component {
           }
         />
         <FormRow
-          label={t('Allow Multiple Selections')}
+          label={t('Allow multiple selections')}
           isCheckbox
           tooltip={t(
             'Multiple selections allowed, otherwise filter ' +
@@ -228,7 +228,7 @@ export default class FilterBoxItemControl extends React.Component {
           }
         />
         <FormRow
-          label={t('Search All Filter Options')}
+          label={t('Search all filter options')}
           tooltip={t(
             'By default, each filter loads at most 1000 choices at the initial page load. ' +
               'Check this box if you have more than 1000 filter values and want to enable dynamically ' +
@@ -278,7 +278,7 @@ export default class FilterBoxItemControl extends React.Component {
           trigger="click"
           placement="right"
           content={this.renderPopover()}
-          title={t('Filter Configuration')}
+          title={t('Filter configuration')}
         >
           <InfoTooltipWithTrigger
             icon="edit"

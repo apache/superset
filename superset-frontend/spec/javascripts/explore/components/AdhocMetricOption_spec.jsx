@@ -22,9 +22,9 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
 import Popover from 'src/common/components/Popover';
-import AdhocMetric from 'src/explore/AdhocMetric';
-import AdhocMetricOption from 'src/explore/components/AdhocMetricOption';
 import { AGGREGATES } from 'src/explore/constants';
+import AdhocMetricOption from 'src/explore/components/controls/MetricControl/AdhocMetricOption';
+import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 
 const columns = [
   { type: 'VARCHAR(255)', column_name: 'source' },

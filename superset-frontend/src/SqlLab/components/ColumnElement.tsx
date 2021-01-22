@@ -65,8 +65,8 @@ const iconMap = {
   index: 'fa-bookmark',
 };
 const tooltipTitleMap = {
-  pk: 'Primary Key',
-  fk: 'Foreign Key',
+  pk: 'Primary key',
+  fk: 'Foreign key',
   index: 'Index',
 };
 

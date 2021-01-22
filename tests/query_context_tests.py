@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import pytest
+
 from superset import db
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -25,6 +27,7 @@ from superset.utils.core import (
     TimeRangeEndpoint,
 )
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.query_context import get_query_context
 
 
@@ -141,7 +144,7 @@ class TestQueryContext(SupersetTestCase):
         self.login(username="admin")
         adhoc_metric = {
             "expressionType": "SIMPLE",
-            "column": {"column_name": "sum_boys", "type": "BIGINT(20)"},
+            "column": {"column_name": "num_boys", "type": "BIGINT(20)"},
             "aggregate": "SUM",
             "label": "Boys",
             "optionName": "metric_11",
@@ -166,6 +169,7 @@ class TestQueryContext(SupersetTestCase):
         self.assertEqual(query_object.granularity, "timecol")
         self.assertIn("having_druid", query_object.extras)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_csv_response_format(self):
         """
         Ensure that CSV result format works
@@ -224,6 +228,7 @@ class TestQueryContext(SupersetTestCase):
         query_payload = query_context.get_payload()
         assert query_payload["queries"][0].get("error") is not None
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_samples_response_type(self):
         """
         Ensure that samples result type works
@@ -240,6 +245,7 @@ class TestQueryContext(SupersetTestCase):
         self.assertEqual(len(data), 5)
         self.assertNotIn("sum__num", data[0])
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_query_response_type(self):
         """
         Ensure that query result type works

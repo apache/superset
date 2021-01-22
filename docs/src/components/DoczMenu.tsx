@@ -31,6 +31,7 @@ export default () => {
       mode="inline"
       defaultOpenKeys={[openKey]}
       defaultSelectedKeys={[selectedKey]}
+      className="docSearch-sidebar"
     >
       {menus.map((menuItem) => {
         if (menuItem.menu?.length > 0) {

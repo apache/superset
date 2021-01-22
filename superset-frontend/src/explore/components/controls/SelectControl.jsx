@@ -56,6 +56,7 @@ const propTypes = {
   menuPortalTarget: PropTypes.element,
   menuPosition: PropTypes.string,
   menuPlacement: PropTypes.string,
+  forceOverflow: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -183,7 +184,7 @@ export default class SelectControl extends React.PureComponent {
   }
 
   isMetaSelectAllOption(o) {
-    return o.meta && o.meta === true && o.label === 'Select All';
+    return o.meta && o.meta === true && o.label === 'Select all';
   }
 
   optionsIncludesSelectAll(o) {
@@ -203,16 +204,9 @@ export default class SelectControl extends React.PureComponent {
     return remainingOptions;
   }
 
-  createPlaceholder() {
-    const optionsRemaining = this.optionsRemaining();
-    const placeholder =
-      this.props.placeholder || t('%s option(s)', optionsRemaining);
-    return optionsRemaining ? placeholder : '';
-  }
-
   createMetaSelectAllOption() {
-    const option = { label: 'Select All', meta: true };
-    option[this.props.valueKey] = 'Select All';
+    const option = { label: 'Select all', meta: true };
+    option[this.props.valueKey] = 'Select all';
     return option;
   }
 
@@ -225,7 +219,6 @@ export default class SelectControl extends React.PureComponent {
       filterOption,
       isLoading,
       menuPlacement,
-      menuPosition,
       name,
       noResultsText,
       onFocus,
@@ -234,9 +227,22 @@ export default class SelectControl extends React.PureComponent {
       value,
       valueKey,
       valueRenderer,
+      forceOverflow,
+      menuPortalTarget,
+      menuPosition,
     } = this.props;
-    const placeholder = this.createPlaceholder();
+
+    const optionsRemaining = this.optionsRemaining();
+    const optionRemaingText = optionsRemaining
+      ? t('%s option(s)', optionsRemaining)
+      : '';
+    const placeholder = this.props.placeholder || optionRemaingText;
     const isMulti = this.props.isMulti || this.props.multi;
+
+    let assistiveText;
+    if (isMulti && optionsRemaining && Array.isArray(value) && !!value.length) {
+      assistiveText = optionRemaingText;
+    }
 
     const selectProps = {
       autoFocus,
@@ -248,7 +254,8 @@ export default class SelectControl extends React.PureComponent {
       isMulti,
       labelKey: 'label',
       menuPlacement,
-      menuPortalTarget: document.body,
+      forceOverflow,
+      menuPortalTarget,
       menuPosition,
       name: `select-${name}`,
       noResultsText,
@@ -257,6 +264,7 @@ export default class SelectControl extends React.PureComponent {
       optionRenderer,
       options: this.state.options,
       placeholder,
+      assistiveText,
       promptTextCreator,
       selectRef: this.getSelectRef,
       value,

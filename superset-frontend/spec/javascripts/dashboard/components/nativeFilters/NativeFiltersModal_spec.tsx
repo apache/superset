@@ -19,7 +19,9 @@
 import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { act } from 'react-dom/test-utils';
+import { ReactWrapper } from 'enzyme';
 import { Provider } from 'react-redux';
+import Alert from 'react-bootstrap/lib/Alert';
 import { FilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterConfigModal';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { mockStore } from 'spec/fixtures/mockStore';
@@ -73,5 +75,52 @@ describe('FiltersConfigModal', () => {
     });
     await waitForComponentToPaint(wrapper);
     expect(onSave.mock.calls).toHaveLength(0);
+  });
+
+  describe('when click cancel', () => {
+    let onCancel: jest.Mock;
+    let wrapper: ReactWrapper;
+
+    beforeEach(() => {
+      onCancel = jest.fn();
+      wrapper = setup({ onCancel, createNewOnOpen: false });
+    });
+
+    async function clickCancel() {
+      act(() => {
+        wrapper.find('.ant-modal-footer button').at(0).simulate('click');
+      });
+      await waitForComponentToPaint(wrapper);
+    }
+
+    function addFilter() {
+      act(() => {
+        wrapper.find('button[aria-label="Add tab"]').at(0).simulate('click');
+      });
+    }
+
+    it('does not show alert when there is no unsaved filters', async () => {
+      await clickCancel();
+      expect(onCancel.mock.calls).toHaveLength(1);
+    });
+
+    it('shows correct alert message for an unsaved filter', async () => {
+      addFilter();
+      await clickCancel();
+      expect(onCancel.mock.calls).toHaveLength(0);
+      expect(wrapper.find(Alert).text()).toContain(
+        'Are you sure you want to cancel? "New Filter" will not be saved.',
+      );
+    });
+
+    it('shows correct alert message for 2 unsaved filters', async () => {
+      addFilter();
+      addFilter();
+      await clickCancel();
+      expect(onCancel.mock.calls).toHaveLength(0);
+      expect(wrapper.find(Alert).text()).toContain(
+        'Are you sure you want to cancel? "New Filter" and "New Filter" will not be saved.',
+      );
+    });
   });
 });
