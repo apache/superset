@@ -128,5 +128,5 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         return query
 
     @staticmethod
-    def has_no_role_based_access():
+    def has_no_role_based_access() -> bool:
         return ~Dashboard.roles.any()
