@@ -46,13 +46,8 @@ extraEnv: {}
 configMountPath: "/app/pythonpath"
 
 image:
-<<<<<<< HEAD
   repository: 766930725927.dkr.ecr.us-west-2.amazonaws.com/superset
-  tag: 0b1170b5acb8508f95fec2dc50246d271129081d
-=======
-  repository: apache/superset
-  tag: latest
->>>>>>> 1.0.0
+  tag: 1.0.0
   pullPolicy: IfNotPresent
 
 service:
