@@ -1405,14 +1405,14 @@ class MultiLineViz(NVD3Viz):
         return {}
 
     def get_data(self, df: pd.DataFrame) -> VizData:
-        fd = self.form_data
-        # Late imports to avoid circular import issues
+        multiline_fd = self.form_data
+        # Late import to avoid circular import issues
         from superset.charts.dao import ChartDAO
 
-        axis1_charts = ChartDAO.find_by_ids(fd.get("line_charts", []))
-        axis2_charts = ChartDAO.find_by_ids(fd.get("line_charts_2", []))
-        filters = fd.get("filters", [])
-        add_prefix = fd.get("prefix_metric_with_slice_name", False)
+        axis1_charts = ChartDAO.find_by_ids(multiline_fd.get("line_charts", []))
+        axis2_charts = ChartDAO.find_by_ids(multiline_fd.get("line_charts_2", []))
+        filters = multiline_fd.get("filters", [])
+        add_prefix = multiline_fd.get("prefix_metric_with_slice_name", False)
         data = []
         min_x, max_x = None, None
 
@@ -1420,19 +1420,19 @@ class MultiLineViz(NVD3Viz):
             (chart, 2) for chart in axis2_charts
         ]:
             prefix = f"{chart.chart}: " if add_prefix else ""
-            form_data = chart.form_data
-            form_data["filters"] = form_data.get("filters", []) + filters
-            form_data["extra_filters"] = fd.get("extra_filters")
-            form_data["time_range"] = fd.get("time_range")
+            chart_fd = chart.form_data
+            chart_fd["filters"] = chart_fd.get("filters", []) + filters
+            chart_fd["extra_filters"] = chart_fd.get("extra_filters")
+            chart_fd["time_range"] = chart_fd.get("time_range")
             viz_obj = viz_types[chart.viz_type](
                 chart.datasource,
-                form_data=chart.form_data,
+                form_data=chart_fd,
                 force=self.force,
                 force_cached=self.force_cached,
             )
             df = viz_obj.get_df_payload()["df"]
-            all_series = viz_obj.get_data(df)
-            for series in all_series or []:
+            chart_series = viz_obj.get_data(df) or []
+            for series in chart_series:
                 x_values = [value["x"] for value in series["values"]]
                 min_x = min(x_values + ([min_x] if min_x is not None else []))
                 max_x = max(x_values + ([max_x] if max_x is not None else []))
