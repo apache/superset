@@ -82,31 +82,24 @@ const DatasourceContainer = styled.div`
   max-height: 100%;
   .ant-collapse {
     height: auto;
+  }
+  /*
+  .ant-collapse {
+    height: auto;
     border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-    background-color: ${({ theme }) => theme.colors.grayscale.light4};
   }
   .ant-collapse > .ant-collapse-item > .ant-collapse-header {
     padding-left: ${({ theme }) => theme.gridUnit * 2}px;
     padding-bottom: 0px;
   }
   .ant-collapse-item {
-    background-color: ${({ theme }) => theme.colors.grayscale.light4};
     .anticon.anticon-right.ant-collapse-arrow > svg {
-      transform: rotate(90deg) !important;
       margin-right: ${({ theme }) => theme.gridUnit * -2}px;
     }
   }
-  .ant-collapse-item.ant-collapse-item-active {
-    .anticon.anticon-right.ant-collapse-arrow > svg {
-      transform: rotate(-90deg) !important;
-    }
-    .ant-collapse-header {
-      border: 0;
-    }
-  }
+  */
   .header {
-    font-size: ${({ theme }) => theme.typography.sizes.l}px;
     margin-left: ${({ theme }) => theme.gridUnit * -2}px;
   }
   .ant-collapse-borderless
@@ -213,6 +206,7 @@ const DataSourcePanel = ({
           bordered={false}
           defaultActiveKey={['metrics', 'column']}
           expandIconPosition="right"
+          ghost
         >
           <Collapse.Panel
             header={<span className="header">{t('Metrics')}</span>}

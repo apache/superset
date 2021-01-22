@@ -35,10 +35,6 @@ describe('Advanced analytics', () => {
       .find('input[type=text]')
       .type('28 days{enter}');
 
-<<<<<<< HEAD
-    cy.get('[data-test=time_compare]').find('.Select__conftrol').click();
-=======
->>>>>>> upstream/master
     cy.get('[data-test=time_compare]')
       .find('input[type=text]')
       .type('1 year{enter}');

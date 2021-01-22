@@ -48,6 +48,9 @@ const Collapse = Object.assign(
         font-size: ${({ bigger, theme }) =>
           bigger ? `${theme.gridUnit * 4}px` : 'inherit'};
 
+        .anticon.anticon-right.ant-collapse-arrow > svg {
+          transform: rotate(90deg) !important;
+        }
         ${({ light, theme }) =>
           light &&
           `
@@ -71,6 +74,13 @@ const Collapse = Object.assign(
             margin: ${({ theme }) => theme.gridUnit * 12}px auto;
             display: block;
           }
+        }
+      }
+    }
+    .ant-collapse-item-active {
+      .ant-collapse-header {
+        .anticon.anticon-right.ant-collapse-arrow > svg {
+          transform: rotate(-90deg) !important;
         }
       }
     }
