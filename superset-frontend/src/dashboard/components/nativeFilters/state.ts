@@ -90,7 +90,7 @@ export function useFilterScopeTree(): {
     children: [],
     key: DASHBOARD_ROOT_ID,
     type: DASHBOARD_ROOT_TYPE,
-    title: t('All Panels'),
+    title: t('All panels'),
   };
 
   // We need to get only nodes that have charts as children or grandchildren
