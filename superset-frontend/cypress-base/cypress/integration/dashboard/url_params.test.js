@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import {
+  isLegacyResponse,
+  getChartAliases,
+  parsePostForm,
+} from 'cypress/utils';
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
-import { isLegacyResponse, getChartAliases } from '../../utils/vizPlugins';
-import parsePostForm from '../../utils/parsePostForm';
 
 describe('Dashboard form data', () => {
   const urlParams = { param1: '123', param2: 'abc' };

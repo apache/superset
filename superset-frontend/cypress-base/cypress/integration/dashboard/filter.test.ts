@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 import {
   getChartAliases,
   DASHBOARD_CHART_ALIAS_PREFIX,
   isLegacyResponse,
-} from '../../utils/vizPlugins';
-import parsePostForm from 'cypress/utils/parsePostForm';
+  parsePostForm,
+} from 'cypress/utils';
+import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 interface Slice {
   slice_id: number;

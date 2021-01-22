@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import parsePostForm from '../../utils/parsePostForm';
-import { interceptChart } from '../../utils/vizPlugins';
+import { interceptChart, parsePostForm } from 'cypress/utils';
 import { TABBED_DASHBOARD } from './dashboard.helper';
 
 describe('Dashboard tabs', () => {
