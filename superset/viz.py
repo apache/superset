@@ -1648,6 +1648,7 @@ class DistributionBarViz(BaseViz):
             raise QueryObjectValidationError(_("Pick at least one metric"))
         if not fd.get("groupby"):
             raise QueryObjectValidationError(_("Pick at least one field for [Series]"))
+        d["orderby"] = [(d["metrics"][0], False)]
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
