@@ -6,9 +6,11 @@ on:
     branches-ignore:
       - "dependabot/npm_and_yarn/**"
   pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
   lint:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -32,6 +34,7 @@ jobs:
         run: pylint -j 0 superset
 
   pre-commit:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -54,6 +57,7 @@ jobs:
         run: pre-commit run --all-files
 
   babel-extract:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       matrix:
