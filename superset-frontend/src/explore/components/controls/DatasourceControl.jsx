@@ -210,7 +210,6 @@ class DatasourceControl extends React.PureComponent {
             onHide={this.toggleChangeDatasourceModal}
             show={showChangeDatasourceModal}
             onChange={onChange}
-            setControlDefault={this.props.actions.setControlPanelDefaults}
           />
         )}
       </Styles>
