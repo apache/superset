@@ -25,7 +25,7 @@ from superset import db, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.views.base import BaseFilter, is_user_admin
+from superset.views.base import BaseFilter, get_user_roles, is_user_admin
 from superset.views.base_api import BaseFavoriteFilter
 
 
@@ -93,7 +93,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         roles_based_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.roles)
-            .filter(and_(Dashboard.published.is_(True), Role.id.in_(user_roles)),)
+            .filter(and_(Dashboard.published.is_(True), Role.id.in_(get_user_roles())),)
         )
 
         users_favorite_dash_query = db.session.query(FavStar.obj_id).filter(
