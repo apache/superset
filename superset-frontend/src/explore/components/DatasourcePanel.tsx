@@ -83,14 +83,8 @@ const DatasourceContainer = styled.div`
   .ant-collapse {
     height: auto;
   }
-  .header {
-    margin-left: ${({ theme }) => theme.gridUnit * -2}px;
-  }
   .field-selections {
-    padding: ${({ theme }) =>
-      `${2 * theme.gridUnit}px ${2 * theme.gridUnit}px ${
-        4 * theme.gridUnit
-      }px`};
+    padding: ${({ theme }) => `0 0 ${4 * theme.gridUnit}px`};
     overflow: auto;
   }
   .field-length {
