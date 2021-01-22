@@ -88,7 +88,7 @@ export function useFilterScopeTree(): {
     children: [],
     key: DASHBOARD_ROOT_ID,
     type: DASHBOARD_ROOT_TYPE,
-    title: t('All Panels'),
+    title: t('All panels'),
   };
   buildTree(layout[DASHBOARD_ROOT_ID], tree, layout, charts);
   return { treeData: [tree], layout };

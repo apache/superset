@@ -452,7 +452,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             buttonSize="sm"
             onClick={handleResetAll}
           >
-            {t('Reset All')}
+            {t('Reset all')}
           </Button>
           <Button
             buttonStyle="primary"
