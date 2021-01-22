@@ -1409,8 +1409,15 @@ class MultiLineViz(NVD3Viz):
         # Late import to avoid circular import issues
         from superset.charts.dao import ChartDAO
 
-        axis1_charts = ChartDAO.find_by_ids(multiline_fd.get("line_charts", []))
-        axis2_charts = ChartDAO.find_by_ids(multiline_fd.get("line_charts_2", []))
+        axis1_chart_ids = multiline_fd.get("line_charts", [])
+        axis2_chart_ids = multiline_fd.get("line_charts_2", [])
+        all_charts = {
+            chart.id: chart
+            for chart in ChartDAO.find_by_ids(axis1_chart_ids + axis2_chart_ids)
+        }
+        axis1_charts = [all_charts[chart_id] for chart_id in axis1_chart_ids]
+        axis2_charts = [all_charts[chart_id] for chart_id in axis2_chart_ids]
+
         filters = multiline_fd.get("filters", [])
         add_prefix = multiline_fd.get("prefix_metric_with_slice_name", False)
         data = []
@@ -1422,8 +1429,10 @@ class MultiLineViz(NVD3Viz):
             prefix = f"{chart.chart}: " if add_prefix else ""
             chart_fd = chart.form_data
             chart_fd["filters"] = chart_fd.get("filters", []) + filters
-            chart_fd["extra_filters"] = chart_fd.get("extra_filters")
-            chart_fd["time_range"] = chart_fd.get("time_range")
+            if "extra_filters" in multiline_fd:
+                chart_fd["extra_filters"] = multiline_fd["extra_filters"]
+            if "time_range" in multiline_fd:
+                chart_fd["time_range"] = multiline_fd["time_range"]
             viz_obj = viz_types[chart.viz_type](
                 chart.datasource,
                 form_data=chart_fd,
