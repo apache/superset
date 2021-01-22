@@ -31,7 +31,6 @@ import {
 import { sliceId } from 'spec/fixtures/mockChartQueries';
 import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
 import { dashboardWithFilter } from 'spec/fixtures/mockDashboardLayout';
-import { nativeFilters } from 'spec/fixtures/mockNativeFilters';
 
 describe('FiltersBadge', () => {
   // there's this bizarre "active filters" thing
@@ -147,7 +146,6 @@ describe('FiltersBadge', () => {
             rejected_filters: [],
           },
         ],
-        nativeFilters,
       });
       const wrapper = shallow(
         <Provider store={store}>
@@ -198,7 +196,6 @@ describe('FiltersBadge', () => {
             ],
           },
         ],
-        nativeFilters,
       });
       const wrapper = shallow(
         <FiltersBadge {...{ store }} chartId={sliceId} />,
