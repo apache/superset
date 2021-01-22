@@ -217,7 +217,7 @@ function ChartList(props: ChartListProps) {
             original: { viz_type: vizType },
           },
         }: any) => registry.get(vizType)?.name || vizType,
-        Header: t('Visualization Type'),
+        Header: t('Visualization type'),
         accessor: 'viz_type',
         size: 'xxl',
       },
@@ -244,7 +244,7 @@ function ChartList(props: ChartListProps) {
             },
           },
         }: any) => <a href={changedByUrl}>{changedByName}</a>,
-        Header: t('Modified By'),
+        Header: t('Modified by'),
         accessor: 'changed_by.first_name',
         size: 'xl',
       },
@@ -254,7 +254,7 @@ function ChartList(props: ChartListProps) {
             original: { changed_on_delta_humanized: changedOn },
           },
         }: any) => <span className="no-wrap">{changedOn}</span>,
-        Header: t('Last Modified'),
+        Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
       },
@@ -270,7 +270,7 @@ function ChartList(props: ChartListProps) {
           },
         }: any) =>
           createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
-        Header: t('Created By'),
+        Header: t('Created by'),
         accessor: 'created_by',
         disableSortBy: true,
         size: 'xl',
@@ -294,7 +294,7 @@ function ChartList(props: ChartListProps) {
             <span className="actions">
               {canDelete && (
                 <ConfirmStatusChange
-                  title={t('Please Confirm')}
+                  title={t('Please confirm')}
                   description={
                     <>
                       {t('Are you sure you want to delete')}{' '}
@@ -388,7 +388,7 @@ function ChartList(props: ChartListProps) {
       paginate: true,
     },
     {
-      Header: t('Created By'),
+      Header: t('Created by'),
       id: 'created_by',
       input: 'select',
       operator: FilterOperators.relationOneMany,
@@ -409,7 +409,7 @@ function ChartList(props: ChartListProps) {
       paginate: true,
     },
     {
-      Header: t('Viz Type'),
+      Header: t('Viz type'),
       id: 'viz_type',
       input: 'select',
       operator: FilterOperators.equals,
@@ -480,13 +480,13 @@ function ChartList(props: ChartListProps) {
     {
       desc: true,
       id: 'changed_on_delta_humanized',
-      label: 'Recently Modified',
+      label: 'Recently modified',
       value: 'recently_modified',
     },
     {
       desc: false,
       id: 'changed_on_delta_humanized',
-      label: 'Least Recently Modified',
+      label: 'Least recently modified',
       value: 'least_recently_modified',
     },
   ];
@@ -510,7 +510,7 @@ function ChartList(props: ChartListProps) {
   const subMenuButtons: SubMenuProps['buttons'] = [];
   if (canDelete || canExport) {
     subMenuButtons.push({
-      name: t('Bulk Select'),
+      name: t('Bulk select'),
       buttonStyle: 'secondary',
       onClick: toggleBulkSelect,
     });

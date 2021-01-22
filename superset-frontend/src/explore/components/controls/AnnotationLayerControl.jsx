@@ -188,7 +188,7 @@ class AnnotationLayerControl extends React.PureComponent {
             trigger="click"
             placement="right"
             content={this.renderPopover(addLayerPopoverKey, addedAnnotation)}
-            title={t('Add Annotation Layer')}
+            title={t('Add annotation layer')}
             visible={this.state.popoverVisible[addLayerPopoverKey]}
             destroyTooltipOnHide
             onVisibleChange={visible =>
@@ -200,7 +200,7 @@ class AnnotationLayerControl extends React.PureComponent {
                 data-test="add-annotation-layer-button"
                 className="fa fa-plus"
               />{' '}
-              &nbsp; {t('Add Annotation Layer')}
+              &nbsp; {t('Add annotation layer')}
             </ListGroupItem>
           </Popover>
         </ListGroup>

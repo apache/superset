@@ -73,13 +73,13 @@ describe('AnnotationLayerModal', () => {
     const addWrapper = await mountAndWait({});
     expect(
       addWrapper.find('[data-test="annotation-layer-modal-title"]').text(),
-    ).toEqual('Add Annotation Layer');
+    ).toEqual('Add annotation layer');
   });
 
   it('renders edit header when layer prop is included', () => {
     expect(
       wrapper.find('[data-test="annotation-layer-modal-title"]').text(),
-    ).toEqual('Edit Annotation Layer Properties');
+    ).toEqual('Edit annotation layer properties');
   });
 
   it('renders input element for name', () => {

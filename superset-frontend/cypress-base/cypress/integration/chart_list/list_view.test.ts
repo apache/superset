@@ -30,11 +30,11 @@ describe('chart list view', () => {
     cy.get('[data-test="listview-table"]').should('be.visible');
     // check chart list view header
     cy.get('[data-test="sort-header"]').eq(1).contains('Chart');
-    cy.get('[data-test="sort-header"]').eq(2).contains('Visualization Type');
+    cy.get('[data-test="sort-header"]').eq(2).contains('Visualization type');
     cy.get('[data-test="sort-header"]').eq(3).contains('Dataset');
-    cy.get('[data-test="sort-header"]').eq(4).contains('Modified By');
-    cy.get('[data-test="sort-header"]').eq(5).contains('Last Modified');
-    cy.get('[data-test="sort-header"]').eq(6).contains('Created By');
+    cy.get('[data-test="sort-header"]').eq(4).contains('Modified by');
+    cy.get('[data-test="sort-header"]').eq(5).contains('Last modified');
+    cy.get('[data-test="sort-header"]').eq(6).contains('Created by');
     cy.get('[data-test="sort-header"]').eq(7).contains('Actions');
     cy.get('[data-test="table-row"]').should('have.length', 25);
   });
