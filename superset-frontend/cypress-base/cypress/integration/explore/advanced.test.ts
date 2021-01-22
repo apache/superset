@@ -47,7 +47,7 @@ describe('Advanced analytics', () => {
       chartSelector: 'svg',
     });
 
-    cy.get('.panel-title').contains('Advanced Analytics').click();
+    cy.get('.ant-collapse-header').contains('Advanced Analytics').click();
     cy.get('[data-test=time_compare]')
       .find('.Select__multi-value__label')
       .contains('28 days');

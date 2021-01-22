@@ -112,7 +112,7 @@ describe('VizType control', () => {
     // should load mathjs for line chart
     cy.get('script[src*="mathjs"]').should('have.length', 1);
     cy.get('script').then(nodes => {
-      expect(nodes.length).to.greaterThan(numScripts);
+      expect(nodes.length).to.eq(numScripts);
     });
 
     cy.get('button[data-test="run-query-button"]').click();

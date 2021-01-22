@@ -83,30 +83,8 @@ const DatasourceContainer = styled.div`
   .ant-collapse {
     height: auto;
   }
-  /*
-  .ant-collapse {
-    height: auto;
-    border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-  }
-  .ant-collapse > .ant-collapse-item > .ant-collapse-header {
-    padding-left: ${({ theme }) => theme.gridUnit * 2}px;
-    padding-bottom: 0px;
-  }
-  .ant-collapse-item {
-    .anticon.anticon-right.ant-collapse-arrow > svg {
-      margin-right: ${({ theme }) => theme.gridUnit * -2}px;
-    }
-  }
-  */
   .header {
     margin-left: ${({ theme }) => theme.gridUnit * -2}px;
-  }
-  .ant-collapse-borderless
-    > .ant-collapse-item
-    > .ant-collapse-content
-    > .ant-collapse-content-box {
-    padding: 0px;
   }
   .field-selections {
     padding: ${({ theme }) =>
@@ -203,7 +181,7 @@ const DataSourcePanel = ({
       />
       <div className="field-selections">
         <Collapse
-          bordered={false}
+          bordered
           defaultActiveKey={['metrics', 'column']}
           expandIconPosition="right"
           ghost
