@@ -24,7 +24,8 @@ import {
   MetricOption,
   ControlType,
 } from '@superset-ui/chart-controls';
-import matchSorter from 'match-sorter';
+import { debounce } from 'lodash';
+import { matchSorter, rankings } from 'match-sorter';
 import { ExploreActions } from '../actions/exploreActions';
 import Control from './Control';
 
@@ -159,36 +160,65 @@ const LabelContainer = styled.div`
   }
 `;
 
-const DataSourcePanel = ({
+export default function DataSourcePanel({
   datasource,
   controls: { datasource: datasourceControl },
   actions,
-}: Props) => {
+}: Props) {
   const { columns, metrics } = datasource;
   const [lists, setList] = useState({
     columns,
     metrics,
   });
-  const search = ({ target: { value } }: { target: { value: string } }) => {
+
+  const search = debounce((value: string) => {
     if (value === '') {
       setList({ columns, metrics });
       return;
     }
     setList({
       columns: matchSorter(columns, value, {
-        keys: ['column_name', 'expression', 'description', 'verbose_name'],
+        keys: [
+          'column_name',
+          'verbose_name',
+          {
+            key: 'description',
+            threshold: rankings.STARTS_WITH,
+          },
+          {
+            key: 'expression',
+            threshold: rankings.STARTS_WITH,
+          },
+        ],
+        keepDiacritics: true,
       }),
       metrics: matchSorter(metrics, value, {
-        keys: ['metric_name', 'expression', 'description', 'verbose_name'],
+        keys: [
+          'metric_name',
+          'verbose_name',
+          {
+            key: 'description',
+            threshold: rankings.CONTAINS,
+          },
+          {
+            key: 'expression',
+            threshold: rankings.CONTAINS,
+          },
+        ],
+        keepDiacritics: true,
+        baseSort: (a, b) =>
+          Number(b.item.is_certified) - Number(a.item.is_certified) ||
+          String(a.rankedValue).localeCompare(b.rankedValue),
       }),
     });
-  };
+  }, 200);
+
   useEffect(() => {
     setList({
       columns,
       metrics,
     });
-  }, [datasource]);
+  }, [columns, datasource, metrics]);
 
   const metricSlice = lists.metrics.slice(0, 50);
   const columnSlice = lists.columns.slice(0, 50);
@@ -204,7 +234,9 @@ const DataSourcePanel = ({
       />
       <input
         type="text"
-        onChange={search}
+        onChange={evt => {
+          search(evt.target.value);
+        }}
         className="form-control input-md"
         placeholder={t('Search Metrics & Columns')}
       />
@@ -219,7 +251,7 @@ const DataSourcePanel = ({
             key="metrics"
           >
             <div className="field-length">
-              {t(`Showing %s of %s`, metricSlice.length, metrics.length)}
+              {t(`Showing %s of %s`, metricSlice.length, lists.metrics.length)}
             </div>
             {metricSlice.map(m => (
               <LabelContainer key={m.metric_name} className="column">
@@ -232,7 +264,7 @@ const DataSourcePanel = ({
             key="column"
           >
             <div className="field-length">
-              {t(`Showing %s of %s`, columnSlice.length, columns.length)}
+              {t(`Showing %s of %s`, columnSlice.length, lists.columns.length)}
             </div>
             {columnSlice.map(col => (
               <LabelContainer key={col.column_name} className="column">
@@ -244,6 +276,4 @@ const DataSourcePanel = ({
       </div>
     </DatasourceContainer>
   );
-};
-
-export default DataSourcePanel;
+}
