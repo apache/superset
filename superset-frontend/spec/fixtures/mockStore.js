@@ -76,7 +76,7 @@ export const getMockStoreWithFilters = () =>
     },
   });
 
-  export const getMockStoreWithNativeFilters = () =>
+export const getMockStoreWithNativeFilters = () =>
   createStore(rootReducer, {
     ...mockState,
     nativeFilters,
