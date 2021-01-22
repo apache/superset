@@ -16,6 +16,7 @@
 # under the License.
 from unittest import mock
 
+import pytest
 from sqlalchemy import column
 from sqlalchemy.dialects import oracle
 from sqlalchemy.dialects.oracle import DATE, NVARCHAR, VARCHAR
@@ -38,32 +39,6 @@ class TestOracleDbEngineSpec(TestDbEngineSpec):
         result = str(expr.compile(dialect=oracle.dialect()))
         self.assertEqual(result, "TRUNC(CAST(\"decimal\" as DATE), 'MONTH')")
         dttm = self.get_dttm()
-
-    def test_convert_dttm(self):
-        dttm = self.get_dttm()
-
-        test_cases = (
-            (
-                OracleEngineSpec.convert_dttm("DATE", dttm),
-                "TO_DATE('2019-01-02', 'YYYY-MM-DD')",
-            ),
-            (
-                OracleEngineSpec.convert_dttm("DATETIME", dttm),
-                """TO_DATE('2019-01-02T03:04:05', 'YYYY-MM-DD"T"HH24:MI:SS')""",
-            ),
-            (
-                OracleEngineSpec.convert_dttm("TIMESTAMP", dttm),
-                """TO_TIMESTAMP('2019-01-02T03:04:05.678900', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""",
-            ),
-            (
-                OracleEngineSpec.convert_dttm("timestamp", dttm),
-                """TO_TIMESTAMP('2019-01-02T03:04:05.678900', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""",
-            ),
-            (OracleEngineSpec.convert_dttm("Other", dttm), None,),
-        )
-
-        for result, expected_result in test_cases:
-            assert result == expected_result
 
     def test_column_datatype_to_string(self):
         test_cases = (
@@ -89,3 +64,24 @@ class TestOracleDbEngineSpec(TestDbEngineSpec):
         result = ["a", "b"]
         cursor.fetchall.return_value = result
         assert OracleEngineSpec.fetch_data(cursor) == result
+
+
+@pytest.mark.parametrize(
+    "date_format,expected",
+    [
+        ("DATE", "TO_DATE('2019-01-02', 'YYYY-MM-DD')"),
+        ("DATETIME", """TO_DATE('2019-01-02T03:04:05', 'YYYY-MM-DD"T"HH24:MI:SS')"""),
+        (
+            "TIMESTAMP",
+            """TO_TIMESTAMP('2019-01-02T03:04:05.678900', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""",
+        ),
+        (
+            "timestamp",
+            """TO_TIMESTAMP('2019-01-02T03:04:05.678900', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""",
+        ),
+        ("Other", None),
+    ],
+)
+def test_convert_dttm(date_format, expected):
+    dttm = TestOracleDbEngineSpec.get_dttm()
+    assert OracleEngineSpec.convert_dttm(date_format, dttm) == expected
