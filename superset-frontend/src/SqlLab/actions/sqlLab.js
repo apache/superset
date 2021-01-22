@@ -154,7 +154,7 @@ export function scheduleQuery(query) {
         dispatch(
           addSuccessToast(
             t(
-              'Your query has been scheduled. To see details of your query, navigate to Saved Queries',
+              'Your query has been scheduled. To see details of your query, navigate to Saved queries',
             ),
           ),
         ),

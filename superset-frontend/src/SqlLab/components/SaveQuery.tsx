@@ -169,7 +169,7 @@ export default function SaveQuery({
         primaryButtonName={isSaved ? t('Save') : t('Save as')}
         width="620px"
         show={showSave}
-        title={<h4>{t('Save Query')}</h4>}
+        title={<h4>{t('Save query')}</h4>}
         footer={[
           <>
             <Button onClick={close} data-test="cancel-query" cta>
@@ -181,7 +181,7 @@ export default function SaveQuery({
               className="m-r-3"
               cta
             >
-              {isSaved ? t('Save As New') : t('Save')}
+              {isSaved ? t('Save as new') : t('Save')}
             </Button>
             {isSaved && (
               <Button
