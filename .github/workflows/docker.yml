@@ -5,10 +5,11 @@ on:
     branches:
       - 'master'
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
   build:
+    if: github.event.pull_request.draft == false
     name: build
     runs-on: ubuntu-latest
     steps:

@@ -7,9 +7,11 @@ on:
     paths-ignore:
       - "docs/**"
   pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
   cypress-matrix:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
       # when one test fails, DO NOT cancel the other
@@ -103,7 +105,7 @@ jobs:
           name: screenshots
           path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots
   Cypress:
-    if: ${{ always() }}
+    if: github.event.pull_request.draft == false && ${{ always() }}
     name: Cypress (chrome)
     runs-on: ubuntu-20.04
     needs: cypress-matrix
