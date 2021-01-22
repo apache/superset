@@ -1,7 +1,7 @@
 on:
 
   schedule:
-    - cron: '0 0 * * 2'  # https://crontab.guru/#0_0_*_*_2
+    - cron: '0 0 * * 2'  # Midnight on every Tuesday
 
 name: Create Release
 
@@ -13,21 +13,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Get current date
-        id: date
-        run: echo "name=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
-      - name: Test with environment variables
-        run: echo $TAG_NAME - $RELEASE_NAME
-        env:
-          TAG_NAME: weekly-tag-${{ steps.date.outputs.date }}
-          RELEASE_NAME: weekly-release-${{ steps.date.outputs.date }}
+        run: echo "::set-output name=todays_date::$(date +'%Y-%m-%d')"
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: weekly-tag-${{ steps.date.outputs.date }}
-          release_name: Reekly-release-${{ steps.date.outputs.date }}
+          tag_name: superset-1.0.0-${{ outputs.todays_date.value }}
+          release_name: superset-1.0.0-${{ outputs.todays_date.value }}
           body: |
             ##todo: list of commits
           draft: false
