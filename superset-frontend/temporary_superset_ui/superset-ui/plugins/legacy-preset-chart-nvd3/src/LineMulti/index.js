@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
@@ -31,8 +32,9 @@ const metadata = new ChartMetadata({
 export default class LineChartPlugin extends ChartPlugin {
   constructor() {
     super({
-      loadChart: () => import('./LineMulti'),
+      loadChart: () => import('../ReactNVD3'),
       metadata,
+      transformProps,
       controlPanel,
     });
   }
