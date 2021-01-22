@@ -37,7 +37,7 @@ import ListView, {
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import FacePile from 'src/components/FacePile';
-import Icon from 'src/components/Icon';
+import Icon, {  CustomIcon } from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import TooltipWrapper from 'src/components/TooltipWrapper';
@@ -301,7 +301,7 @@ function DashboardList(props: DashboardListProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icon
+                        <CustomIcon
                           data-test="dashboard-list-trash-icon"
                           name="trash"
                         />
