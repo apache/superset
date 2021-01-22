@@ -161,10 +161,8 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
   ) => {
     const isPseudoFocused = isFocused && !menuIsOpen;
     let borderColor = colors.grayBorder;
-    if (isPseudoFocused) {
+    if (isPseudoFocused || menuIsOpen) {
       borderColor = colors.grayBorderDark;
-    } else if (menuIsOpen) {
-      borderColor = `${colors.grayBorderDark} ${colors.grayBorder} ${colors.grayBorderLight}`;
     }
     return [
       provider,
@@ -185,22 +183,28 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
       `,
     ];
   },
-  menu: (provider, { theme: { borderRadius, zIndex, colors } }) => [
+  menu: (provider, { theme: { zIndex } }) => [
+    provider,
+    css`
+      padding-bottom: 2em;
+      z-index: ${zIndex}; /* override at least multi-page pagination */
+      width: auto;
+      min-width: 100%;
+      max-width: 80vw;
+      box-shadow: none;
+      border: 0;
+    `,
+  ],
+  menuList: (provider, { theme: { borderRadius, colors } }) => [
     provider,
     css`
       border-radius: 0 0 ${borderRadius}px ${borderRadius}px;
-      border: 1px solid #ccc;
+      border: 1px solid ${colors.grayBorderDark};
       box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
       margin-top: -1px;
       border-top-color: ${colors.grayBorderLight};
       min-width: 100%;
       width: auto;
-      z-index: ${zIndex}; /* override at least multi-page pagination */
-    `,
-  ],
-  menuList: (provider, { theme: { borderRadius } }) => [
-    provider,
-    css`
       border-radius: 0 0 ${borderRadius}px ${borderRadius}px;
       padding-top: 0;
       padding-bottom: 0;
