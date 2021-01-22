@@ -26,7 +26,7 @@
     "access": "public"
   },
   "devDependencies": {
-    "@types/fetch-mock": "^6.0.0",
+    "@types/fetch-mock": "^7.3.3",
     "fetch-mock": "^6.5.2",
     "jest-mock-console": "^1.0.0"
   },
