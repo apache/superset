@@ -157,6 +157,18 @@ const LabelContainer = styled.div`
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
+  .metric-option {
+    & > svg {
+      min-width: ${({ theme }) => `${theme.gridUnit * 4}px`};
+    }
+    & > .option-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  min-width: 16px;
 `;
 
 const DataSourcePanel = ({
