@@ -21,6 +21,7 @@ from superset.commands.exceptions import (
     CommandInvalidError,
     CreateFailedError,
     DeleteFailedError,
+    ForbiddenError,
     ValidationError,
 )
 
@@ -119,9 +120,13 @@ class ReportSchedulePreviousWorkingError(CommandException):
     message = _("Report Schedule is still working, refusing to re-compute.")
 
 
+class ReportScheduleWorkingTimeoutError(CommandException):
+    message = _("Report Schedule reached a working timeout.")
+
+
 class ReportScheduleNameUniquenessValidationError(ValidationError):
     """
-    Marshmallow validation error for Report Schedule name already exists
+    Marshmallow validation error for Report Schedule name and type already exists
     """
 
     def __init__(self) -> None:
@@ -133,6 +138,11 @@ class AlertQueryMultipleRowsError(CommandException):
     message = _("Alert query returned more then one row.")
 
 
+class AlertValidatorConfigError(CommandException):
+
+    message = _("Alert validator config error.")
+
+
 class AlertQueryMultipleColumnsError(CommandException):
     message = _("Alert query returned more then one column.")
 
@@ -141,9 +151,37 @@ class AlertQueryInvalidTypeError(CommandException):
     message = _("Alert query returned a non-number value.")
 
 
+class AlertQueryError(CommandException):
+    message = _("Alert found an error while executing a query.")
+
+
 class ReportScheduleAlertGracePeriodError(CommandException):
     message = _("Alert fired during grace period.")
 
 
+class ReportScheduleAlertEndGracePeriodError(CommandException):
+    message = _("Alert ended grace period.")
+
+
 class ReportScheduleNotificationError(CommandException):
     message = _("Alert on grace period")
+
+
+class ReportScheduleSelleniumUserNotFoundError(CommandException):
+    message = _("Report Schedule sellenium user not found")
+
+
+class ReportScheduleStateNotFoundError(CommandException):
+    message = _("Report Schedule state not found")
+
+
+class ReportScheduleUnexpectedError(CommandException):
+    message = _("Report schedule unexpected error")
+
+
+class ReportScheduleForbiddenError(ForbiddenError):
+    message = _("Changing this report is forbidden")
+
+
+class ReportSchedulePruneLogError(CommandException):
+    message = _("An error occurred while pruning logs ")

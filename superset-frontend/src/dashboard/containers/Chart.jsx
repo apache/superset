@@ -45,29 +45,35 @@ function mapStateToProps(
     dashboardState,
     datasources,
     sliceEntities,
+    nativeFilters,
   },
   ownProps,
 ) {
   const { id } = ownProps;
   const chart = chartQueries[id] || {};
+  const datasource =
+    (chart && chart.form_data && datasources[chart.form_data.datasource]) || {};
   const { colorScheme, colorNamespace } = dashboardState;
+
+  // note: this method caches filters if possible to prevent render cascades
+  const formData = getFormDataWithExtraFilters({
+    chart,
+    filters: getAppliedFilterValues(id),
+    colorScheme,
+    colorNamespace,
+    sliceId: id,
+    nativeFilters,
+  });
+
+  formData.dashboardId = dashboardInfo.id;
 
   return {
     chart,
-    datasource:
-      (chart && chart.form_data && datasources[chart.form_data.datasource]) ||
-      {},
+    datasource,
     slice: sliceEntities.slices[id],
     timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
     filters: getActiveFilters() || EMPTY_FILTERS,
-    // note: this method caches filters if possible to prevent render cascades
-    formData: getFormDataWithExtraFilters({
-      chart,
-      filters: getAppliedFilterValues(id),
-      colorScheme,
-      colorNamespace,
-      sliceId: id,
-    }),
+    formData,
     editMode: dashboardState.editMode,
     isExpanded: !!dashboardState.expandedSlices[id],
     supersetCanExplore: !!dashboardInfo.superset_can_explore,

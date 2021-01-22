@@ -16,9 +16,11 @@
 # under the License.
 from sqlalchemy.engine.url import URL
 
+from superset.exceptions import SupersetException
 
-class DBSecurityException(Exception):
-    """ Exception to prevent a security issue with connecting a DB """
+
+class DBSecurityException(SupersetException):
+    """ Exception to prevent a security issue with connecting to a DB """
 
     status = 400
 

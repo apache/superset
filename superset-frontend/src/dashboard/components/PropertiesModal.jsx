@@ -35,7 +35,7 @@ import FormLabel from 'src/components/FormLabel';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
-import getClientErrorObject from '../../utils/getClientErrorObject';
+import { getClientErrorObject } from '../../utils/getClientErrorObject';
 import withToasts from '../../messageToasts/enhancers/withToasts';
 import '../stylesheets/buttons.less';
 
@@ -90,12 +90,11 @@ const loadOwnerOptions = (input = '') => {
   return SupersetClient.get({
     endpoint: `/api/v1/dashboard/related/owners?q=${query}`,
   }).then(
-    response => {
-      return response.json.result.map(item => ({
+    response =>
+      response.json.result.map(item => ({
         value: item.value,
         label: item.text,
-      }));
-    },
+      })),
     badResponse => {
       handleErrorResponse(badResponse);
       return [];

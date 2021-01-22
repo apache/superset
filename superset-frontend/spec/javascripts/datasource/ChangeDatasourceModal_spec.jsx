@@ -21,9 +21,9 @@ import { mount } from 'enzyme';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
+import { act } from 'react-dom/test-utils';
 import sinon from 'sinon';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { act } from 'react-dom/test-utils';
 import Modal from 'src/common/components/Modal';
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
@@ -47,16 +47,16 @@ const datasourceData = {
   uid: datasource.id,
 };
 
-const DATASOURCES_ENDPOINT = 'glob:*/superset/datasources/';
+const DATASOURCES_ENDPOINT =
+  'glob:*/api/v1/dataset/?q=(order_column:changed_on_delta_humanized,order_direction:asc,page:0,page_size:20)';
 const DATASOURCE_ENDPOINT = `glob:*/datasource/get/${datasourceData.type}/${datasourceData.id}`;
 const DATASOURCE_PAYLOAD = { new: 'data' };
 
-fetchMock.get(DATASOURCES_ENDPOINT, [mockDatasource['7__table']]);
+fetchMock.get(DATASOURCES_ENDPOINT, { result: [mockDatasource['7__table']] });
 fetchMock.get(DATASOURCE_ENDPOINT, DATASOURCE_PAYLOAD);
 
 async function mountAndWait(props = mockedProps) {
-  const mounted = mount(<ChangeDatasourceModal {...props} />, {
-    context: { store },
+  const mounted = mount(<ChangeDatasourceModal store={store} {...props} />, {
     wrappingComponent: ThemeProvider,
     wrappingComponentProps: { theme: supersetTheme },
   });
@@ -81,14 +81,34 @@ describe('ChangeDatasourceModal', () => {
   });
 
   it('fetches datasources', async () => {
-    expect(fetchMock.calls(/superset\/datasources/)).toHaveLength(3);
+    expect(fetchMock.calls(/api\/v1\/dataset/)).toHaveLength(3);
+  });
+
+  it('renders confirmation message', async () => {
+    await waitForComponentToPaint(wrapper, 1000);
+
+    act(() => {
+      wrapper.find('[data-test="datasource-link"]').at(0).props().onClick();
+    });
+
+    await waitForComponentToPaint(wrapper);
+
+    expect(wrapper.find('.proceed-btn')).toExist();
   });
 
   it('changes the datasource', async () => {
+    await waitForComponentToPaint(wrapper, 1000);
+
     act(() => {
-      wrapper.find('.datasource-link').at(0).props().onClick(datasourceData);
+      wrapper.find('[data-test="datasource-link"]').at(0).props().onClick();
     });
     await waitForComponentToPaint(wrapper);
+
+    act(() => {
+      wrapper.find('.proceed-btn').at(0).props().onClick(datasourceData);
+    });
+    await waitForComponentToPaint(wrapper);
+
     expect(fetchMock.calls(/datasource\/get\/table\/7/)).toHaveLength(1);
   });
 });

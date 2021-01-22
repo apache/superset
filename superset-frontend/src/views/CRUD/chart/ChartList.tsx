@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetClient, getChartMetadataRegistry, t } from '@superset-ui/core';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -40,14 +40,30 @@ import ListView, {
   ListViewProps,
   Filters,
   SelectOption,
+  FilterOperators,
 } from 'src/components/ListView';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
+import ImportModelsModal from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
 import TooltipWrapper from 'src/components/TooltipWrapper';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
+const PASSWORDS_NEEDED_MESSAGE = t(
+  'The passwords for the databases below are needed in order to ' +
+    'import them together with the charts. Please note that the ' +
+    '"Secure Extra" and "Certificate" sections of ' +
+    'the database configuration are not present in export files, and ' +
+    'should be added manually after the import if they are needed.',
+);
+const CONFIRM_OVERWRITE_MESSAGE = t(
+  'You are importing one or more charts that already exist. ' +
+    'Overwriting might cause you to lose some of your work. Are you ' +
+    'sure you want to overwrite?',
+);
+
+const registry = getChartMetadataRegistry();
 
 const createFetchDatasets = (handleError: (err: Response) => void) => async (
   filterValue = '',
@@ -96,6 +112,8 @@ interface ChartListProps {
 }
 
 function ChartList(props: ChartListProps) {
+  const { addDangerToast, addSuccessToast } = props;
+
   const {
     state: {
       loading,
@@ -108,14 +126,14 @@ function ChartList(props: ChartListProps) {
     fetchData,
     toggleBulkSelect,
     refreshData,
-  } = useListViewResource<Chart>('chart', t('chart'), props.addDangerToast);
+  } = useListViewResource<Chart>('chart', t('chart'), addDangerToast);
 
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
 
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'chart',
     chartIds,
-    props.addDangerToast,
+    addDangerToast,
   );
   const {
     sliceCurrentlyEditing,
@@ -124,11 +142,27 @@ function ChartList(props: ChartListProps) {
     closeChartEditModal,
   } = useChartEditModal(setCharts, charts);
 
-  const canCreate = hasPerm('can_add');
-  const canEdit = hasPerm('can_edit');
-  const canDelete = hasPerm('can_delete');
+  const [importingChart, showImportModal] = useState<boolean>(false);
+  const [passwordFields, setPasswordFields] = useState<string[]>([]);
+
+  const openChartImportModal = () => {
+    showImportModal(true);
+  };
+
+  const closeChartImportModal = () => {
+    showImportModal(false);
+  };
+
+  const handleChartImport = () => {
+    showImportModal(false);
+    refreshData();
+  };
+
+  const canCreate = hasPerm('can_write');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
   const canExport =
-    hasPerm('can_mulexport') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+    hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
@@ -139,10 +173,10 @@ function ChartList(props: ChartListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
-        props.addSuccessToast(json.message);
+        addSuccessToast(json.message);
       },
       createErrorHandler(errMsg =>
-        props.addDangerToast(
+        addDangerToast(
           t('There was an issue deleting the selected charts: %s', errMsg),
         ),
       ),
@@ -164,7 +198,7 @@ function ChartList(props: ChartListProps) {
           />
         ),
         Header: '',
-        id: 'favorite',
+        id: 'id',
         disableSortBy: true,
         size: 'xs',
       },
@@ -182,7 +216,7 @@ function ChartList(props: ChartListProps) {
           row: {
             original: { viz_type: vizType },
           },
-        }: any) => vizType,
+        }: any) => registry.get(vizType)?.name || vizType,
         Header: t('Visualization Type'),
         accessor: 'viz_type',
         size: 'xxl',
@@ -246,8 +280,8 @@ function ChartList(props: ChartListProps) {
           const handleDelete = () =>
             handleChartDelete(
               original,
-              props.addSuccessToast,
-              props.addDangerToast,
+              addSuccessToast,
+              addDangerToast,
               refreshData,
             );
           const openEditModal = () => openChartEditModal(original);
@@ -336,13 +370,13 @@ function ChartList(props: ChartListProps) {
       Header: t('Owner'),
       id: 'owners',
       input: 'select',
-      operator: 'rel_m_m',
+      operator: FilterOperators.relationManyMany,
       unfilteredLabel: 'All',
       fetchSelects: createFetchRelated(
         'chart',
         'owners',
         createErrorHandler(errMsg =>
-          props.addDangerToast(
+          addDangerToast(
             t(
               'An error occurred while fetching chart owners values: %s',
               errMsg,
@@ -357,13 +391,13 @@ function ChartList(props: ChartListProps) {
       Header: t('Created By'),
       id: 'created_by',
       input: 'select',
-      operator: 'rel_o_m',
+      operator: FilterOperators.relationOneMany,
       unfilteredLabel: 'All',
       fetchSelects: createFetchRelated(
         'chart',
         'created_by',
         createErrorHandler(errMsg =>
-          props.addDangerToast(
+          addDangerToast(
             t(
               'An error occurred while fetching chart created by values: %s',
               errMsg,
@@ -378,11 +412,11 @@ function ChartList(props: ChartListProps) {
       Header: t('Viz Type'),
       id: 'viz_type',
       input: 'select',
-      operator: 'eq',
+      operator: FilterOperators.equals,
       unfilteredLabel: 'All',
-      selects: getChartMetadataRegistry()
+      selects: registry
         .keys()
-        .map(k => ({ label: k, value: k }))
+        .map(k => ({ label: registry.get(k)?.name || k, value: k }))
         .sort((a, b) => {
           if (!a.label || !b.label) {
             return 0;
@@ -402,11 +436,11 @@ function ChartList(props: ChartListProps) {
       Header: t('Dataset'),
       id: 'datasource_id',
       input: 'select',
-      operator: 'eq',
+      operator: FilterOperators.equals,
       unfilteredLabel: 'All',
       fetchSelects: createFetchDatasets(
         createErrorHandler(errMsg =>
-          props.addDangerToast(
+          addDangerToast(
             t(
               'An error occurred while fetching chart dataset values: %s',
               errMsg,
@@ -417,10 +451,22 @@ function ChartList(props: ChartListProps) {
       paginate: false,
     },
     {
+      Header: t('Favorite'),
+      id: 'id',
+      urlDisplay: 'favorite',
+      input: 'select',
+      operator: FilterOperators.chartIsFav,
+      unfilteredLabel: 'Any',
+      selects: [
+        { label: t('Yes'), value: true },
+        { label: t('No'), value: false },
+      ],
+    },
+    {
       Header: t('Search'),
       id: 'slice_name',
       input: 'search',
-      operator: 'chart_all_text',
+      operator: FilterOperators.chartAllText,
     },
   ];
 
@@ -452,8 +498,8 @@ function ChartList(props: ChartListProps) {
         hasPerm={hasPerm}
         openChartEditModal={openChartEditModal}
         bulkSelectEnabled={bulkSelectEnabled}
-        addDangerToast={props.addDangerToast}
-        addSuccessToast={props.addSuccessToast}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
         refreshData={refreshData}
         loading={loading}
         favoriteStatus={favoriteStatus[chart.id]}
@@ -480,6 +526,13 @@ function ChartList(props: ChartListProps) {
       onClick: () => {
         window.location.assign('/chart/add');
       },
+    });
+  }
+  if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+    subMenuButtons.push({
+      name: <Icon name="import" />,
+      buttonStyle: 'link',
+      onClick: openChartImportModal,
     });
   }
   return (
@@ -541,6 +594,20 @@ function ChartList(props: ChartListProps) {
           );
         }}
       </ConfirmStatusChange>
+
+      <ImportModelsModal
+        resourceName="chart"
+        resourceLabel={t('chart')}
+        passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
+        confirmOverwriteMessage={CONFIRM_OVERWRITE_MESSAGE}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onModelImport={handleChartImport}
+        show={importingChart}
+        onHide={closeChartImportModal}
+        passwordFields={passwordFields}
+        setPasswordFields={setPasswordFields}
+      />
     </>
   );
 }

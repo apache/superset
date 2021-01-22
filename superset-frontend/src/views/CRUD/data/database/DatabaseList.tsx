@@ -29,10 +29,22 @@ import TooltipWrapper from 'src/components/TooltipWrapper';
 import Icon from 'src/components/Icon';
 import ListView, { Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
+import ImportModelsModal from 'src/components/ImportModal/index';
 import DatabaseModal from './DatabaseModal';
 import { DatabaseObject } from './types';
 
 const PAGE_SIZE = 25;
+const PASSWORDS_NEEDED_MESSAGE = t(
+  'The passwords for the databases below are needed in order to ' +
+    'import them. Please note that the "Secure Extra" and "Certificate" ' +
+    'sections of the database configuration are not present in export ' +
+    'files, and should be added manually after the import if they are needed.',
+);
+const CONFIRM_OVERWRITE_MESSAGE = t(
+  'You are importing one or more databases that already exist. ' +
+    'Overwriting might cause you to lose some of your work. Are you ' +
+    'sure you want to overwrite?',
+);
 
 interface DatabaseDeleteObject extends DatabaseObject {
   chart_count: number;
@@ -74,6 +86,21 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const [currentDatabase, setCurrentDatabase] = useState<DatabaseObject | null>(
     null,
   );
+  const [importingDatabase, showImportModal] = useState<boolean>(false);
+  const [passwordFields, setPasswordFields] = useState<string[]>([]);
+
+  const openDatabaseImportModal = () => {
+    showImportModal(true);
+  };
+
+  const closeDatabaseImportModal = () => {
+    showImportModal(false);
+  };
+
+  const handleDatabaseImport = () => {
+    showImportModal(false);
+    refreshData();
+  };
 
   const openDatabaseDeleteModal = (database: DatabaseObject) =>
     SupersetClient.get({
@@ -118,11 +145,11 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     setDatabaseModalOpen(true);
   }
 
-  const canCreate = hasPerm('can_add');
-  const canEdit = hasPerm('can_edit');
-  const canDelete = hasPerm('can_delete');
+  const canCreate = hasPerm('can_write');
+  const canEdit = hasPerm('can_write');
+  const canDelete = hasPerm('can_write');
   const canExport =
-    hasPerm('can_mulexport') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
+    hasPerm('can_read') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
 
   const menuData: SubMenuProps = {
     activeChild: 'Databases',
@@ -146,6 +173,14 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         },
       },
     ];
+
+    if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
+      menuData.buttons.push({
+        name: <Icon name="import" />,
+        buttonStyle: 'link',
+        onClick: openDatabaseImportModal,
+      });
+    }
   }
 
   function handleDatabaseExport(database: DatabaseObject) {
@@ -164,7 +199,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       {
         accessor: 'backend',
         Header: t('Backend'),
-        size: 'xxl',
+        size: 'lg',
         disableSortBy: true, // TODO: api support for sorting by 'backend'
       },
       {
@@ -183,7 +218,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
             original: { allow_run_async: allowRunAsync },
           },
         }: any) => <BooleanDisplay value={allowRunAsync} />,
-        size: 'md',
+        size: 'sm',
       },
       {
         accessor: 'allow_dml',
@@ -201,7 +236,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
             original: { allow_dml: allowDML },
           },
         }: any) => <BooleanDisplay value={allowDML} />,
-        size: 'md',
+        size: 'sm',
       },
       {
         accessor: 'allow_csv_upload',
@@ -211,7 +246,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
             original: { allow_csv_upload: allowCSVUpload },
           },
         }: any) => <BooleanDisplay value={allowCSVUpload} />,
-        size: 'xl',
+        size: 'md',
       },
       {
         accessor: 'expose_in_sqllab',
@@ -221,7 +256,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
             original: { expose_in_sqllab: exposeInSqllab },
           },
         }: any) => <BooleanDisplay value={exposeInSqllab} />,
-        size: 'xxl',
+        size: 'md',
       },
       {
         accessor: 'created_by',
@@ -399,6 +434,20 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         initialSort={initialSort}
         loading={loading}
         pageSize={PAGE_SIZE}
+      />
+
+      <ImportModelsModal
+        resourceName="database"
+        resourceLabel={t('database')}
+        passwordsNeededMessage={PASSWORDS_NEEDED_MESSAGE}
+        confirmOverwriteMessage={CONFIRM_OVERWRITE_MESSAGE}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        onModelImport={handleDatabaseImport}
+        show={importingDatabase}
+        onHide={closeDatabaseImportModal}
+        passwordFields={passwordFields}
+        setPasswordFields={setPasswordFields}
       />
     </>
   );

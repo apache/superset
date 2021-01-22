@@ -57,14 +57,12 @@ describe('ChartTable', () => {
       userId: '2',
     },
   };
-  const wrapper = mount(<ChartTable {...mockedProps} />, {
-    context: { store },
-  });
-  it('it renders', () => {
+  const wrapper = mount(<ChartTable store={store} {...mockedProps} />);
+  it('renders', () => {
     expect(wrapper.find(ChartTable)).toExist();
   });
 
-  it('fetches chart favorites and renders chart cards ', async () => {
+  it('fetches chart favorites and renders chart cards', async () => {
     act(() => {
       const handler = wrapper.find('li.no-router a').at(0).prop('onClick');
       if (handler) {
@@ -78,9 +76,7 @@ describe('ChartTable', () => {
 
   it('display EmptyState if there is no data', () => {
     fetchMock.resetHistory();
-    const wrapper = mount(<ChartTable {...mockedProps} />, {
-      context: { store },
-    });
+    const wrapper = mount(<ChartTable store={store} {...mockedProps} />);
     expect(wrapper.find('EmptyState')).toExist();
   });
 });

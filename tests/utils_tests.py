@@ -46,7 +46,6 @@ from superset.utils.core import (
     get_iterable,
     get_email_address_list,
     get_or_create_db,
-    get_since_until,
     get_stacktrace,
     json_int_dttm_ser,
     json_iso_dttm_ser,
@@ -55,9 +54,7 @@ from superset.utils.core import (
     merge_extra_filters,
     merge_request_params,
     parse_ssl_cert,
-    parse_human_timedelta,
     parse_js_uri_path_item,
-    parse_past_timedelta,
     split,
     TimeRangeEndpoint,
     validate_json,
@@ -73,31 +70,6 @@ from superset.views.utils import (
 from tests.base_tests import SupersetTestCase
 
 from .fixtures.certificates import ssl_certificate
-
-
-def mock_parse_human_datetime(s):
-    if s == "now":
-        return datetime(2016, 11, 7, 9, 30, 10)
-    elif s == "today":
-        return datetime(2016, 11, 7)
-    elif s == "yesterday":
-        return datetime(2016, 11, 6)
-    elif s == "tomorrow":
-        return datetime(2016, 11, 8)
-    elif s == "Last year":
-        return datetime(2015, 11, 7)
-    elif s == "Last week":
-        return datetime(2015, 10, 31)
-    elif s == "Last 5 months":
-        return datetime(2016, 6, 7)
-    elif s == "Next 5 months":
-        return datetime(2017, 4, 7)
-    elif s in ["5 days", "5 days ago"]:
-        return datetime(2016, 11, 2)
-    elif s == "2018-01-01T00:00:00":
-        return datetime(2018, 1, 1)
-    elif s == "2018-12-31T23:59:59":
-        return datetime(2018, 12, 31, 23, 59, 59)
 
 
 def mock_to_adhoc(filt, expressionType="SIMPLE", clause="where"):
@@ -146,24 +118,6 @@ class TestUtils(SupersetTestCase):
         assert isinstance(base_json_conv(uuid.uuid4()), str) is True
         assert isinstance(base_json_conv(timedelta(0)), str) is True
 
-    @patch("superset.utils.core.datetime")
-    def test_parse_human_timedelta(self, mock_datetime):
-        mock_datetime.now.return_value = datetime(2019, 4, 1)
-        mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
-        self.assertEqual(parse_human_timedelta("now"), timedelta(0))
-        self.assertEqual(parse_human_timedelta("1 year"), timedelta(366))
-        self.assertEqual(parse_human_timedelta("-1 year"), timedelta(-365))
-        self.assertEqual(parse_human_timedelta(None), timedelta(0))
-
-    @patch("superset.utils.core.datetime")
-    def test_parse_past_timedelta(self, mock_datetime):
-        mock_datetime.now.return_value = datetime(2019, 4, 1)
-        mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
-        self.assertEqual(parse_past_timedelta("1 year"), timedelta(365))
-        self.assertEqual(parse_past_timedelta("-1 year"), timedelta(365))
-        self.assertEqual(parse_past_timedelta("52 weeks"), timedelta(364))
-        self.assertEqual(parse_past_timedelta("1 month"), timedelta(31))
-
     def test_zlib_compression(self):
         json_str = '{"test": 1}'
         blob = zlib_compress(json_str)
@@ -174,7 +128,7 @@ class TestUtils(SupersetTestCase):
     def test_merge_extra_filters(self):
         # does nothing if no extra filters
         form_data = {"A": 1, "B": 2, "c": "test"}
-        expected = {**form_data, "applied_time_extras": {}}
+        expected = {**form_data, "adhoc_filters": [], "applied_time_extras": {}}
         merge_extra_filters(form_data)
         self.assertEqual(form_data, expected)
         # empty extra_filters
@@ -685,67 +639,6 @@ class TestUtils(SupersetTestCase):
         result8 = instance.test_method(1, 2, 3)
         self.assertEqual(instance.watcher, 4)
         self.assertEqual(result1, result8)
-
-    @patch("superset.utils.core.parse_human_datetime", mock_parse_human_datetime)
-    def test_get_since_until(self):
-        result = get_since_until()
-        expected = None, datetime(2016, 11, 7)
-        self.assertEqual(result, expected)
-
-        result = get_since_until(" : now")
-        expected = None, datetime(2016, 11, 7, 9, 30, 10)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("yesterday : tomorrow")
-        expected = datetime(2016, 11, 6), datetime(2016, 11, 8)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("2018-01-01T00:00:00 : 2018-12-31T23:59:59")
-        expected = datetime(2018, 1, 1), datetime(2018, 12, 31, 23, 59, 59)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("Last year")
-        expected = datetime(2015, 11, 7), datetime(2016, 11, 7)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("Last 5 months")
-        expected = datetime(2016, 6, 7), datetime(2016, 11, 7)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("Next 5 months")
-        expected = datetime(2016, 11, 7), datetime(2017, 4, 7)
-        self.assertEqual(result, expected)
-
-        result = get_since_until(since="5 days")
-        expected = datetime(2016, 11, 2), datetime(2016, 11, 7)
-        self.assertEqual(result, expected)
-
-        result = get_since_until(since="5 days ago", until="tomorrow")
-        expected = datetime(2016, 11, 2), datetime(2016, 11, 8)
-        self.assertEqual(result, expected)
-
-        result = get_since_until(time_range="yesterday : tomorrow", time_shift="1 day")
-        expected = datetime(2016, 11, 5), datetime(2016, 11, 7)
-        self.assertEqual(result, expected)
-
-        result = get_since_until(time_range="5 days : now")
-        expected = datetime(2016, 11, 2), datetime(2016, 11, 7, 9, 30, 10)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("Last week", relative_end="now")
-        expected = datetime(2016, 10, 31), datetime(2016, 11, 7, 9, 30, 10)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("Last week", relative_start="now")
-        expected = datetime(2016, 10, 31, 9, 30, 10), datetime(2016, 11, 7)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("Last week", relative_start="now", relative_end="now")
-        expected = datetime(2016, 10, 31, 9, 30, 10), datetime(2016, 11, 7, 9, 30, 10)
-        self.assertEqual(result, expected)
-
-        with self.assertRaises(ValueError):
-            get_since_until(time_range="tomorrow : yesterday")
 
     @patch("superset.utils.core.to_adhoc", mock_to_adhoc)
     def test_convert_legacy_filters_into_adhoc_where(self):

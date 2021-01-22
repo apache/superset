@@ -18,19 +18,14 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Col, Collapse, Row, Well } from 'react-bootstrap';
-import { t, styled } from '@superset-ui/core';
-import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
+import { t, styled, supersetTheme } from '@superset-ui/core';
 
 import { Dropdown, Menu } from 'src/common/components';
 import { Tooltip } from 'src/common/components/Tooltip';
 import Icon from 'src/components/Icon';
 import ChangeDatasourceModal from 'src/datasource/ChangeDatasourceModal';
 import DatasourceModal from 'src/datasource/DatasourceModal';
-import Label from 'src/components/Label';
 import { postForm } from 'src/explore/exploreUtils';
-
-import ControlHeader from '../ControlHeader';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -49,40 +44,46 @@ const defaultProps = {
 };
 
 const Styles = styled.div`
+  .data-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    padding: ${({ theme }) => 2 * theme.gridUnit}px;
+  }
   .ant-dropdown-trigger {
-    margin-left: ${({ theme }) => theme.gridUnit}px;
+    margin-left: ${({ theme }) => 2 * theme.gridUnit}px;
     box-shadow: none;
     &:active {
       box-shadow: none;
     }
   }
-
   .btn-group .open .dropdown-toggle {
     box-shadow: none;
     &.button-default {
       background: none;
     }
   }
-
   i.angle {
     color: ${({ theme }) => theme.colors.primary.base};
   }
-
   svg.datasource-modal-trigger {
     color: ${({ theme }) => theme.colors.primary.base};
-    vertical-align: middle;
     cursor: pointer;
   }
-`;
-
-/**
- * <Col> used in column details.
- */
-const ColumnsCol = styled(Col)`
-  overflow: auto; /* for very very long columns names */
-  white-space: nowrap; /* make sure tooltip trigger is on the same line as the metric */
-  .and-more {
-    padding-left: 38px;
+  .title-select {
+    flex: 1 1 100%;
+    display: inline-block;
+    background-color: ${({ theme }) => theme.colors.grayscale.light3};
+    padding: ${({ theme }) => theme.gridUnit * 2}px;
+    border-radius: ${({ theme }) => theme.borderRadius}px;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .dataset-svg {
+    margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
   }
 `;
 
@@ -103,7 +104,6 @@ class DatasourceControl extends React.PureComponent {
     );
     this.toggleEditDatasourceModal = this.toggleEditDatasourceModal.bind(this);
     this.toggleShowDatasource = this.toggleShowDatasource.bind(this);
-    this.renderDatasource = this.renderDatasource.bind(this);
     this.handleMenuItemClick = this.handleMenuItemClick.bind(this);
   }
 
@@ -149,58 +149,9 @@ class DatasourceControl extends React.PureComponent {
     }
   }
 
-  renderDatasource() {
-    const { datasource } = this.props;
-    const { showDatasource } = this.state;
-    const maxNumColumns = 50;
-    return (
-      <div className="m-t-10">
-        <Well className="m-t-0">
-          <div className="m-b-10">
-            <Label>
-              <i className="fa fa-database" /> {datasource.database.backend}
-            </Label>
-            {` ${datasource.database.name} `}
-          </div>
-          {showDatasource && (
-            <Row className="datasource-container">
-              <ColumnsCol md={6}>
-                <strong>Columns</strong>
-                {datasource.columns.slice(0, maxNumColumns).map(col => (
-                  <div key={col.column_name}>
-                    <ColumnOption showType column={col} />
-                  </div>
-                ))}
-                {datasource.columns.length > maxNumColumns && (
-                  <div className="and-more">...</div>
-                )}
-              </ColumnsCol>
-              <ColumnsCol md={6}>
-                <strong>Metrics</strong>
-                {datasource.metrics.slice(0, maxNumColumns).map(m => (
-                  <div key={m.metric_name}>
-                    <MetricOption metric={m} showType />
-                  </div>
-                ))}
-                {datasource.columns.length > maxNumColumns && (
-                  <div className="and-more">...</div>
-                )}
-              </ColumnsCol>
-            </Row>
-          )}
-        </Well>
-      </div>
-    );
-  }
-
   render() {
-    const {
-      showChangeDatasourceModal,
-      showEditDatasourceModal,
-      showDatasource,
-    } = this.state;
+    const { showChangeDatasourceModal, showEditDatasourceModal } = this.state;
     const { datasource, onChange } = this.props;
-
     const datasourceMenu = (
       <Menu onClick={this.handleMenuItemClick}>
         {this.props.isEditable && (
@@ -213,23 +164,24 @@ class DatasourceControl extends React.PureComponent {
       </Menu>
     );
 
+    // eslint-disable-next-line camelcase
+    const { health_check_message: healthCheckMessage } = datasource;
+
     return (
       <Styles className="DatasourceControl">
-        <ControlHeader {...this.props} />
-        <div>
-          <Tooltip title={t('Expand/collapse dataset configuration')}>
-            <Label
-              style={{ textTransform: 'none' }}
-              onClick={this.toggleShowDatasource}
-            >
-              {datasource.name}{' '}
-              <i
-                className={`angle fa fa-angle-${
-                  showDatasource ? 'up' : 'down'
-                }`}
-              />
-            </Label>
+        <div className="data-container">
+          <Icon name="dataset-physical" className="dataset-svg" />
+          <Tooltip title={datasource.name}>
+            <span className="title-select">{datasource.name}</span>
           </Tooltip>
+          {healthCheckMessage && (
+            <Tooltip title={healthCheckMessage}>
+              <Icon
+                name="alert-solid"
+                color={supersetTheme.colors.warning.base}
+              />
+            </Tooltip>
+          )}
           <Dropdown
             overlay={datasourceMenu}
             trigger={['click']}
@@ -244,9 +196,6 @@ class DatasourceControl extends React.PureComponent {
             </Tooltip>
           </Dropdown>
         </div>
-        <Collapse in={this.state.showDatasource}>
-          {this.renderDatasource()}
-        </Collapse>
         {showEditDatasourceModal && (
           <DatasourceModal
             datasource={datasource}

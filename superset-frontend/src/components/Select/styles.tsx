@@ -18,7 +18,7 @@
  */
 import React, { CSSProperties, ComponentType, ReactNode } from 'react';
 import { css, SerializedStyles, ClassNames } from '@emotion/core';
-import { supersetTheme } from '@superset-ui/core';
+import { SupersetTheme } from '@superset-ui/core';
 import {
   Styles,
   Theme,
@@ -27,8 +27,7 @@ import {
   InputProps as ReactSelectInputProps,
 } from 'react-select';
 import { Props as SelectProps } from 'react-select/src/Select';
-import { colors as reactSelectColros } from 'react-select/src/theme';
-import { supersetColors } from 'src/components/styles';
+import { colors as reactSelectColors } from 'react-select/src/theme';
 import { DeepNonNullable } from 'react-select/src/components';
 import { OptionType } from 'antd/lib/select';
 import { SupersetStyledSelectProps } from './SupersetStyledSelect';
@@ -40,6 +39,30 @@ type RecursivePartial<T> = {
   [P in keyof T]?: RecursivePartial<T[P]>;
 };
 
+const colors = (theme: SupersetTheme) => ({
+  primary: theme.colors.success.base,
+  danger: theme.colors.error.base,
+  warning: theme.colors.warning.base,
+  indicator: theme.colors.info.base,
+  almostBlack: theme.colors.grayscale.dark1,
+  grayDark: theme.colors.grayscale.dark1,
+  grayLight: theme.colors.grayscale.light2,
+  gray: theme.colors.grayscale.light1,
+  grayBg: theme.colors.grayscale.light4,
+  grayBgDarker: theme.colors.grayscale.light3,
+  grayBgDarkest: theme.colors.grayscale.light2,
+  grayHeading: theme.colors.grayscale.light1,
+  menuHover: theme.colors.grayscale.light3,
+  lightest: theme.colors.grayscale.light5,
+  darkest: theme.colors.grayscale.dark2,
+  grayBorder: theme.colors.grayscale.light2,
+  grayBorderLight: theme.colors.grayscale.light3,
+  grayBorderDark: theme.colors.grayscale.light1,
+  textDefault: theme.colors.grayscale.dark1,
+  textDarkest: theme.colors.grayscale.dark2,
+  dangerLight: theme.colors.error.light1,
+});
+
 export type ThemeConfig = {
   borderRadius: number;
   // z-index for menu dropdown
@@ -47,10 +70,10 @@ export type ThemeConfig = {
   zIndex: number;
   colors: {
     // add known colors
-    [key in keyof typeof reactSelectColros]: string;
+    [key in keyof typeof reactSelectColors]: string;
   } &
     {
-      [key in keyof typeof supersetColors]: string;
+      [key in keyof ReturnType<typeof colors>]: string;
     } & {
       [key: string]: string; // any other colors
     };
@@ -66,22 +89,21 @@ export type ThemeConfig = {
 
 export type PartialThemeConfig = RecursivePartial<ThemeConfig>;
 
-export const DEFAULT_THEME: PartialThemeConfig = {
-  borderRadius: supersetTheme.borderRadius,
+export const defaultTheme: (
+  theme: SupersetTheme,
+) => PartialThemeConfig = theme => ({
+  borderRadius: theme.borderRadius,
   zIndex: 11,
-  colors: {
-    ...supersetColors,
-    dangerLight: supersetColors.warning,
-  },
+  colors: colors(theme),
   spacing: {
     baseUnit: 3,
     menuGutter: 0,
-    controlHeight: 28,
+    controlHeight: 34,
     lineHeight: 19,
     fontSize: 14,
     minWidth: '7.5em', // just enough to display 'No options'
   },
-};
+});
 
 // let styles accept serialized CSS, too
 type CSSStyles = CSSProperties | SerializedStyles;
@@ -138,9 +160,9 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
     { isFocused, menuIsOpen, theme: { borderRadius, colors } },
   ) => {
     const isPseudoFocused = isFocused && !menuIsOpen;
-    let borderColor = '#ccc';
+    let borderColor = colors.grayBorder;
     if (isPseudoFocused) {
-      borderColor = '#000';
+      borderColor = colors.grayBorderDark;
     } else if (menuIsOpen) {
       borderColor = `${colors.grayBorderDark} ${colors.grayBorder} ${colors.grayBorderLight}`;
     }
@@ -159,6 +181,7 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
           box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
         }
         flex-wrap: nowrap;
+        padding-left: 1px;
       `,
     ];
   },
@@ -255,6 +278,10 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
         : 'padding: 0; flex: 1 1 auto;'};
     `,
   ],
+  menuPortal: base => ({
+    ...base,
+    zIndex: 1030, // must be same or higher of antd popover
+  }),
 };
 
 const INPUT_TAG_BASE_STYLES = {
@@ -276,7 +303,7 @@ export type SelectComponentsType = Omit<
 export type InputProps = ReactSelectInputProps & {
   placeholder?: ReactNode;
   selectProps: SelectProps;
-  autocomplete?: string;
+  autoComplete?: string;
   onPaste?: SupersetStyledSelectProps<OptionType>['onPaste'];
   inputStyle?: object;
 };
@@ -286,9 +313,31 @@ const {
   DropdownIndicator,
   Option,
   Input,
+  SelectContainer,
 } = defaultComponents as Required<DeepNonNullable<SelectComponentsType>>;
 
 export const DEFAULT_COMPONENTS: SelectComponentsType = {
+  SelectContainer: ({ children, ...props }) => {
+    const {
+      selectProps: { assistiveText },
+    } = props;
+    return (
+      <div>
+        <SelectContainer {...props}>{children}</SelectContainer>
+        {assistiveText && (
+          <span
+            css={(theme: SupersetTheme) => ({
+              marginLeft: 3,
+              fontSize: theme.typography.sizes.s,
+              color: theme.colors.grayscale.light1,
+            })}
+          >
+            {assistiveText}
+          </span>
+        )}
+      </div>
+    );
+  },
   Option: ({ children, innerProps, data, ...props }) => (
     <ClassNames>
       {({ css }) => (
@@ -318,22 +367,13 @@ export const DEFAULT_COMPONENTS: SelectComponentsType = {
     </DropdownIndicator>
   ),
   Input: (props: InputProps) => {
-    const {
-      selectProps: { isMulti, value, placeholder },
-      getStyles,
-    } = props;
-    const isMultiWithValue = isMulti && Array.isArray(value) && !!value.length;
+    const { getStyles } = props;
     return (
       <Input
         {...props}
-        placeholder={isMultiWithValue ? placeholder : undefined}
         css={getStyles('input', props)}
-        autocomplete="chrome-off"
-        inputStyle={
-          isMultiWithValue
-            ? { ...INPUT_TAG_BASE_STYLES, width: '100%' }
-            : INPUT_TAG_BASE_STYLES
-        }
+        autoComplete="chrome-off"
+        inputStyle={INPUT_TAG_BASE_STYLES}
       />
     );
   },

@@ -27,7 +27,9 @@ from pandas import DataFrame
 from superset import app, is_feature_enabled
 from superset.exceptions import QueryObjectValidationError
 from superset.typing import Metric
-from superset.utils import core as utils, pandas_postprocessing
+from superset.utils import pandas_postprocessing
+from superset.utils.core import DTTM_ALIAS, get_metric_names, json_int_dttm_ser
+from superset.utils.date_parser import get_since_until, parse_human_timedelta
 from superset.views.utils import get_time_range_endpoints
 
 config = app.config
@@ -90,7 +92,7 @@ class QueryObject:
         filters: Optional[List[Dict[str, Any]]] = None,
         time_range: Optional[str] = None,
         time_shift: Optional[str] = None,
-        is_timeseries: bool = False,
+        is_timeseries: Optional[bool] = None,
         timeseries_limit: int = 0,
         row_limit: Optional[int] = None,
         row_offset: Optional[int] = None,
@@ -114,7 +116,7 @@ class QueryObject:
         ]
         self.applied_time_extras = applied_time_extras or {}
         self.granularity = granularity
-        self.from_dttm, self.to_dttm = utils.get_since_until(
+        self.from_dttm, self.to_dttm = get_since_until(
             relative_start=extras.get(
                 "relative_start", config["DEFAULT_RELATIVE_START_TIME"]
             ),
@@ -124,20 +126,28 @@ class QueryObject:
             time_range=time_range,
             time_shift=time_shift,
         )
-        self.is_timeseries = is_timeseries
+        # is_timeseries is True if time column is in groupby
+        self.is_timeseries = (
+            is_timeseries
+            if is_timeseries is not None
+            else (DTTM_ALIAS in groupby if groupby else False)
+        )
         self.time_range = time_range
-        self.time_shift = utils.parse_human_timedelta(time_shift)
+        self.time_shift = parse_human_timedelta(time_shift)
         self.post_processing = [
             post_proc for post_proc in post_processing or [] if post_proc
         ]
         if not is_sip_38:
             self.groupby = groupby or []
 
-        # Temporary solution for backward compatibility issue due the new format of
-        # non-ad-hoc metric which needs to adhere to superset-ui per
-        # https://git.io/Jvm7P.
+        # Support metric reference/definition in the format of
+        #   1. 'metric_name'   - name of predefined metric
+        #   2. { label: 'label_name' }  - legacy format for a predefined metric
+        #   3. { expressionType: 'SIMPLE' | 'SQL', ... } - adhoc metric
         self.metrics = [
-            metric if "expressionType" in metric else metric["label"]  # type: ignore
+            metric
+            if isinstance(metric, str) or "expressionType" in metric
+            else metric["label"]  # type: ignore
             for metric in metrics
         ]
 
@@ -201,6 +211,10 @@ class QueryObject:
                             field.old_name,
                         )
                     self.extras[field.new_name] = value
+
+    @property
+    def metric_names(self) -> List[str]:
+        return get_metric_names(self.metrics)
 
     def to_dict(self) -> Dict[str, Any]:
         query_object_dict = {
@@ -267,7 +281,7 @@ class QueryObject:
     @staticmethod
     def json_dumps(obj: Any, sort_keys: bool = False) -> str:
         return json.dumps(
-            obj, default=utils.json_int_dttm_ser, ignore_nan=True, sort_keys=sort_keys
+            obj, default=json_int_dttm_ser, ignore_nan=True, sort_keys=sort_keys
         )
 
     def exec_post_processing(self, df: DataFrame) -> DataFrame:
@@ -277,7 +291,8 @@ class QueryObject:
         :param df: DataFrame returned from database model.
         :return: new DataFrame to which all post processing operations have been
                  applied
-        :raises ChartDataValidationError: If the post processing operation in incorrect
+        :raises QueryObjectValidationError: If the post processing operation
+                 is incorrect
         """
         for post_process in self.post_processing:
             operation = post_process.get("operation")

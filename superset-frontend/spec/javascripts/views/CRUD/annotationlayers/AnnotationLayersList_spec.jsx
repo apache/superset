@@ -20,6 +20,7 @@ import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
+import { Provider } from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 import AnnotationLayersList from 'src/views/CRUD/annotationlayers/AnnotationLayersList';
@@ -60,7 +61,7 @@ const mockUser = {
 };
 
 fetchMock.get(layersInfoEndpoint, {
-  permissions: ['can_delete'],
+  permissions: ['can_write'],
 });
 fetchMock.get(layersEndpoint, {
   result: mocklayers,
@@ -78,10 +79,11 @@ fetchMock.get(layersRelatedEndpoint, {
 });
 
 describe('AnnotationLayersList', () => {
-  const wrapper = mount(<AnnotationLayersList user={mockUser} />, {
-    context: { store },
-  });
-
+  const wrapper = mount(
+    <Provider store={store}>
+      <AnnotationLayersList store={store} user={mockUser} />
+    </Provider>,
+  );
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
   });
@@ -154,7 +156,7 @@ describe('AnnotationLayersList', () => {
   });
 
   it('shows/hides bulk actions when bulk actions is clicked', async () => {
-    const button = wrapper.find(Button).at(0);
+    const button = wrapper.find(Button).at(1);
     act(() => {
       button.props().onClick();
     });

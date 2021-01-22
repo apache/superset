@@ -95,6 +95,10 @@ def post_assert_metric(
     return rv
 
 
+def get_table_by_name(name: str) -> SqlaTable:
+    return db.session.query(SqlaTable).filter_by(table_name=name).one()
+
+
 @pytest.fixture
 def logged_in_admin():
     """Fixture with app context and logged in admin user."""
@@ -228,7 +232,7 @@ class SupersetTestCase(TestCase):
 
     @staticmethod
     def get_table_by_name(name: str) -> SqlaTable:
-        return db.session.query(SqlaTable).filter_by(table_name=name).one()
+        return get_table_by_name(name)
 
     @staticmethod
     def get_database_by_id(db_id: int) -> Database:
@@ -324,6 +328,7 @@ class SupersetTestCase(TestCase):
         tmp_table_name=None,
         schema=None,
         ctas_method=CtasMethod.TABLE,
+        template_params="{}",
     ):
         if user_name:
             self.logout()
@@ -336,6 +341,7 @@ class SupersetTestCase(TestCase):
             "queryLimit": query_limit,
             "sql_editor_id": sql_editor_id,
             "ctas_method": ctas_method,
+            "templateParams": template_params,
         }
         if tmp_table_name:
             json_payload["tmp_table_name"] = tmp_table_name

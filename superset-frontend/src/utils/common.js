@@ -21,7 +21,7 @@ import {
   getTimeFormatter,
   TimeFormats,
 } from '@superset-ui/core';
-import getClientErrorObject from './getClientErrorObject';
+import { getClientErrorObject } from './getClientErrorObject';
 
 // ATTENTION: If you change any constants, make sure to also change constants.py
 

@@ -22,10 +22,10 @@ import { debounce } from 'lodash';
 import { max as d3Max } from 'd3-array';
 import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
 import Button from 'src/components/Button';
-import { t, styled, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
 
+import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
 import FormLabel from 'src/components/FormLabel';
-
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import ControlRow from 'src/explore/components/ControlRow';
 import Control from 'src/explore/components/Control';
@@ -95,14 +95,7 @@ const defaultProps = {
   instantFiltering: false,
 };
 
-const Styles = styled.div`
-  height: 100%;
-  min-height: 100%;
-  max-height: 100%;
-  overflow: visible;
-`;
-
-class FilterBox extends React.Component {
+class FilterBox extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -130,9 +123,7 @@ class FilterBox extends React.Component {
     return this.onFilterMenuOpen(TIME_RANGE);
   }
 
-  onCloseDateFilterControl = () => {
-    return this.onFilterMenuClose(TIME_RANGE);
-  };
+  onCloseDateFilterControl = () => this.onFilterMenuClose(TIME_RANGE);
 
   getControlData(controlName) {
     const { selectedValues } = this.state;
@@ -216,7 +207,13 @@ class FilterBox extends React.Component {
       const color = 'lightgrey';
       const backgroundImage = `linear-gradient(to right, ${color}, ${color} ${perc}%, rgba(0,0,0,0) ${perc}%`;
       const style = { backgroundImage };
-      return { value: opt.id, label: opt.id, style };
+      let label = opt.id;
+      if (label === true) {
+        label = BOOL_TRUE_DISPLAY;
+      } else if (label === false) {
+        label = BOOL_FALSE_DISPLAY;
+      }
+      return { value: opt.id, label, style };
     });
   }
 
@@ -405,6 +402,7 @@ class FilterBox extends React.Component {
             : CreatableSelect
         }
         noResultsText={t('No results found')}
+        forceOverflow
       />
     );
   }
@@ -423,10 +421,9 @@ class FilterBox extends React.Component {
   }
 
   render() {
-    const { instantFiltering } = this.props;
-
+    const { instantFiltering, width, height } = this.props;
     return (
-      <Styles>
+      <div style={{ width, height, overflow: 'auto' }}>
         {this.renderDateFilter()}
         {this.renderDatasourceFilters()}
         {this.renderFilters()}
@@ -440,7 +437,7 @@ class FilterBox extends React.Component {
             {t('Apply')}
           </Button>
         )}
-      </Styles>
+      </div>
     );
   }
 }

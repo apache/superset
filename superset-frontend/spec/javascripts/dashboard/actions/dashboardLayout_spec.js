@@ -489,7 +489,7 @@ describe('dashboardLayout actions', () => {
   });
 
   describe('undoLayoutAction', () => {
-    it('should dispatch a redux-undo .undo() action ', () => {
+    it('should dispatch a redux-undo .undo() action', () => {
       const { getState, dispatch } = setup({
         dashboardLayout: { past: ['non-empty'] },
       });
@@ -513,7 +513,7 @@ describe('dashboardLayout actions', () => {
   });
 
   describe('redoLayoutAction', () => {
-    it('should dispatch a redux-undo .redo() action ', () => {
+    it('should dispatch a redux-undo .redo() action', () => {
       const { getState, dispatch } = setup();
       const thunk = redoLayoutAction();
       thunk(dispatch, getState);

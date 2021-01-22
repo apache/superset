@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import dataclasses
+import dataclasses  # pylint: disable=wrong-import-order
 import functools
 import logging
 import traceback
@@ -49,9 +49,9 @@ from superset import (
 from superset.connectors.sqla import models
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    SupersetErrorException,
     SupersetException,
     SupersetSecurityException,
-    SupersetTimeoutException,
 )
 from superset.models.helpers import ImportExportMixin
 from superset.translations.utils import get_language_pack
@@ -77,6 +77,8 @@ FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_DOMAINS",
     "SQLLAB_SAVE_WARNING_MESSAGE",
     "DISPLAY_MAX_ROW",
+    "GLOBAL_ASYNC_QUERIES_TRANSPORT",
+    "GLOBAL_ASYNC_QUERIES_POLLING_DELAY",
 )
 logger = logging.getLogger(__name__)
 
@@ -181,7 +183,7 @@ def handle_api_exception(
             return json_errors_response(
                 errors=[ex.error], status=ex.status, payload=ex.payload
             )
-        except SupersetTimeoutException as ex:
+        except SupersetErrorException as ex:
             logger.warning(ex)
             return json_errors_response(errors=[ex.error], status=ex.status)
         except SupersetException as ex:
@@ -316,6 +318,8 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         "locale": locale,
         "language_pack": get_language_pack(locale),
         "feature_flags": get_feature_flags(),
+        "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
+        "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
         "menu_data": menu_data(),
     }
 

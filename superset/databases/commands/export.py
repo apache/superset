@@ -38,7 +38,7 @@ class ExportDatabasesCommand(ExportModelsCommand):
     not_found = DatabaseNotFoundError
 
     @staticmethod
-    def export(model: Database) -> Iterator[Tuple[str, str]]:
+    def _export(model: Database) -> Iterator[Tuple[str, str]]:
         database_slug = secure_filename(model.database_name)
         file_name = f"databases/{database_slug}.yaml"
 
@@ -50,7 +50,7 @@ class ExportDatabasesCommand(ExportModelsCommand):
         )
         # TODO (betodealmeida): move this logic to export_to_dict once this
         # becomes the default export endpoint
-        if "extra" in payload:
+        if payload.get("extra"):
             try:
                 payload["extra"] = json.loads(payload["extra"])
             except json.decoder.JSONDecodeError:

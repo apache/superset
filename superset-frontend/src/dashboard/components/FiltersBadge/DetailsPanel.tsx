@@ -45,20 +45,18 @@ export interface IndicatorProps {
 const Indicator = ({
   indicator: { column, name, value = [], path },
   onClick,
-}: IndicatorProps) => {
-  return (
-    <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
-      <Title bold>
-        <ItemIcon>
-          <SearchOutlined />
-        </ItemIcon>
-        {name.toUpperCase()}
-        {value.length ? ': ' : ''}
-      </Title>
-      <FilterValue>{value.length ? value.join(', ') : ''}</FilterValue>
-    </Item>
-  );
-};
+}: IndicatorProps) => (
+  <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
+    <Title bold>
+      <ItemIcon>
+        <SearchOutlined />
+      </ItemIcon>
+      {name.toUpperCase()}
+      {value.length ? ': ' : ''}
+    </Title>
+    <FilterValue>{value.length ? value.join(', ') : ''}</FilterValue>
+  </Item>
+);
 
 export interface DetailsPanelProps {
   appliedIndicators: Indicator[];
@@ -117,9 +115,6 @@ const DetailsPanelPopover = ({
                 padding-bottom: 0;
               }
             }
-            .ant-collapse-item:last-of-type.ant-collapse-item-active {
-              padding-bottom: ${theme.gridUnit * 3}px;
-            }
             &.ant-popover-placement-bottom,
             &.ant-popover-placement-bottomLeft,
             &.ant-popover-placement-bottomRight {
@@ -155,15 +150,13 @@ const DetailsPanelPopover = ({
             &.ant-popover {
               color: ${theme.colors.grayscale.light4};
             }
-            .ant-collapse-arrow svg {
-              color: ${theme.colors.grayscale.light4};
-            }
           }
         `}
       />
       <Reset>
         <Collapse
           ghost
+          light
           activeKey={activePanels}
           onChange={handleActivePanelChange}
         >

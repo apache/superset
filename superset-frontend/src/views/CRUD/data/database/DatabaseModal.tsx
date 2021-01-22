@@ -21,7 +21,7 @@ import { styled, t, SupersetClient } from '@superset-ui/core';
 import InfoTooltip from 'src/common/components/InfoTooltip';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import getClientErrorObject from 'src/utils/getClientErrorObject';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import Icon from 'src/components/Icon';
 import Modal from 'src/common/components/Modal';
 import Tabs from 'src/common/components/Tabs';
@@ -38,6 +38,8 @@ interface DatabaseModalProps {
   show: boolean;
   database?: DatabaseObject | null; // If included, will go into edit mode
 }
+
+const DEFAULT_TAB_KEY = '1';
 
 const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
@@ -129,6 +131,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [db, setDB] = useState<DatabaseObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
+  const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
 
   const isEditMode = database !== null;
   const defaultExtra =
@@ -291,12 +294,23 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   ) {
     if (database && database.id !== null && !dbLoading) {
       const id = database.id || 0;
+      setTabKey(DEFAULT_TAB_KEY);
 
-      fetchResource(id).then(() => {
-        setDB(dbFetched);
-      });
+      fetchResource(id)
+        .then(() => {
+          setDB(dbFetched);
+        })
+        .catch(e =>
+          addDangerToast(
+            t(
+              'Sorry there was an error fetching database information: %s',
+              e.message,
+            ),
+          ),
+        );
     }
   } else if (!isEditMode && (!db || db.id || (isHidden && show))) {
+    setTabKey(DEFAULT_TAB_KEY);
     setDB({
       database_name: '',
       sqlalchemy_uri: '',
@@ -312,6 +326,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   if (isHidden && show) {
     setIsHidden(false);
   }
+
+  const tabChange = (key: string) => {
+    setTabKey(key);
+  };
 
   return (
     <Modal
@@ -330,7 +348,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         </h4>
       }
     >
-      <Tabs defaultActiveKey="1">
+      <Tabs
+        defaultActiveKey={DEFAULT_TAB_KEY}
+        activeKey={tabKey}
+        onTabClick={tabChange}
+      >
         <Tabs.TabPane
           tab={
             <span>

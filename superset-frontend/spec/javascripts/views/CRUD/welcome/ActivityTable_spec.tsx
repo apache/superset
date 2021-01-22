@@ -70,13 +70,13 @@ describe('ActivityTable', () => {
     await waitForComponentToPaint(wrapper);
   });
 
-  it('the component renders ', () => {
+  it('the component renders', () => {
     expect(wrapper.find(ActivityTable)).toExist();
   });
   it('renders tabs with three buttons', () => {
     expect(wrapper.find('li')).toHaveLength(3);
   });
-  it('it renders ActivityCards', async () => {
+  it('renders ActivityCards', async () => {
     expect(wrapper.find('ListViewCard')).toExist();
   });
 });

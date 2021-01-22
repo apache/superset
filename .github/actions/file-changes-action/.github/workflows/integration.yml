@@ -1,0 +1,106 @@
+name: Integration Tests
+on:
+  issue_comment:
+    types:
+      - created
+  schedule:
+    - cron: '0 0 * * *'
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+jobs:
+  # always_job:
+  #   name: Always run job
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: dump env
+  #       env:
+  #         GITHUB_CONTEXT: ${{ toJson(github) }}
+  #         JOB_CONTEXT: ${{ toJson(job) }}
+  #         STEPS_CONTEXT: ${{ toJson(steps) }}
+  #         RUNNER_CONTEXT: ${{ toJson(runner) }}
+  #         STRATEGY_CONTEXT: ${{ toJson(strategy) }}
+  #         MATRIX_CONTEXT: ${{ toJson(matrix) }}
+  #       run: |
+  #         echo "GITHUB_EVENT_PATH\n$GITHUB_EVENT_PATH"
+  #         echo "GITHUB_CONTEXT\n$GITHUB_CONTEXT"
+  #         echo "JOB_CONTEXT\n$JOB_CONTEXT"
+  #         echo "STEPS_CONTEXT\n$STEPS_CONTEXT"
+  #         echo "RUNNER_CONTEXT\n$RUNNER_CONTEXT"
+  #         echo "STRATEGY_CONTEXT\n$STRATEGY_CONTEXT"
+  #         echo "MATRIX_CONTEXT\n$MATRIX_CONTEXT"
+  integration:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        event_type: ['push', 'pull_request']
+        output: ['json', ',', ' ', '_<br />&nbsp;&nbsp;_']
+        fileOutput: ['json', ',', ' ', '_<br />&nbsp;&nbsp;_']
+    if: >-
+      ( startsWith(github.head_ref, '1.')
+        || startsWith(github.head_ref, '2.'))
+      ||
+      contains(github.event.head_commit.message, 'Release merge from')
+      ||
+      github.event_name == 'schedule'
+      || (
+        github.event_name == 'issue_comment'
+        && github.event.issue.number != ''
+        && contains(github.event.comment.body, '/integration')
+        && github.actor == 'trilom')
+    steps:
+      # get pr number if exists
+      - id: pr
+        if: github.event_name == 'issue_comment'
+        run: |
+          pr=$(echo "${{github.event.comment.body}}" | sed 's|.*/integration||') &&
+          echo "::set-output name=pr::${pr}"
+        env:
+          comment: ${{ toJson(github) }}
+      # use pr number from integration command
+      - uses: actions/checkout@v2
+        if: github.event_name == 'issue_comment' && steps.pr.outputs.pr != ''
+        with:
+          ref: ${{format('refs/pull/{0}/head', steps.pr.outputs.pr )}}
+      # use the issue number if pr is blank
+      - uses: actions/checkout@v2
+        if: github.event_name == 'issue_comment' && steps.pr.outputs.pr == '' && github.event.issue.pull_request != ''
+        with:
+          ref: ${{format('refs/pull/{0}/head', github.event.issue.number )}}
+      - name: fail if no PR number and issue comment
+        if: github.event_name == 'issue_comment' && steps.pr.outputs.pr == '' && github.event.issue.pull_request == ''
+        run: |
+          echo "Please provide a PR number to use like /integration13 for PR# 13."
+          exit 1
+      - uses: actions/checkout@v2
+        if: github.event_name != 'issue_comment'
+      - run: yarn build-package
+      - uses: ./
+        id: file_changes_build_pr
+        if: matrix.event_type == 'pull_request'
+        with:
+          prNumber: 83
+          output: ${{ matrix.output }}
+          fileOutput: ${{ matrix.fileOutput }}
+      - uses: ./
+        id: file_changes_build_push
+        if: matrix.event_type == 'push'
+        with:
+          pushBefore: 6ac7697cd1c4f23a08d4d4edbe7dab06b34c58a2
+          pushAfter: 4ee1a1a2515f4ac1b90a56aaeb060b97f20c8968
+          output: ${{ matrix.output }}
+          fileOutput: ${{ matrix.fileOutput }}
+      - run: |
+          mv $HOME/files* .
+          chmod +x test.sh && ./test.sh
+        working-directory: .github/actions/integration
+        if: success()
+        env:
+          fileOutput: ${{ matrix.fileOutput }}
+          output: ${{ matrix.output }}
+          files: ${{ format('{0}{1}', steps.file_changes_build_pr.outputs.files, steps.file_changes_build_push.outputs.files ) }}
+          files_modified: ${{ format('{0}{1}', steps.file_changes_build_pr.outputs.files_modified, steps.file_changes_build_push.outputs.files_modified ) }}
+          files_added: ${{ format('{0}{1}', steps.file_changes_build_pr.outputs.files_added, steps.file_changes_build_push.outputs.files_added ) }}
+          files_removed: ${{ format('{0}{1}', steps.file_changes_build_pr.outputs.files_removed, steps.file_changes_build_push.outputs.files_removed ) }}

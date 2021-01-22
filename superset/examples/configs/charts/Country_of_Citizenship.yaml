@@ -1,0 +1,68 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Country of Citizenship
+viz_type: world_map
+params:
+  adhoc_filters: []
+  color_picker:
+    a: 1
+    b: 135
+    g: 122
+    r: 0
+  country_fieldtype: name
+  datasource: 42__table
+  entity: country_citizen
+  granularity_sqla: time_start
+  linear_color_scheme: preset_div_1
+  max_bubble_size: '25'
+  metric: count
+  queryFields:
+    entity: groupby
+    metric: metrics
+    secondary_metric: metrics
+  row_limit: null
+  secondary_metric:
+    aggregate: COUNT
+    column:
+      column_name: country_live
+      description: null
+      expression: null
+      filterable: true
+      groupby: true
+      id: 1570
+      is_dttm: false
+      python_date_format: null
+      type: TEXT
+      verbose_name: null
+    expressionType: SIMPLE
+    hasCustomLabel: false
+    isNew: false
+    label: COUNT(country_live)
+    optionName: metric_azxwoyei39f_d7xgzshjnw6
+    sqlExpression: null
+  show_bubbles: true
+  slice_id: 1388
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  url_params: {}
+  viz_type: world_map
+cache_timeout: null
+uuid: 2ba66056-a756-d6a3-aaec-0c243fb7062e
+version: 1.0.0
+dataset_uuid: d95a2865-53ce-1f82-a53d-8e3c89331469

@@ -23,7 +23,6 @@ import chrono from 'chrono-node';
 import { Col, FormControl, FormGroup, Row } from 'react-bootstrap';
 import { t, styled } from '@superset-ui/core';
 
-import Button from 'src/components/Button';
 import ModalTrigger from 'src/components/ModalTrigger';
 import FormLabel from 'src/components/FormLabel';
 import './ScheduleQueryButton.less';
@@ -202,14 +201,15 @@ class ScheduleQueryButton extends React.PureComponent {
           modalTitle={t('Schedule Query')}
           modalBody={this.renderModalBody()}
           triggerNode={
-            <Button
+            <div
+              role="button"
               buttonSize="small"
               onClick={this.toggleSchedule}
               disabled={this.props.disabled}
               tooltip={this.props.tooltip}
             >
-              <i className="fa fa-calendar" /> {t('Schedule')}
-            </Button>
+              {t('Schedule')}
+            </div>
           }
         />
       </span>

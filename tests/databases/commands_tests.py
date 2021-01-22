@@ -106,7 +106,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "metric_name": "ratio",
                     "verbose_name": "Ratio Boys/Girls",
                     "metric_type": None,
-                    "expression": "sum(sum_boys) / sum(sum_girls)",
+                    "expression": "sum(num_boys) / sum(num_girls)",
                     "description": "This represents the ratio of boys/girls",
                     "d3format": ".2%",
                     "extra": None,
@@ -159,7 +159,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "python_date_format": None,
                 },
                 {
-                    "column_name": "sum_girls",
+                    "column_name": "num_girls",
                     "verbose_name": None,
                     "is_dttm": False,
                     "is_active": None,
@@ -195,7 +195,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                     "python_date_format": None,
                 },
                 {
-                    "column_name": "sum_boys",
+                    "column_name": "num_boys",
                     "verbose_name": None,
                     "is_dttm": None,
                     "is_active": None,
@@ -314,7 +314,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
             "databases/imported_database.yaml": yaml.safe_dump(database_config),
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
         }
-        command = ImportDatabasesCommand(contents)
+        command = ImportDatabasesCommand(contents, overwrite=True)
 
         # import twice
         command.run()
@@ -332,7 +332,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
             "databases/imported_database.yaml": yaml.safe_dump(new_config),
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
         }
-        command = ImportDatabasesCommand(contents)
+        command = ImportDatabasesCommand(contents, overwrite=True)
         command.run()
 
         database = (
@@ -389,7 +389,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
             "datasets/imported_dataset.yaml": yaml.safe_dump(new_config),
             "metadata.yaml": yaml.safe_dump(database_metadata_config),
         }
-        command = ImportDatabasesCommand(contents)
+        command = ImportDatabasesCommand(contents, overwrite=True)
         command.run()
 
         # the underlying dataset should not be modified by the second import, since
@@ -449,6 +449,26 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert excinfo.value.normalized_messages() == {
             "datasets/imported_dataset.yaml": {
                 "table_name": ["Missing data for required field."],
+            }
+        }
+
+    def test_import_v1_database_masked_password(self):
+        """Test that database imports with masked passwords are rejected"""
+        masked_database_config = database_config.copy()
+        masked_database_config[
+            "sqlalchemy_uri"
+        ] = "postgresql://username:XXXXXXXXXX@host:12345/db"
+        contents = {
+            "metadata.yaml": yaml.safe_dump(database_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(masked_database_config),
+        }
+        command = ImportDatabasesCommand(contents)
+        with pytest.raises(CommandInvalidError) as excinfo:
+            command.run()
+        assert str(excinfo.value) == "Error importing database"
+        assert excinfo.value.normalized_messages() == {
+            "databases/imported_database.yaml": {
+                "_schema": ["Must provide a password for the database"]
             }
         }
 

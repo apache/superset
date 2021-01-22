@@ -33,7 +33,7 @@ import Loading from 'src/components/Loading';
 import TableSelector from 'src/components/TableSelector';
 import EditableTitle from 'src/components/EditableTitle';
 
-import getClientErrorObject from 'src/utils/getClientErrorObject';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
@@ -343,7 +343,9 @@ class DatasourceEditor extends React.PureComponent {
   onDatasourcePropChange(attr, value) {
     const datasource = { ...this.state.datasource, [attr]: value };
     this.setState(
-      prevState => ({ datasource: { ...prevState.datasource, [attr]: value } }),
+      prevState => ({
+        datasource: { ...prevState.datasource, [attr]: value },
+      }),
       this.onDatasourceChange(datasource),
     );
   }
@@ -790,12 +792,12 @@ class DatasourceEditor extends React.PureComponent {
         </Fieldset>
         {this.allowEditSource && (
           <EditLockContainer>
-            <a href="#" onClick={this.onChangeEditMode}>
+            <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
               <Icon
                 color={supersetTheme.colors.grayscale.base}
                 name={this.state.isEditMode ? 'lock-unlocked' : 'lock-locked'}
               />
-            </a>
+            </span>
             {!this.state.isEditMode && (
               <div>{t('Click the lock to make changes.')}</div>
             )}

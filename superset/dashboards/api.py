@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from datetime import datetime
 from io import BytesIO
@@ -31,7 +32,7 @@ from werkzeug.wsgi import FileWrapper
 from superset import is_feature_enabled, thumbnail_cache
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import remove_root
-from superset.constants import RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.commands.bulk_delete import BulkDeleteDashboardCommand
 from superset.dashboards.commands.create import CreateDashboardCommand
 from superset.dashboards.commands.delete import DeleteDashboardCommand
@@ -92,7 +93,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     resource_name = "dashboard"
     allow_browser_login = True
 
-    class_permission_name = "DashboardModelView"
+    class_permission_name = "Dashboard"
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+
     show_columns = [
         "id",
         "charts",
@@ -664,11 +667,19 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         ---
         post:
           requestBody:
+            required: true
             content:
-              application/zip:
+              multipart/form-data:
                 schema:
-                  type: string
-                  format: binary
+                  type: object
+                  properties:
+                    formData:
+                      type: string
+                      format: binary
+                    passwords:
+                      type: string
+                    overwrite:
+                      type: bool
           responses:
             200:
               description: Dashboard import result
@@ -697,7 +708,16 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 for file_name in bundle.namelist()
             }
 
-        command = ImportDashboardsCommand(contents)
+        passwords = (
+            json.loads(request.form["passwords"])
+            if "passwords" in request.form
+            else None
+        )
+        overwrite = request.form.get("overwrite") == "true"
+
+        command = ImportDashboardsCommand(
+            contents, passwords=passwords, overwrite=overwrite
+        )
         try:
             command.run()
             return self.response(200, message="OK")

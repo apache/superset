@@ -219,7 +219,8 @@ function mapStateToProps({ charts, explore }) {
   const chart = charts[chartKey] || charts[0] || {};
 
   return {
-    colorScheme: (explore.controls || {}).color_scheme.value,
+    // eslint-disable-next-line camelcase
+    colorScheme: explore.controls?.color_scheme?.value,
     annotationError: chart.annotationError,
     annotationQuery: chart.annotationQuery,
     vizType: explore.controls.viz_type.value,

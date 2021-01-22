@@ -59,6 +59,11 @@ const ErrorModal = styled(Modal)<{ level: ErrorLevel }>`
   color: ${({ level, theme }) => theme.colors[level].dark2};
   overflow-wrap: break-word;
 
+  .ant-modal-header {
+    background-color: ${({ level, theme }) => theme.colors[level].light2};
+    padding: ${({ theme }) => 4 * theme.gridUnit}px;
+  }
+
   .icon {
     margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
   }
@@ -66,7 +71,6 @@ const ErrorModal = styled(Modal)<{ level: ErrorLevel }>`
   .header {
     display: flex;
     align-items: center;
-    background-color: ${({ level, theme }) => theme.colors[level].light2};
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
   }
 `;
@@ -110,9 +114,14 @@ export default function ErrorAlert({
           <strong>{title}</strong>
         </LeftSideContent>
         {!isExpandable && (
-          <a href="#" className="link" onClick={() => setIsModalOpen(true)}>
+          <span
+            role="button"
+            tabIndex={0}
+            className="link"
+            onClick={() => setIsModalOpen(true)}
+          >
             {t('See More')}
-          </a>
+          </span>
         )}
       </div>
       {isExpandable ? (
@@ -121,25 +130,27 @@ export default function ErrorAlert({
           {body && (
             <>
               {!isBodyExpanded && (
-                <a
-                  href="#"
+                <span
+                  role="button"
+                  tabIndex={0}
                   className="link"
                   onClick={() => setIsBodyExpanded(true)}
                 >
                   {t('See More')}
-                </a>
+                </span>
               )}
               {isBodyExpanded && (
                 <>
                   <br />
                   {body}
-                  <a
-                    href="#"
+                  <span
+                    role="button"
+                    tabIndex={0}
                     className="link"
                     onClick={() => setIsBodyExpanded(false)}
                   >
                     {t('See Less')}
-                  </a>
+                  </span>
                 </>
               )}
             </>
