@@ -132,11 +132,10 @@ describe('Dashboard tabs', () => {
     cy.wait('@treemapRequest');
 
     // apply filter
-    cy.get('.Select__control').first().should('be.visible');
-    cy.get('.Select__control').first().click({ force: true });
+    cy.get('.Select__control').first().should('be.visible').click();
     cy.get('.Select__control input[type=text]')
       .first()
-      .should('be.visible')
+      .focus()
       .type('South Asia{enter}');
     cy.get('.filter_box button:not(:disabled)').contains('Apply').click();
 
