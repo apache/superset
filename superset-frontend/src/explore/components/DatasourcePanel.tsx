@@ -118,9 +118,14 @@ const LabelContainer = styled.div`
     display: inline;
   }
 
-  .metric-option > .option-label {
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .metric-option {
+    & > svg {
+      min-width: ${({ theme }) => `${theme.gridUnit * 4}px`};
+    }
+    & > .option-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   }
 `;
 

@@ -156,10 +156,10 @@ class DatasourceControl extends React.PureComponent {
       <Menu onClick={this.handleMenuItemClick}>
         {this.props.isEditable && (
           <Menu.Item key={EDIT_DATASET} data-test="edit-dataset">
-            {t('Edit Dataset')}
+            {t('Edit dataset')}
           </Menu.Item>
         )}
-        <Menu.Item key={CHANGE_DATASET}>{t('Change Dataset')}</Menu.Item>
+        <Menu.Item key={CHANGE_DATASET}>{t('Change dataset')}</Menu.Item>
         <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
       </Menu>
     );

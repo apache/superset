@@ -118,7 +118,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
     <StyledTitleBox>
       <StyledTitle>
         <StyledIcon name="edit" />
-        {t('Select Parent Filters')} ({totalChildren})
+        {t('Select parent filters')} ({totalChildren})
       </StyledTitle>
       <StyledIcon name="close" onClick={() => onVisibleChange(false)} />
     </StyledTitleBox>
