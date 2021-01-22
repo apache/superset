@@ -48,7 +48,7 @@ const buildText = (
     );
   }
   if (selectedText) {
-    return t('Run Selection');
+    return t('Run selection');
   }
   return t('Run');
 };
