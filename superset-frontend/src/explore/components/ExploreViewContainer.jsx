@@ -446,7 +446,7 @@ function ExploreViewContainer(props) {
           tabIndex={0}
         >
           <span role="button" tabIndex={0} className="action-button">
-            <Tooltip title={t('Open Datasource Tab')}>
+            <Tooltip title={t('Open Datasource tab')}>
               <Icon
                 name="collapse"
                 color={supersetTheme.colors.primary.base}
