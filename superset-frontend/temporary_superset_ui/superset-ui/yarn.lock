@@ -5180,10 +5180,10 @@
   resolved "https://registry.yarnpkg.com/@types/events/-/events-3.0.0.tgz#2862f3f58a9a7f7c3e78d79f130dd4d71c25c2a7"
   integrity sha512-EaObqwIvayI5a8dCzhFrjKzVwKLxjoG9T6Ppd5CEo07LRKfQ8Yokw54r5+Wq7FaBQ+yXRvQAYPrHwya1/UFt9g==
 
-"@types/fetch-mock@^6.0.0":
-  version "6.0.5"
-  resolved "https://registry.yarnpkg.com/@types/fetch-mock/-/fetch-mock-6.0.5.tgz#acbc6771d43d7ebc1f0a8b7e3d57147618f8eacb"
-  integrity sha512-rV8O2j/TIi0PtFCOlK55JnfKpE8Hm6PKFgrUZY/3FNHw4uBEMHnM+5ZickDO1duOyKxbpY3VES5T4NIwZXvodA==
+"@types/fetch-mock@^7.3.3":
+  version "7.3.3"
+  resolved "https://registry.yarnpkg.com/@types/fetch-mock/-/fetch-mock-7.3.3.tgz#255511d70087b9ae8866704c782c88cc96a0b45b"
+  integrity sha512-NLMbBVQh3yx6dMd5CnVxp9ZBhQYuFzWIlRk0kQbgBfyL75u3wtZyUTuFsK9Wb9G3eIw77yja858j1fQAWqM9Og==
 
 "@types/geojson@*", "@types/geojson@^7946.0.3":
   version "7946.0.7"
