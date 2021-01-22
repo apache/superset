@@ -57,6 +57,7 @@ const SouthPane = styled.div`
   position: relative;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
   z-index: 5;
+  overflow: hidden;
 `;
 
 const TabsWrapper = styled.div<{ contentHeight: number }>`
