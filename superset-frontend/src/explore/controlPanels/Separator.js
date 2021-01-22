@@ -29,7 +29,7 @@ export default {
             name: 'markup_type',
             config: {
               type: 'SelectControl',
-              label: t('Markup Type'),
+              label: t('Markup type'),
               clearable: false,
               choices: formatSelectOptions(['markdown', 'html']),
               default: 'markdown',

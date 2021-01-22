@@ -28,7 +28,7 @@ export const druidTimeSeries = {
 };
 
 export const datasourceAndVizType = {
-  label: t('Chart Type'),
+  label: t('Chart type'),
   expanded: true,
   controlSetRows: [
     ['datasource'],
@@ -56,7 +56,7 @@ export const datasourceAndVizType = {
         name: 'url_params',
         config: {
           type: 'HiddenControl',
-          label: t('URL Parameters'),
+          label: t('URL parameters'),
           hidden: true,
           description: t('Extra parameters for use in jinja templated queries'),
         },
@@ -75,7 +75,7 @@ export const datasourceAndVizType = {
 };
 
 export const colorScheme = {
-  label: t('Color Scheme'),
+  label: t('Color scheme'),
   controlSetRows: [['color_scheme', 'label_colors']],
 };
 
@@ -87,7 +87,7 @@ export const sqlaTimeSeries = {
 };
 
 export const annotations = {
-  label: t('Annotations and Layers'),
+  label: t('Annotations and layers'),
   tabOverride: 'data',
   expanded: true,
   controlSetRows: [
@@ -98,7 +98,7 @@ export const annotations = {
           type: 'AnnotationLayerControl',
           label: '',
           default: [],
-          description: 'Annotation Layers',
+          description: 'Annotation layers',
           renderTrigger: true,
           tabOverride: 'data',
         },
@@ -121,7 +121,7 @@ export const NVD3TimeSeries = [
           name: 'order_desc',
           config: {
             type: 'CheckboxControl',
-            label: t('Sort Descending'),
+            label: t('Sort descending'),
             default: true,
             description: t('Whether to sort descending or ascending'),
           },
@@ -140,7 +140,7 @@ export const NVD3TimeSeries = [
     ],
   },
   {
-    label: t('Advanced Analytics'),
+    label: t('Advanced analytics'),
     tabOverride: 'data',
     description: t(
       'This section contains options ' +
@@ -148,13 +148,13 @@ export const NVD3TimeSeries = [
         'of query results',
     ),
     controlSetRows: [
-      [<h1 className="section-header">{t('Rolling Window')}</h1>],
+      [<h1 className="section-header">{t('Rolling window')}</h1>],
       [
         {
           name: 'rolling_type',
           config: {
             type: 'SelectControl',
-            label: t('Rolling Function'),
+            label: t('Rolling function'),
             default: 'None',
             choices: formatSelectOptions([
               'None',
@@ -185,7 +185,7 @@ export const NVD3TimeSeries = [
           name: 'min_periods',
           config: {
             type: 'TextControl',
-            label: t('Min Periods'),
+            label: t('Min periods'),
             isInt: true,
             description: t(
               'The minimum number of rolling periods required to show ' +
@@ -197,7 +197,7 @@ export const NVD3TimeSeries = [
           },
         },
       ],
-      [<h1 className="section-header">{t('Time Comparison')}</h1>],
+      [<h1 className="section-header">{t('Time comparison')}</h1>],
       [
         {
           name: 'time_compare',
@@ -205,7 +205,7 @@ export const NVD3TimeSeries = [
             type: 'SelectControl',
             multi: true,
             freeForm: true,
-            label: t('Time Shift'),
+            label: t('Time shift'),
             choices: formatSelectOptions([
               '1 day',
               '1 week',
@@ -231,7 +231,7 @@ export const NVD3TimeSeries = [
             label: t('Calculation type'),
             default: 'values',
             choices: [
-              ['values', 'Actual Values'],
+              ['values', 'Actual values'],
               ['absolute', 'Absolute difference'],
               ['percentage', 'Percentage change'],
               ['ratio', 'Ratio'],
@@ -244,7 +244,7 @@ export const NVD3TimeSeries = [
           },
         },
       ],
-      [<h1 className="section-header">{t('Python Functions')}</h1>],
+      [<h1 className="section-header">{t('Python functions')}</h1>],
       // eslint-disable-next-line jsx-a11y/heading-has-content
       [<h2 className="section-header">pandas.resample</h2>],
       [
