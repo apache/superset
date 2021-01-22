@@ -95,6 +95,9 @@ const Styles = styled.div`
     flex: 1;
     min-width: ${({ theme }) => theme.gridUnit * 128}px;
     border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    .panel {
+      margin-bottom: 0;
+    }
   }
   .controls-column {
     align-self: flex-start;
@@ -404,7 +407,7 @@ function ExploreViewContainer(props) {
         />
       )}
       <Resizable
-        defaultSize={{ width: 300 }}
+        defaultSize={{ width: 300, height: '100%' }}
         minWidth={300}
         maxWidth="33%"
         enable={{ right: true }}
@@ -456,7 +459,7 @@ function ExploreViewContainer(props) {
         </div>
       ) : null}
       <Resizable
-        defaultSize={{ width: 320 }}
+        defaultSize={{ width: 320, height: '100%' }}
         minWidth={320}
         maxWidth="33%"
         enable={{ right: true }}
