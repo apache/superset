@@ -82,6 +82,10 @@ class ChartDataCommand(BaseCommand):
         except ValidationError as error:
             raise error
 
+        for query in self._query_context.queries:
+            if query.row_limit and query.metrics and not query.orderby:
+                query.orderby = [(query.metrics[0], False)]
+
         return self._query_context
 
     def validate(self) -> None:

@@ -1203,6 +1203,17 @@ class NVD3TimeSeriesViz(NVD3Viz):
     is_timeseries = True
     pivot_fill_value: Optional[int] = None
 
+    def query_obj(self) -> QueryObjectDict:
+        d = super().query_obj()
+        if (
+            d.get("groupby")
+            and d.get("metrics")
+            and not d.get("timeseries_limit_metric")
+        ):
+            # default series ordering to metric order
+            d["timeseries_limit_metric"] = d["metrics"][0]
+        return d
+
     def to_series(
         self, df: pd.DataFrame, classed: str = "", title_suffix: str = ""
     ) -> List[Dict[str, Any]]:
