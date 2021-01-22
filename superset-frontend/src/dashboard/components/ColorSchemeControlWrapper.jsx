@@ -53,7 +53,7 @@ class ColorSchemeControlWrapper extends React.PureComponent {
         description={t(
           "Any color palette selected here will override the colors applied to this dashboard's individual charts",
         )}
-        label={t('Color Scheme')}
+        label={t('Color scheme')}
         name="color_scheme"
         onChange={this.props.onChange}
         value={colorScheme}

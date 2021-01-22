@@ -28,7 +28,7 @@ const OPTIONS = [
 ];
 
 export default {
-  title: 'Select Component',
+  title: 'Select component',
   argTypes: {
     options: {
       type: 'select',
