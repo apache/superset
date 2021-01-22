@@ -233,17 +233,17 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
             <StyledIcon name="plus-large" />
           )}
           {isEditMode
-            ? t('Edit CSS Template Properties')
-            : t('Add CSS Template')}
+            ? t('Edit CSS template properties')
+            : t('Add CSS template')}
         </h4>
       }
     >
       <StyledCssTemplateTitle>
-        <h4>{t('Basic Information')}</h4>
+        <h4>{t('Basic information')}</h4>
       </StyledCssTemplateTitle>
       <TemplateContainer>
         <div className="control-label">
-          {t('css template name')}
+          {t('CSS template name')}
           <span className="required">*</span>
         </div>
         <input
