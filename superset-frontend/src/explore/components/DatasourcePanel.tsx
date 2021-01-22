@@ -205,7 +205,6 @@ const DataSourcePanel = ({
 
   const metricSlice = lists.metrics.slice(0, 50);
   const columnSlice = lists.columns.slice(0, 50);
-  console.log(columnSlice);
 
   return (
     <DatasourceContainer>
