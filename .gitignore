@@ -88,4 +88,8 @@ release.json
 # Translation binaries
 messages.mo
 
+# Websocket server
+superset-websocket/index.js
+superset-websocket/config.json
+
 docker/requirements-local.txt

@@ -4,14 +4,22 @@
   "description": "Websocket sidecar application for Superset",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start-dev": "ts-node index.ts",
+    "build": "tsc"
   },
-  "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "cookie": "^0.4.1",
     "ioredis": "^4.16.1",
     "jsonwebtoken": "^8.5.1",
-    "ws": "^7.2.3"
+    "ws": "^7.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^14.14.22",
+    "@types/ws": "^7.4.0",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.1.3"
   }
 }
