@@ -80,12 +80,12 @@ describe('AnnotationModal', () => {
     const addWrapper = await mountAndWait({});
     expect(
       addWrapper.find('[data-test="annotaion-modal-title"]').text(),
-    ).toEqual('Add Annotation');
+    ).toEqual('Add annotation');
   });
 
   it('renders edit header when annotation prop is included', () => {
     expect(wrapper.find('[data-test="annotaion-modal-title"]').text()).toEqual(
-      'Edit Annotation',
+      'Edit annotation',
     );
   });
 

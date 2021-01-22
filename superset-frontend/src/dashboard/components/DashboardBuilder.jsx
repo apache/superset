@@ -94,7 +94,12 @@ const StyledDashboardContent = styled.div`
     flex-grow: 1;
     position: relative;
     margin: ${({ theme }) => theme.gridUnit * 6}px
-      ${({ theme }) => theme.gridUnit * 9}px;
+      ${({ theme }) => theme.gridUnit * 8}px
+      ${({ theme }) => theme.gridUnit * 6}px
+      ${({ theme, dashboardFiltersOpen }) => {
+        if (dashboardFiltersOpen) return theme.gridUnit * 8;
+        return 0;
+      }}px;
   }
 
   .dashboard-component-chart-holder {
@@ -279,7 +284,10 @@ class DashboardBuilder extends React.Component {
           )}
         </Sticky>
 
-        <StyledDashboardContent className="dashboard-content">
+        <StyledDashboardContent
+          className="dashboard-content"
+          dashboardFiltersOpen={this.state.dashboardFiltersOpen}
+        >
           {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && (
             <StickyVerticalBar
               filtersOpen={this.state.dashboardFiltersOpen}

@@ -74,13 +74,13 @@ describe('CssTemplateModal', () => {
     const addWrapper = await mountAndWait({});
     expect(
       addWrapper.find('[data-test="css-template-modal-title"]').text(),
-    ).toEqual('Add CSS Template');
+    ).toEqual('Add CSS template');
   });
 
   it('renders edit header when css template prop is included', () => {
     expect(
       wrapper.find('[data-test="css-template-modal-title"]').text(),
-    ).toEqual('Edit CSS Template Properties');
+    ).toEqual('Edit CSS template properties');
   });
 
   it('renders input elements for template name', () => {

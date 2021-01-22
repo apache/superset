@@ -75,6 +75,7 @@ from superset.utils.core import (
     QueryMode,
     to_adhoc,
 )
+from superset.utils.date_parser import get_since_until, parse_past_timedelta
 from superset.utils.dates import datetime_to_epoch
 from superset.utils.hashing import md5_sha_from_str
 
@@ -356,7 +357,7 @@ class BaseViz:
         order_desc = form_data.get("order_desc", True)
 
         try:
-            since, until = utils.get_since_until(
+            since, until = get_since_until(
                 relative_start=relative_start,
                 relative_end=relative_end,
                 time_range=form_data.get("time_range"),
@@ -367,7 +368,7 @@ class BaseViz:
             raise QueryObjectValidationError(str(ex))
 
         time_shift = form_data.get("time_shift", "")
-        self.time_shift = utils.parse_past_timedelta(time_shift)
+        self.time_shift = parse_past_timedelta(time_shift)
         from_dttm = None if since is None else (since - self.time_shift)
         to_dttm = None if until is None else (until - self.time_shift)
         if from_dttm and to_dttm and from_dttm > to_dttm:
@@ -1004,7 +1005,7 @@ class CalHeatmapViz(BaseViz):
             data[metric] = values
 
         try:
-            start, end = utils.get_since_until(
+            start, end = get_since_until(
                 relative_start=relative_start,
                 relative_end=relative_end,
                 time_range=form_data.get("time_range"),
@@ -1318,7 +1319,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         for option in time_compare:
             query_object = self.query_obj()
             try:
-                delta = utils.parse_past_timedelta(option)
+                delta = parse_past_timedelta(option)
             except ValueError as ex:
                 raise QueryObjectValidationError(str(ex))
             query_object["inner_from_dttm"] = query_object["from_dttm"]
@@ -1647,6 +1648,7 @@ class DistributionBarViz(BaseViz):
             raise QueryObjectValidationError(_("Pick at least one metric"))
         if not fd.get("groupby"):
             raise QueryObjectValidationError(_("Pick at least one field for [Series]"))
+        d["orderby"] = [(metric, False) for metric in d["metrics"]]
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -2381,6 +2383,8 @@ class BaseDeckGLViz(BaseViz):
             d["groupby"] = gb
             d["metrics"] = metrics
             d["columns"] = []
+            first_metric = d["metrics"][0]
+            d["orderby"] = [(first_metric, not fd.get("order_desc", True))]
         else:
             d["columns"] = gb
         return d

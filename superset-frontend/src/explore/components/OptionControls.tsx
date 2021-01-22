@@ -24,8 +24,8 @@ import { findDOMNode } from 'react-dom';
 import { DragSource, DropTarget } from 'react-dnd';
 import { styled, useTheme } from '@superset-ui/core';
 import { ColumnOption } from '@superset-ui/chart-controls';
-import Icon from '../../components/Icon';
-import { savedMetricType } from '../types';
+import Icon from 'src/components/Icon';
+import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 
 const TYPE = 'label-dnd';
 
@@ -60,6 +60,9 @@ const Label = styled.div`
   svg {
     margin-right: ${({ theme }) => theme.gridUnit}px;
   }
+  .option-label {
+    display: inline;
+  }
 `;
 
 const CaretContainer = styled.div`
@@ -84,7 +87,7 @@ export const HeaderContainer = styled.div`
 export const LabelsContainer = styled.div`
   padding: ${({ theme }) => theme.gridUnit}px;
   border: solid 1px ${({ theme }) => theme.colors.grayscale.light2};
-  border-radius: 3px;
+  border-radius: ${({ theme }) => theme.gridUnit}px;
 `;
 
 export const AddControlLabel = styled.div`
@@ -96,7 +99,7 @@ export const AddControlLabel = styled.div`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.light1};
   border: dashed 1px ${({ theme }) => theme.colors.grayscale.light2};
-  border-radius: 3px;
+  border-radius: ${({ theme }) => theme.gridUnit}px;
   cursor: pointer;
 
   :hover {

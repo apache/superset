@@ -1,0 +1,34 @@
+name: Tests
+on:
+  pull_request:
+    paths-ignore:
+      - '**.md'
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macOS-latest]
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-node@v1
+      with:
+        node-version: '12.x'
+    - name: Install dependencies
+      run: npm ci
+    - name: Run prettier format check
+      run: npm run format-check
+    - name: Build
+      run: npm run build
+    - name: Run tests
+      run: npm run test
+    - name: Upload code coverage
+      run: |
+        bash <(curl -s https://codecov.io/bash)

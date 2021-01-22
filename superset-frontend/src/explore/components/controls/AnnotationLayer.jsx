@@ -698,7 +698,7 @@ export default class AnnotationLayer extends React.PureComponent {
             <PopoverSection
               isSelected
               onSelect={() => {}}
-              title={t('Layer Configuration')}
+              title={t('Layer configuration')}
               info={t('Configure the basics of your Annotation Layer.')}
             >
               <TextControl

@@ -93,7 +93,7 @@ const SupersetLabel = styled(BootstrapLabel)`
     background-color: ${({ theme }) => theme.colors.grayscale.light3};
     color: ${({ theme }) => theme.colors.grayscale.dark1};
     border-color: ${({ theme, onClick }) =>
-      onClick ? theme.colors.grayscale.light1 : 'transparent'};
+      onClick ? theme.colors.grayscale.light2 : 'transparent'};
     &:hover {
       background-color: ${({ theme, onClick }) =>
         onClick ? theme.colors.primary.light2 : theme.colors.grayscale.light3};

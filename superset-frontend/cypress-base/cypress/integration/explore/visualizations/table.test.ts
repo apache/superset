@@ -31,7 +31,7 @@ describe('Visualization > Table', () => {
 
   const PERCENT_METRIC = {
     expressionType: 'SQL',
-    sqlExpression: 'CAST(SUM(sum_girls)+AS+FLOAT)/SUM(num)',
+    sqlExpression: 'CAST(SUM(num_girls)+AS+FLOAT)/SUM(num)',
     column: null,
     aggregate: null,
     hasCustomLabel: true,

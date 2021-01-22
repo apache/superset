@@ -44,7 +44,7 @@ extraEnv: {}
 configMountPath: "/app/pythonpath"
 
 image:
-  repository: apache/incubator-superset
+  repository: apache/superset
   tag: latest
   pullPolicy: IfNotPresent
 

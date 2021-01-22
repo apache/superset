@@ -29,7 +29,7 @@ import {
   SortIndicator,
   Table,
 } from 'react-virtualized';
-import { getMultipleTextDimensions, t } from '@superset-ui/core';
+import { getMultipleTextDimensions, t, styled } from '@superset-ui/core';
 
 import Button from '../Button';
 import CopyToClipboard from '../CopyToClipboard';
@@ -82,6 +82,11 @@ const JSON_TREE_THEME = {
   base0E: '#ae81ff',
   base0F: '#cc6633',
 };
+
+const StyledFilterableTable = styled.div`
+  overflow-x: auto;
+  margin-top: ${({ theme }) => theme.gridUnit * 12}px;
+`;
 
 // when more than MAX_COLUMNS_FOR_TABLE are returned, switch from table to grid view
 export const MAX_COLUMNS_FOR_TABLE = 50;
@@ -309,7 +314,7 @@ export default class FilterableTable extends PureComponent<
             <CopyToClipboard shouldShowText={false} text={jsonString} />
           </Button>
         }
-        modalTitle={t('Cell Content')}
+        modalTitle={t('Cell content')}
         triggerNode={node}
       />
     );
@@ -458,42 +463,45 @@ export default class FilterableTable extends PureComponent<
 
     // fix height of filterable table
     return (
-      <ScrollSync>
-        {({ onScroll, scrollTop }) => (
-          <div
-            style={{ height }}
-            className="filterable-table-container Table"
-            ref={this.container}
-          >
-            <div className="LeftColumn">
-              <Grid
-                cellRenderer={this.renderGridCellHeader}
-                columnCount={orderedColumnKeys.length}
-                columnWidth={getColumnWidth}
-                height={rowHeight}
-                rowCount={1}
-                rowHeight={rowHeight}
-                scrollTop={scrollTop}
-                width={this.totalTableWidth}
-              />
+      <StyledFilterableTable>
+        <ScrollSync>
+          {({ onScroll, scrollTop }) => (
+            <div
+              style={{ height }}
+              className="filterable-table-container Table"
+              data-test="filterable-table-container"
+              ref={this.container}
+            >
+              <div className="LeftColumn">
+                <Grid
+                  cellRenderer={this.renderGridCellHeader}
+                  columnCount={orderedColumnKeys.length}
+                  columnWidth={getColumnWidth}
+                  height={rowHeight}
+                  rowCount={1}
+                  rowHeight={rowHeight}
+                  scrollTop={scrollTop}
+                  width={this.totalTableWidth}
+                />
+              </div>
+              <div className="RightColumn">
+                <Grid
+                  cellRenderer={this.renderGridCell}
+                  columnCount={orderedColumnKeys.length}
+                  columnWidth={getColumnWidth}
+                  height={totalTableHeight - rowHeight}
+                  onScroll={onScroll}
+                  overscanColumnCount={overscanColumnCount}
+                  overscanRowCount={overscanRowCount}
+                  rowCount={this.list.size}
+                  rowHeight={rowHeight}
+                  width={this.totalTableWidth}
+                />
+              </div>
             </div>
-            <div className="RightColumn">
-              <Grid
-                cellRenderer={this.renderGridCell}
-                columnCount={orderedColumnKeys.length}
-                columnWidth={getColumnWidth}
-                height={totalTableHeight - rowHeight}
-                onScroll={onScroll}
-                overscanColumnCount={overscanColumnCount}
-                overscanRowCount={overscanRowCount}
-                rowCount={this.list.size}
-                rowHeight={rowHeight}
-                width={this.totalTableWidth}
-              />
-            </div>
-          </div>
-        )}
-      </ScrollSync>
+          )}
+        </ScrollSync>
+      </StyledFilterableTable>
     );
   }
 
@@ -551,7 +559,7 @@ export default class FilterableTable extends PureComponent<
     const rowGetter = ({ index }: { index: number }) =>
       this.getDatum(sortedAndFilteredList, index);
     return (
-      <div
+      <StyledFilterableTable
         style={{ height }}
         className="filterable-table-container"
         ref={this.container}
@@ -586,7 +594,7 @@ export default class FilterableTable extends PureComponent<
             ))}
           </Table>
         )}
-      </div>
+      </StyledFilterableTable>
     );
   }
 

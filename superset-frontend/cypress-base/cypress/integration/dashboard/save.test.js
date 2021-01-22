@@ -31,9 +31,6 @@ describe('Dashboard save action', () => {
     cy.server();
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
-  });
-
-  it('should save as new dashboard', () => {
     cy.get('#app').then(data => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
       const dashboard = bootstrapData.dashboard_data;
@@ -47,6 +44,14 @@ describe('Dashboard save action', () => {
       cy.get('[data-test="modal-save-dashboard-button"]').trigger('click', {
         force: true,
       });
+    });
+  });
+
+  it('should save as new dashboard', () => {
+    cy.wait('@copyRequest').then(xhr => {
+      expect(xhr.response.body.dashboard_title).to.not.equal(
+        `World Bank's Data`,
+      );
     });
   });
 

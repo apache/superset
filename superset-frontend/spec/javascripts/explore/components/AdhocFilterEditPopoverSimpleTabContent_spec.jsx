@@ -25,10 +25,10 @@ import { FormGroup } from 'react-bootstrap';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
-} from 'src/explore/AdhocFilter';
-import AdhocMetric from 'src/explore/AdhocMetric';
-import AdhocFilterEditPopoverSimpleTabContent from 'src/explore/components/AdhocFilterEditPopoverSimpleTabContent';
+} from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { AGGREGATES } from 'src/explore/constants';
+import AdhocFilterEditPopoverSimpleTabContent from 'src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent';
+import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
@@ -193,7 +193,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
         comparator: null,
         clause: 'WHERE',
         expressionType: 'SQL',
-        sqlExpression: "ds = '{{ presto.latest_partition('schema.table1') }}' ",
+        sqlExpression: "ds = '{{ presto.latest_partition('schema.table1') }}'",
       }),
     );
   });

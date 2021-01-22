@@ -23,8 +23,10 @@ export enum Scoping {
   specific,
 }
 
+// Using to pass setState React callbacks directly to And components
+export type AntCallback = (value1?: any, value2?: any) => void;
+
 interface NativeFiltersFormItem {
-  scoping: Scoping;
   scope: Scope;
   name: string;
   dataset: {

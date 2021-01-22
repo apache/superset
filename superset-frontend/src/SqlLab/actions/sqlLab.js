@@ -139,42 +139,8 @@ export function queryValidationFailed(query, message, error) {
   return { type: QUERY_VALIDATION_FAILED, query, message, error };
 }
 
-export function saveQuery(query) {
-  return dispatch =>
-    SupersetClient.post({
-      endpoint: '/savedqueryviewapi/api/create',
-      postPayload: convertQueryToServer(query),
-      stringify: false,
-    })
-      .then(result => {
-        dispatch({
-          type: QUERY_EDITOR_SAVED,
-          query,
-          result: convertQueryToClient(result.json.item),
-        });
-        dispatch(addSuccessToast(t('Your query was saved')));
-      })
-      .catch(() =>
-        dispatch(addDangerToast(t('Your query could not be saved'))),
-      );
-}
-
 export function updateQueryEditor(alterations) {
   return { type: UPDATE_QUERY_EDITOR, alterations };
-}
-
-export function updateSavedQuery(query) {
-  return dispatch =>
-    SupersetClient.put({
-      endpoint: `/savedqueryviewapi/api/update/${query.remoteId}`,
-      postPayload: convertQueryToServer(query),
-      stringify: false,
-    })
-      .then(() => dispatch(addSuccessToast(t('Your query was updated'))))
-      .catch(() =>
-        dispatch(addDangerToast(t('Your query could not be updated'))),
-      )
-      .then(() => dispatch(updateQueryEditor(query)));
 }
 
 export function scheduleQuery(query) {
@@ -188,7 +154,7 @@ export function scheduleQuery(query) {
         dispatch(
           addSuccessToast(
             t(
-              'Your query has been scheduled. To see details of your query, navigate to Saved Queries',
+              'Your query has been scheduled. To see details of your query, navigate to Saved queries',
             ),
           ),
         ),
@@ -847,6 +813,44 @@ export function queryEditorSetTitle(queryEditor, title) {
   };
 }
 
+export function saveQuery(query) {
+  return dispatch =>
+    SupersetClient.post({
+      endpoint: '/savedqueryviewapi/api/create',
+      postPayload: convertQueryToServer(query),
+      stringify: false,
+    })
+      .then(result => {
+        dispatch({
+          type: QUERY_EDITOR_SAVED,
+          query,
+          result: convertQueryToClient(result.json.item),
+        });
+        dispatch(addSuccessToast(t('Your query was saved')));
+        dispatch(queryEditorSetTitle(query, query.title));
+      })
+      .catch(() =>
+        dispatch(addDangerToast(t('Your query could not be saved'))),
+      );
+}
+
+export function updateSavedQuery(query) {
+  return dispatch =>
+    SupersetClient.put({
+      endpoint: `/savedqueryviewapi/api/update/${query.remoteId}`,
+      postPayload: convertQueryToServer(query),
+      stringify: false,
+    })
+      .then(() => {
+        dispatch(addSuccessToast(t('Your query was updated')));
+        dispatch(queryEditorSetTitle(query, query.title));
+      })
+      .catch(() =>
+        dispatch(addDangerToast(t('Your query could not be updated'))),
+      )
+      .then(() => dispatch(updateQueryEditor(query)));
+}
+
 export function queryEditorSetSql(queryEditor, sql) {
   return function (dispatch) {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
@@ -1176,7 +1180,7 @@ export function popStoredQuery(urlId) {
       .then(({ json }) =>
         dispatch(
           addQueryEditor({
-            title: json.title ? json.title : t('Sjsonhared query'),
+            title: json.title ? json.title : t('Shared query'),
             dbId: json.dbId ? parseInt(json.dbId, 10) : null,
             schema: json.schema ? json.schema : null,
             autorun: json.autorun ? json.autorun : false,
