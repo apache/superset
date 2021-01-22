@@ -66,6 +66,8 @@ const Styles = styled.div`
   align-items: stretch;
   align-content: stretch;
   overflow: auto;
+  box-shadow: none;
+  height: 100%;
 
   & > div:last-of-type {
     flex-basis: 100%;
@@ -240,10 +242,7 @@ const ExploreChartPanel = props => {
   });
 
   return (
-    <Styles
-      className="panel panel-default chart-container"
-      style={{ height: props.height }}
-    >
+    <Styles className="panel panel-default chart-container">
       <div className="panel-heading" ref={headerRef}>
         {header}
       </div>
