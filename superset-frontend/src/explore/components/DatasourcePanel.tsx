@@ -172,12 +172,16 @@ const DataSourcePanel = ({
 
   function searchByRelevance(datasource: any, value: string) {
     const properties = [
-      'column_name', 'description', 'verbose_name', 'expression'
+      'column_name',
+      'description',
+      'verbose_name',
+      'expression',
     ];
-    let result = new Array;
-    result = properties.map(property => {
-      return matchSorter(datasource, value, {keys: [property]});
-    })
+    // eslint-disable-next-line @typescript-eslint/no-array-constructor
+    let result = new Array();
+    result = properties.map(property =>
+      matchSorter(datasource, value, { keys: [property] }),
+    );
     return [...new Set(result.flat())];
   }
 
