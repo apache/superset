@@ -179,23 +179,23 @@ export default function DataSourcePanel({
     setList({
       columns: matchSorter(columns, value, {
         keys: [
-          'column_name',
           'verbose_name',
+          'column_name',
           {
             key: 'description',
-            threshold: rankings.STARTS_WITH,
+            threshold: rankings.CONTAINS,
           },
           {
             key: 'expression',
-            threshold: rankings.STARTS_WITH,
+            threshold: rankings.CONTAINS,
           },
         ],
         keepDiacritics: true,
       }),
       metrics: matchSorter(metrics, value, {
         keys: [
-          'metric_name',
           'verbose_name',
+          'metric_name',
           {
             key: 'description',
             threshold: rankings.CONTAINS,
