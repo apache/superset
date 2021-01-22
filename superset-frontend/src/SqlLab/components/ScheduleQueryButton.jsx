@@ -198,7 +198,7 @@ class ScheduleQueryButton extends React.PureComponent {
           ref={ref => {
             this.saveModal = ref;
           }}
-          modalTitle={t('Schedule Query')}
+          modalTitle={t('Schedule query')}
           modalBody={this.renderModalBody()}
           triggerNode={
             <div
