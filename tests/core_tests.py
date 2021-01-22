@@ -890,6 +890,100 @@ class TestCore(SupersetTestCase):
         self.assertEqual(data["rowcount"], 2)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_explore_json_dist_bar_order(self):
+        tbl_id = self.table_ids.get("birth_names")
+        form_data = {
+            "datasource": f"{tbl_id}__table",
+            "viz_type": "dist_bar",
+            "url_params": {},
+            "time_range_endpoints": ["inclusive", "exclusive"],
+            "granularity_sqla": "ds",
+            "time_range": 'DATEADD(DATETIME("2021-01-22T00:00:00"), -100, year) : 2021-01-22T00:00:00',
+            "metrics": [
+                {
+                    "expressionType": "SIMPLE",
+                    "column": {
+                        "id": 334,
+                        "column_name": "name",
+                        "verbose_name": "null",
+                        "description": "null",
+                        "expression": "",
+                        "filterable": True,
+                        "groupby": True,
+                        "is_dttm": False,
+                        "type": "VARCHAR(255)",
+                        "python_date_format": "null",
+                    },
+                    "aggregate": "COUNT",
+                    "sqlExpression": "null",
+                    "isNew": False,
+                    "hasCustomLabel": False,
+                    "label": "COUNT(name)",
+                    "optionName": "metric_xdzsijn42f9_khi4h3v3vci",
+                },
+                {
+                    "expressionType": "SIMPLE",
+                    "column": {
+                        "id": 332,
+                        "column_name": "ds",
+                        "verbose_name": "null",
+                        "description": "null",
+                        "expression": "",
+                        "filterable": True,
+                        "groupby": True,
+                        "is_dttm": True,
+                        "type": "TIMESTAMP WITHOUT TIME ZONE",
+                        "python_date_format": "null",
+                    },
+                    "aggregate": "COUNT",
+                    "sqlExpression": "null",
+                    "isNew": False,
+                    "hasCustomLabel": False,
+                    "label": "COUNT(ds)",
+                    "optionName": "metric_80g1qb9b6o7_ci5vquydcbe",
+                },
+            ],
+            "adhoc_filters": [],
+            "groupby": ["name"],
+            "columns": [],
+            "row_limit": 10,
+            "color_scheme": "supersetColors",
+            "label_colors": {},
+            "show_legend": True,
+            "y_axis_format": "SMART_NUMBER",
+            "bottom_margin": "auto",
+            "x_ticks_layout": "auto",
+        }
+
+        self.login(username="admin")
+        rv = self.client.post(
+            "/superset/explore_json/", data={"form_data": json.dumps(form_data)},
+        )
+        data = json.loads(rv.data.decode("utf-8"))
+
+        resp = self.run_sql(
+            """
+            SELECT count(name) AS count_name, count(ds) AS count_ds
+            FROM birth_names
+            WHERE ds >= '1921-01-22 00:00:00.000000' AND ds < '2021-01-22 00:00:00.000000'
+            GROUP BY name ORDER BY count_name DESC, count_ds DESC
+            LIMIT 10;
+            """,
+            client_id="client_id_1",
+            user_name="admin",
+        )
+        count_ds = []
+        count_name = []
+        for series in data["data"]:
+            if series["key"] == "COUNT(ds)":
+                count_ds = series["values"]
+            if series["key"] == "COUNT(name)":
+                count_name = series["values"]
+        for expected, actual_ds, actual_name in zip(resp["data"], count_ds, count_name):
+            assert expected["count_name"] == actual_name["y"]
+            assert expected["count_ds"] == actual_ds["y"]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
         GLOBAL_ASYNC_QUERIES=True,
