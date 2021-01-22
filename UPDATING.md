@@ -22,7 +22,8 @@ under the License.
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
-## Next
+## 1.0.0
+
 - [11509](https://github.com/apache/superset/pull/12491): Dataset metadata updates check user ownership, only owners or an Admin are allowed.
 - Security simplification (SIP-19), the following permission domains were simplified:
     - [12072](https://github.com/apache/superset/pull/12072): `Query` with `can_read`, `can_write`
@@ -43,6 +44,7 @@ assists people when migrating to a new version.
   significantly more analytics events (roughly double?), and when
   using DBEventLogger (default) could result in stressing the metadata
   database more.
+
 - [11509](https://github.com/apache/superset/pull/11509): Config value `TABLE_NAMES_CACHE_CONFIG` has been renamed to `DATA_CACHE_CONFIG`, which will now also hold query results cache from connected datasources (previously held in `CACHE_CONFIG`), in addition to the table names. If you will set `DATA_CACHE_CONFIG` to a new cache backend different than your previous `CACHE_CONFIG`, plan for additional cache warmup to avoid degrading charting performance for the end users.
 
 - [11575](https://github.com/apache/superset/pull/11575) The Row Level Security (RLS) config flag has been moved to a feature flag. To migrate, add `ROW_LEVEL_SECURITY: True` to the `FEATURE_FLAGS` dict in `superset_config.py`.
