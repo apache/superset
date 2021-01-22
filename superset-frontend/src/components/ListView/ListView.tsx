@@ -345,7 +345,7 @@ function ListView<T extends object = any>({
                     className="deselect-all"
                     onClick={() => toggleAllRowsSelected(false)}
                   >
-                    {t('Deselect All')}
+                    {t('Deselect all')}
                   </span>
                   <div className="divider" />
                   {bulkActions.map(action => (
@@ -390,7 +390,7 @@ function ListView<T extends object = any>({
             <EmptyWrapper className={viewMode}>
               <Empty
                 image={<EmptyImage />}
-                description={emptyState.message || 'No Data'}
+                description={emptyState.message || 'No data'}
               >
                 {emptyState.slot || null}
               </Empty>
