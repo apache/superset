@@ -963,11 +963,11 @@ class TestCore(SupersetTestCase):
 
         resp = self.run_sql(
             """
-            SELECT count(name) AS "COUNT(name)", count(ds) AS "COUNT(ds)"
+            SELECT count(name) AS count_name, count(ds) AS count_ds
             FROM birth_names
             WHERE ds >= '1921-01-22 00:00:00.000000' AND ds < '2021-01-22 00:00:00.000000'
-            GROUP BY name ORDER BY "COUNT(name)" DESC, "COUNT(ds)" DESC
-            LIMIT 10
+            GROUP BY name ORDER BY count_name DESC, count_ds DESC
+            LIMIT 10;
             """,
             client_id="client_id_1",
             user_name="admin",
@@ -980,8 +980,8 @@ class TestCore(SupersetTestCase):
             if series["key"] == "COUNT(name)":
                 count_name = series["values"]
         for expected, actual_ds, actual_name in zip(resp["data"], count_ds, count_name):
-            assert expected["COUNT(name)"] == actual_name["y"]
-            assert expected["COUNT(ds)"] == actual_ds["y"]
+            assert expected["count_name"] == actual_name["y"]
+            assert expected["count_ds"] == actual_ds["y"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.dict(
