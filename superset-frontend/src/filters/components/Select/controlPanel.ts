@@ -44,7 +44,7 @@ const config: ControlPanelConfig = {
             name: 'multiSelect',
             config: {
               type: 'CheckboxControl',
-              label: t('Multiple Select'),
+              label: t('Multiple select'),
               default: multiSelect,
               description: t('Allow selecting multiple values'),
             },
@@ -55,7 +55,7 @@ const config: ControlPanelConfig = {
             name: 'enableEmptyFilter',
             config: {
               type: 'CheckboxControl',
-              label: t('Enable Empty Filter'),
+              label: t('Enable empty filter'),
               default: enableEmptyFilter,
               description: t(
                 'When selection is empty, should an always false filter event be emitted',
@@ -68,7 +68,7 @@ const config: ControlPanelConfig = {
             name: 'inverseSelection',
             config: {
               type: 'CheckboxControl',
-              label: t('Inverse Selection'),
+              label: t('Inverse selection'),
               default: inverseSelection,
               description: t('Exclude selected values'),
             },
@@ -79,7 +79,7 @@ const config: ControlPanelConfig = {
             name: 'showSearch',
             config: {
               type: 'CheckboxControl',
-              label: t('Search Field'),
+              label: t('Search field'),
               default: showSearch,
               description: t('Allow typing search terms'),
             },
