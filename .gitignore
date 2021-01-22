@@ -22,6 +22,8 @@
 *.swp
 __pycache__
 
+.local
+.cache
 .bento*
 .cache-loader
 .coverage
@@ -81,6 +83,7 @@ ghostdriver.log
 testCSV.csv
 .terser-plugin-cache/
 apache-superset-*.tar.gz*
+release.json
 
 # Translation binaries
 messages.mo

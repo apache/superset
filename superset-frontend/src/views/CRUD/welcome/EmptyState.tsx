@@ -59,14 +59,14 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
     SAVED_QUERIES: 'empty-queries.svg',
   };
   const mine = (
-    <div>{`No ${
+    <span>{`No ${
       tableName === 'SAVED_QUERIES'
         ? t('saved queries')
         : t(`${tableName.toLowerCase()}`)
-    } yet`}</div>
+    } yet`}</span>
   );
   const recent = (
-    <div className="no-recents">
+    <span className="no-recents">
       {(() => {
         if (tab === 'Viewed') {
           return t(
@@ -90,7 +90,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
         }
         return null;
       })()}
-    </div>
+    </span>
   );
   // Mine and Recent Activity(all tabs) tab empty state
   if (tab === 'Mine' || tableName === 'RECENTS') {
@@ -131,9 +131,9 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
       <Empty
         image="/static/assets/images/star-circle.svg"
         description={
-          <div className="no-favorites">
+          <span className="no-favorites">
             {t("You don't have any favorites yet!")}
-          </div>
+          </span>
         }
       >
         <Button

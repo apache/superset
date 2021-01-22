@@ -20,6 +20,7 @@ import React from 'react';
 import { hot } from 'react-hot-loader/root';
 import { Provider } from 'react-redux';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import ToastPresenter from '../messageToasts/containers/ToastPresenter';
 import ExploreViewContainer from './components/ExploreViewContainer';
 import setupApp from '../setup/setupApp';
@@ -33,10 +34,10 @@ setupPlugins();
 const App = ({ store }) => (
   <Provider store={store}>
     <ThemeProvider theme={supersetTheme}>
-      <>
+      <DynamicPluginProvider>
         <ExploreViewContainer />
         <ToastPresenter />
-      </>
+      </DynamicPluginProvider>
     </ThemeProvider>
   </Provider>
 );

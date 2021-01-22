@@ -1,7 +1,11 @@
 # Python Misc unit tests
 name: Python Misc
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - "dependabot/npm_and_yarn/**"
+  pull_request:
 
 jobs:
   lint:
@@ -17,7 +21,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             apt-get-install
@@ -40,7 +44,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             apt-get-install
@@ -62,7 +66,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             apt-get-install

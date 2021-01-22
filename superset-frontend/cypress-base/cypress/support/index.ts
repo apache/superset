@@ -21,6 +21,17 @@ import readResponseBlob from '../utils/readResponseBlob';
 
 const BASE_EXPLORE_URL = '/superset/explore/?form_data=';
 
+/* eslint-disable consistent-return */
+Cypress.on('uncaught:exception', err => {
+  // ignore ResizeObserver client errors, as they are unrelated to operation
+  // and causing flaky test failures in CI
+  if (err.message && /ResizeObserver loop limit exceeded/.test(err.message)) {
+    // returning false here prevents Cypress from failing the test
+    return false;
+  }
+});
+/* eslint-enable consistent-return */
+
 Cypress.Commands.add('login', () => {
   cy.request({
     method: 'POST',
@@ -37,9 +48,9 @@ Cypress.Commands.add('visitChartByName', name => {
   });
 });
 
-Cypress.Commands.add('visitChartById', chartId => {
-  return cy.visit(`${BASE_EXPLORE_URL}{"slice_id": ${chartId}}`);
-});
+Cypress.Commands.add('visitChartById', chartId =>
+  cy.visit(`${BASE_EXPLORE_URL}{"slice_id": ${chartId}}`),
+);
 
 Cypress.Commands.add('visitChartByParams', params => {
   const queryString =

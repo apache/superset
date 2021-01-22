@@ -28,6 +28,7 @@ import { styled, t } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import { areArraysShallowEqual } from 'src/reduxUtils';
+import { Tooltip } from 'src/common/components/Tooltip';
 import * as Actions from '../actions/sqlLab';
 import SqlEditor from './SqlEditor';
 import TabStatusIcon from './TabStatusIcon';
@@ -65,6 +66,7 @@ const TabTitleWrapper = styled.div`
 
 const TabTitle = styled.span`
   margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+  text-transform: none;
 `;
 
 class TabbedSqlEditors extends React.PureComponent {
@@ -116,8 +118,15 @@ class TabbedSqlEditors extends React.PureComponent {
     }
 
     // merge post form data with GET search params
+    // Hack: this data should be comming from getInitialState
+    // but for some reason this data isn't being passed properly through
+    // the reducer.
+    const appContainer = document.getElementById('app');
+    const bootstrapData = JSON.parse(
+      appContainer?.getAttribute('data-bootstrap') || '{}',
+    );
     const query = {
-      ...this.props.requestedQuery,
+      ...bootstrapData.requested_query,
       ...URI(window.location).search(true),
     };
 
@@ -316,7 +325,7 @@ class TabbedSqlEditors extends React.PureComponent {
       const state = latestQuery ? latestQuery.state : '';
 
       const menu = (
-        <Menu>
+        <Menu style={{ width: 176 }}>
           <Menu.Item
             className="close-btn"
             key="1"
@@ -357,7 +366,6 @@ class TabbedSqlEditors extends React.PureComponent {
           </Menu.Item>
         </Menu>
       );
-
       const tabHeader = (
         <TabTitleWrapper>
           <div data-test="dropdown-toggle-button">
@@ -375,7 +383,7 @@ class TabbedSqlEditors extends React.PureComponent {
         >
           <SqlEditor
             tables={this.props.tables.filter(xt => xt.queryEditorId === qe.id)}
-            queryEditor={qe}
+            queryEditorId={qe.id}
             editorQueries={this.state.queriesArray}
             dataPreviewQueries={this.state.dataPreviewQueries}
             latestQuery={latestQuery}
@@ -402,7 +410,11 @@ class TabbedSqlEditors extends React.PureComponent {
         fullWidth={false}
         hideAdd={this.props.offline}
         onEdit={this.handleEdit}
-        addIcon={<i data-test="add-tab-icon" className="fa fa-plus-circle" />}
+        addIcon={
+          <Tooltip id="add-tab" placement="bottom" title="New tab (Ctrl + t)">
+            <i data-test="add-tab-icon" className="fa fa-plus-circle" />
+          </Tooltip>
+        }
       >
         {editors}
       </EditableTabs>

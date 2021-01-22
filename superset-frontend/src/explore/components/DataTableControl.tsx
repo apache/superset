@@ -19,7 +19,10 @@
 import React, { useMemo } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { FormControl } from 'react-bootstrap';
+import { Column } from 'react-table';
 import debounce from 'lodash/debounce';
+
+import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
 import Button from 'src/components/Button';
 import {
   applyFormattingToTabularData,
@@ -41,6 +44,12 @@ export const CopyButton = styled(Button)`
   }
 `;
 
+const CopyNode = (
+  <CopyButton buttonSize="xs">
+    <i className="fa fa-clipboard" />
+  </CopyButton>
+);
+
 export const CopyToClipboardButton = ({
   data,
 }: {
@@ -49,11 +58,7 @@ export const CopyToClipboardButton = ({
   <CopyToClipboard
     text={data ? prepareCopyToClipboardTabularData(data) : ''}
     wrapped={false}
-    copyNode={
-      <CopyButton buttonSize="xs">
-        <i className="fa fa-clipboard" />
-      </CopyButton>
-    }
+    copyNode={CopyNode}
   />
 );
 
@@ -75,8 +80,18 @@ export const FilterInput = ({
   );
 };
 
-export const RowCount = ({ data }: { data?: Record<string, any>[] }) => (
-  <RowCountLabel rowcount={data?.length ?? 0} suffix={t('rows retrieved')} />
+export const RowCount = ({
+  data,
+  loading,
+}: {
+  data?: Record<string, any>[];
+  loading: boolean;
+}) => (
+  <RowCountLabel
+    rowcount={data?.length ?? 0}
+    loading={loading}
+    suffix={t('rows retrieved')}
+  />
 );
 
 export const useFilteredTableData = (
@@ -90,16 +105,35 @@ export const useFilteredTableData = (
     const formattedData = applyFormattingToTabularData(data);
     return formattedData.filter((row: Record<string, any>) =>
       Object.values(row).some(value =>
-        value.toString().toLowerCase().includes(filterText.toLowerCase()),
+        value?.toString().toLowerCase().includes(filterText.toLowerCase()),
       ),
     );
   }, [data, filterText]);
 
-export const useTableColumns = (data?: Record<string, any>[]) =>
+export const useTableColumns = (
+  data?: Record<string, any>[],
+  moreConfigs?: { [key: string]: Partial<Column> },
+) =>
   useMemo(
     () =>
       data?.length
-        ? Object.keys(data[0]).map(key => ({ accessor: key, Header: key }))
+        ? Object.keys(data[0]).map(
+            key =>
+              ({
+                accessor: key,
+                Header: key,
+                Cell: ({ value }) => {
+                  if (value === true) {
+                    return BOOL_TRUE_DISPLAY;
+                  }
+                  if (value === false) {
+                    return BOOL_FALSE_DISPLAY;
+                  }
+                  return String(value);
+                },
+                ...moreConfigs?.[key],
+              } as Column),
+          )
         : [],
-    [data],
+    [data, moreConfigs],
   );

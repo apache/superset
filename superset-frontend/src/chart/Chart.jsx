@@ -56,7 +56,7 @@ const propTypes = {
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
   chartStackTrace: PropTypes.string,
-  queryResponse: PropTypes.object,
+  queriesResponse: PropTypes.arrayOf(PropTypes.object),
   triggerQuery: PropTypes.bool,
   refreshOverlayVisible: PropTypes.bool,
   errorMessage: PropTypes.node,
@@ -81,8 +81,9 @@ const defaultProps = {
 };
 
 const Styles = styled.div`
+  min-height: ${p => p.height}px;
   position: relative;
-  height: 100%;
+
   .chart-tooltip {
     opacity: 0.75;
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
@@ -150,14 +151,8 @@ class Chart extends React.PureComponent {
     });
   }
 
-  renderErrorMessage() {
-    const {
-      chartAlert,
-      chartStackTrace,
-      dashboardId,
-      owners,
-      queryResponse,
-    } = this.props;
+  renderErrorMessage(queryResponse) {
+    const { chartAlert, chartStackTrace, dashboardId, owners } = this.props;
 
     const error = queryResponse?.errors?.[0];
     if (error) {
@@ -187,14 +182,14 @@ class Chart extends React.PureComponent {
       errorMessage,
       onQuery,
       refreshOverlayVisible,
+      queriesResponse = [],
     } = this.props;
 
     const isLoading = chartStatus === 'loading';
-
     const isFaded = refreshOverlayVisible && !errorMessage;
     this.renderContainerStartTime = Logger.getTimestamp();
     if (chartStatus === 'failed') {
-      return this.renderErrorMessage();
+      return queriesResponse.map(item => this.renderErrorMessage(item));
     }
     if (errorMessage) {
       return (
@@ -203,12 +198,17 @@ class Chart extends React.PureComponent {
         </Alert>
       );
     }
+
     return (
       <ErrorBoundary
         onError={this.handleRenderContainerFailure}
         showMessage={false}
       >
-        <Styles className="chart-container" data-test="chart-container">
+        <Styles
+          className="chart-container"
+          data-test="chart-container"
+          height={height}
+        >
           <div
             className={`slice_container ${isFaded ? ' faded' : ''}`}
             data-test="slice-container"

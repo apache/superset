@@ -38,7 +38,6 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
 from enum import Enum
-from time import struct_time
 from timeit import default_timer
 from types import TracebackType
 from typing import (
@@ -64,17 +63,14 @@ import bleach
 import markdown as md
 import numpy as np
 import pandas as pd
-import parsedatetime
 import sqlalchemy as sa
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.backends.openssl.x509 import _Certificate
-from dateutil.parser import parse
-from dateutil.relativedelta import relativedelta
 from flask import current_app, flash, g, Markup, render_template
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import Role, User
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import gettext as __
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
@@ -107,6 +103,182 @@ logger = logging.getLogger(__name__)
 DTTM_ALIAS = "__timestamp"
 
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
+
+
+class LenientEnum(Enum):
+    """Enums with a `get` method that convert a enum value to `Enum` if it is a
+    valid value."""
+
+    @classmethod
+    def get(cls, value: Any) -> Any:
+        try:
+            return super().__new__(cls, value)
+        except ValueError:
+            return None
+
+
+class AdhocMetricExpressionType(str, Enum):
+    SIMPLE = "SIMPLE"
+    SQL = "SQL"
+
+
+class AnnotationType(str, Enum):
+    FORMULA = "FORMULA"
+    INTERVAL = "INTERVAL"
+    EVENT = "EVENT"
+    TIME_SERIES = "TIME_SERIES"
+
+
+class DbColumnType(Enum):
+    """
+    Generic database column type
+    """
+
+    NUMERIC = 0
+    STRING = 1
+    TEMPORAL = 2
+
+
+class ChartDataResultFormat(str, Enum):
+    """
+    Chart data response format
+    """
+
+    CSV = "csv"
+    JSON = "json"
+
+
+class ChartDataResultType(str, Enum):
+    """
+    Chart data response type
+    """
+
+    FULL = "full"
+    QUERY = "query"
+    RESULTS = "results"
+    SAMPLES = "samples"
+
+
+class ExtraFiltersTimeColumnType(str, Enum):
+    GRANULARITY = "__granularity"
+    TIME_COL = "__time_col"
+    TIME_GRAIN = "__time_grain"
+    TIME_ORIGIN = "__time_origin"
+    TIME_RANGE = "__time_range"
+
+
+class FilterOperator(str, Enum):
+    """
+    Operators used filter controls
+    """
+
+    EQUALS = "=="
+    NOT_EQUALS = "!="
+    GREATER_THAN = ">"
+    LESS_THAN = "<"
+    GREATER_THAN_OR_EQUALS = ">="
+    LESS_THAN_OR_EQUALS = "<="
+    LIKE = "LIKE"
+    IS_NULL = "IS NULL"
+    IS_NOT_NULL = "IS NOT NULL"
+    IN = "IN"  # pylint: disable=invalid-name
+    NOT_IN = "NOT IN"
+    REGEX = "REGEX"
+
+
+class PostProcessingBoxplotWhiskerType(str, Enum):
+    """
+    Calculate cell contibution to row/column total
+    """
+
+    TUKEY = "tukey"
+    MINMAX = "min/max"
+    PERCENTILE = "percentile"
+
+
+class PostProcessingContributionOrientation(str, Enum):
+    """
+    Calculate cell contibution to row/column total
+    """
+
+    ROW = "row"
+    COLUMN = "column"
+
+
+class QueryMode(str, LenientEnum):
+    """
+    Whether the query runs on aggregate or returns raw records
+    """
+
+    RAW = "raw"
+    AGGREGATE = "aggregate"
+
+
+class QuerySource(Enum):
+    """
+    The source of a SQL query.
+    """
+
+    CHART = 0
+    DASHBOARD = 1
+    SQL_LAB = 2
+
+
+class QueryStatus(str, Enum):  # pylint: disable=too-few-public-methods
+    """Enum-type class for query statuses"""
+
+    STOPPED: str = "stopped"
+    FAILED: str = "failed"
+    PENDING: str = "pending"
+    RUNNING: str = "running"
+    SCHEDULED: str = "scheduled"
+    SUCCESS: str = "success"
+    TIMED_OUT: str = "timed_out"
+
+
+class ReservedUrlParameters(str, Enum):
+    """
+    Reserved URL parameters that are used internally by Superset. These will not be
+    passed to chart queries, as they control the behavior of the UI.
+    """
+
+    STANDALONE = "standalone"
+    EDIT_MODE = "edit"
+
+
+class RowLevelSecurityFilterType(str, Enum):
+    REGULAR = "Regular"
+    BASE = "Base"
+
+
+class TimeRangeEndpoint(str, Enum):
+    """
+    The time range endpoint types which represent inclusive, exclusive, or unknown.
+
+    Unknown represents endpoints which are ill-defined as though the interval may be
+    [start, end] the filter may behave like (start, end] due to mixed data types and
+    lexicographical ordering.
+
+    :see: https://github.com/apache/superset/issues/6360
+    """
+
+    EXCLUSIVE = "exclusive"
+    INCLUSIVE = "inclusive"
+    UNKNOWN = "unknown"
+
+
+class TemporalType(str, Enum):
+    """
+    Supported temporal types
+    """
+
+    DATE = "DATE"
+    DATETIME = "DATETIME"
+    SMALLDATETIME = "SMALLDATETIME"
+    TEXT = "TEXT"
+    TIME = "TIME"
+    TIMESTAMP = "TIMESTAMP"
+
 
 try:
     # Having might not have been imported.
@@ -254,54 +426,6 @@ def list_minus(l: List[Any], minus: List[Any]) -> List[Any]:
     return [o for o in l if o not in minus]
 
 
-def parse_human_datetime(human_readable: str) -> datetime:
-    """
-    Returns ``datetime.datetime`` from human readable strings
-
-    >>> from datetime import date, timedelta
-    >>> from dateutil.relativedelta import relativedelta
-    >>> parse_human_datetime('2015-04-03')
-    datetime.datetime(2015, 4, 3, 0, 0)
-    >>> parse_human_datetime('2/3/1969')
-    datetime.datetime(1969, 2, 3, 0, 0)
-    >>> parse_human_datetime('now') <= datetime.now()
-    True
-    >>> parse_human_datetime('yesterday') <= datetime.now()
-    True
-    >>> date.today() - timedelta(1) == parse_human_datetime('yesterday').date()
-    True
-    >>> year_ago_1 = parse_human_datetime('one year ago').date()
-    >>> year_ago_2 = (datetime.now() - relativedelta(years=1) ).date()
-    >>> year_ago_1 == year_ago_2
-    True
-    """
-    try:
-        dttm = parse(human_readable)
-    except Exception:  # pylint: disable=broad-except
-        try:
-            cal = parsedatetime.Calendar()
-            parsed_dttm, parsed_flags = cal.parseDT(human_readable)
-            # when time is not extracted, we 'reset to midnight'
-            if parsed_flags & 2 == 0:
-                parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
-            dttm = dttm_from_timetuple(parsed_dttm.utctimetuple())
-        except Exception as ex:
-            logger.exception(ex)
-            raise ValueError("Couldn't parse date string [{}]".format(human_readable))
-    return dttm
-
-
-def dttm_from_timetuple(date_: struct_time) -> datetime:
-    return datetime(
-        date_.tm_year,
-        date_.tm_mon,
-        date_.tm_mday,
-        date_.tm_hour,
-        date_.tm_min,
-        date_.tm_sec,
-    )
-
-
 def md5_hex(data: str) -> str:
     return hashlib.md5(data.encode()).hexdigest()
 
@@ -321,41 +445,6 @@ class DashboardEncoder(json.JSONEncoder):
             if isinstance(o, datetime):
                 return {"__datetime__": o.replace(microsecond=0).isoformat()}
             return json.JSONEncoder(sort_keys=True).default(o)
-
-
-def parse_human_timedelta(human_readable: Optional[str]) -> timedelta:
-    """
-    Returns ``datetime.datetime`` from natural language time deltas
-
-    >>> parse_human_datetime('now') <= datetime.now()
-    True
-    """
-    cal = parsedatetime.Calendar()
-    dttm = dttm_from_timetuple(datetime.now().timetuple())
-    date_ = cal.parse(human_readable or "", dttm)[0]
-    date_ = datetime(
-        date_.tm_year,
-        date_.tm_mon,
-        date_.tm_mday,
-        date_.tm_hour,
-        date_.tm_min,
-        date_.tm_sec,
-    )
-    return date_ - dttm
-
-
-def parse_past_timedelta(delta_str: str) -> timedelta:
-    """
-    Takes a delta like '1 year' and finds the timedelta for that period in
-    the past, then represents that past timedelta in positive terms.
-
-    parse_human_timedelta('1 year') find the timedelta 1 year in the future.
-    parse_past_timedelta('1 year') returns -datetime.timedelta(-365)
-    or datetime.timedelta(365).
-    """
-    return -parse_human_timedelta(
-        delta_str if delta_str.startswith("-") else f"-{delta_str}"
-    )
 
 
 class JSONEncodedDict(TypeDecorator):  # pylint: disable=abstract-method
@@ -690,18 +779,6 @@ def pessimistic_connection_handling(some_engine: Engine) -> None:
             connection.should_close_with_result = save_should_close_with_result
 
 
-class QueryStatus:  # pylint: disable=too-few-public-methods
-    """Enum-type class for query statuses"""
-
-    STOPPED: str = "stopped"
-    FAILED: str = "failed"
-    PENDING: str = "pending"
-    RUNNING: str = "running"
-    SCHEDULED: str = "scheduled"
-    SUCCESS: str = "success"
-    TIMED_OUT: str = "timed_out"
-
-
 def notify_user_about_perm_udate(  # pylint: disable=too-many-arguments
     granter: User,
     user: User,
@@ -912,15 +989,23 @@ def merge_extra_filters(  # pylint: disable=too-many-branches
     # Note extra_filters only support simple filters.
     applied_time_extras: Dict[str, str] = {}
     form_data["applied_time_extras"] = applied_time_extras
+    adhoc_filters = form_data.get("adhoc_filters", [])
+    form_data["adhoc_filters"] = adhoc_filters
+    # extra_overrides contains additional props to be added/overridden in the form_data
+    # and will deprecate `extra_filters`. For now only `filters` is supported,
+    # but additional props will be added later (time grains, groupbys etc)
+    extra_form_data = form_data.pop("extra_form_data", {})
+    append_form_data = extra_form_data.pop("append_form_data", {})
+    append_filters = append_form_data.get("filters", None)
+    if append_filters:
+        adhoc_filters.extend(
+            [to_adhoc({"isExtra": True, **fltr}) for fltr in append_filters if fltr]
+        )
     if "extra_filters" in form_data:
         # __form and __to are special extra_filters that target time
         # boundaries. The rest of extra_filters are simple
         # [column_name in list_of_values]. `__` prefix is there to avoid
         # potential conflicts with column that would be named `from` or `to`
-        if "adhoc_filters" not in form_data or not isinstance(
-            form_data["adhoc_filters"], list
-        ):
-            form_data["adhoc_filters"] = []
         date_options = {
             "__time_range": "time_range",
             "__time_col": "granularity_sqla",
@@ -937,7 +1022,7 @@ def merge_extra_filters(  # pylint: disable=too-many-branches
             return "{}__{}".format(f["col"], f["op"])
 
         existing_filters = {}
-        for existing in form_data["adhoc_filters"]:
+        for existing in adhoc_filters:
             if (
                 existing["expressionType"] == "SIMPLE"
                 and existing["comparator"] is not None
@@ -967,16 +1052,16 @@ def merge_extra_filters(  # pylint: disable=too-many-branches
                             # Add filters for unequal lists
                             # order doesn't matter
                             if set(existing_filters[filter_key]) != set(filtr["val"]):
-                                form_data["adhoc_filters"].append(to_adhoc(filtr))
+                                adhoc_filters.append(to_adhoc(filtr))
                         else:
-                            form_data["adhoc_filters"].append(to_adhoc(filtr))
+                            adhoc_filters.append(to_adhoc(filtr))
                     else:
                         # Do not add filter if same value already exists
                         if filtr["val"] != existing_filters[filter_key]:
-                            form_data["adhoc_filters"].append(to_adhoc(filtr))
+                            adhoc_filters.append(to_adhoc(filtr))
                 else:
                     # Filter not found, add it
-                    form_data["adhoc_filters"].append(to_adhoc(filtr))
+                    adhoc_filters.append(to_adhoc(filtr))
         # Remove extra filters from the form data since no longer needed
         del form_data["extra_filters"]
 
@@ -1065,125 +1150,6 @@ def ensure_path_exists(path: str) -> None:
     except OSError as exc:
         if not (os.path.isdir(path) and exc.errno == errno.EEXIST):
             raise
-
-
-def get_since_until(  # pylint: disable=too-many-arguments
-    time_range: Optional[str] = None,
-    since: Optional[str] = None,
-    until: Optional[str] = None,
-    time_shift: Optional[str] = None,
-    relative_start: Optional[str] = None,
-    relative_end: Optional[str] = None,
-) -> Tuple[Optional[datetime], Optional[datetime]]:
-    """Return `since` and `until` date time tuple from string representations of
-    time_range, since, until and time_shift.
-
-    This functiom supports both reading the keys separately (from `since` and
-    `until`), as well as the new `time_range` key. Valid formats are:
-
-        - ISO 8601
-        - X days/years/hours/day/year/weeks
-        - X days/years/hours/day/year/weeks ago
-        - X days/years/hours/day/year/weeks from now
-        - freeform
-
-    Additionally, for `time_range` (these specify both `since` and `until`):
-
-        - Last day
-        - Last week
-        - Last month
-        - Last quarter
-        - Last year
-        - No filter
-        - Last X seconds/minutes/hours/days/weeks/months/years
-        - Next X seconds/minutes/hours/days/weeks/months/years
-
-    """
-    separator = " : "
-    relative_start = parse_human_datetime(  # type: ignore
-        relative_start if relative_start else "today"
-    )
-    relative_end = parse_human_datetime(  # type: ignore
-        relative_end if relative_end else "today"
-    )
-    common_time_frames = {
-        "Last day": (
-            relative_start - relativedelta(days=1),  # type: ignore
-            relative_end,
-        ),
-        "Last week": (
-            relative_start - relativedelta(weeks=1),  # type: ignore
-            relative_end,
-        ),
-        "Last month": (
-            relative_start - relativedelta(months=1),  # type: ignore
-            relative_end,
-        ),
-        "Last quarter": (
-            relative_start - relativedelta(months=3),  # type: ignore
-            relative_end,
-        ),
-        "Last year": (
-            relative_start - relativedelta(years=1),  # type: ignore
-            relative_end,
-        ),
-    }
-
-    if time_range:
-        if separator in time_range:
-            since, until = time_range.split(separator, 1)
-            if since and since not in common_time_frames:
-                since = add_ago_to_since(since)
-            since = parse_human_datetime(since) if since else None  # type: ignore
-            until = parse_human_datetime(until) if until else None  # type: ignore
-        elif time_range in common_time_frames:
-            since, until = common_time_frames[time_range]
-        elif time_range == "No filter":
-            since = until = None
-        else:
-            rel, num, grain = time_range.split()
-            if rel == "Last":
-                since = relative_start - relativedelta(  # type: ignore
-                    **{grain: int(num)}  # type: ignore
-                )
-                until = relative_end
-            else:  # rel == 'Next'
-                since = relative_start
-                until = relative_end + relativedelta(  # type: ignore
-                    **{grain: int(num)}  # type: ignore
-                )
-    else:
-        since = since or ""
-        if since:
-            since = add_ago_to_since(since)
-        since = parse_human_datetime(since) if since else None  # type: ignore
-        until = parse_human_datetime(until) if until else relative_end  # type: ignore
-
-    if time_shift:
-        time_delta = parse_past_timedelta(time_shift)
-        since = since if since is None else (since - time_delta)  # type: ignore
-        until = until if until is None else (until - time_delta)  # type: ignore
-
-    if since and until and since > until:
-        raise ValueError(_("From date cannot be larger than to date"))
-
-    return since, until  # type: ignore
-
-
-def add_ago_to_since(since: str) -> str:
-    """
-    Backwards compatibility hack. Without this slices with since: 7 days will
-    be treated as 7 days in the future.
-
-    :param str since:
-    :returns: Since with ago added if necessary
-    :rtype: str
-    """
-    since_words = since.split(" ")
-    grains = ["days", "years", "hours", "day", "year", "weeks"]
-    if len(since_words) == 2 and since_words[1] in grains:
-        since += " ago"
-    return since
 
 
 def convert_legacy_filters_into_adhoc(  # pylint: disable=invalid-name
@@ -1436,168 +1402,6 @@ def indexed(
     return idx
 
 
-class LenientEnum(Enum):
-    """Enums that do not raise ValueError when value is invalid"""
-
-    @classmethod
-    def get(cls, value: Any) -> Any:
-        try:
-            return super().__new__(cls, value)
-        except ValueError:
-            return None
-
-
-class TimeRangeEndpoint(str, Enum):
-    """
-    The time range endpoint types which represent inclusive, exclusive, or unknown.
-
-    Unknown represents endpoints which are ill-defined as though the interval may be
-    [start, end] the filter may behave like (start, end] due to mixed data types and
-    lexicographical ordering.
-
-    :see: https://github.com/apache/incubator-superset/issues/6360
-    """
-
-    EXCLUSIVE = "exclusive"
-    INCLUSIVE = "inclusive"
-    UNKNOWN = "unknown"
-
-
-class ReservedUrlParameters(str, Enum):
-    """
-    Reserved URL parameters that are used internally by Superset. These will not be
-    passed to chart queries, as they control the behavior of the UI.
-    """
-
-    STANDALONE = "standalone"
-    EDIT_MODE = "edit"
-
-
-class QuerySource(Enum):
-    """
-    The source of a SQL query.
-    """
-
-    CHART = 0
-    DASHBOARD = 1
-    SQL_LAB = 2
-
-
-class DbColumnType(Enum):
-    """
-    Generic database column type
-    """
-
-    NUMERIC = 0
-    STRING = 1
-    TEMPORAL = 2
-
-
-class QueryMode(str, LenientEnum):
-    """
-    Whether the query runs on aggregate or returns raw records
-    """
-
-    RAW = "raw"
-    AGGREGATE = "aggregate"
-
-
-class FilterOperator(str, Enum):
-    """
-    Operators used filter controls
-    """
-
-    EQUALS = "=="
-    NOT_EQUALS = "!="
-    GREATER_THAN = ">"
-    LESS_THAN = "<"
-    GREATER_THAN_OR_EQUALS = ">="
-    LESS_THAN_OR_EQUALS = "<="
-    LIKE = "LIKE"
-    IS_NULL = "IS NULL"
-    IS_NOT_NULL = "IS NOT NULL"
-    IN = "IN"  # pylint: disable=invalid-name
-    NOT_IN = "NOT IN"
-    REGEX = "REGEX"
-
-
-class ChartDataResultType(str, Enum):
-    """
-    Chart data response type
-    """
-
-    FULL = "full"
-    QUERY = "query"
-    RESULTS = "results"
-    SAMPLES = "samples"
-
-
-class ChartDataResultFormat(str, Enum):
-    """
-    Chart data response format
-    """
-
-    CSV = "csv"
-    JSON = "json"
-
-
-class TemporalType(str, Enum):
-    """
-    Supported temporal types
-    """
-
-    DATE = "DATE"
-    DATETIME = "DATETIME"
-    SMALLDATETIME = "SMALLDATETIME"
-    TEXT = "TEXT"
-    TIME = "TIME"
-    TIMESTAMP = "TIMESTAMP"
-
-
-class PostProcessingContributionOrientation(str, Enum):
-    """
-    Calculate cell contibution to row/column total
-    """
-
-    ROW = "row"
-    COLUMN = "column"
-
-
-class PostProcessingBoxplotWhiskerType(str, Enum):
-    """
-    Calculate cell contibution to row/column total
-    """
-
-    TUKEY = "tukey"
-    MINMAX = "min/max"
-    PERCENTILE = "percentile"
-
-
-class AdhocMetricExpressionType(str, Enum):
-    SIMPLE = "SIMPLE"
-    SQL = "SQL"
-
-
-class RowLevelSecurityFilterType(str, Enum):
-    REGULAR = "Regular"
-    BASE = "Base"
-
-
-class ExtraFiltersTimeColumnType(str, Enum):
-    GRANULARITY = "__granularity"
-    TIME_COL = "__time_col"
-    TIME_GRAIN = "__time_grain"
-    TIME_ORIGIN = "__time_origin"
-    TIME_RANGE = "__time_range"
-
-
-class AnnotationType(str, Enum):
-    FORMULA = "FORMULA"
-    INTERVAL = "INTERVAL"
-    EVENT = "EVENT"
-    TIME_SERIES = "TIME_SERIES"
-
-
 def is_test() -> bool:
     return strtobool(os.environ.get("SUPERSET_TESTENV", "false"))
 
@@ -1667,3 +1471,8 @@ def get_time_filter_status(  # pylint: disable=too-many-branches
             )
 
     return applied, rejected
+
+
+def format_list(items: Sequence[str], sep: str = ", ", quote: str = '"') -> str:
+    quote_escaped = "\\" + quote
+    return sep.join(f"{quote}{x.replace(quote, quote_escaped)}{quote}" for x in items)

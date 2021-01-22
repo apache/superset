@@ -19,6 +19,7 @@
 import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
+import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
 import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
@@ -91,9 +92,11 @@ fetchMock.get(queriesDistinctEndpoint, {
 });
 
 describe('SavedQueryList', () => {
-  const wrapper = mount(<SavedQueryList />, {
-    context: { store },
-  });
+  const wrapper = mount(
+    <Provider store={store}>
+      <SavedQueryList />
+    </Provider>,
+  );
 
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);

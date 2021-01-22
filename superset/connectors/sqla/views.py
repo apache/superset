@@ -33,10 +33,11 @@ from wtforms.validators import Regexp
 from superset import app, db, is_feature_enabled
 from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.sqla import models
-from superset.constants import RouteMethod
+from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
+    check_ownership,
     create_table_permissions,
     DatasourceFilter,
     DeleteMixin,
@@ -55,6 +56,8 @@ class TableColumnInlineView(  # pylint: disable=too-many-ancestors
 ):
     datamodel = SQLAInterface(models.TableColumn)
     # TODO TODO, review need for this on related_views
+    class_permission_name = "Dataset"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
     include_route_methods = RouteMethod.RELATED_VIEW_SET | RouteMethod.API_SET
 
     list_title = _("Columns")
@@ -169,11 +172,22 @@ class TableColumnInlineView(  # pylint: disable=too-many-ancestors
 
     edit_form_extra_fields = add_form_extra_fields
 
+    def pre_add(self, item: "models.SqlMetric") -> None:
+        check_ownership(item.table)
+
+    def pre_update(self, item: "models.SqlMetric") -> None:
+        check_ownership(item.table)
+
+    def pre_delete(self, item: "models.SqlMetric") -> None:
+        check_ownership(item.table)
+
 
 class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
     CompactCRUDMixin, SupersetModelView
 ):
     datamodel = SQLAInterface(models.SqlMetric)
+    class_permission_name = "Dataset"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
     include_route_methods = RouteMethod.RELATED_VIEW_SET | RouteMethod.API_SET
 
     list_title = _("Metrics")
@@ -240,6 +254,15 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
     }
 
     edit_form_extra_fields = add_form_extra_fields
+
+    def pre_add(self, item: "models.SqlMetric") -> None:
+        check_ownership(item.table)
+
+    def pre_update(self, item: "models.SqlMetric") -> None:
+        check_ownership(item.table)
+
+    def pre_delete(self, item: "models.SqlMetric") -> None:
+        check_ownership(item.table)
 
 
 class RowLevelSecurityListWidget(
@@ -327,6 +350,8 @@ class TableModelView(  # pylint: disable=too-many-ancestors
     DatasourceModelView, DeleteMixin, YamlExportMixin
 ):
     datamodel = SQLAInterface(models.SqlaTable)
+    class_permission_name = "Dataset"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
     include_route_methods = RouteMethod.CRUD_SET
 
     list_title = _("Tables")
@@ -452,6 +477,9 @@ class TableModelView(  # pylint: disable=too-many-ancestors
 
     def pre_add(self, item: "TableModelView") -> None:
         validate_sqlatable(item)
+
+    def pre_update(self, item: "TableModelView") -> None:
+        check_ownership(item)
 
     def post_add(  # pylint: disable=arguments-differ
         self,

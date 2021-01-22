@@ -32,7 +32,7 @@ import rison from 'rison';
 import { t, SupersetClient } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import FormLabel from 'src/components/FormLabel';
-import getClientErrorObject from '../../utils/getClientErrorObject';
+import { getClientErrorObject } from '../../utils/getClientErrorObject';
 
 type PropertiesModalProps = {
   slice: Slice;
@@ -99,6 +99,11 @@ export default function PropertiesModal({
   useEffect(() => {
     fetchChartData();
   }, [fetchChartData]);
+
+  // update name after it's changed in another modal
+  useEffect(() => {
+    setName(slice.slice_name || '');
+  }, [slice.slice_name]);
 
   const loadOptions = (input = '') => {
     const query = rison.encode({

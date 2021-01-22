@@ -40,9 +40,7 @@ describe('Dashboard filter', () => {
   let filterId: number;
   let aliases: string[];
 
-  const getAlias = (id: number) => {
-    return `@${DASHBOARD_CHART_ALIAS_PREFIX}${id}`;
-  };
+  const getAlias = (id: number) => `@${DASHBOARD_CHART_ALIAS_PREFIX}${id}`;
 
   beforeEach(() => {
     cy.server();
@@ -65,33 +63,30 @@ describe('Dashboard filter', () => {
       cy.wait(aliases);
     });
   });
-  xit('should apply filter', () => {
-    cy.get('.Select__control input[type=text]')
-      .first()
-      .should('be.visible')
-      .focus();
 
-    // should open the filter indicator
-    cy.get('[data-test="filter"]')
-      .should('be.visible', { timeout: 10000 })
-      .should(nodes => {
-        expect(nodes).to.have.length(9); // this part was not working, xit-ed
-      });
+  it('should apply filter', () => {
+    cy.get('.Select__placeholder:first').click();
 
-    cy.get('[data-test="chart-container"]').find('svg').should('be.visible');
+    // should show the filter indicator
+    cy.get('svg[data-test="filter"]:visible').should(nodes => {
+      expect(nodes.length).to.least(9);
+    });
 
-    cy.get('.Select__control input[type=text]').first().focus().blur();
-
-    cy.get('.Select__control input[type=text]')
-      .first()
-      .focus()
-      .type('So', { force: true, delay: 100 });
+    cy.get('.Select__control:first input[type=text]').type('So', {
+      force: true,
+      delay: 100,
+    });
 
     cy.get('.Select__menu').first().contains('South Asia').click();
 
+    // should still have all filter indicators
+    cy.get('svg[data-test="filter"]:visible').should(nodes => {
+      expect(nodes.length).to.least(9);
+    });
+
     cy.get('.filter_box button').click({ force: true });
-    cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests => {
-      return Promise.all(
+    cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests =>
+      Promise.all(
         requests.map(async xhr => {
           expect(xhr.status).to.eq(200);
           const responseBody = await readResponseBlob(xhr.response.body);
@@ -111,8 +106,8 @@ describe('Dashboard filter', () => {
             val: 'South Asia',
           });
         }),
-      );
-    });
+      ),
+    );
 
     // TODO add test with South Asia{enter} type action to select filter
   });

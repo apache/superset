@@ -56,6 +56,7 @@ const propTypes = {
   menuPortalTarget: PropTypes.element,
   menuPosition: PropTypes.string,
   menuPlacement: PropTypes.string,
+  forceOverflow: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -102,10 +103,9 @@ export default class SelectControl extends React.PureComponent {
   // Beware: This is acting like an on-click instead of an on-change
   // (firing every time user chooses vs firing only if a new option is chosen).
   onChange(opt) {
-    let optionValue = null;
+    let optionValue = this.props.multi ? [] : null;
     if (opt) {
       if (this.props.multi) {
-        optionValue = [];
         opt.forEach(o => {
           // select all options
           if (o.meta === true) {
@@ -204,13 +204,6 @@ export default class SelectControl extends React.PureComponent {
     return remainingOptions;
   }
 
-  createPlaceholder() {
-    const optionsRemaining = this.optionsRemaining();
-    const placeholder =
-      this.props.placeholder || t('%s option(s)', optionsRemaining);
-    return optionsRemaining ? placeholder : '';
-  }
-
   createMetaSelectAllOption() {
     const option = { label: 'Select All', meta: true };
     option[this.props.valueKey] = 'Select All';
@@ -226,8 +219,6 @@ export default class SelectControl extends React.PureComponent {
       filterOption,
       isLoading,
       menuPlacement,
-      menuPortalTarget,
-      menuPosition,
       name,
       noResultsText,
       onFocus,
@@ -236,9 +227,22 @@ export default class SelectControl extends React.PureComponent {
       value,
       valueKey,
       valueRenderer,
+      forceOverflow,
+      menuPortalTarget,
+      menuPosition,
     } = this.props;
-    const placeholder = this.createPlaceholder();
+
+    const optionsRemaining = this.optionsRemaining();
+    const optionRemaingText = optionsRemaining
+      ? t('%s option(s)', optionsRemaining)
+      : '';
+    const placeholder = this.props.placeholder || optionRemaingText;
     const isMulti = this.props.isMulti || this.props.multi;
+
+    let assistiveText;
+    if (isMulti && optionsRemaining && Array.isArray(value) && !!value.length) {
+      assistiveText = optionRemaingText;
+    }
 
     const selectProps = {
       autoFocus,
@@ -250,6 +254,7 @@ export default class SelectControl extends React.PureComponent {
       isMulti,
       labelKey: 'label',
       menuPlacement,
+      forceOverflow,
       menuPortalTarget,
       menuPosition,
       name: `select-${name}`,
@@ -259,6 +264,7 @@ export default class SelectControl extends React.PureComponent {
       optionRenderer,
       options: this.state.options,
       placeholder,
+      assistiveText,
       promptTextCreator,
       selectRef: this.getSelectRef,
       value,

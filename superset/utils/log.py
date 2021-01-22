@@ -22,19 +22,39 @@ import textwrap
 import time
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import Any, Callable, cast, Iterator, Optional, Type
+from typing import Any, Callable, cast, Dict, Iterator, Optional, Type, Union
 
 from flask import current_app, g, request
+from flask_appbuilder.const import API_URI_RIS_KEY
 from sqlalchemy.exc import SQLAlchemyError
+from typing_extensions import Literal
 
 from superset.stats_logger import BaseStatsLogger
 
 
-def strip_int_from_path(path: Optional[str]) -> str:
-    """Simple function to remove ints from '/' separated paths"""
-    if path:
-        return "/".join(["<int>" if s.isdigit() else s for s in path.split("/")])
-    return ""
+def collect_request_payload() -> Dict[str, Any]:
+    """Collect log payload identifiable from request context"""
+    payload: Dict[str, Any] = {
+        "path": request.path,
+        **request.form.to_dict(),
+        # url search params can overwrite POST body
+        **request.args.to_dict(),
+    }
+
+    # save URL match pattern in addition to the request path
+    url_rule = str(request.url_rule)
+    if url_rule != request.path:
+        payload["url_rule"] = url_rule
+
+    # remove rison raw string (q=xxx in search params) in favor of
+    # rison object (could come from `payload_override`)
+    if "rison" in payload and API_URI_RIS_KEY in payload:
+        del payload[API_URI_RIS_KEY]
+    # delete empty rison object
+    if "rison" in payload and not payload["rison"]:
+        del payload["rison"]
+
+    return payload
 
 
 class AbstractEventLogger(ABC):
@@ -53,26 +73,37 @@ class AbstractEventLogger(ABC):
         pass
 
     @contextmanager
-    def log_context(
-        self, action: str, ref: Optional[str] = None, log_to_statsd: bool = True,
+    def log_context(  # pylint: disable=too-many-locals
+        self, action: str, object_ref: Optional[str] = None, log_to_statsd: bool = True,
     ) -> Iterator[Callable[..., None]]:
         """
-        Log an event while reading information from the request context.
-        `kwargs` will be appended directly to the log payload.
+        Log an event with additional information from the request context.
+
+        :param action: a name to identify the event
+        :param object_ref: reference to the Python object that triggered this action
+        :param log_to_statsd: whether to update statsd counter for the action
         """
         from superset.views.core import get_form_data
 
         start_time = time.time()
         referrer = request.referrer[:1000] if request.referrer else None
         user_id = g.user.get_id() if hasattr(g, "user") and g.user else None
-        payload = request.form.to_dict() or {}
-        # request parameters can overwrite post body
-        payload.update(request.args.to_dict())
+        payload_override = {}
 
-        # yield a helper to update additional kwargs
-        yield lambda **kwargs: payload.update(kwargs)
+        # yield a helper to add additional payload
+        yield lambda **kwargs: payload_override.update(kwargs)
 
-        dashboard_id = payload.get("dashboard_id")
+        payload = collect_request_payload()
+        if object_ref:
+            payload["object_ref"] = object_ref
+        # manual updates from context comes the last
+        payload.update(payload_override)
+
+        dashboard_id: Optional[int] = None
+        try:
+            dashboard_id = int(payload.get("dashboard_id"))  # type: ignore
+        except (TypeError, ValueError):
+            dashboard_id = None
 
         if "form_data" in payload:
             form_data, _ = get_form_data()
@@ -89,15 +120,8 @@ class AbstractEventLogger(ABC):
         if log_to_statsd:
             self.stats_logger.incr(action)
 
-        payload.update(
-            {
-                "path": request.path,
-                "path_no_param": strip_int_from_path(request.path),
-                "ref": ref,
-            }
-        )
-        # bulk insert
         try:
+            # bulk insert
             explode_by = payload.get("explode")
             records = json.loads(payload.get(explode_by))  # type: ignore
         except Exception:  # pylint: disable=broad-except
@@ -114,16 +138,30 @@ class AbstractEventLogger(ABC):
         )
 
     def _wrapper(
-        self, f: Callable[..., Any], **wrapper_kwargs: Any
+        self,
+        f: Callable[..., Any],
+        action: Optional[Union[str, Callable[..., str]]] = None,
+        object_ref: Optional[Union[str, Callable[..., str], Literal[False]]] = None,
+        allow_extra_payload: Optional[bool] = False,
+        **wrapper_kwargs: Any,
     ) -> Callable[..., Any]:
-        action_str = wrapper_kwargs.get("action") or f.__name__
-        ref = f.__qualname__ if hasattr(f, "__qualname__") else None
-
         @functools.wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            with self.log_context(action_str, ref, **wrapper_kwargs) as log:
-                value = f(*args, **kwargs)
+            action_str = (
+                action(*args, **kwargs) if callable(action) else action
+            ) or f.__name__
+            object_ref_str = (
+                object_ref(*args, **kwargs) if callable(object_ref) else object_ref
+            ) or (f.__qualname__ if object_ref is not False else None)
+            with self.log_context(
+                action=action_str, object_ref=object_ref_str, **wrapper_kwargs
+            ) as log:
                 log(**kwargs)
+                if allow_extra_payload:
+                    # add a payload updater to the decorated function
+                    value = f(*args, add_extra_log_payload=log, **kwargs)
+                else:
+                    value = f(*args, **kwargs)
             return value
 
         return wrapper
@@ -140,18 +178,9 @@ class AbstractEventLogger(ABC):
 
         return func
 
-    def log_manually(self, f: Callable[..., Any]) -> Callable[..., Any]:
-        """Allow a function to manually update"""
-
-        @functools.wraps(f)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
-            with self.log_context(f.__name__) as log:
-                # updated_log_payload should be either the last positional
-                # argument or one of the named arguments of the decorated function
-                value = f(*args, update_log_payload=log, **kwargs)
-            return value
-
-        return wrapper
+    def log_this_with_extra_payload(self, f: Callable[..., Any]) -> Callable[..., Any]:
+        """Decorator that instrument `update_log_payload` to kwargs"""
+        return self._wrapper(f, allow_extra_payload=True)
 
     @property
     def stats_logger(self) -> BaseStatsLogger:
@@ -217,9 +246,8 @@ class DBEventLogger(AbstractEventLogger):
     ) -> None:
         from superset.models.core import Log
 
-        records = kwargs.get("records", list())
-
-        logs = list()
+        records = kwargs.get("records", [])
+        logs = []
         for record in records:
             json_string: Optional[str]
             try:

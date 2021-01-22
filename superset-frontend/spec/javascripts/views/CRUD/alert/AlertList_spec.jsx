@@ -16,17 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
+import React from 'react';
+import configureStore from 'redux-mock-store';
+import { Provider } from 'react-redux';
+import thunk from 'redux-thunk';
 import { styledMount as mount } from 'spec/helpers/theming';
-
-import AlertList from 'src/views/CRUD/alert/AlertList';
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import { Switch } from 'src/common/components/Switch';
 import ListView from 'src/components/ListView';
 import SubMenu from 'src/components/Menu/SubMenu';
-import { Switch } from 'src/common/components/Switch';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import AlertList from 'src/views/CRUD/alert/AlertList';
+import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
+import { act } from 'react-dom/test-utils';
 
 // store needed for withToasts(AlertList)
 const mockStore = configureStore([thunk]);
@@ -35,6 +37,7 @@ const store = mockStore({});
 const alertsEndpoint = 'glob:*/api/v1/report/?*';
 const alertEndpoint = 'glob:*/api/v1/report/*';
 const alertsInfoEndpoint = 'glob:*/api/v1/report/_info*';
+const alertsCreatedByEndpoint = 'glob:*/api/v1/report/related/created_by*';
 
 const mockalerts = [...new Array(3)].map((_, i) => ({
   active: true,
@@ -72,40 +75,76 @@ fetchMock.get(alertsEndpoint, {
   count: 3,
 });
 fetchMock.get(alertsInfoEndpoint, {
-  permissions: ['can_delete', 'can_edit'],
+  permissions: ['can_write'],
 });
+fetchMock.get(alertsCreatedByEndpoint, { result: [] });
 fetchMock.put(alertEndpoint, { ...mockalerts[0], active: false });
 fetchMock.put(alertsEndpoint, { ...mockalerts[0], active: false });
-
-async function mountAndWait(props) {
-  const mounted = mount(<AlertList {...props} user={mockUser} />, {
-    context: { store },
-  });
-  await waitForComponentToPaint(mounted);
-
-  return mounted;
-}
+fetchMock.delete(alertEndpoint, {});
+fetchMock.delete(alertsEndpoint, {});
 
 describe('AlertList', () => {
-  let wrapper;
+  const wrapper = mount(
+    <Provider store={store}>
+      <AlertList store={store} user={mockUser} />
+    </Provider>,
+  );
 
   beforeAll(async () => {
-    wrapper = await mountAndWait();
+    await waitForComponentToPaint(wrapper);
   });
 
-  it('renders', () => {
+  it('renders', async () => {
     expect(wrapper.find(AlertList)).toExist();
   });
 
-  it('renders a SubMenu', () => {
+  it('renders a SubMenu', async () => {
     expect(wrapper.find(SubMenu)).toExist();
   });
 
-  it('renders a ListView', () => {
+  it('renders a ListView', async () => {
     expect(wrapper.find(ListView)).toExist();
   });
 
-  it('renders switches', () => {
+  it('renders switches', async () => {
     expect(wrapper.find(Switch)).toHaveLength(3);
+  });
+
+  it('deletes', async () => {
+    act(() => {
+      wrapper.find('[data-test="delete-action"]').first().props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+
+    act(() => {
+      wrapper
+        .find('#delete')
+        .first()
+        .props()
+        .onChange({ target: { value: 'DELETE' } });
+    });
+    await waitForComponentToPaint(wrapper);
+    act(() => {
+      wrapper
+        .find('[data-test="modal-confirm-button"]')
+        .last()
+        .props()
+        .onClick();
+    });
+
+    await waitForComponentToPaint(wrapper);
+
+    expect(fetchMock.calls(/report\/0/, 'DELETE')).toHaveLength(1);
+  });
+
+  it('shows/hides bulk actions when bulk actions is clicked', async () => {
+    const button = wrapper.find('[data-test="bulk-select-toggle"]').first();
+    act(() => {
+      button.props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(IndeterminateCheckbox)).toHaveLength(
+      mockalerts.length + 1, // 1 for each row and 1 for select all
+    );
   });
 });

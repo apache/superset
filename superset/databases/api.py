@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 from datetime import datetime
 from io import BytesIO
@@ -23,21 +24,13 @@ from zipfile import ZipFile
 from flask import g, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import gettext as _
 from marshmallow import ValidationError
-from sqlalchemy.engine.url import make_url
-from sqlalchemy.exc import (
-    DBAPIError,
-    NoSuchModuleError,
-    NoSuchTableError,
-    OperationalError,
-    SQLAlchemyError,
-)
+from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
 from superset import event_logger
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import remove_root
-from superset.constants import RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.commands.create import CreateDatabaseCommand
 from superset.databases.commands.delete import DeleteDatabaseCommand
 from superset.databases.commands.exceptions import (
@@ -48,7 +41,7 @@ from superset.databases.commands.exceptions import (
     DatabaseImportError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
-    DatabaseSecurityUnsafeError,
+    DatabaseTestConnectionFailedError,
     DatabaseUpdateFailedError,
 )
 from superset.databases.commands.export import ExportDatabasesCommand
@@ -91,8 +84,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "test_connection",
         "related_objects",
     }
-    class_permission_name = "DatabaseView"
     resource_name = "database"
+    class_permission_name = "Database"
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     allow_browser_login = True
     base_filters = [["id", DatabaseFilter, lambda: []]]
     show_columns = [
@@ -177,6 +171,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
         DatabaseRelatedObjectsResponse,
+        DatabaseTestConnectionSchema,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
         SchemasResponseSchema,
@@ -558,16 +553,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             content:
               application/json:
                 schema:
-                  type: object
-                  properties:
-                    encrypted_extra:
-                      type: object
-                    extras:
-                      type: object
-                    name:
-                      type: string
-                    server_cert:
-                      type: string
+                  $ref: "#/components/schemas/DatabaseTestConnectionSchema"
           responses:
             200:
               description: Database Test Connection
@@ -595,29 +581,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             TestConnectionDatabaseCommand(g.user, item).run()
             return self.response(200, message="OK")
-        except (NoSuchModuleError, ModuleNotFoundError):
-            logger.info("Invalid driver")
-            driver_name = make_url(item.get("sqlalchemy_uri")).drivername
-            return self.response(
-                400,
-                message=_("Could not load database driver: {}").format(driver_name),
-                driver_name=driver_name,
-            )
-        except DatabaseSecurityUnsafeError as ex:
-            return self.response_422(message=ex)
-        except DBAPIError:
-            logger.warning("Connection failed")
-            return self.response(
-                500,
-                message=_("Connection failed, please check your connection settings"),
-            )
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.error("Unexpected error %s", type(ex).__name__)
-            return self.response_400(
-                message=_(
-                    "Unexpected error occurred, please check your logs for details"
-                )
-            )
+        except DatabaseTestConnectionFailedError as ex:
+            return self.response_422(message=str(ex))
 
     @expose("/<int:pk>/related_objects/", methods=["GET"])
     @protect()
@@ -743,11 +708,19 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         ---
         post:
           requestBody:
+            required: true
             content:
-              application/zip:
+              multipart/form-data:
                 schema:
-                  type: string
-                  format: binary
+                  type: object
+                  properties:
+                    formData:
+                      type: string
+                      format: binary
+                    passwords:
+                      type: string
+                    overwrite:
+                      type: bool
           responses:
             200:
               description: Database import result
@@ -776,7 +749,16 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 for file_name in bundle.namelist()
             }
 
-        command = ImportDatabasesCommand(contents)
+        passwords = (
+            json.loads(request.form["passwords"])
+            if "passwords" in request.form
+            else None
+        )
+        overwrite = request.form.get("overwrite") == "true"
+
+        command = ImportDatabasesCommand(
+            contents, passwords=passwords, overwrite=overwrite
+        )
         try:
             command.run()
             return self.response(200, message="OK")
