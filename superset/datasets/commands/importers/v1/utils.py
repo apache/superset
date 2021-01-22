@@ -125,6 +125,8 @@ def import_dataset(
 def load_data(
     data_uri: str, dataset: SqlaTable, example_database: Database, session: Session
 ) -> None:
+    from superset import conf
+
     data = request.urlopen(data_uri)
     if data_uri.endswith(".gz"):
         data = gzip.open(data)
@@ -137,7 +139,7 @@ def load_data(
             df[column_name] = pd.to_datetime(df[column_name])
 
     # reuse session when loading data if possible, to make import atomic
-    if example_database.sqlalchemy_uri == get_example_database().sqlalchemy_uri:
+    if example_database.sqlalchemy_uri == conf.get("SQLALCHEMY_DATABASE_URI"):
         logger.info("Loading data inside the import transaction")
         connection = session.connection()
     else:
