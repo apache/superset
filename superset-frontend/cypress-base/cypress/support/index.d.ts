@@ -30,9 +30,6 @@ declare namespace Cypress {
      */
     login(): void;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    parsePostForm(requestbody: ArrayBuffer): Record<string, any>;
-
     visitChartByParams(params: string | Record<string, unknown>): cy;
     visitChartByName(name: string): cy;
     visitChartById(id: number): cy;
@@ -54,4 +51,3 @@ declare namespace Cypress {
 }
 
 declare module '@cypress/code-coverage/task';
-declare module 'parse-multipart';
