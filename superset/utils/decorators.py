@@ -15,14 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 import time
-import warnings
 from typing import Any, Callable, Dict, Iterator, Union
 
 from contextlib2 import contextmanager
 
 from superset.stats_logger import BaseStatsLogger
 from superset.utils.dates import now_as_float
-from superset.utils.public_interfaces import compute_hash, get_warning_message
 
 
 @contextmanager
@@ -71,21 +69,3 @@ def debounce(duration: Union[float, int] = 0.1) -> Callable[..., Any]:
         return wrapped
 
     return decorate
-
-
-def guard(given_hash: str) -> Callable[..., Any]:
-    """
-    Decorate a public function or class to detect changes.
-    """
-
-    def wrapper(decorated: Callable[..., Any]) -> Callable[..., Any]:
-        expected_hash = compute_hash(decorated)
-        if given_hash != expected_hash:
-            warnings.warn(get_warning_message(decorated, expected_hash))
-
-        def inner(*args: Any, **kwargs: Any) -> Any:
-            return decorated(*args, **kwargs)
-
-        return inner
-
-    return wrapper

@@ -29,43 +29,44 @@ from textwrap import indent
 from typing import Any, Callable
 
 
-def compute_hash(decorated: Callable[..., Any]) -> str:
-    if isfunction(decorated):
-        return compute_func_hash(decorated)
+def compute_hash(obj: Callable[..., Any]) -> str:
+    if isfunction(obj):
+        return compute_func_hash(obj)
 
-    if isclass(decorated):
-        return compute_class_hash(decorated)
+    if isclass(obj):
+        return compute_class_hash(obj)
 
-    raise Exception(f"Invalid decorated object: {decorated}")
+    raise Exception(f"Invalid object: {obj}")
 
 
 def compute_func_hash(function: Callable[..., Any]) -> str:
     hashed = md5()
-    hashed.update(function.__name__.encode())
     hashed.update(str(signature(function)).encode())
     return b85encode(hashed.digest()).decode("utf-8")
 
 
 def compute_class_hash(class_: Callable[..., Any]) -> str:
     hashed = md5()
-    public_methods = {
-        method
-        for name, method in getmembers(class_, predicate=isroutine)
-        if not name.startswith("_") or name == "__init__"
-    }
-    for method in public_methods:
-        hashed.update(method.__name__.encode())
+    public_methods = sorted(
+        [
+            (name, method)
+            for name, method in getmembers(class_, predicate=isroutine)
+            if not name.startswith("_") or name == "__init__"
+        ]
+    )
+    for name, method in public_methods:
+        hashed.update(name.encode())
         hashed.update(str(signature(method)).encode())
     return b85encode(hashed.digest()).decode("utf-8")
 
 
-def get_warning_message(decorated: Callable[..., Any], expected_hash: str) -> str:
-    sourcefile = getsourcefile(decorated)
-    sourcelines = getsourcelines(decorated)
+def get_warning_message(obj: Callable[..., Any], expected_hash: str) -> str:
+    sourcefile = getsourcefile(obj)
+    sourcelines = getsourcelines(obj)
     code = indent("".join(sourcelines[0]), "    ")
     lineno = sourcelines[1]
     return (
-        f"The decorated object `{decorated.__name__}` (in {sourcefile} "
+        f"The object `{obj.__name__}` (in {sourcefile} "
         f"line {lineno}) has a public interface which has currently been "
         "modified. This MUST only be released in a new major version of "
         "Superset according to SIP-57. To remove this warning message "
