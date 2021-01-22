@@ -285,7 +285,7 @@ export function FilterConfigModal({
 
   function getFilterTitle(id: string) {
     return (
-      formValues.filters[id]?.name ?? filterConfigMap[id]?.name ?? 'New Filter'
+      formValues.filters[id]?.name ?? filterConfigMap[id]?.name ?? 'New filter'
     );
   }
 
@@ -352,7 +352,7 @@ export function FilterConfigModal({
 
       return formValues;
     } catch (error) {
-      console.warn('Filter Configuration Failed:', error);
+      console.warn('Filter configuration failed:', error);
 
       if (!error.errorFields || !error.errorFields.length) return null; // not a validation error
 
@@ -480,7 +480,7 @@ export function FilterConfigModal({
   return (
     <StyledModal
       visible={isOpen}
-      title={t('Filter Configuration and Scoping')}
+      title={t('Filter configuration and scoping')}
       width="55%"
       onCancel={handleCancel}
       onOk={onOk}
@@ -513,7 +513,7 @@ export function FilterConfigModal({
               onEdit={onTabEdit}
               addIcon={
                 <StyledAddFilterBox>
-                  <PlusOutlined /> <span>{t('Add Filter')}</span>
+                  <PlusOutlined /> <span>{t('Add filter')}</span>
                 </StyledAddFilterBox>
               }
             >
