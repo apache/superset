@@ -81,7 +81,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .filter(
                 and_(
                     Dashboard.published.is_(True),
-                    self.hasNoRoleBasedAccess(),
+                    self.has_no_role_based_access(),
                     or_(
                         Slice.perm.in_(datasource_perms),
                         Slice.schema_perm.in_(schema_perms),
@@ -128,5 +128,5 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         return query
 
     @staticmethod
-    def hasNoRoleBasedAccess():
+    def has_no_role_based_access():
         return ~Dashboard.roles.any()
