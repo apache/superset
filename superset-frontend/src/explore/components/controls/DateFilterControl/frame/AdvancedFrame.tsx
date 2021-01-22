@@ -48,7 +48,7 @@ export function AdvancedFrame(props: FrameComponentProps) {
 
   return (
     <>
-      <div className="section-title">{t('Configure Advanced Time Range')}</div>
+      <div className="section-title">{t('Configure advanced time range')}</div>
       <div className="control-label">{t('START')}</div>
       <Input
         key="since"
