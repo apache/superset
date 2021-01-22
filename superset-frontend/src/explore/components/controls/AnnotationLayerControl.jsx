@@ -163,7 +163,7 @@ class AnnotationLayerControl extends React.PureComponent {
         key={i}
         trigger="click"
         placement="right"
-        title={t('Edit Annotation Layer')}
+        title={t('Edit annotation layer')}
         content={this.renderPopover(
           i,
           anno,

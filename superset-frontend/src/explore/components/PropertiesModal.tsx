@@ -194,7 +194,7 @@ export default function PropertiesModal({
       <form onSubmit={onSubmit}>
         <Row>
           <Col md={6}>
-            <h3>{t('Basic Information')}</h3>
+            <h3>{t('Basic information')}</h3>
             <FormGroup>
               <FormLabel htmlFor="name" required>
                 {t('Name')}
@@ -235,7 +235,7 @@ export default function PropertiesModal({
           <Col md={6}>
             <h3>{t('Configuration')}</h3>
             <FormGroup>
-              <FormLabel htmlFor="cacheTimeout">{t('Cache Timeout')}</FormLabel>
+              <FormLabel htmlFor="cacheTimeout">{t('Cache timeout')}</FormLabel>
               <FormControl
                 name="cacheTimeout"
                 type="text"
