@@ -175,9 +175,6 @@ export default function exploreReducer(state = {}, action) {
         sliceName: action.slice.slice_name ?? state.sliceName,
       };
     },
-    [actions.SET_CONTROL_PANEL_DEFAULTS]() {
-      return { ...state, defaultSelect: action.defaultSelect };
-    },
   };
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();

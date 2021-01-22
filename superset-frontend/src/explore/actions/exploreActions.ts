@@ -147,17 +147,8 @@ export function sliceUpdated(slice: Slice) {
   return { type: SLICE_UPDATED, slice };
 }
 
-export const SET_CONTROL_PANEL_DEFAULTS = 'SET_CONTROL_PANEL_DEFAULTS';
-export function setControlPanelDefaults(defaultSelect: boolean) {
-  return {
-    type: SET_CONTROL_PANEL_DEFAULTS,
-    defaultSelect,
-  };
-}
-
 export const exploreActions = {
   ...toastActions,
-  setControlPanelDefaults,
   setDatasourceType,
   setDatasource,
   setDatasources,

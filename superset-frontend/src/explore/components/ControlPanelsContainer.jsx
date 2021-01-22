@@ -120,7 +120,6 @@ class ControlPanelsContainer extends React.Component {
     if (visibility && !visibility.call(config, this.props, controlData)) {
       return null;
     }
-    const { defaultSelect } = this.props.exploreState;
     return (
       <Control
         key={`control-${name}`}
@@ -128,7 +127,7 @@ class ControlPanelsContainer extends React.Component {
         validationErrors={validationErrors}
         actions={actions}
         formData={provideFormDataToProps ? formData : null}
-        defaultSelect={defaultSelect}
+        datasource={formData?.datasource}
         {...restProps}
       />
     );

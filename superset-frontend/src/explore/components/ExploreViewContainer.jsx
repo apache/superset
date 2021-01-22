@@ -478,7 +478,6 @@ function ExploreViewContainer(props) {
           controls={props.controls}
           datasource_type={props.datasource_type}
           isDatasourceMetaLoading={props.isDatasourceMetaLoading}
-          defaultSelect={props.defaultSelect}
         />
       </Resizable>
       <div
@@ -505,7 +504,6 @@ function mapStateToProps(state) {
     datasource_type: explore.datasource.type,
     datasourceId: explore.datasource_id,
     dashboardId: explore.form_data ? explore.form_data.dashboardId : undefined,
-    defaultSelect: explore.defaultSelect,
     controls: explore.controls,
     can_overwrite: !!explore.can_overwrite,
     can_add: !!explore.can_add,
