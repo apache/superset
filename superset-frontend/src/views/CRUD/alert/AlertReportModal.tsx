@@ -69,15 +69,15 @@ const CONDITIONS = [
     value: '>=',
   },
   {
-    label: t('== (Is Equal)'),
+    label: t('== (Is equal)'),
     value: '==',
   },
   {
-    label: t('!= (Is Not Equal)'),
+    label: t('!= (Is not equal)'),
     value: '!=',
   },
   {
-    label: t('Not Null'),
+    label: t('Not null'),
     value: 'not null',
   },
 ];
@@ -1060,7 +1060,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         <div className="header-section">
           <StyledInputContainer>
             <div className="control-label">
-              {isReport ? t('Report Name') : t('Alert Name')}
+              {isReport ? t('Report name') : t('Alert name')}
               <span className="required">*</span>
             </div>
             <div className="input-container">
@@ -1068,7 +1068,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 type="text"
                 name="name"
                 value={currentAlert ? currentAlert.name : ''}
-                placeholder={isReport ? t('Report Name') : t('Alert Name')}
+                placeholder={isReport ? t('Report name') : t('Alert name')}
                 onChange={onTextChange}
               />
             </div>
@@ -1114,7 +1114,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           {!isReport && (
             <div className="column condition">
               <StyledSectionTitle>
-                <h4>{t('Alert Condition')}</h4>
+                <h4>{t('Alert condition')}</h4>
               </StyledSectionTitle>
               <StyledInputContainer>
                 <div className="control-label">
@@ -1210,8 +1210,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             <StyledSectionTitle>
               <h4>
                 {isReport
-                  ? t('Report Schedule')
-                  : t('Alert Condition Schedule')}
+                  ? t('Report schedule')
+                  : t('Alert condition schedule')}
               </h4>
             </StyledSectionTitle>
             <AlertReportCronScheduler
@@ -1221,11 +1221,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               onChange={newVal => updateAlertState('crontab', newVal)}
             />
             <StyledSectionTitle>
-              <h4>{t('Schedule Settings')}</h4>
+              <h4>{t('Schedule settings')}</h4>
             </StyledSectionTitle>
             <StyledInputContainer>
               <div className="control-label">
-                {t('Log Retention')}
+                {t('Log retention')}
                 <span className="required">*</span>
               </div>
               <div className="input-container">
@@ -1249,7 +1249,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             </StyledInputContainer>
             <StyledInputContainer>
               <div className="control-label">
-                {t('Working Timeout')}
+                {t('Working timeout')}
                 <span className="required">*</span>
               </div>
               <div className="input-container">
@@ -1264,7 +1264,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </div>
             </StyledInputContainer>
             <StyledInputContainer>
-              <div className="control-label">{t('Grace Period')}</div>
+              <div className="control-label">{t('Grace period')}</div>
               <div className="input-container">
                 <input
                   type="number"
@@ -1279,7 +1279,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           </div>
           <div className="column message">
             <StyledSectionTitle>
-              <h4>{t('Message Content')}</h4>
+              <h4>{t('Message content')}</h4>
             </StyledSectionTitle>
             <div className="inline-container add-margin">
               <Radio.Group onChange={onContentTypeChange} value={contentType}>
@@ -1328,7 +1328,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               onChange={onDashboardChange}
             />
             <StyledSectionTitle>
-              <h4>{t('Notification Method')}</h4>
+              <h4>{t('Notification method')}</h4>
             </StyledSectionTitle>
             <NotificationMethod
               setting={notificationSettings[0]}

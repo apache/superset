@@ -74,7 +74,7 @@ export const AlertReportCronScheduler: FunctionComponent<AlertReportCronSchedule
                 name="crontab"
                 ref={inputRef}
                 style={error ? { borderColor: theme.colors.error.base } : {}}
-                placeholder={t('CRON Expression')}
+                placeholder={t('CRON expression')}
                 disabled={scheduleFormat !== 'input'}
                 onBlur={event => {
                   onChange(event.target.value);

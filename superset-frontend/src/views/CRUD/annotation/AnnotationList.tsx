@@ -177,14 +177,14 @@ function AnnotationList({
           const actions = [
             {
               label: 'edit-action',
-              tooltip: t('Edit Annotation'),
+              tooltip: t('Edit annotation'),
               placement: 'bottom',
               icon: 'edit' as IconName,
               onClick: handleEdit,
             },
             {
               label: 'delete-action',
-              tooltip: t('Delete Annotation'),
+              tooltip: t('Delete annotation'),
               placement: 'bottom',
               icon: 'trash' as IconName,
               onClick: handleDelete,
@@ -215,7 +215,7 @@ function AnnotationList({
   });
 
   subMenuButtons.push({
-    name: t('Bulk Select'),
+    name: t('Bulk select'),
     onClick: toggleBulkSelect,
     buttonStyle: 'secondary',
     'data-test': 'annotation-bulk-select',
