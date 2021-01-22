@@ -178,7 +178,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
       <ModalTrigger
         ref={this.setModalRef}
         triggerNode={this.props.triggerNode}
-        modalTitle={t('Save Dashboard')}
+        modalTitle={t('Save dashboard')}
         modalBody={
           <FormGroup>
             <Radio

@@ -92,7 +92,7 @@ describe('Dashboard save action', () => {
 
         // open color scheme dropdown
         cy.get('.ant-modal-body')
-          .contains('Color Scheme')
+          .contains('Color scheme')
           .parents('.ControlHeader')
           .next('.Select')
           .click()
