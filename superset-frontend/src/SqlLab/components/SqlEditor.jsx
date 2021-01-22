@@ -306,7 +306,7 @@ class SqlEditor extends React.PureComponent {
         func: () => {
           this.props.addQueryEditor({
             ...this.props.queryEditor,
-            title: t('Untitled Query'),
+            title: t('Untitled query'),
             sql: '',
           });
         },
@@ -698,13 +698,13 @@ class SqlEditor extends React.PureComponent {
   render() {
     const createViewModalTitle =
       this.state.createAs === CtasEnum.VIEW
-        ? 'Create View As'
-        : 'Create Table As';
+        ? 'CREATE VIEW AS'
+        : 'CREATE TABLE AS';
 
     const createModalPlaceHolder =
       this.state.createAs === CtasEnum.VIEW
-        ? 'Specify name to Create View AS schema in: public'
-        : 'Specify name to Create Table AS schema in: public';
+        ? 'Specify name to CREATE VIEW AS schema in: public'
+        : 'Specify name to CREATE TABLE AS schema in: public';
 
     return (
       <div ref={this.sqlEditorRef} className="SqlEditor">
