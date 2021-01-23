@@ -84,27 +84,24 @@ def upgrade():
             Slice.params.op("~*")(x_dateunit_in_until),
         )
 
-    if not where_clause:
-        session.close()
-        return
+    if where_clause:
+        slices = session.query(Slice).filter(where_clause).all()
+        sep = " : "
+        pattern = DateRangeMigration.x_dateunit
+        for idx, slc in enumerate(slices):
+            print(f"Upgrading ({idx + 1}/{len(slices)}): {slc.slice_name}#{slc.id}")
+            params = json.loads(slc.params)
+            time_range = params["time_range"]
+            if sep in time_range:
+                start, end = time_range.split(sep)
+                if re.match(pattern, start):
+                    start = f"{start.strip()} ago"
+                if re.match(pattern, end):
+                    end = f"{end.strip()} later"
+                params["time_range"] = f"{start}{sep}{end}"
 
-    slices = session.query(Slice).filter(where_clause).all()
-    sep = " : "
-    pattern = DateRangeMigration.x_dateunit
-    for idx, slc in enumerate(slices):
-        print(f"Upgrading ({idx + 1}/{len(slices)}): {slc.slice_name}#{slc.id}")
-        params = json.loads(slc.params)
-        time_range = params["time_range"]
-        if sep in time_range:
-            start, end = time_range.split(sep)
-            if re.match(pattern, start):
-                start = f"{start.strip()} ago"
-            if re.match(pattern, end):
-                end = f"{end.strip()} later"
-            params["time_range"] = f"{start}{sep}{end}"
-
-            slc.params = json.dumps(params, sort_keys=True, indent=4)
-            session.commit()
+                slc.params = json.dumps(params, sort_keys=True, indent=4)
+                session.commit()
 
     session.close()
 
