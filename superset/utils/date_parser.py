@@ -490,7 +490,7 @@ def datetime_eval(datetime_expression: Optional[str] = None) -> Optional[datetim
     return None
 
 
-class DateRangeMigration:
+class DateRangeMigration:  # pylint: disable=too-few-public-methods
     x_dateunit_in_since = (
         r'"time_range":\s"\s*[0-9]+\s(day|week|month|quarter|year)s?\s*\s:\s'
     )

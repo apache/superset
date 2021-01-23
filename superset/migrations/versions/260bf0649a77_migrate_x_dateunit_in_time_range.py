@@ -28,6 +28,7 @@ down_revision = "c878781977c6"
 
 import json
 import re
+from sqlite3 import OperationalError
 
 import sqlalchemy as sa
 from alembic import op
@@ -57,15 +58,22 @@ def upgrade():
     x_dateunit_in_until = DateRangeMigration.x_dateunit_in_until
 
     if isinstance(bind.dialect, SQLiteDialect):
+        try:
+            # The REGEXP operator is a special syntax for the regexp() user function.
+            # https://www.sqlite.org/lang_expr.html#regexp
+            to_lower = sa.func.LOWER
+            where_clause = or_(
+                sa.func.REGEXP(to_lower(Slice.params), x_dateunit_in_since),
+                sa.func.REGEXP(to_lower(Slice.params), x_dateunit_in_until),
+            )
+        except OperationalError:
+            return
+
+    if isinstance(bind.dialect, MySQLDialect):
         to_lower = sa.func.LOWER
         where_clause = or_(
-            sa.func.REGEXP(to_lower(Slice.params), x_dateunit_in_since),
-            sa.func.REGEXP(to_lower(Slice.params), x_dateunit_in_until),
-        )
-    elif isinstance(bind.dialect, MySQLDialect):
-        where_clause = or_(
-            sa.func.REGEXP_LIKE(Slice.params, x_dateunit_in_since, "i"),
-            sa.func.REGEXP_LIKE(Slice.params, x_dateunit_in_until, "i"),
+            to_lower(Slice.params).op("REGEXP")(x_dateunit_in_since),
+            to_lower(Slice.params).op("REGEXP")(x_dateunit_in_until),
         )
     else:
         # default metadata is pg, so: isinstance(bind.dialect, PGDialect):
