@@ -3,7 +3,7 @@ on:
   schedule:
     - cron: '0 0 * * 2'  # Midnight on every Tuesday
 
-name: Create Release
+name: Scheduled weekly build
 
 jobs:
   build:
@@ -14,14 +14,18 @@ jobs:
         uses: actions/checkout@v2
       - name: Get current date
         run: echo "::set-output name=todays_date::$(date +'%Y-%m-%d')"
+      - name: Get latest tag
+        run: |
+          latest_tag_version_value=$(./scripts/find_latest_tag_version.sh)
+          echo "::set-output name=latest_tag_version::${latest_tag_version_value}"
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: superset-1.0.0-${{ outputs.todays_date.value }}
-          release_name: superset-1.0.0-${{ outputs.todays_date.value }}
+          tag_name: superset-${{outputs.latest_tag_version.value}}-weekly-build-${{ outputs.todays_date.value }}
+          release_name: superset-${{outputs.latest_tag_version.value}}-weekly-build-${{ outputs.todays_date.value }}
           body: |
             ##todo: list of commits
           draft: false
