@@ -19,7 +19,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { findLastIndex, uniq } from 'lodash';
 import shortid from 'shortid';
-import { DeleteFilled, PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
+import Icon from 'src/components/Icon';
 import { styled, t } from '@superset-ui/core';
 import { Form } from 'src/common/components';
 import { StyledModal } from 'src/common/components/Modal';
@@ -34,6 +35,7 @@ import { CancelConfirmationAlert } from './CancelConfirmationAlert';
 
 // how long to show the "undo" button when removing a filter
 const REMOVAL_DELAY_SECS = 5;
+const FILTER_WIDTH = 200;
 
 const StyledModalBody = styled.div`
   display: flex;
@@ -59,16 +61,21 @@ const StyledSpan = styled.span`
 const FilterTabs = styled(LineEditableTabs)`
   // extra selector specificity:
   &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
-    min-width: 200px;
-    margin-left: 0;
-    padding: 0 ${({ theme }) => theme.gridUnit * 2}px
-      ${({ theme }) => theme.gridUnit}px;
+    min-width: ${FILTER_WIDTH}px;
+    margin: 0 ${({ theme }) => theme.gridUnit * 2}px 0 0;
+    padding: ${({ theme }) => theme.gridUnit}px
+      ${({ theme }) => theme.gridUnit * 2}px;
 
     &:hover,
     &-active {
       color: ${({ theme }) => theme.colors.grayscale.dark1};
       border-radius: ${({ theme }) => theme.borderRadius}px;
-      background-color: ${({ theme }) => theme.colors.grayscale.light2};
+      background-color: ${({ theme }) => theme.colors.secondary.light4};
+
+      .ant-tabs-tab-remove > svg {
+        color: ${({ theme }) => theme.colors.grayscale.base};
+        transition: all 0.3s;
+      }
     }
   }
 
@@ -85,8 +92,6 @@ const FilterTabTitle = styled.span`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  padding: ${({ theme }) => theme.gridUnit}px
-    ${({ theme }) => theme.gridUnit * 2}px 0 0;
 
   @keyframes tabTitleRemovalAnimation {
     0%,
@@ -107,6 +112,12 @@ const FilterTabTitle = styled.span`
   }
 `;
 
+const StyledFilterTitle = styled.span`
+  width: ${FILTER_WIDTH}px;
+  white-space: normal;
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+`;
+
 const StyledAddFilterBox = styled.div`
   color: ${({ theme }) => theme.colors.primary.dark1};
   text-align: left;
@@ -118,6 +129,10 @@ const StyledAddFilterBox = styled.div`
   &:hover {
     color: ${({ theme }) => theme.colors.primary.base};
   }
+`;
+
+const StyledTrashIcon = styled(Icon)`
+  color: ${({ theme }) => theme.colors.grayscale.light3};
 `;
 
 type FilterRemoval =
@@ -523,11 +538,11 @@ export function FilterConfigModal({
                     <FilterTabTitle
                       className={removedFilters[id] ? 'removed' : ''}
                     >
-                      <div>
+                      <StyledFilterTitle>
                         {removedFilters[id]
                           ? t('(Removed)')
                           : getFilterTitle(id)}
-                      </div>
+                      </StyledFilterTitle>
                       {removedFilters[id] && (
                         <StyledSpan
                           role="button"
@@ -540,7 +555,13 @@ export function FilterConfigModal({
                     </FilterTabTitle>
                   }
                   key={id}
-                  closeIcon={removedFilters[id] ? <></> : <DeleteFilled />}
+                  closeIcon={
+                    removedFilters[id] ? (
+                      <></>
+                    ) : (
+                      <StyledTrashIcon name="trash" />
+                    )
+                  }
                 >
                   <FilterConfigForm
                     form={form}
