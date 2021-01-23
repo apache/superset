@@ -31,7 +31,7 @@ export type Value<V> = { value: V; label: string };
 export interface SupersetResourceSelectProps<T = unknown, V = string> {
   value?: Value<V> | null;
   initialId?: number | string;
-  onChange?: (value: Value<V>) => void;
+  onChange?: (value?: Value<V>) => void;
   isMulti?: boolean;
   searchColumn?: string;
   resource?: string; // e.g. "dataset", "dashboard/related/owners"
@@ -74,11 +74,15 @@ export default function SupersetResourceSelect<T, V>({
     if (initialId == null) return;
     cachedSupersetGet({
       endpoint: `/api/v1/${resource}/${initialId}`,
-    }).then(response => {
-      const { result } = response.json;
-      const value = transformItem ? transformItem(result) : result;
-      if (onChange) onChange(value);
-    });
+    })
+      .then(response => {
+        const { result } = response.json;
+        const value = transformItem ? transformItem(result) : result;
+        if (onChange) onChange(value);
+      })
+      .catch(response => {
+        if (response?.status === 404 && onChange) onChange(undefined);
+      });
   }, [resource, initialId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function loadOptions(input: string) {
