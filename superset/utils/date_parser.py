@@ -82,28 +82,24 @@ def parse_human_datetime(human_readable: str) -> datetime:
             )
         )
 
-    error_msg = ValueError(
-        _(
-            "Couldn't parse date string [%{human_readable}s]",
-            human_readable=human_readable,
-        )
-    )
     try:
         dttm = parse(human_readable)
-    except Exception:  # pylint: disable=broad-except
-        try:
-            cal = parsedatetime.Calendar()
-            parsed_dttm, parsed_flags = cal.parseDT(human_readable)
-            # 0 == not parsed at all
-            if parsed_flags == 0:
-                raise error_msg
-            # when time is not extracted, we 'reset to midnight'
-            if parsed_flags & 2 == 0:
-                parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
-            dttm = dttm_from_timetuple(parsed_dttm.utctimetuple())
-        except Exception as ex:
+    except (ValueError, OverflowError) as ex:
+        cal = parsedatetime.Calendar()
+        parsed_dttm, parsed_flags = cal.parseDT(human_readable)
+        # 0 == not parsed at all
+        if parsed_flags == 0:
             logger.exception(ex)
-            raise error_msg
+            raise ValueError(
+                _(
+                    "Couldn't parse date string [%(human_readable)s]",
+                    human_readable=human_readable,
+                )
+            )
+        # when time is not extracted, we 'reset to midnight'
+        if parsed_flags & 2 == 0:
+            parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
+        dttm = dttm_from_timetuple(parsed_dttm.utctimetuple())
     return dttm
 
 
@@ -492,3 +488,13 @@ def datetime_eval(datetime_expression: Optional[str] = None) -> Optional[datetim
         except ParseException as error:
             raise ValueError(error)
     return None
+
+
+class DateRangeMigration:
+    x_dateunit_in_since = (
+        r'"time_range":\s"\s*[0-9]+\s(day|week|month|quarter|year)s?\s*\s:\s'
+    )
+    x_dateunit_in_until = (
+        r'"time_range":\s".*\s:\s\s*[0-9]+\s(day|week|month|quarter|year)s?\s*"'
+    )
+    x_dateunit = r"\s*[0-9]+\s(day|week|month|quarter|year)s?\s*"

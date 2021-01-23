@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 from unittest.mock import patch
 
 from superset.utils.date_parser import (
+    DateRangeMigration,
     datetime_eval,
     get_since_until,
     parse_human_datetime,
@@ -272,3 +273,21 @@ class TestDateParser(SupersetTestCase):
 
         with self.assertRaises(ValueError):
             parse_human_datetime("xxxxxxx")
+
+    def test_DateRangeMigration(self):
+        params = '{"time_range": "   8 days     : 2020-03-10T00:00:00"}'
+        self.assertRegex(params, DateRangeMigration.x_dateunit_in_since)
+
+        params = '{"time_range": "2020-03-10T00:00:00 :    8 days    "}'
+        self.assertRegex(params, DateRangeMigration.x_dateunit_in_until)
+
+        params = '{"time_range": "   2 weeks    :    8 days    "}'
+        self.assertRegex(params, DateRangeMigration.x_dateunit_in_since)
+        self.assertRegex(params, DateRangeMigration.x_dateunit_in_until)
+
+        params = '{"time_range": "2 weeks ago : 8 days later"}'
+        self.assertNotRegex(params, DateRangeMigration.x_dateunit_in_since)
+        self.assertNotRegex(params, DateRangeMigration.x_dateunit_in_until)
+
+        field = "   8 days   "
+        self.assertRegex(field, DateRangeMigration.x_dateunit)
