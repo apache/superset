@@ -28,14 +28,13 @@ down_revision = "c878781977c6"
 
 import json
 import re
-from sqlite3 import OperationalError
 
 import sqlalchemy as sa
+from sqlalchemy.exc import OperationalError
 from alembic import op
 from sqlalchemy import Column, Integer, or_, Text
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 from sqlalchemy.dialects.sqlite.base import SQLiteDialect
-from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
@@ -57,34 +56,29 @@ def upgrade():
     session = db.Session(bind=bind)
     x_dateunit_in_since = DateRangeMigration.x_dateunit_in_since
     x_dateunit_in_until = DateRangeMigration.x_dateunit_in_until
-    where_clause = None
 
     if isinstance(bind.dialect, SQLiteDialect):
-        try:
-            # The REGEXP operator is a special syntax for the regexp() user function.
-            # https://www.sqlite.org/lang_expr.html#regexp
-            to_lower = sa.func.LOWER
-            where_clause = or_(
-                sa.func.REGEXP(to_lower(Slice.params), x_dateunit_in_since),
-                sa.func.REGEXP(to_lower(Slice.params), x_dateunit_in_until),
-            )
-        except OperationalError:
-            pass
-
-    if isinstance(bind.dialect, MySQLDialect):
+        # The REGEXP operator is a special syntax for the regexp() user function.
+        # https://www.sqlite.org/lang_expr.html#regexp
+        to_lower = sa.func.LOWER
+        where_clause = or_(
+            sa.func.REGEXP(to_lower(Slice.params), x_dateunit_in_since),
+            sa.func.REGEXP(to_lower(Slice.params), x_dateunit_in_until),
+        )
+    elif isinstance(bind.dialect, MySQLDialect):
         to_lower = sa.func.LOWER
         where_clause = or_(
             to_lower(Slice.params).op("REGEXP")(x_dateunit_in_since),
             to_lower(Slice.params).op("REGEXP")(x_dateunit_in_until),
         )
-
-    if isinstance(bind.dialect, PGDialect):
+    else:
+        # isinstance(bind.dialect, PGDialect):
         where_clause = or_(
             Slice.params.op("~*")(x_dateunit_in_since),
             Slice.params.op("~*")(x_dateunit_in_until),
         )
 
-    if where_clause:
+    try:
         slices = session.query(Slice).filter(where_clause).all()
         sep = " : "
         pattern = DateRangeMigration.x_dateunit
@@ -102,6 +96,8 @@ def upgrade():
 
                 slc.params = json.dumps(params, sort_keys=True, indent=4)
                 session.commit()
+    except OperationalError:
+        pass
 
     session.close()
 
