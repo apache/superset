@@ -157,10 +157,11 @@ const StyledCascadeChildrenList = styled.ul`
 `;
 
 const StyledFilterControlTitle = styled.h4`
+  width: 100%;
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   margin: 0;
-  text-transform: uppercase;
+  overflow-wrap: break-word;
 `;
 
 const StyledFilterControlTitleBox = styled.div`
