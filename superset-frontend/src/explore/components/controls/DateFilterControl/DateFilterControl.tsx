@@ -247,6 +247,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
 
   function onHide() {
     setTimeRangeValue(value);
+    setFrame(guessFrame(value));
     setShow(false);
   }
 
