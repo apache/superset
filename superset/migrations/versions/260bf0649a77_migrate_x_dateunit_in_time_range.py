@@ -35,6 +35,7 @@ from alembic import op
 from sqlalchemy import Column, Integer, or_, Text
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 from sqlalchemy.dialects.sqlite.base import SQLiteDialect
+from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
