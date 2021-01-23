@@ -30,11 +30,11 @@ import json
 import re
 
 import sqlalchemy as sa
-from sqlalchemy.exc import OperationalError
 from alembic import op
 from sqlalchemy import Column, Integer, or_, Text
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 from sqlalchemy.dialects.sqlite.base import SQLiteDialect
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
