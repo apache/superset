@@ -28,8 +28,8 @@ from superset.commands.exceptions import (
 )
 
 
-def get_datasource_exist_error_msg(full_name: str) -> str:
-    return _("Datasource %(name)s already exists", name=full_name)
+def get_dataset_exist_error_msg(full_name: str) -> str:
+    return _("Dataset %(name)s already exists", name=full_name)
 
 
 class DatabaseNotFoundValidationError(ValidationError):
@@ -57,7 +57,7 @@ class DatasetExistsValidationError(ValidationError):
 
     def __init__(self, table_name: str) -> None:
         super().__init__(
-            get_datasource_exist_error_msg(table_name), field_name="table_name"
+            [get_dataset_exist_error_msg(table_name)], field_name="table_name"
         )
 
 

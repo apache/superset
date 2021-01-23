@@ -295,7 +295,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     dar.datasource_type, dar.datasource_id, session,
                 )
                 if not datasource or security_manager.can_access_datasource(datasource):
-                    # datasource does not exist anymore
+                    # Dataset does not exist anymore
                     session.delete(dar)
             session.commit()
 
