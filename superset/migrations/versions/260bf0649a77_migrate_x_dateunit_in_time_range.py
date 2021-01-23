@@ -23,18 +23,18 @@ Create Date: 2021-01-23 16:25:14.496774
 """
 
 # revision identifiers, used by Alembic.
-revision = '260bf0649a77'
-down_revision = 'c878781977c6'
+revision = "260bf0649a77"
+down_revision = "c878781977c6"
 
 import json
 import re
 
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import Column, Integer, Text, or_
-from sqlalchemy.ext.declarative import declarative_base
+from alembic import op
+from sqlalchemy import Column, Integer, or_, Text
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 from sqlalchemy.dialects.sqlite.base import SQLiteDialect
+from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
 from superset.utils.date_parser import DateRangeMigration
@@ -64,8 +64,8 @@ def upgrade():
         )
     elif isinstance(bind.dialect, MySQLDialect):
         where_clause = or_(
-            sa.func.REGEXP_LIKE(Slice.params, x_dateunit_in_since, 'i'),
-            sa.func.REGEXP_LIKE(Slice.params, x_dateunit_in_until, 'i'),
+            sa.func.REGEXP_LIKE(Slice.params, x_dateunit_in_since, "i"),
+            sa.func.REGEXP_LIKE(Slice.params, x_dateunit_in_until, "i"),
         )
     else:
         # default metadata is pg, so: isinstance(bind.dialect, PGDialect):
@@ -74,26 +74,21 @@ def upgrade():
             Slice.params.op("~*")(x_dateunit_in_until),
         )
 
-    slices = (
-        session
-        .query(Slice)
-        .filter(where_clause)
-        .all()
-    )
+    slices = session.query(Slice).filter(where_clause).all()
 
     sep = " : "
     pattern = DateRangeMigration.x_dateunit
     for idx, slc in enumerate(slices):
         print(f"Upgrading ({idx + 1}/{len(slices)}): {slc.slice_name}#{slc.id}")
         params = json.loads(slc.params)
-        time_range = params['time_range']
+        time_range = params["time_range"]
         if sep in time_range:
             start, end = time_range.split(sep)
             if re.match(pattern, start):
                 start = f"{start.strip()} ago"
             if re.match(pattern, end):
                 end = f"{end.strip()} later"
-            params['time_range'] = f"{start}{sep}{end}"
+            params["time_range"] = f"{start}{sep}{end}"
 
             slc.params = json.dumps(params, sort_keys=True, indent=4)
             session.commit()
