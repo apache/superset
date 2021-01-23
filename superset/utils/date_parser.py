@@ -76,11 +76,18 @@ def parse_human_datetime(human_readable: str) -> datetime:
         raise ValueError(
             _(
                 "date string is unclear."
-                " Please specify [{0} ago] or [{0} later]".format(human_readable)
+                " Please specify [%(human_readable)s ago]"
+                " or [%(human_readable)s later]",
+                human_readable=human_readable,
             )
         )
 
-    error_msg = ValueError(_("Couldn't parse date string [{}]".format(human_readable)))
+    error_msg = ValueError(
+        _(
+            "Couldn't parse date string [%{human_readable}s]",
+            human_readable=human_readable,
+        )
+    )
     try:
         dttm = parse(human_readable)
     except Exception:  # pylint: disable=broad-except
@@ -388,7 +395,9 @@ class EvalHolidayFunc:  # pylint: disable=too-few-public-methods
         searched_result = holiday_lookup.get_named(holiday)
         if len(searched_result) == 1:
             return dttm_from_timetuple(searched_result[0].timetuple())
-        raise ValueError(_("Unable to find such a holiday: [{}]").format(holiday))
+        raise ValueError(
+            _("Unable to find such a holiday: [%(holiday)s]", holiday=holiday)
+        )
 
 
 @memoized
