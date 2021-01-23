@@ -26,7 +26,10 @@ from superset.commands.exceptions import (
     ImportFailedError,
     UpdateFailedError,
 )
-from superset.views.base import get_datasource_exist_error_msg
+
+
+def get_datasource_exist_error_msg(full_name: str) -> str:
+    return _("Datasource %(name)s already exists", name=full_name)
 
 
 class DatabaseNotFoundValidationError(ValidationError):
@@ -142,7 +145,8 @@ class OwnersNotFoundValidationError(ValidationError):
 
 
 class DatasetNotFoundError(CommandException):
-    message = "Dataset not found."
+    status = 404
+    message = _("Dataset does not exist")
 
 
 class DatasetInvalidError(CommandInvalidError):

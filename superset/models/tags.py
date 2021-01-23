@@ -23,7 +23,6 @@ from flask_appbuilder import Model
 from sqlalchemy import Column, Enum, ForeignKey, Integer, String
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, Session, sessionmaker
-from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.mapper import Mapper
 
 from superset.models.helpers import AuditMixinNullable
@@ -89,13 +88,11 @@ class TaggedObject(Model, AuditMixinNullable):
 
 
 def get_tag(name: str, session: Session, type_: TagTypes) -> Tag:
-    try:
-        tag = session.query(Tag).filter_by(name=name, type=type_).one()
-    except NoResultFound:
+    tag = session.query(Tag).filter_by(name=name, type=type_).one_or_none()
+    if tag is None:
         tag = Tag(name=name, type=type_)
         session.add(tag)
         session.commit()
-
     return tag
 
 

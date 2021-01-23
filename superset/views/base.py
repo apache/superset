@@ -47,6 +47,7 @@ from superset import (
     security_manager,
 )
 from superset.connectors.sqla import models
+from superset.datasets.commands.exceptions import get_datasource_exist_error_msg
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
@@ -201,10 +202,6 @@ def handle_api_exception(
             return json_error_response(utils.error_msg_from_exception(ex))
 
     return functools.update_wrapper(wraps, f)
-
-
-def get_datasource_exist_error_msg(full_name: str) -> str:
-    return __("Datasource %(name)s already exists", name=full_name)
 
 
 def validate_sqlatable(table: models.SqlaTable) -> None:
