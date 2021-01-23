@@ -64,10 +64,10 @@ github:
           - Frontend/build
           - PR Lint/check
           - E2E/Cypress
-          - lint
-          - test-mysql
-          - test-postgres
-          - test-sqlite
+          - Python Misc/lint
+          - Python MySQL/test-mysql
+          - Python MySQL/test-postgres
+          - Python MySQL/test-sqlite
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false
