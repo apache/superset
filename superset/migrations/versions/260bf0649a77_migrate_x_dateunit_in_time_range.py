@@ -56,6 +56,7 @@ def upgrade():
     session = db.Session(bind=bind)
     x_dateunit_in_since = DateRangeMigration.x_dateunit_in_since
     x_dateunit_in_until = DateRangeMigration.x_dateunit_in_until
+    where_clause = None
 
     if isinstance(bind.dialect, SQLiteDialect):
         try:
@@ -67,7 +68,7 @@ def upgrade():
                 sa.func.REGEXP(to_lower(Slice.params), x_dateunit_in_until),
             )
         except OperationalError:
-            return
+            pass
 
     if isinstance(bind.dialect, MySQLDialect):
         to_lower = sa.func.LOWER
@@ -75,15 +76,18 @@ def upgrade():
             to_lower(Slice.params).op("REGEXP")(x_dateunit_in_since),
             to_lower(Slice.params).op("REGEXP")(x_dateunit_in_until),
         )
-    else:
-        # default metadata is pg, so: isinstance(bind.dialect, PGDialect):
+
+    if isinstance(bind.dialect, PGDialect):
         where_clause = or_(
             Slice.params.op("~*")(x_dateunit_in_since),
             Slice.params.op("~*")(x_dateunit_in_until),
         )
 
-    slices = session.query(Slice).filter(where_clause).all()
+    if not where_clause:
+        session.close()
+        return
 
+    slices = session.query(Slice).filter(where_clause).all()
     sep = " : "
     pattern = DateRangeMigration.x_dateunit
     for idx, slc in enumerate(slices):
