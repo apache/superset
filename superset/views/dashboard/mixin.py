@@ -63,8 +63,10 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
             "want to alter specific parameters."
         ),
         "owners": _("Owners is a list of users who can alter the dashboard."),
-        "roles": _("Roles is a list which defines access to the dashboard. if list is "
-                   "empty access is managed by the data access level."),
+        "roles": _(
+            "Roles is a list which defines access to the dashboard. if list is "
+            "empty access is managed by the data access level."
+        ),
         "published": _(
             "Determines whether or not this dashboard is "
             "visible in the list of all dashboards"
