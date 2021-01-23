@@ -1,0 +1,18 @@
+[submodule ".github/actions/latest-tag"]
+	path = .github/actions/latest-tag
+	url = https://github.com/EndBug/latest-tag
+[submodule ".github/actions/pr-lint-action"]
+	path = .github/actions/pr-lint-action
+	url = https://github.com/morrisoncole/pr-lint-action
+[submodule ".github/actions/file-changes-action"]
+	path = .github/actions/file-changes-action
+	url = https://github.com/trilom/file-changes-action
+[submodule ".github/actions/cancel-workflow-action"]
+	path = .github/actions/cancel-workflow-action
+	url = https://github.com/styfle/cancel-workflow-action
+[submodule ".github/actions/cached-dependencies"]
+	path = .github/actions/cached-dependencies
+	url = https://github.com/apache-superset/cached-dependencies
+[submodule ".github/actions/comment-on-pr"]
+	path = .github/actions/comment-on-pr
+	url = https://github.com/unsplash/comment-on-pr
