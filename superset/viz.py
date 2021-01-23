@@ -1405,21 +1405,64 @@ class MultiLineViz(NVD3Viz):
         return {}
 
     def get_data(self, df: pd.DataFrame) -> VizData:
-        fd = self.form_data
-        # Late imports to avoid circular import issues
-        from superset import db
-        from superset.models.slice import Slice
+        multiline_fd = self.form_data
+        # Late import to avoid circular import issues
+        from superset.charts.dao import ChartDAO
 
-        slice_ids1 = fd.get("line_charts")
-        slices1 = db.session.query(Slice).filter(Slice.id.in_(slice_ids1)).all()
-        slice_ids2 = fd.get("line_charts_2")
-        slices2 = db.session.query(Slice).filter(Slice.id.in_(slice_ids2)).all()
-        return {
-            "slices": {
-                "axis1": [slc.data for slc in slices1],
-                "axis2": [slc.data for slc in slices2],
-            }
+        axis1_chart_ids = multiline_fd.get("line_charts", [])
+        axis2_chart_ids = multiline_fd.get("line_charts_2", [])
+        all_charts = {
+            chart.id: chart
+            for chart in ChartDAO.find_by_ids(axis1_chart_ids + axis2_chart_ids)
         }
+        axis1_charts = [all_charts[chart_id] for chart_id in axis1_chart_ids]
+        axis2_charts = [all_charts[chart_id] for chart_id in axis2_chart_ids]
+
+        filters = multiline_fd.get("filters", [])
+        add_prefix = multiline_fd.get("prefix_metric_with_slice_name", False)
+        data = []
+        min_x, max_x = None, None
+
+        for chart, y_axis in [(chart, 1) for chart in axis1_charts] + [
+            (chart, 2) for chart in axis2_charts
+        ]:
+            prefix = f"{chart.chart}: " if add_prefix else ""
+            chart_fd = chart.form_data
+            chart_fd["filters"] = chart_fd.get("filters", []) + filters
+            if "extra_filters" in multiline_fd:
+                chart_fd["extra_filters"] = multiline_fd["extra_filters"]
+            if "time_range" in multiline_fd:
+                chart_fd["time_range"] = multiline_fd["time_range"]
+            viz_obj = viz_types[chart.viz_type](
+                chart.datasource,
+                form_data=chart_fd,
+                force=self.force,
+                force_cached=self.force_cached,
+            )
+            df = viz_obj.get_df_payload()["df"]
+            chart_series = viz_obj.get_data(df) or []
+            for series in chart_series:
+                x_values = [value["x"] for value in series["values"]]
+                min_x = min(x_values + ([min_x] if min_x is not None else []))
+                max_x = max(x_values + ([max_x] if max_x is not None else []))
+
+                data.append(
+                    {
+                        "key": prefix + ", ".join(series["key"]),
+                        "type": "line",
+                        "values": series["values"],
+                        "yAxis": y_axis,
+                    }
+                )
+        bounds = []
+        if min_x is not None:
+            bounds.append({"x": min_x, "y": None})
+        if max_x is not None:
+            bounds.append({"x": max_x, "y": None})
+
+        for series in data:
+            series["values"].extend(bounds)
+        return data
 
 
 class NVD3DualLineViz(NVD3Viz):
