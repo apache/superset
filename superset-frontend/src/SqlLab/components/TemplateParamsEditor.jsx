@@ -122,7 +122,7 @@ export default class TemplateParamsEditor extends React.Component {
       : 0;
     return (
       <ModalTrigger
-        modalTitle={t('Template Parameters')}
+        modalTitle={t('Template parameters')}
         triggerNode={
           <div tooltip={t('Edit template parameters')} buttonSize="small">
             {`${t('Parameters')} `}

@@ -17,7 +17,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-## Superset users in the wild
+## Superset Users in the Wild
 
 Here's a list of organizations, broken down into broad industry categories, that have taken the time to send a PR to let
 the world know they are using Apache Superset. If you are a user and want to be recognized,

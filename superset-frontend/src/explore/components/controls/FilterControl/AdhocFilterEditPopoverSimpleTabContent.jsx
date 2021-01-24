@@ -323,7 +323,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       loading: this.state.loading,
       value: comparator,
       onChange: this.onComparatorChange,
-      notFoundContent: t('type a value here'),
+      notFoundContent: t('Type a value here'),
       disabled: DISABLE_INPUT_OPERATORS.includes(operator),
       placeholder: this.createSuggestionsPlaceholder(),
       labelText: comparator?.length > 0 && this.createSuggestionsPlaceholder(),

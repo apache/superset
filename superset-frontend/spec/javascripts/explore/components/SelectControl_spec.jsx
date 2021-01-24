@@ -78,7 +78,7 @@ describe('SelectControl', () => {
       onChange: sinon.spy(),
     };
     wrapper.setProps(selectAllProps);
-    wrapper.instance().onChange([{ meta: true, value: 'Select All' }]);
+    wrapper.instance().onChange([{ meta: true, value: 'Select all' }]);
     expect(selectAllProps.onChange.calledWith(expectedValues)).toBe(true);
   });
 
@@ -207,7 +207,7 @@ describe('SelectControl', () => {
         expect(wrapper.instance().optionsRemaining()).toEqual(2);
       });
     });
-    describe('with Select All', () => {
+    describe('with Select all', () => {
       it('does not count it', () => {
         const props = { ...defaultProps, multi: true, allowAll: true };
         const wrapper = mount(<SelectControl {...props} />);
@@ -234,9 +234,9 @@ describe('SelectControl', () => {
       };
       wrapper.setProps(selectAllProps);
       expect(wrapper.instance().getOptions(selectAllProps)).toContainEqual({
-        label: 'Select All',
+        label: 'Select all',
         meta: true,
-        value: 'Select All',
+        value: 'Select all',
       });
     });
 

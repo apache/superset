@@ -84,7 +84,7 @@ function SavedQueryList({
     refreshData,
   } = useListViewResource<SavedQueryObject>(
     'saved_query',
-    t('Saved Queries'),
+    t('Saved queries'),
     addDangerToast,
   );
   const [
@@ -122,7 +122,7 @@ function SavedQueryList({
   );
 
   const menuData: SubMenuProps = {
-    activeChild: 'Saved Queries',
+    activeChild: 'Saved queries',
     ...commonMenuData,
   };
 
@@ -130,7 +130,7 @@ function SavedQueryList({
 
   if (canDelete) {
     subMenuButtons.push({
-      name: t('Bulk Select'),
+      name: t('Bulk select'),
       onClick: toggleBulkSelect,
       buttonStyle: 'secondary',
     });
@@ -282,7 +282,7 @@ function SavedQueryList({
 
           return moment(utc).fromNow();
         },
-        Header: t('Created On'),
+        Header: t('Created on'),
         accessor: 'created_on',
         size: 'xl',
       },
