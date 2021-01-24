@@ -138,10 +138,6 @@ const ContentStyleWrapper = styled.div`
     font-size: 15px;
     line-height: 24px;
     margin-bottom: 8px;
-    svg {
-      display: inline-block;
-      vertical-align: middle;
-    }
   }
 
   .control-anchor-to {
