@@ -2,7 +2,7 @@ name: push_docker_image
 
 on:
   push:
-    branches: [ patch , gecko]
+    tags:  [ fareye-RC*]
 
 jobs:
 
@@ -13,8 +13,8 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AWSProdKey }}
-          aws-secret-access-key: ${{ secrets.AWSProdSecretKey }}
+          aws-access-key-id: ${{ secrets.AWSTESTKEY }}
+          aws-secret-access-key: ${{ secrets.AWSTESTSECRETKEY }}
           aws-region: us-west-2
 
       - uses: actions/checkout@v2
@@ -23,11 +23,14 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
+      - name: Set env
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
       - name: Build, tag, and push image to Amazon ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: superset
-          IMAGE_TAG: ${{ github.sha }}
+          IMAGE_TAG: ${{ env.RELEASE_VERSION }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
