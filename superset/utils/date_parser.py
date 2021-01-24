@@ -75,7 +75,7 @@ def parse_human_datetime(human_readable: str) -> datetime:
     if re.search(x_periods, human_readable, re.IGNORECASE):
         raise ValueError(
             _(
-                "date string is unclear."
+                "Date string is unclear."
                 " Please specify [%(human_readable)s ago]"
                 " or [%(human_readable)s later]",
                 human_readable=human_readable,
