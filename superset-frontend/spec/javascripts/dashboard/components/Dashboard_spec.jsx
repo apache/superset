@@ -31,9 +31,9 @@ import datasources from 'spec/fixtures/mockDatasource';
 import {
   extraFormData,
   NATIVE_FILTER_ID,
-  layoutForNativeFilter,
-  nativeFiltersState,
-} from 'spec/fixtures/mockNativefilters';
+  layoutForSingleNativeFilter,
+  singleNativeFiltersState,
+} from 'spec/fixtures/mockNativeFilters';
 import dashboardInfo from 'spec/fixtures/mockDashboardInfo';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
 import dashboardState from 'spec/fixtures/mockDashboardState';
@@ -149,15 +149,12 @@ describe('Dashboard', () => {
     });
 
     it('should call refresh when native filters changed', () => {
-      const mockGetActiveNativeFilters = jest
-        .fn()
-        .mockImplementation(getActiveNativeFilters);
       wrapper.setProps({
         activeFilters: {
           ...OVERRIDE_FILTERS,
-          ...mockGetActiveNativeFilters({
-            nativeFilters: nativeFiltersState,
-            layout: layoutForNativeFilter,
+          ...getActiveNativeFilters({
+            nativeFilters: singleNativeFiltersState,
+            layout: layoutForSingleNativeFilter,
           }),
         },
       });

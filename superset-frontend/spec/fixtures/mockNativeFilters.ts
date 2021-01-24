@@ -103,7 +103,7 @@ export const extraFormData = {
 
 export const NATIVE_FILTER_ID = 'NATIVE_FILTER-p4LImrSgA';
 
-export const nativeFiltersState = {
+export const singleNativeFiltersState = {
   filters: {
     [NATIVE_FILTER_ID]: {
       id: [NATIVE_FILTER_ID],
@@ -121,13 +121,13 @@ export const nativeFiltersState = {
   },
   filtersState: {
     [NATIVE_FILTER_ID]: {
-      id: 'NATIVE_FILTER-p4LImrSgA',
+      id: NATIVE_FILTER_ID,
       extraFormData,
     },
   },
 };
 
-export const layoutForNativeFilter = {
+export const layoutForSingleNativeFilter = {
   'CHART-ZHVS7YasaQ': {
     children: [],
     id: 'CHART-ZHVS7YasaQ',
