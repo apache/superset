@@ -8,9 +8,11 @@ jobs:
     name: build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2
         with:
+          persist-credentials: false
+          submodules: recursive
           ref: ${{ github.ref }}
       - shell: bash
         env:
