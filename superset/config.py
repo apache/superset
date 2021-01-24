@@ -925,7 +925,7 @@ SLACK_PROXY = None
 # If enabled, certail features are run in debug mode
 # Current list:
 # * Emails are sent using dry-run mode (logging only)
-SCHEDULED_EMAIL_DEBUG_MODE = False
+SCHEDULED_EMAIL_DEBUG_MODE = True
 
 # This auth provider is used by background (offline) tasks that need to access
 # protected resources. Can be overridden by end users in order to support
