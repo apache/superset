@@ -1,3 +1,5 @@
+1.0 (merge in this)
+
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -262,7 +264,7 @@ AUTH_TYPE = AUTH_DB
 # Grant public role the same set of permissions as for a selected builtin role.
 # This is useful if one wants to enable anonymous users to view
 # dashboards. Explicit grant on specific datasets is still required.
-PUBLIC_ROLE_LIKE: Optional[str] = None
+PUBLIC_ROLE_LIKE_GAMMA = True
 
 # ---------------------------------------------------
 # Babel config for translations
@@ -321,8 +323,8 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # and doesn't work with all nested types.
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
-    "THUMBNAILS": False,
-    "DASHBOARD_CACHE": False,
+    "THUMBNAILS": True,
+    "DASHBOARD_CACHE": True,
     "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
@@ -337,11 +339,11 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DISPLAY_MARKDOWN_HTML": True,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
-    "DASHBOARD_NATIVE_FILTERS": False,
+    "DASHBOARD_NATIVE_FILTERS": True,
     "DASHBOARD_CROSS_FILTERS": False,
     "DASHBOARD_NATIVE_FILTERS_SET": False,
     "GLOBAL_ASYNC_QUERIES": False,
-    "VERSIONED_EXPORT": False,
+    "VERSIONED_EXPORT": True,
     # Note that: RowLevelSecurityFilter is only given by default to the Admin role
     # and the Admin Role does have the all_datasources security permission.
     # But, if users create a specific role with access to RowLevelSecurityFilter MVC
@@ -349,9 +351,9 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # by that custom datasource access. So we are assuming a default security config,
     # a custom security config could potentially give access to setting filters on
     # tables that users do not have access to.
-    "ROW_LEVEL_SECURITY": False,
+    "ROW_LEVEL_SECURITY": True,
     # Enables Alerts and reports new implementation
-    "ALERT_REPORTS": False,
+    "ALERT_REPORTS": True,
     # Enable experimental feature to search for other dashboards
     "OMNIBAR": False,
     "DASHBOARD_RBAC": False,
@@ -616,34 +618,39 @@ SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 # http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
 
 
-class CeleryConfig:  # pylint: disable=too-few-public-methods
-    BROKER_URL = "sqla+sqlite:///celerydb.sqlite"
-    CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks")
-    CELERY_RESULT_BACKEND = "db+sqlite:///celery_results.sqlite"
-    CELERYD_LOG_LEVEL = "DEBUG"
+class CeleryConfig(object):
+    BROKER_URL = os.environ.get("REDIS_HOST")
+    CELERY_IMPORTS = (
+        'superset.sql_lab',
+        'superset.tasks',
+    )
+    CELERY_RESULT_BACKEND = os.environ.get("REDIS_HOST")
+    CELERYD_LOG_LEVEL = 'DEBUG'
     CELERYD_PREFETCH_MULTIPLIER = 1
     CELERY_ACKS_LATE = False
     CELERY_ANNOTATIONS = {
-        "sql_lab.get_sql_results": {"rate_limit": "100/s"},
-        "email_reports.send": {
-            "rate_limit": "1/s",
-            "time_limit": 120,
-            "soft_time_limit": 150,
-            "ignore_result": True,
+        'sql_lab.get_sql_results': {
+            'rate_limit': '100/s',
+        },
+        'email_reports.send': {
+            'rate_limit': '1/s',
+            'time_limit': 300,
+            'soft_time_limit': 300,
+            'ignore_result': True,
         },
     }
     CELERYBEAT_SCHEDULE = {
-        "email_reports.schedule_hourly": {
-            "task": "email_reports.schedule_hourly",
-            "schedule": crontab(minute=1, hour="*"),
+        'email_reports.schedule_hourly': {
+            'task': 'email_reports.schedule_hourly',
+            'schedule': crontab(minute='1', hour='*'),
         },
-        "reports.scheduler": {
-            "task": "reports.scheduler",
-            "schedule": crontab(minute="*", hour="*"),
+        'reports.scheduler': {
+            'task': 'reports.scheduler',
+            'schedule': crontab(minute='*', hour='*'),
         },
-        "reports.prune_log": {
-            "task": "reports.prune_log",
-            "schedule": crontab(minute=0, hour=0),
+        'reports.prune_log': {
+            'task': 'reports.prune_log',
+            'schedule': crontab(minute=0, hour=0),
         },
     }
 
@@ -818,14 +825,14 @@ FLASK_APP_MUTATOR = None
 ENABLE_ACCESS_REQUEST = False
 
 # smtp server configuration
-EMAIL_NOTIFICATIONS = False  # all the emails are sent using dryrun
-SMTP_HOST = "localhost"
+EMAIL_NOTIFICATIONS = True  # all the emails are sent using dryrun
+SMTP_HOST = "smtp.gmail.com"
 SMTP_STARTTLS = True
 SMTP_SSL = False
-SMTP_USER = "superset"
-SMTP_PORT = 25
-SMTP_PASSWORD = "superset"
-SMTP_MAIL_FROM = "superset@superset.com"
+SMTP_USER = os.environ.get("SMTP_USER")
+SMTP_PORT = 587
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
+SMTP_MAIL_FROM = os.environ.get("SMTP_MAIL_FROM")
 
 ENABLE_CHUNK_ENCODING = False
 
@@ -902,19 +909,19 @@ DB_CONNECTION_MUTATOR = None
 SQL_QUERY_MUTATOR = None
 
 # Enable / disable scheduled email reports
-ENABLE_SCHEDULED_EMAIL_REPORTS = False
+ENABLE_SCHEDULED_EMAIL_REPORTS = True
 
 # Enable / disable Alerts, where users can define custom SQL that
 # will send emails with screenshots of charts or dashboards periodically
 # if it meets the criteria
-ENABLE_ALERTS = False
+ENABLE_ALERTS = True
 
 # Used for Alerts/Reports (Feature flask ALERT_REPORTS) to set the size for the
 # sliding cron window size, should be synced with the celery beat config minus 1 second
 ALERT_REPORTS_CRON_WINDOW_SIZE = 59
 
 # Slack API token for the superset reports
-SLACK_API_TOKEN = None
+SLACK_API_TOKEN = os.environ.get("SLACK_API_TOKEN")
 SLACK_PROXY = None
 
 # If enabled, certail features are run in debug mode
@@ -936,7 +943,7 @@ EMAIL_ASYNC_TIME_LIMIT_SEC = 300
 
 # Email report configuration
 # From address in emails
-EMAIL_REPORT_FROM_ADDRESS = "reports@superset.org"
+EMAIL_REPORT_FROM_ADDRESS = os.environ.get("SMTP_MAIL_FROM")
 
 # Send bcc of all reports to this address. Set to None to disable.
 # This is useful for maintaining an audit trail of all email deliveries.
@@ -978,7 +985,7 @@ WEBDRIVER_OPTION_ARGS = [
 ]
 
 # The base URL to query for accessing the user interface
-WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
+WEBDRIVER_BASEURL = os.environ.get("WEBDRIVER_BASEURL")
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 # Time in seconds, selenium will wait for the page to load
