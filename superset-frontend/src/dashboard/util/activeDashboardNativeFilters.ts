@@ -30,7 +30,7 @@ export const findAffectedCharts = ({
   extraFormData,
 }: {
   child: string;
-  layout: LayoutItem;
+  layout: { [key: string]: LayoutItem };
   scope: Scope;
   activeNativeFilters: ActiveFilters;
   filterId: string;
@@ -73,7 +73,7 @@ export const getActiveNativeFilters = ({
   layout,
 }: {
   nativeFilters: NativeFiltersState;
-  layout: LayoutItem;
+  layout: { [key: string]: LayoutItem };
 }): ActiveFilters => {
   const activeNativeFilters = {};
   Object.values(nativeFilters.filtersState).forEach(

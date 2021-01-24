@@ -32,10 +32,10 @@ import { getActiveNativeFilters } from '../activeDashboardNativeFilters';
 const cachedFiltersByChart = {};
 const cachedFormdataByChart = {};
 
-interface GetFormDataWithExtraFiltersArguments {
+export interface GetFormDataWithExtraFiltersArguments {
   chart: ChartQueryPayload;
   filters: DataRecordFilters;
-  layout: LayoutItem;
+  layout: { [key: string]: LayoutItem };
   colorScheme?: string;
   colorNamespace?: string;
   sliceId: number;
