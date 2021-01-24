@@ -16,8 +16,11 @@ jobs:
       matrix:
         python-version: [3.7]
     steps:
-      - name: Checkout code
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
@@ -40,8 +43,11 @@ jobs:
       matrix:
         python-version: [3.7]
     steps:
-      - name: Checkout code
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
@@ -63,8 +69,11 @@ jobs:
       matrix:
         python-version: [3.7]
     steps:
-      - name: Checkout code
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
