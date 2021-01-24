@@ -1045,7 +1045,7 @@ SLACK_PROXY = None
 # * Emails are sent using dry-run mode (logging only)
 #
 # Warning: This config key is deprecated and will be removed in version 2.0.0"
-SCHEDULED_EMAIL_DEBUG_MODE = False
+SCHEDULED_EMAIL_DEBUG_MODE = True
 
 # This auth provider is used by background (offline) tasks that need to access
 # protected resources. Can be overridden by end users in order to support
