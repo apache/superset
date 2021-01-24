@@ -19,6 +19,7 @@
 import {
   SET_EXTRA_FORM_DATA,
   AnyFilterAction,
+  SET_FILTER_CONFIG_COMPLETE,
 } from 'src/dashboard/actions/nativeFilters';
 import {
   FilterConfiguration,
@@ -35,6 +36,7 @@ export function getInitialFilterState(id: string): FilterState {
 
 export function getInitialState(
   filterConfig: FilterConfiguration,
+  prevFiltersState: { [filterId: string]: FilterState },
 ): NativeFiltersState {
   const filters = {};
   const filtersState = {};
@@ -42,7 +44,9 @@ export function getInitialState(
   filterConfig.forEach(filter => {
     const { id } = filter;
     filters[id] = filter;
-    filtersState[id] = getInitialFilterState(id);
+    filtersState[id] = !prevFiltersState?.[id]
+      ? getInitialFilterState(id)
+      : prevFiltersState[id];
   });
   return state;
 }
@@ -65,7 +69,9 @@ export default function nativeFilterReducer(
         },
       };
 
-    // TODO handle SET_FILTER_CONFIG_COMPLETE action if needed
+    case SET_FILTER_CONFIG_COMPLETE:
+      return getInitialState(action.filterConfig, filtersState);
+
     // TODO handle SET_FILTER_CONFIG_FAIL action
     default:
       return state;
