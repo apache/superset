@@ -24,7 +24,7 @@ import rootReducer from 'src/dashboard/reducers/index';
 import mockState from './mockState';
 import {
   dashboardLayoutWithTabs,
-  dashboardLayoutWithTabsCombined,
+  dashboardLayoutWithChartsInTabsAndRoot,
 } from './mockDashboardLayout';
 import { sliceId } from './mockChartQueries';
 import { dashboardFilters } from './mockDashboardFilters';
@@ -45,19 +45,19 @@ export const getMockStoreWithTabs = () =>
     compose(applyMiddleware(thunk)),
   );
 
-export const getMockStoreWithTabsCombined = () =>
+export const getMockStoreWithChartsInTabsAndRoot = () =>
   createStore(
     rootReducer,
     {
       ...mockState,
-      dashboardLayout: dashboardLayoutWithTabsCombined,
+      dashboardLayout: dashboardLayoutWithChartsInTabsAndRoot,
       dashboardFilters: {},
     },
     compose(applyMiddleware(thunk)),
   );
 
 export const mockStoreWithTabs = getMockStoreWithTabs();
-export const mockStoreWithTabsCombined = getMockStoreWithTabsCombined();
+export const mockStoreWithChartsInTabsAndRoot = getMockStoreWithChartsInTabsAndRoot();
 
 export const sliceIdWithAppliedFilter = sliceId + 1;
 export const sliceIdWithRejectedFilter = sliceId + 2;

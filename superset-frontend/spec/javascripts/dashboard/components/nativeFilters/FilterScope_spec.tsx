@@ -19,7 +19,7 @@
 import React from 'react';
 import { Provider } from 'react-redux';
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
-import { mockStoreWithTabsCombined } from 'spec/fixtures/mockStore';
+import { mockStoreWithChartsInTabsAndRoot } from 'spec/fixtures/mockStore';
 import { Form, FormInstance } from 'src/common/components';
 import { NativeFiltersForm } from 'src/dashboard/components/nativeFilters/types';
 import FilterConfigForm from 'src/dashboard/components/nativeFilters/FilterConfigForm';
@@ -47,7 +47,7 @@ describe('FilterScope', () => {
       });
     }
     return (
-      <Provider store={mockStoreWithTabsCombined}>
+      <Provider store={mockStoreWithChartsInTabsAndRoot}>
         <Form form={form}>
           <FilterConfigForm form={form} {...mockedProps} />
         </Form>

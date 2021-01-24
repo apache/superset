@@ -189,7 +189,7 @@ export const dashboardLayoutWithTabs = {
   future: [],
 };
 
-export const dashboardLayoutWithTabsCombined = {
+export const dashboardLayoutWithChartsInTabsAndRoot = {
   ...dashboardLayoutWithTabs,
   present: {
     ...dashboardLayoutWithTabs.present,
