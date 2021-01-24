@@ -1,5 +1,3 @@
-1.0 (merge in this)
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -351,7 +349,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # by that custom datasource access. So we are assuming a default security config,
     # a custom security config could potentially give access to setting filters on
     # tables that users do not have access to.
-    "ROW_LEVEL_SECURITY": True,
+    "ROW_LEVEL_SECURITY": False,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": True,
     # Enable experimental feature to search for other dashboards
