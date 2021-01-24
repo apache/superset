@@ -150,9 +150,9 @@ class Dashboard extends React.PureComponent {
     const { appliedFilters } = this;
     const { activeFilters, nativeFilters } = this.props;
     // do not apply filter when dashboard in edit mode
-    if (!areObjectsEqual(prevProps.nativeFilters, nativeFilters)) {
-      this.refreshCharts(this.getAllCharts().map(chart => chart.id));
-    }
+    // if (!areObjectsEqual(prevProps.nativeFilters, nativeFilters)) {
+    //   this.refreshCharts(this.getAllCharts().map(chart => chart.id));
+    // }
     if (!editMode && !areObjectsEqual(appliedFilters, activeFilters)) {
       this.applyFilters();
     }

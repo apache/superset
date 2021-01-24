@@ -19,7 +19,6 @@
 import {
   SET_EXTRA_FORM_DATA,
   AnyFilterAction,
-  SET_FILTER_CONFIG_COMPLETE,
 } from 'src/dashboard/actions/nativeFilters';
 import {
   FilterConfiguration,
@@ -66,9 +65,7 @@ export default function nativeFilterReducer(
         },
       };
 
-    case SET_FILTER_CONFIG_COMPLETE:
-      return getInitialState(action.filterConfig);
-
+    // TODO handle SET_FILTER_CONFIG_COMPLETE action if needed
     // TODO handle SET_FILTER_CONFIG_FAIL action
     default:
       return state;
