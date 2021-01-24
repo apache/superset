@@ -20,19 +20,24 @@ import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWi
 
 describe('getFormDataWithExtraFilters', () => {
   const chartId = 8675309;
-  const mockArgs = {
-    chart: {
-      id: chartId,
-      formData: {
-        filters: [
-          {
-            col: 'country_name',
-            op: 'IN',
-            val: ['United States'],
-          },
-        ],
-      },
+  const mockChart = {
+    id: chartId,
+    formData: {
+      viz_type: 'filter_select',
+      filters: [
+        {
+          col: 'country_name',
+          op: 'IN',
+          val: ['United States'],
+        },
+      ],
     },
+  };
+  const mockArgs = {
+    charts: {
+      [chartId]: mockChart,
+    },
+    chart: mockChart,
     filters: {
       region: ['Spain'],
       color: ['pink', 'purple'],

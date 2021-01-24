@@ -29,6 +29,7 @@ import {
 } from 'src/dashboard/util/componentTypes';
 import { FormInstance } from 'antd/lib/form';
 import React from 'react';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   CascadeFilter,
   Filter,
@@ -37,7 +38,6 @@ import {
   TreeItem,
 } from './types';
 import { DASHBOARD_ROOT_ID } from '../../util/constants';
-import { FeatureFlag, isFeatureEnabled } from '../../../featureFlags';
 
 export const useForceUpdate = () => {
   const [, updateState] = React.useState({});
@@ -199,6 +199,11 @@ export function mergeExtraFormData(
   };
 }
 
+export function isNativeFilter(vizType: string) {
+  // @ts-ignore need export from superset-ui `ItemWithValue`
+  return getChartMetadataRegistry().items[vizType]?.value.isNativeFilter;
+}
+
 export function getExtraFormData(
   nativeFilters: NativeFiltersState,
   charts: Charts,
@@ -211,11 +216,7 @@ export function getExtraFormData(
   });
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     Object.entries(charts).forEach(([key, chart]) => {
-      const { isNativeFilter } = getChartMetadataRegistry().items[
-        chart?.formData?.viz_type
-        // @ts-ignore need export from superset-ui `ItemWithValue`
-      ].value;
-      if (isNativeFilter) {
+      if (isNativeFilter(chart?.formData?.viz_type)) {
         const filterState = nativeFilters.filtersState[key] || {};
         const { extraFormData: newExtra = {} } = filterState;
         extraFormData = mergeExtraFormData(extraFormData, newExtra);
