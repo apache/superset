@@ -26,7 +26,5 @@ jobs:
         with:
           tag_name: superset-${{outputs.latest_tag_version.value}}-weekly-build-${{ outputs.todays_date.value }}
           release_name: superset-${{outputs.latest_tag_version.value}}-weekly-build-${{ outputs.todays_date.value }}
-          body: |
-            ##todo: list of commits
           draft: false
           prerelease: false
