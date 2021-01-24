@@ -1,4 +1,4 @@
-name: push_docker_image
+name: push_docker_image_prod
 
 on:
   push:
