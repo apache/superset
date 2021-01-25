@@ -169,6 +169,16 @@ function ExploreViewContainer(props) {
     ? `${props.forcedHeight}px`
     : `${windowSize.height - navHeight}px`;
 
+  const storageKeys = {
+    controlsWidth: 'controls_width',
+    dataSourceWidth: 'datasource_width',
+  };
+
+  const defaultSidebarsWidth = {
+    controls_width: 320,
+    datasource_width: 300,
+  };
+
   function addHistory({ isReplace = false, title } = {}) {
     const payload = { ...props.form_data };
     const longUrl = getExploreLongUrl(
@@ -368,6 +378,23 @@ function ExploreViewContainer(props) {
     );
   }
 
+  function getSidebarWidths(key) {
+    try {
+      return localStorage.getItem(key) || defaultSidebarsWidth[key];
+    } catch {
+      return defaultSidebarsWidth[key];
+    }
+  }
+
+  function setSidebarWidths(key, dimension) {
+    try {
+      const newDimension = Number(getSidebarWidths(key)) + dimension.width;
+      localStorage.setItem(key, newDimension);
+    } catch {
+      // Catch in case localStorage is unavailable
+    }
+  }
+
   if (props.standalone) {
     return renderChartContainer();
   }
@@ -407,8 +434,14 @@ function ExploreViewContainer(props) {
         />
       )}
       <Resizable
-        defaultSize={{ width: 300, height: '100%' }}
-        minWidth={300}
+        onResizeStop={(evt, direction, ref, d) =>
+          setSidebarWidths(storageKeys.dataSourceWidth, d)
+        }
+        defaultSize={{
+          width: getSidebarWidths(storageKeys.dataSourceWidth),
+          height: '100%',
+        }}
+        minWidth={defaultSidebarsWidth[storageKeys.dataSourceWidth]}
         maxWidth="33%"
         enable={{ right: true }}
         className={
@@ -459,8 +492,14 @@ function ExploreViewContainer(props) {
         </div>
       ) : null}
       <Resizable
-        defaultSize={{ width: 320, height: '100%' }}
-        minWidth={320}
+        onResizeStop={(evt, direction, ref, d) =>
+          setSidebarWidths(storageKeys.controlsWidth, d)
+        }
+        defaultSize={{
+          width: getSidebarWidths(storageKeys.controlsWidth),
+          height: '100%',
+        }}
+        minWidth={defaultSidebarsWidth[storageKeys.controlsWidth]}
         maxWidth="33%"
         enable={{ right: true }}
         className="col-sm-3 explore-column controls-column"
