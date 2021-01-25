@@ -46,9 +46,9 @@ class ConnectorRegistry:
     def get_datasource(
         cls, datasource_type: str, datasource_id: int, session: Session
     ) -> "BaseDatasource":
-        """Safely get a datasource without raising any errors.
-        Returns None if `datasource_type` is not registered or `datasource_id` does
-        not exists."""
+        """Safely get a datasource instance, raises `DatasetNotFoundError` if
+        `datasource_type` is not registered or `datasource_id` does not
+        exist."""
         if datasource_type not in cls.sources:
             raise DatasetNotFoundError()
 
