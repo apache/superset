@@ -146,7 +146,6 @@ import { ReactComponent as WarningIcon } from 'images/icons/warning.svg';
 import { ReactComponent as WarningSolidIcon } from 'images/icons/warning_solid.svg';
 import { ReactComponent as XLargeIcon } from 'images/icons/x-large.svg';
 import { ReactComponent as XSmallIcon } from 'images/icons/x-small.svg';
-// import { AntdIconProps } from '@ant-design/icons/lib/components/AntdIcon';
 
 export type IconName =
   | 'alert'
