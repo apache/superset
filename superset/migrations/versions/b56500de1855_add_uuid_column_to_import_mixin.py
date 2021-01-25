@@ -81,7 +81,8 @@ default_batch_size = int(os.environ.get("BATCH_SIZE", 200))
 
 # Add uuids directly using built-in SQL uuid function
 add_uuids_by_dialect = {
-    MySQLDialect: """UPDATE %s SET uuid = UNHEX(REPLACE(uuid(), "-", ""));""",
+# TODO uuid from mysql aren't working as expected. that's why shouldn't be used for now. 
+#    MySQLDialect: """UPDATE %s SET uuid = UNHEX(REPLACE(uuid(), "-", ""));""",
     PGDialect: """UPDATE %s SET uuid = uuid_in(md5(random()::text || clock_timestamp()::text)::cstring);""",
 }
 
