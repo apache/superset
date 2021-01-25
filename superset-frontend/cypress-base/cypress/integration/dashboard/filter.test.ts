@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 import {
   getChartAliases,
   DASHBOARD_CHART_ALIAS_PREFIX,
   isLegacyResponse,
-} from '../../utils/vizPlugins';
-import readResponseBlob from '../../utils/readResponseBlob';
+  parsePostForm,
+} from 'cypress/utils';
+import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
 interface Slice {
   slice_id: number;
@@ -43,7 +43,6 @@ describe('Dashboard filter', () => {
   const getAlias = (id: number) => `@${DASHBOARD_CHART_ALIAS_PREFIX}${id}`;
 
   beforeEach(() => {
-    cy.server();
     cy.login();
 
     cy.visit(WORLD_HEALTH_DASHBOARD);
@@ -87,18 +86,17 @@ describe('Dashboard filter', () => {
     cy.get('.filter_box button').click({ force: true });
     cy.wait(aliases.filter(x => x !== getAlias(filterId))).then(requests =>
       Promise.all(
-        requests.map(async xhr => {
-          expect(xhr.status).to.eq(200);
-          const responseBody = await readResponseBlob(xhr.response.body);
+        requests.map(async ({ response, request }) => {
+          const responseBody = response?.body;
           let requestFilter;
           if (isLegacyResponse(responseBody)) {
-            const requestFormData = xhr.request.body as FormData;
+            const requestFormData = parsePostForm(request.body);
             const requestParams = JSON.parse(
-              requestFormData.get('form_data') as string,
+              requestFormData.form_data as string,
             );
             requestFilter = requestParams.extra_filters[0];
           } else {
-            requestFilter = xhr.request.body.queries[0].filters[0];
+            requestFilter = request.body.queries[0].filters[0];
           }
           expect(requestFilter).deep.eq({
             col: 'region',

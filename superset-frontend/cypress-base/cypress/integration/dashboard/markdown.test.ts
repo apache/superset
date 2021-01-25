@@ -20,7 +20,6 @@ import { TABBED_DASHBOARD, drag, resize } from './dashboard.helper';
 
 describe('Dashboard edit markdown', () => {
   beforeEach(() => {
-    cy.server();
     cy.login();
     cy.visit(TABBED_DASHBOARD);
   });
@@ -85,6 +84,6 @@ describe('Dashboard edit markdown', () => {
     cy.get('@component-background-first').click('right');
     cy.get('[data-test="dashboard-component-chart-holder"]')
       .find('.ace_content')
-      .should('not.be.visible');
+      .should('not.exist');
   });
 });
