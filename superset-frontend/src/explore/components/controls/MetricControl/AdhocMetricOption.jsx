@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Tooltip } from 'src/common/components/Tooltip';
 import columnType from 'src/explore/propTypes/columnType';
 import { OptionControlLabel } from 'src/explore/components/OptionControls';
 import { OPTION_TYPES } from 'src/explore/components/optionTypes';
