@@ -47,13 +47,14 @@ import numpy as np
 import pandas as pd
 import polyline
 import simplejson as json
+import sqlparse
 from dateutil import relativedelta as rdelta
 from flask import request
 from flask_babel import lazy_gettext as _
 from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
-from superset import app, db, is_feature_enabled
+from superset import app, db, is_feature_enabled, sql_parse
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -474,6 +475,18 @@ class BaseViz:
         filters = self.form_data.get("filters", [])
         filter_columns = [flt.get("col") for flt in filters]
         columns = set(self.datasource.column_names)
+        filter_values_columns = []
+
+        # if using virtual datasource, check filter_values
+        sql = self.datasource.sql
+        if sql:
+            statements_without_comments = sqlparse.format(sql, strip_comments=True)
+            parsed_query = sql_parse.ParsedQuery(statements_without_comments)
+            for stmt in parsed_query.get_statements():
+                filter_values_columns += (
+                    re.findall(r"filter_values\(\"(\w+)\"\,", stmt)
+                ) or []
+
         applied_time_extras = self.form_data.get("applied_time_extras", {})
         applied_time_columns, rejected_time_columns = utils.get_time_filter_status(
             self.datasource, applied_time_extras
@@ -484,7 +497,7 @@ class BaseViz:
         payload["rejected_filters"] = [
             {"reason": "not_in_datasource", "column": col}
             for col in filter_columns
-            if col not in columns
+            if col not in columns and col not in filter_values_columns
         ] + rejected_time_columns
 
         return payload
