@@ -247,7 +247,7 @@ export function CustomFrame(props: FrameComponentProps) {
                 <DatePicker
                   showTime
                   value={dttmToMoment(anchorValue)}
-                  onChange={(datetime: Moment) =>
+                  onSelect={(datetime: Moment) =>
                     onChange('anchorValue', datetime.format(MOMENT_FORMAT))
                   }
                   allowClear={false}
