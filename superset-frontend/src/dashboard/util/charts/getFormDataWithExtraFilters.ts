@@ -78,7 +78,6 @@ export default function getFormDataWithExtraFilters({
   );
   if (isAffectedChart) {
     extraData = {
-      extra_filters: getEffectiveExtraFilters(filters),
       extra_form_data: getExtraFormData(nativeFilters),
     };
   }
@@ -87,6 +86,7 @@ export default function getFormDataWithExtraFilters({
     ...chart.formData,
     ...(colorScheme && { color_scheme: colorScheme }),
     label_colors: labelColors,
+    extra_filters: getEffectiveExtraFilters(filters),
     ...extraData,
   };
   cachedFiltersByChart[sliceId] = filters;
