@@ -22,7 +22,7 @@ import { Panel } from 'react-bootstrap';
 
 import Label from 'src/components/Label';
 import TextControl from './TextControl';
-import MetricsControl from './MetricsControl';
+import MetricsControl from './MetricControl/MetricsControl';
 import ControlHeader from '../ControlHeader';
 import PopoverSection from '../../../components/PopoverSection';
 

@@ -37,6 +37,9 @@ describe('AdhocMetrics', () => {
       .find('[data-test="add-metric-button"]')
       .click();
 
+    // Title edit for saved metrics is disabled - switch to Simple
+    cy.get('[id="adhoc-metric-edit-tabs-tab-SIMPLE"]').click();
+
     cy.get('[data-test="AdhocMetricEditTitle#trigger"]').click();
     cy.get('[data-test="AdhocMetricEditTitle#input"]').type(metricName);
 

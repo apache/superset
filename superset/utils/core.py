@@ -129,7 +129,7 @@ class AnnotationType(str, Enum):
     TIME_SERIES = "TIME_SERIES"
 
 
-class DbColumnType(Enum):
+class GenericDataType(Enum):
     """
     Generic database column type
     """
@@ -1025,8 +1025,8 @@ def merge_extra_filters(  # pylint: disable=too-many-branches
         for existing in adhoc_filters:
             if (
                 existing["expressionType"] == "SIMPLE"
-                and existing["comparator"] is not None
-                and existing["subject"] is not None
+                and existing.get("comparator") is not None
+                and existing.get("subject") is not None
             ):
                 existing_filters[get_filter_key(existing)] = existing["comparator"]
 

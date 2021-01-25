@@ -66,6 +66,8 @@ const Styles = styled.div`
   align-items: stretch;
   align-content: stretch;
   overflow: auto;
+  box-shadow: none;
+  height: 100%;
 
   & > div:last-of-type {
     flex-basis: 100%;
@@ -203,6 +205,11 @@ const ExploreChartPanel = props => {
     [chartRef, renderChart],
   );
 
+  const standaloneChartBody = useMemo(
+    () => <div ref={chartRef}>{renderChart()}</div>,
+    [chartRef, renderChart],
+  );
+
   if (props.standalone) {
     // dom manipulation hack to get rid of the boostrap theme's body background
     const standaloneClass = 'background-transparent';
@@ -210,7 +217,7 @@ const ExploreChartPanel = props => {
     if (!bodyClasses.includes(standaloneClass)) {
       document.body.className += ` ${standaloneClass}`;
     }
-    return renderChart();
+    return standaloneChartBody;
   }
 
   const header = (
@@ -235,10 +242,7 @@ const ExploreChartPanel = props => {
   });
 
   return (
-    <Styles
-      className="panel panel-default chart-container"
-      style={{ height: props.height }}
-    >
+    <Styles className="panel panel-default chart-container">
       <div className="panel-heading" ref={headerRef}>
         {header}
       </div>

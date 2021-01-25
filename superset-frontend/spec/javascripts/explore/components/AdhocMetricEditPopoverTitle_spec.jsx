@@ -22,7 +22,7 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { Tooltip } from 'src/common/components/Tooltip';
 
-import AdhocMetricEditPopoverTitle from 'src/explore/components/AdhocMetricEditPopoverTitle';
+import AdhocMetricEditPopoverTitle from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle';
 
 const title = {
   label: 'Title',
@@ -46,15 +46,25 @@ describe('AdhocMetricEditPopoverTitle', () => {
     expect(wrapper.find(Tooltip)).toExist();
     expect(
       wrapper.find('[data-test="AdhocMetricEditTitle#trigger"]').text(),
-    ).toBe('My Metric\xa0');
+    ).toBe(`${title.label}\xa0`);
   });
 
   it('transfers to edit mode when clicked', () => {
     const { wrapper } = setup();
-    expect(wrapper.state('isEditable')).toBe(false);
+    expect(wrapper.state('isEditMode')).toBe(false);
     wrapper
       .find('[data-test="AdhocMetricEditTitle#trigger"]')
       .simulate('click');
-    expect(wrapper.state('isEditable')).toBe(true);
+    expect(wrapper.state('isEditMode')).toBe(true);
+  });
+
+  it('Render non-interactive span with title when edit is disabled', () => {
+    const { wrapper } = setup({ isEditDisabled: true });
+    expect(
+      wrapper.find('[data-test="AdhocMetricTitle"]').exists(),
+    ).toBeTruthy();
+    expect(
+      wrapper.find('[data-test="AdhocMetricEditTitle#trigger"]').exists(),
+    ).toBeFalsy();
   });
 });

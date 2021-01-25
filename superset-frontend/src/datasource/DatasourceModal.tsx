@@ -190,25 +190,25 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
                   currentDatasource.edit_url || currentDatasource.url;
               }}
             >
-              {t('Use Legacy Datasource Editor')}
+              {t('Use legacy datasource editor')}
             </Button>
           )}
           <Button
+            data-test="datasource-modal-cancel"
+            buttonSize="sm"
+            className="m-r-5"
+            onClick={onHide}
+          >
+            {t('Cancel')}
+          </Button>
+          <Button
             buttonSize="sm"
             buttonStyle="primary"
-            className="m-r-5"
             data-test="datasource-modal-save"
             onClick={onClickSave}
             disabled={isSaving || errors.length > 0}
           >
             {t('Save')}
-          </Button>
-          <Button
-            data-test="datasource-modal-cancel"
-            buttonSize="sm"
-            onClick={onHide}
-          >
-            {t('Cancel')}
           </Button>
         </>
       }

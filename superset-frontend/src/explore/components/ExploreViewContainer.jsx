@@ -95,6 +95,9 @@ const Styles = styled.div`
     flex: 1;
     min-width: ${({ theme }) => theme.gridUnit * 128}px;
     border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    .panel {
+      margin-bottom: 0;
+    }
   }
   .controls-column {
     align-self: flex-start;
@@ -434,7 +437,10 @@ function ExploreViewContainer(props) {
         onResizeStop={(evt, direction, ref, d) =>
           setSidebarWidths(storageKeys.dataSourceWidth, d)
         }
-        defaultSize={{ width: getSidebarWidths(storageKeys.dataSourceWidth) }}
+        defaultSize={{
+          width: getSidebarWidths(storageKeys.dataSourceWidth),
+          height: '100%',
+        }}
         minWidth={defaultSidebarsWidth[storageKeys.dataSourceWidth]}
         maxWidth="33%"
         enable={{ right: true }}
@@ -473,7 +479,7 @@ function ExploreViewContainer(props) {
           tabIndex={0}
         >
           <span role="button" tabIndex={0} className="action-button">
-            <Tooltip title={t('Open Datasource Tab')}>
+            <Tooltip title={t('Open Datasource tab')}>
               <Icon
                 name="collapse"
                 color={supersetTheme.colors.primary.base}
@@ -489,7 +495,10 @@ function ExploreViewContainer(props) {
         onResizeStop={(evt, direction, ref, d) =>
           setSidebarWidths(storageKeys.controlsWidth, d)
         }
-        defaultSize={{ width: getSidebarWidths(storageKeys.controlsWidth) }}
+        defaultSize={{
+          width: getSidebarWidths(storageKeys.controlsWidth),
+          height: '100%',
+        }}
         minWidth={defaultSidebarsWidth[storageKeys.controlsWidth]}
         maxWidth="33%"
         enable={{ right: true }}

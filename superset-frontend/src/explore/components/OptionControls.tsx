@@ -24,8 +24,8 @@ import { findDOMNode } from 'react-dom';
 import { DragSource, DropTarget } from 'react-dnd';
 import { styled, useTheme } from '@superset-ui/core';
 import { ColumnOption } from '@superset-ui/chart-controls';
-import Icon from '../../components/Icon';
-import { savedMetricType } from '../types';
+import Icon from 'src/components/Icon';
+import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 
 const TYPE = 'label-dnd';
 

@@ -118,7 +118,7 @@ export function CustomFrame(props: FrameComponentProps) {
 
   return (
     <div data-test="custom-frame">
-      <div className="section-title">{t('Configure Custom Time Range')}</div>
+      <div className="section-title">{t('Configure custom time range')}</div>
       <Row gutter={24}>
         <Col span={12}>
           <div className="control-label">{t('START')}</div>
@@ -226,7 +226,7 @@ export function CustomFrame(props: FrameComponentProps) {
       </Row>
       {sinceMode === 'relative' && untilMode === 'relative' && (
         <div className="control-anchor-to">
-          <div className="control-label">{t('ANCHOR TO')}</div>
+          <div className="control-label">{t('Anchor to')}</div>
           <Row align="middle">
             <Col>
               <Radio.Group

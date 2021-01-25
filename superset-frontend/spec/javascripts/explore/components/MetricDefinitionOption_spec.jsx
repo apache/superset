@@ -21,7 +21,7 @@ import configureStore from 'redux-mock-store';
 import { shallow } from 'enzyme';
 import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
 
-import MetricDefinitionOption from 'src/explore/components/MetricDefinitionOption';
+import MetricDefinitionOption from 'src/explore/components/controls/MetricControl/MetricDefinitionOption';
 import AggregateOption from 'src/explore/components/AggregateOption';
 
 describe('MetricDefinitionOption', () => {

@@ -21,11 +21,13 @@ import React from 'react';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
-import MetricsControl from 'src/explore/components/controls/MetricsControl';
 import { AGGREGATES } from 'src/explore/constants';
-import AdhocMetric, { EXPRESSION_TYPES } from 'src/explore/AdhocMetric';
 import { LabelsContainer } from 'src/explore/components/OptionControls';
 import { supersetTheme } from '@superset-ui/core';
+import MetricsControl from 'src/explore/components/controls/MetricControl/MetricsControl';
+import AdhocMetric, {
+  EXPRESSION_TYPES,
+} from 'src/explore/components/controls/MetricControl/AdhocMetric';
 
 const defaultProps = {
   name: 'metrics',

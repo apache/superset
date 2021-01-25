@@ -24,7 +24,6 @@ import {
   Checkbox,
   Form,
   Input,
-  Radio,
   Typography,
 } from 'src/common/components';
 import { Select } from 'src/components/Select/SupersetStyledSelect';
@@ -34,8 +33,8 @@ import SupersetResourceSelect, {
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ColumnSelect } from './ColumnSelect';
-import ScopingTree from './ScopingTree';
-import { Filter, NativeFiltersForm, Scoping } from './types';
+import { Filter, NativeFiltersForm } from './types';
+import FilterScope from './FilterScope';
 
 type DatasetSelectValue = {
   value: number;
@@ -46,10 +45,6 @@ const datasetToSelectOption = (item: any): DatasetSelectValue => ({
   value: item.id,
   label: item.table_name,
 });
-
-const ScopingTreeNote = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-`;
 
 const RemovedContent = styled.div`
   display: flex;
@@ -103,10 +98,11 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   form,
   parentFilters,
 }) => {
-  const [advancedScopingOpen, setAdvancedScopingOpen] = useState<Scoping>(
-    Scoping.all,
+  const [dataset, setDataset] = useState<Value<number> | undefined>(
+    filterToEdit?.targets[0].datasetId
+      ? { label: '', value: filterToEdit?.targets[0].datasetId }
+      : undefined,
   );
-  const [dataset, setDataset] = useState<Value<number> | undefined>();
 
   const onDatasetSelectError = useCallback(
     ({ error, message }: ClientErrorObject) => {
@@ -119,20 +115,13 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
     [],
   );
 
-  const setFilterScope = useCallback(
-    value => {
-      form.setFields([{ name: ['filters', filterId, 'scope'], value }]);
-    },
-    [form, filterId],
-  );
-
   if (removed) {
     return (
       <RemovedContent>
         <p>{t('You have removed this filter.')}</p>
         <div>
           <Button type="primary" onClick={() => restore(filterId)}>
-            {t('Restore Filter')}
+            {t('Restore filter')}
           </Button>
         </div>
       </RemovedContent>
@@ -150,7 +139,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       <StyledContainer>
         <StyledFormItem
           name={['filters', filterId, 'name']}
-          label={<StyledLabel>{t('Filter Name')}</StyledLabel>}
+          label={<StyledLabel>{t('Filter name')}</StyledLabel>}
           initialValue={filterToEdit?.name}
           rules={[{ required: !removed, message: t('Name is required') }]}
           data-test="name-input"
@@ -190,17 +179,9 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
           datasetId={dataset?.value}
         />
       </StyledFormItem>
-
-      <StyledFormItem
-        name={['filters', filterId, 'defaultValue']}
-        label={<StyledLabel>{t('Default Value')}</StyledLabel>}
-        initialValue={filterToEdit?.defaultValue}
-      >
-        <Input />
-      </StyledFormItem>
       <StyledFormItem
         name={['filters', filterId, 'parentFilter']}
-        label={<StyledLabel>{t('Parent Filter')}</StyledLabel>}
+        label={<StyledLabel>{t('Parent filter')}</StyledLabel>}
         initialValue={parentFilterOptions.find(
           ({ value }) => value === filterToEdit?.cascadeParentIds[0],
         )}
@@ -244,36 +225,11 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       >
         <Checkbox>{t('Required')}</Checkbox>
       </StyledCheckboxFormItem>
-      <Typography.Title level={5}>{t('Scoping')}</Typography.Title>
-      <StyledCheckboxFormItem
-        name={['filters', filterId, 'scoping']}
-        initialValue={advancedScopingOpen}
-      >
-        <Radio.Group
-          onChange={({ target: { value } }) => {
-            setAdvancedScopingOpen(value as Scoping);
-          }}
-        >
-          <Radio value={Scoping.all}>{t('Apply to all panels')}</Radio>
-          <Radio value={Scoping.specific}>
-            {t('Apply to specific panels')}
-          </Radio>
-        </Radio.Group>
-      </StyledCheckboxFormItem>
-      <>
-        <ScopingTreeNote>
-          <Typography.Text type="secondary">
-            {advancedScopingOpen === Scoping.specific
-              ? t('Only selected panels will be affected by this filter')
-              : t(
-                  'All panels with this column will be affected by this filter',
-                )}
-          </Typography.Text>
-        </ScopingTreeNote>
-        {advancedScopingOpen === Scoping.specific && (
-          <ScopingTree setFilterScope={setFilterScope} />
-        )}
-      </>
+      <FilterScope
+        filterId={filterId}
+        filterToEdit={filterToEdit}
+        form={form}
+      />
     </>
   );
 };

@@ -95,7 +95,7 @@ const SavedQueryPreviewModal: FunctionComponent<SavedQueryPreviewModalProps> = (
       <StyledModal
         onHide={onHide}
         show={show}
-        title={t('Query Preview')}
+        title={t('Query preview')}
         footer={[
           <Button
             data-test="previous-saved-query"
@@ -123,7 +123,7 @@ const SavedQueryPreviewModal: FunctionComponent<SavedQueryPreviewModalProps> = (
           </Button>,
         ]}
       >
-        <QueryTitle>{t('Query Name')}</QueryTitle>
+        <QueryTitle>{t('Query name')}</QueryTitle>
         <QueryLabel>{savedQuery.label}</QueryLabel>
         <SyntaxHighlighterCopy
           language="sql"
