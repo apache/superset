@@ -27,8 +27,12 @@ import { sliceId } from './mockChartQueries';
 import { dashboardFilters } from './mockDashboardFilters';
 import { nativeFilters } from './mockNativeFilters';
 
-export const getMockStore = () =>
-  createStore(rootReducer, mockState, compose(applyMiddleware(thunk)));
+export const getMockStore = overrideState =>
+  createStore(
+    rootReducer,
+    { ...mockState, ...overrideState },
+    compose(applyMiddleware(thunk)),
+  );
 
 export const mockStore = getMockStore();
 
