@@ -26,11 +26,12 @@ interface CollapseProps extends AntdCollapseProps {
   light?: boolean;
   bigger?: boolean;
   bold?: boolean;
+  animateArrows?: boolean;
 }
 
 const Collapse = Object.assign(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  styled(({ light, bigger, bold, ...props }: CollapseProps) => (
+  styled(({ light, bigger, bold, animateArrows, ...props }: CollapseProps) => (
     <AntdCollapse {...props} />
   ))`
     height: 100%;
@@ -48,9 +49,20 @@ const Collapse = Object.assign(
         font-size: ${({ bigger, theme }) =>
           bigger ? `${theme.gridUnit * 4}px` : 'inherit'};
 
-        .anticon.anticon-right.ant-collapse-arrow > svg {
-          transform: rotate(90deg) !important;
+        .ant-collapse-arrow svg {
+          transition: ${({ animateArrows }) =>
+            animateArrows ? 'transform 0.24s' : 'none'};
         }
+
+        ${({ expandIconPosition }) =>
+          expandIconPosition &&
+          expandIconPosition === 'right' &&
+          `
+            .anticon.anticon-right.ant-collapse-arrow > svg {
+              transform: rotate(90deg) !important;
+            }
+          `}
+
         ${({ light, theme }) =>
           light &&
           `
@@ -59,6 +71,7 @@ const Collapse = Object.assign(
               color: ${theme.colors.grayscale.light4};
             }
           `}
+
         ${({ ghost, bordered, theme }) =>
           ghost &&
           bordered &&
@@ -79,9 +92,14 @@ const Collapse = Object.assign(
     }
     .ant-collapse-item-active {
       .ant-collapse-header {
-        .anticon.anticon-right.ant-collapse-arrow > svg {
-          transform: rotate(-90deg) !important;
-        }
+        ${({ expandIconPosition }) =>
+          expandIconPosition &&
+          expandIconPosition === 'right' &&
+          `
+            .anticon.anticon-right.ant-collapse-arrow > svg {
+              transform: rotate(-90deg) !important;
+            }
+          `}
       }
     }
   `,
