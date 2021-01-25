@@ -83,44 +83,9 @@ const DatasourceContainer = styled.div`
   max-height: 100%;
   .ant-collapse {
     height: auto;
-    border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-    background-color: ${({ theme }) => theme.colors.grayscale.light4};
-  }
-  .ant-collapse > .ant-collapse-item > .ant-collapse-header {
-    padding-left: ${({ theme }) => theme.gridUnit * 2}px;
-    padding-bottom: 0px;
-  }
-  .ant-collapse-item {
-    background-color: ${({ theme }) => theme.colors.grayscale.light4};
-    .anticon.anticon-right.ant-collapse-arrow > svg {
-      transform: rotate(90deg) !important;
-      margin-right: ${({ theme }) => theme.gridUnit * -2}px;
-    }
-  }
-  .ant-collapse-item.ant-collapse-item-active {
-    .anticon.anticon-right.ant-collapse-arrow > svg {
-      transform: rotate(-90deg) !important;
-    }
-    .ant-collapse-header {
-      border: 0;
-    }
-  }
-  .header {
-    font-size: ${({ theme }) => theme.typography.sizes.l}px;
-    margin-left: ${({ theme }) => theme.gridUnit * -2}px;
-  }
-  .ant-collapse-borderless
-    > .ant-collapse-item
-    > .ant-collapse-content
-    > .ant-collapse-content-box {
-    padding: 0px;
   }
   .field-selections {
-    padding: ${({ theme }) =>
-      `${2 * theme.gridUnit}px ${2 * theme.gridUnit}px ${
-        4 * theme.gridUnit
-      }px`};
+    padding: ${({ theme }) => `0 0 ${4 * theme.gridUnit}px`};
     overflow: auto;
   }
   .field-length {
@@ -247,9 +212,10 @@ export default function DataSourcePanel({
       />
       <div className="field-selections">
         <Collapse
-          bordered={false}
+          bordered
           defaultActiveKey={['metrics', 'column']}
           expandIconPosition="right"
+          ghost
         >
           <Collapse.Panel
             header={<span className="header">{t('Metrics')}</span>}
