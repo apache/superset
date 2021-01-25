@@ -18,14 +18,13 @@
  */
 import React from 'react';
 import { styled } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
+import Icon, { CustomIcon } from 'src/components/Icon';
 import { Card, Skeleton, ThinSkeleton } from 'src/common/components';
 import { Tooltip } from 'src/common/components/Tooltip';
 import ImageLoader, { BackgroundPosition } from './ImageLoader';
 
-const MenuIcon = styled(Icon)`
-  width: ${({ theme }) => theme.gridUnit * 4}px;
-  height: ${({ theme }) => theme.gridUnit * 4}px;
+const MenuIcon = styled(CustomIcon)`
+  font-size: ${({ theme }) => theme.gridUnit * 4}px;
   position: relative;
   top: ${({ theme }) => theme.gridUnit / 2}px;
 `;

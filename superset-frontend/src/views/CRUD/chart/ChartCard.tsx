@@ -102,22 +102,26 @@ export default function ChartCard({
         </Menu.Item>
       )}
       {canExport && (
-        <Menu.Item
-          role="button"
-          tabIndex={0}
-          onClick={() => handleBulkChartExport([chart])}
-        >
-          <ListViewCard.MenuIcon name="share" /> {t('Export')}
+        <Menu.Item>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => handleBulkChartExport([chart])}
+          >
+            <ListViewCard.MenuIcon name="share" /> {t('Export')}
+          </div>
         </Menu.Item>
       )}
       {canEdit && (
-        <Menu.Item
-          data-test="chart-list-edit-option"
-          role="button"
-          tabIndex={0}
-          onClick={() => openChartEditModal(chart)}
-        >
-          <ListViewCard.MenuIcon name="edit-alt" /> {t('Edit')}
+        <Menu.Item>
+          <div
+            data-test="chart-list-edit-option"
+            role="button"
+            tabIndex={0}
+            onClick={() => openChartEditModal(chart)}
+          >
+            <ListViewCard.MenuIcon name="edit-alt" /> {t('Edit')}
+          </div>
         </Menu.Item>
       )}
     </Menu>
