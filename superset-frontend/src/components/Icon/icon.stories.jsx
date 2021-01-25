@@ -19,7 +19,7 @@
 import React from 'react';
 import { withKnobs, select } from '@storybook/addon-knobs';
 import { styled, supersetTheme } from '@superset-ui/core';
-import Icon, { iconsRegistry } from '.';
+import Icon, { iconsRegistry, CustomIcon } from '.';
 
 export default {
   title: 'Icon',
@@ -68,6 +68,28 @@ export const SupersetIcon = () => (
       .map(iconName => (
         <IconBlock key={iconName}>
           <Icon
+            name={iconName}
+            key={iconName}
+            color={select(
+              colorKnob.label,
+              colorKnob.options,
+              colorKnob.defaultValue,
+              colorKnob.groupId,
+            )}
+          />
+          <div>{iconName}</div>
+        </IconBlock>
+      ))}
+  </IconSet>
+);
+
+export const SupersetCustomIcon = () => (
+  <IconSet>
+    {Object.keys(iconsRegistry)
+      .sort()
+      .map(iconName => (
+        <IconBlock key={iconName}>
+          <CustomIcon
             name={iconName}
             key={iconName}
             color={select(
