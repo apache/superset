@@ -310,6 +310,7 @@ function ChartList(props: ChartListProps) {
                       placement="bottom"
                     >
                       <span
+                        data-test="trash"
                         role="button"
                         tabIndex={0}
                         className="action-button"
