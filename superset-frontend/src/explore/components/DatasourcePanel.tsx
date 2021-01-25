@@ -17,57 +17,25 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { styled, t, QueryFormData } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { Collapse } from 'src/common/components';
 import {
   ColumnOption,
   MetricOption,
-  ControlType,
+  ControlConfig,
+  DatasourceMeta,
 } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
 import { ExploreActions } from '../actions/exploreActions';
 import Control from './Control';
 
-interface DatasourceControl {
-  validationErrors: Array<any>;
-  mapStateToProps: QueryFormData;
-  type: ControlType;
-  label: string;
-  datasource?: DatasourceControl;
+interface DatasourceControl extends ControlConfig {
+  datasource?: DatasourceMeta;
 }
 
-type Columns = {
-  column_name: string;
-  description: string | undefined;
-  expression: string | undefined;
-  filterable: boolean;
-  groupby: string | undefined;
-  id: number;
-  is_dttm: boolean;
-  python_date_format: string;
-  type: string;
-  verbose_name: string;
-};
-
-type Metrics = {
-  certification_details: string | undefined;
-  certified_by: string | undefined;
-  d3format: string | undefined;
-  description: string | undefined;
-  expression: string;
-  id: number;
-  is_certified: boolean;
-  metric_name: string;
-  verbose_name: string;
-  warning_text: string;
-};
-
 interface Props {
-  datasource: {
-    columns: Array<Columns>;
-    metrics: Array<Metrics>;
-  };
+  datasource: DatasourceMeta;
   controls: {
     datasource: DatasourceControl;
   };
@@ -193,15 +161,8 @@ export default function DataSourcePanel({
   const metricSlice = lists.metrics.slice(0, 50);
   const columnSlice = lists.columns.slice(0, 50);
 
-  return (
-    <DatasourceContainer>
-      <Control
-        {...datasourceControl}
-        name="datasource"
-        validationErrors={datasourceControl.validationErrors}
-        actions={actions}
-        formData={datasourceControl.mapStateToProps}
-      />
+  const mainBody = (
+    <>
       <input
         type="text"
         onChange={evt => {
@@ -245,6 +206,13 @@ export default function DataSourcePanel({
           </Collapse.Panel>
         </Collapse>
       </div>
+    </>
+  );
+
+  return (
+    <DatasourceContainer>
+      <Control {...datasourceControl} name="datasource" actions={actions} />
+      {datasource.id != null && mainBody}
     </DatasourceContainer>
   );
 }

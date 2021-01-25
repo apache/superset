@@ -277,9 +277,7 @@
       "Charts could not be deleted.": ["La requête ne peut pas être chargée"],
       "Import chart failed for an unknown reason": [""],
       "Owners are invalid": [""],
-      "Datasource does not exist": [
-        "La source de données %(name)s existe déjà"
-      ],
+      "Dataset does not exist": ["La source de données %(name)s existe déjà"],
       "`operation` property of post processing object undefined": [""],
       "Unsupported post processing operation: %(operation)s": [""],
       "Adding new datasource [{}]": ["Ajouter une source de données Druid"],
@@ -728,7 +726,7 @@
       "Add Annotation Layer": ["Ajouter une couche d'annotation"],
       "Edit Annotation Layer": ["Ajouter une couche d'annotation"],
       "Name": ["Nom"],
-      "Datasource %(name)s already exists": [
+      "Dataset %(name)s already exists": [
         "La source de données %(name)s existe déjà"
       ],
       "Table [%{table}s] could not be found, please double check your database connection, schema, and table name, error: {}": [

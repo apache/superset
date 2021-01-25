@@ -39,7 +39,7 @@ from superset.views.base import (
     BaseSupersetView,
     DatasourceFilter,
     DeleteMixin,
-    get_datasource_exist_error_msg,
+    get_dataset_exist_error_msg,
     ListWidgetWithCheckboxes,
     SupersetModelView,
     validate_json,
@@ -352,7 +352,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
                 models.DruidDatasource.cluster_id == item.cluster_id,
             )
             if db.session.query(query.exists()).scalar():
-                raise Exception(get_datasource_exist_error_msg(item.full_name))
+                raise Exception(get_dataset_exist_error_msg(item.full_name))
 
     def post_add(self, item: "DruidDatasourceModelView") -> None:
         item.refresh_metrics()
