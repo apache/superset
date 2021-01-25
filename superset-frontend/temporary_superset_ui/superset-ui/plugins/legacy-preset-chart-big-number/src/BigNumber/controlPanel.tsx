@@ -67,6 +67,8 @@ const config: ControlPanelConfig = {
               description: t('Whether to display the trend line'),
             },
           },
+        ],
+        [
           {
             name: 'start_y_axis_at_zero',
             config: {
@@ -139,6 +141,8 @@ const config: ControlPanelConfig = {
               ),
             },
           },
+        ],
+        [
           {
             name: 'min_periods',
             config: {
