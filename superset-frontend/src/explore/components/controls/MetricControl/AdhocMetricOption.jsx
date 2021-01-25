@@ -71,22 +71,17 @@ class AdhocMetricOption extends React.PureComponent {
         savedMetric={savedMetric}
         datasourceType={datasourceType}
       >
-        <Tooltip
-          placement="top"
-          title={savedMetric.expression || adhocMetric.label}
-        >
-          <OptionControlLabel
-            savedMetric={savedMetric}
-            label={adhocMetric.label}
-            onRemove={this.onRemoveMetric}
-            onMoveLabel={onMoveLabel}
-            onDropLabel={onDropLabel}
-            index={index}
-            type={OPTION_TYPES.metric}
-            isAdhoc
-            isFunction
-          />
-        </Tooltip>
+        <DOptionControlLabel
+          savedMetric={savedMetric}
+          label={adhocMetric.label}
+          onRemove={this.onRemoveMetric}
+          onMoveLabel={onMoveLabel}
+          onDropLabel={onDropLabel}
+          index={index}
+          type={OPTION_TYPES.metric}
+          isAdhoc
+          isFunction
+        />
       </AdhocMetricPopoverTrigger>
     );
   }
