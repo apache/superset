@@ -44,9 +44,7 @@ export function getInitialState(
   filterConfig.forEach(filter => {
     const { id } = filter;
     filters[id] = filter;
-    filtersState[id] = !prevFiltersState?.[id]
-      ? getInitialFilterState(id)
-      : prevFiltersState[id];
+    filtersState[id] = prevFiltersState?.[id] || getInitialFilterState(id);
   });
   return state;
 }
