@@ -136,7 +136,7 @@ export function CustomFrame(props: FrameComponentProps) {
               <DatePicker
                 showTime
                 value={dttmToMoment(sinceDatetime)}
-                onChange={(datetime: Moment) =>
+                onSelect={(datetime: Moment) =>
                   onChange('sinceDatetime', datetime.format(MOMENT_FORMAT))
                 }
                 allowClear={false}
@@ -188,7 +188,7 @@ export function CustomFrame(props: FrameComponentProps) {
               <DatePicker
                 showTime
                 value={dttmToMoment(untilDatetime)}
-                onChange={(datetime: Moment) =>
+                onSelect={(datetime: Moment) =>
                   onChange('untilDatetime', datetime.format(MOMENT_FORMAT))
                 }
                 allowClear={false}
@@ -247,7 +247,7 @@ export function CustomFrame(props: FrameComponentProps) {
                 <DatePicker
                   showTime
                   value={dttmToMoment(anchorValue)}
-                  onChange={(datetime: Moment) =>
+                  onSelect={(datetime: Moment) =>
                     onChange('anchorValue', datetime.format(MOMENT_FORMAT))
                   }
                   allowClear={false}
