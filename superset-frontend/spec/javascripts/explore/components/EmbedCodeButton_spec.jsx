@@ -23,10 +23,14 @@ import Popover from 'src/common/components/Popover';
 import sinon from 'sinon';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
-
+import fetchMock from 'fetch-mock';
 import EmbedCodeButton from 'src/explore/components/EmbedCodeButton';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import * as common from 'src/utils/common';
+
+const ENDPOINT = 'glob:*/r/shortner/';
+
+fetchMock.post(ENDPOINT, {});
 
 describe('EmbedCodeButton', () => {
   const mockStore = configureStore([]);
