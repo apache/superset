@@ -34,7 +34,7 @@ import {
 } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import Icon from 'src/components/Icon';
+import Icon, { CustomIcon } from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import ListView, {
   ListViewProps,
@@ -315,7 +315,7 @@ function ChartList(props: ChartListProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icon name="trash" />
+                        <CustomIcon name="trash" />
                       </span>
                     </TooltipWrapper>
                   )}

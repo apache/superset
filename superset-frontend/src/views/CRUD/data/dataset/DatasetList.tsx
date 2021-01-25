@@ -42,7 +42,7 @@ import { commonMenuData } from 'src/views/CRUD/data/common';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import TooltipWrapper from 'src/components/TooltipWrapper';
-import Icon from 'src/components/Icon';
+import Icon, { CustomIcon } from 'src/components/Icon';
 import FacePile from 'src/components/FacePile';
 import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
 import ImportModelsModal from 'src/components/ImportModal/index';
@@ -336,7 +336,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleDelete}
                   >
-                    <Icon name="trash" />
+                    <CustomIcon name="trash" />
                   </span>
                 </TooltipWrapper>
               )}

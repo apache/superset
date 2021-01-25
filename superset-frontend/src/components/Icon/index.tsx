@@ -438,6 +438,8 @@ const EnhancedCustomIcon = ({ name, viewBox, ...props }: CustomIconType) => (
 
 export const CustomIcon = styled(EnhancedCustomIcon)`
   color: ${p => p.color || '#666666'};
+  font-size: 24px;
+  vertical-align: baseline;
 `;
 
 export default Icon;
