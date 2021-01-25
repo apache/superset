@@ -319,7 +319,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       allowClear: true,
       showSearch: true,
       mode: MULTI_OPERATORS.has(operator) && 'tags',
-      tokenSeparators: [',', ' ', ';'],
+      tokenSeparators: [',', '\n', '\t', ';'],
       loading: this.state.loading,
       value: comparator,
       onChange: this.onComparatorChange,
