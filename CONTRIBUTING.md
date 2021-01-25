@@ -393,7 +393,7 @@ For example, the image referenced above actually lives in `superset-frontend/ima
 
 #### OS Dependencies
 
-Make sure your machine meets the [OS dependencies](https://superset.apache.org/installation.html#os-dependencies) before following these steps.
+Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
 
 Ensure Python versions >3.7, Then proceed with:
 
