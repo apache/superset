@@ -136,7 +136,7 @@ describe('Dashboard tabs', () => {
     cy.get('.Select__control input[type=text]')
       .first()
       .focus()
-      .type('South Asia{enter}');
+      .type('South Asia{enter}', { delay: 200 });
     cy.get('.filter_box button:not(:disabled)').contains('Apply').click();
 
     // send new query from same tab
