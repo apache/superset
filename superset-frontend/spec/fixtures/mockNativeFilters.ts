@@ -134,7 +134,7 @@ export const layoutForSingleNativeFilter = {
     meta: {
       chartId: 230,
       height: 50,
-      sliceName: 'Pie',
+      sliceName: 'Pie Chart',
       uuid: '05ef6145-3950-4f59-891f-160852613eca',
       width: 12,
     },
@@ -147,7 +147,7 @@ export const layoutForSingleNativeFilter = {
     meta: {
       chartId: 227,
       height: 50,
-      sliceName: 'Select filter',
+      sliceName: 'Another Chart',
       uuid: 'ddb78f6c-7876-47fc-ae98-70183b05ba90',
       width: 4,
     },
@@ -160,7 +160,7 @@ export const layoutForSingleNativeFilter = {
     meta: {
       chartId: 229,
       height: 47,
-      sliceName: 'Bars 2',
+      sliceName: 'Bar Chart',
       uuid: 'e1501e54-d632-4fdc-ae16-07cafee31093',
       width: 12,
     },
@@ -177,7 +177,7 @@ export const layoutForSingleNativeFilter = {
   HEADER_ID: {
     id: 'HEADER_ID',
     type: 'HEADER',
-    meta: { text: '[ untitled dashboard ]' },
+    meta: { text: 'My Native Filter Dashboard' },
   },
   ROOT_ID: { children: ['GRID_ID'], id: 'ROOT_ID', type: 'ROOT' },
   'ROW-NweUz7oC0': {

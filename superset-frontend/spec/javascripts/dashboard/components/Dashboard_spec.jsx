@@ -38,7 +38,7 @@ import dashboardInfo from 'spec/fixtures/mockDashboardInfo';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
 import dashboardState from 'spec/fixtures/mockDashboardState';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
-import { getActiveNativeFilters } from '../../../../src/dashboard/util/activeDashboardNativeFilters';
+import { getActiveNativeFilters } from 'src/dashboard/util/activeDashboardNativeFilters';
 
 describe('Dashboard', () => {
   const props = {
