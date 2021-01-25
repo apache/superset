@@ -328,7 +328,7 @@
         "A importação do gráfico falhou por um motivo desconhecido"
       ],
       "Owners are invalid": ["Donos inválidos"],
-      "Datasource does not exist": ["Fonte de dados não existe"],
+      "Dataset does not exist": ["Fonte de dados não existe"],
       "`operation` property of post processing object undefined": [
         "A propriedade `operation` do objeto de pós processamento está indefinida"
       ],
@@ -935,9 +935,7 @@
       "Add Annotation Layer": ["Adicionar camada de anotação"],
       "Edit Annotation Layer": ["Editar camada de anotação"],
       "Name": ["Nome"],
-      "Datasource %(name)s already exists": [
-        "Fonte de dados %(name)s já existe"
-      ],
+      "Dataset %(name)s already exists": ["Fonte de dados %(name)s já existe"],
       "Table [%{table}s] could not be found, please double check your database connection, schema, and table name, error: {}": [
         "Não foi possível localizar a tabela [%{table}s], por favor revise sua conexão com o banco de dados, esquema e nome da tabela. Erro: {}"
       ],
