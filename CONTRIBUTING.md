@@ -398,7 +398,7 @@ Make sure your machine meets the [OS dependencies](https://superset.apache.org/d
 Ensure Python versions >3.7, Then proceed with:
 
 ```bash
-# Create a virtual environemnt and activate it (recommended)
+# Create a virtual environment and activate it (recommended)
 python3 -m venv venv # setup a python3 virtualenv
 source venv/bin/activate
 
