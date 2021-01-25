@@ -24,8 +24,10 @@ import json
 import os
 import re
 from unittest.mock import Mock, patch
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import numpy
+import pytest
 from flask import Flask, g
 import marshmallow
 from sqlalchemy.exc import ArgumentError
@@ -68,6 +70,7 @@ from superset.views.utils import (
     get_time_range_endpoints,
 )
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 from .fixtures.certificates import ssl_certificate
 
@@ -851,6 +854,7 @@ class TestUtils(SupersetTestCase):
         self.assertListEqual(get_iterable([123]), [123])
         self.assertListEqual(get_iterable("foo"), ["foo"])
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_build_extra_filters(self):
         world_health = db.session.query(Dashboard).filter_by(slug="world_health").one()
         layout = json.loads(world_health.position_json)
@@ -990,6 +994,7 @@ class TestUtils(SupersetTestCase):
 
             self.assertEqual(slc, None)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_log_this(self) -> None:
         # TODO: Add additional scenarios.
         self.login(username="admin")

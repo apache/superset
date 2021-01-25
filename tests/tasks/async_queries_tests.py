@@ -32,6 +32,7 @@ from superset.tasks.async_queries import (
     load_explore_json_into_cache,
 )
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.query_context import get_query_context
 from tests.test_app import app
 
@@ -42,6 +43,7 @@ def get_table_by_name(name: str) -> SqlaTable:
 
 
 class TestAsyncQueries(SupersetTestCase):
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_chart_data_into_cache(self, mock_update_job):
         async_query_manager.init_app(app)
@@ -79,6 +81,7 @@ class TestAsyncQueries(SupersetTestCase):
         errors = [{"message": "Error: foo"}]
         mock_update_job.assert_called_with(job_metadata, "error", errors=errors)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_explore_json_into_cache(self, mock_update_job):
         async_query_manager.init_app(app)

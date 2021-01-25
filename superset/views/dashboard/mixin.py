@@ -16,8 +16,8 @@
 # under the License.
 from flask_babel import lazy_gettext as _
 
+from ...dashboards.filters import DashboardFilter
 from ..base import check_ownership
-from .filters import DashboardFilter
 
 
 class DashboardMixin:  # pylint: disable=too-few-public-methods

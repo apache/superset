@@ -41,7 +41,7 @@ const getDashboards = query =>
       })),
     )
     .catch(() => ({
-      title: t('An error occurred while fethching Dashboards'),
+      title: t('An error occurred while fetching dashboards'),
     }));
 
 const OmniModal = styled(Modal)`

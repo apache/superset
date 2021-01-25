@@ -39,7 +39,7 @@ describe('Dashboard form data', () => {
   it('should apply url params to slice requests', () => {
     const aliases = getChartAliases(dashboard.slices);
     // wait and verify one-by-one
-    cy.wait(aliases).then(requests =>
+    cy.wait(aliases, { timeout: 18000 }).then(requests =>
       Promise.all(
         requests.map(async xhr => {
           expect(xhr.status).to.eq(200);

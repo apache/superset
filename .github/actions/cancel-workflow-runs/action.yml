@@ -1,0 +1,74 @@
+name: 'Cancel Workflow Runs'
+description: 'Cancel Workflow Runs - duplicates, failed, named in order to limit job usage,'
+author: 'potiuk'
+inputs:
+  token:
+    description: The GITHUB_TOKEN secret of the repository
+    required: true
+  sourceRunId:
+    description: |
+      The run that triggered the action. It should be set to
+      `$\{\{ github.event.workflow_run.id` variable \}\}` if used in `workflow_run` triggered run if
+      you want to act on source workflow rather than the triggered run.
+    required: false
+  notifyPRCancel:
+    description: |
+      Boolean. If set to true, it notifies the cancelled PRs with a comment containing reason why
+      they are being cancelled.
+    required: false
+  notifyPRCancelMessage:
+    description: |
+      Optional cancel message to use instead of the default one when notifyPRCancel is true. Only
+      used in 'self' cancel mode.
+    required: false
+  notifyPRMessageStart:
+    description: |
+      Only for workflow_run events triggered by the PRs. If not empty, it notifies those PRs with the
+      message specified at the start of the workflow - adding the link to the triggered workflow_run.
+    required: false
+  cancelMode:
+    description: |
+      The mode of cancel. One of:
+          * `duplicates`    - cancels duplicate runs from the same repo/branch as local run or
+                              sourceId workflow. This is the default mode when cancelMode is not specified.
+          * `allDuplicates` - cancels duplicate runs from all workflows. It is more aggressive version of
+                              duplicate canceling - as it cancels all duplicates. It is helpful in case
+                              of long queues of builds - as it is enough that one of the workflows that
+                              cancel duplicates is executed, it can effectively clean-up the queue in this
+                              case for all the future, queued runs.
+          * `self`          - cancels self run - either own run if sourceRunId is not set, or
+                              the source run that triggered the `workflow_run'
+          * `failedJobs`    - cancels all runs that failed in jobs matching one of the regexps
+          * `namedJobs`     - cancels runs where names of some jobs match some of regexps
+    required: false
+  cancelFutureDuplicates:
+    description: |
+      In case of duplicate canceling, cancel also future duplicates leaving only the "freshest" running
+      job and not all the future jobs. By default it is set to true.
+    required: false
+  selfPreservation:
+    description: |
+      Do not cancel your own run. There are cases where selfPreservation should be disabled but it is
+      enabled by default. You can disable it by setting 'false' as value.
+    required: false
+  jobNameRegexps:
+    description: |
+      Array of job name regexps (JSON-encoded string). Used by `failedJobs` and `namedJobs` cancel modes
+      to match job names of workflow runs.
+    required: false
+  skipEventTypes:
+    description: |
+      Array of event names that should be skipped when cancelling (JSON-encoded string). This might be used
+      in order to skip direct pushes or scheduled events.
+    required: false
+  workflowFileName:
+    description: |
+      Name of the workflow file. It can be used if you want to cancel a different workflow than yours.
+    required: false
+
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
+branding:
+  icon: 'play'
+  color: 'blue'

@@ -9,7 +9,7 @@ on:
 jobs:
   license_check:
     name: License Check
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - name: Setup Java

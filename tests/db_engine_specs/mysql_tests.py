@@ -101,3 +101,15 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
             assert MySQLEngineSpec.is_db_column_type_match(
                 type_str, DbColumnType.TEMPORAL
             ) is (col_type == DbColumnType.TEMPORAL)
+
+    def test_extract_error_message(self):
+        from MySQLdb._exceptions import OperationalError
+
+        message = "Unknown table 'BIRTH_NAMES1' in information_schema"
+        exception = OperationalError(message)
+        extracted_message = MySQLEngineSpec._extract_error_message(exception)
+        assert extracted_message == message
+
+        exception = OperationalError(123, message)
+        extracted_message = MySQLEngineSpec._extract_error_message(exception)
+        assert extracted_message == message

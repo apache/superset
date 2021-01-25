@@ -114,6 +114,7 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
 
     list_columns = (
         "label",
+        "owners",
         "database",
         "sql",
         "pretty_config",

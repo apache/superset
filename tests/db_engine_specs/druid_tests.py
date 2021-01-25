@@ -14,10 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from unittest import mock
+
 from sqlalchemy import column
 
 from superset.db_engine_specs.druid import DruidEngineSpec
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
+from tests.fixtures.certificates import ssl_certificate
+from tests.fixtures.database import default_db_extra
 
 
 class TestDruidDbEngineSpec(TestDbEngineSpec):
@@ -54,3 +58,19 @@ class TestDruidDbEngineSpec(TestDbEngineSpec):
                 col=sqla_col, pdf=None, time_grain=grain
             )
             self.assertEqual(str(actual), expected)
+
+    def test_extras_without_ssl(self):
+        db = mock.Mock()
+        db.extra = default_db_extra
+        db.server_cert = None
+        extras = DruidEngineSpec.get_extra_params(db)
+        assert "connect_args" not in extras["engine_params"]
+
+    def test_extras_with_ssl(self):
+        db = mock.Mock()
+        db.extra = default_db_extra
+        db.server_cert = ssl_certificate
+        extras = DruidEngineSpec.get_extra_params(db)
+        connect_args = extras["engine_params"]["connect_args"]
+        assert connect_args["scheme"] == "https"
+        assert "ssl_verify_cert" in connect_args

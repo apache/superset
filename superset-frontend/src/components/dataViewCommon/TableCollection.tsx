@@ -37,7 +37,6 @@ export const Table = styled.table`
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
   border-collapse: separate;
   border-radius: ${({ theme }) => theme.borderRadius}px;
-  overflow: hidden;
 
   thead > tr > th {
     border: 0;
@@ -52,6 +51,7 @@ export const Table = styled.table`
     background: ${({ theme }) => theme.colors.grayscale.light5};
     position: sticky;
     top: 0;
+
     &:first-of-type {
       padding-left: ${({ theme }) => theme.gridUnit * 4}px;
     }
@@ -77,11 +77,14 @@ export const Table = styled.table`
 
     span {
       white-space: nowrap;
+      display: flex;
+      align-items: center;
+      line-height: 2;
     }
 
     svg {
       display: inline-block;
-      top: 6px;
+      top: 2px;
       position: relative;
     }
   }

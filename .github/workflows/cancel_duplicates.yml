@@ -9,7 +9,7 @@ jobs:
     name: "Cancel duplicate workflow runs"
     runs-on: ubuntu-latest
     steps:
-      - uses: apache-superset/cancel-workflow-runs@953e057
+      - uses: ./.github/actions/cancel-workflow-runs/
         name: "Cancel duplicate workflow runs"
         with:
           cancelMode: duplicates

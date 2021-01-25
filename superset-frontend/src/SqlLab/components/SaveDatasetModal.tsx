@@ -131,7 +131,11 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       {!shouldOverwriteDataset && (
         <div className="smd-body">
           <div className="smd-prompt">
+<<<<<<< HEAD
             Save this query as virtual dataset to continue exploring.
+=======
+            Save this query as a virtual dataset to continue exploring
+>>>>>>> deebd6f7388f0c61481845dc5c4f3e26c7bc36ca
           </div>
           <Radio.Group
             onChange={handleSaveDatasetRadioBtnState}

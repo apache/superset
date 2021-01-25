@@ -110,7 +110,11 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
         const update_id = currentCssTemplate.id;
         delete currentCssTemplate.id;
         delete currentCssTemplate.created_by;
-        updateResource(update_id, currentCssTemplate).then(() => {
+        updateResource(update_id, currentCssTemplate).then(response => {
+          if (!response) {
+            return;
+          }
+
           if (onCssTemplateAdd) {
             onCssTemplateAdd();
           }
@@ -120,7 +124,11 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       }
     } else if (currentCssTemplate) {
       // Create
-      createResource(currentCssTemplate).then(() => {
+      createResource(currentCssTemplate).then(response => {
+        if (!response) {
+          return;
+        }
+
         if (onCssTemplateAdd) {
           onCssTemplateAdd();
         }
@@ -166,29 +174,35 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
   };
 
   // Initialize
-  if (
-    isEditMode &&
-    (!currentCssTemplate ||
-      !currentCssTemplate.id ||
-      (cssTemplate && cssTemplate.id !== currentCssTemplate.id) ||
-      (isHidden && show))
-  ) {
-    if (cssTemplate && cssTemplate.id !== null && !loading) {
-      const id = cssTemplate.id || 0;
+  useEffect(() => {
+    if (
+      isEditMode &&
+      (!currentCssTemplate ||
+        !currentCssTemplate.id ||
+        (cssTemplate && cssTemplate.id !== currentCssTemplate.id) ||
+        (isHidden && show))
+    ) {
+      if (cssTemplate && cssTemplate.id !== null && !loading) {
+        const id = cssTemplate.id || 0;
 
-      fetchResource(id).then(() => {
-        setCurrentCssTemplate(resource);
+        fetchResource(id);
+      }
+    } else if (
+      !isEditMode &&
+      (!currentCssTemplate || currentCssTemplate.id || (isHidden && show))
+    ) {
+      setCurrentCssTemplate({
+        template_name: '',
+        css: '',
       });
     }
-  } else if (
-    !isEditMode &&
-    (!currentCssTemplate || currentCssTemplate.id || (isHidden && show))
-  ) {
-    setCurrentCssTemplate({
-      template_name: '',
-      css: '',
-    });
-  }
+  }, [cssTemplate]);
+
+  useEffect(() => {
+    if (resource) {
+      setCurrentCssTemplate(resource);
+    }
+  }, [resource]);
 
   // Validation
   useEffect(() => {

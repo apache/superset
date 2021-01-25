@@ -87,7 +87,7 @@ def _create_unicode_dashboard(
     if slice_title:
         slice = _create_and_commit_unicode_slice(table, slice_title)
 
-    return create_dashboard("unicode-test", "Unicode Test", position, slice)
+    return create_dashboard("unicode-test", "Unicode Test", position, [slice])
 
 
 def _create_and_commit_unicode_slice(table: SqlaTable, title: str):

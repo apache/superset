@@ -21,7 +21,7 @@ Manually cancel previous GitHub Action workflow runs in queue.
 Example:
   # Set up
   export GITHUB_TOKEN=394ba3b48494ab8f930fbc93
-  export GITHUB_REPOSITORY=apache/incubator-superset
+  export GITHUB_REPOSITORY=apache/superset
 
   # cancel previous jobs for a PR
   ./cancel_github_workflows.py 1042
@@ -42,7 +42,7 @@ from dateutil import parser
 from typing_extensions import Literal
 
 github_token = os.environ.get("GITHUB_TOKEN")
-github_repo = os.environ.get("GITHUB_REPOSITORY", "apache/incubator-superset")
+github_repo = os.environ.get("GITHUB_REPOSITORY", "apache/superset")
 
 
 def request(method: Literal["GET", "POST", "DELETE", "PUT"], endpoint: str, **kwargs):
@@ -111,7 +111,7 @@ Date:   {date_str}
 @click.option(
     "--repo",
     default=github_repo,
-    help="The github repository name. For example, apache/incubator-superset.",
+    help="The github repository name. For example, apache/superset.",
 )
 @click.option(
     "--event",

@@ -50,6 +50,9 @@ const headerStyle = css`
   .menu-sm {
     display: none;
   }
+  .ant-menu-horizontal:not(.ant-menu-dark)>.ant-menu-item-selected {
+    border-bottom: 2px solid #20A7C9;
+  }
   ${[mq[menuResponsiveIndex]]} {
     .menu-sm {
       display: block;
@@ -67,6 +70,7 @@ const logoStyle = css`
 
 interface menuProps {
   mode: string;
+  toggleDrawer: () => null;
 }
 
 const MenuItems = ({ mode, toggleDrawer }: menuProps) => {

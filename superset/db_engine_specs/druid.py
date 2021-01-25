@@ -20,6 +20,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.exceptions import SupersetException
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -65,12 +66,12 @@ class DruidEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
         :param database: database instance from which to extract extras
         :raises CertificateException: If certificate is not valid/unparseable
+        :raises SupersetException: If database extra json payload is unparseable
         """
         try:
             extra = json.loads(database.extra or "{}")
-        except json.JSONDecodeError as ex:
-            logger.error(ex)
-            raise ex
+        except json.JSONDecodeError:
+            raise SupersetException("Unable to parse database extras")
 
         if database.server_cert:
             engine_params = extra.get("engine_params", {})

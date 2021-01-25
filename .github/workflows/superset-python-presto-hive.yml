@@ -9,7 +9,7 @@ on:
 
 jobs:
   test-postgres-presto:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         # run unit tests in multiple version just for fun
@@ -67,7 +67,7 @@ jobs:
           bash <(curl -s https://codecov.io/bash) -cF python
 
   test-postgres-hive:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         # run unit tests in multiple version just for fun
