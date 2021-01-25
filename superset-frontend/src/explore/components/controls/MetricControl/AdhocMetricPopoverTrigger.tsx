@@ -27,7 +27,10 @@ import { savedMetricType } from './types';
 
 export type AdhocMetricPopoverTriggerProps = {
   adhocMetric: AdhocMetric;
-  onMetricEdit: () => void;
+  onMetricEdit(
+    newMetric: AdhocMetric | Record<string, any>,
+    oldMetric: AdhocMetric | Record<string, any>,
+  ): void;
   columns: { column_name: string; type: string }[];
   savedMetricsOptions: savedMetricType[];
   savedMetric: savedMetricType;
@@ -53,6 +56,10 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     this.onLabelChange = this.onLabelChange.bind(this);
     this.closePopover = this.closePopover.bind(this);
     this.togglePopover = this.togglePopover.bind(this);
+    this.getCurrentTab = this.getCurrentTab.bind(this);
+    this.getCurrentLabel = this.getCurrentLabel.bind(this);
+    this.onChange = this.onChange.bind(this);
+
     this.state = {
       popoverVisible: false,
       title: {
@@ -65,10 +72,12 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
   }
 
   onLabelChange(e: any) {
+    const { verbose_name, metric_name } = this.props.savedMetric;
+    const { label: propsLabel } = this.props.adhocMetric;
     const label = e.target.value;
     this.setState({
       title: {
-        label: label || this.props.adhocMetric.label,
+        label: label ?? (verbose_name || metric_name) ?? propsLabel,
         hasCustomLabel: !!label,
       },
       labelModified: true,
@@ -92,6 +101,31 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     });
   }
 
+  getCurrentTab(tab: string) {
+    this.setState({
+      isTitleEditDisabled: tab === SAVED_TAB_KEY,
+    });
+  }
+
+  getCurrentLabel(label: string) {
+    if (!this.state.title.hasCustomLabel) {
+      this.setState({
+        title: {
+          label,
+          hasCustomLabel: false,
+        },
+        labelModified: true,
+      });
+    }
+  }
+
+  onChange(
+    newMetric: AdhocMetric | Record<string, any>,
+    oldMetric: AdhocMetric | Record<string, any>,
+  ) {
+    this.props.onMetricEdit({ ...newMetric, ...this.state.title }, oldMetric);
+  }
+
   render() {
     const { adhocMetric, savedMetric } = this.props;
     const { verbose_name, metric_name } = savedMetric;
@@ -110,12 +144,9 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
         datasourceType={this.props.datasourceType}
         onResize={this.onPopoverResize}
         onClose={this.closePopover}
-        onChange={this.props.onMetricEdit}
-        getCurrentTab={(tab: string) =>
-          this.setState({
-            isTitleEditDisabled: tab === SAVED_TAB_KEY,
-          })
-        }
+        onChange={this.onChange}
+        getCurrentTab={this.getCurrentTab}
+        getCurrentLabel={this.getCurrentLabel}
       />
     );
 
