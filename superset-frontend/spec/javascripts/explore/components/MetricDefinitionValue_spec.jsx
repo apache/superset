@@ -20,10 +20,10 @@
 import React from 'react';
 import { shallow } from 'enzyme';
 
-import MetricDefinitionValue from 'src/explore/components/MetricDefinitionValue';
-import AdhocMetricOption from 'src/explore/components/AdhocMetricOption';
-import AdhocMetric from 'src/explore/AdhocMetric';
 import { AGGREGATES } from 'src/explore/constants';
+import MetricDefinitionValue from 'src/explore/components/controls/MetricControl/MetricDefinitionValue';
+import AdhocMetricOption from 'src/explore/components/controls/MetricControl/AdhocMetricOption';
+import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 
 const sumValueAdhocMetric = new AdhocMetric({
   column: { type: 'DOUBLE', column_name: 'value' },

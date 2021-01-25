@@ -112,7 +112,7 @@ class RefreshIntervalModal extends React.PureComponent<
       <StyledModalTrigger
         ref={this.modalRef}
         triggerNode={this.props.triggerNode}
-        modalTitle={t('Refresh Interval')}
+        modalTitle={t('Refresh interval')}
         modalBody={
           <div>
             <FormLabel>{t('Refresh frequency')}</FormLabel>

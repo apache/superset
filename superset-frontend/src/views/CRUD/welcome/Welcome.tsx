@@ -142,7 +142,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
             />
           )}
         </Collapse.Panel>
-        <Collapse.Panel header={t('Saved Queries')} key="3">
+        <Collapse.Panel header={t('Saved queries')} key="3">
           {loading ? (
             <Loading position="inline" />
           ) : (

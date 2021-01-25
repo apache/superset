@@ -17,44 +17,64 @@
  * under the License.
  */
 
-import React, { FC, useState } from 'react';
-import { Tree } from 'src/common/components';
+import React, { FC, useMemo, useState } from 'react';
+import { FormInstance, Tree } from 'src/common/components';
 import { useFilterScopeTree } from './state';
 import { DASHBOARD_ROOT_ID } from '../../util/constants';
-import { findFilterScope } from './utils';
+import {
+  findFilterScope,
+  getTreeCheckedItems,
+  setFilterFieldValues,
+  useForceUpdate,
+} from './utils';
+import { NativeFiltersForm, Scope } from './types';
 
 type ScopingTreeProps = {
-  setFilterScope: Function;
+  form: FormInstance<NativeFiltersForm>;
+  filterId: string;
+  initialScope: Scope;
 };
 
-const ScopingTree: FC<ScopingTreeProps> = ({ setFilterScope }) => {
+const ScopingTree: FC<ScopingTreeProps> = ({
+  form,
+  filterId,
+  initialScope,
+}) => {
   const [expandedKeys, setExpandedKeys] = useState<string[]>([
     DASHBOARD_ROOT_ID,
   ]);
 
+  const formFilter = form.getFieldValue('filters')[filterId];
+
   const { treeData, layout } = useFilterScopeTree();
-
   const [autoExpandParent, setAutoExpandParent] = useState<boolean>(true);
-  const [checkedKeys, setCheckedKeys] = useState<string[]>([]);
 
-  const onExpand = (expandedKeys: string[]) => {
+  const handleExpand = (expandedKeys: string[]) => {
     setExpandedKeys(expandedKeys);
     setAutoExpandParent(false);
   };
-
-  const onCheck = (checkedKeys: string[]) => {
-    setCheckedKeys(checkedKeys);
-    setFilterScope(findFilterScope(checkedKeys, layout));
+  const forceUpdate = useForceUpdate();
+  const handleCheck = (checkedKeys: string[]) => {
+    forceUpdate();
+    setFilterFieldValues(form, filterId, {
+      scope: findFilterScope(checkedKeys, layout),
+    });
   };
+
+  const checkedKeys = useMemo(
+    () =>
+      getTreeCheckedItems({ ...(formFilter.scope || initialScope) }, layout),
+    [formFilter.scope, initialScope, layout],
+  );
 
   return (
     <Tree
       checkable
       selectable={false}
-      onExpand={onExpand}
+      onExpand={handleExpand}
       expandedKeys={expandedKeys}
       autoExpandParent={autoExpandParent}
-      onCheck={onCheck}
+      onCheck={handleCheck}
       checkedKeys={checkedKeys}
       treeData={treeData}
     />

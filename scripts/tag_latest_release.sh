@@ -25,7 +25,7 @@ run_git_tag () {
   exit 0
 }
 
-SKIP_TAG=false
+echo "::set-output name=SKIP_TAG::false"
 DRY_RUN=false
 
 # get params passed in with script when it was run
@@ -62,7 +62,7 @@ fi
 if ! [[ ${GITHUB_TAG_NAME} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
 then
   echo "This tag ${GITHUB_TAG_NAME} is not a valid release version. Not tagging."
-  SKIP_TAG=true
+  echo "::set-output name=SKIP_TAG::true"
   exit 0
 fi
 
@@ -125,4 +125,4 @@ done
 
 echo "This release tag ${GITHUB_TAG_NAME} is not the latest. Not tagging."
 # if you've gotten this far, then we don't want to run any tags in the next step
-SKIP_TAG=true
+echo "::set-output name=SKIP_TAG::true"

@@ -93,11 +93,11 @@ const StyledDashboardContent = styled.div`
     width: 100%;
     flex-grow: 1;
     position: relative;
-    margin: ${({ theme }) => theme.gridUnit * 2}px
+    margin: ${({ theme }) => theme.gridUnit * 6}px
       ${({ theme }) => theme.gridUnit * 8}px
       ${({ theme }) => theme.gridUnit * 6}px
       ${({ theme, dashboardFiltersOpen }) => {
-        if (dashboardFiltersOpen) return theme.gridUnit * 4;
+        if (dashboardFiltersOpen) return theme.gridUnit * 8;
         return 0;
       }}px;
   }

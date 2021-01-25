@@ -24,6 +24,7 @@ from typing import Any, Dict
 from urllib import request
 
 import pandas as pd
+from flask import current_app
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.visitors import VisitableType
@@ -125,6 +126,7 @@ def import_dataset(
 def load_data(
     data_uri: str, dataset: SqlaTable, example_database: Database, session: Session
 ) -> None:
+
     data = request.urlopen(data_uri)
     if data_uri.endswith(".gz"):
         data = gzip.open(data)
@@ -137,7 +139,9 @@ def load_data(
             df[column_name] = pd.to_datetime(df[column_name])
 
     # reuse session when loading data if possible, to make import atomic
-    if example_database.sqlalchemy_uri == get_example_database().sqlalchemy_uri:
+    if example_database.sqlalchemy_uri == current_app.config.get(
+        "SQLALCHEMY_DATABASE_URI"
+    ) or not current_app.config.get("SQLALCHEMY_EXAMPLES_URI"):
         logger.info("Loading data inside the import transaction")
         connection = session.connection()
     else:

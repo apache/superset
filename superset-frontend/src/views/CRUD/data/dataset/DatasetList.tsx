@@ -201,7 +201,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             return (
               <TooltipWrapper
                 label="physical-dataset"
-                tooltip={t('Physical Dataset')}
+                tooltip={t('Physical dataset')}
               >
                 <Icon name="dataset-physical" />
               </TooltipWrapper>
@@ -211,7 +211,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           return (
             <TooltipWrapper
               label="virtual-dataset"
-              tooltip={t('Virtual Dataset')}
+              tooltip={t('Virtual dataset')}
             >
               <Icon name="dataset-virtual" />
             </TooltipWrapper>
@@ -289,7 +289,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             original: { changed_by_name: changedByName },
           },
         }: any) => changedByName,
-        Header: t('Modified By'),
+        Header: t('Modified by'),
         accessor: 'changed_by.first_name',
         size: 'xl',
       },
@@ -465,7 +465,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   if (canDelete || canExport) {
     buttonArr.push({
-      name: t('Bulk Select'),
+      name: t('Bulk select'),
       onClick: toggleBulkSelect,
       buttonStyle: 'secondary',
     });

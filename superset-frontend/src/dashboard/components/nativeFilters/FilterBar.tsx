@@ -32,6 +32,7 @@ import Icon from 'src/components/Icon';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import { areObjectsEqual } from 'src/reduxUtils';
 import Loading from 'src/components/Loading';
+import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import FilterConfigurationLink from './FilterConfigurationLink';
 // import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 
@@ -157,10 +158,11 @@ const StyledCascadeChildrenList = styled.ul`
 `;
 
 const StyledFilterControlTitle = styled.h4`
+  width: 100%;
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   margin: 0;
-  text-transform: uppercase;
+  overflow-wrap: break-word;
 `;
 
 const StyledFilterControlTitleBox = styled.div`
@@ -215,6 +217,7 @@ const FilterValue: React.FC<FilterProps> = ({
   const cascadingFilters = useCascadingFilters(id);
   const [loading, setLoading] = useState<boolean>(true);
   const [state, setState] = useState([]);
+  const [error, setError] = useState<boolean>(false);
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
   const [target] = targets;
   const { datasetId = 18, column } = target;
@@ -247,12 +250,18 @@ const FilterValue: React.FC<FilterProps> = ({
         formData: newFormData,
         force: false,
         requestParams: { dashboardId: 0 },
-      }).then(response => {
-        setState(response.result);
-        setLoading(false);
-      });
+      })
+        .then(response => {
+          setState(response.result);
+          setError(false);
+          setLoading(false);
+        })
+        .catch(() => {
+          setError(true);
+          setLoading(false);
+        });
     }
-  }, [cascadingFilters]);
+  }, [cascadingFilters, datasetId, groupby]);
 
   const setExtraFormData = (extraFormData: ExtraFormData) =>
     onExtraFormDataChange(filter, extraFormData);
@@ -262,6 +271,16 @@ const FilterValue: React.FC<FilterProps> = ({
       <StyledLoadingBox>
         <Loading />
       </StyledLoadingBox>
+    );
+  }
+
+  if (error) {
+    return (
+      <BasicErrorAlert
+        title={t('Cannot load filter')}
+        body={t('Check configuration')}
+        level="error"
+      />
     );
   }
 
@@ -452,7 +471,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             buttonSize="sm"
             onClick={handleResetAll}
           >
-            {t('Reset All')}
+            {t('Reset all')}
           </Button>
           <Button
             buttonStyle="primary"
