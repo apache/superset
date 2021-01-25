@@ -1,9 +1,11 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
     "allowSyntheticDefaultImports": true,
+    "moduleResolution": "Node",
     "strict": true,
-    "target": "ES5",
-    "lib": ["ES5", "ES2015", "DOM"],
+    "target": "es2019",
+    "lib": ["es2019", "DOM"],
     "types": ["cypress"],
     "allowJs": true,
     "noEmit": true,

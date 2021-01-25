@@ -23,8 +23,7 @@ describe('Visualization > Line', () => {
 
   beforeEach(() => {
     cy.login();
-    cy.server();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
   it('should show validator error when no metric', () => {

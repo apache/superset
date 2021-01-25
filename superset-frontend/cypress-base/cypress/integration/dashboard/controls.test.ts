@@ -17,7 +17,6 @@
  * under the License.
  */
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
-import readResponseBlob from '../../utils/readResponseBlob';
 import {
   getChartAliases,
   isLegacyResponse,
@@ -25,19 +24,19 @@ import {
 } from '../../utils/vizPlugins';
 
 describe('Dashboard top-level controls', () => {
-  let mapId;
-  let aliases;
+  let mapId: string;
+  let aliases: string[];
 
   beforeEach(() => {
-    cy.server();
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
 
     cy.get('#app').then(data => {
-      const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
+      const bootstrapData = JSON.parse(data[0].dataset.bootstrap || '');
       const dashboard = bootstrapData.dashboard_data;
       mapId = dashboard.slices.find(
-        slice => slice.form_data.viz_type === 'world_map',
+        (slice: { form_data: { viz_type: string }; slice_id: number }) =>
+          slice.form_data.viz_type === 'world_map',
       ).slice_id;
       aliases = getChartAliases(dashboard.slices);
     });
@@ -50,10 +49,11 @@ describe('Dashboard top-level controls', () => {
     cy.get(`#slice_${mapId}-controls`).click();
     cy.get(`[data-test="slice_${mapId}-menu"]`)
       .find('[data-test="refresh-chart-menu-item"]')
-      .click({ force: true })
-      .then($el => {
-        cy.get($el).should('have.class', 'ant-dropdown-menu-item-disabled');
-      });
+      .click({ force: true });
+    cy.get('[data-test="refresh-chart-menu-item"]').should(
+      'have.class',
+      'ant-dropdown-menu-item-disabled',
+    );
 
     cy.wait(`@${DASHBOARD_CHART_ALIAS_PREFIX}${mapId}`);
     cy.get('[data-test="refresh-chart-menu-item"]').should(
@@ -63,7 +63,6 @@ describe('Dashboard top-level controls', () => {
   });
 
   it('should allow dashboard level force refresh', () => {
-    // wait the all dash finish loading.
     cy.wait(aliases);
     // when charts are not start loading, for example, under a secondary tab,
     // should allow force refresh
@@ -80,14 +79,14 @@ describe('Dashboard top-level controls', () => {
     );
 
     // wait all charts force refreshed.
-    cy.wait(aliases, { responseTimeout: 15000 }).then(xhrs => {
-      xhrs.forEach(async xhr => {
-        const responseBody = await readResponseBlob(xhr.response.body);
+    cy.wait(aliases).then(xhrs => {
+      xhrs.forEach(async ({ response, request }) => {
+        const responseBody = response?.body;
         const isCached = isLegacyResponse(responseBody)
           ? responseBody.is_cached
           : responseBody.result[0].is_cached;
         // request url should indicate force-refresh operation
-        expect(xhr.url).to.have.string('force=true');
+        expect(request.url).to.have.string('force=true');
         // is_cached in response should be false
         expect(isCached).to.equal(false);
       });
