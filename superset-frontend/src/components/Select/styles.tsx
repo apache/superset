@@ -191,6 +191,7 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
       width: auto;
       min-width: 100%;
       max-width: 80vw;
+      background: none;
       box-shadow: none;
       border: 0;
     `,
