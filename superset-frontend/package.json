@@ -250,7 +250,7 @@
     "enzyme-adapter-react-16": "^1.14.0",
     "eslint": "^7.17.0",
     "eslint-config-airbnb": "^18.2.1",
-    "eslint-config-prettier": "^7.1.0",
+    "eslint-config-prettier": "^7.2.0",
     "eslint-import-resolver-typescript": "^2.3.0",
     "eslint-import-resolver-webpack": "^0.13.0",
     "eslint-plugin-cypress": "^2.11.2",
