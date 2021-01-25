@@ -16,17 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/**
- * Read XHR response and parse it as JSON.
- */
-export default function readResponseBlob(blob: Blob | JSONValue) {
-  return new Promise<ReturnType<JSON['parse']>>(resolve => {
-    if (blob instanceof Blob) {
-      const reader = new FileReader();
-      reader.onload = () => resolve(JSON.parse(String(reader.result || '')));
-      reader.readAsText(blob);
-    } else {
-      resolve(blob);
-    }
-  });
-}
+export * from './vizPlugins';
+export { default as parsePostForm } from './parsePostForm';

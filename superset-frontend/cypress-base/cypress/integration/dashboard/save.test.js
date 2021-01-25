@@ -28,14 +28,15 @@ function openDashboardEditProperties() {
 
 describe('Dashboard save action', () => {
   beforeEach(() => {
-    cy.server();
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
     cy.get('#app').then(data => {
       const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
       const dashboard = bootstrapData.dashboard_data;
       const dashboardId = dashboard.id;
-      cy.route('POST', `/superset/copy_dash/${dashboardId}/`).as('copyRequest');
+      cy.intercept('POST', `/superset/copy_dash/${dashboardId}/`).as(
+        'copyRequest',
+      );
 
       cy.get('[data-test="more-horiz"]').trigger('click', { force: true });
       cy.get('[data-test="save-as-menu-item"]').trigger('click', {
@@ -56,35 +57,37 @@ describe('Dashboard save action', () => {
   });
 
   it('should save/overwrite dashboard', () => {
-    cy.get('[data-test="grid-row-background--transparent"]').within(() => {
-      cy.get('.box_plot', { timeout: 10000 }).should('be.visible');
-    });
     // should load chart
-    cy.get('.dashboard-grid', { timeout: 50000 }); // wait for 50 secs
+    cy.get('.dashboard-grid', { timeout: 30000 });
+    cy.get('.box_plot').should('be.visible');
 
     // remove box_plot chart from dashboard
     cy.get('[data-test="edit-alt"]').click({ timeout: 5000 });
     cy.get('[data-test="dashboard-delete-component-button"]')
-      .should('be.visible', { timeout: 10000 })
       .last()
-      .trigger('click');
+      .trigger('moustenter')
+      .click();
+
     cy.get('[data-test="grid-container"]')
       .find('.box_plot')
-      .should('not.be.visible');
+      .should('not.exist');
 
-    cy.route('POST', '/superset/save_dash/**/').as('saveRequest');
+    cy.intercept('POST', '/superset/save_dash/**/').as('saveRequest');
     cy.get('[data-test="dashboard-header"]')
       .find('[data-test="header-save-button"]')
       .contains('Save')
-      .trigger('click', { force: true });
+      .click();
+
     // go back to view mode
     cy.wait('@saveRequest');
     cy.get('[data-test="dashboard-header"]')
       .find('[data-test="edit-alt"]')
       .click();
+
+    // deleted boxplot should still not exist
     cy.get('[data-test="grid-container"]')
       .find('.box_plot', { timeout: 20000 })
-      .should('not.be.visible');
+      .should('not.exist');
   });
 
   // TODO: Fix broken test
