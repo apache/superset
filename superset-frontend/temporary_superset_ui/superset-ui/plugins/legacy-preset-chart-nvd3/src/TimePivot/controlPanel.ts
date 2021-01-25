@@ -76,18 +76,16 @@ const config: ControlPanelConfig = {
     {
       label: t('Chart Options'),
       expanded: true,
-      controlSetRows: [
-        [showLegend, lineInterpolation],
-        ['color_picker', null],
-      ],
+      controlSetRows: [[showLegend], [lineInterpolation], ['color_picker', null]],
     },
     {
       label: t('X Axis'),
       expanded: true,
       controlSetRows: [
-        [xAxisLabel, bottomMargin],
+        [xAxisLabel],
+        [bottomMargin],
+        [xAxisShowMinmax],
         [
-          xAxisShowMinmax,
           {
             name: xAxisFormat.name,
             config: {
@@ -103,9 +101,12 @@ const config: ControlPanelConfig = {
       label: t('Y Axis'),
       expanded: true,
       controlSetRows: [
-        [yAxisLabel, leftMargin],
-        [yAxisShowMinmax, yLogScale],
-        ['y_axis_format', yAxisBounds],
+        [yAxisLabel],
+        [leftMargin],
+        [yAxisShowMinmax],
+        [yLogScale],
+        ['y_axis_format'],
+        [yAxisBounds],
       ],
     },
   ],
