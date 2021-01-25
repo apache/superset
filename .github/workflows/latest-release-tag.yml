@@ -20,14 +20,9 @@ jobs:
       run: |
         source ./scripts/tag_latest_release.sh $(echo ${{ github.event.release.tag_name }}) --dry-run
 
-        if ${SKIP_TAG}
-        then
-          echo "::set-env name=skip_tag::true"
-        fi
-
     - name: Run latest-tag
       uses: ./.github/actions/latest-tag
-      if: (! env.skip_tag )
+      if: (! ${{ steps.latest-tag.outputs.SKIP_TAG }} )
       with:
         description: Superset latest release
         tag-name: latest
