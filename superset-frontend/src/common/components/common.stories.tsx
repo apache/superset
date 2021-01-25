@@ -322,6 +322,16 @@ export const CollapseTextLight = () => (
     </Collapse.Panel>
   </Collapse>
 );
+export const CollapseAnimateArrows = () => (
+  <Collapse animateArrows defaultActiveKey={['1']}>
+    <Collapse.Panel header="Hi! I am a header" key="1">
+      Hi! I am a sample content
+    </Collapse.Panel>
+    <Collapse.Panel header="Hi! I am another header" key="2">
+      Hi! I am another sample content
+    </Collapse.Panel>
+  </Collapse>
+);
 export function StyledCronPicker() {
   // @ts-ignore
   const inputRef = useRef<Input>(null);
