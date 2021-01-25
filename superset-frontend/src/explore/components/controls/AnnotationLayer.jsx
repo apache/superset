@@ -377,7 +377,7 @@ export default class AnnotationLayer extends React.PureComponent {
     let description = '';
     if (requiresQuery(sourceType)) {
       if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
-        label = 'Annotation Layer';
+        label = 'Annotation layer';
         description = 'Select the Annotation Layer you would like to use.';
       } else {
         label = t('Chart');
@@ -467,8 +467,8 @@ export default class AnnotationLayer extends React.PureComponent {
                 name="annotation-layer-time-column"
                 label={
                   annotationType === ANNOTATION_TYPES.INTERVAL
-                    ? 'Interval Start column'
-                    : 'Event Time Column'
+                    ? 'Interval start column'
+                    : 'Event time column'
                 }
                 description="This column must contain date/time information."
                 validationErrors={!timeColumn ? ['Mandatory'] : []}
@@ -608,7 +608,7 @@ export default class AnnotationLayer extends React.PureComponent {
           options={[
             { value: 'solid', label: 'Solid' },
             { value: 'dashed', label: 'Dashed' },
-            { value: 'longDashed', label: 'Long Dashed' },
+            { value: 'longDashed', label: 'Long dashed' },
             { value: 'dotted', label: 'Dotted' },
           ]}
           value={style}
@@ -648,7 +648,7 @@ export default class AnnotationLayer extends React.PureComponent {
         </div>
         <TextControl
           name="annotation-layer-stroke-width"
-          label={t('Line Width')}
+          label={t('Line width')}
           isInt
           value={width}
           onChange={v => this.setState({ width: v })}
@@ -711,14 +711,14 @@ export default class AnnotationLayer extends React.PureComponent {
               />
               <CheckboxControl
                 name="annotation-layer-hide"
-                label={t('Hide Layer')}
+                label={t('Hide layer')}
                 value={!show}
                 onChange={v => this.setState({ show: !v })}
               />
               <SelectControl
                 hovered
-                description={t('Choose the Annotation Layer Type')}
-                label={t('Annotation Layer Type')}
+                description={t('Choose the annotation layer type')}
+                label={t('Annotation layer type')}
                 name="annotation-layer-type"
                 clearable={false}
                 options={supportedAnnotationTypes}

@@ -199,7 +199,7 @@ class SliceHeaderControls extends React.PureComponent {
           : item}
       </div>
     ));
-    const resizeLabel = isFullSize ? t('Minimize Chart') : t('Maximize Chart');
+    const resizeLabel = isFullSize ? t('Minimize chart') : t('Maximize chart');
     const menu = (
       <Menu
         onClick={this.handleMenuClick}
@@ -228,7 +228,7 @@ class SliceHeaderControls extends React.PureComponent {
 
         {this.props.supersetCanExplore && (
           <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
-            {t('View Chart in Explore')}
+            {t('View chart in Explore')}
           </Menu.Item>
         )}
 

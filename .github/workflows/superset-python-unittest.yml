@@ -34,7 +34,11 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - uses: actions/checkout@v2
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
@@ -82,7 +86,11 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - uses: actions/checkout@v2
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
@@ -122,7 +130,11 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - uses: actions/checkout@v2
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
       - name: Setup Python
         uses: actions/setup-python@v2
         with:

@@ -109,7 +109,7 @@ describe('FiltersConfigModal', () => {
       await clickCancel();
       expect(onCancel.mock.calls).toHaveLength(0);
       expect(wrapper.find(Alert).text()).toContain(
-        'Are you sure you want to cancel? "New Filter" will not be saved.',
+        'Are you sure you want to cancel? "New filter" will not be saved.',
       );
     });
 
@@ -119,7 +119,7 @@ describe('FiltersConfigModal', () => {
       await clickCancel();
       expect(onCancel.mock.calls).toHaveLength(0);
       expect(wrapper.find(Alert).text()).toContain(
-        'Are you sure you want to cancel? "New Filter" and "New Filter" will not be saved.',
+        'Are you sure you want to cancel? "New filter" and "New filter" will not be saved.',
       );
     });
   });

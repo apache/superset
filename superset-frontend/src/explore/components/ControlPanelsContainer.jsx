@@ -22,7 +22,6 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert } from 'react-bootstrap';
-import { css } from '@emotion/core';
 import { t, styled, getChartControlPanelRegistry } from '@superset-ui/core';
 
 import Tabs from 'src/common/components/Tabs';
@@ -46,16 +45,16 @@ const propTypes = {
 
 const Styles = styled.div`
   height: 100%;
-  max-height: 100%;
+  width: 100%;
   overflow: auto;
+  overflow-x: visible;
+  overflow-y: auto;
   .remove-alert {
     cursor: pointer;
   }
   #controlSections {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    max-height: 100%;
+    min-height: 100%;
+    overflow: visible;
   }
   .nav-tabs {
     flex: 0 0 1;
@@ -64,15 +63,18 @@ const Styles = styled.div`
     overflow: auto;
     flex: 1 1 100%;
   }
+  .Select__menu {
+    max-width: 100%;
+  }
 `;
 
 const ControlPanelsTabs = styled(Tabs)`
-  ${({ fullWidth }) =>
-    css`
-      .ant-tabs-nav-list {
-        width: ${fullWidth ? '100%' : '50%'};
-      }
-    `}
+  .ant-tabs-nav-list {
+    width: ${({ fullWidth }) => (fullWidth ? '100%' : '50%')};
+  }
+  .ant-tabs-content-holder {
+    overflow: visible;
+  }
 `;
 
 class ControlPanelsContainer extends React.Component {

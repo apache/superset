@@ -190,7 +190,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
                   currentDatasource.edit_url || currentDatasource.url;
               }}
             >
-              {t('Use Legacy Datasource Editor')}
+              {t('Use legacy datasource editor')}
             </Button>
           )}
           <Button

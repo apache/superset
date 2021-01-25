@@ -98,7 +98,11 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   form,
   parentFilters,
 }) => {
-  const [dataset, setDataset] = useState<Value<number> | undefined>();
+  const [dataset, setDataset] = useState<Value<number> | undefined>(
+    filterToEdit?.targets[0].datasetId
+      ? { label: '', value: filterToEdit?.targets[0].datasetId }
+      : undefined,
+  );
 
   const onDatasetSelectError = useCallback(
     ({ error, message }: ClientErrorObject) => {
@@ -117,7 +121,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         <p>{t('You have removed this filter.')}</p>
         <div>
           <Button type="primary" onClick={() => restore(filterId)}>
-            {t('Restore Filter')}
+            {t('Restore filter')}
           </Button>
         </div>
       </RemovedContent>
@@ -135,7 +139,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       <StyledContainer>
         <StyledFormItem
           name={['filters', filterId, 'name']}
-          label={<StyledLabel>{t('Filter Name')}</StyledLabel>}
+          label={<StyledLabel>{t('Filter name')}</StyledLabel>}
           initialValue={filterToEdit?.name}
           rules={[{ required: !removed, message: t('Name is required') }]}
           data-test="name-input"
@@ -177,7 +181,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       </StyledFormItem>
       <StyledFormItem
         name={['filters', filterId, 'parentFilter']}
-        label={<StyledLabel>{t('Parent Filter')}</StyledLabel>}
+        label={<StyledLabel>{t('Parent filter')}</StyledLabel>}
         initialValue={parentFilterOptions.find(
           ({ value }) => value === filterToEdit?.cascadeParentIds[0],
         )}

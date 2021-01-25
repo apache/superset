@@ -13,8 +13,11 @@ jobs:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     steps:
-      - name: Checkout code
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
       - name: Install dependencies
         uses: ./.github/actions/cached-dependencies
         with:
