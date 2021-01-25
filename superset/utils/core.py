@@ -1095,7 +1095,7 @@ def user_label(user: User) -> Optional[str]:
 
 
 def get_or_create_db(
-    database_name: str, sqlalchemy_uri: str, *args: Any, **kwargs: Any
+    database_name: str, sqlalchemy_uri: str, always_create: Optional[bool] = True
 ) -> "Database":
     from superset import db
     from superset.models import core as models
@@ -1104,13 +1104,15 @@ def get_or_create_db(
         db.session.query(models.Database).filter_by(database_name=database_name).first()
     )
 
-    if not database:
+    if not database and always_create:
         logger.info("Creating database reference for %s", database_name)
-        database = models.Database(database_name=database_name, *args, **kwargs)
+        database = models.Database(database_name=database_name)
         db.session.add(database)
 
-    database.set_sqlalchemy_uri(sqlalchemy_uri)
-    db.session.commit()
+    if database:
+        database.set_sqlalchemy_uri(sqlalchemy_uri)
+        db.session.commit()
+
     return database
 
 
