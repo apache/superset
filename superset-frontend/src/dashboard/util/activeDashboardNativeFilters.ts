@@ -76,9 +76,15 @@ export const getActiveNativeFilters = ({
   layout: { [key: string]: LayoutItem };
 }): ActiveFilters => {
   const activeNativeFilters = {};
+  if (!nativeFilters?.filtersState) {
+    return activeNativeFilters;
+  }
   Object.values(nativeFilters.filtersState).forEach(
     ({ id: filterId, extraFormData }) => {
-      const { scope } = nativeFilters.filters[filterId];
+      const scope = nativeFilters?.filters?.[filterId]?.scope;
+      if (!scope) {
+        return;
+      }
       // Iterate over all roots to find all affected charts
       scope.rootPath.forEach(layoutItemId => {
         layout[layoutItemId].children.forEach((child: string) => {
