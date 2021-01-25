@@ -217,7 +217,6 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           setTooltipTitle(value || '');
         }
         setValidTimeRange(true);
-        setFrame(guessFrame(value));
       }
     });
   }, [value]);
@@ -225,6 +224,8 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   useEffect(() => {
     if (isMounted) {
       onChange('Last week');
+      setTimeRangeValue('Last week');
+      setFrame(guessFrame('Last week'));
     }
   }, [datasource]);
 
