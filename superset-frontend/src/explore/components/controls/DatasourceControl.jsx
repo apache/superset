@@ -157,6 +157,7 @@ class DatasourceControl extends React.PureComponent {
   render() {
     const { showChangeDatasourceModal, showEditDatasourceModal } = this.state;
     const { datasource, onChange } = this.props;
+    const isMissingDatasource = datasource;
     const datasourceMenu = (
       <Menu onClick={this.handleMenuItemClick}>
         {this.props.isEditable && (
@@ -176,7 +177,7 @@ class DatasourceControl extends React.PureComponent {
         <div className="data-container">
           <Icon name="dataset-physical" className="dataset-svg" />
           {/* Add a tooltip only for long dataset names */}
-          {datasource.name.length > 20 ? (
+          {!isMissingDatasource && datasource.name.length > 25 ? (
             <Tooltip title={datasource.name}>
               <span className="title-select">{datasource.name}</span>
             </Tooltip>
@@ -208,7 +209,7 @@ class DatasourceControl extends React.PureComponent {
           </Dropdown>
         </div>
         {/* missing dataset */}
-        {datasource.id == null && (
+        {isMissingDatasource && (
           <div className="error-alert">
             <ErrorAlert
               level="warning"
