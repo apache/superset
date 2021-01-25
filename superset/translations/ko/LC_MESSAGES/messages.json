@@ -197,7 +197,7 @@
       "Charts could not be deleted.": [""],
       "Import chart failed for an unknown reason": [""],
       "Owners are invalid": [""],
-      "Datasource does not exist": ["데이터소스"],
+      "Dataset does not exist": ["데이터소스"],
       "`operation` property of post processing object undefined": [""],
       "Unsupported post processing operation: %(operation)s": [""],
       "Adding new datasource [{}]": ["새 데이터소스 스캔"],
@@ -579,7 +579,7 @@
       "Add Annotation Layer": [""],
       "Edit Annotation Layer": ["주석 레이어"],
       "Name": ["이름"],
-      "Datasource %(name)s already exists": [""],
+      "Dataset %(name)s already exists": [""],
       "Table [%{table}s] could not be found, please double check your database connection, schema, and table name, error: {}": [
         ""
       ],

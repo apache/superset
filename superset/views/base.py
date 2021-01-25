@@ -47,6 +47,7 @@ from superset import (
     security_manager,
 )
 from superset.connectors.sqla import models
+from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
@@ -203,10 +204,6 @@ def handle_api_exception(
     return functools.update_wrapper(wraps, f)
 
 
-def get_datasource_exist_error_msg(full_name: str) -> str:
-    return __("Datasource %(name)s already exists", name=full_name)
-
-
 def validate_sqlatable(table: models.SqlaTable) -> None:
     """Checks the table existence in the database."""
     with db.session.no_autoflush:
@@ -216,7 +213,7 @@ def validate_sqlatable(table: models.SqlaTable) -> None:
             models.SqlaTable.database_id == table.database.id,
         )
         if db.session.query(table_query.exists()).scalar():
-            raise Exception(get_datasource_exist_error_msg(table.full_name))
+            raise Exception(get_dataset_exist_error_msg(table.full_name))
 
     # Fail before adding if the table can't be found
     try:

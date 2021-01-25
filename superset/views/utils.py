@@ -27,7 +27,7 @@ import simplejson as json
 from flask import g, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
-from flask_babel import gettext as __
+from flask_babel import _
 from sqlalchemy.orm.exc import NoResultFound
 
 import superset.models.core as models
@@ -228,7 +228,7 @@ def get_datasource_info(
 
     if not datasource_id:
         raise SupersetException(
-            "The dataset associated with this chart no longer exists"
+            _("The dataset associated with this chart no longer exists")
         )
 
     datasource_id = int(datasource_id)
@@ -507,7 +507,7 @@ def check_datasource_perms(
             SupersetError(
                 error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
                 level=ErrorLevel.ERROR,
-                message=__("Could not determine datasource type"),
+                message=_("Could not determine datasource type"),
             )
         )
 
@@ -523,7 +523,7 @@ def check_datasource_perms(
             SupersetError(
                 error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
                 level=ErrorLevel.ERROR,
-                message=__("Could not find viz object"),
+                message=_("Could not find viz object"),
             )
         )
 

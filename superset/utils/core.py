@@ -71,6 +71,7 @@ from flask import current_app, flash, g, Markup, render_template
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import Role, User
 from flask_babel import gettext as __
+from flask_babel.speaklater import LazyString
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
@@ -504,6 +505,8 @@ def base_json_conv(  # pylint: disable=inconsistent-return-statements,too-many-r
             return obj.decode("utf-8")
         except Exception:  # pylint: disable=broad-except
             return "[bytes]"
+    if isinstance(obj, LazyString):
+        return str(obj)
 
 
 def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:

@@ -223,7 +223,7 @@
       "Charts could not be deleted.": ["这个查询无法被加载"],
       "Import chart failed for an unknown reason": [""],
       "Owners are invalid": [""],
-      "Datasource does not exist": ["数据源%(name)s 已存在"],
+      "Dataset does not exist": ["数据集不存在"],
       "`operation` property of post processing object undefined": [""],
       "Unsupported post processing operation: %(operation)s": [""],
       "Adding new datasource [{}]": ["添加 Druid 数据源"],
@@ -617,7 +617,7 @@
       "Add Annotation Layer": ["添加注释层"],
       "Edit Annotation Layer": ["添加注释层"],
       "Name": ["名字"],
-      "Datasource %(name)s already exists": ["数据源%(name)s 已存在"],
+      "Dataset %(name)s already exists": ["数据源%(name)s 已存在"],
       "Table [%{table}s] could not be found, please double check your database connection, schema, and table name, error: {}": [
         "找不到 [{}] 表，请仔细检查您的数据库连接、Schema 和 表名"
       ],
