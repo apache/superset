@@ -237,7 +237,7 @@
       "Charts could not be deleted.": ["La query non può essere caricata"],
       "Import chart failed for an unknown reason": [""],
       "Owners are invalid": [""],
-      "Datasource does not exist": ["Sorgente dati e tipo di grafico"],
+      "Dataset does not exist": ["Sorgente dati e tipo di grafico"],
       "`operation` property of post processing object undefined": [""],
       "Unsupported post processing operation: %(operation)s": [""],
       "Adding new datasource [{}]": [""],
@@ -643,7 +643,7 @@
       "Add Annotation Layer": [""],
       "Edit Annotation Layer": [""],
       "Name": ["Nome"],
-      "Datasource %(name)s already exists": [""],
+      "Dataset %(name)s already exists": [""],
       "Table [%{table}s] could not be found, please double check your database connection, schema, and table name, error: {}": [
         ""
       ],

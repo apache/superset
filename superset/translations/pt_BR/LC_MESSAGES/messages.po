@@ -801,7 +801,7 @@ msgid "Owners are invalid"
 msgstr "Donos inválidos"
 
 #: superset/commands/exceptions.py:92
-msgid "Datasource does not exist"
+msgid "Dataset does not exist"
 msgstr "Fonte de dados não existe"
 
 #: superset/common/query_object.py:301
@@ -2439,7 +2439,7 @@ msgstr "Nome"
 
 #: superset/views/base.py:207
 #, python-format
-msgid "Datasource %(name)s already exists"
+msgid "Dataset %(name)s already exists"
 msgstr "Fonte de dados %(name)s já existe"
 
 #: superset/views/base.py:227

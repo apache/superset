@@ -773,8 +773,8 @@ msgid "Owners are invalid"
 msgstr ""
 
 #: superset/commands/exceptions.py:92
-msgid "Datasource does not exist"
-msgstr "数据源%(name)s 已存在"
+msgid "Dataset does not exist"
+msgstr "数据集不存在"
 
 #: superset/common/query_object.py:301
 msgid "`operation` property of post processing object undefined"
@@ -2315,7 +2315,7 @@ msgstr "名字"
 
 #: superset/views/base.py:207
 #, python-format
-msgid "Datasource %(name)s already exists"
+msgid "Dataset %(name)s already exists"
 msgstr "数据源%(name)s 已存在"
 
 #: superset/views/base.py:227
