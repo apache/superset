@@ -23,8 +23,12 @@ from flask_appbuilder.security.sqla.models import User
 from superset import appbuilder
 from superset.connectors.sqla.models import SqlaTable, sqlatable_user
 from superset.models.core import Database
-from superset.models.dashboard import Dashboard, dashboard_slices, dashboard_user, \
-    DashboardRoles
+from superset.models.dashboard import (
+    Dashboard,
+    dashboard_slices,
+    dashboard_user,
+    DashboardRoles,
+)
 from superset.models.slice import Slice, slice_user
 from tests.dashboards.dashboard_test_utils import random_slug, random_str, random_title
 
