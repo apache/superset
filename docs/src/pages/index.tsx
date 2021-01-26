@@ -461,7 +461,7 @@ const Theme = () => {
               </ul>
               <span className="databaseSub">
                 ... and many other
-                <a href="https://superset.apache.org/docs/databases/installing-database-drivers">
+                <a href="docs/databases/installing-database-drivers">
                   {' '}
                   compatible databases
                   {' '}
