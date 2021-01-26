@@ -157,7 +157,7 @@ class DatasourceControl extends React.PureComponent {
   render() {
     const { showChangeDatasourceModal, showEditDatasourceModal } = this.state;
     const { datasource, onChange } = this.props;
-    const isMissingDatasource = datasource;
+    const isMissingDatasource = datasource.id == null;
     const datasourceMenu = (
       <Menu onClick={this.handleMenuItemClick}>
         {this.props.isEditable && (
