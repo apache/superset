@@ -301,22 +301,3 @@ def delete_database(database: Database, do_commit: bool = False) -> None:
     session.delete(database)
     if do_commit:
         session.commit()
-
-
-def delete_all_inserted_models(model: Any, ids: List[int], delete_model: Callable):
-    try:
-        models_to_delete: List[Model] = session.query(model).filter_by(
-            model.id.in_(ids).all()
-        )
-        for model in models_to_delete:
-            try:
-                delete_model(model, False)
-            except Exception as ex:
-                logger.error(f"failed to delete {model.id}", exc_info=True)
-                raise ex
-        if len(ids) > 0:
-            session.commit()
-            ids.clear()
-    except Exception as ex2:
-        logger.error(f"delete_all_inserted_models of {model} failed", exc_info=True)
-        raise ex2

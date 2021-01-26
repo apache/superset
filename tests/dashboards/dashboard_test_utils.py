@@ -34,7 +34,7 @@ def get_mock_positions(dashboard: Dashboard) -> Dict[str, Any]:
     positions = {"DASHBOARD_VERSION_KEY": "v2"}
     for i, slc in enumerate(dashboard.slices):
         id_ = "DASHBOARD_CHART_TYPE-{}".format(i)
-        position_data = {
+        position_data: Any = {
             "type": "CHART",
             "id": id_,
             "children": [],
@@ -46,7 +46,7 @@ def get_mock_positions(dashboard: Dashboard) -> Dict[str, Any]:
 
 def build_save_dash_parts(
     dashboard_slug: Optional[str] = None, dashboard_to_edit: Optional[Dashboard] = None
-) -> Tuple[Dashboard, Dict, Dict]:
+) -> Tuple[Dashboard, Dict[str, Any], Dict[str, Any]]:
     if not dashboard_to_edit:
         dashboard_slug = (
             dashboard_slug if dashboard_slug else DEFAULT_DASHBOARD_SLUG_TO_TEST
