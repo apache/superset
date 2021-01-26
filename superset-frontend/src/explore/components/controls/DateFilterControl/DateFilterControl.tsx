@@ -74,7 +74,6 @@ const fetchTimeRange = async (
 ) => {
   const query = rison.encode(timeRange);
   const endpoint = `/api/v1/time_range/?q=${query}`;
-
   try {
     const response = await SupersetClient.get({ endpoint });
     const timeRangeString = buildTimeRangeString(
@@ -171,20 +170,23 @@ interface DateFilterLabelProps {
   onChange: (timeRange: string) => void;
   value?: string;
   endpoints?: TimeRangeEndpoints;
+  datasource?: string;
 }
 
 export default function DateFilterControl(props: DateFilterLabelProps) {
-  const { value = 'Last week', endpoints, onChange } = props;
+  const { value = 'Last week', endpoints, onChange, datasource } = props;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
   const [frame, setFrame] = useState<FrameType>(guessFrame(value));
+  const [isMounted, setIsMounted] = useState<boolean>(false);
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
   const [tooltipTitle, setTooltipTitle] = useState<string>(value);
 
   useEffect(() => {
+    if (!isMounted) setIsMounted(true);
     fetchTimeRange(value, endpoints).then(({ value: actualRange, error }) => {
       if (error) {
         setEvalResponse(error || '');
@@ -197,16 +199,15 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           +--------------+------+----------+--------+----------+-----------+
           |              | Last | Previous | Custom | Advanced | No Filter |
           +--------------+------+----------+--------+----------+-----------+
-          | control pill | HRT  | HRT      | ADR    | ADR      |   ADR     |
+          | control pill | HRT  | HRT      | ADR    | ADR      |   HRT     |
           +--------------+------+----------+--------+----------+-----------+
-          | tooltip      | ADR  | ADR      | HRT    | HRT      |   HRT     |
+          | tooltip      | ADR  | ADR      | HRT    | HRT      |   ADR     |
           +--------------+------+----------+--------+----------+-----------+
         */
-        const valueToLower = value.toLowerCase();
         if (
-          valueToLower.startsWith('last') ||
-          valueToLower.startsWith('next') ||
-          valueToLower.startsWith('previous')
+          frame === 'Common' ||
+          frame === 'Calendar' ||
+          frame === 'No filter'
         ) {
           setActualTimeRange(value);
           setTooltipTitle(actualRange || '');
@@ -218,6 +219,14 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
       }
     });
   }, [value]);
+
+  useEffect(() => {
+    if (isMounted) {
+      onChange('Last week');
+      setTimeRangeValue('Last week');
+      setFrame(guessFrame('Last week'));
+    }
+  }, [datasource]);
 
   useEffect(() => {
     fetchTimeRange(timeRangeValue, endpoints).then(({ value, error }) => {
@@ -237,8 +246,8 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   }
 
   function onHide() {
-    setFrame(guessFrame(value));
     setTimeRangeValue(value);
+    setFrame(guessFrame(value));
     setShow(false);
   }
 

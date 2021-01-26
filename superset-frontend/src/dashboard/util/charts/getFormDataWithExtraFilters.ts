@@ -21,20 +21,22 @@ import {
   CategoricalColorNamespace,
   DataRecordFilters,
 } from '@superset-ui/core';
-import { ChartQueryPayload, Charts } from 'src/dashboard/types';
+import { ChartQueryPayload, Charts, LayoutItem } from 'src/dashboard/types';
 import { NativeFiltersState } from 'src/dashboard/components/nativeFilters/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
+import { getActiveNativeFilters } from '../activeDashboardNativeFilters';
 
 // We cache formData objects so that our connected container components don't always trigger
 // render cascades. we cannot leverage the reselect library because our cache size is >1
 const cachedFiltersByChart = {};
 const cachedFormdataByChart = {};
 
-interface GetFormDataWithExtraFiltersArguments {
+export interface GetFormDataWithExtraFiltersArguments {
   chart: ChartQueryPayload;
   charts: Charts;
   filters: DataRecordFilters;
+  layout: { [key: string]: LayoutItem };
   colorScheme?: string;
   colorNamespace?: string;
   sliceId: number;
@@ -51,6 +53,7 @@ export default function getFormDataWithExtraFilters({
   colorScheme,
   colorNamespace,
   sliceId,
+  layout,
   nativeFilters,
 }: GetFormDataWithExtraFiltersArguments) {
   // Propagate color mapping to chart
@@ -70,12 +73,23 @@ export default function getFormDataWithExtraFilters({
     return cachedFormdataByChart[sliceId];
   }
 
+  let extraData = {};
+  const activeNativeFilters = getActiveNativeFilters({ nativeFilters, layout });
+  const isAffectedChart = Object.values(activeNativeFilters).some(({ scope }) =>
+    scope.includes(chart.id),
+  );
+  if (isAffectedChart) {
+    extraData = {
+      extra_form_data: getExtraFormData(nativeFilters, charts),
+    };
+  }
+
   const formData = {
     ...chart.formData,
     ...(colorScheme && { color_scheme: colorScheme }),
     label_colors: labelColors,
     extra_filters: getEffectiveExtraFilters(filters),
-    extra_form_data: getExtraFormData(nativeFilters, charts),
+    ...extraData,
   };
   cachedFiltersByChart[sliceId] = filters;
   cachedFormdataByChart[sliceId] = formData;

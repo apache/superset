@@ -154,7 +154,7 @@ export function scheduleQuery(query) {
         dispatch(
           addSuccessToast(
             t(
-              'Your query has been scheduled. To see details of your query, navigate to Saved Queries',
+              'Your query has been scheduled. To see details of your query, navigate to Saved queries',
             ),
           ),
         ),
@@ -1180,7 +1180,7 @@ export function popStoredQuery(urlId) {
       .then(({ json }) =>
         dispatch(
           addQueryEditor({
-            title: json.title ? json.title : t('Sjsonhared query'),
+            title: json.title ? json.title : t('Shared query'),
             dbId: json.dbId ? parseInt(json.dbId, 10) : null,
             schema: json.schema ? json.schema : null,
             autorun: json.autorun ? json.autorun : false,

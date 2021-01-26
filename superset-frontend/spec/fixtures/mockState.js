@@ -24,11 +24,11 @@ import { dashboardLayout } from './mockDashboardLayout';
 import dashboardInfo from './mockDashboardInfo';
 import { emptyFilters } from './mockDashboardFilters';
 import dashboardState from './mockDashboardState';
-import sliceEntities from './mockSliceEntities';
+import { sliceEntitiesForChart } from './mockSliceEntities';
 
 export default {
   datasources,
-  sliceEntities,
+  sliceEntities: sliceEntitiesForChart,
   charts: chartQueries,
   nativeFilters: nativeFiltersInfo,
   dashboardInfo,

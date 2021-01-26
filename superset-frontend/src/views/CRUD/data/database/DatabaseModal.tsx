@@ -346,7 +346,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       title={
         <h4>
           <StyledIcon name="database" />
-          {isEditMode ? t('Edit Database') : t('Add Database')}
+          {isEditMode ? t('Edit database') : t('Add database')}
         </h4>
       }
     >
@@ -366,7 +366,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         >
           <StyledInputContainer>
             <div className="control-label">
-              {t('Database Name')}
+              {t('Database name')}
               <span className="required">*</span>
             </div>
             <div className="input-container">
@@ -396,7 +396,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 onChange={onInputChange}
               />
               <Button buttonStyle="primary" onClick={testConnection} cta>
-                {t('Test Connection')}
+                {t('Test connection')}
               </Button>
             </div>
             <div className="helper">
@@ -414,13 +414,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('Performance')}</span>} key="2">
           <StyledInputContainer>
-            <div className="control-label">{t('Chart Cache Timeout')}</div>
+            <div className="control-label">{t('Chart cache timeout')}</div>
             <div className="input-container">
               <input
                 type="number"
                 name="cache_timeout"
                 value={db ? db.cache_timeout || '' : ''}
-                placeholder={t('Chart Cache Timeout')}
+                placeholder={t('Chart cache timeout')}
                 onChange={onInputChange}
               />
             </div>
@@ -440,7 +440,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 checked={db ? !!db.allow_run_async : false}
                 onChange={onInputChange}
               />
-              <div>{t('Asynchronous Query Execution')}</div>
+              <div>{t('Asynchronous query execution')}</div>
               <InfoTooltip
                 tooltip={t(
                   'Operate the database in asynchronous mode, meaning that the queries ' +
@@ -452,7 +452,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             </div>
           </StyledInputContainer>
         </Tabs.TabPane>
-        <Tabs.TabPane tab={<span>{t('SQL Lab Settings')}</span>} key="3">
+        <Tabs.TabPane tab={<span>{t('SQL Lab settings')}</span>} key="3">
           <StyledInputContainer>
             <StyledInputContainer>
               <div className="input-container">
@@ -518,7 +518,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   checked={db ? !!db.allow_multi_schema_metadata_fetch : false}
                   onChange={onInputChange}
                 />
-                <div>{t('Allow Multi Schema Metadata Fetch')}</div>
+                <div>{t('Allow multi schema metadata fetch')}</div>
                 <InfoTooltip
                   tooltip={t(
                     'Allow SQL Lab to fetch a list of all tables and all views across all database ' +
@@ -530,13 +530,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             </StyledInputContainer>
           </StyledInputContainer>
           <StyledInputContainer>
-            <div className="control-label">{t('CTAS Schema')}</div>
+            <div className="control-label">{t('CTAS schema')}</div>
             <div className="input-container">
               <input
                 type="text"
                 name="force_ctas_schema"
                 value={db ? db.force_ctas_schema || '' : ''}
-                placeholder={t('CTAS Schema')}
+                placeholder={t('CTAS schema')}
                 onChange={onInputChange}
               />
             </div>
@@ -550,12 +550,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('Security')}</span>} key="4">
           <StyledInputContainer>
-            <div className="control-label">{t('Secure Extra')}</div>
+            <div className="control-label">{t('Secure extra')}</div>
             <div className="input-container">
               <StyledJsonEditor
                 name="encrypted_extra"
                 value={db ? db.encrypted_extra || '' : ''}
-                placeholder={t('Secure Extra')}
+                placeholder={t('Secure extra')}
                 onChange={(json: string) =>
                   onEditorChange(json, 'encrypted_extra')
                 }
@@ -579,12 +579,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             </div>
           </StyledInputContainer>
           <StyledInputContainer>
-            <div className="control-label">{t('Root Certificate')}</div>
+            <div className="control-label">{t('Root certificate')}</div>
             <div className="input-container">
               <textarea
                 name="server_cert"
                 value={db ? db.server_cert || '' : ''}
-                placeholder={t('Root Certificate')}
+                placeholder={t('Root certificate')}
                 onChange={onTextChange}
               />
             </div>
@@ -625,7 +625,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 checked={db ? !!db.allow_csv_upload : false}
                 onChange={onInputChange}
               />
-              <div>{t('Allow Data Upload')}</div>
+              <div>{t('Allow data upload')}</div>
               <InfoTooltip
                 tooltip={t(
                   'If selected, please set the schemas allowed for data upload in Extra.',
@@ -639,7 +639,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               <StyledJsonEditor
                 name="extra"
                 value={(db && db.extra) ?? defaultExtra}
-                placeholder={t('Secure Extra')}
+                placeholder={t('Secure extra')}
                 onChange={(json: string) => onEditorChange(json, 'extra')}
                 width="100%"
                 height="160px"

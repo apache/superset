@@ -29,11 +29,13 @@ from celery.exceptions import SoftTimeLimitExceeded
 from celery.task.base import Task
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import Session
+from werkzeug.local import LocalProxy
 
 from superset import app, results_backend, results_backend_use_msgpack, security_manager
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.extensions import celery_app
+from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import CtasMethod, ParsedQuery
@@ -47,13 +49,25 @@ from superset.utils.core import (
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
 
+
+# pylint: disable=unused-argument, redefined-outer-name
+def dummy_sql_query_mutator(
+    sql: str,
+    user_name: Optional[str],
+    security_manager: LocalProxy,
+    database: Database,
+) -> str:
+    """A no-op version of SQL_QUERY_MUTATOR"""
+    return sql
+
+
 config = app.config
 stats_logger = config["STATS_LOGGER"]
 SQLLAB_TIMEOUT = config["SQLLAB_ASYNC_TIME_LIMIT_SEC"]
 SQLLAB_HARD_TIMEOUT = SQLLAB_TIMEOUT + 60
 SQL_MAX_ROW = config["SQL_MAX_ROW"]
 SQLLAB_CTAS_NO_LIMIT = config["SQLLAB_CTAS_NO_LIMIT"]
-SQL_QUERY_MUTATOR = config["SQL_QUERY_MUTATOR"]
+SQL_QUERY_MUTATOR = config.get("SQL_QUERY_MUTATOR") or dummy_sql_query_mutator
 log_query = config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
 
@@ -195,8 +209,7 @@ def execute_sql_statement(
             sql = database.apply_limit_to_sql(sql, query.limit)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
-    if SQL_QUERY_MUTATOR:
-        sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
+    sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
 
     try:
         if log_query:

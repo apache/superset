@@ -49,6 +49,7 @@ describe('ExploreResultsButton', () => {
     database,
     show: true,
     query: queries[0],
+    onClick() {},
   };
   const mockColumns = {
     ds: {
@@ -90,6 +91,7 @@ describe('ExploreResultsButton', () => {
       database,
       show: true,
       query: queryWithBadColumns,
+      onClick() {},
     });
 
     const badCols = wrapper.instance().getInvalidColumns();
@@ -147,6 +149,7 @@ describe('ExploreResultsButton', () => {
       show: true,
       query: longQuery,
       database,
+      onClick() {},
     };
     const longQueryWrapper = shallow(
       <ExploreResultsButton store={store} {...props} />,

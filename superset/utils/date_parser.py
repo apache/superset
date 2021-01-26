@@ -71,19 +71,35 @@ def parse_human_datetime(human_readable: str) -> datetime:
     >>> year_after_1 == year_after_2
     True
     """
+    x_periods = r"^\s*([0-9]+)\s+(second|minute|hour|day|week|month|quarter|year)s?\s*$"
+    if re.search(x_periods, human_readable, re.IGNORECASE):
+        raise ValueError(
+            _(
+                "Date string is unclear."
+                " Please specify [%(human_readable)s ago]"
+                " or [%(human_readable)s later]",
+                human_readable=human_readable,
+            )
+        )
+
     try:
         dttm = parse(human_readable)
-    except Exception:  # pylint: disable=broad-except
-        try:
-            cal = parsedatetime.Calendar()
-            parsed_dttm, parsed_flags = cal.parseDT(human_readable)
-            # when time is not extracted, we 'reset to midnight'
-            if parsed_flags & 2 == 0:
-                parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
-            dttm = dttm_from_timetuple(parsed_dttm.utctimetuple())
-        except Exception as ex:
+    except (ValueError, OverflowError) as ex:
+        cal = parsedatetime.Calendar()
+        parsed_dttm, parsed_flags = cal.parseDT(human_readable)
+        # 0 == not parsed at all
+        if parsed_flags == 0:
             logger.exception(ex)
-            raise ValueError("Couldn't parse date string [{}]".format(human_readable))
+            raise ValueError(
+                _(
+                    "Couldn't parse date string [%(human_readable)s]",
+                    human_readable=human_readable,
+                )
+            )
+        # when time is not extracted, we 'reset to midnight'
+        if parsed_flags & 2 == 0:
+            parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
+        dttm = dttm_from_timetuple(parsed_dttm.utctimetuple())
     return dttm
 
 
@@ -375,7 +391,9 @@ class EvalHolidayFunc:  # pylint: disable=too-few-public-methods
         searched_result = holiday_lookup.get_named(holiday)
         if len(searched_result) == 1:
             return dttm_from_timetuple(searched_result[0].timetuple())
-        raise ValueError(_("Unable to find such a holiday: [{}]").format(holiday))
+        raise ValueError(
+            _("Unable to find such a holiday: [%(holiday)s]", holiday=holiday)
+        )
 
 
 @memoized
@@ -470,3 +488,13 @@ def datetime_eval(datetime_expression: Optional[str] = None) -> Optional[datetim
         except ParseException as error:
             raise ValueError(error)
     return None
+
+
+class DateRangeMigration:  # pylint: disable=too-few-public-methods
+    x_dateunit_in_since = (
+        r'"time_range":\s"\s*[0-9]+\s(day|week|month|quarter|year)s?\s*\s:\s'
+    )
+    x_dateunit_in_until = (
+        r'"time_range":\s".*\s:\s\s*[0-9]+\s(day|week|month|quarter|year)s?\s*"'
+    )
+    x_dateunit = r"\s*[0-9]+\s(day|week|month|quarter|year)s?\s*"

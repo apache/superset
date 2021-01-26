@@ -23,12 +23,18 @@ import URI from 'urijs';
 import { Provider } from 'react-redux';
 import { shallow, mount } from 'enzyme';
 import sinon from 'sinon';
+import { act } from 'react-dom/test-utils';
+import fetchMock from 'fetch-mock';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { EditableTabs } from 'src/common/components/Tabs';
 import TabbedSqlEditors from 'src/SqlLab/components/TabbedSqlEditors';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
 
 import { table, initialState } from './fixtures';
+
+fetchMock.get('glob:*/api/v1/database/*', {});
+fetchMock.get('glob:*/savedqueryviewapi/api/get/*', {});
+fetchMock.get('glob:*/kv/*', {});
 
 describe('TabbedSqlEditors', () => {
   const middlewares = [thunk];
@@ -58,6 +64,7 @@ describe('TabbedSqlEditors', () => {
       id: 'B1-VQU1zW',
       sqlEditorId: 'newEditorId',
       tableName: 'ab_user',
+      state: 'success',
     },
   };
   const mockedProps = {
@@ -78,6 +85,19 @@ describe('TabbedSqlEditors', () => {
       .dive()
       .dive();
 
+  const mountWithAct = async () =>
+    act(async () => {
+      mount(
+        <Provider store={store}>
+          <TabbedSqlEditors {...mockedProps} />
+        </Provider>,
+        {
+          wrappingComponent: ThemeProvider,
+          wrappingComponentProps: { theme: supersetTheme },
+        },
+      );
+    });
+
   let wrapper;
   it('is valid', () => {
     expect(React.isValidElement(<TabbedSqlEditors {...mockedProps} />)).toBe(
@@ -88,64 +108,29 @@ describe('TabbedSqlEditors', () => {
     let uriStub;
     beforeEach(() => {
       sinon.stub(window.history, 'replaceState');
-      // sinon.spy(TabbedSqlEditors.prototype, 'componentDidMount');
       uriStub = sinon.stub(URI.prototype, 'search');
     });
     afterEach(() => {
       window.history.replaceState.restore();
-      // TabbedSqlEditors.prototype.componentDidMount.restore();
       uriStub.restore();
     });
-    it('should handle id', () => {
+    it('should handle id', async () => {
       uriStub.returns({ id: 1 });
-      wrapper = mount(
-        <Provider store={store}>
-          <TabbedSqlEditors {...mockedProps} />
-        </Provider>,
-        {
-          wrappingComponent: ThemeProvider,
-          wrappingComponentProps: { theme: supersetTheme },
-        },
-      );
-      /* expect(TabbedSqlEditors.prototype.componentDidMount.calledOnce).toBe(
-        true,
-      ); */
+      await mountWithAct();
       expect(window.history.replaceState.getCall(0).args[2]).toBe(
         '/superset/sqllab',
       );
     });
-    it('should handle savedQueryId', () => {
+    it('should handle savedQueryId', async () => {
       uriStub.returns({ savedQueryId: 1 });
-      wrapper = mount(
-        <Provider store={store}>
-          <TabbedSqlEditors {...mockedProps} />
-        </Provider>,
-        {
-          wrappingComponent: ThemeProvider,
-          wrappingComponentProps: { theme: supersetTheme },
-        },
-      );
-      /* expect(TabbedSqlEditors.prototype.componentDidMount.calledOnce).toBe(
-        true,
-      ); */
+      await mountWithAct();
       expect(window.history.replaceState.getCall(0).args[2]).toBe(
         '/superset/sqllab',
       );
     });
-    it('should handle sql', () => {
+    it('should handle sql', async () => {
       uriStub.returns({ sql: 1, dbid: 1 });
-      wrapper = mount(
-        <Provider store={store}>
-          <TabbedSqlEditors {...mockedProps} />
-        </Provider>,
-        {
-          wrappingComponent: ThemeProvider,
-          wrappingComponentProps: { theme: supersetTheme },
-        },
-      );
-      /* expect(TabbedSqlEditors.prototype.componentDidMount.calledOnce).toBe(
-        true,
-      ); */
+      await mountWithAct();
       expect(window.history.replaceState.getCall(0).args[2]).toBe(
         '/superset/sqllab',
       );

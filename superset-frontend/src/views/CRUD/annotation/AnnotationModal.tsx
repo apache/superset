@@ -262,16 +262,16 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
           ) : (
             <StyledIcon name="plus-large" />
           )}
-          {isEditMode ? t('Edit Annotation') : t('Add Annotation')}
+          {isEditMode ? t('Edit annotation') : t('Add annotation')}
         </h4>
       }
     >
       <StyledAnnotationTitle>
-        <h4>{t('Basic Information')}</h4>
+        <h4>{t('Basic information')}</h4>
       </StyledAnnotationTitle>
       <AnnotationContainer>
         <div className="control-label">
-          {t('annotation name')}
+          {t('Annotation name')}
           <span className="required">*</span>
         </div>
         <input
@@ -304,7 +304,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
         />
       </AnnotationContainer>
       <StyledAnnotationTitle>
-        <h4>{t('Additional Information')}</h4>
+        <h4>{t('Additional information')}</h4>
       </StyledAnnotationTitle>
       <AnnotationContainer>
         <div className="control-label">{t('description')}</div>
@@ -316,7 +316,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
         />
       </AnnotationContainer>
       <AnnotationContainer>
-        <div className="control-label">{t('json metadata')}</div>
+        <div className="control-label">{t('JSON metadata')}</div>
         <StyledJsonEditor
           onChange={onJsonChange}
           value={

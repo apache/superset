@@ -189,6 +189,49 @@ export const dashboardLayoutWithTabs = {
   future: [],
 };
 
+export const dashboardLayoutWithChartsInTabsAndRoot = {
+  ...dashboardLayoutWithTabs,
+  present: {
+    ...dashboardLayoutWithTabs.present,
+    [DASHBOARD_ROOT_ID]: {
+      type: DASHBOARD_ROOT_TYPE,
+      id: DASHBOARD_ROOT_ID,
+      children: ['TABS_ID', 'ROW_ID3'],
+    },
+
+    ROW_ID3: {
+      ...newComponentFactory(ROW_TYPE),
+      id: 'ROW_ID3',
+      children: ['CHART_ID3'],
+      parents: ['ROOT_ID'],
+    },
+
+    CHART_ID2: {
+      ...newComponentFactory(CHART_TYPE),
+      id: 'CHART_ID2',
+      parents: ['ROOT_ID', 'TABS_ID', 'TAB_ID2', 'ROW_ID2'],
+      meta: {
+        chartId: 20,
+        width: 3,
+        height: 10,
+        chartName: 'Mock chart name 2',
+      },
+    },
+
+    CHART_ID3: {
+      ...newComponentFactory(CHART_TYPE),
+      id: 'CHART_ID3',
+      parents: ['ROOT_ID', 'ROW_ID3'],
+      meta: {
+        chartId: 19,
+        width: 3,
+        height: 10,
+        chartName: 'Mock chart name',
+      },
+    },
+  },
+};
+
 export const filterComponent = {
   ...newComponentFactory(CHART_TYPE),
   id: 'CHART-rwDfbGqeEn',

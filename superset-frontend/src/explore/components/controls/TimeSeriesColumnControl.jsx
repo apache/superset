@@ -45,7 +45,7 @@ const propTypes = {
 };
 
 const defaultProps = {
-  label: t('Time Series Columns'),
+  label: t('Time series columns'),
   tooltip: '',
   colType: '',
   width: '',
@@ -65,14 +65,14 @@ const comparisonTypeOptions = [
   { value: 'value', label: 'Actual value' },
   { value: 'diff', label: 'Difference' },
   { value: 'perc', label: 'Percentage' },
-  { value: 'perc_change', label: 'Percentage Change' },
+  { value: 'perc_change', label: 'Percentage change' },
 ];
 
 const colTypeOptions = [
-  { value: 'time', label: 'Time Comparison' },
+  { value: 'time', label: 'Time comparison' },
   { value: 'contrib', label: 'Contribution' },
   { value: 'spark', label: 'Sparkline' },
-  { value: 'avg', label: 'Period Average' },
+  { value: 'avg', label: 'Period average' },
 ];
 
 export default class TimeSeriesColumnControl extends React.Component {
@@ -209,7 +209,7 @@ export default class TimeSeriesColumnControl extends React.Component {
           )}
         {['time', 'avg'].indexOf(this.state.colType) >= 0 &&
           this.formRow(
-            'Time Lag',
+            'Time lag',
             'Number of periods to compare against',
             'time-lag',
             <FormControl
@@ -221,7 +221,7 @@ export default class TimeSeriesColumnControl extends React.Component {
           )}
         {['spark'].indexOf(this.state.colType) >= 0 &&
           this.formRow(
-            'Time Ratio',
+            'Time ratio',
             'Number of periods to ratio against',
             'time-ratio',
             <FormControl

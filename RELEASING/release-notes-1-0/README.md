@@ -79,7 +79,9 @@ Charts on dashboards have been updated to concisely show which **filters** are i
 
 **Alerts and reporting** have received a robust backend and UI overhaul.
 
-<kbd><img alt="alerts reports" src="media/alerts_reports.jpg" width="600"/></kbd>
+<kbd><img alt="alerts reports" src="media/alerts_reports_2.jpg" width="600"/></kbd>
+
+<kbd><img alt="alerts reports edit" src="media/alerts_reports_3.jpg" width="600"/></kbd>
 
 See related PR highlights [here](#new-features-1).
 

@@ -19,6 +19,8 @@ from typing import Dict, List, Optional, Set, Type, TYPE_CHECKING
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, subqueryload
 
+from superset.datasets.commands.exceptions import DatasetNotFoundError
+
 if TYPE_CHECKING:
     from collections import OrderedDict
 
@@ -44,11 +46,22 @@ class ConnectorRegistry:
     def get_datasource(
         cls, datasource_type: str, datasource_id: int, session: Session
     ) -> "BaseDatasource":
-        return (
+        """Safely get a datasource instance, raises `DatasetNotFoundError` if
+        `datasource_type` is not registered or `datasource_id` does not
+        exist."""
+        if datasource_type not in cls.sources:
+            raise DatasetNotFoundError()
+
+        datasource = (
             session.query(cls.sources[datasource_type])
             .filter_by(id=datasource_id)
-            .one()
+            .one_or_none()
         )
+
+        if not datasource:
+            raise DatasetNotFoundError()
+
+        return datasource
 
     @classmethod
     def get_all_datasources(cls, session: Session) -> List["BaseDatasource"]:

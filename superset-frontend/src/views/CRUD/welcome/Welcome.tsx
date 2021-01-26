@@ -62,9 +62,9 @@ const WelcomeContainer = styled.div`
       }
     }
     .nav.navbar-nav {
-      & > li:nth-child(1),
-      & > li:nth-child(2),
-      & > li:nth-child(3) {
+      & > li:nth-of-type(1),
+      & > li:nth-of-type(2),
+      & > li:nth-of-type(3) {
         margin-top: ${({ theme }) => theme.gridUnit * 2}px;
       }
     }
@@ -142,7 +142,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
             />
           )}
         </Collapse.Panel>
-        <Collapse.Panel header={t('Saved Queries')} key="3">
+        <Collapse.Panel header={t('Saved queries')} key="3">
           {loading ? (
             <Loading position="inline" />
           ) : (
