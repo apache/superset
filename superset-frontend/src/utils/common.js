@@ -139,7 +139,7 @@ export function applyFormattingToTabularData(data) {
 export const noOp = () => undefined;
 
 // Detects the user's OS through the browser
-export function detectOS() {
+export const detectOS = () => {
   let OSName = "Unknown OS";
   
   if (navigator.appVersion.indexOf("Win")!=-1) OSName="Windows";
