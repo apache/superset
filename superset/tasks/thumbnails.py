@@ -49,7 +49,6 @@ def cache_chart_thumbnail(
             user = security_manager.get_user_by_username(
                 current_app.config["THUMBNAIL_SELENIUM_USER"], session=session
             )
-       
             screenshot.compute_and_cache(
                 user=user,
                 cache=thumbnail_cache,
@@ -74,7 +73,6 @@ def cache_dashboard_thumbnail(
             user = security_manager.get_user_by_username(
                 current_app.config["THUMBNAIL_SELENIUM_USER"], session=session
             )
-        
             screenshot.compute_and_cache(
                 user=user, cache=thumbnail_cache, force=force, thumb_size=thumb_size,
             )
