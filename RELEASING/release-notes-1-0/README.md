@@ -25,6 +25,8 @@ Superset 1.0 is a ***huge milestone*** for Apache Superset. This release holds a
 - [**New Features**](#new-features)
 - [**Stability and Bugfixes**](#stability-and-bugfixes)
 
+Some of the new features in this release are disabled by default. Each has a feature flag in `config.py` and some require configuration of additional back-end dependencies, such as Celery. See [this table](https://superset.apache.org/docs/version-one#start-using-superset-10) for a list of features and their associated flags and dependencies.
+
 # User Experience
 We have taken the Superset user experience to the next level with a much simpler, more intuitive UI.
 
@@ -34,7 +36,7 @@ Lists of Charts and Dashboards can be shown in a new format using a **thumbnail 
 
 Visualization controls have been updated to create a more consistent and modernized interface. Refactoring includes updates to the content/labeling/ordering of these controls as well as updating their styling and simplifying their interactions and layout. This will line us up for features like drag-and-drop controls, and dynamically populated control inputs in future releases.
 
-<kbd><img alt="explore ui" src="media/explore_ui.jpg" width="600"/></kbd>
+<kbd><img alt="explore ui" src="media/explore_ui.png" width="600"/></kbd>
 
 Users also now have the ability to create and name a new dataset or update an existing dataset when moving from **SQL Lab** to **Explore**. When going back to SQL Lab, the underlying query for the dataset will be shown, allowing users to easily make changes and update their dataset when moving between SQL Lab and Explore.
 
@@ -47,11 +49,11 @@ Superset 1.0 makes it easier for developers to build, deploy, and maintain Super
 
 The **REST API** continues to see improvement as well, with new endpoints and improvements to existing endpoints. More details [here](https://superset.apache.org/docs/rest-api).
 
-<kbd><img alt="rest api" src="media/rest_api.jpg" width="600"/></kbd>
+<kbd><img alt="rest api" src="media/rest_api.png" width="600"/></kbd>
 
 The Swagger interface can be used to explore and try out these changes.
 
-<kbd><img alt="rest api swagger" src="media/rest_api_swagger.jpg" width="600"/></kbd>
+<kbd><img alt="rest api swagger" src="media/rest_api_swagger.png" width="600"/></kbd>
 
 See related PR highlights [here](#developer-experience-1).
 
@@ -63,25 +65,25 @@ See related PR highlights [here](#performance-1).
 # New Features
 Superset 1.0 includes a slew of new features and other enhancements. **New visualization plugin architecture** will make it easier to build, test, style and configure custom visualizations for Superset. **Dynamic viz plugin** imports will allow Superset to load data viz plugins, allowing developers to more easily use or share their custom plugins and **load custom plugins on-demand** from anywhere on the web. Superset has also adopted [**Apache ECharts**](https://echarts.apache.org/en/index.html) as the core library for new visualizations.
 
-<kbd><img alt="timeseries prophet" src="media/echarts_timeseries_prophet.jpg" width="600"/></kbd>
+<kbd><img alt="timeseries prophet" src="media/echarts_timeseries_prophet.png" width="600"/></kbd>
 
 Along with the **Echarts integration**, we are also introducing a better set of annotation features. **Formula annotation**, which allows users to plot any mathematical function on the chart; **Interval and Event annotations**, which allow users to add context to the trend in Time-Series; and **Line annotation**, which use a predefined chart as the source of annotation.
 
-<kbd><img alt="annotations" src="media/annotations.jpg" width="600"/></kbd>
+<kbd><img alt="annotations" src="media/annotations.png" width="600"/></kbd>
 
 A redesigned home screen provides a **personalized landing page** that the user sees when they log into Superset, improving discoverability. It shows items relevant to the user (Charts, Dashboards, Saved Queries, etc) and serves as a hub to discover content and access recent items quickly.
 
-<kbd><img alt="home screen" src="media/home_screen.jpg" width="600"/></kbd>
+<kbd><img alt="home screen" src="media/home_screen.png" width="600"/></kbd>
 
 Charts on dashboards have been updated to concisely show which **filters** are in scope, have been applied, or are in error. Context around filter changes has been increased by highlighting scoped charts when a filter is selected and increasing visibility of charts with incompatible filters applied.
 
-<kbd><img alt="filter status" src="media/filter_status.jpg" width="600"/></kbd>
+<kbd><img alt="filter status" src="media/filter_status.png" width="600"/></kbd>
 
 **Alerts and reporting** have received a robust backend and UI overhaul.
 
-<kbd><img alt="alerts reports" src="media/alerts_reports_2.jpg" width="600"/></kbd>
+<kbd><img alt="alerts reports" src="media/alerts_reports_2.png" width="600"/></kbd>
 
-<kbd><img alt="alerts reports edit" src="media/alerts_reports_3.jpg" width="600"/></kbd>
+<kbd><img alt="alerts reports edit" src="media/alerts_reports_3.png" width="600"/></kbd>
 
 See related PR highlights [here](#new-features-1).
 
