@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { ReactNode } from 'react';
+import { Metric } from '@superset-ui/core';
 import Popover from 'src/common/components/Popover';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle';
 import AdhocMetricEditPopover, {
@@ -27,10 +28,7 @@ import { savedMetricType } from './types';
 
 export type AdhocMetricPopoverTriggerProps = {
   adhocMetric: AdhocMetric;
-  onMetricEdit(
-    newMetric: AdhocMetric | Record<string, any>,
-    oldMetric: AdhocMetric | Record<string, any>,
-  ): void;
+  onMetricEdit(newMetric: Metric, oldMetric: Metric): void;
   columns: { column_name: string; type: string }[];
   savedMetricsOptions: savedMetricType[];
   savedMetric: savedMetricType;
@@ -129,10 +127,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     }
   }
 
-  onChange(
-    newMetric: AdhocMetric | Record<string, any>,
-    oldMetric: AdhocMetric | Record<string, any>,
-  ) {
+  onChange(newMetric: Metric, oldMetric: Metric) {
     this.props.onMetricEdit({ ...newMetric, ...this.state.title }, oldMetric);
   }
 
