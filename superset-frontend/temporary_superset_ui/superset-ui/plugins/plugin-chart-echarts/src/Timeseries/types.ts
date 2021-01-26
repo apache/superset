@@ -62,6 +62,7 @@ export type EchartsTimeseriesFormData = {
   timeGrainSqla?: TimeGranularity;
   yAxisBounds: [number | undefined | null, number | undefined | null];
   zoomable: boolean;
+  richTooltip: boolean;
 } & EchartsLegendFormData;
 
 export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
@@ -88,4 +89,5 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   xAxisShowMinLabel: true,
   xAxisShowMaxLabel: true,
   zoomable: false,
+  richTooltip: true,
 };
