@@ -36,7 +36,7 @@
     "@vx/clip-path": "^0.0.197",
     "@vx/event": "^0.0.198",
     "@vx/pattern": "^0.0.197",
-    "@vx/tooltip": "^0.0.197",
+    "@vx/tooltip": "^0.0.199",
     "@vx/zoom": "^0.0.197",
     "d3-geo": "^1.12.0",
     "encodable": "^0.7.6",
