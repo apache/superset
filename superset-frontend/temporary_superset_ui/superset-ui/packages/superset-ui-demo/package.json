@@ -70,7 +70,7 @@
     "@types/storybook__react": "5.2.1",
     "antd": "^4.9.1",
     "bootstrap": "^3.4.1",
-    "core-js": "3.6.5",
+    "core-js": "3.8.3",
     "gh-pages": "^3.0.0",
     "global-box": "^1.2.0",
     "jquery": "^3.4.1",
