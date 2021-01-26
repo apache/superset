@@ -176,7 +176,7 @@ class DatasourceControl extends React.PureComponent {
     return (
       <Styles className="DatasourceControl">
         <div className="data-container">
-          <Icon name="dataset-physical" className="dataset-svg"/>
+          <Icon name="dataset-physical" className="dataset-svg" />
           {/* Add a tooltip only for long dataset names */}
           {!isMissingDatasource && datasource.name.length > 25 ? (
             <Tooltip title={datasource.name}>
