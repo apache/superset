@@ -22,7 +22,7 @@ import { shallow } from 'enzyme';
 import sinon from 'sinon';
 import { LineEditableTabs } from 'src/common/components/Tabs';
 import { Modal } from 'src/common/components';
-
+import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
@@ -35,6 +35,8 @@ import { dashboardLayoutWithTabs } from 'spec/fixtures/mockDashboardLayout';
 import { mockStoreWithTabs } from 'spec/fixtures/mockStore';
 
 describe('Tabs', () => {
+  fetchMock.post('glob:*/r/shortner/', {});
+
   const props = {
     id: 'TABS_ID',
     parentId: DASHBOARD_ROOT_ID,
