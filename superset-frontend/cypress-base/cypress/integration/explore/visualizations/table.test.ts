@@ -160,7 +160,7 @@ describe('Visualization > Table', () => {
       cy.verifySliceContainer('table');
       expect(response?.body.data.records.length).to.eq(limit);
     });
-    cy.get('span.label-danger').contains('10 rows');
+    cy.get('[data-test="row-count-label"]').contains('10 rows');
   });
 
   it('Test table with columns and row limit', () => {

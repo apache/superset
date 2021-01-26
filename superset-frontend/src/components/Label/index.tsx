@@ -17,149 +17,98 @@
  * under the License.
  */
 import React, { CSSProperties } from 'react';
-import { Label as BootstrapLabel } from 'react-bootstrap';
-import { styled } from '@superset-ui/core';
-import cx from 'classnames';
+import { Tag } from 'src/common/components';
+import { useTheme } from '@superset-ui/core';
 
-export type OnClickHandler = React.MouseEventHandler<BootstrapLabel>;
+export type OnClickHandler = React.MouseEventHandler<HTMLElement>;
+
+export type Type =
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'info'
+  | 'default'
+  | 'primary'
+  | 'secondary';
 
 export interface LabelProps {
   key?: string;
   className?: string;
-  id?: string;
-  tooltip?: string;
-  placement?: string;
   onClick?: OnClickHandler;
-  bsStyle?: string;
+  type?: Type;
   style?: CSSProperties;
   children?: React.ReactNode;
   role?: string;
 }
 
-const SupersetLabel = styled(BootstrapLabel)`
-  /* un-bunch them! */
-  margin-right: ${({ theme }) => theme.gridUnit}px;
-  max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  vertical-align: middle;
-
-  &:first-of-type {
-    margin-left: 0;
-  }
-  &:last-of-type {
-    margin-right: 0;
-  }
-  display: inline-block;
-  border-width: 1px;
-  border-style: solid;
-  cursor: ${({ onClick }) => (onClick ? 'pointer' : 'default')};
-  transition: background-color ${({ theme }) => theme.transitionTiming}s;
-  &.label-warning {
-    background-color: ${({ theme }) => theme.colors.warning.base};
-    border-color: ${({ theme, onClick }) =>
-      onClick ? theme.colors.warning.dark1 : 'transparent'};
-    &:hover {
-      background-color: ${({ theme, onClick }) =>
-        onClick ? theme.colors.warning.dark1 : theme.colors.warning.base};
-      border-color: ${({ theme, onClick }) =>
-        onClick ? theme.colors.warning.dark2 : 'transparent'};
-    }
-  }
-  &.label-danger {
-    background-color: ${({ theme }) => theme.colors.error.base};
-    border-color: ${({ theme, onClick }) =>
-      onClick ? theme.colors.error.dark1 : 'transparent'};
-    &:hover {
-      background-color: ${({ theme, onClick }) =>
-        onClick ? theme.colors.error.dark1 : theme.colors.error.base};
-      border-color: ${({ theme, onClick }) =>
-        onClick ? theme.colors.error.dark2 : 'transparent'};
-    }
-  }
-  &.label-success {
-    background-color: ${({ theme }) => theme.colors.success.base};
-    border-color: ${({ theme, onClick }) =>
-      onClick ? theme.colors.success.dark1 : 'transparent'};
-    &:hover {
-      background-color: ${({ theme, onClick }) =>
-        onClick ? theme.colors.success.dark1 : theme.colors.success.base};
-      border-color: ${({ theme, onClick }) =>
-        onClick ? theme.colors.success.dark2 : 'transparent'};
-    }
-  }
-  &.label-default {
-    background-color: ${({ theme }) => theme.colors.grayscale.light3};
-    color: ${({ theme }) => theme.colors.grayscale.dark1};
-    border-color: ${({ theme, onClick }) =>
-      onClick ? theme.colors.grayscale.light2 : 'transparent'};
-    &:hover {
-      background-color: ${({ theme, onClick }) =>
-        onClick ? theme.colors.primary.light2 : theme.colors.grayscale.light3};
-      border-color: ${({ theme, onClick }) =>
-        onClick ? theme.colors.primary.light1 : 'transparent'};
-    }
-  }
-  &.label-info {
-    background-color: ${({ theme }) => theme.colors.info};
-    border-color: ${({ theme, onClick }) =>
-      onClick ? theme.colors.info.dark1 : 'transparent'};
-    &:hover {
-      background-color: ${({ theme, onClick }) =>
-        onClick ? theme.colors.info.dark1 : theme.colors.info.base};
-      border-color: ${({ theme, onClick }) =>
-        onClick ? theme.colors.info.dark2 : 'transparent'};
-    }
-  }
-  &.label-primary {
-    background-color: ${({ theme }) => theme.colors.primary.base};
-    border-color: ${({ theme, onClick }) =>
-      onClick ? theme.colors.primary.dark1 : 'transparent'};
-    &:hover {
-      background-color: ${({ theme, onClick }) =>
-        onClick ? theme.colors.primary.dark2 : theme.colors.primary.base};
-      border-color: ${({ theme, onClick }) =>
-        onClick
-          ? theme.colors.primary.dark2
-          : 'transparent'}; /* would be nice if we had a darker color, but that's the floor! */
-    }
-  }
-  /* note this is NOT a supported bootstrap label Style... this overrides default */
-  &.label-secondary {
-    background-color: ${({ theme }) => theme.colors.secondary.base};
-    color: ${({ theme }) => theme.colors.grayscale.light4};
-    border-color: ${({ theme, onClick }) =>
-      onClick ? theme.colors.secondary.dark1 : 'transparent'};
-    &:hover {
-      background-color: ${({ theme, onClick }) =>
-        onClick ? theme.colors.secondary.dark1 : theme.colors.secondary.base};
-      border-color: ${({ theme, onClick }) =>
-        onClick ? theme.colors.secondary.dark2 : 'transparent'};
-    }
-  }
-`;
-
 export default function Label(props: LabelProps) {
-  const officialBootstrapStyles = [
-    'success',
-    'warning',
-    'danger',
-    'info',
-    'default',
-    'primary',
-  ];
-  const labelProps = {
-    ...props,
-    placement: props.placement || 'top',
-    bsStyle: officialBootstrapStyles.includes(props.bsStyle || '')
-      ? props.bsStyle
-      : 'default',
-    className: cx(props.className, {
-      [`label-${props.bsStyle}`]: !officialBootstrapStyles.includes(
-        props.bsStyle || '',
-      ),
-    }),
-  };
-  return <SupersetLabel {...labelProps}>{props.children}</SupersetLabel>;
+  const theme = useTheme();
+  const { colors, transitionTiming } = theme;
+  const { type, onClick, children, ...rest } = props;
+  const {
+    primary,
+    secondary,
+    grayscale,
+    success,
+    warning,
+    error,
+    info,
+  } = colors;
+
+  let backgroundColor = grayscale.light3;
+  let backgroundColorHover = onClick ? primary.light2 : grayscale.light3;
+  let borderColor = onClick ? grayscale.light2 : 'transparent';
+  let borderColorHover = onClick ? primary.light1 : 'transparent';
+  let color = grayscale.dark1;
+
+  if (type && type !== 'default') {
+    color = grayscale.light4;
+
+    let baseColor;
+    if (type === 'success') {
+      baseColor = success;
+    } else if (type === 'warning') {
+      baseColor = warning;
+    } else if (type === 'danger') {
+      baseColor = error;
+    } else if (type === 'info') {
+      baseColor = info;
+    } else if (type === 'secondary') {
+      baseColor = secondary;
+    } else {
+      baseColor = primary;
+    }
+
+    backgroundColor = baseColor.base;
+    backgroundColorHover = onClick ? baseColor.dark1 : baseColor.base;
+    borderColor = onClick ? baseColor.dark1 : 'transparent';
+    borderColorHover = onClick ? baseColor.dark2 : 'transparent';
+  }
+
+  return (
+    <Tag
+      css={{
+        transition: `background-color ${transitionTiming}s`,
+        whiteSpace: 'nowrap',
+        cursor: onClick ? 'pointer' : 'default',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        backgroundColor,
+        borderColor,
+        borderRadius: 21,
+        padding: '0.35em 0.8em',
+        lineHeight: 1,
+        color,
+        '&:hover': {
+          backgroundColor: backgroundColorHover,
+          borderColor: borderColorHover,
+          opacity: 1,
+        },
+      }}
+      onClick={onClick}
+      {...rest}
+    >
+      {children}
+    </Tag>
+  );
 }
