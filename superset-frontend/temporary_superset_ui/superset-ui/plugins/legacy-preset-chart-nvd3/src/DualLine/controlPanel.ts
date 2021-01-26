@@ -18,7 +18,15 @@
  */
 import { t } from '@superset-ui/core';
 import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
-import { xAxisFormat, yAxis2Format, showLegend } from '../NVD3Controls';
+import {
+  xAxisFormat,
+  yAxis2Format,
+  showLegend,
+  yAxisBounds,
+  yAxisShowMinmax,
+  yAxis2Bounds,
+  yAxis2ShowMinmax,
+} from '../NVD3Controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -31,12 +39,12 @@ const config: ControlPanelConfig = {
     {
       label: t('Y Axis 1'),
       expanded: true,
-      controlSetRows: [['metric', 'y_axis_format']],
+      controlSetRows: [['metric', 'y_axis_format'], [yAxisShowMinmax], [yAxisBounds]],
     },
     {
       label: t('Y Axis 2'),
       expanded: true,
-      controlSetRows: [['metric_2', yAxis2Format]],
+      controlSetRows: [['metric_2', yAxis2Format], [yAxis2ShowMinmax], [yAxis2Bounds]],
     },
     {
       label: t('Query'),
