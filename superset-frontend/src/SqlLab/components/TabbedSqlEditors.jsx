@@ -32,7 +32,7 @@ import { Tooltip } from 'src/common/components/Tooltip';
 import * as Actions from '../actions/sqlLab';
 import SqlEditor from './SqlEditor';
 import TabStatusIcon from './TabStatusIcon';
-import { detectOS } from './SqlEditor';
+import { detectOS } from 'src/utils/common';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,

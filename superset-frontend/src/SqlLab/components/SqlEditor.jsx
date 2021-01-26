@@ -77,6 +77,7 @@ import {
 } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
+import { detectOS } from 'src/utils/common';
 
 const LIMIT_DROPDOWN = [10, 100, 1000, 10000, 100000];
 const SQL_EDITOR_PADDING = 10;
@@ -153,18 +154,6 @@ const defaultProps = {
   hideLeftBar: false,
   scheduleQueryWarning: null,
 };
-
-// Detects the user's OS through the browser
-export function detectOS() {
-  let OSName = "Unknown OS";
-  
-  if (navigator.appVersion.indexOf("Win")!=-1) OSName="Windows";
-  if (navigator.appVersion.indexOf("Mac")!=-1) OSName="MacOS";
-  if (navigator.appVersion.indexOf("X11")!=-1) OSName="UNIX";
-  if (navigator.appVersion.indexOf("Linux")!=-1) OSName="Linux";
-
-  return OSName;
-}
 
 class SqlEditor extends React.PureComponent {
   constructor(props) {
