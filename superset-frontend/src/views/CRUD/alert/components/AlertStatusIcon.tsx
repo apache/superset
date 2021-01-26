@@ -22,7 +22,9 @@ import { Tooltip } from 'src/common/components/Tooltip';
 import Icon, { IconName } from 'src/components/Icon';
 import { AlertState } from '../types';
 
-const StatusIcon = styled(Icon)<{ status: string; isReportEnabled: boolean }>`
+const StatusIcon = styled(Icon, {
+  shouldForwardProp: prop => prop !== 'status' && prop !== 'isReportEnabled',
+})<{ status: string; isReportEnabled: boolean }>`
   color: ${({ status, theme, isReportEnabled }) => {
     switch (status) {
       case AlertState.working:
