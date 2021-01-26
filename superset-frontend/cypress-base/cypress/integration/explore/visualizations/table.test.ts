@@ -35,7 +35,7 @@ describe('Visualization > Table', () => {
 
   const PERCENT_METRIC = {
     expressionType: 'SQL',
-    sqlExpression: 'CAST(SUM(num_girls)+AS+FLOAT)/SUM(num)',
+    sqlExpression: 'CAST(SUM(num_girls) AS FLOAT)/SUM(num)',
     column: null,
     aggregate: null,
     hasCustomLabel: true,
@@ -67,8 +67,8 @@ describe('Visualization > Table', () => {
     });
     // when format with smart_date, time column use format by granularity
     cy.get('.chart-container td:nth-child(1)').contains('2008 Q1');
-    // other column with timestamp use raw timestamp
-    cy.get('.chart-container td:nth-child(3)').contains('2008-01-01T00:00:00');
+    // other column with timestamp use adaptive formatting
+    cy.get('.chart-container td:nth-child(3)').contains('2008');
     cy.get('.chart-container td:nth-child(4)').contains('TX');
   });
 
@@ -123,7 +123,7 @@ describe('Visualization > Table', () => {
 
     // should handle sorting correctly
     cy.get('.chart-container th').contains('name').click();
-    cy.get('.chart-container td:nth-child(2):eq(0)').contains('Abigail');
+    cy.get('.chart-container td:nth-child(2):eq(0)').contains('Aaron');
     cy.get('.chart-container th').contains('Time').click().click();
     cy.get('.chart-container td:nth-child(1):eq(0)').contains('2008');
   });
@@ -197,7 +197,7 @@ describe('Visualization > Table', () => {
       all_columns: ['name', 'state', 'ds', 'num'],
       metrics: [],
       row_limit: limit,
-      order_by_cols: ['["num",+false]'],
+      order_by_cols: ['["num", false]'],
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
