@@ -6090,10 +6090,10 @@
     prop-types "^15.6.1"
     resize-observer-polyfill "1.5.0"
 
-"@vx/responsive@^0.0.197":
-  version "0.0.197"
-  resolved "https://registry.yarnpkg.com/@vx/responsive/-/responsive-0.0.197.tgz#e3ef1b7c2cdf3be8f579d618df637c0615f41586"
-  integrity sha512-Qv15PJ/Hy79LjyfJ/9E8z+zacKAnD43O2Jg9wvB6PFSNs73xPEDy/mHTYxH+FZv94ruAE3scBO0330W29sQpyg==
+"@vx/responsive@^0.0.199":
+  version "0.0.199"
+  resolved "https://registry.yarnpkg.com/@vx/responsive/-/responsive-0.0.199.tgz#6f92de0268b36e2f52e1283feb63a1d470761c68"
+  integrity sha512-ONrmLUAG+8wzD3cn/EmsuZh6JHeyejqup3ZsV25t04VaVJAVQAJukAfNdH8YiwSJu0zSo+txkBTfrnOmFyQLOw==
   dependencies:
     "@types/lodash" "^4.14.146"
     "@types/react" "*"
