@@ -5160,10 +5160,10 @@
   resolved "https://registry.yarnpkg.com/@types/debug/-/debug-4.1.5.tgz#b14efa8852b7768d898906613c23f688713e02cd"
   integrity sha512-Q1y515GcOdTHgagaVFhHnIFQ38ygs/kmxdNpvpou+raI9UO3YZcHDngBSYKQklcKlvA7iuQlmIKbzvmxcOE9CQ==
 
-"@types/echarts@^4.6.3":
-  version "4.6.3"
-  resolved "https://registry.yarnpkg.com/@types/echarts/-/echarts-4.6.3.tgz#227b33b106203ceb2ca4fa51760f406618caa89a"
-  integrity sha512-XsDsLtPDxSGPqcHvVEbH+z5r9lPiduNOf4aL3NjGprQ/4SliDiTS7DErimHpVdiEOoVFzwjn2usvgLOb1JqOJA==
+"@types/echarts@^4.9.3":
+  version "4.9.3"
+  resolved "https://registry.yarnpkg.com/@types/echarts/-/echarts-4.9.3.tgz#8a143cf315f6ae88d0778d75a133b378974d37d5"
+  integrity sha512-CbgZUYdLy1G2BhCI6maBwVXmrqIx/D8KwUccMXQ9W2uyXNMjBvpIRXSs+UaBtvUihPV2f0g7LGj/yua1iY0VbQ==
   dependencies:
     "@types/zrender" "*"
 
@@ -5307,11 +5307,6 @@
   version "4.14.167"
   resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.167.tgz#ce7d78553e3c886d4ea643c37ec7edc20f16765e"
   integrity sha512-w7tQPjARrvdeBkX/Rwg95S592JwxqOjmms3zWQ0XZgSyxSLdzWaYH3vErBhdVS/lRBX7F8aBYcYJYTr5TMGOzw==
-
-"@types/match-sorter@^4.0.0":
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/@types/match-sorter/-/match-sorter-4.0.0.tgz#8a7286019d4e328c09422bb2af2403a94b7038fd"
-  integrity sha512-JK7HNHXZA7i/nEp6fbNAxoX/1j1ysZXmv2/nlkt2UpX1LiUWKLtyt/dMmDTlMPR6t6PkwMmIr2W2AAyu6oELNw==
 
 "@types/mathjs@^6.0.7":
   version "6.0.7"
@@ -16289,12 +16284,12 @@ marksy@^8.0.0:
     he "^1.2.0"
     marked "^0.3.12"
 
-match-sorter@^4.1.0:
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/match-sorter/-/match-sorter-4.1.0.tgz#8ba63f4aaf438d7a844829f1a75aa3ab1b2587ba"
-  integrity sha512-DCzT9JVO2FWVOTfsKqIqVhu/skFa3bK0lQom70j6Co9yKX9bPn2gRtn9BFD9ykkM8F/USjTQeId+nlFfTVvz+w==
+match-sorter@^6.1.0:
+  version "6.1.0"
+  resolved "https://registry.yarnpkg.com/match-sorter/-/match-sorter-6.1.0.tgz#7fec6808d94311a35fef7fd842a11634f2361bd7"
+  integrity sha512-sKPMf4kbF7Dm5Crx0bbfLpokK68PUJ/0STUIOPa1ZmTZEA3lCaPK3gapQR573oLmvdkTfGojzySkIwuq6Z6xRQ==
   dependencies:
-    "@babel/runtime" "^7.9.2"
+    "@babel/runtime" "^7.12.5"
     remove-accents "0.4.2"
 
 material-colors@^1.2.1:

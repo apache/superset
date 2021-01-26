@@ -23,7 +23,8 @@ import {
   getNumberFormatter,
   NumberFormats,
   ChartProps,
-  QueryData,
+  LegacyQueryData,
+  QueryFormData,
 } from '@superset-ui/core';
 
 const TIME_COLUMN = '__timestamp';
@@ -34,7 +35,7 @@ export interface BigNumberDatum {
   [key: string]: number | null;
 }
 
-export type BigNumberFormData = {
+export type BigNumberFormData = QueryFormData & {
   colorPicker?: {
     r: number;
     g: number;
@@ -50,14 +51,14 @@ export type BigNumberFormData = {
   timeGrainSqla?: TimeGranularity;
 };
 
-export type BignumberChartProps = ChartProps & {
+export type BigNumberChartProps = ChartProps & {
   formData: BigNumberFormData;
-  queriesData: (QueryData & {
+  queriesData: (LegacyQueryData & {
     data?: BigNumberDatum[];
   })[];
 };
 
-export default function transformProps(chartProps: BignumberChartProps) {
+export default function transformProps(chartProps: BigNumberChartProps) {
   const { width, height, queriesData, formData } = chartProps;
   const {
     colorPicker,

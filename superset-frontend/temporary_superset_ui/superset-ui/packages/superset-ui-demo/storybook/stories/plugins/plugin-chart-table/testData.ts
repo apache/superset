@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { TableChartProps } from '@superset-ui/plugin-chart-table';
+import { TableChartProps } from '@superset-ui/plugin-chart-table/src';
 // @ts-ignore
+// eslint-disable-next-line import/extensions
 import birthNamesJson from './birthNames.json';
 
 export const birthNames = (birthNamesJson as unknown) as TableChartProps;

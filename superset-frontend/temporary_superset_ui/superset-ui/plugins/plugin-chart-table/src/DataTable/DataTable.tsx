@@ -28,7 +28,7 @@ import {
   IdType,
   Row,
 } from 'react-table';
-import matchSorter from 'match-sorter';
+import { matchSorter, rankings } from 'match-sorter';
 import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';
 import SelectPageSize, { SelectPageSizeProps, SizeOption } from './components/SelectPageSize';
 import SimplePagination from './components/Pagination';
@@ -67,11 +67,11 @@ export default function DataTable<D extends object>({
   sticky: doSticky,
   searchInput = true,
   selectPageSize,
-  noResults = 'No data found',
+  noResults: noResultsText = 'No data found',
   hooks,
   wrapperRef: userWrapperRef,
   ...moreUseTableOptions
-}: DataTableProps<D>) {
+}: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
     useGlobalFilter,
     useSortBy,
@@ -113,11 +113,11 @@ export default function DataTable<D extends object>({
 
   const defaultGlobalFilter: FilterType<D> = useCallback(
     (rows: Row<D>[], columnIds: IdType<D>[], filterValue: string) => {
-      // allow searching by "col1 col2"
+      // allow searching by "col1_value col2_value"
       const joinedString = (row: Row<D>) => columnIds.map(x => row.values[x]).join(' ');
       return matchSorter(rows, filterValue, {
         keys: [...columnIds, joinedString],
-        threshold: matchSorter.rankings.ACRONYM,
+        threshold: rankings.ACRONYM,
       }) as typeof rows;
     },
     [],
@@ -155,6 +155,13 @@ export default function DataTable<D extends object>({
     }
   };
 
+  const noResults =
+    typeof noResultsText === 'function' ? noResultsText(filterValue as string) : noResultsText;
+
+  if (!columns || columns.length === 0) {
+    return <div className="dt-no-results">{noResults}</div>;
+  }
+
   const renderTable = () => (
     <table {...getTableProps({ className: tableClassName })}>
       <thead>
@@ -186,7 +193,7 @@ export default function DataTable<D extends object>({
         ) : (
           <tr>
             <td className="dt-no-results" colSpan={columns.length}>
-              {typeof noResults === 'function' ? noResults(filterValue as string) : noResults}
+              {noResults}
             </td>
           </tr>
         )}

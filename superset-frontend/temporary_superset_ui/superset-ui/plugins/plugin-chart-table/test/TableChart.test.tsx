@@ -17,7 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { mount, CommonWrapper } from 'enzyme';
+import { CommonWrapper } from 'enzyme';
+import { mount } from '../../../test/enzyme';
 import TableChart from '../src/TableChart';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
@@ -30,27 +31,30 @@ describe('plugin-chart-table', () => {
       expect(
         transformProps({
           ...testData.basic,
-          formData: { ...testData.basic.formData, pageLength: '20' },
+          rawFormData: { ...testData.basic.rawFormData, page_length: '20' },
         }).pageSize,
       ).toBe(20);
       expect(
         transformProps({
           ...testData.basic,
-          formData: { ...testData.basic.formData, pageLength: '' },
+          rawFormData: { ...testData.basic.rawFormData, page_length: '' },
         }).pageSize,
       ).toBe(0);
     });
+
     it('should memoize data records', () => {
       expect(transformProps(testData.basic).data).toBe(transformProps(testData.basic).data);
     });
+
     it('should memoize columns meta', () => {
       expect(transformProps(testData.basic).columns).toBe(
         transformProps({
           ...testData.basic,
-          formData: { ...testData.basic.formData, pageLength: null },
+          rawFormData: { ...testData.basic.rawFormData, pageLength: null },
         }).columns,
       );
     });
+
     it('should format timestamp', () => {
       // eslint-disable-next-line no-underscore-dangle
       const parsedDate = transformProps(testData.basic).data[0].__timestamp as DateWithFormatter;
