@@ -18,11 +18,10 @@
  */
 import React from 'react';
 import { Simulate } from 'react-dom/test-utils';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import DatasourcePanel from 'src/explore/components/DatasourcePanel';
 import { columns, metrics } from 'spec/javascripts/datasource/fixtures';
-import { Collapse } from 'src/common/components';
 
 describe('datasourcepanel', () => {
   const datasource = {
@@ -30,8 +29,8 @@ describe('datasourcepanel', () => {
     type: 'table',
     uid: '1__table',
     id: 1,
-    columns: columns,
-    metrics: metrics,
+    columns,
+    metrics,
     database: {
       backend: 'mysql',
       name: 'main',
@@ -53,8 +52,8 @@ describe('datasourcepanel', () => {
 
   function search(value, input) {
     fireEvent.change(input, {
-      target: { value: value }
-    })
+      target: { value },
+    });
     Simulate.change(input);
   }
 
@@ -85,10 +84,9 @@ describe('datasourcepanel', () => {
       </ThemeProvider>,
     );
     const c = container.getElementsByClassName('option-label');
-    const searchInput = screen.getByPlaceholderText("Search Metrics & Columns");
 
     expect(c).toHaveLength(5);
-  })
+  });
 
   it('should render 0 search results', () => {
     const { container } = render(
@@ -97,13 +95,13 @@ describe('datasourcepanel', () => {
       </ThemeProvider>,
     );
     const c = container.getElementsByClassName('option-label');
-    const searchInput = screen.getByPlaceholderText("Search Metrics & Columns");
+    const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
 
     search('sssssssss', searchInput);
     setTimeout(() => {
       expect(c).toHaveLength(0);
     }, 201);
-  })
+  });
 
   it('should render and sort search results', () => {
     const { container } = render(
@@ -112,12 +110,12 @@ describe('datasourcepanel', () => {
       </ThemeProvider>,
     );
     const c = container.getElementsByClassName('option-label');
-    const searchInput = screen.getByPlaceholderText("Search Metrics & Columns");
-    
+    const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
+
     search('end', searchInput);
     setTimeout(() => {
       expect(c).toHaveLength(4);
-      expect(c[0].value).toBe("metric_end_certified");
+      expect(c[0].value).toBe('metric_end_certified');
     }, 201);
-  })
+  });
 });

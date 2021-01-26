@@ -117,9 +117,9 @@ export default function DataSourcePanel({
     isMetrics = false,
   ) {
     const properties = [
+      'verbose_name',
       isMetrics ? 'metric_name' : 'column_name',
       'description',
-      'verbose_name',
       'expression',
     ];
     // eslint-disable-next-line @typescript-eslint/no-array-constructor
