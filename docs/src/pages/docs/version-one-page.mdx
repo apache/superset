@@ -91,30 +91,6 @@ Some of the features in Superset 1.0 require:
 In this section, the community takes the first steps to document the
 feature flags and configuration instructions needed.
 
-- Global Async Queries:
-    - Feature flag: `GLOBAL_ASYNC_QUERIES: True`
-    - Dependencies: Redis 5.0+, celery workers configured and running
-    - Documentation: https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries
-- Dashboard Native Filters:
-    - Feature flag: `DASHBOARD_NATIVE_FILTERS: True`
-- Alerts & Reporting:
-    - Feature flag: `ALERTS_REPORTS: True`
-    - Dependencies: [Celery workers configured & celery beat process](/docs/installation/async-queries-celery)
-- Homescreen Thumbnails:
-    - Feature flag:
-    ```
-    THUMBNAILS: TRUE`
-    THUMBNAIL_CACHE_CONFIG: CacheConfig = {
-        "CACHE_TYPE": "null",
-        "CACHE_NO_NULL_WARNING": True,
-    }
-    ```
-    - Dependencies: selenium, pillow 7, celery
-- Dynamic Viz Plugin Import:
-    - Feaure flag: `DYNAMIC_PLUGINS: True`
-
-**Table**
-
 | Feature | Feature Flag | Dependencies | Documentation
 | --- | --- | --- | --- |
 | Global Async Queries | `GLOBAL_ASYNC_QUERIES: True` | Redis 5.0+, celery workers configured and running | [Extra documentation](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries )
