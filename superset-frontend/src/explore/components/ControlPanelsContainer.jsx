@@ -132,7 +132,6 @@ class ControlPanelsContainer extends React.Component {
     if (visibility && !visibility.call(config, this.props, controlData)) {
       return null;
     }
-
     return (
       <Control
         key={`control-${name}`}
@@ -140,6 +139,7 @@ class ControlPanelsContainer extends React.Component {
         validationErrors={validationErrors}
         actions={actions}
         formData={provideFormDataToProps ? formData : null}
+        datasource={formData?.datasource}
         {...restProps}
       />
     );
