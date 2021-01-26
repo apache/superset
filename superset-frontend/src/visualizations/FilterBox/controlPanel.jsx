@@ -24,7 +24,7 @@ export default {
   controlPanelSections: [
     sections.legacyTimeseriesTime,
     {
-      label: t('Filters Configuration'),
+      label: t('Filters configuration'),
       expanded: true,
       controlSetRows: [
         [
@@ -46,7 +46,7 @@ export default {
             name: 'date_filter',
             config: {
               type: 'CheckboxControl',
-              label: t('Date Filter'),
+              label: t('Date filter'),
               default: true,
               description: t('Whether to include a time filter'),
             },
@@ -55,7 +55,7 @@ export default {
             name: 'instant_filtering',
             config: {
               type: 'CheckboxControl',
-              label: t('Instant Filtering'),
+              label: t('Instant filtering'),
               renderTrigger: true,
               default: false,
               description: t(
@@ -69,18 +69,18 @@ export default {
             name: 'show_sqla_time_granularity',
             config: {
               type: 'CheckboxControl',
-              label: t('Show SQL Granularity Dropdown'),
+              label: t('Show SQL granularity dropdown'),
               default: false,
-              description: t('Check to include SQL Granularity dropdown'),
+              description: t('Check to include SQL granularity dropdown'),
             },
           },
           {
             name: 'show_sqla_time_column',
             config: {
               type: 'CheckboxControl',
-              label: t('Show SQL Time Column'),
+              label: t('Show SQL time column'),
               default: false,
-              description: t('Check to include Time Column dropdown'),
+              description: t('Check to include time column dropdown'),
             },
           },
         ],
@@ -89,18 +89,18 @@ export default {
             name: 'show_druid_time_granularity',
             config: {
               type: 'CheckboxControl',
-              label: t('Show Druid Granularity Dropdown'),
+              label: t('Show Druid granularity dropdown'),
               default: false,
-              description: t('Check to include Druid Granularity dropdown'),
+              description: t('Check to include Druid granularity dropdown'),
             },
           },
           {
             name: 'show_druid_time_origin',
             config: {
               type: 'CheckboxControl',
-              label: t('Show Druid Time Origin'),
+              label: t('Show Druid time origin'),
               default: false,
-              description: t('Check to include Time Origin dropdown'),
+              description: t('Check to include time origin dropdown'),
             },
           },
         ],
@@ -110,7 +110,7 @@ export default {
   ],
   controlOverrides: {
     adhoc_filters: {
-      label: t('Limit Selector Values'),
+      label: t('Limit selector values'),
       description: t(
         'These filters apply to the values available in the dropdowns',
       ),

@@ -177,7 +177,7 @@ export class SouthPane extends React.PureComponent {
           <Tabs.TabPane tab={t('Results')} key="Results">
             {results}
           </Tabs.TabPane>
-          <Tabs.TabPane tab={t('Query History')} key="History">
+          <Tabs.TabPane tab={t('Query history')} key="History">
             <QueryHistory
               queries={props.editorQueries}
               actions={props.actions}

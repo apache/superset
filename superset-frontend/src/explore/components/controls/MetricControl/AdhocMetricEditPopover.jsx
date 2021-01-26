@@ -29,6 +29,7 @@ import { ColumnOption } from '@superset-ui/chart-controls';
 import FormLabel from 'src/components/FormLabel';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
+import { noOp } from 'src/utils/common';
 
 import { AGGREGATES_OPTIONS } from 'src/explore/constants';
 import columnType from 'src/explore/propTypes/columnType';
@@ -40,8 +41,9 @@ const propTypes = {
   onChange: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
   onResize: PropTypes.func.isRequired,
+  getCurrentTab: PropTypes.func,
   columns: PropTypes.arrayOf(columnType),
-  savedMetrics: PropTypes.arrayOf(savedMetricType),
+  savedMetricsOptions: PropTypes.arrayOf(savedMetricType),
   savedMetric: savedMetricType,
   datasourceType: PropTypes.string,
   title: PropTypes.shape({
@@ -52,6 +54,7 @@ const propTypes = {
 
 const defaultProps = {
   columns: [],
+  getCurrentTab: noOp,
 };
 
 const ResizeIcon = styled.i`
@@ -64,12 +67,20 @@ const ColumnOptionStyle = styled.span`
   }
 `;
 
-const SAVED_TAB_KEY = 'SAVED';
+export const SAVED_TAB_KEY = 'SAVED';
 
 const startingWidth = 320;
 const startingHeight = 240;
 
 export default class AdhocMetricEditPopover extends React.Component {
+  // "Saved" is a default tab unless there are no saved metrics for dataset
+  defaultActiveTabKey =
+    (this.props.savedMetric.metric_name || this.props.adhocMetric.isNew) &&
+    Array.isArray(this.props.savedMetricsOptions) &&
+    this.props.savedMetricsOptions.length > 0
+      ? SAVED_TAB_KEY
+      : this.props.adhocMetric.expressionType;
+
   constructor(props) {
     super(props);
     this.onSave = this.onSave.bind(this);
@@ -81,6 +92,7 @@ export default class AdhocMetricEditPopover extends React.Component {
     this.onDragDown = this.onDragDown.bind(this);
     this.onMouseMove = this.onMouseMove.bind(this);
     this.onMouseUp = this.onMouseUp.bind(this);
+    this.onTabChange = this.onTabChange.bind(this);
     this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
     this.refreshAceEditor = this.refreshAceEditor.bind(this);
 
@@ -92,6 +104,10 @@ export default class AdhocMetricEditPopover extends React.Component {
     };
 
     document.addEventListener('mouseup', this.onMouseUp);
+  }
+
+  componentDidMount() {
+    this.props.getCurrentTab(this.defaultActiveTabKey);
   }
 
   componentWillUnmount() {
@@ -157,7 +173,7 @@ export default class AdhocMetricEditPopover extends React.Component {
   }
 
   onSavedMetricChange(savedMetricId) {
-    const savedMetric = this.props.savedMetrics.find(
+    const savedMetric = this.props.savedMetricsOptions.find(
       metric => metric.id === savedMetricId,
     );
     this.setState(prevState => ({
@@ -207,6 +223,11 @@ export default class AdhocMetricEditPopover extends React.Component {
     document.removeEventListener('mousemove', this.onMouseMove);
   }
 
+  onTabChange(tab) {
+    this.refreshAceEditor();
+    this.props.getCurrentTab(tab);
+  }
+
   handleAceEditorRef(ref) {
     if (ref) {
       this.aceEditorRef = ref;
@@ -238,7 +259,7 @@ export default class AdhocMetricEditPopover extends React.Component {
       adhocMetric: propsAdhocMetric,
       savedMetric: propsSavedMetric,
       columns,
-      savedMetrics,
+      savedMetricsOptions,
       onChange,
       onClose,
       onResize,
@@ -282,7 +303,7 @@ export default class AdhocMetricEditPopover extends React.Component {
     };
 
     const savedSelectProps = {
-      placeholder: t('%s saved metric(s)', savedMetrics?.length ?? 0),
+      placeholder: t('%s saved metric(s)', savedMetricsOptions?.length ?? 0),
       value: savedMetric?.verbose_name || savedMetric?.metric_name,
       onChange: this.onSavedMetricChange,
       allowClear: true,
@@ -316,16 +337,33 @@ export default class AdhocMetricEditPopover extends React.Component {
         <Tabs
           id="adhoc-metric-edit-tabs"
           data-test="adhoc-metric-edit-tabs"
-          defaultActiveKey={
-            propsSavedMetric.metric_name
-              ? SAVED_TAB_KEY
-              : adhocMetric.expressionType
-          }
+          defaultActiveKey={this.defaultActiveTabKey}
           className="adhoc-metric-edit-tabs"
           style={{ height: this.state.height, width: this.state.width }}
-          onChange={this.refreshAceEditor}
+          onChange={this.onTabChange}
           allowOverflow
         >
+          <Tabs.TabPane key={SAVED_TAB_KEY} tab={t('Saved')}>
+            <FormGroup>
+              <FormLabel>
+                <strong>{t('Saved metric')}</strong>
+              </FormLabel>
+              <Select name="select-saved" {...savedSelectProps}>
+                {Array.isArray(savedMetricsOptions) &&
+                  savedMetricsOptions.map(savedMetric => (
+                    <Select.Option
+                      value={savedMetric.id}
+                      filterBy={
+                        savedMetric.verbose_name || savedMetric.metric_name
+                      }
+                      key={savedMetric.id}
+                    >
+                      {this.renderColumnOption(savedMetric)}
+                    </Select.Option>
+                  ))}
+              </Select>
+            </FormGroup>
+          </Tabs.TabPane>
           <Tabs.TabPane key={EXPRESSION_TYPES.SIMPLE} tab={t('Simple')}>
             <FormGroup>
               <FormLabel>
@@ -353,27 +391,6 @@ export default class AdhocMetricEditPopover extends React.Component {
                     {option}
                   </Select.Option>
                 ))}
-              </Select>
-            </FormGroup>
-          </Tabs.TabPane>
-          <Tabs.TabPane key={SAVED_TAB_KEY} tab={t('Saved')}>
-            <FormGroup>
-              <FormLabel>
-                <strong>{t('Saved metric')}</strong>
-              </FormLabel>
-              <Select name="select-saved" {...savedSelectProps}>
-                {Array.isArray(savedMetrics) &&
-                  savedMetrics.map(savedMetric => (
-                    <Select.Option
-                      value={savedMetric.id}
-                      filterBy={
-                        savedMetric.verbose_name || savedMetric.metric_name
-                      }
-                      key={savedMetric.id}
-                    >
-                      {this.renderColumnOption(savedMetric)}
-                    </Select.Option>
-                  ))}
               </Select>
             </FormGroup>
           </Tabs.TabPane>

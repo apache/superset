@@ -78,7 +78,7 @@ ${extra.issue_codes.map(issueCode => issueCode.message).join('\n')}`;
 
   return (
     <ErrorAlert
-      title={t('%s Error', extra.engine_name || t('DB Engine'))}
+      title={t('%s Error', extra.engine_name || t('DB engine'))}
       subtitle={message}
       level={level}
       source={source}

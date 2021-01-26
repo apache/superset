@@ -23,7 +23,7 @@ import NavDropdown from 'src/components/NavDropdown';
 
 const dropdownItems = [
   {
-    label: t('SQL Query'),
+    label: t('SQL query'),
     url: '/superset/sqllab',
     icon: 'fa-fw fa-search',
   },

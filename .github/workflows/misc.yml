@@ -11,7 +11,11 @@ jobs:
     name: License Check
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
       - name: Setup Java
         uses: actions/setup-java@v1
         with:
@@ -51,7 +55,11 @@ jobs:
     name: Prefer Typescript
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
       - name: Get changed files
         id: changed
         uses: ./.github/actions/file-changes-action

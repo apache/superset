@@ -26,7 +26,7 @@ import simplejson as json
 from flask import g, request
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
-from flask_babel import gettext as __
+from flask_babel import _
 from sqlalchemy.orm.exc import NoResultFound
 
 import superset.models.core as models
@@ -126,6 +126,13 @@ def get_viz(
     return viz_obj
 
 
+def loads_request_json(request_json_data: str) -> Dict[Any, Any]:
+    try:
+        return json.loads(request_json_data)
+    except (TypeError, json.JSONDecodeError):
+        return {}
+
+
 def get_form_data(
     slice_id: Optional[int] = None, use_slice_data: bool = False
 ) -> Tuple[Dict[str, Any], Optional[Slice]]:
@@ -141,10 +148,10 @@ def get_form_data(
     if request_json_data:
         form_data.update(request_json_data)
     if request_form_data:
-        form_data.update(json.loads(request_form_data))
+        form_data.update(loads_request_json(request_form_data))
     # request params can overwrite the body
     if request_args_data:
-        form_data.update(json.loads(request_args_data))
+        form_data.update(loads_request_json(request_args_data))
 
     # Fallback to using the Flask globals (used for cache warmup) if defined.
     if not form_data and hasattr(g, "form_data"):
@@ -157,7 +164,7 @@ def get_form_data(
             url_str = parse.unquote_plus(
                 saved_url.url.split("?")[1][10:], encoding="utf-8"
             )
-            url_form_data = json.loads(url_str)
+            url_form_data = loads_request_json(url_str)
             # allow form_date in request override saved url
             url_form_data.update(form_data)
             form_data = url_form_data
@@ -220,7 +227,7 @@ def get_datasource_info(
 
     if not datasource_id:
         raise SupersetException(
-            "The dataset associated with this chart no longer exists"
+            _("The dataset associated with this chart no longer exists")
         )
 
     datasource_id = int(datasource_id)
@@ -482,7 +489,7 @@ def check_datasource_perms(
             SupersetError(
                 error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
                 level=ErrorLevel.ERROR,
-                message=__("Could not determine datasource type"),
+                message=_("Could not determine datasource type"),
             )
         )
 
@@ -498,7 +505,7 @@ def check_datasource_perms(
             SupersetError(
                 error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
                 level=ErrorLevel.ERROR,
-                message=__("Could not find viz object"),
+                message=_("Could not find viz object"),
             )
         )
 

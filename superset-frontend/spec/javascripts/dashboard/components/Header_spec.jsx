@@ -30,6 +30,7 @@ describe('Header', () => {
   const props = {
     addSuccessToast: () => {},
     addDangerToast: () => {},
+    addWarningToast: () => {},
     dashboardInfo: {
       id: 1,
       dash_edit_perm: true,
@@ -46,7 +47,12 @@ describe('Header', () => {
     filters: {},
     expandedSlices: {},
     css: '',
+    customCss: '',
     isStarred: false,
+    isLoading: false,
+    lastModifiedTime: 0,
+    refreshFrequency: 0,
+    shouldPersistRefreshFrequency: false,
     onSave: () => {},
     onChange: () => {},
     fetchFaveStar: () => {},
@@ -59,6 +65,9 @@ describe('Header', () => {
     setEditMode: () => {},
     showBuilderPane: () => {},
     updateCss: () => {},
+    setColorSchemeAndUnsavedChanges: () => {},
+    logEvent: () => {},
+    setRefreshFrequency: () => {},
     hasUnsavedChanges: false,
     maxUndoHistoryExceeded: false,
 

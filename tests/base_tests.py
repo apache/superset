@@ -18,6 +18,7 @@
 """Unit tests for Superset"""
 import imp
 import json
+from contextlib import contextmanager
 from typing import Any, Dict, Union, List, Optional
 from unittest.mock import Mock, patch
 
@@ -26,6 +27,7 @@ import pytest
 from flask import Response
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
+from sqlalchemy.ext.declarative.api import DeclarativeMeta
 from sqlalchemy.orm import Session
 
 from tests.test_app import app
@@ -495,3 +497,16 @@ class SupersetTestCase(TestCase):
         else:
             mock_method.assert_called_once_with("error", func_name)
         return rv
+
+
+@contextmanager
+def db_insert_temp_object(obj: DeclarativeMeta):
+    """Insert a temporary object in database; delete when done."""
+    session = db.session
+    try:
+        session.add(obj)
+        session.commit()
+        yield obj
+    finally:
+        session.delete(obj)
+        session.commit()

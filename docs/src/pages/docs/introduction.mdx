@@ -10,20 +10,30 @@ is fast, lightweight, intuitive, and loaded with options that make it easy for u
 sets to explore and visualize their data, from simple pie charts to highly detailed deck.gl
 geospatial charts.
 
-Here's an overview of the key features of Superset:
+Here are a **few different ways you can get started with Superset**:
 
-- A rich set of data visualizations out of the box
-- An easy-to-use interface for exploring and visualizing data
-- Create and share dashboards
-- Enterprise-ready authentication with integration with major authentication providers (database,
-  OpenID, LDAP, OAuth & REMOTE_USER through Flask AppBuilder)
-- An extensible, high-granularity security/permission model allowing intricate rules on who can
-  access individual features and the dataset
-- A simple semantic layer, allowing users to control how data sources are displayed in the UI by
-  defining which fields should show up in which drop-down and which aggregation and function metrics
-  are made available to the user
-- Integration with most SQL-speaking RDBMS through SQLAlchemy
-- Deep integration with Druid.io
+- Download the [source from Apache Foundation's website](https://dist.apache.org/repos/dist/release/superset/1.0.0/)
+- Download the latest Superset version from [Pypi here](https://pypi.org/project/apache-superset/)
+- Setup Superset locally with one command
+using [Docker Compose](docs/installation/installing-superset-using-docker-compose)
+- Download the [Docker image](https://hub.docker.com/r/apache/superset) from Dockerhub
+- Install bleeding-edge master version of Superset
+[from Github](https://github.com/apache/superset/tree/master/superset)
+
+Superset provides:
+
+- An intuitive interface for visualizing datasets and crafting interactive dashboards
+- A wide array of beautiful visualizations to showcase your data
+- Code-free visualization builder to extract and present datasets
+- A world-class SQL IDE for preparing data for visualization, including a rich metadata browser
+- A lightweight semantic layer which empowers data analysts to quickly define custom dimensions and metrics
+- Out-of-the-box support for most SQL-speaking databases
+- Seamless, in-memory asynchronous caching and queries
+- An extensible security model that allows configuration of very intricate rules on on who can access which product features and datasets.
+- Integration with major authentication backends (database, OpenID, LDAP, OAuth, REMOTE_USER, etc)
+- The ability to add custom visualization plugins
+- An API for programmatic customization
+- A cloud-native archiecture designed from the ground up for scale
 
 Superset is cloud-native and designed to be highly available. It was designed to scale out to large,
 distributed environments and works very well inside containers. While you can easily test drive

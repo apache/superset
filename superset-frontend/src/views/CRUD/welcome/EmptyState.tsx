@@ -111,7 +111,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
                 <IconContainer>
                   <Icon name="plus-small" />{' '}
                   {tableName === 'SAVED_QUERIES'
-                    ? t('SQL QUERY')
+                    ? t('SQL query')
                     : t(`${tableName
                         .split('')
                         .slice(0, tableName.length - 1)
@@ -142,9 +142,9 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
             window.location = favRedirects[tableName];
           }}
         >
-          SEE ALL{' '}
+          See all{' '}
           {tableName === 'SAVED_QUERIES'
-            ? t('SQL LAB QUERIES')
+            ? t('SQL Lab queries')
             : t(`${tableName}`)}
         </Button>
       </Empty>

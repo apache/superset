@@ -16,16 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import {
+  isLegacyResponse,
+  getChartAliases,
+  parsePostForm,
+} from 'cypress/utils';
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
-import { isLegacyResponse, getChartAliases } from '../../utils/vizPlugins';
-import readResponseBlob from '../../utils/readResponseBlob';
 
 describe('Dashboard form data', () => {
   const urlParams = { param1: '123', param2: 'abc' };
   let dashboard;
 
   beforeEach(() => {
-    cy.server();
     cy.login();
 
     cy.visit(WORLD_HEALTH_DASHBOARD, { qs: urlParams });
@@ -41,16 +43,15 @@ describe('Dashboard form data', () => {
     // wait and verify one-by-one
     cy.wait(aliases, { timeout: 18000 }).then(requests =>
       Promise.all(
-        requests.map(async xhr => {
-          expect(xhr.status).to.eq(200);
-          const responseBody = await readResponseBlob(xhr.response.body);
-
+        requests.map(async ({ response, request }) => {
+          const responseBody = response?.body;
           if (isLegacyResponse(responseBody)) {
-            const requestFormData = xhr.request.body;
-            const requestParams = JSON.parse(requestFormData.get('form_data'));
+            const requestParams = JSON.parse(
+              parsePostForm(request.body).form_data,
+            );
             expect(requestParams.url_params).deep.eq(urlParams);
           } else {
-            xhr.request.body.queries.forEach(query => {
+            request.body.queries.forEach(query => {
               expect(query.url_params).deep.eq(urlParams);
             });
           }

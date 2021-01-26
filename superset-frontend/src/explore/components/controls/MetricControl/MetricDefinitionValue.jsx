@@ -35,6 +35,7 @@ const propTypes = {
   onDropLabel: PropTypes.func,
   columns: PropTypes.arrayOf(columnType),
   savedMetrics: PropTypes.arrayOf(savedMetricType),
+  savedMetricsOptions: PropTypes.arrayOf(savedMetricType),
   multi: PropTypes.bool,
   datasourceType: PropTypes.string,
 };
@@ -45,6 +46,7 @@ export default function MetricDefinitionValue({
   onRemoveMetric,
   columns,
   savedMetrics,
+  savedMetricsOptions,
   datasourceType,
   onMoveLabel,
   onDropLabel,
@@ -62,13 +64,13 @@ export default function MetricDefinitionValue({
 
   if (option instanceof AdhocMetric || savedMetric) {
     const adhocMetric =
-      option instanceof AdhocMetric ? option : new AdhocMetric({});
+      option instanceof AdhocMetric ? option : new AdhocMetric({ isNew: true });
 
     const metricOptionProps = {
       onMetricEdit,
       onRemoveMetric,
       columns,
-      savedMetrics,
+      savedMetricsOptions,
       datasourceType,
       adhocMetric,
       onMoveLabel,

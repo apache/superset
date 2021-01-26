@@ -29,9 +29,8 @@ describe('Datasource control', () => {
     let numScripts = 0;
 
     cy.login();
-    cy.server();
-    cy.route('GET', '/superset/explore_json/**').as('getJson');
-    cy.route('POST', '/superset/explore_json/**').as('postJson');
+    cy.intercept('GET', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('postJson');
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
@@ -91,9 +90,8 @@ describe('Datasource control', () => {
 describe('VizType control', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
-    cy.route('GET', '/superset/explore_json/**').as('getJson');
-    cy.route('POST', '/superset/explore_json/**').as('postJson');
+    cy.intercept('GET', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('postJson');
   });
 
   it('Can change vizType', () => {
@@ -112,7 +110,7 @@ describe('VizType control', () => {
     // should load mathjs for line chart
     cy.get('script[src*="mathjs"]').should('have.length', 1);
     cy.get('script').then(nodes => {
-      expect(nodes.length).to.greaterThan(numScripts);
+      expect(nodes.length).to.eq(numScripts);
     });
 
     cy.get('button[data-test="run-query-button"]').click();
@@ -123,9 +121,8 @@ describe('VizType control', () => {
 describe('Time range filter', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
-    cy.route('GET', '/superset/explore_json/**').as('getJson');
-    cy.route('POST', '/superset/explore_json/**').as('postJson');
+    cy.intercept('GET', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('postJson');
   });
 
   it('Advanced time_range params', () => {
@@ -237,10 +234,9 @@ describe('Time range filter', () => {
 
 describe('Groupby control', () => {
   it('Set groupby', () => {
-    cy.server();
     cy.login();
-    cy.route('GET', '/superset/explore_json/**').as('getJson');
-    cy.route('POST', '/superset/explore_json/**').as('postJson');
+    cy.intercept('GET', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('postJson');
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 

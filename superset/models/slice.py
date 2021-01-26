@@ -206,7 +206,7 @@ class Slice(
         """
         Returns a MD5 HEX digest that makes this dashboard unique
         """
-        return utils.md5_hex(self.params)
+        return utils.md5_hex(self.params or "")
 
     @property
     def thumbnail_url(self) -> str:

@@ -456,7 +456,7 @@ class Header extends React.PureComponent {
                     buttonStyle="default"
                     data-test="discard-changes-button"
                   >
-                    {t('Discard Changes')}
+                    {t('Discard changes')}
                   </Button>
                   <Button
                     buttonSize="small"
@@ -482,7 +482,7 @@ class Header extends React.PureComponent {
             <>
               <span
                 role="button"
-                title="Edit Dashboard"
+                title="Edit dashboard"
                 tabIndex={0}
                 className="action-button"
                 onClick={this.toggleEditMode}

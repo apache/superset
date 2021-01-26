@@ -478,6 +478,7 @@ export const initialState = {
     conf: {
       DEFAULT_SQLLAB_LIMIT: 1000,
       SQL_MAX_ROW: 100000,
+      DISPLAY_MAX_ROW: 100,
     },
   },
 };

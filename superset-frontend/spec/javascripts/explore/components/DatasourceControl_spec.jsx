@@ -99,7 +99,7 @@ describe('DatasourceControl', () => {
     const wrapper = setup();
     const alert = wrapper.find(Icon);
     expect(alert.at(1).prop('name')).toBe('alert-solid');
-    const tooltip = wrapper.find(Tooltip).at(1);
+    const tooltip = wrapper.find(Tooltip).at(0);
     expect(tooltip.prop('title')).toBe(
       defaultProps.datasource.health_check_message,
     );
