@@ -42,6 +42,7 @@ export type AdhocMetricPopoverTriggerProps = {
 export type AdhocMetricPopoverTriggerState = {
   popoverVisible: boolean;
   title: { label: string; hasCustomLabel: boolean };
+  currentLabel: string;
   labelModified: boolean;
   isTitleEditDisabled: boolean;
 };
@@ -66,6 +67,7 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
         label: props.adhocMetric.label,
         hasCustomLabel: props.adhocMetric.hasCustomLabel,
       },
+      currentLabel: '',
       labelModified: false,
       isTitleEditDisabled: false,
     };
@@ -73,15 +75,20 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
 
   onLabelChange(e: any) {
     const { verbose_name, metric_name } = this.props.savedMetric;
-    const { label: propsLabel } = this.props.adhocMetric;
+    const defaultMetricLabel = this.props.adhocMetric?.getDefaultLabel();
     const label = e.target.value;
-    this.setState({
+    this.setState(state => ({
       title: {
-        label: label ?? (verbose_name || metric_name) ?? propsLabel,
+        label:
+          label ||
+          state.currentLabel ||
+          verbose_name ||
+          metric_name ||
+          defaultMetricLabel,
         hasCustomLabel: !!label,
       },
       labelModified: true,
-    });
+    }));
   }
 
   onPopoverResize() {
@@ -108,13 +115,16 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
   }
 
   getCurrentLabel(label: string) {
+    this.setState({
+      currentLabel: label,
+      labelModified: true,
+    });
     if (!this.state.title.hasCustomLabel) {
       this.setState({
         title: {
           label,
           hasCustomLabel: false,
         },
-        labelModified: true,
       });
     }
   }

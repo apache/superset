@@ -109,13 +109,17 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
 
   componentDidUpdate(prevProps, prevState) {
     if (
-      prevState.adhocMetric?.label !== this.state.adhocMetric?.label ||
+      prevState.adhocMetric?.sqlExpression !==
+        this.state.adhocMetric?.sqlExpression ||
+      prevState.adhocMetric?.aggregate !== this.state.adhocMetric?.aggregate ||
+      prevState.adhocMetric?.column?.column_name !==
+        this.state.adhocMetric?.column?.column_name ||
       prevState.savedMetric?.metric_name !== this.state.savedMetric?.metric_name
     ) {
       this.props.getCurrentLabel(
         this.state.savedMetric?.verbose_name ||
           this.state.savedMetric?.metric_name ||
-          this.state.adhocMetric?.label,
+          this.state.adhocMetric?.getDefaultLabel(),
       );
     }
   }
