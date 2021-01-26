@@ -158,7 +158,8 @@ export default function ActivityTable({
           cover={<></>}
           url={e.sql ? `/superset/sqllab?savedQueryId=${e.id}` : e.url}
           title={getFilterTitle(e)}
-          description={`Last Edited: ${moment(e.changed_on_utc).format(
+          description={`Last Edited: ${moment(
+            e.changed_on_utc,
             'MM/DD/YYYY HH:mm:ss',
           )}`}
           avatar={getIconName(e)}
