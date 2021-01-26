@@ -93,6 +93,17 @@ export const yAxisShowMinmax: CustomControlItem = {
   },
 };
 
+export const yAxis2ShowMinmax: CustomControlItem = {
+  name: 'y_axis_2_showminmax',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Y 2 bounds'),
+    renderTrigger: true,
+    default: false,
+    description: t('Whether to display the min and max values of the Y-axis'),
+  },
+};
+
 export const lineInterpolation: CustomControlItem = {
   name: 'line_interpolation',
   config: {
@@ -221,6 +232,22 @@ export const yAxisBounds: CustomControlItem = {
   config: {
     type: 'BoundsControl',
     label: t('Y Axis Bounds'),
+    renderTrigger: true,
+    default: [null, null],
+    description: t(
+      'Bounds for the Y-axis. When left empty, the bounds are ' +
+        'dynamically defined based on the min/max of the data. Note that ' +
+        "this feature will only expand the axis range. It won't " +
+        "narrow the data's extent.",
+    ),
+  },
+};
+
+export const yAxis2Bounds: CustomControlItem = {
+  name: 'y_axis_2_bounds',
+  config: {
+    type: 'BoundsControl',
+    label: t('Y Axis 2 Bounds'),
     renderTrigger: true,
     default: [null, null],
     description: t(

@@ -78,8 +78,10 @@ export default function transformProps(chartProps) {
     xTicksLayout,
     y,
     yAxisBounds,
+    yAxis2Bounds,
     yAxisLabel,
     yAxisShowminmax,
+    yAxis2Showminmax,
     yLogScale,
   } = formData;
 
@@ -173,8 +175,10 @@ export default function transformProps(chartProps) {
     yAxisFormat,
     yAxis2Format,
     yAxisBounds,
+    yAxis2Bounds,
     yAxisLabel,
     yAxisShowMinMax: yAxisShowminmax,
+    yAxis2ShowMinMax: yAxis2Showminmax,
     yField: y,
     yIsLogScale: yLogScale,
   };
