@@ -5817,10 +5817,10 @@
   dependencies:
     prop-types "^15.5.10"
 
-"@vx/bounds@0.0.197":
-  version "0.0.197"
-  resolved "https://registry.yarnpkg.com/@vx/bounds/-/bounds-0.0.197.tgz#bf7ba8572900b2249c138d9b4d5ef70e2d6857af"
-  integrity sha512-9e8YB0tX5AcxxnhqS1H/x9GmYdXEZiHTK3y/HZFEYL1d5IWpuyhFzFW6XHnHvC4+3gjlmD9diWBfE8PYlKs4xw==
+"@vx/bounds@0.0.199":
+  version "0.0.199"
+  resolved "https://registry.yarnpkg.com/@vx/bounds/-/bounds-0.0.199.tgz#9a57aa5ea59c96d7f2369921ee6d7751d65f731d"
+  integrity sha512-3hq9MmfiSB5ciKTzHhB4/UV77JIIUEd1hDj5EBfLUUOL27wXgM6+RSOB+FxFt3tRJniltp3iZs5Gb75SDecpGw==
   dependencies:
     "@types/react" "*"
     "@types/react-dom" "*"
@@ -6314,16 +6314,17 @@
     classnames "^2.2.5"
     prop-types "^15.5.10"
 
-"@vx/tooltip@^0.0.197":
-  version "0.0.197"
-  resolved "https://registry.yarnpkg.com/@vx/tooltip/-/tooltip-0.0.197.tgz#66800a5528b55d5f4a0f64e6bf020b41794c51e1"
-  integrity sha512-BYCHC7uuPwltOFdasEResjJXdLoVEZXmpq6p1rIKuVZ2T5u0f7WIyXduOok/brInWZk9LbuESGdEemls5012sw==
+"@vx/tooltip@^0.0.199":
+  version "0.0.199"
+  resolved "https://registry.yarnpkg.com/@vx/tooltip/-/tooltip-0.0.199.tgz#e60147412eb5be4d8dc98664abaee1ac63ee6570"
+  integrity sha512-IZ6ExnEyTZ4jq9Ml+XECnrtQ52SnLi8WD1dbxnVMoAzNbMKNfnkET5ZqzYM/fM/yPEsKMwNadZWizdKBMjIGVw==
   dependencies:
     "@types/classnames" "^2.2.9"
     "@types/react" "*"
-    "@vx/bounds" "0.0.197"
+    "@vx/bounds" "0.0.199"
     classnames "^2.2.5"
     prop-types "^15.5.10"
+    react-use-measure "2.0.1"
 
 "@vx/voronoi@^0.0.165":
   version "0.0.165"
@@ -9992,6 +9993,11 @@ dayjs@^1.8.30:
   version "1.9.6"
   resolved "https://registry.yarnpkg.com/dayjs/-/dayjs-1.9.6.tgz#6f0c77d76ac1ff63720dd1197e5cb87b67943d70"
   integrity sha512-HngNLtPEBWRo8EFVmHFmSXAjtCX8rGNqeXQI0Gh7wCTSqwaKgPIDqu9m07wABVopNwzvOeCb+2711vQhDlcIXw==
+
+debounce@^1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/debounce/-/debounce-1.2.0.tgz#44a540abc0ea9943018dc0eaa95cce87f65cd131"
+  integrity sha512-mYtLl1xfZLi1m4RtQYlZgJUNQjl4ZxVnHzIR8nLLgi4q1YT8o/WM+MK/f8yfcc9s5Ir5zRaPZyZU6xs1Syoocg==
 
 debug@2.6.9, debug@^2.2.0, debug@^2.3.3, debug@^2.6.0, debug@^2.6.9:
   version "2.6.9"
@@ -19517,6 +19523,13 @@ react-transition-group@^4.3.0:
     dom-helpers "^5.0.1"
     loose-envify "^1.4.0"
     prop-types "^15.6.2"
+
+react-use-measure@2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/react-use-measure/-/react-use-measure-2.0.1.tgz#4f23f94c832cd4512da55acb300d1915dcbf3ae8"
+  integrity sha512-lFfHiqcXbJ2/6aUkZwt8g5YYM7EGqNVxJhMqMPqv1BVXRKp8D7jYLlmma0SvhRY4WYxxkZpCdbJvhDylb5gcEA==
+  dependencies:
+    debounce "^1.2.0"
 
 react-virtualized-auto-sizer@^1.0.2:
   version "1.0.2"
