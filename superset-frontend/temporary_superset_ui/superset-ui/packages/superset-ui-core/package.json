@@ -42,7 +42,7 @@
     "@types/lodash": "^4.14.149",
     "@types/rison": "0.0.6",
     "@types/seedrandom": "^2.4.28",
-    "@vx/responsive": "^0.0.197",
+    "@vx/responsive": "^0.0.199",
     "csstype": "^2.6.4",
     "d3-format": "^1.3.2",
     "d3-interpolate": "^1.4.0",
