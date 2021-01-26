@@ -111,7 +111,11 @@ export default function DataSourcePanel({
     metrics,
   });
 
-  function searchByRelevance(datasource: Array<ColumnMeta | Metric>, value: string, isMetrics: boolean = false) {
+  function searchByRelevance(
+    datasource: Array<ColumnMeta | Metric>,
+    value: string,
+    isMetrics = false,
+  ) {
     const properties = [
       isMetrics ? 'metric_name' : 'column_name',
       'description',
