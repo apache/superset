@@ -128,9 +128,9 @@ export default function DataSourcePanel({
       matchSorter(datasource, value, {
         keys: [property],
         keepDiacritics: true,
-        baseSort: (a, b) =>
+        ...(isMetrics) && { baseSort: (a, b) =>
           Number(b.item.is_certified) - Number(a.item.is_certified) ||
-          String(a.rankedValue).localeCompare(b.rankedValue),
+          String(a.rankedValue).localeCompare(b.rankedValue) },
       }),
     );
     return [...new Set(result.flat())];
