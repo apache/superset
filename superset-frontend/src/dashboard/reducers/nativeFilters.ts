@@ -36,6 +36,7 @@ export function getInitialFilterState(id: string): FilterState {
 
 export function getInitialState(
   filterConfig: FilterConfiguration,
+  prevFiltersState: { [filterId: string]: FilterState },
 ): NativeFiltersState {
   const filters = {};
   const filtersState = {};
@@ -43,7 +44,7 @@ export function getInitialState(
   filterConfig.forEach(filter => {
     const { id } = filter;
     filters[id] = filter;
-    filtersState[id] = getInitialFilterState(id);
+    filtersState[id] = prevFiltersState?.[id] || getInitialFilterState(id);
   });
   return state;
 }
@@ -67,7 +68,7 @@ export default function nativeFilterReducer(
       };
 
     case SET_FILTER_CONFIG_COMPLETE:
-      return getInitialState(action.filterConfig);
+      return getInitialState(action.filterConfig, filtersState);
 
     // TODO handle SET_FILTER_CONFIG_FAIL action
     default:
