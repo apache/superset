@@ -199,6 +199,7 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
   menuList: (provider, { theme: { borderRadius, colors } }) => [
     provider,
     css`
+      background: ${colors.lightest};
       border-radius: 0 0 ${borderRadius}px ${borderRadius}px;
       border: 1px solid ${colors.grayBorderDark};
       box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
