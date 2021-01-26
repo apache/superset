@@ -16,20 +16,31 @@
 # under the License.
 from typing import List, Optional
 
-from flask import Response
+from flask import escape, Response
 
-from superset import app
 from superset.models.dashboard import Dashboard
-from tests.base_tests import SupersetTestCase
-from tests.dashboards.consts import DASHBOARDS_API_URL, GET_DASHBOARDS_LIST_VIEW
-from tests.dashboards.superset_factory_util import delete_all_inserted_objects
+from tests.dashboards.base_case import DashboardTestCase
 
 DASHBOARD_COUNT_IN_DASHBOARDS_LIST_VIEW_FORMAT = "Record Count:</strong> {count}"
 
 
-class BaseTestDashboardSecurity(SupersetTestCase):
+class BaseTestDashboardSecurity(DashboardTestCase):
     def tearDown(self) -> None:
         self.clean_created_objects()
+
+    def assert_dashboard_view_response(
+        self, response: Response, dashboard_to_access: Dashboard
+    ) -> None:
+        self.assert200(response)
+        assert escape(dashboard_to_access.dashboard_title) in response.data.decode(
+            "utf-8"
+        )
+
+    def assert_dashboard_api_response(
+        self, response: Response, dashboard_to_access: Dashboard
+    ) -> None:
+        self.assert200(response)
+        self.assertEqual(response.json["id"], dashboard_to_access.id)
 
     def assert_dashboards_list_view_response(
         self,
@@ -75,16 +86,3 @@ class BaseTestDashboardSecurity(SupersetTestCase):
         not_expected_dashboards = not_expected_dashboards or []
         for dashboard in not_expected_dashboards:
             self.assertNotIn(dashboard.url, response_dashboards_url)
-
-    def get_dashboards_list_response(self) -> Response:
-        return self.client.get(GET_DASHBOARDS_LIST_VIEW)
-
-    def get_dashboards_api_response(self) -> Response:
-        return self.client.get(DASHBOARDS_API_URL)
-
-    def clean_created_objects(self):
-        with app.test_request_context():
-            self.logout()
-            self.login("admin")
-            delete_all_inserted_objects()
-            self.logout()

@@ -22,7 +22,9 @@ from typing import Any, Dict, List, Optional, Tuple
 from sqlalchemy import func
 
 from superset import appbuilder, db
+from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from tests.dashboards.consts import DEFAULT_DASHBOARD_SLUG_TO_TEST
 
 logger = logging.getLogger(__name__)
@@ -72,6 +74,14 @@ def get_all_dashboards() -> List[Dashboard]:
 
 def get_dashboard_by_slug(dashboard_slug: str) -> Dashboard:
     return db.session.query(Dashboard).filter_by(slug=dashboard_slug).first()
+
+
+def get_slice_by_name(slice_name: str) -> Slice:
+    return db.session.query(Slice).filter_by(slice_name=slice_name).first()
+
+
+def get_sql_table_by_name(table_name: str):
+    return db.session.query(SqlaTable).filter_by(table_name=table_name).one()
 
 
 def count_dashboards() -> int:

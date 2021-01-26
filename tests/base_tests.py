@@ -302,7 +302,11 @@ class SupersetTestCase(TestCase):
         db.session.commit()
 
     def grant_public_access_to_table(self, table):
-        public_role = security_manager.find_role("Public")
+        role_name = "Public"
+        self.grant_role_access_to_table(table, role_name)
+
+    def grant_role_access_to_table(self, table, role_name):
+        role = security_manager.find_role(role_name)
         perms = db.session.query(ab_models.PermissionView).all()
         for perm in perms:
             if (
@@ -310,10 +314,14 @@ class SupersetTestCase(TestCase):
                 and perm.view_menu
                 and table.perm in perm.view_menu.name
             ):
-                security_manager.add_permission_role(public_role, perm)
+                security_manager.add_permission_role(role, perm)
 
     def revoke_public_access_to_table(self, table):
-        public_role = security_manager.find_role("Public")
+        role_name = "Public"
+        self.revoke_role_access_to_table(role_name, table)
+
+    def revoke_role_access_to_table(self, role_name, table):
+        public_role = security_manager.find_role(role_name)
         perms = db.session.query(ab_models.PermissionView).all()
         for perm in perms:
             if (
