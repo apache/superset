@@ -24,9 +24,11 @@ import {
   MetricOption,
   ControlConfig,
   DatasourceMeta,
+  Metric,
+  ColumnMeta,
 } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
-import { matchSorter, rankings } from 'match-sorter';
+import { matchSorter } from 'match-sorter';
 import { ExploreActions } from '../actions/exploreActions';
 import Control from './Control';
 
@@ -109,45 +111,35 @@ export default function DataSourcePanel({
     metrics,
   });
 
+  function searchByRelevance(datasource: Array<ColumnMeta | Metric>, value: string, isMetrics: boolean = false) {
+    const properties = [
+      isMetrics ? 'metric_name' : 'column_name',
+      'description',
+      'verbose_name',
+      'expression',
+    ];
+    // eslint-disable-next-line @typescript-eslint/no-array-constructor
+    let result = new Array();
+    result = properties.map(property =>
+      matchSorter(datasource, value, {
+        keys: [property],
+        keepDiacritics: true,
+        baseSort: (a, b) =>
+          Number(b.item.is_certified) - Number(a.item.is_certified) ||
+          String(a.rankedValue).localeCompare(b.rankedValue),
+      }),
+    );
+    return [...new Set(result.flat())];
+  }
+
   const search = debounce((value: string) => {
     if (value === '') {
       setList({ columns, metrics });
       return;
     }
     setList({
-      columns: matchSorter(columns, value, {
-        keys: [
-          'verbose_name',
-          'column_name',
-          {
-            key: 'description',
-            threshold: rankings.CONTAINS,
-          },
-          {
-            key: 'expression',
-            threshold: rankings.CONTAINS,
-          },
-        ],
-        keepDiacritics: true,
-      }),
-      metrics: matchSorter(metrics, value, {
-        keys: [
-          'verbose_name',
-          'metric_name',
-          {
-            key: 'description',
-            threshold: rankings.CONTAINS,
-          },
-          {
-            key: 'expression',
-            threshold: rankings.CONTAINS,
-          },
-        ],
-        keepDiacritics: true,
-        baseSort: (a, b) =>
-          Number(b.item.is_certified) - Number(a.item.is_certified) ||
-          String(a.rankedValue).localeCompare(b.rankedValue),
-      }),
+      columns: searchByRelevance(columns, value),
+      metrics: searchByRelevance(metrics, value, true),
     });
   }, 200);
 
