@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartPlugin } from '@superset-ui/core';
+import { ChartPlugin, QueryFormData } from '@superset-ui/core';
 import createMetadata from '../createMetadata';
-import transformProps from './transformProps';
+import transformProps, { LegacyBoxPlotChartProps } from './transformProps';
 import controlPanel from '../controlPanel';
 
-export default class BoxPlotChartPlugin extends ChartPlugin {
+export default class BoxPlotChartPlugin extends ChartPlugin<
+  QueryFormData,
+  LegacyBoxPlotChartProps
+> {
   constructor() {
     super({
       loadChart: () => import('../../components/BoxPlot/BoxPlot'),

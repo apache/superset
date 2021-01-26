@@ -18,7 +18,6 @@
  */
 /* eslint-disable camelcase */
 import {
-  AnnotationData,
   AnnotationLayer,
   CategoricalColorNamespace,
   ChartProps,
@@ -28,10 +27,10 @@ import {
   isIntervalAnnotationLayer,
   isTimeseriesAnnotationLayer,
   smartDateVerboseFormatter,
-  TimeseriesDataRecord,
   getTimeFormatter,
   getTimeFormatterForGranularity,
   smartDateFormatter,
+  TimeseriesChartDataResponseResult,
 } from '@superset-ui/core';
 import { DEFAULT_FORM_DATA, EchartsTimeseriesFormData } from './types';
 import { EchartsProps, ForecastSeriesEnum } from '../types';
@@ -55,11 +54,11 @@ import {
 
 export default function transformProps(chartProps: ChartProps): EchartsProps {
   const { width, height, formData, queriesData } = chartProps;
-
   const {
-    annotation_data: annotationData = {},
+    annotation_data: annotationData_,
     data = [],
-  }: { annotation_data?: AnnotationData; data?: TimeseriesDataRecord[] } = queriesData[0];
+  } = queriesData[0] as TimeseriesChartDataResponseResult;
+  const annotationData = annotationData_ || {};
 
   const {
     annotationLayers,

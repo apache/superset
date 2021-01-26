@@ -55,9 +55,13 @@ function run(cmd, options) {
   }
 }
 
-function getPackages(pattern, tsOnly = false) {
+function getPackages(packagePattern, tsOnly = false) {
+  let pattern = packagePattern;
   if (pattern === '*' && !tsOnly) {
     return `@superset-ui/!(${[...META_PACKAGES].join('|')})`;
+  }
+  if (!pattern.includes('*')) {
+    pattern = `*${pattern}`;
   }
   const packages = [
     ...new Set(

@@ -18,7 +18,7 @@
     "commit": "superset-commit",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 10",
     "jest": "NODE_ENV=test jest --coverage --verbose",
-    "lint": "esprint check --workers=3",
+    "lint": "esprint check",
     "lint:fix": "yarn lint --fix",
     "format": "yarn prettier",
     "prettier": "prettier --write .",

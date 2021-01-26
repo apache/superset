@@ -22,4 +22,5 @@ export { default as isRequired } from './isRequired';
 export { default as makeSingleton } from './makeSingleton';
 export { default as promiseTimeout } from './promiseTimeout';
 export { default as logging } from './logging';
+export { default as removeDuplicates } from './removeDuplicates';
 export * from './random';

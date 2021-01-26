@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DTTM_ALIAS } from './buildQueryObject';
-import { QueryFields, QueryFieldAliases, FormDataResidual } from './types/QueryFormData';
+import { QueryFields, QueryFieldAliases, FormDataResidual, QueryMode } from './types/QueryFormData';
 
 /**
  * Extra SQL query related fields from chart form data.
@@ -34,7 +34,6 @@ export default function extractQueryFields(
   const queryFieldAliases: QueryFieldAliases = {
     /** These are predefined for backward compatibility */
     metric: 'metrics',
-    percent_metrics: 'metrics',
     metric_2: 'metrics',
     secondary_metric: 'metrics',
     x: 'metrics',
@@ -46,26 +45,45 @@ export default function extractQueryFields(
   };
   const finalQueryFields: QueryFields = {
     columns: [],
-    groupby: [],
     metrics: [],
   };
+  const { query_mode: queryMode, include_time: includeTime, ...restFormData } = formData;
 
-  Object.entries(formData).forEach(([key, value]) => {
-    const normalizedKey = queryFieldAliases[key] || key;
-    if (normalizedKey in finalQueryFields) {
-      if (normalizedKey === 'metrics') {
-        finalQueryFields[normalizedKey] = finalQueryFields[normalizedKey].concat(value);
-      } else {
-        // currently the groupby and columns field only accept pre-defined columns (string shortcut)
-        finalQueryFields[normalizedKey] = finalQueryFields[normalizedKey]
-          .concat(value)
-          .filter(x => typeof x === 'string' && x);
-      }
+  Object.entries(restFormData).forEach(([key, value]) => {
+    // ignore `null` or `undefined` value
+    if (value == null) {
+      return;
+    }
+
+    let normalizedKey: string = queryFieldAliases[key] || key;
+
+    // ignore groupby and metrics when in raw records mode
+    if (
+      queryMode === QueryMode.raw &&
+      (normalizedKey === 'groupby' || normalizedKey === 'metrics')
+    ) {
+      return;
+    }
+    // ignore columns when (specifically) in aggregate mode.
+    if (queryMode === QueryMode.aggregate && normalizedKey === 'columns') {
+      return;
+    }
+    // groupby has been deprecated: https://github.com/apache/superset/pull/9366
+    if (normalizedKey === 'groupby') {
+      normalizedKey = 'columns';
+    }
+    if (normalizedKey === 'metrics') {
+      finalQueryFields[normalizedKey] = finalQueryFields[normalizedKey].concat(value);
+    } else if (normalizedKey === 'columns') {
+      // currently the columns field only accept pre-defined columns (string shortcut)
+      finalQueryFields[normalizedKey] = finalQueryFields[normalizedKey]
+        .concat(value)
+        .filter(x => typeof x === 'string' && x);
     }
   });
 
-  if (formData.include_time && !finalQueryFields.groupby.includes(DTTM_ALIAS)) {
-    finalQueryFields.groupby.unshift(DTTM_ALIAS);
+  if (includeTime && !finalQueryFields.columns.includes(DTTM_ALIAS)) {
+    finalQueryFields.columns.unshift(DTTM_ALIAS);
   }
 
   return finalQueryFields;
