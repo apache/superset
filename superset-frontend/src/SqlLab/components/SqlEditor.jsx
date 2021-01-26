@@ -154,6 +154,18 @@ const defaultProps = {
   scheduleQueryWarning: null,
 };
 
+// Detects the user's OS through the browser
+export function detectOS() {
+  let OSName = "Unknown OS";
+  
+  if (navigator.appVersion.indexOf("Win")!=-1) OSName="Windows";
+  if (navigator.appVersion.indexOf("Mac")!=-1) OSName="MacOS";
+  if (navigator.appVersion.indexOf("X11")!=-1) OSName="UNIX";
+  if (navigator.appVersion.indexOf("Linux")!=-1) OSName="Linux";
+
+  return OSName;
+}
+
 class SqlEditor extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -278,6 +290,8 @@ class SqlEditor extends React.PureComponent {
   }
 
   getHotkeyConfig() {
+    // Get the user's OS
+    let userOS = detectOS();
     return [
       {
         name: 'runQuery1',
@@ -301,7 +315,7 @@ class SqlEditor extends React.PureComponent {
       },
       {
         name: 'newTab',
-        key: 'ctrl+t',
+        key: userOS === 'Windows' ? 'ctrl+q' : 'ctrl+t',
         descr: t('New tab'),
         func: () => {
           this.props.addQueryEditor({
