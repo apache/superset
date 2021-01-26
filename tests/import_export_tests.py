@@ -18,7 +18,10 @@
 """Unit tests for Superset"""
 import json
 import unittest
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_datasource,
+)
 
 import pytest
 from flask import g
@@ -41,7 +44,10 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_example_database
 
-from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
+from tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,
+    load_world_bank_datasource,
+)
 from .base_tests import SupersetTestCase
 
 
@@ -352,6 +358,7 @@ class TestImportExport(SupersetTestCase):
                 None,
             )
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_import_slices_override(self):
         slc = self.create_slice("Import Me New", id=10005)
         slc_1_id = import_chart(slc, None, import_time=1990)
@@ -411,7 +418,9 @@ class TestImportExport(SupersetTestCase):
         meta["chartId"] = imported_dash.slices[0].id
         self.assertEqual(expected_position, imported_dash.position)
 
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @pytest.mark.usefixtures(
+        "load_energy_table_with_slice", "load_birth_names_datasource"
+    )
     def test_import_dashboard_2_slices(self):
         e_slc = self.create_slice("e_slc", id=10007, table_name="energy_usage")
         b_slc = self.create_slice("b_slc", id=10008, table_name="birth_names")
@@ -463,7 +472,9 @@ class TestImportExport(SupersetTestCase):
             expected_json_metadata, json.loads(imported_dash.json_metadata)
         )
 
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @pytest.mark.usefixtures(
+        "load_energy_table_with_slice", "load_birth_names_datasource"
+    )
     def test_import_override_dashboard_2_slices(self):
         e_slc = self.create_slice("e_slc", id=10009, table_name="energy_usage")
         b_slc = self.create_slice("b_slc", id=10010, table_name="birth_names")
@@ -496,6 +507,7 @@ class TestImportExport(SupersetTestCase):
             json.loads(imported_dash.json_metadata),
         )
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_import_new_dashboard_slice_reset_ownership(self):
         admin_user = security_manager.find_user(username="admin")
         self.assertTrue(admin_user)
@@ -520,6 +532,7 @@ class TestImportExport(SupersetTestCase):
         self.assertEqual(imported_slc.changed_by, gamma_user)
         self.assertEqual(imported_slc.owners, [gamma_user])
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_import_override_dashboard_slice_reset_ownership(self):
         admin_user = security_manager.find_user(username="admin")
         self.assertTrue(admin_user)

@@ -40,7 +40,10 @@ from superset.utils.core import backend, get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
 from tests.base_tests import SupersetTestCase
 from tests.conftest import CTAS_SCHEMA_NAME
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_datasource,
+)
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.importexport import (
     database_config,
@@ -156,6 +159,7 @@ class TestDatasetApi(SupersetTestCase):
         buf.seek(0)
         return buf
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_get_dataset_list(self):
         """
         Dataset API: Test get dataset list
@@ -1101,6 +1105,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "export")
         assert rv.status_code == 404
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_export_dataset_gamma(self):
         """
         Dataset API: Test export dataset has gamma
@@ -1114,6 +1119,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     @patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
         {"VERSIONED_EXPORT": True},
@@ -1157,6 +1163,7 @@ class TestDatasetApi(SupersetTestCase):
 
         assert rv.status_code == 404
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     @patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
         {"VERSIONED_EXPORT": True},
@@ -1191,6 +1198,7 @@ class TestDatasetApi(SupersetTestCase):
         assert response["charts"]["count"] == 18
         assert response["dashboards"]["count"] == 1
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_get_dataset_related_objects_not_found(self):
         """
         Dataset API: Test related objects not found

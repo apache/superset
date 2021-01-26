@@ -30,7 +30,10 @@ from flask import current_app, g
 from sqlalchemy import Float, Date, String
 
 from superset.models.dashboard import Dashboard
-from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
+from tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,
+    load_world_bank_datasource,
+)
 
 from superset import app, appbuilder, db, security_manager, viz, ConnectorRegistry
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
@@ -50,7 +53,10 @@ from .dashboard_utils import (
 )
 from .fixtures.energy_dashboard import load_energy_table_with_slice
 from .fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_datasource,
+)
 
 NEW_SECURITY_CONVERGE_VIEWS = (
     "Annotation",
@@ -145,6 +151,7 @@ class TestRolePermission(SupersetTestCase):
         session.delete(security_manager.find_role(SCHEMA_ACCESS_ROLE))
         session.commit()
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_set_perm_sqla_table(self):
         session = db.session
         table = SqlaTable(
@@ -317,6 +324,7 @@ class TestRolePermission(SupersetTestCase):
         session.delete(stored_datasource)
         session.commit()
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_set_perm_druid_cluster(self):
         session = db.session
         cluster = DruidCluster(cluster_name="tmp_druid_cluster")
@@ -350,6 +358,7 @@ class TestRolePermission(SupersetTestCase):
         session.delete(stored_cluster)
         session.commit()
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_set_perm_database(self):
         session = db.session
         database = Database(
@@ -382,6 +391,7 @@ class TestRolePermission(SupersetTestCase):
         session.delete(stored_db)
         session.commit()
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_hybrid_perm_druid_cluster(self):
         cluster = DruidCluster(cluster_name="tmp_druid_cluster3")
         db.session.add(cluster)
@@ -404,6 +414,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.delete(cluster)
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_hybrid_perm_database(self):
         database = Database(
             database_name="tmp_database3", sqlalchemy_uri="sqlite://test"
@@ -429,6 +440,7 @@ class TestRolePermission(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_set_perm_slice(self):
         session = db.session
         database = Database(
@@ -486,6 +498,7 @@ class TestRolePermission(SupersetTestCase):
 
         # TODO test slice permission
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     @patch("superset.security.manager.g")
     def test_schemas_accessible_by_user_admin(self, mock_g):
         mock_g.user = security_manager.find_user("admin")
@@ -496,6 +509,7 @@ class TestRolePermission(SupersetTestCase):
             )
             self.assertEqual(schemas, ["1", "2", "3"])  # no changes
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     @patch("superset.security.manager.g")
     def test_schemas_accessible_by_user_schema_access(self, mock_g):
         # User has schema access to the schema 1
@@ -510,6 +524,7 @@ class TestRolePermission(SupersetTestCase):
             self.assertEqual(schemas, ["1"])
         delete_schema_perm("[examples].[1]")
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     @patch("superset.security.manager.g")
     def test_schemas_accessible_by_user_datasource_access(self, mock_g):
         # User has schema access to the datasource temp_schema.wb_health_population in examples DB.
@@ -521,6 +536,7 @@ class TestRolePermission(SupersetTestCase):
             )
             self.assertEqual(schemas, ["temp_schema"])
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     @patch("superset.security.manager.g")
     def test_schemas_accessible_by_user_datasource_and_schema_access(self, mock_g):
         # User has schema access to the datasource temp_schema.wb_health_population in examples DB.
@@ -549,6 +565,7 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn("/superset/dashboard/world_health/", data)
         self.assertNotIn("/superset/dashboard/births/", data)
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_gamma_user_schema_access_to_tables(self):
         self.login(username="gamma")
         data = str(self.client.get("tablemodelview/list/").data)
@@ -567,6 +584,9 @@ class TestRolePermission(SupersetTestCase):
         )  # wb_health_population slice, has access
         self.assertNotIn("Girl Name Cloud", data)  # birth_names slice, no access
 
+    @pytest.mark.usefixtures(
+        "load_birth_names_datasource", "load_world_bank_datasource"
+    )
     def test_public_sync_role_data_perms(self):
         """
         Security: Tests if the sync role method preserves data access permissions
@@ -594,6 +614,7 @@ class TestRolePermission(SupersetTestCase):
         # Cleanup
         self.revoke_public_access_to_table(table)
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_public_sync_role_builtin_perms(self):
         """
         Security: Tests public role creation based on a builtin role
@@ -613,6 +634,7 @@ class TestRolePermission(SupersetTestCase):
         current_app.config["PUBLIC_ROLE_LIKE"] = "Gamma"
         security_manager.sync_role_definitions()
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_sqllab_gamma_user_schema_access_to_sqllab(self):
         session = db.session
 
@@ -731,6 +753,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_menu("List Users", perm_set)
         self.assert_can_menu("List Roles", perm_set)
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_is_admin_only(self):
         self.assertFalse(
             security_manager._is_admin_only(
@@ -774,6 +797,7 @@ class TestRolePermission(SupersetTestCase):
             )
         )
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
     )
@@ -804,6 +828,7 @@ class TestRolePermission(SupersetTestCase):
             )
         )
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_is_gamma_pvm(self):
         self.assertTrue(
             security_manager._is_gamma_pvm(
@@ -811,16 +836,20 @@ class TestRolePermission(SupersetTestCase):
             )
         )
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_gamma_permissions_basic(self):
         self.assert_can_gamma(get_perm_tuples("Gamma"))
         self.assert_cannot_alpha(get_perm_tuples("Gamma"))
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_public_permissions_basic(self):
         self.assert_can_gamma(get_perm_tuples("Public"))
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
     )
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_alpha_permissions(self):
         alpha_perm_tuples = get_perm_tuples("Alpha")
         self.assert_can_gamma(alpha_perm_tuples)
@@ -836,6 +865,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_alpha(get_perm_tuples("Admin"))
         self.assert_can_admin(get_perm_tuples("Admin"))
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_sql_lab_permissions(self):
         sql_lab_set = get_perm_tuples("sql_lab")
         self.assertIn(("can_sql_json", "Superset"), sql_lab_set)
@@ -844,6 +874,7 @@ class TestRolePermission(SupersetTestCase):
 
         self.assert_cannot_alpha(sql_lab_set)
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_granter_permissions(self):
         granter_set = get_perm_tuples("granter")
         self.assertIn(("can_override_role_permissions", "Superset"), granter_set)
@@ -851,6 +882,7 @@ class TestRolePermission(SupersetTestCase):
 
         self.assert_cannot_alpha(granter_set)
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_gamma_permissions(self):
         gamma_perm_set = set()
         for perm in security_manager.find_role("Gamma").permissions:
@@ -882,6 +914,7 @@ class TestRolePermission(SupersetTestCase):
         self.assertIn(("can_slice", "Superset"), gamma_perm_set)
         self.assertIn(("can_userinfo", "UserDBModelView"), gamma_perm_set)
 
+    @pytest.mark.usefixtures("load_world_bank_datasource")
     def test_views_are_secured(self):
         """Preventing the addition of unsecured views without has_access decorator"""
         # These FAB views are secured in their body as opposed to by decorators

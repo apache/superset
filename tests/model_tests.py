@@ -17,7 +17,10 @@
 # isort:skip_file
 import textwrap
 import unittest
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_datasource,
+)
 
 import pandas
 import pytest
@@ -349,6 +352,7 @@ class TestSqlaTableModel(SupersetTestCase):
 
         app.config["SQL_QUERY_MUTATOR"] = None
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_query_with_non_existent_metrics(self):
         tbl = self.get_table_by_name("birth_names")
 

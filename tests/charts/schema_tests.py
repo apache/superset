@@ -18,15 +18,21 @@
 """Unit tests for Superset"""
 from typing import Any, Dict, Tuple
 
+import pytest
 from marshmallow import ValidationError
 from tests.test_app import app
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.query_context import QueryContext
 from tests.base_tests import SupersetTestCase
 from tests.fixtures.query_context import get_query_context
+from tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_datasource,
+)
 
 
 class TestSchema(SupersetTestCase):
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_query_context_limit_and_offset(self):
         self.login(username="admin")
         payload = get_query_context("birth_names")
@@ -55,12 +61,14 @@ class TestSchema(SupersetTestCase):
         self.assertIn("row_limit", context.exception.messages["queries"][0])
         self.assertIn("row_offset", context.exception.messages["queries"][0])
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_query_context_null_timegrain(self):
         self.login(username="admin")
         payload = get_query_context("birth_names")
         payload["queries"][0]["extras"]["time_grain_sqla"] = None
         _ = ChartDataQueryContextSchema().load(payload)
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_query_context_series_limit(self):
         self.login(username="admin")
         payload = get_query_context("birth_names")
@@ -82,6 +90,7 @@ class TestSchema(SupersetTestCase):
         }
         _ = ChartDataQueryContextSchema().load(payload)
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_query_context_null_post_processing_op(self):
         self.login(username="admin")
         payload = get_query_context("birth_names")

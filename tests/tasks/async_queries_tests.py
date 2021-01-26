@@ -32,7 +32,10 @@ from superset.tasks.async_queries import (
     load_explore_json_into_cache,
 )
 from tests.base_tests import SupersetTestCase
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_datasource,
+)
 from tests.fixtures.query_context import get_query_context
 from tests.test_app import app
 
@@ -60,6 +63,7 @@ class TestAsyncQueries(SupersetTestCase):
 
         mock_update_job.assert_called_with(job_metadata, "done", result_url=mock.ANY)
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     @mock.patch.object(
         ChartDataCommand, "run", side_effect=ChartDataQueryFailedError("Error: foo")
     )

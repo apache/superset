@@ -36,6 +36,15 @@ from tests.test_app import app
 
 
 @pytest.fixture()
+def load_birth_names_datasource():
+    with app.app_context():
+        _load_datasource()
+    yield
+    with app.app_context():
+        _clean_datasource()
+
+
+@pytest.fixture()
 def load_birth_names_dashboard_with_slices():
     dash_id_to_delete, slices_ids_to_delete = _load_data()
     yield
@@ -52,26 +61,29 @@ def load_birth_names_dashboard_with_slices_module_scope():
 
 
 def _load_data():
-    table_name = "birth_names"
-
     with app.app_context():
-        database = get_example_database()
-        df = _get_dataframe(database)
-        dtype = {
-            "ds": DateTime if database.backend != "presto" else String(255),
-            "gender": String(16),
-            "state": String(10),
-            "name": String(255),
-        }
-        table = _create_table(df, table_name, database, dtype)
-
         from superset.examples.birth_names import create_slices, create_dashboard
 
+        table = _load_datasource()
         slices, _ = create_slices(table, admin_owner=False)
         dash = create_dashboard(slices)
         slices_ids_to_delete = [slice.id for slice in slices]
         dash_id_to_delete = dash.id
         return dash_id_to_delete, slices_ids_to_delete
+
+
+def _load_datasource():
+    table_name = "birth_names"
+
+    database = get_example_database()
+    df = _get_dataframe(database)
+    dtype = {
+        "ds": DateTime if database.backend != "presto" else String(255),
+        "gender": String(16),
+        "state": String(10),
+        "name": String(255),
+    }
+    return _create_table(df, table_name, database, dtype)
 
 
 def _create_table(
@@ -92,8 +104,6 @@ def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
     columns = [column for column in datasource.columns]
     metrics = [metric for metric in datasource.metrics]
 
-    engine = get_example_database().get_sqla_engine()
-    engine.execute("DROP TABLE IF EXISTS birth_names")
     for column in columns:
         db.session.delete(column)
     for metric in metrics:
@@ -104,6 +114,18 @@ def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
     db.session.delete(dash)
     for slice_id in slices_ids:
         db.session.query(Slice).filter_by(id=slice_id).delete()
+
+    db.session.commit()
+    _clean_datasource()
+
+
+def _clean_datasource():
+    engine = get_example_database().get_sqla_engine()
+    engine.execute("DROP TABLE IF EXISTS birth_names")
+    ds = db.session.query(SqlaTable).filter_by(table_name="birth_names").first()
+    if ds:
+        db.session.delete(ds)
+
     db.session.commit()
 
 

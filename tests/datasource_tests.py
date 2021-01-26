@@ -24,7 +24,10 @@ from superset import app, ConnectorRegistry, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.utils.core import get_example_database
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_datasource,
+)
 
 from .base_tests import db_insert_temp_object, SupersetTestCase
 from .fixtures.datasource import datasource_post
@@ -104,6 +107,7 @@ class TestDatasource(SupersetTestCase):
                 if k not in "id" and obj1.get(k):
                     self.assertEqual(obj1.get(k), obj2.get(k))
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_save(self):
         self.login(username="admin")
         tbl_id = self.get_table_by_name("birth_names").id
@@ -131,6 +135,7 @@ class TestDatasource(SupersetTestCase):
         resp = self.get_json_resp("/datasource/save/", data)
         return resp
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_change_database(self):
         self.login(username="admin")
         tbl = self.get_table_by_name("birth_names")
@@ -155,6 +160,7 @@ class TestDatasource(SupersetTestCase):
 
         self.delete_fake_db()
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_save_duplicate_key(self):
         self.login(username="admin")
         tbl_id = self.get_table_by_name("birth_names").id
@@ -187,6 +193,7 @@ class TestDatasource(SupersetTestCase):
         resp = self.get_json_resp("/datasource/save/", data, raise_on_error=False)
         self.assertIn("Duplicate column name(s): <new column>", resp["error"])
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_get_datasource(self):
         self.login(username="admin")
         tbl = self.get_table_by_name("birth_names")
@@ -216,6 +223,7 @@ class TestDatasource(SupersetTestCase):
             },
         )
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_get_datasource_with_health_check(self):
         def my_check(datasource):
             return "Warning message!"

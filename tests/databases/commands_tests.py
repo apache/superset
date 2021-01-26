@@ -30,7 +30,10 @@ from superset.databases.commands.importers.v1 import ImportDatabasesCommand
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_database
 from tests.base_tests import SupersetTestCase
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_datasource,
+)
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.importexport import (
     database_config,
@@ -38,12 +41,18 @@ from tests.fixtures.importexport import (
     dataset_config,
     dataset_metadata_config,
 )
+from tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,
+    load_world_bank_datasource,
+)
 
 
 class TestExportDatabasesCommand(SupersetTestCase):
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures(
-        "load_birth_names_dashboard_with_slices", "load_energy_table_with_slice"
+        "load_birth_names_dashboard_with_slices",
+        "load_energy_table_with_slice",
+        "load_world_bank_datasource",
     )
     def test_export_database_command(self, mock_g):
         mock_g.user = security_manager.find_user("admin")

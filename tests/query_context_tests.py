@@ -30,11 +30,15 @@ from superset.utils.core import (
     TimeRangeEndpoint,
 )
 from tests.base_tests import SupersetTestCase
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_datasource,
+)
 from tests.fixtures.query_context import get_query_context
 
 
 class TestQueryContext(SupersetTestCase):
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_schema_deserialization(self):
         """
         Ensure that the deserialized QueryContext contains all required fields.
@@ -71,6 +75,7 @@ class TestQueryContext(SupersetTestCase):
                 self.assertEqual(post_proc["operation"], payload_post_proc["operation"])
                 self.assertEqual(post_proc["options"], payload_post_proc["options"])
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_cache(self):
         table_name = "birth_names"
         table = self.get_table_by_name(table_name)
@@ -99,6 +104,7 @@ class TestQueryContext(SupersetTestCase):
         self.assertEqual(rehydrated_qc.result_format, query_context.result_format)
         self.assertFalse(rehydrated_qc.force)
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_query_cache_key_changes_when_datasource_is_updated(self):
         self.login(username="admin")
         payload = get_query_context("birth_names")
@@ -144,6 +150,7 @@ class TestQueryContext(SupersetTestCase):
 
         assert query_context.query_cache_key(query_object) == cache_key_original
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_query_cache_key_changes_when_post_processing_is_updated(self):
         self.login(username="admin")
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
@@ -167,6 +174,7 @@ class TestQueryContext(SupersetTestCase):
         cache_key = query_context.query_cache_key(query_object)
         self.assertNotEqual(cache_key_original, cache_key)
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_query_context_time_range_endpoints(self):
         """
         Ensure that time_range_endpoints are populated automatically when missing
@@ -184,6 +192,7 @@ class TestQueryContext(SupersetTestCase):
             (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
         )
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_handle_metrics_field(self):
         """
         Should support both predefined and adhoc metrics.
@@ -202,6 +211,7 @@ class TestQueryContext(SupersetTestCase):
         query_object = query_context.queries[0]
         self.assertEqual(query_object.metrics, ["sum__num", "abc", adhoc_metric])
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_convert_deprecated_fields(self):
         """
         Ensure that deprecated fields are converted correctly
@@ -232,6 +242,7 @@ class TestQueryContext(SupersetTestCase):
         self.assertIn("name,sum__num\n", data)
         self.assertEqual(len(data.split("\n")), 12)
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_sql_injection_via_groupby(self):
         """
         Ensure that calling invalid columns names in groupby are caught
@@ -243,6 +254,7 @@ class TestQueryContext(SupersetTestCase):
         query_payload = query_context.get_payload()
         assert query_payload["queries"][0].get("error") is not None
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_sql_injection_via_columns(self):
         """
         Ensure that calling invalid column names in columns are caught
@@ -256,6 +268,7 @@ class TestQueryContext(SupersetTestCase):
         query_payload = query_context.get_payload()
         assert query_payload["queries"][0].get("error") is not None
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_sql_injection_via_metrics(self):
         """
         Ensure that calling invalid column names in filters are caught
@@ -308,6 +321,7 @@ class TestQueryContext(SupersetTestCase):
         self.assertEqual(response["language"], "sql")
         self.assertIn("SELECT", response["query"])
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_query_object_unknown_fields(self):
         """
         Ensure that query objects with unknown fields don't raise an Exception and

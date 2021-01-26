@@ -25,7 +25,10 @@ import json
 import logging
 from typing import Dict, List
 from urllib.parse import quote
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_datasource,
+)
 
 import pytest
 import pytz
@@ -66,7 +69,10 @@ from superset.views import core as views
 from superset.views.database.views import DatabaseView
 
 from .base_tests import SupersetTestCase
-from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
+from tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,
+    load_world_bank_datasource,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -343,7 +349,9 @@ class TestCore(SupersetTestCase):
         assert "modified" in slc_data_attributes
         assert "owners" in slc_data_attributes
 
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @pytest.mark.usefixtures(
+        "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
+    )
     def test_slices(self):
         # Testing by hitting the two supported end points for all slices
         self.login(username="admin")
@@ -734,9 +742,15 @@ class TestCore(SupersetTestCase):
 
         self.delete_fake_db_for_macros()
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_fetch_datasource_metadata(self):
+        ds_id = (
+            db.session.query(SqlaTable.id)
+            .filter_by(table_name="birth_names")
+            .first()[0]
+        )
         self.login(username="admin")
-        url = "/superset/fetch_datasource_metadata?" "datasourceKey=1__table"
+        url = "/superset/fetch_datasource_metadata?" f"datasourceKey={ds_id}__table"
         resp = self.get_json_resp(url)
         keys = [
             "name",

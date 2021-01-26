@@ -18,6 +18,8 @@
 """Unit tests for Superset"""
 from typing import Dict, Any
 
+import pytest
+
 from tests.test_app import app  # noqa
 
 from superset.extensions import cache_manager, db
@@ -28,6 +30,10 @@ from tests.base_tests import (
     test_client,
     logged_in_admin,
 )  # noqa
+from tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_datasource,
+)
 
 
 def invalidate(params: Dict[str, Any]):
@@ -92,6 +98,7 @@ def test_invalidate_cache_bad_request(logged_in_admin):
     assert rv.status_code == 400
 
 
+@pytest.mark.usefixtures("load_birth_names_datasource")
 def test_invalidate_existing_caches(logged_in_admin):
     bn = SupersetTestCase.get_birth_names_dataset()
 
