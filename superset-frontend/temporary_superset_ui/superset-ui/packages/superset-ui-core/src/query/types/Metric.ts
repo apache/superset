@@ -43,7 +43,7 @@ export type AdhocMetric = AdhocMetricSimple | AdhocMetricSQL;
 /**
  * Select a predefined metric by its `metric_name`.
  */
-export type PredefinedMetric = string;
+export type SavedMetric = string;
 
 /**
  * Metric definition stored in datasource metadata.

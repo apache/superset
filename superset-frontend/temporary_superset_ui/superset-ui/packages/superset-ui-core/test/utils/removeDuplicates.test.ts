@@ -16,19 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isEqualArray from './isEqualArray';
-import { TableChartProps } from '../types';
+import { removeDuplicates } from '@superset-ui/core/src';
 
-export default function isEqualColumns(propsA: TableChartProps[], propsB: TableChartProps[]) {
-  const a = propsA[0];
-  const b = propsB[0];
-  return (
-    a.datasource.columnFormats === b.datasource.columnFormats &&
-    a.datasource.verboseMap === b.datasource.verboseMap &&
-    a.formData.tableTimestampFormat === b.formData.tableTimestampFormat &&
-    a.formData.timeGrainSqla === b.formData.timeGrainSqla &&
-    isEqualArray(a.formData.metrics, b.formData.metrics) &&
-    isEqualArray(a.queriesData?.[0]?.colnames, b.queriesData?.[0]?.colnames) &&
-    isEqualArray(a.queriesData?.[0]?.coltypes, b.queriesData?.[0]?.coltypes)
-  );
-}
+describe('removeDuplicates([...])', () => {
+  it('should remove duplicates from a simple list', () => {
+    expect(removeDuplicates([1, 2, 4, 1, 1, 5, 2])).toEqual([1, 2, 4, 5]);
+  });
+  it('should remove duplicates by key getter', () => {
+    expect(removeDuplicates([{ a: 1 }, { a: 1 }, { b: 2 }], x => x.a)).toEqual([
+      { a: 1 },
+      { b: 2 },
+    ]);
+  });
+});

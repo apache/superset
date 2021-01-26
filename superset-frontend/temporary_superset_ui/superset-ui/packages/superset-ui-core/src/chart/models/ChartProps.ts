@@ -56,7 +56,7 @@ export interface ChartPropsConfig {
 const DEFAULT_WIDTH = 800;
 const DEFAULT_HEIGHT = 600;
 
-export default class ChartProps {
+export default class ChartProps<FormData extends RawFormData = RawFormData> {
   static createSelector: () => ChartPropsSelector;
 
   annotationData: AnnotationData;
@@ -69,7 +69,7 @@ export default class ChartProps {
 
   formData: CamelCaseFormData;
 
-  rawFormData: RawFormData;
+  rawFormData: FormData;
 
   height: number;
 
@@ -79,11 +79,11 @@ export default class ChartProps {
 
   width: number;
 
-  constructor(config: ChartPropsConfig = {}) {
+  constructor(config: ChartPropsConfig & { formData?: FormData } = {}) {
     const {
       annotationData = {},
       datasource = {},
-      formData = {},
+      formData = {} as FormData,
       hooks = {},
       initialValues = {},
       queriesData = [],

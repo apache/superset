@@ -18,7 +18,7 @@
  */
 import { Jed as BaseJed, JedOptions, DomainData, Translations } from './jed';
 
-export { Translations } from './jed';
+export * from './jed';
 
 /**
  * Superset supported languages.

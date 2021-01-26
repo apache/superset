@@ -18,7 +18,7 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import controlPanel from './controlPanel';
-import transformProps from './transformProps';
+import transformProps, { BigNumberChartProps, BigNumberFormData } from './transformProps';
 import thumbnail from './images/thumbnail.png';
 
 const metadata = new ChartMetadata({
@@ -28,7 +28,10 @@ const metadata = new ChartMetadata({
   useLegacyApi: true,
 });
 
-export default class BigNumberChartPlugin extends ChartPlugin {
+export default class BigNumberChartPlugin extends ChartPlugin<
+  BigNumberFormData,
+  BigNumberChartProps
+> {
   constructor() {
     super({
       loadChart: () => import('./BigNumber'),

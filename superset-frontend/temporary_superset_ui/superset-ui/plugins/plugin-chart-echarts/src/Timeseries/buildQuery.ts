@@ -31,7 +31,7 @@ export default function buildQuery(formData: QueryFormData) {
             operation: 'pivot',
             options: {
               index: ['__timestamp'],
-              columns: formData.groupby,
+              columns: formData.groupby || [],
               // Create 'dummy' sum aggregates to assign cell values in pivot table
               aggregates: Object.fromEntries(
                 metricLabels.map(metric => [metric, { operator: 'sum' }]),

@@ -27,10 +27,10 @@ describe('Pie buildQuery', () => {
     viz_type: 'my_chart',
   };
 
-  it('should build groupby with series in form data', () => {
+  it('should build query fields from form data', () => {
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
     expect(query.metrics).toEqual(['foo']);
-    expect(query.groupby).toEqual(['bar']);
+    expect(query.columns).toEqual(['bar']);
   });
 });

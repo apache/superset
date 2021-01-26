@@ -38,7 +38,7 @@ export default function buildQueryObject<T extends QueryFormData>(
 
   const numericRowLimit = Number(row_limit);
   const numericRowOffset = Number(row_offset);
-  const { metrics, groupby, columns } = extractQueryFields(residualFormData, queryFields);
+  const { metrics, columns } = extractQueryFields(residualFormData, queryFields);
 
   const extras = extractExtras(formData);
   const extrasAndfilters = processFilters({
@@ -54,7 +54,6 @@ export default function buildQueryObject<T extends QueryFormData>(
     ...extras,
     ...extrasAndfilters,
     annotation_layers,
-    groupby,
     columns,
     metrics,
     order_desc: typeof order_desc === 'undefined' ? true : order_desc,

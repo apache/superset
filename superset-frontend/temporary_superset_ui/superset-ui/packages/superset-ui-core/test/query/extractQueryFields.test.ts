@@ -17,13 +17,13 @@
  * under the License.
  */
 import extractQueryFields from '@superset-ui/core/src/query/extractQueryFields';
+import { QueryMode } from '../../src';
 import { DTTM_ALIAS } from '../../src/query/buildQueryObject';
 
 describe('extractQueryFields', () => {
   it('should return default object', () => {
     expect(extractQueryFields({})).toEqual({
       columns: [],
-      groupby: [],
       metrics: [],
     });
   });
@@ -44,15 +44,13 @@ describe('extractQueryFields', () => {
   it('should extract columns', () => {
     expect(extractQueryFields({ columns: 'col_1' })).toEqual({
       columns: ['col_1'],
-      groupby: [],
       metrics: [],
     });
   });
 
   it('should extract groupby', () => {
     expect(extractQueryFields({ groupby: 'col_1' })).toEqual({
-      columns: [],
-      groupby: ['col_1'],
+      columns: ['col_1'],
       metrics: [],
     });
   });
@@ -61,8 +59,7 @@ describe('extractQueryFields', () => {
     expect(
       extractQueryFields({ series: 'col_1', metric: 'metric_1' }, { series: 'groupby' }),
     ).toEqual({
-      columns: [],
-      groupby: ['col_1'],
+      columns: ['col_1'],
       metrics: ['metric_1'],
     });
   });
@@ -74,19 +71,50 @@ describe('extractQueryFields', () => {
         { series: 'groupby' },
       ),
     ).toEqual({
-      columns: [],
-      groupby: ['col_1', 'col_2'],
+      columns: ['col_1', 'col_2'],
       metrics: ['metric_1'],
     });
   });
 
   it('should include time', () => {
-    expect(extractQueryFields({ groupby: 'col_1', include_time: true }).groupby).toEqual([
+    expect(extractQueryFields({ groupby: 'col_1', include_time: true }).columns).toEqual([
       DTTM_ALIAS,
       'col_1',
     ]);
     expect(
-      extractQueryFields({ groupby: ['col_1', DTTM_ALIAS, ''], include_time: true }).groupby,
+      extractQueryFields({ groupby: ['col_1', DTTM_ALIAS, ''], include_time: true }).columns,
     ).toEqual(['col_1', DTTM_ALIAS]);
+  });
+
+  it('should ignore null values', () => {
+    expect(extractQueryFields({ series: ['a'], columns: null }).columns).toEqual(['a']);
+  });
+
+  it('should ignore groupby and metrics when in raw QueryMode', () => {
+    expect(
+      extractQueryFields({
+        columns: ['a'],
+        groupby: ['b'],
+        metric: ['m'],
+        query_mode: QueryMode.raw,
+      }),
+    ).toEqual({
+      metrics: [],
+      columns: ['a'],
+    });
+  });
+
+  it('should ignore columns when in aggregate QueryMode', () => {
+    expect(
+      extractQueryFields({
+        columns: ['a'],
+        groupby: ['b'],
+        metric: ['m'],
+        query_mode: QueryMode.aggregate,
+      }),
+    ).toEqual({
+      metrics: ['m'],
+      columns: ['b'],
+    });
   });
 });
