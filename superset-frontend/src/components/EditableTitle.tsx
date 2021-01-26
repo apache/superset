@@ -31,11 +31,12 @@ interface EditableTitleProps {
   showTooltip?: boolean;
   style?: object;
   title: string;
+  defaultTitle?: string;
+  placeholder?: string;
 }
 
 export default function EditableTitle({
   canEdit = false,
-  emptyText,
   extraClasses,
   multiLine = false,
   noPermitTooltip,
@@ -43,6 +44,8 @@ export default function EditableTitle({
   showTooltip = true,
   style,
   title,
+  defaultTitle,
+  placeholder,
 }: EditableTitleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [currentTitle, setCurrentTitle] = useState(title);
@@ -127,10 +130,9 @@ export default function EditableTitle({
   }
 
   let value: string | undefined;
-  if (currentTitle) {
-    value = currentTitle;
-  } else if (!isEditing) {
-    value = emptyText;
+  value = currentTitle;
+  if (!isEditing && !currentTitle) {
+    value = defaultTitle || title;
   }
 
   // Construct an inline style based on previously-saved height of the rendered label. Only
@@ -155,6 +157,7 @@ export default function EditableTitle({
         onBlur={handleBlur}
         onClick={handleClick}
         onKeyPress={handleKeyPress}
+        placeholder={placeholder || ''}
         style={editStyle}
       />
     ) : (
@@ -170,6 +173,7 @@ export default function EditableTitle({
         onBlur={handleBlur}
         onClick={handleClick}
         onKeyPress={handleKeyPress}
+        placeholder={placeholder || ''}
       />
     );
   if (showTooltip && !isEditing) {
