@@ -201,7 +201,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       lastModifiedTime,
     } = this.props;
 
-    const emailTitle = t('Superset Dashboard');
+    const emailTitle = t('Superset dashboard');
     const emailSubject = `${emailTitle} ${dashboardTitle}`;
     const emailBody = t('Check out this dashboard: ');
 
@@ -302,7 +302,7 @@ class HeaderActionsDropdown extends React.PureComponent {
 
         {!editMode && (
           <Menu.Item key={MENU_KEYS.TOGGLE_FULLSCREEN}>
-            {t('Toggle FullScreen')}
+            {t('Toggle fullscreen')}
           </Menu.Item>
         )}
       </Menu>

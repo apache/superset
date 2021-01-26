@@ -17,7 +17,6 @@
 from typing import List, Optional
 
 from flask_appbuilder.security.sqla.models import User
-from sqlalchemy.orm.exc import NoResultFound
 
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
@@ -25,6 +24,7 @@ from superset.commands.exceptions import (
 )
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.extensions import db, security_manager
 
 
@@ -53,5 +53,5 @@ def get_datasource_by_id(datasource_id: int, datasource_type: str) -> BaseDataso
         return ConnectorRegistry.get_datasource(
             datasource_type, datasource_id, db.session
         )
-    except (NoResultFound, KeyError):
+    except DatasetNotFoundError:
         raise DatasourceNotFoundValidationError()

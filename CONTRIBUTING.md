@@ -41,6 +41,7 @@ little bit helps, and credit will always be given.
       - [Reviewing](#reviewing)
       - [Merging](#merging)
       - [Post-merge Responsibility](#post-merge-responsibility)
+  - [Capitalization Guidelines](#capitalization-guidelines)
   - [Managing Issues and PRs](#managing-issues-and-prs)
   - [Reporting a Security Vulnerability](#reporting-a-security-vulnerability)
   - [Revert Guidelines](#revert-guidelines)
@@ -193,6 +194,8 @@ The purpose is to separate problem from possible solutions.
 
 In general, small PRs are always easier to review than large PRs. The best practice is to break your work into smaller independent PRs and refer to the same issue. This will greatly reduce turnaround time.
 
+If you wish to share your work which is not ready to merge yet, create a [Draft PR](https://github.blog/2019-02-14-introducing-draft-pull-requests/). This will enable maintainers and the CI runner to prioritize mature PR's.
+
 Finally, never submit a PR that will put master branch in broken state. If the PR is part of multiple PRs to complete a large feature and cannot work on its own, you can create a feature branch and merge all related PRs into the feature branch before creating a PR from feature branch to master.
 
 ### Protocol
@@ -249,6 +252,52 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 
 - Project maintainers may contact the PR author if new issues are introduced by the PR.
 - Project maintainers may revert your changes if a critical issue is found, such as breaking master branch CI.
+
+## Capitalization Guidelines
+
+### Sentence case
+
+Use sentence-case capitalization for everything in the UI (except these \*\*).
+
+Sentence case is predominantly lowercase. Capitalize only the initial character of the first word, and other words that require capitalization, like:
+
+- Proper nouns. Objects in the product are not considered proper nouns e.g. dashboards, charts, saved queries etc. Proprietary feature names eg. SQL Lab, Preset Manager are considered proper nouns
+- Acronyms (e.g. CSS, HTML)
+- When referring to **UI labels that are themselves capitalized** from sentence case (e.g. page titles - Dashboards page, Charts page, Saved queries page, etc.)
+- User input that is reflected in the UI. E.g. a user-named a dashboard tab
+
+#### Sentence case vs. Title case:
+
+Title case: "A Dog Takes a Walk in Paris"
+Sentence case: "A dog takes a walk in Paris"
+
+#### Why sentence case?
+
+- It’s generally accepted as the quickest to read
+- It’s the easiest form to distinguish between common and proper nouns
+
+### How to refer to UI elements
+
+When writing about a UI element, use the same capitalization as used in the UI.
+
+For example, if an input field is labeled “Name” then you refer to this as the “Name input field”. Similarly, if a button has the label “Save” in it, then it is correct to refer to the “Save button”.
+
+Where a product page is titled “Settings”, you refer to this in writing as follows:
+“Edit your personal information on the Settings page”.
+
+Often a product page will have the same title as the objects it contains. In this case, refer to the page as it appears in the UI, and the objects as common nouns:
+
+- Upload a dashboard on the Dashboards page
+- Go to Dashboards
+- View dashboard
+- View all dashboards
+- Upload CSS templates on the CSS templates page
+- Queries that you save will appear on the Saved queries page
+- Create custom queries in SQL Lab then create dashboards
+
+### \*\*Exceptions to sentence case:
+
+- Input labels, buttons and tabs are all caps
 
 ## Managing Issues and PRs
 
@@ -344,12 +393,12 @@ For example, the image referenced above actually lives in `superset-frontend/ima
 
 #### OS Dependencies
 
-Make sure your machine meets the [OS dependencies](https://superset.apache.org/installation.html#os-dependencies) before following these steps.
+Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
 
 Ensure Python versions >3.7, Then proceed with:
 
 ```bash
-# Create a virtual environemnt and activate it (recommended)
+# Create a virtual environment and activate it (recommended)
 python3 -m venv venv # setup a python3 virtualenv
 source venv/bin/activate
 

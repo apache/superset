@@ -71,6 +71,17 @@ describe('SaveModal', () => {
     value: 10,
   };
 
+  const mockDashboardData = {
+    pks: ['id'],
+    result: [{ id: 'id', dashboard_title: 'dashboard title' }],
+  };
+
+  const saveEndpoint = `glob:*/dashboardasync/api/read?_flt_0_owners=${1}`;
+
+  beforeAll(() => fetchMock.get(saveEndpoint, mockDashboardData));
+
+  afterAll(() => fetchMock.restore());
+
   const getWrapper = () =>
     shallow(<SaveModal {...defaultProps} store={store} />)
       .dive()
@@ -183,21 +194,21 @@ describe('SaveModal', () => {
     });
 
     describe('should always reload or redirect', () => {
+      const originalLocation = window.location;
+      delete window.location;
+      window.location = { assign: jest.fn() };
+      const stub = sinon.stub(window.location, 'assign');
+
+      afterAll(() => {
+        delete window.location;
+        window.location = originalLocation;
+      });
+
       let wrapper;
-      let windowLocation;
 
       beforeEach(() => {
+        stub.resetHistory();
         wrapper = getWrapper();
-        windowLocation = window.location;
-        // To bypass "TypeError: Cannot redefine property: assign"
-        Object.defineProperty(window, 'location', {
-          value: { ...windowLocation, assign: () => {} },
-        });
-        sinon.stub(window.location, 'assign');
-      });
-      afterEach(() => {
-        window.location.assign.restore();
-        Object.defineProperty(window, 'location', windowLocation);
       });
 
       it('Save & go to dashboard', () =>
@@ -248,25 +259,9 @@ describe('SaveModal', () => {
     let actionThunk;
     const userID = 1;
 
-    const mockDashboardData = {
-      pks: ['id'],
-      result: [{ id: 'id', dashboard_title: 'dashboard title' }],
-    };
-
-    const saveEndpoint = `glob:*/dashboardasync/api/read?_flt_0_owners=${1}`;
-
-    beforeAll(() => {
-      fetchMock.get(saveEndpoint, mockDashboardData);
-    });
-
-    afterAll(fetchMock.restore);
-
     beforeEach(() => {
-      dispatch = sinon.spy();
-    });
-
-    afterEach(() => {
       fetchMock.resetHistory();
+      dispatch = sinon.spy();
     });
 
     const makeRequest = () => {

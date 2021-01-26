@@ -23,11 +23,14 @@ import {
   MAX_STATE,
   SIMPLE_FILTER,
 } from './shared.helper';
-import readResponseBlob from '../../../utils/readResponseBlob';
 
 // Table
 describe('Visualization > Table', () => {
-  const VIZ_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'table' };
+  const VIZ_DEFAULTS = {
+    ...FORM_DATA_DEFAULTS,
+    viz_type: 'table',
+    row_limit: 1000,
+  };
 
   const PERCENT_METRIC = {
     expressionType: 'SQL',
@@ -41,8 +44,7 @@ describe('Visualization > Table', () => {
 
   beforeEach(() => {
     cy.login();
-    cy.server();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
   it('Use default time column', () => {
@@ -98,7 +100,7 @@ describe('Visualization > Table', () => {
     });
     cy.verifySliceSuccess({
       waitAlias: '@getJson',
-      querySubstring: /groupby.*name/,
+      querySubstring: /group by.*name/i,
       chartSelector: 'table',
     });
   });
@@ -114,37 +116,34 @@ describe('Visualization > Table', () => {
     });
     cy.verifySliceSuccess({
       waitAlias: '@getJson',
-      querySubstring: /groupby.*name/,
+      querySubstring: /group by.*name/i,
       chartSelector: 'table',
     });
-  });
 
-  it('Handle sorting correctly', () => {
+    // should handle sorting correctly
     cy.get('.chart-container th').contains('name').click();
-    cy.get('.chart-container td:nth-child(2):eq(0)').contains('Aaron');
+    cy.get('.chart-container td:nth-child(2):eq(0)').contains('Abigail');
     cy.get('.chart-container th').contains('Time').click().click();
     cy.get('.chart-container td:nth-child(1):eq(0)').contains('2008');
   });
 
   it('Test table with percent metrics and groupby', () => {
-    const formData = {
+    cy.visitChartByParams({
       ...VIZ_DEFAULTS,
       percent_metrics: PERCENT_METRIC,
       metrics: [],
       groupby: ['name'],
-    };
-    cy.visitChartByParams(JSON.stringify(formData));
+    });
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
   });
 
   it('Test table with groupby order desc', () => {
-    const formData = {
+    cy.visitChartByParams({
       ...VIZ_DEFAULTS,
       metrics: NUM_METRIC,
       groupby: ['name'],
       order_desc: true,
-    };
-    cy.visitChartByParams(JSON.stringify(formData));
+    });
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
   });
 
@@ -157,37 +156,34 @@ describe('Visualization > Table', () => {
       row_limit: limit,
     };
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.wait('@getJson').then(async xhr => {
-      cy.verifyResponseCodes(xhr);
+    cy.wait('@getJson').then(({ response }) => {
       cy.verifySliceContainer('table');
-      const responseBody = await readResponseBlob(xhr.response.body);
-      expect(responseBody.data.records.length).to.eq(limit);
+      expect(response?.body.data.records.length).to.eq(limit);
     });
     cy.get('span.label-danger').contains('10 rows');
   });
 
   it('Test table with columns and row limit', () => {
-    const formData = {
+    cy.visitChartByParams({
       ...VIZ_DEFAULTS,
       // should still work when query_mode is not-set/invalid
       query_mode: undefined,
       all_columns: ['name'],
       metrics: [],
       row_limit: 10,
-    };
-    cy.visitChartByParams(JSON.stringify(formData));
+    });
 
     // should display in raw records mode
     cy.get('div[data-test="query_mode"] .btn.active').contains('Raw Records');
     cy.get('div[data-test="all_columns"]').should('be.visible');
-    cy.get('div[data-test="groupby"]').should('not.be.visible');
+    cy.get('div[data-test="groupby"]').should('not.exist');
 
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
 
     // should allow switch to aggregate mode
     cy.get('div[data-test="query_mode"] .btn').contains('Aggregate').click();
     cy.get('div[data-test="query_mode"] .btn.active').contains('Aggregate');
-    cy.get('div[data-test="all_columns"]').should('not.be.visible');
+    cy.get('div[data-test="all_columns"]').should('not.exist');
     cy.get('div[data-test="groupby"]').should('be.visible');
   });
 
@@ -204,10 +200,9 @@ describe('Visualization > Table', () => {
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.wait('@getJson').then(async xhr => {
-      cy.verifyResponseCodes(xhr);
+    cy.wait('@getJson').then(({ response }) => {
       cy.verifySliceContainer('table');
-      const responseBody = await readResponseBlob(xhr.response.body);
+      const responseBody = response?.body;
       const { records } = responseBody.data;
       expect(records[0].num).greaterThan(records[records.length - 1].num);
     });
@@ -233,7 +228,7 @@ describe('Visualization > Table', () => {
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({
       waitAlias: '@getJson',
-      querySubstring: formData.groupby[0],
+      querySubstring: /group by.*state/i,
       chartSelector: 'table',
     });
     cy.get('td').contains(/\d*%/);

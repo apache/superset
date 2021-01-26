@@ -31,5 +31,6 @@ class TestDbEngineSpec(SupersetTestCase):
         limited = engine_spec_class.apply_limit_to_sql(sql, limit, main)
         self.assertEqual(expected_sql, limited)
 
-    def get_dttm(self):
+    @classmethod
+    def get_dttm(cls):
         return datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")

@@ -26,9 +26,10 @@ import { queries } from './fixtures';
 describe('QueryTable', () => {
   const mockedProps = {
     queries,
+    displayLimit: 100,
   };
   it('is valid', () => {
-    expect(React.isValidElement(<QueryTable />)).toBe(true);
+    expect(React.isValidElement(<QueryTable displayLimit={100} />)).toBe(true);
   });
   it('is valid with props', () => {
     expect(React.isValidElement(<QueryTable {...mockedProps} />)).toBe(true);

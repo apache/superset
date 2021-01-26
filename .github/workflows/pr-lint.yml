@@ -12,7 +12,11 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
       - uses: ./.github/actions/pr-lint-action
         with:
           title-regex: "^(build|chore|ci|docs|feat|fix|perf|refactor|style|test|other)((.+))?:\\s.+"
