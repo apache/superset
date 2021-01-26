@@ -21,11 +21,12 @@ import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
 import sinon from 'sinon';
 import ReactMarkdown from 'react-markdown';
-
+import { act } from 'react-dom/test-utils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 import Markdown from 'src/dashboard/components/gridComponents/Markdown';
 import MarkdownModeDropdown from 'src/dashboard/components/menu/MarkdownModeDropdown';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
@@ -45,6 +46,8 @@ describe('Markdown', () => {
     editMode: false,
     availableColumnCount: 12,
     columnWidth: 50,
+    redoLength: 0,
+    undoLength: 0,
     onResizeStart() {},
     onResize() {},
     onResizeStop() {},
@@ -52,6 +55,7 @@ describe('Markdown', () => {
     updateComponents() {},
     deleteComponent() {},
     logEvent() {},
+    addDangerToast() {},
   };
 
   function setup(overrideProps) {
@@ -109,11 +113,14 @@ describe('Markdown', () => {
     expect(wrapper.find(ReactMarkdown)).toExist();
   });
 
-  it('should render an AceEditor when focused and editMode=true and editorMode=edit', () => {
+  it('should render an AceEditor when focused and editMode=true and editorMode=edit', async () => {
     const wrapper = setup({ editMode: true });
     expect(wrapper.find(MarkdownEditor)).not.toExist();
     expect(wrapper.find(ReactMarkdown)).toExist();
-    wrapper.find(WithPopoverMenu).simulate('click'); // focus + edit
+    act(() => {
+      wrapper.find(WithPopoverMenu).simulate('click'); // focus + edit
+    });
+    await waitForComponentToPaint(wrapper);
     expect(wrapper.find(MarkdownEditor)).toExist();
     expect(wrapper.find(ReactMarkdown)).not.toExist();
   });
