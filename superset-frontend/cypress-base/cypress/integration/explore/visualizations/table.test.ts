@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { interceptChart } from 'cypress/utils';
 import {
   FORM_DATA_DEFAULTS,
   NUM_METRIC,
@@ -44,7 +45,7 @@ describe('Visualization > Table', () => {
 
   beforeEach(() => {
     cy.login();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    interceptChart({ legacy: false }).as('chartData');
   });
 
   it('Use default time column', () => {
@@ -99,7 +100,7 @@ describe('Visualization > Table', () => {
       groupby: ['name'],
     });
     cy.verifySliceSuccess({
-      waitAlias: '@getJson',
+      waitAlias: '@chartData',
       querySubstring: /group by.*name/i,
       chartSelector: 'table',
     });
@@ -115,7 +116,7 @@ describe('Visualization > Table', () => {
       groupby: ['name'],
     });
     cy.verifySliceSuccess({
-      waitAlias: '@getJson',
+      waitAlias: '@chartData',
       querySubstring: /group by.*name/i,
       chartSelector: 'table',
     });
@@ -134,7 +135,7 @@ describe('Visualization > Table', () => {
       metrics: [],
       groupby: ['name'],
     });
-    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData', chartSelector: 'table' });
   });
 
   it('Test table with groupby order desc', () => {
@@ -144,7 +145,7 @@ describe('Visualization > Table', () => {
       groupby: ['name'],
       order_desc: true,
     });
-    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData', chartSelector: 'table' });
   });
 
   it('Test table with groupby and limit', () => {
@@ -156,9 +157,9 @@ describe('Visualization > Table', () => {
       row_limit: limit,
     };
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.wait('@getJson').then(({ response }) => {
+    cy.wait('@chartData').then(({ response }) => {
       cy.verifySliceContainer('table');
-      expect(response?.body.data.records.length).to.eq(limit);
+      expect(response?.body.result[0].data.length).to.eq(limit);
     });
     cy.get('span.label-danger').contains('10 rows');
   });
@@ -178,7 +179,7 @@ describe('Visualization > Table', () => {
     cy.get('div[data-test="all_columns"]').should('be.visible');
     cy.get('div[data-test="groupby"]').should('not.exist');
 
-    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData', chartSelector: 'table' });
 
     // should allow switch to aggregate mode
     cy.get('div[data-test="query_mode"] .btn').contains('Aggregate').click();
@@ -200,10 +201,9 @@ describe('Visualization > Table', () => {
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.wait('@getJson').then(({ response }) => {
+    cy.wait('@chartData').then(({ response }) => {
       cy.verifySliceContainer('table');
-      const responseBody = response?.body;
-      const { records } = responseBody.data;
+      const records = response?.body.result[0].data;
       expect(records[0].num).greaterThan(records[records.length - 1].num);
     });
   });
@@ -215,7 +215,7 @@ describe('Visualization > Table', () => {
     const formData = { ...VIZ_DEFAULTS, metrics, adhoc_filters: filters };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData', chartSelector: 'table' });
   });
 
   it('Tests table number formatting with % in metric name', () => {
@@ -227,7 +227,7 @@ describe('Visualization > Table', () => {
 
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({
-      waitAlias: '@getJson',
+      waitAlias: '@chartData',
       querySubstring: /group by.*state/i,
       chartSelector: 'table',
     });
