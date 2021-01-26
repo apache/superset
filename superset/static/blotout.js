@@ -20,11 +20,11 @@ const modifyCheck = (func) => {
 }
 
 const modifyElements = () => {
-  switch (window.location.pathname) {
-    case '/databaseview/list/':
-    case '/tablemodelview/list/': {
-      // Add + button to source database and table pages
-      modifyCheck(() => {
+  if (window.location.pathname === '/databaseview/list/' ||
+    window.location.pathname === '/tablemodelview/list/' ||
+    window.location.pathname === '/annotationlayermodelview/list/' ||
+    window.location.pathname.startsWith('/annotationmodelview/')) {
+    modifyCheck(() => {
         const elements = document.querySelectorAll('header nav .navbar-right .btn-primary')
         if (elements.length === 0) {
           return false
@@ -32,20 +32,20 @@ const modifyElements = () => {
         elements[0].style.display = 'inline-block'
         return true
       })
-      break
-    }
-    case '/users/userinfo/':
-    case '/users/show/': {
-      // remove reset password button from user page
-      modifyCheck(() => {
-        const elements = document.querySelectorAll('.panel-body .well .btn-primary')
-        if (elements.length === 0) {
-          return false
-        }
-        elements[0].style.display = 'none'
-        return true
-     })
-    }
+    return
+  }
+
+  if (window.location.pathname === '/users/userinfo/' ||
+    window.location.pathname === '/users/show/') {
+    // remove reset password button from user page
+    modifyCheck(() => {
+      const elements = document.querySelectorAll('.panel-body .well .btn-primary')
+      if (elements.length === 0) {
+        return false
+      }
+      elements[0].style.display = 'none'
+      return true
+    })
   }
 }
 
