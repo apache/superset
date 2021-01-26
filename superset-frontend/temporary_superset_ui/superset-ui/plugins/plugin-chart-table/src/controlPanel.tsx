@@ -18,7 +18,13 @@
  * under the License.
  */
 import React from 'react';
-import { t, validateNonEmpty, addLocaleData, smartDateFormatter } from '@superset-ui/core';
+import {
+  t,
+  validateNonEmpty,
+  addLocaleData,
+  smartDateFormatter,
+  QueryMode,
+} from '@superset-ui/core';
 import {
   formatSelectOptions,
   D3_TIME_FORMAT_OPTIONS,
@@ -43,11 +49,6 @@ export const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
   100,
   200,
 ]);
-
-export enum QueryMode {
-  aggregate = 'aggregate',
-  raw = 'raw',
-}
 
 const QueryModeLabel = {
   [QueryMode.aggregate]: t('Aggregate'),
@@ -113,7 +114,9 @@ const all_columns: typeof sharedControls.groupby = {
 const percent_metrics: typeof sharedControls.metrics = {
   type: 'MetricsControl',
   label: t('Percentage Metrics'),
-  description: t('Metrics for which percentage of total are to be displayed'),
+  description: t(
+    'Metrics for which percentage of total are to be displayed. Calculated from only data within the row limit.',
+  ),
   multi: true,
   visibility: isAggMode,
   mapStateToProps: ({ datasource, controls }) => ({

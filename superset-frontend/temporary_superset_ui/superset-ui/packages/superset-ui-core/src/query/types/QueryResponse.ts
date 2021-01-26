@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import { TimeseriesDataRecord } from '../../chart';
+import { AnnotationData } from './AnnotationLayer';
+
 /**
  * Generic data types, see enum of the same name in superset/utils/core.py.
  */
@@ -35,7 +39,15 @@ export interface DataRecord {
   [key: string]: DataRecordValue;
 }
 
+/**
+ * Queried data for charts. The `queries` field from `POST /chart/data`.
+ * See superset/charts/schemas.py for the class of the same name.
+ */
 export interface ChartDataResponseResult {
+  /**
+   * Data for the annotation layer.
+   */
+  annotation_data: AnnotationData[] | null;
   cache_key: string | null;
   cache_timeout: number | null;
   cache_dttm: string | null;
@@ -46,11 +58,11 @@ export interface ChartDataResponseResult {
   /**
    * Name of each column, for retaining the order of the output columns.
    */
-  columns: string[];
+  colnames: string[];
   /**
    * Generic data types, based on the final output pandas dataframe.
    */
-  dtypes: GenericDataType[];
+  coltypes: GenericDataType[];
   error: string | null;
   is_cached: boolean;
   query: string;
@@ -59,9 +71,13 @@ export interface ChartDataResponseResult {
   status: 'stopped' | 'failed' | 'pending' | 'running' | 'scheduled' | 'success' | 'timed_out';
 }
 
+export interface TimeseriesChartDataResponseResult extends ChartDataResponseResult {
+  data: TimeseriesDataRecord[];
+}
+
 /**
  * Query response from /api/v1/chart/data
  */
 export interface ChartDataResponse {
-  result: ChartDataResponseResult[];
+  queries: ChartDataResponseResult[];
 }

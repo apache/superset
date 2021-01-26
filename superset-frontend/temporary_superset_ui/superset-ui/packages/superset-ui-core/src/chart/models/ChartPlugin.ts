@@ -8,6 +8,7 @@ import getChartControlPanelRegistry from '../registries/ChartControlPanelRegistr
 import getChartTransformPropsRegistry from '../registries/ChartTransformPropsRegistrySingleton';
 import { BuildQueryFunction, TransformProps } from '../types/TransformFunction';
 import { ChartControlPanel } from './ChartControlPanel';
+import { ChartProps } from '..';
 
 function IDENTITY<T>(x: T) {
   return x;
@@ -20,16 +21,19 @@ export type PromiseOrValueLoader<T> = () => PromiseOrValue<T>;
 export type ChartType = ComponentType<any>;
 type ValueOrModuleWithValue<T> = T | { default: T };
 
-interface ChartPluginConfig<T extends QueryFormData> {
+interface ChartPluginConfig<
+  FormData extends QueryFormData = QueryFormData,
+  Props extends ChartProps = ChartProps
+> {
   metadata: ChartMetadata;
   /** Use buildQuery for immediate value. For lazy-loading, use loadBuildQuery. */
-  buildQuery?: BuildQueryFunction<T>;
+  buildQuery?: BuildQueryFunction<FormData>;
   /** Use loadBuildQuery for dynamic import (lazy-loading) */
-  loadBuildQuery?: PromiseOrValueLoader<ValueOrModuleWithValue<BuildQueryFunction<T>>>;
+  loadBuildQuery?: PromiseOrValueLoader<ValueOrModuleWithValue<BuildQueryFunction<FormData>>>;
   /** Use transformProps for immediate value. For lazy-loading, use loadTransformProps.  */
-  transformProps?: TransformProps;
+  transformProps?: TransformProps<Props>;
   /** Use loadTransformProps for dynamic import (lazy-loading) */
-  loadTransformProps?: PromiseOrValueLoader<ValueOrModuleWithValue<TransformProps>>;
+  loadTransformProps?: PromiseOrValueLoader<ValueOrModuleWithValue<TransformProps<Props>>>;
   /** Use Chart for immediate value. For lazy-loading, use loadChart. */
   Chart?: ChartType;
   /** Use loadChart for dynamic import (lazy-loading) */
@@ -54,18 +58,21 @@ function sanitizeLoader<T>(
   };
 }
 
-export default class ChartPlugin<T extends QueryFormData = QueryFormData> extends Plugin {
+export default class ChartPlugin<
+  FormData extends QueryFormData = QueryFormData,
+  Props extends ChartProps = ChartProps
+> extends Plugin {
   controlPanel: ChartControlPanel;
 
   metadata: ChartMetadata;
 
-  loadBuildQuery?: PromiseOrValueLoader<BuildQueryFunction<T>>;
+  loadBuildQuery?: PromiseOrValueLoader<BuildQueryFunction<FormData>>;
 
-  loadTransformProps: PromiseOrValueLoader<TransformProps>;
+  loadTransformProps: PromiseOrValueLoader<TransformProps<Props>>;
 
   loadChart: PromiseOrValueLoader<ChartType>;
 
-  constructor(config: ChartPluginConfig<T>) {
+  constructor(config: ChartPluginConfig<FormData, Props>) {
     super();
     const {
       metadata,
@@ -95,26 +102,24 @@ export default class ChartPlugin<T extends QueryFormData = QueryFormData> extend
   }
 
   register() {
-    const { key = isRequired('config.key') } = this.config;
-    getChartMetadataRegistry().registerValue(key as string, this.metadata);
-    getChartComponentRegistry().registerLoader(key as string, this.loadChart);
-    getChartControlPanelRegistry().registerValue(key as string, this.controlPanel);
-    getChartTransformPropsRegistry().registerLoader(key as string, this.loadTransformProps);
+    const key: string = this.config.key || isRequired('config.key');
+    getChartMetadataRegistry().registerValue(key, this.metadata);
+    getChartComponentRegistry().registerLoader(key, this.loadChart);
+    getChartControlPanelRegistry().registerValue(key, this.controlPanel);
+    getChartTransformPropsRegistry().registerLoader(key, this.loadTransformProps);
     if (this.loadBuildQuery) {
-      getChartBuildQueryRegistry().registerLoader(key as string, this.loadBuildQuery);
+      getChartBuildQueryRegistry().registerLoader(key, this.loadBuildQuery);
     }
-
     return this;
   }
 
   unregister() {
-    const { key = isRequired('config.key') } = this.config;
-    getChartMetadataRegistry().remove(key as string);
-    getChartComponentRegistry().remove(key as string);
-    getChartControlPanelRegistry().remove(key as string);
-    getChartTransformPropsRegistry().remove(key as string);
-    getChartBuildQueryRegistry().remove(key as string);
-
+    const key: string = this.config.key || isRequired('config.key');
+    getChartMetadataRegistry().remove(key);
+    getChartComponentRegistry().remove(key);
+    getChartControlPanelRegistry().remove(key);
+    getChartTransformPropsRegistry().remove(key);
+    getChartBuildQueryRegistry().remove(key);
     return this;
   }
 

@@ -25,14 +25,11 @@ import {
   DataRecord,
   DataRecordValue,
   DataRecordFilters,
-  QueryData,
+  GenericDataType,
+  QueryMode,
+  ChartDataResponseResult,
+  QueryFormData,
 } from '@superset-ui/core';
-
-export enum DataType {
-  Number = 'number',
-  String = 'string',
-  DateTime = 'datetime',
-}
 
 export type CustomFormatter = (value: DataRecordValue) => string;
 
@@ -41,36 +38,36 @@ export interface DataColumnMeta {
   key: string;
   // `label` is verbose column name used for rendering
   label: string;
-  dataType: DataType;
+  dataType: GenericDataType;
   formatter?: TimeFormatter | NumberFormatter | CustomFormatter;
 }
 
-export interface TableChartData<D extends DataRecord = DataRecord> {
-  records: D[];
+export interface TableChartData {
+  records: DataRecord[];
   columns: string[];
 }
 
-export interface TableChartFormData {
-  alignPn?: boolean;
-  colorPn?: boolean;
-  includeSearch?: boolean;
-  pageLength?: string | number | null; // null means auto-paginate
+export type TableChartFormData = QueryFormData & {
+  align_pn?: boolean;
+  color_pn?: boolean;
+  include_search?: boolean;
+  query_mode?: QueryMode;
+  page_length?: string | number | null; // null means auto-paginate
   metrics?: QueryFormMetric[] | null;
-  percentMetrics?: QueryFormMetric[] | null;
-  groupby?: string[];
-  allColumns?: string[];
-  orderDesc?: boolean;
-  showCellBars?: boolean;
-  tableTimestampFormat?: string;
-  tableFilter?: boolean;
-  timeGrainSqla?: TimeGranularity;
-}
+  percent_metrics?: QueryFormMetric[] | null;
+  timeseries_limit_metric?: QueryFormMetric | null;
+  groupby?: QueryFormMetric[] | null;
+  all_columns?: QueryFormMetric[] | null;
+  order_desc?: boolean;
+  show_cell_bars?: boolean;
+  table_timestamp_format?: string;
+  table_filter?: boolean;
+  time_grain_sqla?: TimeGranularity;
+};
 
-export interface TableChartProps<D extends DataRecord = DataRecord> extends ChartProps {
-  formData: TableChartFormData;
-  queriesData: (QueryData & {
-    data?: TableChartData<D>;
-  })[];
+export interface TableChartProps extends ChartProps {
+  rawFormData: TableChartFormData;
+  queriesData: ChartDataResponseResult[];
 }
 
 export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
@@ -93,3 +90,5 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   emitFilter?: boolean;
   onChangeFilter?: ChartProps['hooks']['onAddFilter'];
 }
+
+export default {};

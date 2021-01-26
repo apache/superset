@@ -22,7 +22,7 @@
     "useDefineForClassFields": false,
     "composite": true,
     "declarationMap": true,
-    "rootDir": "./src",
+    "rootDir": ".",
     "skipLibCheck": true,
     "emitDeclarationOnly": true,
     "resolveJsonModule": true,

@@ -2,7 +2,7 @@ import React from 'react';
 import memoizeOne from 'memoize-one';
 import { withKnobs, number, boolean } from '@storybook/addon-knobs';
 import { SuperChart } from '@superset-ui/core';
-import TableChartPlugin, { TableChartProps } from '@superset-ui/plugin-chart-table';
+import TableChartPlugin, { TableChartProps } from '@superset-ui/plugin-chart-table/src';
 import { basicFormData, basicData, birthNames } from './testData';
 import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
 
@@ -38,27 +38,33 @@ const expandColumns = memoizeOne(expandArray);
  */
 function loadData(
   props: TableChartProps,
-  { pageLength = 50, rows = 1042, cols = 8, alignPn = false, showCellBars = true },
+  {
+    pageLength = 50,
+    rows = 1042,
+    cols = 8,
+    alignPn = false,
+    showCellBars = true,
+    includeSearch = true,
+  },
 ): TableChartProps {
   if (!props.queriesData || !props.queriesData[0]) return props;
-  const records = props.queriesData?.[0].data?.records || [];
-  const columns = props.queriesData?.[0].data?.columns || [];
+  const records = props.queriesData?.[0].data || [];
+  const columns = props.queriesData?.[0].colnames || [];
   return {
     ...props,
     queriesData: [
       {
         ...props.queriesData[0],
-        data: {
-          records: expandRecords(records, rows),
-          columns: expandColumns(columns, cols),
-        },
+        data: expandRecords(records, rows),
+        colnames: expandColumns(columns, cols),
       },
     ],
     formData: {
       ...props.formData,
-      alignPn,
-      pageLength,
-      showCellBars,
+      align_pn: alignPn,
+      page_length: pageLength,
+      show_cell_bars: showCellBars,
+      include_search: includeSearch,
     },
     height: window.innerHeight - 130,
   };
@@ -89,9 +95,17 @@ export const BigTable = ({ width, height }) => {
   const rows = number('Records', 2046, { range: true, min: 0, max: 50000 });
   const cols = number('Columns', 8, { range: true, min: 1, max: 20 });
   const pageLength = number('Page size', 50, { range: true, min: 0, max: 100 });
+  const includeSearch = boolean('Include search', true);
   const alignPn = boolean('Algin PosNeg', false);
   const showCellBars = boolean('Show Cell Bars', true);
-  const chartProps = loadData(birthNames, { pageLength, rows, cols, alignPn, showCellBars });
+  const chartProps = loadData(birthNames, {
+    pageLength,
+    rows,
+    cols,
+    alignPn,
+    showCellBars,
+    includeSearch,
+  });
   return <SuperChart chartType="table" {...chartProps} width={width} height={height} />;
 };
 BigTable.story = {

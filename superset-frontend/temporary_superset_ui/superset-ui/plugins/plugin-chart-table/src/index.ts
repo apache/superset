@@ -20,7 +20,11 @@ import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
+import buildQuery from './buildQuery';
+import { TableChartFormData, TableChartProps } from './types';
 
+// must export something for the module to be exist in dev mode
+export { default as __hack__ } from './types';
 export * from './types';
 
 const metadata = new ChartMetadata({
@@ -28,16 +32,16 @@ const metadata = new ChartMetadata({
   description: '',
   name: t('Table'),
   thumbnail,
-  useLegacyApi: true,
 });
 
-export default class TableChartPlugin extends ChartPlugin {
+export default class TableChartPlugin extends ChartPlugin<TableChartFormData, TableChartProps> {
   constructor() {
     super({
       loadChart: () => import('./TableChart'),
       metadata,
       transformProps,
       controlPanel,
+      buildQuery,
     });
   }
 }
