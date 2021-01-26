@@ -992,27 +992,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   }, [resource]);
 
   // Validation
-  useEffect(
-    () => {
-      validate();
-    },
-    currentAlert
-      ? [
-          currentAlert.name,
-          currentAlert.owners,
-          currentAlert.database,
-          currentAlert.sql,
-          currentAlert.validator_config_json,
-          currentAlert.crontab,
-          currentAlert.working_timeout,
-          currentAlert.dashboard,
-          currentAlert.chart,
-          contentType,
-          notificationSettings,
-          conditionNotNull,
-        ]
-      : [],
-  );
+  const currentAlertSafe = currentAlert || {};
+  useEffect(() => {
+    validate();
+  }, [
+    currentAlertSafe.name,
+    currentAlertSafe.owners,
+    currentAlertSafe.database,
+    currentAlertSafe.sql,
+    currentAlertSafe.validator_config_json,
+    currentAlertSafe.crontab,
+    currentAlertSafe.working_timeout,
+    currentAlertSafe.dashboard,
+    currentAlertSafe.chart,
+    contentType,
+    notificationSettings,
+    conditionNotNull,
+  ]);
 
   // Show/hide
   if (isHidden && show) {
