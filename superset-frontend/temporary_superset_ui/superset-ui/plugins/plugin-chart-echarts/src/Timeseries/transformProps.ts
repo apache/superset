@@ -33,7 +33,7 @@ import {
   TimeFormatter,
 } from '@superset-ui/core';
 import { DEFAULT_FORM_DATA, EchartsTimeseriesFormData } from './types';
-import { EchartsProps, ForecastSeriesEnum } from '../types';
+import { EchartsProps, ForecastSeriesEnum, ProphetValue } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import { extractTimeseriesSeries, getChartPadding, getLegendProps } from '../utils/series';
 import { extractAnnotationLabels } from '../utils/annotation';
@@ -79,6 +79,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     yAxisBounds,
     timeGrainSqla,
     zoomable,
+    richTooltip,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
@@ -166,12 +167,17 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     },
     tooltip: {
       ...defaultTooltip,
-      trigger: 'axis',
-      formatter: params => {
-        // @ts-ignore
-        const rows = [`${xAxisFormatter(params[0].value[0])}`];
-        // @ts-ignore
-        const prophetValues = extractProphetValuesFromTooltipParams(params);
+      trigger: richTooltip ? 'axis' : 'item',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      formatter: (params: any) => {
+        const value: number = !richTooltip ? params.value : params[0].value[0];
+        const prophetValue = !richTooltip ? [params] : params;
+
+        const rows: Array<string> = [`${smartDateFormatter(value)}`];
+        const prophetValues: Record<string, ProphetValue> = extractProphetValuesFromTooltipParams(
+          prophetValue,
+        );
+
         Object.keys(prophetValues).forEach(key => {
           const value = prophetValues[key];
           rows.push(

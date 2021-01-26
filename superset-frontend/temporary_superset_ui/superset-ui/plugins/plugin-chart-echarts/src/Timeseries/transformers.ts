@@ -43,7 +43,16 @@ export function transformSeries(
   colorScale: CategoricalColorScale,
 ): echarts.EChartOption.Series | undefined {
   const { name } = series;
-  const { area, forecastEnabled, markerEnabled, markerSize, opacity, seriesType, stack } = {
+  const {
+    area,
+    forecastEnabled,
+    markerEnabled,
+    markerSize,
+    opacity,
+    seriesType,
+    stack,
+    richTooltip,
+  } = {
     ...DEFAULT_FORM_DATA,
     ...formData,
   };
@@ -95,7 +104,10 @@ export function transformSeries(
     },
     showSymbol:
       !isConfidenceBand &&
-      (plotType === 'scatter' || (forecastEnabled && isObservation) || markerEnabled),
+      (plotType === 'scatter' ||
+        (forecastEnabled && isObservation) ||
+        markerEnabled ||
+        !richTooltip), // TODO: forcing markers when richTooltip is enabled will be removed once ECharts supports item based tooltips without markers
     symbolSize: markerSize,
   };
 }
