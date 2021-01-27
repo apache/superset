@@ -149,7 +149,7 @@ class SupersetTestCase(TestCase):
             db.session.commit()
             user_to_create = security_manager.find_user(username)
             assert user_to_create
-        user_to_create.roles = [security_manager.find_role(r) for r in roles]
+        user_to_create.roles = [security_manager.add_role(r) for r in roles]
         db.session.commit()
         return user_to_create
 
