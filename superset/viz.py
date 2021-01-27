@@ -103,6 +103,8 @@ METRIC_KEYS = [
     "size",
 ]
 
+FILTER_VALUES_REGEX = re.compile(r"FILTER_VALUES\(['\"](\w+)['\"]\,", re.IGNORECASE)
+
 
 class BaseViz:
 
@@ -478,21 +480,22 @@ class BaseViz:
         filter_values_columns = []
 
         # if using virtual datasource, check filter_values
-        sql = self.datasource.sql
-        if sql:
-            statements_without_comments = sqlparse.format(sql, strip_comments=True)
+        if self.datasource.sql:
+            statements_without_comments = sqlparse.format(
+                self.datasource.sql, strip_comments=True
+            )
             parsed_query = sql_parse.ParsedQuery(statements_without_comments)
             for stmt in parsed_query.get_statements():
-                filter_values_columns += (
-                    re.findall(r"filter_values\(\"(\w+)\"\,", stmt)
-                ) or []
+                filter_values_columns += (re.findall(FILTER_VALUES_REGEX, stmt)) or []
 
         applied_time_extras = self.form_data.get("applied_time_extras", {})
         applied_time_columns, rejected_time_columns = utils.get_time_filter_status(
             self.datasource, applied_time_extras
         )
         payload["applied_filters"] = [
-            {"column": col} for col in filter_columns if col in columns
+            {"column": col}
+            for col in filter_columns
+            if col in columns or col in filter_values_columns
         ] + applied_time_columns
         payload["rejected_filters"] = [
             {"reason": "not_in_datasource", "column": col}
