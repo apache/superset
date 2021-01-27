@@ -89,7 +89,7 @@ describe('utils/common', () => {
   describe('detectOS', () => {
     it('detects Windows as the OS when appVersion includes Win', () => {
       const OSName = jest.fn();
-      OSName.mockReturnValue('Windows')
+      OSName.mockReturnValue('Windows');
       const appVersion = jest.fn();
       appVersion.mockReturnValue('Win');
 
@@ -98,7 +98,7 @@ describe('utils/common', () => {
     });
     it('detects MacOS as the OS when appVersion includes Mac', () => {
       const OSName = jest.fn();
-      OSName.mockReturnValue('MacOS')
+      OSName.mockReturnValue('MacOS');
       const appVersion = jest.fn();
       appVersion.mockReturnValue('Mac');
 
@@ -107,7 +107,7 @@ describe('utils/common', () => {
     });
     it('detects UNIX as the OS when appVersion includes X11', () => {
       const OSName = jest.fn();
-      OSName.mockReturnValue('UNIX')
+      OSName.mockReturnValue('UNIX');
       const appVersion = jest.fn();
       appVersion.mockReturnValue('X11');
 
@@ -116,7 +116,7 @@ describe('utils/common', () => {
     });
     it('detects Linux as the OS when appVersion includes Linux', () => {
       const OSName = jest.fn();
-      OSName.mockReturnValue('Linux')
+      OSName.mockReturnValue('Linux');
       const appVersion = jest.fn();
       appVersion.mockReturnValue('Linux');
 
