@@ -6489,7 +6489,7 @@ msgstr "Para filtrar uma métrica, use a aba SQL personalizado."
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:307
 #, python-format
-msgid "%s operators(s)"
+msgid "%s operator(s)"
 msgstr "%s operador(es)"
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:326

@@ -1643,7 +1643,7 @@
       "%s column(s) and metric(s)": [""],
       "%s column(s)": [""],
       "To filter on a metric, use Custom SQL tab.": [""],
-      "%s operators(s)": ["オペレータを選択"],
+      "%s operator(s)": ["オペレータを選択"],
       "Type a value here": [""],
       "Filter value (case sensitive)": [""],
       "choose WHERE or HAVING...": [""],
