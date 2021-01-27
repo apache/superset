@@ -101,6 +101,7 @@ class AdhocFilterControl extends React.Component {
     this.state = {
       values: filters,
       options: this.optionsForSelect(this.props),
+      partitionColumn: null,
     };
   }
 
