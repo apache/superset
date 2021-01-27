@@ -17,6 +17,7 @@
 import logging
 from collections import defaultdict
 from datetime import date
+from functools import wraps
 from typing import Any, Callable, DefaultDict, Dict, List, Optional, Set, Tuple, Union
 from urllib import parse
 
@@ -435,6 +436,23 @@ def is_slice_in_container(
 def is_owner(obj: Union[Dashboard, Slice], user: User) -> bool:
     """ Check if user is owner of the slice """
     return obj and user in obj.owners
+
+
+def check_resource_permissions(check_perms: Callable[..., Any],) -> Callable[..., Any]:
+    """
+    A decorator for checking permissions on a request using the passed-in function.
+    """
+
+    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
+        @wraps(f)
+        def wrapper(*args: Any, **kwargs: Any) -> None:
+            # check if the user can access the resource
+            check_perms(*args, **kwargs)
+            return f(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 def check_explore_cache_perms(_self: Any, cache_key: str) -> None:

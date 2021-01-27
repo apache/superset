@@ -143,13 +143,6 @@ class BaseViz:
         self._force_cached = force_cached
         self.from_dttm: Optional[datetime] = None
         self.to_dttm: Optional[datetime] = None
-
-        # Keeping track of whether some data came from cache
-        # this is useful to trigger the <CachedLabel /> when
-        # in the cases where visualization have many queries
-        # (FilterBox for instance)
-        self._any_cache_key: Optional[str] = None
-        self._any_cached_dttm: Optional[str] = None
         self._extra_chart_data: List[Tuple[str, pd.DataFrame]] = []
 
         self.process_metrics()
@@ -496,6 +489,7 @@ class BaseViz:
         if not query_obj:
             query_obj = self.query_obj()
         cache_key = self.cache_key(query_obj, **kwargs) if query_obj else None
+        cache_value = None
         logger.info("Cache key: {}".format(cache_key))
         is_loaded = False
         stacktrace = None
@@ -507,8 +501,6 @@ class BaseViz:
                 try:
                     df = cache_value["df"]
                     self.query = cache_value["query"]
-                    self._any_cached_dttm = cache_value["dttm"]
-                    self._any_cache_key = cache_key
                     self.status = utils.QueryStatus.SUCCESS
                     is_loaded = True
                     stats_logger.incr("loaded_from_cache")
@@ -583,13 +575,13 @@ class BaseViz:
                     self.datasource.uid,
                 )
         return {
-            "cache_key": self._any_cache_key,
-            "cached_dttm": self._any_cached_dttm,
+            "cache_key": cache_key,
+            "cached_dttm": cache_value["dttm"] if cache_value is not None else None,
             "cache_timeout": self.cache_timeout,
             "df": df,
             "errors": self.errors,
             "form_data": self.form_data,
-            "is_cached": self._any_cache_key is not None,
+            "is_cached": cache_value is not None,
             "query": self.query,
             "from_dttm": self.from_dttm,
             "to_dttm": self.to_dttm,
