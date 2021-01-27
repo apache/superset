@@ -103,6 +103,9 @@ METRIC_KEYS = [
     "size",
 ]
 
+# This regex is to get the first param from user defined filter column
+# see the definition of filter_values template:
+# https://github.com/apache/superset/blob/24ad6063d736c1f38ad6f962e586b9b1a21946af/superset/jinja_context.py#L63
 FILTER_VALUES_REGEX = re.compile(r"FILTER_VALUES\(['\"](\w+)['\"]\,", re.IGNORECASE)
 
 
