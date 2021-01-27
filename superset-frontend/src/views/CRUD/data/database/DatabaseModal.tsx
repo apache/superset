@@ -463,7 +463,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   onChange={onInputChange}
                 />
                 <div>{t('Expose in SQL Lab')}</div>
-                <InfoTooltip tooltip={t('Allow this database to be queried in SQL Lab')} />
+                <InfoTooltip
+                  tooltip={t('Allow this database to be queried in SQL Lab')}
+                  />
               </div>
             </StyledInputContainer>
             <StyledInputContainer>
