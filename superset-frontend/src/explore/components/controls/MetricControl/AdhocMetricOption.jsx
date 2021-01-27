@@ -63,6 +63,7 @@ class AdhocMetricOption extends React.PureComponent {
       index,
       datasource,
     } = this.props;
+
     return (
       <AdhocMetricPopoverTrigger
         adhocMetric={adhocMetric}

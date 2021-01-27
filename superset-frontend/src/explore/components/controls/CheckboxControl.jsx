@@ -35,6 +35,12 @@ const defaultProps = {
 const checkboxStyle = { paddingRight: '5px' };
 
 export default class CheckboxControl extends React.Component {
+  componentDidUpdate(prevProps) {
+    if (prevProps.datasource !== this.props.datasource) {
+      this.props.onChange(false);
+    }
+  }
+
   onChange() {
     this.props.onChange(!this.props.value);
   }

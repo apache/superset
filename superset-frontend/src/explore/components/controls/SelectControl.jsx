@@ -102,8 +102,7 @@ export default class SelectControl extends React.PureComponent {
       this.setState({ options });
     }
     if (nextProps.datasource !== this.props.datasource) {
-      const emptyValue = this.props.multi ? [] : {};
-      this.props.onChange(emptyValue);
+      this.props.onChange([]);
     }
   }
 
