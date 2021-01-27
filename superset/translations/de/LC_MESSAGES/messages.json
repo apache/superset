@@ -1706,7 +1706,7 @@
       "%s column(s) and metric(s)": [""],
       "%s column(s)": ["Spalten auflisten"],
       "To filter on a metric, use Custom SQL tab.": [""],
-      "%s operators(s)": [""],
+      "%s operator(s)": [""],
       "Type a value here": [""],
       "Filter value (case sensitive)": [""],
       "choose WHERE or HAVING...": [""],
