@@ -25,9 +25,6 @@ from tests.dashboards.superset_factory_util import (
     create_slice_to_db,
 )
 
-USER_WITHOUT_DASHBOARDS_ACCESS_PERMISSIONS = "gamma"
-ROLE_WITHOUT_DASHBOARDS_ACCESS_PERMISSIONS = "Gamma"
-
 
 class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
     def test_get_dashboards_list__admin_get_all_dashboards(self):
@@ -76,8 +73,14 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         )
 
     def test_get_dashboards_list__user_without_any_permissions_get_empty_list(self):
+
+        # arrange
+        username = random_str()
+        new_role = f"role_{random_str()}"
+        self.create_user_with_roles(username, [new_role], copy_roles=True)
+
         create_dashboard_to_db(published=True)
-        self.login(USER_WITHOUT_DASHBOARDS_ACCESS_PERMISSIONS)
+        self.login(username)
 
         # act
         response = self.get_dashboards_list_response()
