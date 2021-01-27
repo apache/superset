@@ -278,7 +278,6 @@ class MetricsControl extends React.PureComponent {
     if (this.isAddNewMetricDisabled()) {
       return trigger;
     }
-    console.log('addNewMtetricPopoverTrigger', this.props)
     return (
       <AdhocMetricPopoverTrigger
         adhocMetric={new AdhocMetric({ isNew: true })}

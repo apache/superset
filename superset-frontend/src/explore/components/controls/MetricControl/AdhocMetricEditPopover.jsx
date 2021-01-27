@@ -103,16 +103,6 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     document.addEventListener('mouseup', this.onMouseUp);
   }
 
-  /*static getDerivedStateFromProps(nextProps, prevState) {
-    console.log('nextProps', nextProps);
-    console.log('datsource', prevState);
-    if (nextProps.datasource !== prevState.datasourceName) {
-      return {
-        datasourceName: nextProps.datasource,
-      };
-    }
-  }*/
-
   componentDidMount() {
     this.props.getCurrentTab(this.defaultActiveTabKey);
   }
