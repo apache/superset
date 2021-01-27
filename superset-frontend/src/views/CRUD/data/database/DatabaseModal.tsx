@@ -463,7 +463,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   onChange={onInputChange}
                 />
                 <div>{t('Expose in SQL Lab')}</div>
-                <InfoTooltip tooltip={t('Expose this DB in SQL Lab')} />
+                <InfoTooltip tooltip={t('Allow this database to be queried in SQL Lab')} />
               </div>
             </StyledInputContainer>
             <StyledInputContainer>
@@ -476,7 +476,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 />
                 <div>{t('Allow CREATE TABLE AS')}</div>
                 <InfoTooltip
-                  tooltip={t('Allow CREATE TABLE AS option in SQL Lab')}
+                  tooltip={t('Allow creation of new tables based on queries')}
                 />
               </div>
             </StyledInputContainer>
@@ -490,7 +490,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 />
                 <div>{t('Allow CREATE VIEW AS')}</div>
                 <InfoTooltip
-                  tooltip={t('Allow CREATE VIEW AS option in SQL Lab')}
+                  tooltip={t('Allow creation of new views based on queries')}
                 />
               </div>
             </StyledInputContainer>
@@ -505,7 +505,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 <div>{t('Allow DML')}</div>
                 <InfoTooltip
                   tooltip={t(
-                    'Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...)',
+                    'Allow manipulation of the database using non-SELECT statements such as UPDATE, DELETE, CREATE, etc.',
                   )}
                 />
               </div>
