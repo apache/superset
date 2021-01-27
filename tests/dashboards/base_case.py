@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
-from typing import Dict, Union, Any
+from typing import Any, Dict, Union
 
 import prison
 from flask import Response
