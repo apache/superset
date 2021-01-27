@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
-from typing import Dict, Union
+from typing import Dict, Union, Any
 
 import prison
 from flask import Response
@@ -45,13 +45,13 @@ class DashboardTestCase(SupersetTestCase):
         return self.client.get(DASHBOARDS_API_URL)
 
     def save_dashboard_via_view(
-        self, dashboard_id: Union[str, int], dashboard_data: Dict
+        self, dashboard_id: Union[str, int], dashboard_data: Dict[str, Any]
     ) -> Response:
         save_dash_url = SAVE_DASHBOARD_URL_FORMAT.format(dashboard_id)
         return self.get_resp(save_dash_url, data=dict(data=json.dumps(dashboard_data)))
 
     def save_dashboard(
-        self, dashboard_id: Union[str, int], dashboard_data: Dict
+        self, dashboard_id: Union[str, int], dashboard_data: Dict[str, Any]
     ) -> Response:
         return self.save_dashboard_via_view(dashboard_id, dashboard_data)
 
