@@ -102,6 +102,11 @@ METRIC_KEYS = [
     "size",
 ]
 
+# This regex is to get user defined filter column name, which is the first param in the filter_values function.
+# see the definition of filter_values template:
+# https://github.com/apache/superset/blob/24ad6063d736c1f38ad6f962e586b9b1a21946af/superset/jinja_context.py#L63
+FILTER_VALUES_REGEX = re.compile(r"filter_values\(['\"](\w+)['\"]\,")
+
 
 class BaseViz:
 
@@ -467,17 +472,27 @@ class BaseViz:
         filters = self.form_data.get("filters", [])
         filter_columns = [flt.get("col") for flt in filters]
         columns = set(self.datasource.column_names)
+        filter_values_columns = []
+
+        # if using virtual datasource, check filter_values
+        if self.datasource.sql:
+            filter_values_columns = (
+                re.findall(FILTER_VALUES_REGEX, self.datasource.sql)
+            ) or []
+
         applied_time_extras = self.form_data.get("applied_time_extras", {})
         applied_time_columns, rejected_time_columns = utils.get_time_filter_status(
             self.datasource, applied_time_extras
         )
         payload["applied_filters"] = [
-            {"column": col} for col in filter_columns if col in columns
+            {"column": col}
+            for col in filter_columns
+            if col in columns or col in filter_values_columns
         ] + applied_time_columns
         payload["rejected_filters"] = [
             {"reason": "not_in_datasource", "column": col}
             for col in filter_columns
-            if col not in columns
+            if col not in columns and col not in filter_values_columns
         ] + rejected_time_columns
 
         return payload
