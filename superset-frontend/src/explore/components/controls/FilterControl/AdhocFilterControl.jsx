@@ -128,14 +128,14 @@ class AdhocFilterControl extends React.Component {
                 partitions.cols &&
                 Object.keys(partitions.cols).length === 1
               ) {
-                const partitionColumn = partitions.cols[0];
+                this.setState({ partitionColumn: partitions.cols[0] });
                 this.valueRenderer = (adhocFilter, index) => (
                   <AdhocFilterOption
                     adhocFilter={adhocFilter}
                     onFilterEdit={this.onFilterEdit}
                     options={this.state.options}
                     datasource={this.props.datasource}
-                    partitionColumn={partitionColumn}
+                    partitionColumn={this.state.partitionColumn}
                     onRemoveFilter={() => this.onRemoveFilter(index)}
                     key={index}
                   />
@@ -323,6 +323,7 @@ class AdhocFilterControl extends React.Component {
         datasource={this.props.datasource}
         options={this.state.options}
         onFilterEdit={this.onNewFilter}
+        partitionColumn={this.state.partitionColumn}
         createNew
       >
         {trigger}
