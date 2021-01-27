@@ -112,15 +112,22 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     });
   }
 
-  getCurrentLabel(label: string) {
+  getCurrentLabel({
+    savedMetricLabel,
+    adhocMetricLabel,
+  }: {
+    savedMetricLabel: string;
+    adhocMetricLabel: string;
+  }) {
+    const currentLabel = savedMetricLabel || adhocMetricLabel;
     this.setState({
-      currentLabel: label,
+      currentLabel,
       labelModified: true,
     });
-    if (!this.state.title.hasCustomLabel) {
+    if (savedMetricLabel || !this.state.title.hasCustomLabel) {
       this.setState({
         title: {
-          label,
+          label: currentLabel,
           hasCustomLabel: false,
         },
       });
@@ -134,10 +141,16 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
   render() {
     const { adhocMetric, savedMetric } = this.props;
     const { verbose_name, metric_name } = savedMetric;
-    const { label, hasCustomLabel } = adhocMetric;
+    const { hasCustomLabel, label } = adhocMetric;
+    const adhocMetricLabel = hasCustomLabel
+      ? label
+      : adhocMetric.getDefaultLabel();
     const title = this.state.labelModified
       ? this.state.title
-      : { label: verbose_name || metric_name || label, hasCustomLabel };
+      : {
+          label: verbose_name || metric_name || adhocMetricLabel,
+          hasCustomLabel,
+        };
 
     const overlayContent = (
       <AdhocMetricEditPopover
