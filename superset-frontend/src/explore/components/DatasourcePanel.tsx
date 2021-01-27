@@ -119,19 +119,19 @@ export default function DataSourcePanel({
         keys: [
           {
             key: 'verbose_name',
-            minRanking: rankings.ACRONYM,
+            threshold: rankings.CONTAINS,
           },
           {
             key: 'column_name',
-            minRanking: rankings.EQUAL,
-          },
-          {
-            key: 'description',
             threshold: rankings.CONTAINS,
           },
           {
-            key: 'expression',
+            key: item =>
+              [item.description, item.expression].map(
+                x => x?.replace(/[_\n\s]+/g, ' ') || '',
+              ),
             threshold: rankings.CONTAINS,
+            maxRanking: rankings.CONTAINS,
           },
         ],
         keepDiacritics: true,
@@ -140,19 +140,19 @@ export default function DataSourcePanel({
         keys: [
           {
             key: 'verbose_name',
-            minRanking: rankings.ACRONYM,
+            threshold: rankings.CONTAINS,
           },
           {
             key: 'metric_name',
-            minRanking: rankings.EQUAL,
-          },
-          {
-            key: 'description',
             threshold: rankings.CONTAINS,
           },
           {
-            key: 'expression',
+            key: item =>
+              [item.description, item.expression].map(
+                x => x?.replace(/[_\n\s]+/g, ' ') || '',
+              ),
             threshold: rankings.CONTAINS,
+            maxRanking: rankings.CONTAINS,
           },
         ],
         keepDiacritics: true,
