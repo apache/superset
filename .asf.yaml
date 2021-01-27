@@ -54,13 +54,13 @@ github:
     rebase: false
 
   protected_branches:
-    infra_reviewer_updates:
+    master:
       required_status_checks:
         # strict means "Require branches to be up to date before merging".
         strict: false
         # contexts are the names of checks that must pass
         contexts:
-          - PR Lint / check
+          - check
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false
