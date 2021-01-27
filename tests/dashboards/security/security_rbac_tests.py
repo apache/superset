@@ -233,9 +233,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         ]
 
         for dash in published_dashboards + not_published_dashboards:
-            self.grant_access_to_dashboard(
-                dash, new_role
-            )
+            self.grant_access_to_dashboard(dash, new_role)
 
         self.login(username)
 
@@ -252,9 +250,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         # post
         for dash in published_dashboards + not_published_dashboards:
-            self.revoke_access_to_dashboard(
-                dash, new_role
-            )
+            self.revoke_access_to_dashboard(dash, new_role)
 
     def test_get_dashboards_api__public_user_without_any_permissions_get_empty_list(
         self,
