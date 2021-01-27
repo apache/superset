@@ -30,6 +30,7 @@ from tests.dashboards.superset_factory_util import *
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 
 
+# @mark.amit
 class TestDashboardDatasetSecurity(DashboardTestCase):
     @pytest.fixture
     def load_dashboard(self):
@@ -184,8 +185,11 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice", "load_dashboard")
     def test_get_dashboards__users_can_view_permitted_dashboard(self):
         # arrange
+        username = random_str()
+        new_role = f"role_{random_str()}"
+        self.create_user_with_roles(username, [new_role], copy_roles=True)
         accessed_table = get_sql_table_by_name("energy_usage")
-        self.grant_role_access_to_table(accessed_table, GAMMA_ROLE_NAME)
+        self.grant_role_access_to_table(accessed_table, new_role)
         # get a slice from the allowed table
         slice_to_add_to_dashboards = get_slice_by_name("Energy Sankey")
         # Create a published and hidden dashboard and add them to the database
@@ -204,7 +208,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         )
 
         try:
-            self.login(GAMMA_USERNAME)
+            self.login(username)
             # act
             get_dashboards_response = self.get_resp(DASHBOARDS_API_URL)
 
