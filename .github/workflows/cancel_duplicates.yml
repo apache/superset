@@ -38,5 +38,6 @@ jobs:
         uses: ./.github/actions/cancel-workflow-runs
         with:
           cancelMode: allDuplicates
+          sourceRunId: ${{ github.event.workflow_run.id }}
           token: ${{ secrets.GITHUB_TOKEN }}
           notifyPRCancel: false
