@@ -420,8 +420,8 @@ class TabbedSqlEditors extends React.PureComponent {
             placement="bottom"
             title={
               userOS === 'Windows' ? 'New tab (Ctrl + q)' : 'New tab (Ctrl + t)'
-              }
-            >
+            }
+          >
             <i data-test="add-tab-icon" className="fa fa-plus-circle" />
           </Tooltip>
         }
