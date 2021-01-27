@@ -23,9 +23,12 @@ import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import fetchMock from 'fetch-mock';
 
 describe('SupersetResourceSelect', () => {
   const NOOP = () => {};
+
+  fetchMock.get('glob:*/api/v1/dataset/?q=*', {});
 
   it('is a valid element', () => {
     // @ts-ignore

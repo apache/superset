@@ -20,7 +20,7 @@ from sqlalchemy.dialects import mysql
 from sqlalchemy.dialects.mysql import DATE, NVARCHAR, TEXT, VARCHAR
 
 from superset.db_engine_specs.mysql import MySQLEngineSpec
-from superset.utils.core import DbColumnType
+from superset.utils.core import GenericDataType
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
@@ -67,40 +67,40 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
     def test_is_db_column_type_match(self):
         type_expectations = (
             # Numeric
-            ("TINYINT", DbColumnType.NUMERIC),
-            ("SMALLINT", DbColumnType.NUMERIC),
-            ("MEDIUMINT", DbColumnType.NUMERIC),
-            ("INT", DbColumnType.NUMERIC),
-            ("BIGINT", DbColumnType.NUMERIC),
-            ("DECIMAL", DbColumnType.NUMERIC),
-            ("FLOAT", DbColumnType.NUMERIC),
-            ("DOUBLE", DbColumnType.NUMERIC),
-            ("BIT", DbColumnType.NUMERIC),
+            ("TINYINT", GenericDataType.NUMERIC),
+            ("SMALLINT", GenericDataType.NUMERIC),
+            ("MEDIUMINT", GenericDataType.NUMERIC),
+            ("INT", GenericDataType.NUMERIC),
+            ("BIGINT", GenericDataType.NUMERIC),
+            ("DECIMAL", GenericDataType.NUMERIC),
+            ("FLOAT", GenericDataType.NUMERIC),
+            ("DOUBLE", GenericDataType.NUMERIC),
+            ("BIT", GenericDataType.NUMERIC),
             # String
-            ("CHAR", DbColumnType.STRING),
-            ("VARCHAR", DbColumnType.STRING),
-            ("TINYTEXT", DbColumnType.STRING),
-            ("MEDIUMTEXT", DbColumnType.STRING),
-            ("LONGTEXT", DbColumnType.STRING),
+            ("CHAR", GenericDataType.STRING),
+            ("VARCHAR", GenericDataType.STRING),
+            ("TINYTEXT", GenericDataType.STRING),
+            ("MEDIUMTEXT", GenericDataType.STRING),
+            ("LONGTEXT", GenericDataType.STRING),
             # Temporal
-            ("DATE", DbColumnType.TEMPORAL),
-            ("DATETIME", DbColumnType.TEMPORAL),
-            ("TIMESTAMP", DbColumnType.TEMPORAL),
-            ("TIME", DbColumnType.TEMPORAL),
+            ("DATE", GenericDataType.TEMPORAL),
+            ("DATETIME", GenericDataType.TEMPORAL),
+            ("TIMESTAMP", GenericDataType.TEMPORAL),
+            ("TIME", GenericDataType.TEMPORAL),
         )
 
         for type_expectation in type_expectations:
             type_str = type_expectation[0]
             col_type = type_expectation[1]
             assert MySQLEngineSpec.is_db_column_type_match(
-                type_str, DbColumnType.NUMERIC
-            ) is (col_type == DbColumnType.NUMERIC)
+                type_str, GenericDataType.NUMERIC
+            ) is (col_type == GenericDataType.NUMERIC)
             assert MySQLEngineSpec.is_db_column_type_match(
-                type_str, DbColumnType.STRING
-            ) is (col_type == DbColumnType.STRING)
+                type_str, GenericDataType.STRING
+            ) is (col_type == GenericDataType.STRING)
             assert MySQLEngineSpec.is_db_column_type_match(
-                type_str, DbColumnType.TEMPORAL
-            ) is (col_type == DbColumnType.TEMPORAL)
+                type_str, GenericDataType.TEMPORAL
+            ) is (col_type == GenericDataType.TEMPORAL)
 
     def test_extract_error_message(self):
         from MySQLdb._exceptions import OperationalError

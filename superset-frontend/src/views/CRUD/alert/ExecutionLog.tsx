@@ -105,7 +105,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
             original: { start_dttm: startDttm },
           },
         }: any) => moment(new Date(startDttm)).format('MM/DD/YYYY hh:mm:ss a'),
-        Header: t('Start At'),
+        Header: t('Start at'),
         accessor: 'start_dttm',
       },
       {
@@ -124,7 +124,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
       },
       {
         accessor: 'error_message',
-        Header: t('Error Message'),
+        Header: t('Error message'),
       },
     ],
     [isReportEnabled],

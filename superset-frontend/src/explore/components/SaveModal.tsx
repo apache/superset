@@ -167,7 +167,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       <StyledModal
         show
         onHide={this.props.onHide}
-        title={t('Save Chart')}
+        title={t('Save chart')}
         footer={
           <div data-test="save-modal-footer">
             <Button id="btn_cancel" buttonSize="sm" onClick={this.props.onHide}>

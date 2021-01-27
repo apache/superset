@@ -21,7 +21,6 @@ import { DASHBOARD_LIST } from './dashboard_list.helper';
 describe('Dashboard card view', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.visit(DASHBOARD_LIST);
     cy.get('[data-test="card-view"]').click();
   });

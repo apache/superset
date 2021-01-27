@@ -21,7 +21,6 @@ import { TABBED_DASHBOARD } from './dashboard.helper';
 describe('Nativefilters', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.visit(TABBED_DASHBOARD);
   });
   it('should show filter bar and allow user to create filters ', () => {
