@@ -304,7 +304,11 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     }
 
     const operatorSelectProps = {
-      placeholder: t('%s operators(s)', OPERATORS_OPTIONS.length),
+      placeholder: t(
+        '%s operator(s)',
+        OPERATORS_OPTIONS.filter(op => this.isOperatorRelevant(op, subject))
+          .length,
+      ),
       // like AGGREGTES_OPTIONS, operator options are string
       value: operator,
       onChange: this.onOperatorChange,
