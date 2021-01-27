@@ -38,8 +38,7 @@ from tests.test_app import app
 def load_world_bank_datasource():
     with app.app_context():
         _load_datasource()
-    yield
-    with app.app_context():
+        yield
         _clean_datasource()
 
 
