@@ -225,7 +225,7 @@ class ApiOwnersTestCaseMixin:
         API: Test get filter related owners
         """
         self.login(username="admin")
-        argument = {"filter": "gamma_sqllab", "ids": [2]}
+        argument = {"filter": "gamma_sqllab", "include_ids": [2]}
         uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
 
         rv = self.client.get(uri)
@@ -244,7 +244,7 @@ class ApiOwnersTestCaseMixin:
         API: Test get filter related owners
         """
         self.login(username="admin")
-        argument = {"filter": "gamma_sqllab", "ids": [2, 4]}
+        argument = {"filter": "gamma_sqllab", "include_ids": [2, 4]}
         uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
 
         rv = self.client.get(uri)

@@ -46,7 +46,7 @@ get_related_schema = {
     "properties": {
         "page_size": {"type": "integer"},
         "page": {"type": "integer"},
-        "ids": {"type": "array", "items": {"type": "integer"}},
+        "include_ids": {"type": "array", "items": {"type": "integer"}},
         "filter": {"type": "string"},
     },
 }
@@ -491,7 +491,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         result = self._get_result_from_rows(datamodel, rows, column_name)
 
         # If ids are specified make sure we fetch and include them on the response
-        ids = args.get("ids")
+        ids = args.get("include_ids")
         self._add_extra_ids_to_result(datamodel, column_name, ids, result)
 
         return self.response(200, count=len(result), result=result)
