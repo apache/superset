@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from time import sleep
+
 import pytest
 
 from superset import db
@@ -120,6 +122,8 @@ class TestQueryContext(SupersetTestCase):
             datasource_id=payload["datasource"]["id"],
             session=db.session,
         )
+        # if create and update are performed in the same second keys are the same
+        sleep(1)
         description_original = datasource.description
         datasource.description = "temporary description"
         db.session.commit()
