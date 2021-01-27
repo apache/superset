@@ -46,6 +46,7 @@ get_related_schema = {
     "properties": {
         "page_size": {"type": "integer"},
         "page": {"type": "integer"},
+        "include_ids": {"type": "array", "items": {"type": "integer"}},
         "filter": {"type": "string"},
     },
 }
@@ -213,7 +214,10 @@ class BaseSupersetModelRestApi(ModelRestApi):
         super().__init__()
 
     def add_apispec_components(self, api_spec: APISpec) -> None:
-
+        """
+        Adds extra OpenApi schema spec components, these are declared
+        on the `openapi_spec_component_schemas` class property
+        """
         for schema in self.openapi_spec_component_schemas:
             try:
                 api_spec.components.schema(
@@ -270,6 +274,40 @@ class BaseSupersetModelRestApi(ModelRestApi):
                 filter_field.field_name, filter_field.filter_class, value
             )
         return filters
+
+    def _get_text_for_model(self, model: Model, column_name: str) -> str:
+        if column_name in self.text_field_rel_fields:
+            model_column_name = self.text_field_rel_fields.get(column_name)
+            if model_column_name:
+                return getattr(model, model_column_name)
+        return str(model)
+
+    def _get_result_from_rows(
+        self, datamodel: SQLAInterface, rows: List[Model], column_name: str
+    ) -> List[Dict[str, Any]]:
+        return [
+            {
+                "value": datamodel.get_pk_value(row),
+                "text": self._get_text_for_model(row, column_name),
+            }
+            for row in rows
+        ]
+
+    def _add_extra_ids_to_result(
+        self,
+        datamodel: SQLAInterface,
+        column_name: str,
+        ids: List[int],
+        result: List[Dict[str, Any]],
+    ) -> None:
+        if ids:
+            # Filter out already present values on the result
+            values = [row["value"] for row in result]
+            ids = [id_ for id_ in ids if id_ not in values]
+            pk_col = datamodel.get_pk()
+            # Fetch requested values from ids
+            extra_rows = db.session.query(datamodel.obj).filter(pk_col.in_(ids)).all()
+            result += self._get_result_from_rows(datamodel, extra_rows, column_name)
 
     def incr_stats(self, action: str, func_name: str) -> None:
         """
@@ -424,18 +462,11 @@ class BaseSupersetModelRestApi(ModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-
-        def get_text_for_model(model: Model) -> str:
-            if column_name in self.text_field_rel_fields:
-                model_column_name = self.text_field_rel_fields.get(column_name)
-                if model_column_name:
-                    return getattr(model, model_column_name)
-            return str(model)
-
         if column_name not in self.allowed_rel_fields:
             self.incr_stats("error", self.related.__name__)
             return self.response_404()
         args = kwargs.get("rison", {})
+
         # handle pagination
         page, page_size = self._handle_page_args(args)
         try:
@@ -452,15 +483,18 @@ class BaseSupersetModelRestApi(ModelRestApi):
         # handle filters
         filters = self._get_related_filter(datamodel, column_name, args.get("filter"))
         # Make the query
-        count, values = datamodel.query(
+        _, rows = datamodel.query(
             filters, order_column, order_direction, page=page, page_size=page_size
         )
+
         # produce response
-        result = [
-            {"value": datamodel.get_pk_value(value), "text": get_text_for_model(value)}
-            for value in values
-        ]
-        return self.response(200, count=count, result=result)
+        result = self._get_result_from_rows(datamodel, rows, column_name)
+
+        # If ids are specified make sure we fetch and include them on the response
+        ids = args.get("include_ids")
+        self._add_extra_ids_to_result(datamodel, column_name, ids, result)
+
+        return self.response(200, count=len(result), result=result)
 
     @expose("/distinct/<column_name>", methods=["GET"])
     @protect()
