@@ -110,7 +110,10 @@ openapi_spec_methods_override = {
         }
     },
     "related": {
-        "get": {"description": "Get a list of all possible owners for a chart."}
+        "get": {
+            "description": "Get a list of all possible owners for a chart. "
+            "Use `owners` has the `column_name` parameter"
+        }
     },
 }
 
