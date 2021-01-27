@@ -24,11 +24,9 @@ import {
   MetricOption,
   ControlConfig,
   DatasourceMeta,
-  Metric,
-  ColumnMeta,
 } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
-import { matchSorter } from 'match-sorter';
+import { matchSorter, rankings } from 'match-sorter';
 import { ExploreActions } from '../actions/exploreActions';
 import Control from './Control';
 
@@ -111,41 +109,57 @@ export default function DataSourcePanel({
     metrics,
   });
 
-  function searchByRelevance(
-    datasource: Array<ColumnMeta | Metric>,
-    value: string,
-    isMetrics = false,
-  ) {
-    const properties = [
-      'verbose_name',
-      isMetrics ? 'metric_name' : 'column_name',
-      'description',
-      'expression',
-    ];
-    // eslint-disable-next-line @typescript-eslint/no-array-constructor
-    let result = new Array();
-    result = properties.map(property =>
-      matchSorter(datasource, value, {
-        keys: [property],
-        keepDiacritics: true,
-        ...(isMetrics && {
-          baseSort: (a, b) =>
-            Number(b.item.is_certified) - Number(a.item.is_certified) ||
-            String(a.rankedValue).localeCompare(b.rankedValue),
-        }),
-      }),
-    );
-    return [...new Set(result.flat())];
-  }
-
   const search = debounce((value: string) => {
     if (value === '') {
       setList({ columns, metrics });
       return;
     }
     setList({
-      columns: searchByRelevance(columns, value),
-      metrics: searchByRelevance(metrics, value, true),
+      columns: matchSorter(columns, value, {
+        keys: [
+          {
+            key: 'verbose_name',
+            minRanking: rankings.ACRONYM,
+          },
+          {
+            key: 'column_name',
+            minRanking: rankings.EQUAL,
+          },
+          {
+            key: 'description',
+            threshold: rankings.CONTAINS,
+          },
+          {
+            key: 'expression',
+            threshold: rankings.CONTAINS,
+          },
+        ],
+        keepDiacritics: true,
+      }),
+      metrics: matchSorter(metrics, value, {
+        keys: [
+          {
+            key: 'verbose_name',
+            minRanking: rankings.ACRONYM,
+          },
+          {
+            key: 'metric_name',
+            minRanking: rankings.EQUAL,
+          },
+          {
+            key: 'description',
+            threshold: rankings.CONTAINS,
+          },
+          {
+            key: 'expression',
+            threshold: rankings.CONTAINS,
+          },
+        ],
+        keepDiacritics: true,
+        baseSort: (a, b) =>
+          Number(b.item.is_certified) - Number(a.item.is_certified) ||
+          String(a.rankedValue).localeCompare(b.rankedValue),
+      }),
     });
   }, 200);
 
