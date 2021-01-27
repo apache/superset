@@ -127,6 +127,7 @@ from superset.views.utils import (
     bootstrap_user_data,
     check_datasource_perms,
     check_explore_cache_perms,
+    check_resource_permissions,
     check_slice_perms,
     get_cta_schema_name,
     get_dashboard_extra_filters,
@@ -458,7 +459,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @expose("/slice_json/<int:slice_id>")
-    @etag_cache(check_perms=check_slice_perms)
+    @etag_cache()
+    @check_resource_permissions(check_slice_perms)
     def slice_json(self, slice_id: int) -> FlaskResponse:
         form_data, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
@@ -510,7 +512,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @handle_api_exception
     @permission_name("explore_json")
     @expose("/explore_json/data/<cache_key>", methods=["GET"])
-    @etag_cache(check_perms=check_explore_cache_perms)
+    @check_resource_permissions(check_explore_cache_perms)
     def explore_json_data(self, cache_key: str) -> FlaskResponse:
         """Serves cached result data for async explore_json calls
 
@@ -554,7 +556,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         methods=EXPLORE_JSON_METHODS,
     )
     @expose("/explore_json/", methods=EXPLORE_JSON_METHODS)
-    @etag_cache(check_perms=check_datasource_perms)
+    @etag_cache()
+    @check_resource_permissions(check_datasource_perms)
     def explore_json(
         self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
     ) -> FlaskResponse:
