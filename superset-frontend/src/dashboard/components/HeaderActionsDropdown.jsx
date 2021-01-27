@@ -33,6 +33,7 @@ import URLShortLinkModal from '../../components/URLShortLinkModal';
 import FilterScopeModal from './filterscope/FilterScopeModal';
 import downloadAsImage from '../../utils/downloadAsImage';
 import getDashboardUrl from '../util/getDashboardUrl';
+import getLocationHash from '../util/getLocationHash';
 import { getActiveFilters } from '../util/activeDashboardFilters';
 
 const propTypes = {
@@ -168,7 +169,7 @@ class HeaderActionsDropdown extends React.PureComponent {
         const url = getDashboardUrl(
           window.location.pathname,
           getActiveFilters(),
-          window.location.hash,
+          getLocationHash(),
           !hasStandalone,
         );
         window.location.replace(url);
@@ -241,7 +242,7 @@ class HeaderActionsDropdown extends React.PureComponent {
             url={getDashboardUrl(
               window.location.pathname,
               getActiveFilters(),
-              window.location.hash,
+              getLocationHash(),
             )}
             emailSubject={emailSubject}
             emailContent={emailBody}
