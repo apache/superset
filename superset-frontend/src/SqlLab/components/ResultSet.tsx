@@ -17,7 +17,8 @@
  * under the License.
  */
 import React, { CSSProperties } from 'react';
-import { Alert, ButtonGroup } from 'react-bootstrap';
+import { Alert } from 'react-bootstrap';
+import ButtonGroup from 'src/components/ButtonGroup';
 import ProgressBar from 'src/common/components/ProgressBar';
 import moment from 'moment';
 import { RadioChangeEvent } from 'antd/lib/radio';
@@ -580,7 +581,7 @@ export default class ResultSet extends React.PureComponent<
       if (query.isDataPreview) {
         return (
           <Button
-            buttonSize="sm"
+            buttonSize="small"
             className="fetch"
             buttonStyle="primary"
             onClick={() =>
@@ -597,7 +598,7 @@ export default class ResultSet extends React.PureComponent<
       if (query.resultsKey) {
         return (
           <Button
-            buttonSize="sm"
+            buttonSize="small"
             className="fetch"
             buttonStyle="primary"
             onClick={() => this.fetchResults(query)}

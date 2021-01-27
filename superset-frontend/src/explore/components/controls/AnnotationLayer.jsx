@@ -745,17 +745,17 @@ export default class AnnotationLayer extends React.PureComponent {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           {isNew ? (
-            <Button buttonSize="sm" onClick={() => this.props.close()}>
+            <Button buttonSize="small" onClick={() => this.props.close()}>
               {t('Cancel')}
             </Button>
           ) : (
-            <Button buttonSize="sm" onClick={this.deleteAnnotation}>
+            <Button buttonSize="small" onClick={this.deleteAnnotation}>
               {t('Remove')}
             </Button>
           )}
           <div>
             <Button
-              buttonSize="sm"
+              buttonSize="small"
               disabled={!isValid}
               onClick={this.applyAnnotation}
             >
@@ -763,7 +763,7 @@ export default class AnnotationLayer extends React.PureComponent {
             </Button>
 
             <Button
-              buttonSize="sm"
+              buttonSize="small"
               buttonStyle="primary"
               disabled={!isValid}
               onClick={this.submitAnnotation}
