@@ -47,7 +47,9 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
     def test_get_dashboards_list__owner_get_all_owned_dashboards(self):
         # arrange
-        owner = self.get_user(USER_WITHOUT_DASHBOARDS_ACCESS_PERMISSIONS)
+        username = random_str()
+        new_role = f"role_{random_str()}"
+        owner = self.create_user_with_roles(username, [new_role])
         database = create_database_to_db()
         table = create_datasource_table_to_db(db_id=database.id, owners=[owner])
         first_dash = create_dashboard_to_db(
@@ -63,7 +65,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
             )
         ]
 
-        self.login(USER_WITHOUT_DASHBOARDS_ACCESS_PERMISSIONS)
+        self.login(username)
 
         # act
         response = self.get_dashboards_list_response()
