@@ -206,8 +206,11 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         )
 
     def test_get_dashboards_api__user_without_any_permissions_get_empty_list(self):
+        username = random_str()
+        new_role = f"role_{random_str()}"
+        self.create_user_with_roles(username, [new_role])
         create_dashboard_to_db(published=True)
-        self.login(USER_WITHOUT_DASHBOARDS_ACCESS_PERMISSIONS)
+        self.login(username)
 
         # act
         response = self.get_dashboards_api_response()
@@ -218,7 +221,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
     def test_get_dashboards_api__user_get_only_published_permitted_dashboards(self):
         username = random_str()
         new_role = f"role_{random_str()}"
-        owner = self.create_user_with_roles(username, [new_role])
+        self.create_user_with_roles(username, [new_role])
         # arrange
         published_dashboards = [
             create_dashboard_to_db(published=True),
