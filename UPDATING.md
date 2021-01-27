@@ -22,6 +22,10 @@ under the License.
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
+## Next
+# Breaking Changes
+# Deprecated Changes
+
 ## 1.0.0
 
 - [11509](https://github.com/apache/superset/pull/12491): Dataset metadata updates check user ownership, only owners or an Admin are allowed.
