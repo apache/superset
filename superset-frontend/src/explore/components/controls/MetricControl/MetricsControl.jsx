@@ -140,6 +140,7 @@ class MetricsControl extends React.PureComponent {
         onMetricEdit={this.onMetricEdit}
         onRemoveMetric={() => this.onRemoveMetric(index)}
         columns={this.props.columns}
+        datasource={this.props.datasource}
         savedMetrics={this.props.savedMetrics}
         savedMetricsOptions={getOptionsForSavedMetrics(
           this.props.savedMetrics,
@@ -277,6 +278,7 @@ class MetricsControl extends React.PureComponent {
     if (this.isAddNewMetricDisabled()) {
       return trigger;
     }
+    console.log('addNewMtetricPopoverTrigger', this.props)
     return (
       <AdhocMetricPopoverTrigger
         adhocMetric={new AdhocMetric({ isNew: true })}
@@ -286,6 +288,7 @@ class MetricsControl extends React.PureComponent {
           this.props.savedMetrics,
           this.props.value,
         )}
+        datasource={this.props.datasource}
         savedMetric={{}}
         datasourceType={this.props.datasourceType}
         createNew
@@ -369,7 +372,7 @@ class MetricsControl extends React.PureComponent {
 
   render() {
     const { theme } = this.props;
-
+    console.log('metrics control props', this.props)
     return (
       <div className="metrics-select">
         <HeaderContainer>

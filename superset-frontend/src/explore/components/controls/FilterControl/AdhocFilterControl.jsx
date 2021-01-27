@@ -155,6 +155,10 @@ class AdhocFilterControl extends React.Component {
         ),
       });
     }
+
+    if (this.props.datasource !== nextProps.datasource) {
+      this.setState({ values: [] });
+    }
   }
 
   onRemoveFilter(index) {

@@ -103,6 +103,16 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     document.addEventListener('mouseup', this.onMouseUp);
   }
 
+  /*static getDerivedStateFromProps(nextProps, prevState) {
+    console.log('nextProps', nextProps);
+    console.log('datsource', prevState);
+    if (nextProps.datasource !== prevState.datasourceName) {
+      return {
+        datasourceName: nextProps.datasource,
+      };
+    }
+  }*/
+
   componentDidMount() {
     this.props.getCurrentTab(this.defaultActiveTabKey);
   }
@@ -130,6 +140,12 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     document.removeEventListener('mousemove', this.onMouseMove);
   }
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.datasource !== this.props.datasource) {
+      this.props.onChange(null);
+    }
+  }
+
   onSave() {
     const { adhocMetric, savedMetric } = this.state;
 
@@ -137,6 +153,11 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     const oldMetric = this.props.savedMetric?.metric_name
       ? this.props.savedMetric
       : this.props.adhocMetric;
+    console.log('adhoc', {
+      metric,
+      label,
+      hasCustomLabel,
+    });
     this.props.onChange(
       {
         ...metric,
@@ -272,7 +293,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       datasourceType,
       ...popoverProps
     } = this.props;
-
+    console.log('this.props for adhoc', this.props);
     const { adhocMetric, savedMetric } = this.state;
     const keywords = sqlKeywords.concat(
       columns.map(column => ({
