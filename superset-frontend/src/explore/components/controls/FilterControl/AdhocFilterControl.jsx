@@ -96,6 +96,7 @@ class AdhocFilterControl extends React.Component {
         onRemoveFilter={() => this.onRemoveFilter(index)}
         onMoveLabel={this.moveLabel}
         onDropLabel={() => this.props.onChange(this.state.values)}
+        partitionColumn={this.state.partitionColumn}
       />
     );
     this.state = {
@@ -130,17 +131,6 @@ class AdhocFilterControl extends React.Component {
                 Object.keys(partitions.cols).length === 1
               ) {
                 this.setState({ partitionColumn: partitions.cols[0] });
-                this.valueRenderer = (adhocFilter, index) => (
-                  <AdhocFilterOption
-                    adhocFilter={adhocFilter}
-                    onFilterEdit={this.onFilterEdit}
-                    options={this.state.options}
-                    datasource={this.props.datasource}
-                    partitionColumn={this.state.partitionColumn}
-                    onRemoveFilter={() => this.onRemoveFilter(index)}
-                    key={index}
-                  />
-                );
               }
             }
           })
