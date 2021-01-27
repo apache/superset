@@ -1731,7 +1731,7 @@
       "To filter on a metric, use Custom SQL tab.": [
         "若要在计量值上筛选，请使用自定义SQL选项卡。"
       ],
-      "%s operators(s)": ["%s 运算符"],
+      "%s operator(s)": ["%s 运算符"],
       "Type a value here": ["在这里键入一个值"],
       "Filter value (case sensitive)": [""],
       "choose WHERE or HAVING...": ["选择WHERE或HAVING子句..."],

@@ -1839,7 +1839,7 @@
       "%s column(s) and metric(s)": [""],
       "%s column(s)": ["Список столбцов"],
       "To filter on a metric, use Custom SQL tab.": [""],
-      "%s operators(s)": ["%s параметр(ы)"],
+      "%s operator(s)": ["%s параметр(ы)"],
       "Type a value here": [""],
       "Filter value (case sensitive)": [""],
       "choose WHERE or HAVING...": [""],

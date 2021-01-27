@@ -6134,7 +6134,7 @@ msgstr "若要在计量值上筛选，请使用自定义SQL选项卡。"
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:307
 #, python-format
-msgid "%s operators(s)"
+msgid "%s operator(s)"
 msgstr "%s 运算符"
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:326
