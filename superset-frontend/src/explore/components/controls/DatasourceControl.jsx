@@ -89,6 +89,7 @@ const Styles = styled.div`
   }
   .dataset-svg {
     margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
+    flex: none;
   }
 `;
 
