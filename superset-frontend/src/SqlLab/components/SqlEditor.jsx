@@ -43,6 +43,7 @@ import {
   Input,
 } from 'src/common/components';
 import Icon from 'src/components/Icon';
+import { detectOS } from 'src/utils/common';
 import {
   addQueryEditor,
   CtasEnum,
@@ -77,7 +78,6 @@ import {
 } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
-import { detectOS } from 'src/utils/common';
 
 const LIMIT_DROPDOWN = [10, 100, 1000, 10000, 100000];
 const SQL_EDITOR_PADDING = 10;
@@ -280,7 +280,7 @@ class SqlEditor extends React.PureComponent {
 
   getHotkeyConfig() {
     // Get the user's OS
-    let userOS = detectOS();
+    const userOS = detectOS();
     return [
       {
         name: 'runQuery1',

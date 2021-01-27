@@ -29,10 +29,10 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import { areArraysShallowEqual } from 'src/reduxUtils';
 import { Tooltip } from 'src/common/components/Tooltip';
+import { detectOS } from 'src/utils/common';
 import * as Actions from '../actions/sqlLab';
 import SqlEditor from './SqlEditor';
 import TabStatusIcon from './TabStatusIcon';
-import { detectOS } from 'src/utils/common';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -415,7 +415,13 @@ class TabbedSqlEditors extends React.PureComponent {
         hideAdd={this.props.offline}
         onEdit={this.handleEdit}
         addIcon={
-          <Tooltip id="add-tab" placement="bottom" title={userOS === 'Windows' ? "New tab (Ctrl + q)" : "New tab (Ctrl + t)"}>
+          <Tooltip
+            id="add-tab"
+            placement="bottom"
+            title={
+              userOS === 'Windows' ? "New tab (Ctrl + q)" : "New tab (Ctrl + t)"
+              }
+            >
             <i data-test="add-tab-icon" className="fa fa-plus-circle" />
           </Tooltip>
         }

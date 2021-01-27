@@ -21,7 +21,6 @@ import {
   optionFromValue,
   prepareCopyToClipboardTabularData,
   NULL_STRING,
-  detectOS,
 } from 'src/utils/common';
 
 describe('utils/common', () => {
@@ -87,38 +86,42 @@ describe('utils/common', () => {
       expect(applyFormattingToTabularData(originalData)).toEqual(expectedData);
     });
   });
-  describe.only('detectOS', () => {
-    it('detects Windows as the OS when appVersion includes "Win"', () => {
-      let OSName = jest.fn();
-      OSName.mockReturnValue("Windows")
-      let appVersion = jest.fn();
-      appVersion.mockReturnValue("Win");
+  describe('detectOS', () => {
+    it('detects Windows as the OS when appVersion includes Win', () => {
+      const OSName = jest.fn();
+      OSName.mockReturnValue('Windows')
+      const appVersion = jest.fn();
+      appVersion.mockReturnValue('Win');
 
-      if (appVersion().includes("Win")) expect(OSName()).toEqual("Windows");
+      expect(appVersion()).toIncludeText('Win');
+      expect(OSName()).toEqual('Windows');
     });
-    it('detects MacOS as the OS when appVersion includes "Mac"', () => {
-      let OSName = jest.fn();
-      OSName.mockReturnValue("MacOS")
-      let appVersion = jest.fn();
-      appVersion.mockReturnValue("Mac");
+    it('detects MacOS as the OS when appVersion includes Mac', () => {
+      const OSName = jest.fn();
+      OSName.mockReturnValue('MacOS')
+      const appVersion = jest.fn();
+      appVersion.mockReturnValue('Mac');
 
-      if (appVersion().includes("Mac")) expect(OSName()).toEqual("MacOS");
+      expect(appVersion()).toIncludeText('Mac');
+      expect(OSName()).toEqual('MacOS');
     });
-    it('detects UNIX as the OS when appVersion includes "X11"', () => {
-      let OSName = jest.fn();
-      OSName.mockReturnValue("UNIX")
-      let appVersion = jest.fn();
-      appVersion.mockReturnValue("X11");
+    it('detects UNIX as the OS when appVersion includes X11', () => {
+      const OSName = jest.fn();
+      OSName.mockReturnValue('UNIX')
+      const appVersion = jest.fn();
+      appVersion.mockReturnValue('X11');
 
-      if (appVersion().includes("X11")) expect(OSName()).toEqual("UNIX");
+      expect(appVersion()).toIncludeText('X11');
+      expect(OSName()).toEqual('UNIX');
     });
-    it('detects Linux as the OS when appVersion includes "Linux"', () => {
-      let OSName = jest.fn();
-      OSName.mockReturnValue("Linux")
-      let appVersion = jest.fn();
-      appVersion.mockReturnValue("Linux");
+    it('detects Linux as the OS when appVersion includes Linux', () => {
+      const OSName = jest.fn();
+      OSName.mockReturnValue('Linux')
+      const appVersion = jest.fn();
+      appVersion.mockReturnValue('Linux');
 
-      if (appVersion().includes("Linux")) expect(OSName()).toEqual("Linux");
+      expect(appVersion()).toIncludeText('Linux');
+      expect(OSName()).toEqual('Linux');
     });
   });
 });
