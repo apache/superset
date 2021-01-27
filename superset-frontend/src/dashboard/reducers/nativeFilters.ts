@@ -39,7 +39,7 @@ export function getInitialFilterState(
   };
 }
 
-function getInitialExtraFormData(filter: Filter) {
+function getInitialExtraFormData(filter: Filter, prevState?: FilterState) {
   if (filter?.defaultValue) {
     const [target] = filter.targets;
     return getSelectExtraFormData(
@@ -48,6 +48,9 @@ function getInitialExtraFormData(filter: Filter) {
       false,
       filter.inverseSelection,
     );
+  }
+  if (prevState?.extraFormData) {
+    return prevState.extraFormData;
   }
   return {};
 }
@@ -62,9 +65,10 @@ export function getInitialState(
   filterConfig.forEach(filter => {
     const { id } = filter;
     filters[id] = filter;
-    filtersState[id] =
-      prevFiltersState?.[id] ||
-      getInitialFilterState(id, getInitialExtraFormData(filter));
+    filtersState[id] = getInitialFilterState(
+      id,
+      getInitialExtraFormData(filter, prevFiltersState?.[id]),
+    );
   });
   return state;
 }

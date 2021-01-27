@@ -57,13 +57,13 @@ export function DefaultValueSelect({
   }, [form, filterId]);
 
   useChangeEffect(datasetId, previous => {
-    if (previous != null) {
+    if (previous !== undefined) {
       resetFieldValue();
     }
   });
 
   useChangeEffect(column, previous => {
-    if (previous != null) {
+    if (previous !== undefined) {
       resetFieldValue();
     }
   });
