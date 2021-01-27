@@ -129,12 +129,14 @@ class SupersetTestCase(TestCase):
         example_db = get_example_database()
         return (
             db.session.query(SqlaTable)
-                .filter_by(database=example_db, table_name="birth_names")
-                .one()
+            .filter_by(database=example_db, table_name="birth_names")
+            .one()
         )
 
     @staticmethod
-    def create_user_with_roles(username: str, roles: List[str]):
+    def create_user_with_roles(
+        username: str, roles: List[str], copy_roles: bool = False
+    ):
         user_to_create = security_manager.find_user(username)
         if not user_to_create:
             security_manager.add_user(
@@ -150,9 +152,8 @@ class SupersetTestCase(TestCase):
             assert user_to_create
         user_to_create.roles = []
         for chosen_user_role in roles:
-            copy_from_role = 'Gamma'
-            if chosen_user_role != copy_from_role:
-                security_manager.copy_role(copy_from_role, chosen_user_role, False)
+            if copy_roles:
+                security_manager.copy_role("Gamma", chosen_user_role, False)
             user_to_create.roles.append(security_manager.find_role(chosen_user_role))
         db.session.commit()
         return user_to_create
@@ -175,8 +176,8 @@ class SupersetTestCase(TestCase):
     def get_user(username: str) -> ab_models.User:
         user = (
             db.session.query(security_manager.user_model)
-                .filter_by(username=username)
-                .one_or_none()
+            .filter_by(username=username)
+            .one_or_none()
         )
         return user
 
@@ -282,12 +283,12 @@ class SupersetTestCase(TestCase):
         DAR = DatasourceAccessRequest
         return (
             db.session.query(DAR)
-                .filter(
+            .filter(
                 DAR.created_by == security_manager.find_user(username=username),
                 DAR.datasource_type == ds_type,
                 DAR.datasource_id == ds_id,
             )
-                .first()
+            .first()
         )
 
     def logout(self):
@@ -404,8 +405,8 @@ class SupersetTestCase(TestCase):
     def delete_fake_db(self):
         database = (
             db.session.query(Database)
-                .filter(Database.database_name == FAKE_DB_NAME)
-                .scalar()
+            .filter(Database.database_name == FAKE_DB_NAME)
+            .scalar()
         )
         if database:
             db.session.delete(database)
@@ -425,8 +426,8 @@ class SupersetTestCase(TestCase):
     def delete_fake_db_for_macros(self):
         database = (
             db.session.query(Database)
-                .filter(Database.database_name == "db_for_macros_testing")
-                .scalar()
+            .filter(Database.database_name == "db_for_macros_testing")
+            .scalar()
         )
         if database:
             db.session.delete(database)
