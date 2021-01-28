@@ -36,6 +36,7 @@ Join our growing community!
 ### Financial Services
 - [Aktia Bank plc](https://www.aktia.com) [@villebro]
 - [American Express](https://www.americanexpress.com) [@TheLastSultan]
+- [Cape Crypto](https://capecrypto.com)
 - [Capital Service S.A.](http://capitalservice.pl) [@pkonarzewski]
 - [Clark.de](http://clark.de/)
 - [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
