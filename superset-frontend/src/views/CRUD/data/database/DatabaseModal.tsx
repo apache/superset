@@ -467,87 +467,89 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   tooltip={t('Allow this database to be queried in SQL Lab')}
                 />
               </div>
+              <StyledInputContainer>
+                <div className="input-container">
+                  <IndeterminateCheckbox
+                    id="allow_ctas"
+                    indeterminate={false}
+                    checked={db ? !!db.allow_ctas : false}
+                    onChange={onInputChange}
+                  />
+                  <div>{t('Allow CREATE TABLE AS')}</div>
+                  <InfoTooltip
+                    tooltip={t('Allow creation of new tables based on queries')}
+                  />
+                </div>
+                <StyledInputContainer>
+                  <div className="control-label">{t('CTAS schema')}</div>
+                  <div className="input-container">
+                    <input
+                      type="text"
+                      name="force_ctas_schema"
+                      value={db ? db.force_ctas_schema || '' : ''}
+                      placeholder={t('CTAS schema')}
+                      onChange={onInputChange}
+                    />
+                  </div>
+                  <div className="helper">
+                    {t(
+                      'When allowing CREATE TABLE AS option in SQL Lab, this option ' +
+                        'forces the table to be created in this schema.',
+                    )}
+                  </div>
+                </StyledInputContainer>
+              </StyledInputContainer>
+              <StyledInputContainer>
+                <div className="input-container">
+                  <IndeterminateCheckbox
+                    id="allow_cvas"
+                    indeterminate={false}
+                    checked={db ? !!db.allow_cvas : false}
+                    onChange={onInputChange}
+                  />
+                  <div>{t('Allow CREATE VIEW AS')}</div>
+                  <InfoTooltip
+                    tooltip={t('Allow creation of new views based on queries')}
+                  />
+                </div>
+              </StyledInputContainer>
+              <StyledInputContainer>
+                <div className="input-container">
+                  <IndeterminateCheckbox
+                    id="allow_dml"
+                    indeterminate={false}
+                    checked={db ? !!db.allow_dml : false}
+                    onChange={onInputChange}
+                  />
+                  <div>{t('Allow DML')}</div>
+                  <InfoTooltip
+                    tooltip={t(
+                      'Allow manipulation of the database using non-SELECT statements such as UPDATE, DELETE, CREATE, etc.',
+                    )}
+                  />
+                </div>
+              </StyledInputContainer>
+              <StyledInputContainer>
+                <div className="input-container">
+                  <IndeterminateCheckbox
+                    id="allow_multi_schema_metadata_fetch"
+                    indeterminate={false}
+                    checked={
+                      db ? !!db.allow_multi_schema_metadata_fetch : false
+                    }
+                    onChange={onInputChange}
+                  />
+                  <div>{t('Allow multi schema metadata fetch')}</div>
+                  <InfoTooltip
+                    tooltip={t(
+                      'Allow SQL Lab to fetch a list of all tables and all views across all database ' +
+                        'schemas. For large data warehouse with thousands of tables, this can be ' +
+                        'expensive and put strain on the system.',
+                    )}
+                  />
+                </div>
+              </StyledInputContainer>
             </StyledInputContainer>
-            <StyledInputContainer>
-              <div className="input-container">
-                <IndeterminateCheckbox
-                  id="allow_ctas"
-                  indeterminate={false}
-                  checked={db ? !!db.allow_ctas : false}
-                  onChange={onInputChange}
-                />
-                <div>{t('Allow CREATE TABLE AS')}</div>
-                <InfoTooltip
-                  tooltip={t('Allow creation of new tables based on queries')}
-                />
-              </div>
-            </StyledInputContainer>
-            <StyledInputContainer>
-              <div className="input-container">
-                <IndeterminateCheckbox
-                  id="allow_cvas"
-                  indeterminate={false}
-                  checked={db ? !!db.allow_cvas : false}
-                  onChange={onInputChange}
-                />
-                <div>{t('Allow CREATE VIEW AS')}</div>
-                <InfoTooltip
-                  tooltip={t('Allow creation of new views based on queries')}
-                />
-              </div>
-            </StyledInputContainer>
-            <StyledInputContainer>
-              <div className="input-container">
-                <IndeterminateCheckbox
-                  id="allow_dml"
-                  indeterminate={false}
-                  checked={db ? !!db.allow_dml : false}
-                  onChange={onInputChange}
-                />
-                <div>{t('Allow DML')}</div>
-                <InfoTooltip
-                  tooltip={t(
-                    'Allow manipulation of the database using non-SELECT statements such as UPDATE, DELETE, CREATE, etc.',
-                  )}
-                />
-              </div>
-            </StyledInputContainer>
-            <StyledInputContainer>
-              <div className="input-container">
-                <IndeterminateCheckbox
-                  id="allow_multi_schema_metadata_fetch"
-                  indeterminate={false}
-                  checked={db ? !!db.allow_multi_schema_metadata_fetch : false}
-                  onChange={onInputChange}
-                />
-                <div>{t('Allow multi schema metadata fetch')}</div>
-                <InfoTooltip
-                  tooltip={t(
-                    'Allow SQL Lab to fetch a list of all tables and all views across all database ' +
-                      'schemas. For large data warehouse with thousands of tables, this can be ' +
-                      'expensive and put strain on the system.',
-                  )}
-                />
-              </div>
-            </StyledInputContainer>
-          </StyledInputContainer>
-          <StyledInputContainer>
-            <div className="control-label">{t('CTAS schema')}</div>
-            <div className="input-container">
-              <input
-                type="text"
-                name="force_ctas_schema"
-                value={db ? db.force_ctas_schema || '' : ''}
-                placeholder={t('CTAS schema')}
-                onChange={onInputChange}
-              />
-            </div>
-            <div className="helper">
-              {t(
-                'When allowing CREATE TABLE AS option in SQL Lab, this option ' +
-                  'forces the table to be created in this schema.',
-              )}
-            </div>
           </StyledInputContainer>
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('Security')}</span>} key="4">
