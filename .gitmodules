@@ -30,6 +30,3 @@
 [submodule ".github/actions/comment-on-pr"]
 	path = .github/actions/comment-on-pr
 	url = https://github.com/unsplash/comment-on-pr
-[submodule ".github/actions/cancel-workflow-runs"]
-	path = .github/actions/cancel-workflow-runs
-	url = https://github.com/potiuk/cancel-workflow-runs

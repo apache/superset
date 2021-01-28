@@ -29,15 +29,12 @@ jobs:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         if: steps.check_queued.outputs.count >= 20
         uses: actions/checkout@v2
-        with:
-          persist-credentials: false
-          submodules: recursive
 
       - name: Cancel duplicate workflow runs
         if: steps.check_queued.outputs.count >= 20
-        uses: ./.github/actions/cancel-workflow-runs
-        with:
-          cancelMode: allDuplicates
-          sourceRunId: ${{ github.event.workflow_run.id }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          notifyPRCancel: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          pip install click requests typing_extensions python-dateutil
+          python ./scripts/cancel_github_workflows.py

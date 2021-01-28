@@ -163,7 +163,6 @@ def cancel_github_workflows(
         pr = get_pull_request(repo, pull_number=branch_or_pull)
         title = f"pull request #{pr['number']} - {pr['title']}"
     else:
-        target_type = "branch"
         title = f"branch [{branch_or_pull}]"
 
     print(
@@ -191,7 +190,10 @@ def cancel_github_workflows(
     # sort old jobs to the front, so to cancel older jobs first
     runs = sorted(runs, key=lambda x: x["created_at"])
     if runs:
-        print(f"Found {len(runs)} potential runs of\n   status: {statuses}\n   event: {events}\n")
+        print(
+            f"Found {len(runs)} potential runs of\n"
+            f"   status: {statuses}\n   event: {events}\n"
+        )
     else:
         print(f"No {' or '.join(statuses)} workflow runs found.\n")
         return
