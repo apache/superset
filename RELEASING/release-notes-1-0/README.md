@@ -23,9 +23,8 @@ Superset 1.0 is a ***huge milestone*** for Apache Superset. This release holds a
 - [**Developer Experience**](#developer-experience)
 - [**Performance**](#performance)
 - [**New Features**](#new-features)
+- [**Feature Flags**](#feature-flags)
 - [**Stability and Bugfixes**](#stability-and-bugfixes)
-
-Some of the new features in this release are disabled by default. Each has a feature flag in `config.py` and some require configuration of additional back-end dependencies, such as Celery. See [this table](https://superset.apache.org/docs/version-one#start-using-superset-10) for a list of features and their associated flags and dependencies.
 
 # User Experience
 We have taken the Superset user experience to the next level with a much simpler, more intuitive UI.
@@ -86,6 +85,19 @@ Charts on dashboards have been updated to concisely show which **filters** are i
 <kbd><img alt="alerts reports edit" src="media/alerts_reports_3.png" width="600"/></kbd>
 
 See related PR highlights [here](#new-features-1).
+
+# Feature Flags
+
+Some of the new features in this release are disabled by default. Each has a feature flag in `config.py` and some require configuration of additional backend dependencies (e.g. celery, SMTP server, etc). The following table will help you get started on the list of features and their associated flags & dependencies. Feel free to contribute and expand this list.
+
+| Feature | Feature Flag | Dependencies | Documentation
+| --- | --- | --- | --- |
+| Global Async Queries | `GLOBAL_ASYNC_QUERIES: True` | Redis 5.0+, celery workers configured and running | [Extra documentation](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries )
+| Dashboard Native Filters | `DASHBOARD_NATIVE_FILTERS: True` | |
+| Alerts & Reporting | `ALERTS_REPORTS: True` | [Celery workers configured & celery beat process](https://superset.apache.org/docs/installation/async-queries-celery) |
+| Homescreen Thumbnails | `THUMBNAILS: TRUE, THUMBNAIL_CACHE_CONFIG: CacheConfig = { "CACHE_TYPE": "null", "CACHE_NO_NULL_WARNING": True}`| selenium, pillow 7, celery |
+| Row Level Security | `ROW_LEVEL_SECURITY` | | [Extra Documentation](https://superset.apache.org/docs/security#row-level-security)
+| Dynamic Viz Plugin Import | `DYNAMIC_PLUGINS: True` | |
 
 # Stability and Bugfixes
 This release includes **hundreds** of bugfixes and stability enhancements. Future major releases will have a continued emphasis on providing a stable and bug-free experience for the user.
