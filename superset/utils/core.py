@@ -71,6 +71,7 @@ from flask import current_app, flash, g, Markup, render_template
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import Role, User
 from flask_babel import gettext as __
+from flask_babel.speaklater import LazyString
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
@@ -504,6 +505,8 @@ def base_json_conv(  # pylint: disable=inconsistent-return-statements,too-many-r
             return obj.decode("utf-8")
         except Exception:  # pylint: disable=broad-except
             return "[bytes]"
+    if isinstance(obj, LazyString):
+        return str(obj)
 
 
 def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:
@@ -1095,7 +1098,7 @@ def user_label(user: User) -> Optional[str]:
 
 
 def get_or_create_db(
-    database_name: str, sqlalchemy_uri: str, *args: Any, **kwargs: Any
+    database_name: str, sqlalchemy_uri: str, always_create: Optional[bool] = True
 ) -> "Database":
     from superset import db
     from superset.models import core as models
@@ -1104,13 +1107,15 @@ def get_or_create_db(
         db.session.query(models.Database).filter_by(database_name=database_name).first()
     )
 
-    if not database:
+    if not database and always_create:
         logger.info("Creating database reference for %s", database_name)
-        database = models.Database(database_name=database_name, *args, **kwargs)
+        database = models.Database(database_name=database_name)
         db.session.add(database)
 
-    database.set_sqlalchemy_uri(sqlalchemy_uri)
-    db.session.commit()
+    if database:
+        database.set_sqlalchemy_uri(sqlalchemy_uri)
+        db.session.commit()
+
     return database
 
 

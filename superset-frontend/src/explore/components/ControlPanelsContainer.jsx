@@ -25,9 +25,10 @@ import { Alert } from 'react-bootstrap';
 import { t, styled, getChartControlPanelRegistry } from '@superset-ui/core';
 
 import Tabs from 'src/common/components/Tabs';
+import { Collapse } from 'src/common/components';
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
-import ControlPanelSection from './ControlPanelSection';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { sectionsToRender } from '../controlUtils';
@@ -75,8 +76,10 @@ const ControlPanelsTabs = styled(Tabs)`
   .ant-tabs-content-holder {
     overflow: visible;
   }
+  .ant-tabs-tabpane {
+    height: 100%;
+  }
 `;
-
 class ControlPanelsContainer extends React.Component {
   // trigger updates to the component when async plugins load
   static contextType = PluginContext;
@@ -93,6 +96,13 @@ class ControlPanelsContainer extends React.Component {
     return sectionsToRender(
       this.props.form_data.viz_type,
       this.props.datasource_type,
+    );
+  }
+
+  sectionsToExpand(sections) {
+    return sections.reduce(
+      (acc, cur) => (cur.expanded ? [...acc, cur.label] : acc),
+      [],
     );
   }
 
@@ -122,7 +132,6 @@ class ControlPanelsContainer extends React.Component {
     if (visibility && !visibility.call(config, this.props, controlData)) {
       return null;
     }
-
     return (
       <Control
         key={`control-${name}`}
@@ -130,6 +139,7 @@ class ControlPanelsContainer extends React.Component {
         validationErrors={validationErrors}
         actions={actions}
         formData={provideFormDataToProps ? formData : null}
+        datasource={formData?.datasource}
         {...restProps}
       />
     );
@@ -137,6 +147,7 @@ class ControlPanelsContainer extends React.Component {
 
   renderControlPanelSection(section) {
     const { controls } = this.props;
+    const { label, description } = section;
 
     const hasErrors = section.controlSetRows.some(rows =>
       rows.some(
@@ -146,14 +157,27 @@ class ControlPanelsContainer extends React.Component {
           controls[s].validationErrors.length > 0,
       ),
     );
+    const PanelHeader = () => (
+      <span>
+        <span>{label}</span>{' '}
+        {description && (
+          <InfoTooltipWithTrigger label={label} tooltip={description} />
+        )}
+        {hasErrors && (
+          <InfoTooltipWithTrigger
+            label="validation-errors"
+            bsStyle="danger"
+            tooltip="This section contains validation errors"
+          />
+        )}
+      </span>
+    );
 
     return (
-      <ControlPanelSection
+      <Collapse.Panel
+        className="control-panel-section"
+        header={PanelHeader()}
         key={section.label}
-        label={section.label}
-        startExpanded={section.expanded}
-        hasErrors={hasErrors}
-        description={section.description}
       >
         {section.controlSetRows.map((controlSets, i) => {
           const renderedControls = controlSets
@@ -188,7 +212,7 @@ class ControlPanelsContainer extends React.Component {
             />
           );
         })}
-      </ControlPanelSection>
+      </Collapse.Panel>
     );
   }
 
@@ -223,7 +247,13 @@ class ControlPanelsContainer extends React.Component {
         displaySectionsToRender.push(section);
       }
     });
+
     const showCustomizeTab = displaySectionsToRender.length > 0;
+    const expandedQuerySections = this.sectionsToExpand(querySectionsToRender);
+    const expandedCustomSections = this.sectionsToExpand(
+      displaySectionsToRender,
+    );
+
     return (
       <Styles>
         {this.props.alert && (
@@ -245,11 +275,25 @@ class ControlPanelsContainer extends React.Component {
           fullWidth={showCustomizeTab}
         >
           <Tabs.TabPane key="query" tab={t('Data')}>
-            {querySectionsToRender.map(this.renderControlPanelSection)}
+            <Collapse
+              bordered
+              defaultActiveKey={expandedQuerySections}
+              expandIconPosition="right"
+              ghost
+            >
+              {querySectionsToRender.map(this.renderControlPanelSection)}
+            </Collapse>
           </Tabs.TabPane>
           {showCustomizeTab && (
             <Tabs.TabPane key="display" tab={t('Customize')}>
-              {displaySectionsToRender.map(this.renderControlPanelSection)}
+              <Collapse
+                bordered
+                defaultActiveKey={expandedCustomSections}
+                expandIconPosition="right"
+                ghost
+              >
+                {displaySectionsToRender.map(this.renderControlPanelSection)}
+              </Collapse>
             </Tabs.TabPane>
           )}
         </ControlPanelsTabs>

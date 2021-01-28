@@ -21,7 +21,6 @@ import { CHART_LIST } from './chart_list.helper';
 describe('chart list view', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.visit(CHART_LIST);
     cy.get('[data-test="list-view"]').click();
   });

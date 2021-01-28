@@ -20,7 +20,6 @@ import { DATABASE_LIST } from './helper';
 
 describe('Add database', () => {
   beforeEach(() => {
-    cy.server();
     cy.login();
   });
 

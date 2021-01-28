@@ -16,11 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
+import getFormDataWithExtraFilters, {
+  GetFormDataWithExtraFiltersArguments,
+} from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
+import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import { Filter } from 'src/dashboard/components/nativeFilters/types';
+import { LayoutItem } from 'src/dashboard/types';
+import { dashboardLayout } from '../../../fixtures/mockDashboardLayout';
+import { sliceId as chartId } from '../../../fixtures/mockChartQueries';
 
 describe('getFormDataWithExtraFilters', () => {
-  const chartId = 8675309;
-  const mockArgs = {
+  const filterId = 'native-filter-1';
+  const mockArgs: GetFormDataWithExtraFiltersArguments = {
     chart: {
       id: chartId,
       formData: {
@@ -37,11 +44,27 @@ describe('getFormDataWithExtraFilters', () => {
       region: ['Spain'],
       color: ['pink', 'purple'],
     },
-    nativeFilters: {
-      filters: {},
-      filtersState: {},
-    },
     sliceId: chartId,
+    nativeFilters: {
+      filters: {
+        [filterId]: ({
+          id: filterId,
+          scope: {
+            rootPath: [DASHBOARD_ROOT_ID],
+            excluded: [],
+          },
+        } as unknown) as Filter,
+      },
+      filtersState: {
+        [filterId]: {
+          id: filterId,
+          extraFormData: {},
+        },
+      },
+    },
+    layout: (dashboardLayout.present as unknown) as {
+      [key: string]: LayoutItem;
+    },
   };
 
   it('should include filters from the passed filters', () => {

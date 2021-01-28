@@ -89,4 +89,4 @@ class DatasourceNotFoundValidationError(ValidationError):
     status = 404
 
     def __init__(self) -> None:
-        super().__init__([_("Datasource does not exist")], field_name="datasource_id")
+        super().__init__([_("Dataset does not exist")], field_name="datasource_id")

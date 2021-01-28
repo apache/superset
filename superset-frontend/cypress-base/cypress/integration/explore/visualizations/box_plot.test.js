@@ -38,9 +38,8 @@ describe('Visualization > Box Plot', () => {
   }
 
   beforeEach(() => {
-    cy.server();
     cy.login();
-    cy.route('POST', '/api/v1/chart/data*').as('getJson');
+    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
   });
 
   it('should work', () => {

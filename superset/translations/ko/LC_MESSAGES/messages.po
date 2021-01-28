@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2021-01-19 07:47-0300\n"
+"POT-Creation-Date: 2021-01-22 15:56-0300\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language-Team: ko <LL@li.org>\n"
@@ -32,7 +32,6 @@ msgstr ""
 msgid "Home"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:339
 #: superset/app.py:230 superset/views/annotations.py:119
 msgid "Annotation Layers"
 msgstr "주석 레이어"
@@ -48,8 +47,8 @@ msgstr "관리"
 msgid "Databases"
 msgstr "데이터베이스"
 
-#: superset-frontend/src/explore/components/ControlPanelsContainer.jsx:245
-#: superset-frontend/src/explore/components/DataTablesPane.tsx:250
+#: superset-frontend/src/explore/components/ControlPanelsContainer.jsx:247
+#: superset-frontend/src/explore/components/DataTablesPane.tsx:251
 #: superset/app.py:242 superset/app.py:251 superset/app.py:375
 #: superset/app.py:390 superset/app.py:478 superset/app.py:487
 #: superset/app.py:500 superset/app.py:509
@@ -81,7 +80,6 @@ msgstr "대시보드"
 msgid "Plugins"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:240
 #: superset/app.py:283 superset/views/css_templates.py:38
 msgid "CSS Templates"
 msgstr "CSS 템플릿"
@@ -107,13 +105,10 @@ msgstr "SQL 편집기"
 msgid "SQL Lab"
 msgstr "SQL Lab"
 
-#: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:87
-#: superset-frontend/src/views/CRUD/welcome/Welcome.tsx:145 superset/app.py:352
+#: superset/app.py:352
 msgid "Saved Queries"
 msgstr "저장된 Query"
 
-#: superset-frontend/src/SqlLab/components/SouthPane.jsx:180
-#: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:100
 #: superset/app.py:359
 msgid "Query History"
 msgstr "Query 실행 이력"
@@ -142,7 +137,7 @@ msgstr ""
 msgid "Alerts"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/alert/AlertList.tsx:411 superset/app.py:448
+#: superset/app.py:448
 msgid "Alerts & Reports"
 msgstr ""
 
@@ -417,152 +412,152 @@ msgstr ""
 msgid "Pick at least one field for [Series]"
 msgstr ""
 
-#: superset/viz.py:1701 superset/viz_sip38.py:1659
+#: superset/viz.py:1702 superset/viz_sip38.py:1659
 msgid "Sunburst"
 msgstr ""
 
-#: superset/viz.py:1747 superset/viz_sip38.py:1703
+#: superset/viz.py:1748 superset/viz_sip38.py:1703
 msgid "Sankey"
 msgstr ""
 
-#: superset/viz.py:1755
+#: superset/viz.py:1756
 msgid "Pick exactly 2 columns as [Source / Target]"
 msgstr ""
 
-#: superset/viz.py:1799 superset/viz_sip38.py:1736
+#: superset/viz.py:1800 superset/viz_sip38.py:1736
 msgid ""
 "There's a loop in your Sankey, please provide a tree. Here's a faulty link: "
 "{}"
 msgstr ""
 
-#: superset/viz.py:1812 superset/viz.py:1835 superset/viz_sip38.py:1749
+#: superset/viz.py:1813 superset/viz.py:1836 superset/viz_sip38.py:1749
 #: superset/viz_sip38.py:1770
 msgid "Directed Force Layout"
 msgstr ""
 
-#: superset/viz.py:1819 superset/viz_sip38.py:1756
+#: superset/viz.py:1820 superset/viz_sip38.py:1756
 msgid "Pick exactly 2 columns to 'Group By'"
 msgstr ""
 
-#: superset/viz.py:1868 superset/viz_sip38.py:1802
+#: superset/viz.py:1869 superset/viz_sip38.py:1802
 msgid "Country Map"
 msgstr ""
 
-#: superset/viz.py:1897 superset/viz_sip38.py:1823
+#: superset/viz.py:1898 superset/viz_sip38.py:1823
 msgid "World Map"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar.tsx:438
-#: superset-frontend/src/explore/controls.jsx:467 superset/viz.py:1955
+#: superset-frontend/src/explore/controls.jsx:467 superset/viz.py:1956
 #: superset/viz_sip38.py:1873
 msgid "Filters"
 msgstr "필터"
 
-#: superset/viz.py:1973 superset/viz_sip38.py:1891
+#: superset/viz.py:1974 superset/viz_sip38.py:1891
 msgid "Invalid filter configuration, please select a column"
 msgstr ""
 
-#: superset/viz.py:2017 superset/viz_sip38.py:1952
+#: superset/viz.py:2018 superset/viz_sip38.py:1952
 msgid "Parallel Coordinates"
 msgstr ""
 
-#: superset/viz.py:2039 superset/viz_sip38.py:1968
+#: superset/viz.py:2040 superset/viz_sip38.py:1968
 msgid "Heatmap"
 msgstr ""
 
-#: superset/viz.py:2095 superset/viz_sip38.py:2017
+#: superset/viz.py:2096 superset/viz_sip38.py:2017
 msgid "Horizon Charts"
 msgstr ""
 
-#: superset/viz.py:2107 superset/viz_sip38.py:2029
+#: superset/viz.py:2108 superset/viz_sip38.py:2029
 msgid "Mapbox"
 msgstr ""
 
-#: superset/viz.py:2119 superset/viz_sip38.py:2041
+#: superset/viz.py:2120 superset/viz_sip38.py:2041
 msgid "[Longitude] and [Latitude] must be set"
 msgstr ""
 
-#: superset/viz.py:2126 superset/viz_sip38.py:2048
+#: superset/viz.py:2127 superset/viz_sip38.py:2048
 msgid "Must have a [Group By] column to have 'count' as the [Label]"
 msgstr ""
 
-#: superset/viz.py:2146 superset/viz_sip38.py:2068
+#: superset/viz.py:2147 superset/viz_sip38.py:2068
 msgid "Choice of [Label] must be present in [Group By]"
 msgstr ""
 
-#: superset/viz.py:2154 superset/viz_sip38.py:2075
+#: superset/viz.py:2155 superset/viz_sip38.py:2075
 msgid "Choice of [Point Radius] must be present in [Group By]"
 msgstr ""
 
-#: superset/viz.py:2162 superset/viz_sip38.py:2082
+#: superset/viz.py:2163 superset/viz_sip38.py:2082
 msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
 msgstr ""
 
-#: superset/viz.py:2242 superset/viz_sip38.py:2162
+#: superset/viz.py:2243 superset/viz_sip38.py:2162
 msgid "Deck.gl - Multiple Layers"
 msgstr ""
 
-#: superset/viz.py:2282 superset/viz.py:2314 superset/viz_sip38.py:2218
+#: superset/viz.py:2283 superset/viz.py:2315 superset/viz_sip38.py:2218
 msgid "Bad spatial key"
 msgstr ""
 
-#: superset/viz.py:2300 superset/viz_sip38.py:2204
+#: superset/viz.py:2301 superset/viz_sip38.py:2204
 #, python-format
 msgid "Invalid spatial point encountered: %s"
 msgstr ""
 
-#: superset/viz.py:2336 superset/viz_sip38.py:2240
+#: superset/viz.py:2337 superset/viz_sip38.py:2240
 msgid ""
 "Encountered invalid NULL spatial "
 "entry,                                        please consider filtering "
 "those out"
 msgstr ""
 
-#: superset/viz.py:2426 superset/viz_sip38.py:2311
+#: superset/viz.py:2427 superset/viz_sip38.py:2311
 msgid "Deck.gl - Scatter plot"
 msgstr ""
 
-#: superset/viz.py:2475 superset/viz_sip38.py:2358
+#: superset/viz.py:2476 superset/viz_sip38.py:2358
 msgid "Deck.gl - Screen Grid"
 msgstr ""
 
-#: superset/viz.py:2501 superset/viz_sip38.py:2384
+#: superset/viz.py:2502 superset/viz_sip38.py:2384
 msgid "Deck.gl - 3D Grid"
 msgstr ""
 
-#: superset/viz.py:2531 superset/viz_sip38.py:2411
+#: superset/viz.py:2532 superset/viz_sip38.py:2411
 msgid "Deck.gl - Paths"
 msgstr ""
 
-#: superset/viz.py:2579 superset/viz_sip38.py:2456
+#: superset/viz.py:2580 superset/viz_sip38.py:2456
 msgid "Deck.gl - Polygon"
 msgstr ""
 
-#: superset/viz.py:2608 superset/viz_sip38.py:2485
+#: superset/viz.py:2609 superset/viz_sip38.py:2485
 msgid "Deck.gl - 3D HEX"
 msgstr ""
 
-#: superset/viz.py:2627 superset/viz_sip38.py:2501
+#: superset/viz.py:2628 superset/viz_sip38.py:2501
 msgid "Deck.gl - GeoJSON"
 msgstr ""
 
-#: superset/viz.py:2646 superset/viz_sip38.py:2513
+#: superset/viz.py:2647 superset/viz_sip38.py:2513
 msgid "Deck.gl - Arc"
 msgstr ""
 
-#: superset/viz.py:2681 superset/viz_sip38.py:2548
+#: superset/viz.py:2682 superset/viz_sip38.py:2548
 msgid "Event flow"
 msgstr ""
 
-#: superset/viz.py:2713 superset/viz_sip38.py:2580
+#: superset/viz.py:2714 superset/viz_sip38.py:2580
 msgid "Time Series - Paired t-test"
 msgstr ""
 
-#: superset/viz.py:2768 superset/viz_sip38.py:2635
+#: superset/viz.py:2769 superset/viz_sip38.py:2635
 msgid "Time Series - Nightingale Rose Chart"
 msgstr ""
 
-#: superset/viz.py:2803 superset/viz_sip38.py:2670
+#: superset/viz.py:2804 superset/viz_sip38.py:2670
 msgid "Partition Diagram"
 msgstr ""
 
@@ -675,7 +670,11 @@ msgid "Deleted %(num)d chart"
 msgid_plural "Deleted %(num)d charts"
 msgstr[0] ""
 
-#: superset/charts/api.py:566 superset/charts/api.py:638
+#: superset/charts/api.py:563
+msgid "Request is not JSON"
+msgstr ""
+
+#: superset/charts/api.py:571 superset/charts/api.py:643
 #, python-format
 msgid "Request is incorrect: %(error)s"
 msgstr ""
@@ -773,7 +772,7 @@ msgid "Owners are invalid"
 msgstr ""
 
 #: superset/commands/exceptions.py:92
-msgid "Datasource does not exist"
+msgid "Dataset does not exist"
 msgstr "데이터소스"
 
 #: superset/common/query_object.py:301
@@ -801,7 +800,7 @@ msgstr ""
 msgid "Unsupported extraction function: "
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:988
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:994
 #: superset-frontend/src/explore/components/DatasourcePanel.tsx:231
 #: superset-frontend/src/explore/controls.jsx:251
 #: superset/connectors/druid/views.py:56 superset/connectors/sqla/views.py:63
@@ -821,7 +820,7 @@ msgid "Edit Druid Column"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/gridComponents/new/NewColumn.jsx:31
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:204
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:209
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:137
 #: superset-frontend/src/explore/components/controls/SpatialControl.jsx:193
 #: superset/connectors/druid/views.py:77 superset/connectors/sqla/views.py:134
@@ -835,7 +834,7 @@ msgstr ""
 msgid "Type"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:163
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:148
 #: superset/connectors/druid/views.py:79 superset/views/access_requests.py:43
 #: superset/views/chart/mixin.py:80
 msgid "Datasource"
@@ -854,7 +853,7 @@ msgid ""
 "Whether this column is exposed in the `Filters` section of the explore view."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:977
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:983
 #: superset-frontend/src/explore/components/DatasourcePanel.tsx:218
 #: superset-frontend/src/explore/controls.jsx:153
 #: superset/connectors/druid/views.py:143 superset/connectors/sqla/views.py:193
@@ -873,7 +872,7 @@ msgstr ""
 msgid "Edit Druid Metric"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:831
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:836
 #: superset-frontend/src/explore/controls.jsx:172
 #: superset-frontend/src/explore/controls.jsx:173
 #: superset/connectors/druid/views.py:171 superset/connectors/sqla/views.py:236
@@ -882,11 +881,11 @@ msgstr "메트릭"
 
 #: superset-frontend/src/SqlLab/components/SaveQuery.tsx:128
 #: superset-frontend/src/SqlLab/components/ScheduleQueryButton.jsx:161
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:151
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:155
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:513
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:845
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:849
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:156
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:160
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:518
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:850
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:854
 #: superset-frontend/src/explore/components/PropertiesModal.tsx:214
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1094
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1100
@@ -906,7 +905,7 @@ msgstr ""
 msgid "Verbose Name"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:735
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:740
 #: superset/connectors/druid/views.py:175 superset/views/log/__init__.py:33
 msgid "JSON"
 msgstr ""
@@ -915,8 +914,6 @@ msgstr ""
 msgid "Druid Datasource"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:861
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:869
 #: superset/connectors/druid/views.py:177 superset/connectors/sqla/views.py:244
 msgid "Warning Message"
 msgstr ""
@@ -957,8 +954,6 @@ msgstr "비밀번호"
 msgid "Broker Endpoint"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:597
-#: superset-frontend/src/explore/components/PropertiesModal.tsx:238
 #: superset/connectors/druid/views.py:221
 #: superset/connectors/druid/views.py:331 superset/connectors/sqla/views.py:459
 #: superset/views/chart/mixin.py:77
@@ -1048,7 +1043,7 @@ msgid "Cluster"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/PropertiesModal.jsx:358
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:567
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:572
 #: superset-frontend/src/explore/components/PropertiesModal.tsx:260
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:261
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1078
@@ -1199,11 +1194,11 @@ msgstr "테이블"
 msgid "Expression"
 msgstr ""
 
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:212
 #: superset/connectors/sqla/views.py:141
 msgid "Is temporal"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:170
 #: superset/connectors/sqla/views.py:142
 msgid "Datetime Format"
 msgstr ""
@@ -1224,18 +1219,15 @@ msgstr ""
 msgid "Edit Metric"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:130
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:833
 #: superset/connectors/sqla/views.py:240
 msgid "SQL Expression"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:855
 #: superset/connectors/sqla/views.py:242
 msgid "D3 Format"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:549
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:554
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:599
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:637
 #: superset/connectors/sqla/views.py:243 superset/connectors/sqla/views.py:467
@@ -1361,7 +1353,7 @@ msgstr ""
 msgid "Whether the table was generated by the 'Visualize' flow in SQL Lab"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:612
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:617
 #: superset/connectors/sqla/views.py:431
 msgid ""
 "A set of parameters that become available in the query using Jinja "
@@ -1424,7 +1416,8 @@ msgstr ""
 msgid "SQL Lab View"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:611
+#: superset-frontend/src/SqlLab/components/TemplateParamsEditor.jsx:125
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:616
 #: superset/connectors/sqla/views.py:466
 msgid "Template parameters"
 msgstr ""
@@ -1566,7 +1559,7 @@ msgstr ""
 msgid "A database with the same name already exists"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:184
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:169
 #: superset/databases/commands/exceptions.py:49
 msgid "Field is required"
 msgstr ""
@@ -1864,7 +1857,7 @@ msgstr ""
 msgid "An error occurred while pruning logs "
 msgstr ""
 
-#: superset/reports/notifications/email.py:59 superset/tasks/schedules.py:182
+#: superset/reports/notifications/email.py:59 superset/tasks/schedules.py:185
 #, python-format
 msgid ""
 "\n"
@@ -1873,8 +1866,8 @@ msgid ""
 "            "
 msgstr ""
 
-#: superset/reports/notifications/email.py:70 superset/tasks/schedules.py:291
-#: superset/tasks/schedules.py:460
+#: superset/reports/notifications/email.py:70 superset/tasks/schedules.py:294
+#: superset/tasks/schedules.py:463
 #, python-format
 msgid "%(prefix)s %(title)s"
 msgstr ""
@@ -1889,7 +1882,7 @@ msgid ""
 "            "
 msgstr ""
 
-#: superset/tasks/schedules.py:157
+#: superset/tasks/schedules.py:160
 #, python-format
 msgid ""
 "\n"
@@ -1899,17 +1892,17 @@ msgid ""
 "        "
 msgstr ""
 
-#: superset/tasks/schedules.py:169 superset/tasks/schedules.py:360
+#: superset/tasks/schedules.py:172 superset/tasks/schedules.py:363
 #, python-format
 msgid "<b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>"
 msgstr ""
 
-#: superset/tasks/schedules.py:359
+#: superset/tasks/schedules.py:362
 #, python-format
 msgid "%(name)s.csv"
 msgstr ""
 
-#: superset/tasks/schedules.py:367
+#: superset/tasks/schedules.py:370
 #, python-format
 msgid ""
 "\n"
@@ -1919,7 +1912,7 @@ msgid ""
 "        "
 msgstr ""
 
-#: superset/tasks/schedules.py:654
+#: superset/tasks/schedules.py:656
 #, python-format
 msgid "[Alert] %(label)s"
 msgstr ""
@@ -1928,7 +1921,6 @@ msgstr ""
 msgid "New"
 msgstr ""
 
-#: superset-frontend/src/components/Menu/NewMenu.tsx:26
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1144
 #: superset/templates/appbuilder/navbar_right.html:38
 msgid "SQL Query"
@@ -2039,13 +2031,13 @@ msgid "Request Permissions"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/SaveQuery.tsx:176
-#: superset-frontend/src/common/components/Modal/Modal.tsx:144
+#: superset-frontend/src/common/components/Modal/Modal.tsx:145
 #: superset-frontend/src/dashboard/components/PropertiesModal.jsx:305
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:142
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:437
-#: superset-frontend/src/datasource/DatasourceModal.tsx:211
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:472
+#: superset-frontend/src/datasource/DatasourceModal.tsx:202
 #: superset-frontend/src/explore/components/PropertiesModal.tsx:175
-#: superset-frontend/src/explore/components/SaveModal.tsx:169
+#: superset-frontend/src/explore/components/SaveModal.tsx:174
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:749
 #: superset/templates/superset/request_access.html:34
 msgid "Cancel"
@@ -2055,7 +2047,6 @@ msgstr "취소"
 msgid "Use the edit buttom to change this field"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:399
 #: superset/templates/superset/models/database/macros.html:22
 msgid "Test Connection"
 msgstr ""
@@ -2183,9 +2174,6 @@ msgstr ""
 msgid "Roles to grant"
 msgstr "권한 부여"
 
-#: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:206
-#: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:184
-#: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:285
 #: superset/views/access_requests.py:45 superset/views/schedules.py:224
 #: superset/views/schedules.py:287
 msgid "Created On"
@@ -2199,7 +2187,6 @@ msgstr "사용자 목록"
 msgid "Show Observation"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/alert/ExecutionLog.tsx:127
 #: superset/views/alerts.py:67
 msgid "Error Message"
 msgstr ""
@@ -2244,13 +2231,10 @@ msgstr "주석"
 msgid "Show Annotation"
 msgstr "주석"
 
-#: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:265
 #: superset/views/annotations.py:62
 msgid "Add Annotation"
 msgstr "주석"
 
-#: superset-frontend/src/views/CRUD/annotation/AnnotationList.tsx:180
-#: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:265
 #: superset/views/annotations.py:63
 msgid "Edit Annotation"
 msgstr "주석"
@@ -2260,10 +2244,10 @@ msgid "Layer"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/ScheduleQueryButton.jsx:148
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:141
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:145
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:832
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:840
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:146
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:150
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:837
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:845
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:157
 #: superset-frontend/src/views/CRUD/annotation/AnnotationList.tsx:149
 #: superset/views/annotations.py:79 superset/views/sql_lab.py:70
@@ -2280,7 +2264,6 @@ msgstr "시작 시간"
 msgid "End"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal.jsx:400
 #: superset/views/annotations.py:83 superset/views/dashboard/mixin.py:82
 msgid "JSON Metadata"
 msgstr ""
@@ -2289,14 +2272,10 @@ msgstr ""
 msgid "Show Annotation Layer"
 msgstr "주석 레이어"
 
-#: superset-frontend/src/explore/components/controls/AnnotationLayerControl.jsx:191
-#: superset-frontend/src/explore/components/controls/AnnotationLayerControl.jsx:203
-#: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayerModal.tsx:219
 #: superset/views/annotations.py:121
 msgid "Add Annotation Layer"
 msgstr ""
 
-#: superset-frontend/src/explore/components/controls/AnnotationLayerControl.jsx:166
 #: superset/views/annotations.py:122
 msgid "Edit Annotation Layer"
 msgstr "주석 레이어"
@@ -2315,7 +2294,7 @@ msgstr "이름"
 
 #: superset/views/base.py:207
 #, python-format
-msgid "Datasource %(name)s already exists"
+msgid "Dataset %(name)s already exists"
 msgstr ""
 
 #: superset/views/base.py:227
@@ -2538,7 +2517,6 @@ msgstr ""
 msgid "Show CSS Template"
 msgstr "CSS 템플릿"
 
-#: superset-frontend/src/views/CRUD/csstemplates/CssTemplateModal.tsx:237
 #: superset/views/css_templates.py:40
 msgid "Add CSS Template"
 msgstr "CSS 템플릿"
@@ -2660,11 +2638,11 @@ msgstr ""
 msgid "Changed on"
 msgstr ""
 
-#: superset/views/utils.py:485
+#: superset/views/utils.py:492
 msgid "Could not determine datasource type"
 msgstr ""
 
-#: superset/views/utils.py:501
+#: superset/views/utils.py:508
 msgid "Could not find viz object"
 msgstr ""
 
@@ -2693,10 +2671,6 @@ msgid ""
 "defaults to the datasource/table timeout if undefined."
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:181
-#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:257
-#: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:158
-#: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:279
 #: superset/views/chart/mixin.py:82
 msgid "Last Modified"
 msgstr "마지막 수정"
@@ -2705,7 +2679,6 @@ msgstr "마지막 수정"
 msgid "Parameters"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:220
 #: superset/views/chart/mixin.py:88
 msgid "Visualization Type"
 msgstr "시각화 유형"
@@ -2991,12 +2964,10 @@ msgstr ""
 msgid "Show Database"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:349
 #: superset/views/database/mixins.py:34
 msgid "Add Database"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:349
 #: superset/views/database/mixins.py:35
 msgid "Edit Database"
 msgstr ""
@@ -3087,8 +3058,6 @@ msgstr ""
 msgid "Allow DML"
 msgstr "DML 허용"
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:533
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:539
 #: superset/views/database/mixins.py:189
 msgid "CTAS Schema"
 msgstr ""
@@ -3098,19 +3067,16 @@ msgstr ""
 msgid "SQLAlchemy URI"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:417
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:423
 #: superset/views/database/mixins.py:194
 msgid "Chart Cache Timeout"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:553
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:558
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:642
 #: superset/views/database/mixins.py:196
 msgid "Secure Extra"
 msgstr "보안"
 
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:582
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:587
 #: superset/views/database/mixins.py:197
 msgid "Root certificate"
 msgstr ""
@@ -3127,7 +3093,6 @@ msgstr ""
 msgid "Allow Csv Upload"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:521
 #: superset/views/database/mixins.py:202
 msgid "Allow Multi Schema Metadata Fetch"
 msgstr ""
@@ -3237,186 +3202,186 @@ msgstr ""
 msgid "dttm"
 msgstr ""
 
-#: superset-frontend/src/CRUD/CollectionTable.tsx:294
-msgid "Add Item"
-msgstr ""
+#: superset-frontend/src/CRUD/CollectionTable.tsx:317
+msgid "Add item"
+msgstr "테이블 추가"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:103
 msgid "The query couldn't be loaded"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:155
-msgid "Your query was saved"
-msgstr ""
-
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:158
-msgid "Your query could not be saved"
-msgstr ""
-
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:173
-msgid "Your query was updated"
-msgstr ""
-
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:175
-msgid "Your query could not be updated"
-msgstr ""
-
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:190
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:156
 msgid ""
 "Your query has been scheduled. To see details of your query, navigate to "
-"Saved Queries"
+"Saved queries"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:197
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:163
 msgid "Your query could not be scheduled"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:225
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:332
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:191
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:298
 msgid "Failed at retrieving results"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:263
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:289
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:229
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:255
 msgid ""
 "An error occurred while storing the latest query id in the backend. Please "
 "contact your administrator if this problem persists."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:376
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:409
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:342
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:375
 msgid "Unknown error"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:427
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:393
 msgid "Query was stopped."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:456
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:422
 msgid ""
 "Unable to migrate table schema state to backend. Superset will retry later. "
 "Please contact your administrator if this problem persists."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:474
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:440
 msgid ""
 "Unable to migrate query state to backend. Superset will retry later. Please "
 "contact your administrator if this problem persists."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:520
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:486
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry later. "
 "Please contact your administrator if this problem persists."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:553
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:519
 msgid ""
 "Unable to add a new tab to the backend. Please contact your administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:570
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:536
 #: superset-frontend/src/SqlLab/reducers/sqlLab.js:74
 #, python-format
 msgid "Copy of %s"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:597
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:563
 msgid ""
 "An error occurred while setting the active tab. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:683
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:649
 msgid "An error occurred while fetching tab state"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:711
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:677
 msgid ""
 "An error occurred while removing tab. Please contact your administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:735
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:701
 msgid ""
 "An error occurred while removing query. Please contact your administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:758
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:724
 msgid ""
 "An error occurred while setting the tab database ID. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:783
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:749
 msgid ""
 "An error occurred while setting the tab schema. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:816
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:782
 msgid ""
 "An error occurred while setting the tab autorun. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:841
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:895
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:807
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:899
 msgid ""
 "An error occurred while setting the tab title. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:864
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:829
+msgid "Your query was saved"
+msgstr ""
+
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:833
+msgid "Your query could not be saved"
+msgstr ""
+
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:845
+msgid "Your query was updated"
+msgstr ""
+
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:849
+msgid "Your query could not be updated"
+msgstr ""
+
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:868
 msgid ""
 "An error occurred while storing your query in the backend. To avoid losing "
 "your changes, please save your query using the \"Save Query\" button."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:924
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:928
 msgid ""
 "An error occurred while setting the tab template parameters. Please contact "
 "your administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:985
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1010
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:989
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1014
 msgid "An error occurred while fetching table metadata"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1051
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1055
 msgid ""
 "An error occurred while fetching table metadata. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1099
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1103
 msgid ""
 "An error occurred while expanding the table schema. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1123
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1127
 msgid ""
 "An error occurred while collapsing the table schema. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1146
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1150
 msgid ""
 "An error occurred while removing the table schema. Please contact your "
 "administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1179
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1183
 msgid "Shared query"
 msgstr "Query 공유"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1241
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1245
 msgid "The datasource couldn't be loaded"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1271
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1293
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1275
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1297
 msgid "An error occurred while creating the data source"
 msgstr ""
 
@@ -3433,15 +3398,15 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/EstimateQueryCostButton.jsx:85
-msgid "Estimate Selected Query Cost"
+msgid "Estimate selected query cost"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/EstimateQueryCostButton.jsx:86
-msgid "Estimate Cost"
+msgid "Estimate cost"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/EstimateQueryCostButton.jsx:90
-msgid "Cost Estimate"
+msgid "Cost estimate"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/ExploreCtasResultsButton.jsx:73
@@ -3515,7 +3480,7 @@ msgid "Source SQL"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/HighlightedSql.jsx:108
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:714
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:719
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:301
 msgid "SQL"
 msgstr ""
@@ -3572,8 +3537,9 @@ msgid "Edit"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/QueryTable.jsx:147
-msgid "view results"
-msgstr ""
+#: superset-frontend/src/explore/components/DataTablesPane.tsx:258
+msgid "View results"
+msgstr "결과"
 
 #: superset-frontend/src/SqlLab/components/QueryTable.jsx:150
 msgid "Data preview"
@@ -3604,11 +3570,11 @@ msgid "Clipboard"
 msgstr "클립보드에 복사하기"
 
 #: superset-frontend/src/SqlLab/components/ResultSet.tsx:469
-msgid "Filter Results"
+msgid "Filter results"
 msgstr "검색 결과"
 
 #: superset-frontend/src/SqlLab/components/ResultSet.tsx:501
-msgid "Database Error"
+msgid "Database error"
 msgstr "데이터베이스"
 
 #: superset-frontend/src/SqlLab/components/ResultSet.tsx:525
@@ -3628,11 +3594,11 @@ msgid "Fetch data preview"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/ResultSet.tsx:605
-msgid "Refetch Results"
+msgid "Refetch results"
 msgstr "검색 결과"
 
 #: superset-frontend/src/SqlLab/components/ResultSet.tsx:626
-msgid "Track Job"
+msgid "Track job"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/RunQueryActionButton.tsx:46
@@ -3641,7 +3607,7 @@ msgid "Stop"
 msgstr "중지"
 
 #: superset-frontend/src/SqlLab/components/RunQueryActionButton.tsx:51
-msgid "Run Selection"
+msgid "Run selection"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/RunQueryActionButton.tsx:53
@@ -3678,13 +3644,13 @@ msgstr ""
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:139
 #: superset-frontend/src/dashboard/components/SaveModal.tsx:223
 #: superset-frontend/src/dashboard/components/filterscope/FilterScopeSelector.jsx:539
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:440
-#: superset-frontend/src/datasource/DatasourceModal.tsx:204
-#: superset-frontend/src/explore/components/AdhocFilterEditPopover.jsx:210
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:430
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:475
+#: superset-frontend/src/datasource/DatasourceModal.tsx:211
 #: superset-frontend/src/explore/components/PropertiesModal.tsx:187
 #: superset-frontend/src/explore/components/QueryAndSaveBtns.jsx:108
-#: superset-frontend/src/explore/components/SaveModal.tsx:192
+#: superset-frontend/src/explore/components/SaveModal.tsx:197
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopover.jsx:210
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:447
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1042
 #: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:255
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayerModal.tsx:207
@@ -3700,11 +3666,11 @@ msgid "Save as"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/SaveQuery.tsx:172
-msgid "Save Query"
+msgid "Save query"
 msgstr "Query 저장"
 
 #: superset-frontend/src/SqlLab/components/SaveQuery.tsx:184
-msgid "Save As New"
+msgid "Save as new"
 msgstr "다른이름으로 저장"
 
 #: superset-frontend/src/SqlLab/components/SaveQuery.tsx:193
@@ -3720,7 +3686,7 @@ msgid "Write a description for your query"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/ScheduleQueryButton.jsx:201
-msgid "Schedule Query"
+msgid "Schedule query"
 msgstr "Query 공유"
 
 #: superset-frontend/src/SqlLab/components/ScheduleQueryButton.jsx:211
@@ -3765,8 +3731,14 @@ msgstr ""
 msgid "Results"
 msgstr "결과"
 
+#: superset-frontend/src/SqlLab/components/SouthPane.jsx:180
+#: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:100
+msgid "Query history"
+msgstr "Query 실행 이력"
+
 #: superset-frontend/src/SqlLab/components/SqlEditor.jsx:285
 #: superset-frontend/src/SqlLab/components/SqlEditor.jsx:295
+#: superset-frontend/src/components/RefreshChartOverlay.tsx:48
 msgid "Run query"
 msgstr "Query 실행"
 
@@ -3776,8 +3748,8 @@ msgstr "탭 닫기"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor.jsx:309
 #: superset-frontend/src/SqlLab/reducers/getInitialState.js:44
-msgid "Untitled Query"
-msgstr ""
+msgid "Untitled query"
+msgstr "Query 공유"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor.jsx:317
 msgid "Stop query"
@@ -3812,7 +3784,7 @@ msgid "Estimate the cost before running a query"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/SqlEditorLeftBar.jsx:159
-msgid "Reset State"
+msgid "Reset state"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/TabbedSqlEditors.jsx:237
@@ -3903,10 +3875,6 @@ msgstr ""
 
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor.jsx:87
 msgid ") by using"
-msgstr ""
-
-#: superset-frontend/src/SqlLab/components/TemplateParamsEditor.jsx:125
-msgid "Template Parameters"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor.jsx:127
@@ -4209,7 +4177,7 @@ msgstr ""
 msgid "DEC"
 msgstr ""
 
-#: superset-frontend/src/common/components/Modal/Modal.tsx:127
+#: superset-frontend/src/common/components/Modal/Modal.tsx:128
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:771
 msgid "OK"
 msgstr ""
@@ -4335,6 +4303,7 @@ msgid "You don't have the rights to alter this title."
 msgstr ""
 
 #: superset-frontend/src/components/ErrorBoundary.jsx:51
+#: superset-frontend/src/components/ErrorMessage/ErrorMessageWithStackTrace.tsx:26
 msgid "Unexpected error"
 msgstr ""
 
@@ -4345,10 +4314,6 @@ msgstr ""
 #: superset-frontend/src/components/OmniContainer.jsx:44
 msgid "An error occurred while fetching dashboards"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
-
-#: superset-frontend/src/components/RefreshChartOverlay.tsx:48
-msgid "Run Query"
-msgstr "Query 실행"
 
 #: superset-frontend/src/components/TableSelector.tsx:170
 msgid "Error while fetching table list"
@@ -4382,7 +4347,8 @@ msgid "%s%s"
 msgstr ""
 
 #: superset-frontend/src/components/URLShortLinkModal.tsx:83
-msgid "Share Dashboard"
+#: superset-frontend/src/dashboard/components/HeaderActionsDropdown.jsx:249
+msgid "Share dashboard"
 msgstr "대시보드 저장"
 
 #: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:46
@@ -4408,26 +4374,22 @@ msgstr "에러"
 
 #: superset-frontend/src/components/ErrorMessage/ErrorAlert.tsx:123
 #: superset-frontend/src/components/ErrorMessage/ErrorAlert.tsx:139
-msgid "See More"
+msgid "See more"
 msgstr ""
 
 #: superset-frontend/src/components/ErrorMessage/ErrorAlert.tsx:152
-msgid "See Less"
+msgid "See less"
 msgstr ""
 
 #: superset-frontend/src/components/ErrorMessage/ErrorAlert.tsx:181
-msgid "Copy Message"
+msgid "Copy message"
 msgstr ""
 
 #: superset-frontend/src/components/ErrorMessage/ErrorAlert.tsx:189
 #: superset-frontend/src/dashboard/components/filterscope/FilterScopeSelector.jsx:535
-#: superset-frontend/src/explore/components/AdhocFilterEditPopover.jsx:197
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:418
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopover.jsx:197
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:435
 msgid "Close"
-msgstr ""
-
-#: superset-frontend/src/components/ErrorMessage/ErrorMessageWithStackTrace.tsx:26
-msgid "Unexpected Error"
 msgstr ""
 
 #: superset-frontend/src/components/ErrorMessage/ParameterErrorMessage.tsx:60
@@ -4444,7 +4406,7 @@ msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgstr ""
 
 #: superset-frontend/src/components/ErrorMessage/ParameterErrorMessage.tsx:114
-msgid "Parameter Error"
+msgid "Parameter error"
 msgstr ""
 
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:47
@@ -4462,11 +4424,11 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:98
-msgid "Timeout Error"
+msgid "Timeout error"
 msgstr ""
 
 #: superset-frontend/src/components/FilterableTable/FilterableTable.tsx:317
-msgid "Cell Content"
+msgid "Cell content"
 msgstr ""
 
 #: superset-frontend/src/components/ImportModal/index.tsx:182
@@ -4501,24 +4463,29 @@ msgid "%s Selected"
 msgstr ""
 
 #: superset-frontend/src/components/ListView/ListView.tsx:348
-msgid "Deselect All"
-msgstr ""
+msgid "Deselect all"
+msgstr "테이블 선택"
 
 #: superset-frontend/src/components/ListView/ListView.tsx:414
-#: superset-frontend/src/components/TableView/TableView.tsx:173
+#: superset-frontend/src/components/TableView/TableView.tsx:183
 #, python-format
 msgid "%s-%s of %s"
 msgstr ""
 
 #: superset-frontend/src/components/Menu/Menu.tsx:180
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:149
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:1037
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:134
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:1050
 msgid "Settings"
 msgstr ""
 
 #: superset-frontend/src/components/Menu/Menu.tsx:228
 msgid "About"
 msgstr ""
+
+#: superset-frontend/src/components/Menu/NewMenu.tsx:26
+#: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:114
+msgid "SQL query"
+msgstr "Query 저장"
 
 #: superset-frontend/src/dashboard/actions/dashboardLayout.js:180
 msgid ""
@@ -4587,7 +4554,8 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/ColorSchemeControlWrapper.jsx:56
 #: superset-frontend/src/explore/controlPanels/sections.jsx:78
-msgid "Color Scheme"
+#: superset-frontend/src/explore/controls.jsx:482
+msgid "Color scheme"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/CssEditor.jsx:67
@@ -4599,7 +4567,7 @@ msgid "Load a CSS template"
 msgstr "CSS 템플릿 불러오기"
 
 #: superset-frontend/src/dashboard/components/CssEditor.jsx:88
-msgid "Live CSS Editor"
+msgid "Live CSS editor"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/Dashboard.jsx:84
@@ -4618,7 +4586,7 @@ msgid "Your dashboard is too large. Please reduce the size before save it."
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/Header.jsx:459
-msgid "Discard Changes"
+msgid "Discard changes"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/HeaderActionsDropdown.jsx:123
@@ -4626,16 +4594,12 @@ msgid "An error occurred while fetching available CSS templates"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 #: superset-frontend/src/dashboard/components/HeaderActionsDropdown.jsx:204
-msgid "Superset Dashboard"
+msgid "Superset dashboard"
 msgstr "대시보드 저장"
 
 #: superset-frontend/src/dashboard/components/HeaderActionsDropdown.jsx:206
 msgid "Check out this dashboard: "
 msgstr ""
-
-#: superset-frontend/src/dashboard/components/HeaderActionsDropdown.jsx:249
-msgid "Share dashboard"
-msgstr "대시보드 저장"
 
 #: superset-frontend/src/dashboard/components/HeaderActionsDropdown.jsx:257
 msgid "Refresh dashboard"
@@ -4664,7 +4628,7 @@ msgid "Download as image"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/HeaderActionsDropdown.jsx:305
-msgid "Toggle FullScreen"
+msgid "Toggle fullscreen"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/MissingChart.jsx:31
@@ -4679,8 +4643,8 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/PropertiesModal.jsx:69
 #: superset-frontend/src/dashboard/components/nativeFilters/ColumnSelect.tsx:82
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:113
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:448
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:105
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:453
 #: superset-frontend/src/datasource/DatasourceModal.tsx:123
 #: superset-frontend/src/explore/components/PropertiesModal.tsx:66
 msgid "An error has occurred"
@@ -4688,7 +4652,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/PropertiesModal.jsx:77
 #: superset-frontend/src/dashboard/components/nativeFilters/ColumnSelect.tsx:84
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:115
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:107
 msgid "You do not have permission to edit this dashboard"
 msgstr ""
 
@@ -4708,7 +4672,7 @@ msgid "Apply"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/PropertiesModal.jsx:295
-msgid "Dashboard Properties"
+msgid "Dashboard properties"
 msgstr "대시보드"
 
 #: superset-frontend/src/dashboard/components/PropertiesModal.jsx:324
@@ -4716,11 +4680,11 @@ msgstr "대시보드"
 #: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:270
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayerModal.tsx:224
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplateModal.tsx:242
-msgid "Basic Information"
+msgid "Basic information"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/PropertiesModal.jsx:341
-msgid "URL Slug"
+msgid "URL slug"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/PropertiesModal.jsx:351
@@ -4743,8 +4707,13 @@ msgid "Colors"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/PropertiesModal.jsx:394
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:591
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:596
 msgid "Advanced"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/PropertiesModal.jsx:400
+#: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:319
+msgid "JSON metadata"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/PublishedStatus.jsx:33
@@ -4811,7 +4780,7 @@ msgid "24 hours"
 msgstr "24시간"
 
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:115
-msgid "Refresh Interval"
+msgid "Refresh interval"
 msgstr "새로고침 간격"
 
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:118
@@ -4831,7 +4800,7 @@ msgid "You must pick a name for the new dashboard"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/SaveModal.tsx:181
-msgid "Save Dashboard"
+msgid "Save dashboard"
 msgstr "대시보드 저장"
 
 #: superset-frontend/src/dashboard/components/SaveModal.tsx:190
@@ -4874,12 +4843,12 @@ msgid "Fetched %s"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls.jsx:202
-msgid "Minimize Chart"
-msgstr ""
+msgid "Minimize chart"
+msgstr "차트 이동"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls.jsx:202
-msgid "Maximize Chart"
-msgstr ""
+msgid "Maximize chart"
+msgstr "차트 이동"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls.jsx:215
 msgid "Force refresh"
@@ -4890,7 +4859,7 @@ msgid "Toggle chart description"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls.jsx:231
-msgid "View Chart in Explore"
+msgid "View chart in Explore"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls.jsx:243
@@ -4959,7 +4928,7 @@ msgid ""
 "This markdown component has an error. Please revert your recent changes."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/gridComponents/Tabs.jsx:169
+#: superset-frontend/src/dashboard/components/gridComponents/Tabs.jsx:153
 msgid "Delete dashboard tab?"
 msgstr "대시보드"
 
@@ -4983,102 +4952,116 @@ msgstr ""
 msgid "Preview"
 msgstr "데이터 미리보기"
 
-#: superset-frontend/src/dashboard/components/nativeFilters/CascadePopover.tsx:121
-msgid "Select Parent Filters"
+#: superset-frontend/src/dashboard/components/nativeFilters/CancelConfirmationAlert.tsx:92
+msgid "Yes, cancel"
 msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/CancelConfirmationAlert.tsx:100
+msgid "Keep editing"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/CascadePopover.tsx:121
+msgid "Select parent filters"
+msgstr "필터"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar.tsx:455
-msgid "Reset All"
+msgid "Reset all"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:132
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:117
 msgid "You have removed this filter."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:135
-msgid "Restore Filter"
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:120
+msgid "Restore filter"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:153
-msgid "Filter Name"
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:138
+msgid "Filter name"
 msgstr "필터"
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:155
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:140
 msgid "Name is required"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:164
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:149
 msgid "Datasource is required"
 msgstr "데이터소스"
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:183
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:168
 msgid "Field"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:196
-msgid "Default Value"
-msgstr ""
-
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:203
-msgid "Parent Filter"
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:180
+msgid "Parent filter"
 msgstr "필터"
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:209
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:186
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:87
 msgid "None"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:221
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:198
 msgid "Apply changes instantly"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:229
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:206
+#: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:215
 msgid "Allow multiple selections"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:237
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:214
 msgid "Inverse selection"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:245
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:222
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:251
 msgid "Required"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:247
-msgid "Scoping"
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:464
+msgid "Are you sure you want to cancel?"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:257
-msgid "Apply to all panels"
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:465
+msgid "will not be saved."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:259
-msgid "Apply to specific panels"
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:483
+msgid "Filter configuration and scoping"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:267
-msgid "Only selected panels will be affected by this filter"
-msgstr ""
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:516
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterControl.jsx:361
+msgid "Add filter"
+msgstr "테이블 추가"
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:268
-msgid "All panels with this column will be affected by this filter"
-msgstr ""
-
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:429
-msgid "Filter Configuration and Scoping"
-msgstr ""
-
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:468
-msgid "Add Filter"
-msgstr ""
-
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:480
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:528
 msgid "(Removed)"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:489
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:537
 msgid "Undo?"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterScope.tsx:68
+msgid "Scoping"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterScope.tsx:83
+msgid "Apply to all panels"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterScope.tsx:85
+msgid "Apply to specific panels"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterScope.tsx:91
+msgid "Only selected panels will be affected by this filter"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterScope.tsx:92
+msgid "All panels with this column will be affected by this filter"
 msgstr ""
 
 #: superset-frontend/src/dashboard/util/getFilterFieldNodesTree.js:44
@@ -5109,47 +5092,56 @@ msgstr ""
 
 #: superset-frontend/src/datasource/ChangeDatasourceModal.tsx:223
 #: superset-frontend/src/explore/components/controls/DatasourceControl.jsx:162
-msgid "Change Dataset"
-msgstr ""
+msgid "Change dataset"
+msgstr "데이터소스 선택"
 
-#: superset-frontend/src/datasource/ChangeDatasourceModal.tsx:248
+#: superset-frontend/src/datasource/ChangeDatasourceModal.tsx:250
 msgid "Warning!"
 msgstr ""
 
-#: superset-frontend/src/datasource/ChangeDatasourceModal.tsx:258
+#: superset-frontend/src/datasource/ChangeDatasourceModal.tsx:260
 msgid "Search / Filter"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:87
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:91
 msgid "Physical (table or view)"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:88
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:92
 msgid "Virtual (SQL)"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:162
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:205
-msgid "Data Type"
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:135
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:838
+msgid "SQL expression"
+msgstr ""
+
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:167
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:210
+msgid "Data type"
 msgstr "차트 유형"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:174
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:175
+msgid "Datetime format"
+msgstr ""
+
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:179
 msgid "The pattern of timestamp format. For strings use "
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:176
-msgid "python datetime string pattern"
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:181
+msgid "Python datetime string pattern"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:178
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:183
 msgid " expression which needs to adhere to the "
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:180
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:185
 msgid "ISO 8601"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:182
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:187
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -5167,77 +5159,73 @@ msgid ""
 "                      database/column name level via the extra parameter."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:206
-msgid "Is Dimension"
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:211
+msgid "Is dimension"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:207
-msgid "Is Temporal"
-msgstr ""
-
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:208
-msgid "Is Filterable"
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:213
+msgid "Is filterable"
 msgstr "필터"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:429
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:434
 #, python-format
 msgid "Modified columns: %s"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:434
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:439
 #, python-format
 msgid "Removed columns: %s"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:439
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:444
 #, python-format
 msgid "New columns added: %s"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:442
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:447
 msgid "Metadata has been synced"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:477
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:482
 #, python-format
 msgid "Column name [%s] is duplicated"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:483
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:488
 #, python-format
 msgid "Metric name [%s] is duplicated"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:492
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:497
 #, python-format
 msgid "Calculated column [%s] requires an expression"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:507
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:512
 msgid "Basic"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:520
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:525
 msgid "Default URL"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:521
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:526
 msgid "Default URL to redirect to when accessing from the dataset list page"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:528
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:533
 msgid "Autocomplete filters"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:529
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:534
 msgid "Whether to populate autocomplete filters options"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:535
-msgid "Autocomplete Query Predicate"
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:540
+msgid "Autocomplete query predicate"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:536
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:541
 msgid ""
 "When using \"Autocomplete filters\", this can be used to improve performance "
 "of the query fetching the values. Use this option to apply a predicate "
@@ -5246,112 +5234,126 @@ msgid ""
 "filter on a partitioned or indexed time-related field."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:550
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:555
 msgid ""
 "Extra data to specify table metadata. Currently supports certification data "
 "of the format: `{ \"certification\": { \"certified_by\": \"Data Platform Team"
 "\", \"details\": \"This table is the source of truth.\" } }`."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:568
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:573
 msgid "Owners of the dataset"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:598
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:602
+#: superset-frontend/src/explore/components/PropertiesModal.tsx:238
+msgid "Cache timeout"
+msgstr ""
+
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:603
 msgid "The duration of time in seconds before the cache is invalidated"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:605
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:610
 msgid "Hours offset"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:627
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:632
 msgid "Spatial"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:679
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:684
 msgid "virtual"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:700
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:707
-msgid "dataset name"
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:705
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:712
+msgid "Dataset name"
 msgstr "데이터소스 명"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:715
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:720
 msgid ""
 "When specifying SQL, the datasource acts as a view. Superset will use this "
 "statement as a subquery while grouping and filtering on the generated parent "
 "queries."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:738
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:743
 msgid "The JSON metric or post aggregation definition."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:753
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:758
 msgid "Physical"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:783
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:788
 msgid ""
 "The pointer to a physical table (or view). Keep in mind that the chart is "
 "associated to this Superset logical table, and this logical table points the "
 "physical table referenced here."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:802
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:807
 msgid "Click the lock to make changes."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:805
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:810
 msgid "Click the lock to prevent further changes."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:863
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:860
+msgid "D3 format"
+msgstr ""
+
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:866
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:874
+msgid "Warning message"
+msgstr ""
+
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:868
 msgid "Warning message to display in the metric selector"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:874
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:882
-msgid "Certified By"
-msgstr ""
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:879
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:887
+msgid "Certified by"
+msgstr "수정됨"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:876
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:881
 msgid "Person or group that has certified this metric"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:887
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:893
-msgid "Certification Details"
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:892
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:898
+msgid "Certification details"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:889
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:894
 msgid "Details of the certification"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:957
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:963
 msgid "Be careful."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:958
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:964
 msgid ""
 "Changing these settings will affect all charts using this dataset, including "
 "charts owned by other people."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:970
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:976
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1121
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:267
 msgid "Source"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:1005
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:1009
 msgid "Sync columns from source"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:1014
-msgid "Calculated Columns"
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:1027
+msgid "Calculated columns"
 msgstr "컬럼 목록"
 
 #: superset-frontend/src/datasource/DatasourceModal.tsx:114
@@ -5381,10 +5383,11 @@ msgid "Edit Dataset "
 msgstr "차트 수정"
 
 #: superset-frontend/src/datasource/DatasourceModal.tsx:193
-msgid "Use Legacy Datasource Editor"
+msgid "Use legacy datasource editor"
 msgstr ""
 
 #: superset-frontend/src/explore/constants.js:80
+#: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:389
 msgid "Time range"
 msgstr ""
 
@@ -5421,7 +5424,7 @@ msgstr ""
 msgid "One or many metrics to display"
 msgstr ""
 
-#: superset-frontend/src/explore/components/ExploreViewContainer.jsx:416
+#: superset-frontend/src/explore/components/ExploreViewContainer.jsx:419
 #: superset-frontend/src/explore/controls.jsx:195
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:233
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:436
@@ -5430,6 +5433,7 @@ msgid "Dataset"
 msgstr "데이터베이스"
 
 #: superset-frontend/src/explore/controls.jsx:206
+#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:220
 msgid "Visualization type"
 msgstr "시각화 유형"
 
@@ -5583,10 +5587,6 @@ msgid ""
 "is forced to `.1%`"
 msgstr ""
 
-#: superset-frontend/src/explore/controls.jsx:482
-msgid "Color scheme"
-msgstr ""
-
 #: superset-frontend/src/explore/controls.jsx:486
 msgid "The color scheme for rendering chart"
 msgstr ""
@@ -5594,100 +5594,6 @@ msgstr ""
 #: superset-frontend/src/explore/controls.jsx:492
 msgid "Color map"
 msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopover.jsx:159
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:329
-msgid "Simple"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopover.jsx:176
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:382
-msgid "Custom SQL"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:267
-#: superset-frontend/src/explore/components/controls/SelectControl.jsx:237
-#, python-format
-msgid "%s option(s)"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:282
-msgid "No such column found. To filter on a metric, try the Custom SQL tab."
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:291
-#, python-format
-msgid "%s column(s) and metric(s)"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:301
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:265
-#, python-format
-msgid "%s column(s)"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:302
-msgid "To filter on a metric, use Custom SQL tab."
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:307
-#, python-format
-msgid "%s operators(s)"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:326
-msgid "type a value here"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:385
-msgid "Filter value (case sensitive)"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSqlTabContent.jsx:92
-msgid "choose WHERE or HAVING..."
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSqlTabContent.jsx:127
-msgid "filters by columns"
-msgstr "컬럼 목록"
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSqlTabContent.jsx:129
-msgid "filters by metrics"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterPopoverTrigger.tsx:94
-msgid ""
-"\n"
-"                This filter was inherited from the dashboard's context.\n"
-"                It won't be saved when saving the chart.\n"
-"              "
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:276
-#, python-format
-msgid "%s aggregates(s)"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:285
-#, python-format
-msgid "%s saved metric(s)"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:332
-msgid "column"
-msgstr "컬럼 추가"
-
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:348
-msgid "aggregate"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:359
-msgid "Saved"
-msgstr "저장"
-
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:362
-msgid "Saved metric"
-msgstr "저장된 Query"
 
 #: superset-frontend/src/explore/components/ControlHeader.jsx:56
 #: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:310
@@ -5703,7 +5609,7 @@ msgstr ""
 msgid "Changing this control takes effect instantly"
 msgstr ""
 
-#: superset-frontend/src/explore/components/ControlPanelsContainer.jsx:249
+#: superset-frontend/src/explore/components/ControlPanelsContainer.jsx:251
 msgid "Customize"
 msgstr ""
 
@@ -5711,20 +5617,16 @@ msgstr ""
 msgid "rows retrieved"
 msgstr ""
 
-#: superset-frontend/src/explore/components/DataTablesPane.tsx:130
+#: superset-frontend/src/explore/components/DataTablesPane.tsx:131
 #: superset-frontend/src/explore/components/DisplayQueryButton.jsx:98
 msgid "Sorry, An error occurred"
 msgstr ""
 
-#: superset-frontend/src/explore/components/DataTablesPane.tsx:216
+#: superset-frontend/src/explore/components/DataTablesPane.tsx:217
 msgid "No data"
 msgstr ""
 
-#: superset-frontend/src/explore/components/DataTablesPane.tsx:257
-msgid "View results"
-msgstr "결과"
-
-#: superset-frontend/src/explore/components/DataTablesPane.tsx:260
+#: superset-frontend/src/explore/components/DataTablesPane.tsx:261
 msgid "View samples"
 msgstr ""
 
@@ -5780,12 +5682,12 @@ msgstr ""
 msgid "Edit chart properties"
 msgstr ""
 
-#: superset-frontend/src/explore/components/ExploreViewContainer.jsx:342
+#: superset-frontend/src/explore/components/ExploreViewContainer.jsx:345
 msgid "Control labeled "
 msgstr ""
 
-#: superset-frontend/src/explore/components/ExploreViewContainer.jsx:446
-msgid "Open Datasource Tab"
+#: superset-frontend/src/explore/components/ExploreViewContainer.jsx:449
+msgid "Open Datasource tab"
 msgstr "데이터소스 명"
 
 #: superset-frontend/src/explore/components/PropertiesModal.tsx:68
@@ -5829,37 +5731,33 @@ msgstr ""
 msgid "Please enter a chart name"
 msgstr ""
 
-#: superset-frontend/src/explore/components/SaveModal.tsx:165
-msgid "Save Chart"
+#: superset-frontend/src/explore/components/SaveModal.tsx:170
+msgid "Save chart"
 msgstr "차트 보기"
 
-#: superset-frontend/src/explore/components/SaveModal.tsx:180
+#: superset-frontend/src/explore/components/SaveModal.tsx:185
 msgid "Save & go to dashboard"
 msgstr ""
 
-#: superset-frontend/src/explore/components/SaveModal.tsx:191
+#: superset-frontend/src/explore/components/SaveModal.tsx:196
 msgid "Save as new chart"
 msgstr "새 차트 생성"
 
-#: superset-frontend/src/explore/components/SaveModal.tsx:220
+#: superset-frontend/src/explore/components/SaveModal.tsx:225
 msgid "Save (Overwrite)"
 msgstr "저장된 Query"
 
-#: superset-frontend/src/explore/components/SaveModal.tsx:230
+#: superset-frontend/src/explore/components/SaveModal.tsx:235
 msgid "Save as ..."
 msgstr "다른이름으로 저장"
 
-#: superset-frontend/src/explore/components/SaveModal.tsx:235
+#: superset-frontend/src/explore/components/SaveModal.tsx:240
 msgid "Chart name"
 msgstr "차트 유형"
 
-#: superset-frontend/src/explore/components/SaveModal.tsx:247
+#: superset-frontend/src/explore/components/SaveModal.tsx:252
 msgid "Add to dashboard"
 msgstr "대시보드 추가"
-
-#: superset-frontend/src/explore/components/controls/AdhocFilterControl.jsx:361
-msgid "Add filter"
-msgstr "테이블 추가"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:601
 msgid "Display configuration"
@@ -5882,11 +5780,11 @@ msgid "Color"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:651
-msgid "Line Width"
+msgid "Line width"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:701
-msgid "Layer Configuration"
+msgid "Layer configuration"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:702
@@ -5899,20 +5797,30 @@ msgid "Mandatory"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:714
-msgid "Hide Layer"
+msgid "Hide layer"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:720
-msgid "Choose the Annotation Layer Type"
+msgid "Choose the annotation layer type"
 msgstr "주석 레이어"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:721
-msgid "Annotation Layer Type"
+msgid "Annotation layer type"
 msgstr "주석 레이어"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:753
 msgid "Remove"
 msgstr ""
+
+#: superset-frontend/src/explore/components/controls/AnnotationLayerControl.jsx:166
+msgid "Edit annotation layer"
+msgstr "주석 레이어"
+
+#: superset-frontend/src/explore/components/controls/AnnotationLayerControl.jsx:191
+#: superset-frontend/src/explore/components/controls/AnnotationLayerControl.jsx:203
+#: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayerModal.tsx:219
+msgid "Add annotation layer"
+msgstr "주석 레이어"
 
 #: superset-frontend/src/explore/components/controls/BoundsControl.jsx:73
 msgid "`Min` value should be numeric or empty"
@@ -5931,7 +5839,7 @@ msgid "Max"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DatasourceControl.jsx:159
-msgid "Edit Dataset"
+msgid "Edit dataset"
 msgstr "차트 수정"
 
 #: superset-frontend/src/explore/components/controls/DatasourceControl.jsx:163
@@ -5959,7 +5867,7 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:184
-msgid "Sort Metric"
+msgid "Sort metric"
 msgstr "메트릭"
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:185
@@ -5967,15 +5875,11 @@ msgid "Metric to sort the results by"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:204
-msgid "Sort Ascending"
+msgid "Sort ascending"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:205
 msgid "Check for sorting ascending"
-msgstr ""
-
-#: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:215
-msgid "Allow Multiple Selections"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:217
@@ -5984,7 +5888,7 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:231
-msgid "Search All Filter Options"
+msgid "Search all filter options"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:232
@@ -6000,12 +5904,8 @@ msgid "User must select a value for this filter"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:281
-msgid "Filter Configuration"
+msgid "Filter configuration"
 msgstr ""
-
-#: superset-frontend/src/explore/components/controls/MetricsControl.jsx:383
-msgid "Add metric"
-msgstr "메트릭"
 
 #: superset-frontend/src/explore/components/controls/SelectAsyncControl.jsx:45
 msgid "Error while fetching data"
@@ -6014,6 +5914,12 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/SelectControl.jsx:76
 #: superset-frontend/src/visualizations/FilterBox/FilterBox.jsx:404
 msgid "No results found"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:267
+#: superset-frontend/src/explore/components/controls/SelectControl.jsx:237
+#, python-format
+msgid "%s option(s)"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/SpatialControl.jsx:82
@@ -6052,8 +5958,8 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl.jsx:48
 #: superset-frontend/src/explore/controlPanels/TimeTable.js:38
-msgid "Time Series Columns"
-msgstr ""
+msgid "Time series columns"
+msgstr "컬럼 수정"
 
 #: superset-frontend/src/explore/components/controls/VizTypeControl.jsx:105
 msgid "This visualization type is not supported."
@@ -6093,7 +5999,7 @@ msgid "Edit time range"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/frame/AdvancedFrame.tsx:51
-msgid "Configure Advanced Time Range"
+msgid "Configure advanced time range"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/frame/AdvancedFrame.tsx:52
@@ -6115,7 +6021,7 @@ msgid "Configure Time Range: Last..."
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/frame/CustomFrame.tsx:121
-msgid "Configure Custom Time Range"
+msgid "Configure custom time range"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/frame/CustomFrame.tsx:151
@@ -6124,7 +6030,7 @@ msgid "Relative quantity"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/frame/CustomFrame.tsx:229
-msgid "ANCHOR TO"
+msgid "Anchor to"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/frame/CustomFrame.tsx:238
@@ -6135,13 +6041,109 @@ msgstr ""
 msgid "Date/Time"
 msgstr "시작 시간"
 
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopover.jsx:159
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:367
+msgid "Simple"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopover.jsx:176
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:399
+msgid "Custom SQL"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:282
+msgid "No such column found. To filter on a metric, try the Custom SQL tab."
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:291
+#, python-format
+msgid "%s column(s) and metric(s)"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:301
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:286
+#, python-format
+msgid "%s column(s)"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:302
+msgid "To filter on a metric, use Custom SQL tab."
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:307
+#, python-format
+msgid "%s operator(s)"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:326
+msgid "Type a value here"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:385
+msgid "Filter value (case sensitive)"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent.jsx:92
+msgid "choose WHERE or HAVING..."
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent.jsx:127
+msgid "Filters by columns"
+msgstr "컬럼 목록"
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent.jsx:129
+msgid "Filters by metrics"
+msgstr "필터"
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger.tsx:94
+msgid ""
+"\n"
+"                This filter was inherited from the dashboard's context.\n"
+"                It won't be saved when saving the chart.\n"
+"              "
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:297
+#, python-format
+msgid "%s aggregates(s)"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:306
+#, python-format
+msgid "%s saved metric(s)"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:346
+msgid "Saved"
+msgstr "저장"
+
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:349
+msgid "Saved metric"
+msgstr "저장된 Query"
+
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:370
+msgid "column"
+msgstr "컬럼 추가"
+
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:386
+msgid "aggregate"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle.jsx:73
+msgid "My metric"
+msgstr "메트릭"
+
+#: superset-frontend/src/explore/components/controls/MetricControl/MetricsControl.jsx:402
+msgid "Add metric"
+msgstr "메트릭"
+
 #: superset-frontend/src/explore/controlPanels/Separator.js:25
 #: superset-frontend/src/explore/controlPanels/Separator.js:46
 msgid "Code"
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/Separator.js:32
-msgid "Markup Type"
+msgid "Markup type"
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/Separator.js:37
@@ -6180,7 +6182,7 @@ msgid "Time related form attributes"
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:31
-msgid "Chart Type"
+msgid "Chart type"
 msgstr "차트 유형"
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:41
@@ -6200,7 +6202,7 @@ msgid "The number of seconds before expiring the cache"
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:59
-msgid "URL Parameters"
+msgid "URL parameters"
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:61
@@ -6216,11 +6218,11 @@ msgid "Time range endpoints (SIP-15)"
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:90
-msgid "Annotations and Layers"
-msgstr ""
+msgid "Annotations and layers"
+msgstr "주석 레이어"
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:124
-msgid "Sort Descending"
+msgid "Sort descending"
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:126
@@ -6236,7 +6238,7 @@ msgid "Compute the contribution to the total"
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:143
-msgid "Advanced Analytics"
+msgid "Advanced analytics"
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:145
@@ -6246,11 +6248,11 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:151
-msgid "Rolling Window"
+msgid "Rolling window"
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:157
-msgid "Rolling Function"
+msgid "Rolling function"
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:166
@@ -6270,7 +6272,7 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:188
-msgid "Min Periods"
+msgid "Min periods"
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:190
@@ -6282,11 +6284,11 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:200
-msgid "Time Comparison"
-msgstr ""
+msgid "Time comparison"
+msgstr "컬럼 수정"
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:208
-msgid "Time Shift"
+msgid "Time shift"
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:219
@@ -6308,7 +6310,7 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:247
-msgid "Python Functions"
+msgid "Python functions"
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:256
@@ -6332,11 +6334,11 @@ msgid "Favorites"
 msgstr ""
 
 #: superset-frontend/src/profile/components/App.tsx:62
-msgid "Created Content"
-msgstr ""
+msgid "Created content"
+msgstr "새 차트 생성"
 
 #: superset-frontend/src/profile/components/App.tsx:76
-msgid "Recent Activity"
+msgid "Recent activity"
 msgstr ""
 
 #: superset-frontend/src/profile/components/App.tsx:90
@@ -6433,16 +6435,16 @@ msgid "There was an issue deleting the selected %s: %s"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:213
-msgid "Last Run"
+msgid "Last run"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:245
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1331
-msgid "Notification Method"
-msgstr ""
+msgid "Notification method"
+msgstr "주석 레이어"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:292
-msgid "Execution Log"
+msgid "Execution log"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:320
@@ -6466,7 +6468,7 @@ msgstr "주석"
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:472
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:468
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:133
-msgid "Bulk Select"
+msgid "Bulk select"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:361
@@ -6484,8 +6486,8 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:251
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:380
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:264
-msgid "Created By"
-msgstr ""
+msgid "Created by"
+msgstr "생성자"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:377
 #, python-format
@@ -6518,6 +6520,10 @@ msgstr ""
 msgid "${AlertState.grace}"
 msgstr ""
 
+#: superset-frontend/src/views/CRUD/alert/AlertList.tsx:411
+msgid "Alerts & reports"
+msgstr ""
+
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:421
 msgid "Reports"
 msgstr ""
@@ -6535,8 +6541,12 @@ msgstr "삭제"
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:460
 #: superset-frontend/src/views/CRUD/annotation/AnnotationList.tsx:305
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:361
+#: superset-frontend/src/views/CRUD/chart/ChartCard.tsx:72
+#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:297
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:550
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:325
+#: superset-frontend/src/views/CRUD/dashboard/DashboardCard.tsx:94
+#: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:283
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:501
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:581
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:435
@@ -6565,15 +6575,15 @@ msgid ">= (Larger or equal)"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:72
-msgid "== (Is Equal)"
+msgid "== (Is equal)"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:76
-msgid "!= (Is Not Equal)"
+msgid "!= (Is not equal)"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:80
-msgid "Not Null"
+msgid "Not null"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:91
@@ -6619,16 +6629,16 @@ msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1063
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1071
-msgid "Report Name"
-msgstr ""
+msgid "Report name"
+msgstr "차트 유형"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1063
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1071
-msgid "Alert Name"
+msgid "Alert name"
 msgstr "테이블 명"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1117
-msgid "Alert Condition"
+msgid "Alert condition"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1161
@@ -6642,23 +6652,23 @@ msgid "Value"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1213
-msgid "Report Schedule"
+msgid "Report schedule"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1214
-msgid "Alert Condition Schedule"
+msgid "Alert condition schedule"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1224
-msgid "Schedule Settings"
-msgstr ""
+msgid "Schedule settings"
+msgstr "Query 공유"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1228
-msgid "Log Retention"
+msgid "Log retention"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1252
-msgid "Working Timeout"
+msgid "Working timeout"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1260
@@ -6667,11 +6677,11 @@ msgid "Time in seconds"
 msgstr "10초"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1267
-msgid "Grace Period"
+msgid "Grace period"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1282
-msgid "Message Content"
+msgid "Message content"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/ExecutionLog.tsx:63
@@ -6688,11 +6698,15 @@ msgid "Scheduled at"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/ExecutionLog.tsx:108
-msgid "Start At"
+msgid "Start at"
 msgstr "시작 시간"
 
 #: superset-frontend/src/views/CRUD/alert/ExecutionLog.tsx:118
 msgid "Duration"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/alert/ExecutionLog.tsx:127
+msgid "Error message"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/ExecutionLog.tsx:139
@@ -6700,36 +6714,36 @@ msgid "${alertResource?.type}"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertReportCronScheduler.tsx:77
-msgid "CRON Expression"
+msgid "CRON expression"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:62
-msgid "Report Sent"
-msgstr ""
+msgid "Report sent"
+msgstr "대시보드 가져오기"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:63
-msgid "Alert Triggered, Notification Sent"
+msgid "Alert triggered, notification sent"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:69
-msgid "Report Sending"
+msgid "Report sending"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:70
-msgid "Alert Running"
+msgid "Alert running"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:76
-msgid "Report Failed"
+msgid "Report failed"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:77
-msgid "Alert Failed"
-msgstr ""
+msgid "Alert failed"
+msgstr "테이블 명"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:82
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:92
-msgid "Nothing Triggered"
+msgid "Nothing triggered"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:87
@@ -6754,8 +6768,13 @@ msgstr "주석"
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr ""
 
+#: superset-frontend/src/views/CRUD/annotation/AnnotationList.tsx:180
+#: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:265
+msgid "Edit annotation"
+msgstr "주석"
+
 #: superset-frontend/src/views/CRUD/annotation/AnnotationList.tsx:187
-msgid "Delete Annotation"
+msgid "Delete annotation"
 msgstr "주석"
 
 #: superset-frontend/src/views/CRUD/annotation/AnnotationList.tsx:208
@@ -6784,8 +6803,12 @@ msgstr "주석"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr ""
 
+#: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:265
+msgid "Add annotation"
+msgstr "주석"
+
 #: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:274
-msgid "annotation name"
+msgid "Annotation name"
 msgstr "주석 레이어"
 
 #: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:286
@@ -6793,16 +6816,12 @@ msgid "date"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:307
-msgid "Additional Information"
-msgstr ""
+msgid "Additional information"
+msgstr "주석"
 
 #: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:314
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayerModal.tsx:243
 msgid "Description (this can be seen in the list)"
-msgstr ""
-
-#: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:319
-msgid "json metadata"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayerModal.tsx:107
@@ -6810,21 +6829,35 @@ msgid "annotation_layer"
 msgstr "주석 레이어"
 
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayerModal.tsx:218
-msgid "Edit Annotation Layer Properties"
+msgid "Edit annotation layer properties"
 msgstr "주석 레이어"
 
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayerModal.tsx:228
-msgid "annotation layer name"
+msgid "Annotation layer name"
 msgstr "주석 레이어"
 
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:67
-msgid "annotation layers"
+#: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:339
+msgid "Annotation layers"
 msgstr "주석 레이어"
 
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:112
 #, python-format
 msgid "There was an issue deleting the selected layers: %s"
 msgstr ""
+
+#: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:181
+#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:257
+#: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:158
+#: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:279
+msgid "Last modified"
+msgstr "마지막 수정"
+
+#: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:206
+#: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:184
+#: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:285
+msgid "Created on"
+msgstr "생성자"
 
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:231
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:210
@@ -6838,7 +6871,7 @@ msgstr "템플릿 불러오기"
 
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:266
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:323
-msgid "Annotation Layer"
+msgid "Annotation layer"
 msgstr "주석 레이어"
 
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:296
@@ -6862,13 +6895,6 @@ msgstr "삭제"
 
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:362
 msgid "Are you sure you want to delete the selected layers?"
-msgstr ""
-
-#: superset-frontend/src/views/CRUD/chart/ChartCard.tsx:72
-#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:297
-#: superset-frontend/src/views/CRUD/dashboard/DashboardCard.tsx:94
-#: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:283
-msgid "Please Confirm"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/chart/ChartCard.tsx:75
@@ -6907,7 +6933,7 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:247
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:220
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:292
-msgid "Modified By"
+msgid "Modified by"
 msgstr "수정됨"
 
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:370
@@ -6927,7 +6953,7 @@ msgid "An error occurred while fetching chart created by values: %s"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:412
-msgid "Viz Type"
+msgid "Viz type"
 msgstr "시각화 유형"
 
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:444
@@ -6962,19 +6988,24 @@ msgid "css_template"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplateModal.tsx:236
-msgid "Edit CSS Template Properties"
+msgid "Edit CSS template properties"
+msgstr "CSS 템플릿"
+
+#: superset-frontend/src/views/CRUD/csstemplates/CssTemplateModal.tsx:237
+msgid "Add CSS template"
 msgstr "CSS 템플릿"
 
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplateModal.tsx:246
-msgid "css template name"
-msgstr ""
+msgid "CSS template name"
+msgstr "CSS 템플릿"
 
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplateModal.tsx:258
 msgid "css"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:66
-msgid "css templates"
+#: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:240
+msgid "CSS templates"
 msgstr "CSS 템플릿"
 
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:115
@@ -6988,7 +7019,7 @@ msgid "Last modified by %s"
 msgstr "마지막 수정"
 
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:249
-msgid "Css Template"
+msgid "CSS template"
 msgstr "CSS 템플릿"
 
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:313
@@ -7085,7 +7116,7 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:210
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:372
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:443
-msgid "Asynchronous Query Execution"
+msgid "Asynchronous query execution"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:213
@@ -7094,7 +7125,7 @@ msgid "AQE"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:228
-msgid "Allow Data Manipulation Language"
+msgid "Allow data manipulation language"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:231
@@ -7102,8 +7133,8 @@ msgid "DML"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:243
-msgid "CSV Upload"
-msgstr ""
+msgid "CSV upload"
+msgstr "CSV 업로드"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:303
 msgid "Delete database"
@@ -7137,12 +7168,20 @@ msgstr ""
 msgid "Sorry there was an error fetching database information: %s"
 msgstr ""
 
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:349
+msgid "Edit database"
+msgstr "차트 수정"
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:349
+msgid "Add database"
+msgstr "데이터베이스"
+
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:361
 msgid "Connection"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:369
-msgid "Database Name"
+msgid "Database name"
 msgstr "데이터소스 명"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:377
@@ -7151,6 +7190,10 @@ msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:393
 msgid "dialect+driver://username:password@host:port/database"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:399
+msgid "Test connection"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:403
@@ -7169,6 +7212,11 @@ msgstr ""
 msgid "Performance"
 msgstr ""
 
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:417
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:423
+msgid "Chart cache timeout"
+msgstr "차트 유형"
+
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:445
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -7178,18 +7226,33 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:455
-msgid "SQL Lab Settings"
+msgid "SQL Lab settings"
 msgstr "SQL Lab"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:507
 msgid "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...)"
 msgstr ""
 
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:521
+msgid "Allow multi schema metadata fetch"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:533
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:539
+msgid "CTAS schema"
+msgstr "스키마"
+
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:544
 msgid ""
 "When allowing CREATE TABLE AS option in SQL Lab, this option forces the "
 "table to be created in this schema."
 msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:553
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:558
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:642
+msgid "Secure extra"
+msgstr "보안"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:568
 msgid "JSON string containing additional connection configuration."
@@ -7200,11 +7263,6 @@ msgid ""
 "This is used to provide connection information for systems like Hive, "
 "Presto, and BigQuery, which do not conform to the username:password syntax "
 "normally used by SQLAlchemy."
-msgstr ""
-
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:582
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:587
-msgid "Root Certificate"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:592
@@ -7227,7 +7285,7 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:628
-msgid "Allow Data Upload"
+msgid "Allow data upload"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:630
@@ -7281,7 +7339,7 @@ msgid "Error while saving dataset: %s"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 #: superset-frontend/src/views/CRUD/data/dataset/AddDatasetModal.tsx:117
-msgid "Add Dataset"
+msgid "Add dataset"
 msgstr "차트 추가"
 
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:53
@@ -7309,12 +7367,12 @@ msgid "An error occurred while fetching dataset related data: %s"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:204
-msgid "Physical Dataset"
-msgstr ""
+msgid "Physical dataset"
+msgstr "데이터소스 선택"
 
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:214
-msgid "Virtual Dataset"
-msgstr ""
+msgid "Virtual dataset"
+msgstr "차트 수정"
 
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:399
 #, python-format
@@ -7404,7 +7462,7 @@ msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:225
 #: superset-frontend/src/views/CRUD/data/query/QueryPreviewModal.tsx:147
-msgid "Tab Name"
+msgid "Tab name"
 msgstr "테이블 명"
 
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:257
@@ -7426,18 +7484,15 @@ msgstr "새로운 탭에서 Query실행"
 msgid "An error occurred while fetching database values: %s"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
-#: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:389
-msgid "Time Range"
-msgstr ""
-
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:395
 msgid "Search by query text"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/query/QueryPreviewModal.tsx:119
+#: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:315
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryPreviewModal.tsx:98
-msgid "Query Preview"
-msgstr "Query"
+msgid "Query preview"
+msgstr "데이터 미리보기"
 
 #: superset-frontend/src/views/CRUD/data/query/QueryPreviewModal.tsx:127
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryPreviewModal.tsx:106
@@ -7462,6 +7517,11 @@ msgstr "Query 공유"
 msgid "Executed query"
 msgstr "저장된 Query 수정"
 
+#: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:87
+#: superset-frontend/src/views/CRUD/welcome/Welcome.tsx:145
+msgid "Saved queries"
+msgstr "저장된 Query"
+
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:116
 #, python-format
 msgid "There was an issue previewing the selected query %s"
@@ -7475,10 +7535,6 @@ msgstr "복사됨!"
 #, python-format
 msgid "There was an issue deleting the selected queries: %s"
 msgstr ""
-
-#: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:315
-msgid "Query preview"
-msgstr "데이터 미리보기"
 
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:323
 msgid "Edit query"
@@ -7507,7 +7563,7 @@ msgid "Are you sure you want to delete the selected queries?"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryPreviewModal.tsx:126
-msgid "Query Name"
+msgid "Query name"
 msgstr "Query 검색"
 
 #: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:110
@@ -7548,10 +7604,6 @@ msgstr ""
 msgid "Recently edited charts, dashboards, and saved queries will appear here"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:114
-msgid "SQL QUERY"
-msgstr ""
-
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:115
 msgid ""
 "${tableName\n"
@@ -7566,8 +7618,8 @@ msgid "You don't have any favorites yet!"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:147
-msgid "SQL LAB QUERIES"
-msgstr ""
+msgid "SQL Lab queries"
+msgstr "SQL Lab"
 
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:148
 msgid "${tableName}"
@@ -7600,11 +7652,11 @@ msgid "Type or Select [%s]"
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/FilterBoxChartPlugin.js:25
-msgid "Filter Box"
-msgstr ""
+msgid "Filter box"
+msgstr "필터"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:27
-msgid "Filters Configuration"
+msgid "Filters configuration"
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:36
@@ -7612,16 +7664,16 @@ msgid "Filter configuration for the filter box"
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:49
-msgid "Date Filter"
-msgstr ""
+msgid "Date filter"
+msgstr "테이블 추가"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:51
 msgid "Whether to include a time filter"
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:58
-msgid "Instant Filtering"
-msgstr ""
+msgid "Instant filtering"
+msgstr "필터"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:61
 msgid ""
@@ -7630,39 +7682,39 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:72
-msgid "Show SQL Granularity Dropdown"
+msgid "Show SQL granularity dropdown"
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:74
-msgid "Check to include SQL Granularity dropdown"
+msgid "Check to include SQL granularity dropdown"
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:81
-msgid "Show SQL Time Column"
-msgstr ""
+msgid "Show SQL time column"
+msgstr "컬럼 수정"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:83
-msgid "Check to include Time Column dropdown"
+msgid "Check to include time column dropdown"
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:92
-msgid "Show Druid Granularity Dropdown"
+msgid "Show Druid granularity dropdown"
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:94
-msgid "Check to include Druid Granularity dropdown"
+msgid "Check to include Druid granularity dropdown"
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:101
-msgid "Show Druid Time Origin"
+msgid "Show Druid time origin"
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:103
-msgid "Check to include Time Origin dropdown"
+msgid "Check to include time origin dropdown"
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:113
-msgid "Limit Selector Values"
+msgid "Limit selector values"
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:114

@@ -19,16 +19,15 @@
 describe('Advanced analytics', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
-    cy.route('GET', '/superset/explore_json/**').as('getJson');
-    cy.route('POST', '/superset/explore_json/**').as('postJson');
+    cy.intercept('GET', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('postJson');
   });
 
   it('Create custom time compare', () => {
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
-    cy.get('.panel-title').contains('Advanced Analytics').click();
+    cy.get('.ant-collapse-header').contains('Advanced Analytics').click();
 
     cy.get('[data-test=time_compare]').find('.Select__control').click();
     cy.get('[data-test=time_compare]')
@@ -47,7 +46,7 @@ describe('Advanced analytics', () => {
       chartSelector: 'svg',
     });
 
-    cy.get('.panel-title').contains('Advanced Analytics').click();
+    cy.get('.ant-collapse-header').contains('Advanced Analytics').click();
     cy.get('[data-test=time_compare]')
       .find('.Select__multi-value__label')
       .contains('28 days');
@@ -60,9 +59,8 @@ describe('Advanced analytics', () => {
 describe('Annotations', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
-    cy.route('GET', '/superset/explore_json/**').as('getJson');
-    cy.route('POST', '/superset/explore_json/**').as('postJson');
+    cy.intercept('GET', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('postJson');
   });
 
   it('Create formula annotation y-axis goal line', () => {

@@ -176,7 +176,7 @@ class TestDruid(SupersetTestCase):
             "viz_type": "table",
             "granularity": "one+day",
             "druid_time_origin": "",
-            "since": "7+days+ago",
+            "since": "7 days ago",
             "until": "now",
             "row_limit": 5000,
             "include_search": "false",
@@ -193,7 +193,7 @@ class TestDruid(SupersetTestCase):
             "viz_type": "table",
             "granularity": "one+day",
             "druid_time_origin": "",
-            "since": "7+days+ago",
+            "since": "7 days ago",
             "until": "now",
             "row_limit": 5000,
             "include_search": "false",
@@ -535,7 +535,7 @@ class TestDruid(SupersetTestCase):
 
         form_data = {
             "viz_type": "table",
-            "since": "7+days+ago",
+            "since": "7 days ago",
             "until": "now",
             "metrics": ["count"],
             "groupby": [],

@@ -17,57 +17,25 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { styled, t, QueryFormData } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { Collapse } from 'src/common/components';
 import {
   ColumnOption,
   MetricOption,
-  ControlType,
+  ControlConfig,
+  DatasourceMeta,
 } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
 import { ExploreActions } from '../actions/exploreActions';
 import Control from './Control';
 
-interface DatasourceControl {
-  validationErrors: Array<any>;
-  mapStateToProps: QueryFormData;
-  type: ControlType;
-  label: string;
-  datasource?: DatasourceControl;
+interface DatasourceControl extends ControlConfig {
+  datasource?: DatasourceMeta;
 }
 
-type Columns = {
-  column_name: string;
-  description: string | undefined;
-  expression: string | undefined;
-  filterable: boolean;
-  groupby: string | undefined;
-  id: number;
-  is_dttm: boolean;
-  python_date_format: string;
-  type: string;
-  verbose_name: string;
-};
-
-type Metrics = {
-  certification_details: string | undefined;
-  certified_by: string | undefined;
-  d3format: string | undefined;
-  description: string | undefined;
-  expression: string;
-  id: number;
-  is_certified: boolean;
-  metric_name: string;
-  verbose_name: string;
-  warning_text: string;
-};
-
 interface Props {
-  datasource: {
-    columns: Array<Columns>;
-    metrics: Array<Metrics>;
-  };
+  datasource: DatasourceMeta;
   controls: {
     datasource: DatasourceControl;
   };
@@ -83,44 +51,9 @@ const DatasourceContainer = styled.div`
   max-height: 100%;
   .ant-collapse {
     height: auto;
-    border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
-    background-color: ${({ theme }) => theme.colors.grayscale.light4};
-  }
-  .ant-collapse > .ant-collapse-item > .ant-collapse-header {
-    padding-left: ${({ theme }) => theme.gridUnit * 2}px;
-    padding-bottom: 0px;
-  }
-  .ant-collapse-item {
-    background-color: ${({ theme }) => theme.colors.grayscale.light4};
-    .anticon.anticon-right.ant-collapse-arrow > svg {
-      transform: rotate(90deg) !important;
-      margin-right: ${({ theme }) => theme.gridUnit * -2}px;
-    }
-  }
-  .ant-collapse-item.ant-collapse-item-active {
-    .anticon.anticon-right.ant-collapse-arrow > svg {
-      transform: rotate(-90deg) !important;
-    }
-    .ant-collapse-header {
-      border: 0;
-    }
-  }
-  .header {
-    font-size: ${({ theme }) => theme.typography.sizes.l}px;
-    margin-left: ${({ theme }) => theme.gridUnit * -2}px;
-  }
-  .ant-collapse-borderless
-    > .ant-collapse-item
-    > .ant-collapse-content
-    > .ant-collapse-content-box {
-    padding: 0px;
   }
   .field-selections {
-    padding: ${({ theme }) =>
-      `${2 * theme.gridUnit}px ${2 * theme.gridUnit}px ${
-        4 * theme.gridUnit
-      }px`};
+    padding: ${({ theme }) => `0 0 ${4 * theme.gridUnit}px`};
     overflow: auto;
   }
   .field-length {
@@ -184,30 +117,42 @@ export default function DataSourcePanel({
     setList({
       columns: matchSorter(columns, value, {
         keys: [
-          'verbose_name',
-          'column_name',
           {
-            key: 'description',
+            key: 'verbose_name',
             threshold: rankings.CONTAINS,
           },
           {
-            key: 'expression',
+            key: 'column_name',
             threshold: rankings.CONTAINS,
+          },
+          {
+            key: item =>
+              [item.description, item.expression].map(
+                x => x?.replace(/[_\n\s]+/g, ' ') || '',
+              ),
+            threshold: rankings.CONTAINS,
+            maxRanking: rankings.CONTAINS,
           },
         ],
         keepDiacritics: true,
       }),
       metrics: matchSorter(metrics, value, {
         keys: [
-          'verbose_name',
-          'metric_name',
           {
-            key: 'description',
+            key: 'verbose_name',
             threshold: rankings.CONTAINS,
           },
           {
-            key: 'expression',
+            key: 'metric_name',
             threshold: rankings.CONTAINS,
+          },
+          {
+            key: item =>
+              [item.description, item.expression].map(
+                x => x?.replace(/[_\n\s]+/g, ' ') || '',
+              ),
+            threshold: rankings.CONTAINS,
+            maxRanking: rankings.CONTAINS,
           },
         ],
         keepDiacritics: true,
@@ -228,15 +173,8 @@ export default function DataSourcePanel({
   const metricSlice = lists.metrics.slice(0, 50);
   const columnSlice = lists.columns.slice(0, 50);
 
-  return (
-    <DatasourceContainer>
-      <Control
-        {...datasourceControl}
-        name="datasource"
-        validationErrors={datasourceControl.validationErrors}
-        actions={actions}
-        formData={datasourceControl.mapStateToProps}
-      />
+  const mainBody = (
+    <>
       <input
         type="text"
         onChange={evt => {
@@ -247,9 +185,10 @@ export default function DataSourcePanel({
       />
       <div className="field-selections">
         <Collapse
-          bordered={false}
+          bordered
           defaultActiveKey={['metrics', 'column']}
           expandIconPosition="right"
+          ghost
         >
           <Collapse.Panel
             header={<span className="header">{t('Metrics')}</span>}
@@ -279,6 +218,13 @@ export default function DataSourcePanel({
           </Collapse.Panel>
         </Collapse>
       </div>
+    </>
+  );
+
+  return (
+    <DatasourceContainer>
+      <Control {...datasourceControl} name="datasource" actions={actions} />
+      {datasource.id != null && mainBody}
     </DatasourceContainer>
   );
 }

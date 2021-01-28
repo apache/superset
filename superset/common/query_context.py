@@ -85,9 +85,8 @@ class QueryContext:
         self.cache_values = {
             "datasource": datasource,
             "queries": queries,
-            "force": force,
-            "result_type": result_type,
-            "result_format": result_format,
+            "result_type": self.result_type,
+            "result_format": self.result_format,
         }
 
     def get_query_result(self, query_object: QueryObject) -> Dict[str, Any]:
