@@ -245,6 +245,7 @@ class BaseViz:
         query_obj = self.query_obj()
         query_obj.update(
             {
+                "is_timeseries": False,
                 "groupby": [],
                 "metrics": [],
                 "orderby": [],
