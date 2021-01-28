@@ -98,7 +98,7 @@ def get_runs(
     ]
 
 
-def print_commit(commit):
+def print_commit(commit, branch):
     """Print out commit message for verification"""
     indented_message = "    \n".join(commit["message"].split("\n"))
     date_str = (
@@ -107,7 +107,7 @@ def print_commit(commit):
         .strftime("%a, %d %b %Y %H:%M:%S")
     )
     print(
-        f"""HEAD {commit["id"]}
+        f"""HEAD {commit["id"]} ({branch})
 Author: {commit["author"]["name"]} <{commit["author"]["email"]}>
 Date:   {date_str}
 
@@ -223,7 +223,8 @@ def cancel_github_workflows(
         head_commit = entry["head_commit"]
         if head_commit["id"] != last_sha:
             last_sha = head_commit["id"]
-            print_commit(head_commit)
+            print("")
+            print_commit(head_commit, entry["head_branch"])
         try:
             print(f"[{entry['status']}] {entry['name']}", end="\r")
             cancel_run(repo, entry["id"])
