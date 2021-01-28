@@ -650,7 +650,7 @@ tox -e <environment>
 For example,
 
 ```bash
-tox -e py36
+tox -e py38
 ```
 
 Alternatively, you can run all tests in a single file via,
