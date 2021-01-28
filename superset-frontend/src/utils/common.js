@@ -139,22 +139,15 @@ export function applyFormattingToTabularData(data) {
 export const noOp = () => undefined;
 
 // Detects the user's OS through the browser
-export const detectOS = (version = 'Unknown') => {
-  let OSName = 'Unknown OS';
-  let versionCopy = version;
+export const detectOS = () => {
   const { appVersion } = navigator;
-  if (version) {
-    versionCopy = appVersion;
-  }
 
-  console.log(versionCopy);
+  // Leveraging this condition because of stackOverflow
+  // https://stackoverflow.com/questions/11219582/how-to-detect-my-browser-version-and-operating-system-using-javascript
+  if (appVersion.indexOf('Win') !== -1) return 'Windows';
+  if (appVersion.indexOf('Mac') !== -1) return 'MacOS';
+  if (appVersion.indexOf('X11') !== -1) return 'UNIX';
+  if (appVersion.indexOf('Linux') !== -1) return 'Linux';
 
-  if (versionCopy.indexOf('Win') !== -1) OSName = 'Windows';
-  if (versionCopy.indexOf('Mac') !== -1) OSName = 'MacOS';
-  if (versionCopy.indexOf('X11') !== -1) OSName = 'UNIX';
-  if (versionCopy.indexOf('Linux') !== -1) OSName = 'Linux';
-
-  console.log(OSName);
-
-  return OSName;
+  return 'Unknown OS';
 };
