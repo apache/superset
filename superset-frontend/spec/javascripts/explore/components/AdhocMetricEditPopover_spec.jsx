@@ -56,6 +56,7 @@ function setup(overrides) {
     onChange,
     onClose,
     onResize: () => {},
+    getCurrentLabel: () => {},
     columns,
     ...overrides,
   };
