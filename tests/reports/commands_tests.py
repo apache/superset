@@ -62,7 +62,7 @@ def get_target_from_report_schedule(report_schedule) -> List[str]:
 
 
 def assert_log(state: str, error_message: Optional[str] = None):
-    # db.session.commit()
+    db.session.commit()
     logs = db.session.query(ReportExecutionLog).all()
     if state == ReportState.WORKING:
         assert len(logs) == 1
@@ -574,7 +574,7 @@ def test_report_schedule_working_timeout(create_report_slack_chart_working):
             ).run()
 
     # Only needed for MySQL, understand why
-    # db.session.commit()
+    db.session.commit()
     logs = db.session.query(ReportExecutionLog).all()
     assert len(logs) == 1
     assert logs[0].error_message == ReportScheduleWorkingTimeoutError.message
@@ -598,7 +598,7 @@ def test_report_schedule_success_grace(create_alert_slack_chart_success):
             create_alert_slack_chart_success.id, datetime.utcnow()
         ).run()
 
-    # db.session.commit()
+    db.session.commit()
     assert create_alert_slack_chart_success.last_state == ReportState.GRACE
 
 
@@ -617,7 +617,7 @@ def test_report_schedule_success_grace_end(create_alert_slack_chart_grace):
             create_alert_slack_chart_grace.id, datetime.utcnow()
         ).run()
 
-    # db.session.commit()
+    db.session.commit()
     assert create_alert_slack_chart_grace.last_state == ReportState.NOOP
 
 
