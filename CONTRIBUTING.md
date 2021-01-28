@@ -41,7 +41,7 @@ little bit helps, and credit will always be given.
       - [Reviewing](#reviewing)
       - [Merging](#merging)
       - [Post-merge Responsibility](#post-merge-responsibility)
-  - [Capitalization Guidelines](#capitalization-guidelines)
+  - [Design Guidelines](#design-guidelines)
   - [Managing Issues and PRs](#managing-issues-and-prs)
   - [Reporting a Security Vulnerability](#reporting-a-security-vulnerability)
   - [Revert Guidelines](#revert-guidelines)
@@ -253,31 +253,28 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 - Project maintainers may contact the PR author if new issues are introduced by the PR.
 - Project maintainers may revert your changes if a critical issue is found, such as breaking master branch CI.
 
-## Capitalization Guidelines
+## Design Guidelines
 
-### Sentence case
+### Capitalization guidelines
 
-Use sentence-case capitalization for everything in the UI (except these \*\*).
+#### Sentence case
+Use sentence-case capitalization for everything in the UI (except these **).
 
 Sentence case is predominantly lowercase. Capitalize only the initial character of the first word, and other words that require capitalization, like:
-
-- Proper nouns. Objects in the product are not considered proper nouns e.g. dashboards, charts, saved queries etc. Proprietary feature names eg. SQL Lab, Preset Manager are considered proper nouns
-- Acronyms (e.g. CSS, HTML)
+- **Proper nouns.** Objects in the product _are not_ considered proper nouns e.g. dashboards, charts, saved queries etc. Proprietary feature names eg. SQL Lab, Preset Manager _are_ considered proper nouns
+- **Acronyms** (e.g. CSS, HTML)
 - When referring to **UI labels that are themselves capitalized** from sentence case (e.g. page titles - Dashboards page, Charts page, Saved queries page, etc.)
 - User input that is reflected in the UI. E.g. a user-named a dashboard tab
 
-#### Sentence case vs. Title case:
-
+**Sentence case vs. Title case:**
 Title case: "A Dog Takes a Walk in Paris"
 Sentence case: "A dog takes a walk in Paris"
 
-#### Why sentence case?
-
+**Why sentence case?**
 - It’s generally accepted as the quickest to read
 - It’s the easiest form to distinguish between common and proper nouns
 
-### How to refer to UI elements
-
+#### How to refer to UI elements
 When writing about a UI element, use the same capitalization as used in the UI.
 
 For example, if an input field is labeled “Name” then you refer to this as the “Name input field”. Similarly, if a button has the label “Save” in it, then it is correct to refer to the “Save button”.
@@ -295,8 +292,7 @@ Often a product page will have the same title as the objects it contains. In thi
 - Queries that you save will appear on the Saved queries page
 - Create custom queries in SQL Lab then create dashboards
 
-### \*\*Exceptions to sentence case:
-
+#### **Exceptions to sentence case:
 - Input labels, buttons and tabs are all caps
 
 ## Managing Issues and PRs
