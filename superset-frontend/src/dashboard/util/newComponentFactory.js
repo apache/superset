@@ -52,6 +52,7 @@ const typeToDefaultMetaData = {
   [ROW_TYPE]: { background: BACKGROUND_TRANSPARENT },
   [TABS_TYPE]: null,
   [TAB_TYPE]: {
+    text: '',
     defaultText: t('Tab title'),
     placeholder: t('Tab title'),
   },

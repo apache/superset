@@ -67,6 +67,12 @@ export default function EditableTitle({
     }
   }, [title]);
 
+  useEffect(() => {
+    if (isEditing) {
+      contentRef.current.focus();
+    }
+  }, [isEditing]);
+
   function handleClick() {
     if (!canEdit || isEditing) {
       return;
@@ -164,8 +170,6 @@ export default function EditableTitle({
         onKeyPress={handleKeyPress}
         placeholder={placeholder}
         style={editStyle}
-        // eslint-disable-next-line jsx-a11y/no-autofocus
-        autoFocus={isEditing}
       />
     ) : (
       <input
@@ -180,8 +184,6 @@ export default function EditableTitle({
         onClick={handleClick}
         onKeyPress={handleKeyPress}
         placeholder={placeholder}
-        // eslint-disable-next-line jsx-a11y/no-autofocus
-        autoFocus={isEditing}
       />
     );
   if (showTooltip && !isEditing) {

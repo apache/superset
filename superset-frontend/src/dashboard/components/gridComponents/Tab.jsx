@@ -207,6 +207,7 @@ export default class Tab extends React.PureComponent {
         {({ dropIndicatorProps, dragSourceRef }) => (
           <div className="dragdroppable-tab" ref={dragSourceRef}>
             <EditableTitle
+              title={component.meta.text}
               defaultTitle={component.meta.defaultText}
               placeholder={component.meta.placeholder}
               canEdit={editMode && isFocused}
