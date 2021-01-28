@@ -21,7 +21,6 @@ import {
   optionFromValue,
   prepareCopyToClipboardTabularData,
   NULL_STRING,
-  detectOS,
 } from 'src/utils/common';
 
 describe('utils/common', () => {
@@ -92,8 +91,9 @@ describe('utils/common', () => {
       const mockNavigator = {
         // This is the appVersion returned for Mac, with Win replaced on the initial version
         // Using this to test that the OS exists for the check
-        appVersion: '5.0 (Win; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36'
-      }
+        appVersion:
+          '5.0 (Win; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36'
+      };
       global.navigator = mockNavigator;
 
       const OSName = jest.fn().mockReturnValue('Windows');
@@ -103,8 +103,9 @@ describe('utils/common', () => {
     });
     it('detects MacOS as the OS when appVersion includes Mac', () => {
       const mockNavigator = {
-        appVersion: '5.0 (Mac; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36'
-      }
+        appVersion:
+          '5.0 (Mac; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36'
+      };
       global.navigator = mockNavigator;
 
       const OSName = jest.fn().mockReturnValue('MacOS');
@@ -114,8 +115,9 @@ describe('utils/common', () => {
     });
     it('detects UNIX as the OS when appVersion includes X11', () => {
       const mockNavigator = {
-        appVersion: '5.0 (X11; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36'
-      }
+        appVersion:
+          '5.0 (X11; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36'
+      };
       global.navigator = mockNavigator;
 
       const OSName = jest.fn().mockReturnValue('UNIX');
@@ -125,8 +127,9 @@ describe('utils/common', () => {
     });
     it('detects Linux as the OS when appVersion includes Linux', () => {
       const mockNavigator = {
-        appVersion: '5.0 (Linux; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36'
-      }
+        appVersion:
+          '5.0 (Linux; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.96 Safari/537.36'
+      };
       global.navigator = mockNavigator;
 
       const OSName = jest.fn().mockReturnValue('Linux');
