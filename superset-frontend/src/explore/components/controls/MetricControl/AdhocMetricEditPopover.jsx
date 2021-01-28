@@ -278,7 +278,6 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       datasourceType,
       ...popoverProps
     } = this.props;
-    console.log('this.props for adhoc', this.props);
     const { adhocMetric, savedMetric } = this.state;
     const keywords = sqlKeywords.concat(
       columns.map(column => ({

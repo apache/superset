@@ -678,7 +678,6 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   render() {
-    console.log('this.props', this.props)
     const { isNew, name, annotationType, sourceType, show } = this.state;
     const isValid = this.isValidForm();
     const metadata = getChartMetadataRegistry().get(this.props.vizType);

@@ -139,7 +139,6 @@ export default class CollectionControl extends React.Component {
   }
 
   render() {
-    console.log('this.props for collectioncontrol', this.props)
     return (
       <div className="CollectionControl">
         <ControlHeader {...this.props} />
