@@ -224,5 +224,5 @@ export const Databases = [
     title: 'Hologres',
     href: 'https://www.alibabacloud.com/product/hologres',
     imgName: 'hologres.png',
-  },
+  }
 ];
