@@ -55,6 +55,8 @@ class TestExportDatabasesCommand(SupersetTestCase):
         "load_world_bank_datasource",
     )
     def test_export_database_command(self, mock_g):
+        example_db = get_example_database()
+        example_db.expose_in_sqllab = True
         mock_g.user = security_manager.find_user("admin")
 
         example_db = get_example_database()
@@ -257,6 +259,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
         }
         expected_metadata["columns"].sort(key=lambda x: x["column_name"])
         assert metadata == expected_metadata
+        example_db.expose_in_sqllab = False
 
     @patch("superset.security.manager.g")
     def test_export_database_command_no_access(self, mock_g):

@@ -43,7 +43,10 @@ from superset.utils.core import (
 
 from .base_tests import SupersetTestCase
 from .conftest import CTAS_SCHEMA_NAME
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_datasource,
+)
 
 QUERY_1 = "SELECT * FROM birth_names LIMIT 1"
 QUERY_2 = "SELECT * FROM NO_TABLE"
@@ -579,10 +582,12 @@ class TestSqlLab(SupersetTestCase):
         data = self.get_json_resp(url)
         self.assertEqual(3, len(data["result"]))
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_api_database(self):
         self.login("admin")
         self.create_fake_db()
-        get_example_database()
+        example_db = get_example_database()
+        example_db.expose_in_sqllab = True
         get_main_database()
 
         arguments = {
@@ -600,6 +605,7 @@ class TestSqlLab(SupersetTestCase):
             {r.get("database_name") for r in self.get_json_resp(url)["result"]},
         )
         self.delete_fake_db()
+        example_db.expose_in_sqllab = False
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.dict(
