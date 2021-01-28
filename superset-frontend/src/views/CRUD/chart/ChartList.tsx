@@ -34,7 +34,7 @@ import {
 } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import Icon, { CustomIcon } from 'src/components/Icon';
+import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import ListView, {
   ListViewProps,
@@ -47,6 +47,7 @@ import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
 import TooltipWrapper from 'src/components/TooltipWrapper';
+import Icons from 'src/components/Icons';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
@@ -316,7 +317,7 @@ function ChartList(props: ChartListProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <CustomIcon name="trash" />
+                        <Icons.Trash />
                       </span>
                     </TooltipWrapper>
                   )}

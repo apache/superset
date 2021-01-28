@@ -19,7 +19,8 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import TooltipWrapper from 'src/components/TooltipWrapper';
-import { IconName, CustomIcon } from 'src/components/Icon';
+import { IconName } from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 
 export type ActionProps = {
   label: string;
@@ -53,6 +54,7 @@ export default function ActionsBar({ actions }: ActionsBarProps) {
   return (
     <StyledActions className="actions">
       {actions.map((action, index) => {
+        const ActionIcon = Icons[action.icon];
         if (action.tooltip) {
           return (
             <TooltipWrapper
@@ -68,7 +70,7 @@ export default function ActionsBar({ actions }: ActionsBarProps) {
                 data-test={action.label}
                 onClick={action.onClick}
               >
-                <CustomIcon name={action.icon} />
+                <ActionIcon />
               </span>
             </TooltipWrapper>
           );
@@ -83,7 +85,7 @@ export default function ActionsBar({ actions }: ActionsBarProps) {
             data-test={action.label}
             key={index}
           >
-            <CustomIcon name={action.icon} />
+            <ActionIcon />
           </span>
         );
       })}

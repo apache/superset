@@ -26,7 +26,8 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
 import TooltipWrapper from 'src/components/TooltipWrapper';
-import Icon, { CustomIcon } from 'src/components/Icon';
+import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import ListView, { Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import ImportModelsModal from 'src/components/ImportModal/index';
@@ -303,7 +304,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
                     tooltip={t('Delete database')}
                     placement="bottom"
                   >
-                    <CustomIcon name="trash" />
+                    <Icons.Trash />
                   </TooltipWrapper>
                 </span>
               )}
