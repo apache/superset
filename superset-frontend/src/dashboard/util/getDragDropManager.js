@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DragDropManager } from 'dnd-core';
-import HTML5Backend from 'react-dnd-html5-backend';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 let defaultManager;
 
