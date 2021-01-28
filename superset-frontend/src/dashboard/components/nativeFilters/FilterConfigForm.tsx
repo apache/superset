@@ -110,7 +110,6 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
 }) => {
   const forceUpdate = useForceUpdate();
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
-  // useFEFormUpdate(form, filterId, filterToEdit);
   useBEFormUpdate(form, filterId, filterToEdit);
 
   const initDatasetId = filterToEdit?.targets[0].datasetId;
@@ -295,7 +294,14 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         valuePropName="checked"
         colon={false}
       >
-        <Checkbox onChange={forceUpdate}>
+        <Checkbox
+          onChange={() => {
+            setFilterFieldValues(form, filterId, {
+              defaultValue: defaultValuesPerFilterType[formFilter?.filterType],
+            });
+            forceUpdate();
+          }}
+        >
           {t('Allow multiple selections')}
         </Checkbox>
       </StyledCheckboxFormItem>

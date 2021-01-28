@@ -35,7 +35,7 @@ interface NativeFiltersFormItem {
     label: string;
   };
   column: string;
-  defaultValue: string;
+  defaultValue: any;
   parentFilter: {
     value: string;
     label: string;

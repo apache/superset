@@ -16,14 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NativeFiltersState } from 'src/dashboard/components/nativeFilters/types';
+import {
+  FilterType,
+  NativeFiltersState,
+} from 'src/dashboard/components/nativeFilters/types';
 
 export const nativeFilters: NativeFiltersState = {
   filters: {
     'NATIVE_FILTER-e7Q8zKixx': {
       id: 'NATIVE_FILTER-e7Q8zKixx',
       name: 'region',
-      type: 'text',
+      filterType: FilterType.filter_select,
       targets: [
         {
           datasetId: 2,
@@ -46,7 +49,7 @@ export const nativeFilters: NativeFiltersState = {
     'NATIVE_FILTER-x9QPw0so1': {
       id: 'NATIVE_FILTER-x9QPw0so1',
       name: 'country_code',
-      type: 'text',
+      filterType: FilterType.filter_select,
       targets: [
         {
           datasetId: 2,

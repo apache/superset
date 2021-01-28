@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import { DEFAULT_FORM_DATA, AntdPluginFilterSelectProps } from './types';
 import { AntdPluginFilterStylesProps } from '../types';
@@ -46,7 +46,6 @@ export default function AntdPluginFilterSelect(
   };
 
   const [values, setValues] = useState<(string | number)[]>(defaultValue || []);
-  const multiSelectRef = useRef<boolean>(multiSelect);
 
   let { groupby = [] } = formData;
   groupby = Array.isArray(groupby) ? groupby : [groupby];
@@ -69,14 +68,6 @@ export default function AntdPluginFilterSelect(
       getSelectExtraFormData(col, resultValue, emptyFilter, inverseSelection),
     );
   };
-
-  useEffect(() => {
-    // We need reset default value when user change multiselect
-    if (multiSelect !== multiSelectRef.current) {
-      multiSelectRef.current = multiSelect;
-      handleChange([]);
-    }
-  }, [multiSelect]);
 
   useEffect(() => {
     handleChange(defaultValue);
