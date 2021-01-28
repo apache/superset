@@ -333,7 +333,6 @@ export const FilterControl: React.FC<FilterProps> = ({
   directPathToChild,
 }) => {
   const { name = '<undefined>' } = filter;
-
   return (
     <StyledFilterControlContainer>
       <StyledFilterControlTitleBox>
