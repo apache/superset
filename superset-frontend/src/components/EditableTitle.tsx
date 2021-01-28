@@ -23,6 +23,7 @@ import TooltipWrapper from './TooltipWrapper';
 
 interface EditableTitleProps {
   canEdit?: boolean;
+  editing?: boolean;
   emptyText?: string;
   extraClasses?: Array<string> | string;
   multiLine?: boolean;
@@ -30,24 +31,25 @@ interface EditableTitleProps {
   onSaveTitle: (arg0: string) => {};
   showTooltip?: boolean;
   style?: object;
-  title: string;
+  title?: string;
   defaultTitle?: string;
   placeholder?: string;
 }
 
 export default function EditableTitle({
   canEdit = false,
+  editing = false,
   extraClasses,
   multiLine = false,
   noPermitTooltip,
   onSaveTitle,
   showTooltip = true,
   style,
-  title,
-  defaultTitle,
-  placeholder,
+  title = '',
+  defaultTitle = '',
+  placeholder = '',
 }: EditableTitleProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(editing);
   const [currentTitle, setCurrentTitle] = useState(title);
   const [lastTitle, setLastTitle] = useState(title);
   const [
@@ -113,6 +115,10 @@ export default function EditableTitle({
     if (event.key === ' ') {
       event.stopPropagation();
     }
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleBlur();
+    }
   }
 
   function handleChange(ev: any) {
@@ -149,7 +155,6 @@ export default function EditableTitle({
       <textarea
         data-test="editable-title-input"
         ref={contentRef}
-        required
         value={value}
         className={!title ? 'text-muted' : undefined}
         onKeyDown={handleKeyDown}
@@ -157,14 +162,15 @@ export default function EditableTitle({
         onBlur={handleBlur}
         onClick={handleClick}
         onKeyPress={handleKeyPress}
-        placeholder={placeholder || ''}
+        placeholder={placeholder}
         style={editStyle}
+        // eslint-disable-next-line jsx-a11y/no-autofocus
+        autoFocus={isEditing}
       />
     ) : (
       <input
         data-test="editable-title-input"
         ref={contentRef}
-        required
         type={isEditing ? 'text' : 'button'}
         value={value}
         className={!title ? 'text-muted' : undefined}
@@ -173,7 +179,9 @@ export default function EditableTitle({
         onBlur={handleBlur}
         onClick={handleClick}
         onKeyPress={handleKeyPress}
-        placeholder={placeholder || ''}
+        placeholder={placeholder}
+        // eslint-disable-next-line jsx-a11y/no-autofocus
+        autoFocus={isEditing}
       />
     );
   if (showTooltip && !isEditing) {
