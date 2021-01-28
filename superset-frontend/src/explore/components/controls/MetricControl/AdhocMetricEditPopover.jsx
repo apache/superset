@@ -42,14 +42,11 @@ const propTypes = {
   onClose: PropTypes.func.isRequired,
   onResize: PropTypes.func.isRequired,
   getCurrentTab: PropTypes.func,
+  getCurrentLabel: PropTypes.func,
   columns: PropTypes.arrayOf(columnType),
   savedMetricsOptions: PropTypes.arrayOf(savedMetricType),
   savedMetric: savedMetricType,
   datasourceType: PropTypes.string,
-  title: PropTypes.shape({
-    label: PropTypes.string,
-    hasCustomLabel: PropTypes.bool,
-  }),
 };
 
 const defaultProps = {
@@ -72,7 +69,7 @@ export const SAVED_TAB_KEY = 'SAVED';
 const startingWidth = 320;
 const startingHeight = 240;
 
-export default class AdhocMetricEditPopover extends React.Component {
+export default class AdhocMetricEditPopover extends React.PureComponent {
   // "Saved" is a default tab unless there are no saved metrics for dataset
   defaultActiveTabKey =
     (this.props.savedMetric.metric_name || this.props.adhocMetric.isNew) &&
@@ -110,20 +107,31 @@ export default class AdhocMetricEditPopover extends React.Component {
     this.props.getCurrentTab(this.defaultActiveTabKey);
   }
 
+  componentDidUpdate(prevProps, prevState) {
+    if (
+      prevState.adhocMetric?.sqlExpression !==
+        this.state.adhocMetric?.sqlExpression ||
+      prevState.adhocMetric?.aggregate !== this.state.adhocMetric?.aggregate ||
+      prevState.adhocMetric?.column?.column_name !==
+        this.state.adhocMetric?.column?.column_name ||
+      prevState.savedMetric?.metric_name !== this.state.savedMetric?.metric_name
+    ) {
+      this.props.getCurrentLabel({
+        savedMetricLabel:
+          this.state.savedMetric?.verbose_name ||
+          this.state.savedMetric?.metric_name,
+        adhocMetricLabel: this.state.adhocMetric?.getDefaultLabel(),
+      });
+    }
+  }
+
   componentWillUnmount() {
     document.removeEventListener('mouseup', this.onMouseUp);
     document.removeEventListener('mousemove', this.onMouseMove);
   }
 
   onSave() {
-    const { title } = this.props;
-    const { hasCustomLabel } = title;
-    let { label } = title;
     const { adhocMetric, savedMetric } = this.state;
-    const metricLabel = adhocMetric.label;
-    if (!hasCustomLabel) {
-      label = metricLabel;
-    }
 
     const metric = savedMetric?.metric_name ? savedMetric : adhocMetric;
     const oldMetric = this.props.savedMetric?.metric_name
@@ -132,8 +140,6 @@ export default class AdhocMetricEditPopover extends React.Component {
     this.props.onChange(
       {
         ...metric,
-        label,
-        hasCustomLabel,
       },
       oldMetric,
     );
