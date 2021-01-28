@@ -207,7 +207,7 @@ interface FilterProps {
 interface FiltersBarProps {
   filtersOpen: boolean;
   toggleFiltersBar: any;
-  directPathToChild: string[];
+  directPathToChild?: string[];
 }
 
 const FilterValue: React.FC<FilterProps> = ({
@@ -274,13 +274,16 @@ const FilterValue: React.FC<FilterProps> = ({
     }
   }, [cascadingFilters, datasetId, groupby]);
 
-  const isFocused = directPathToChild?.[0] === filter.id;
-
   useEffect(() => {
-    if (isFocused) {
-      inputRef?.current?.focus();
+    if (directPathToChild?.[0] === filter.id) {
+      // wait for Cascade Popover to open
+      const timeout = setTimeout(() => {
+        inputRef?.current?.focus();
+      }, 200);
+      return () => clearTimeout(timeout);
     }
-  }, [inputRef, isFocused]);
+    return undefined;
+  }, [inputRef, directPathToChild, filter.id]);
 
   const setExtraFormData = (extraFormData: ExtraFormData) =>
     onExtraFormDataChange(filter, extraFormData);
@@ -348,11 +351,13 @@ export const FilterControl: React.FC<FilterProps> = ({
 
 interface CascadeFilterControlProps {
   filter: CascadeFilter;
+  directPathToChild?: string[];
   onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
 }
 
 export const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
   filter,
+  directPathToChild,
   onExtraFormDataChange,
 }) => (
   <>
@@ -360,6 +365,7 @@ export const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
       <StyledCaretIcon name="caret-down" />
       <FilterControl
         filter={filter}
+        directPathToChild={directPathToChild}
         onExtraFormDataChange={onExtraFormDataChange}
       />
     </StyledFilterControlBox>
@@ -369,6 +375,7 @@ export const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
         <li key={childFilter.id}>
           <CascadeFilterControl
             filter={childFilter}
+            directPathToChild={directPathToChild}
             onExtraFormDataChange={onExtraFormDataChange}
           />
         </li>
