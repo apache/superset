@@ -23,13 +23,12 @@ import pandas as pd
 from superset.utils.core import JS_MAX_INTEGER
 
 
+def _convert_big_integers(dframe: pd.DataFrame) -> pd.DataFrame:
+    return dframe.applymap(
+        lambda v: str(v) if isinstance(v, int) and abs(v) > JS_MAX_INTEGER else v
+    )
+
+
 def df_to_records(dframe: pd.DataFrame) -> List[Dict[str, Any]]:
-    data: List[Dict[str, Any]] = dframe.to_dict(orient="records")
-    # TODO: refactor this
-    for row in data:
-        for key, value in list(row.items()):
-            # if an int is too big for JavaScript to handle
-            # convert it to a string
-            if isinstance(value, int) and abs(value) > JS_MAX_INTEGER:
-                row[key] = str(value)
+    data: List[Dict[str, Any]] = _convert_big_integers(dframe).to_dict(orient="records")
     return data
