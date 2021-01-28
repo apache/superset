@@ -144,10 +144,10 @@ export const detectOS = () => {
 
   // Leveraging this condition because of stackOverflow
   // https://stackoverflow.com/questions/11219582/how-to-detect-my-browser-version-and-operating-system-using-javascript
-  if (appVersion.indexOf('Win') !== -1) return 'Windows';
-  if (appVersion.indexOf('Mac') !== -1) return 'MacOS';
-  if (appVersion.indexOf('X11') !== -1) return 'UNIX';
-  if (appVersion.indexOf('Linux') !== -1) return 'Linux';
+  if (appVersion.includes('Win')) return 'Windows';
+  if (appVersion.includes('Mac')) return 'MacOS';
+  if (appVersion.includes('X11')) return 'UNIX';
+  if (appVersion.includes('Linux')) return 'Linux';
 
   return 'Unknown OS';
 };
