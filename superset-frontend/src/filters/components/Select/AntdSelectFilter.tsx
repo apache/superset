@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Select } from 'src/common/components';
 import { DEFAULT_FORM_DATA, AntdPluginFilterSelectProps } from './types';
 import { AntdPluginFilterStylesProps } from '../types';
@@ -33,10 +33,9 @@ const { Option } = Select;
 export default function AntdPluginFilterSelect(
   props: AntdPluginFilterSelectProps,
 ) {
-  const [values, setValues] = useState<(string | number)[]>([]);
   const { data, formData, height, width, setExtraFormData } = props;
   const {
-    defaultValues,
+    defaultValue,
     enableEmptyFilter,
     multiSelect,
     showSearch,
@@ -46,24 +45,43 @@ export default function AntdPluginFilterSelect(
     ...formData,
   };
 
-  useEffect(() => {
-    setValues(defaultValues || []);
-  }, [defaultValues]);
+  const [values, setValues] = useState<(string | number)[]>(defaultValue || []);
+  const multiSelectRef = useRef<boolean>(multiSelect);
 
   let { groupby = [] } = formData;
   groupby = Array.isArray(groupby) ? groupby : [groupby];
 
-  function handleChange(value?: number[] | string[] | null) {
-    setValues(value || []);
+  const handleChange = (
+    value?: (number | string)[] | number | string | null,
+  ) => {
+    let resultValue: (number | string)[];
+    // Works only with arrays even for single select
+    if (!Array.isArray(value)) {
+      resultValue = value ? [value] : [];
+    } else {
+      resultValue = value;
+    }
+    setValues(resultValue);
     const [col] = groupby;
     const emptyFilter =
-      enableEmptyFilter &&
-      !inverseSelection &&
-      (value === undefined || value === null || value.length === 0);
+      enableEmptyFilter && !inverseSelection && resultValue?.length === 0;
     setExtraFormData(
-      getSelectExtraFormData(col, value, emptyFilter, inverseSelection),
+      getSelectExtraFormData(col, resultValue, emptyFilter, inverseSelection),
     );
-  }
+  };
+
+  useEffect(() => {
+    // We need reset default value when user change multiselect
+    if (multiSelect !== multiSelectRef.current) {
+      multiSelectRef.current = multiSelect;
+      handleChange([]);
+    }
+  }, [multiSelect]);
+
+  useEffect(() => {
+    handleChange(defaultValue);
+  }, [defaultValue]);
+
   const placeholderText =
     (data || []).length === 0
       ? 'No data'

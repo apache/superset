@@ -24,7 +24,7 @@ import {
 import { AntdPluginFilterStylesProps } from '../types';
 
 interface AntdPluginFilterSelectCustomizeProps {
-  defaultValues?: (string | number)[];
+  defaultValue?: (string | number)[];
   enableEmptyFilter: boolean;
   fetchPredicate?: string;
   inverseSelection: boolean;
@@ -43,7 +43,7 @@ export type AntdPluginFilterSelectProps = AntdPluginFilterStylesProps & {
 };
 
 export const DEFAULT_FORM_DATA: AntdPluginFilterSelectCustomizeProps = {
-  defaultValues: [],
+  defaultValue: [],
   enableEmptyFilter: false,
   fetchPredicate: '',
   inverseSelection: false,

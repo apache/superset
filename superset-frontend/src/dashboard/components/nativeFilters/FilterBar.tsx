@@ -215,7 +215,6 @@ const FilterValue: React.FC<FilterProps> = ({
     allowsMultipleValues,
     inverseSelection,
     targets,
-    currentValue,
     defaultValue,
     filterType,
   } = filter;
@@ -234,7 +233,6 @@ const FilterValue: React.FC<FilterProps> = ({
       cascadingFilters,
       groupby,
       allowsMultipleValues,
-      currentValue,
       defaultValue,
       inverseSelection,
     });
@@ -288,7 +286,7 @@ const FilterValue: React.FC<FilterProps> = ({
         <SuperChart
           height={20}
           width={220}
-          formData={getFormData()}
+          formData={formData}
           queriesData={state}
           chartType={filterType}
           hooks={{ setExtraFormData }}

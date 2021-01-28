@@ -44,7 +44,6 @@ import {
   setFilterFieldValues,
   useForceUpdate,
 } from './utils';
-import { areObjectsEqual } from '../../../reduxUtils';
 import { getChartDataRequest } from '../../../chart/chartAction';
 
 const defaultFilterConfiguration: Filter[] = [];
@@ -139,37 +138,7 @@ export function useCascadingFilters(id: string) {
   });
 }
 
-// For changes of form fields sometimes we need re-render Filter defaultValue
-export const useFEFormUpdate = (
-  form: FormInstance<NativeFiltersForm>,
-  filterId: string,
-  filterToEdit?: Filter,
-) => {
-  const forceUpdate = useForceUpdate();
-  const formFilter = (form.getFieldValue('filters') || {})[filterId];
-  useEffect(() => {
-    if (!formFilter) {
-      return;
-    }
-    const formData = getFormData({
-      datasetId: formFilter?.dataset?.value,
-      groupby: formFilter?.column,
-      allowsMultipleValues: formFilter?.allowsMultipleValues,
-      currentValue: formFilter?.defaultValue,
-      defaultValue: filterToEdit?.defaultValue,
-      inverseSelection: formFilter?.inverseSelection,
-    });
-    if (areObjectsEqual(formData, formFilter?.defaultValueFormData)) {
-      return;
-    }
-    setFilterFieldValues(form, filterId, {
-      defaultValueFormData: formData,
-    });
-    forceUpdate();
-  });
-};
-
-const defaultValuesPerFilterType = {
+export const defaultValuesPerFilterType = {
   [FilterType.filter_select]: [],
   [FilterType.filter_range]: {},
 };
@@ -183,29 +152,34 @@ export const useBEFormUpdate = (
   const forceUpdate = useForceUpdate();
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
   useEffect(() => {
+    let resolvedDefaultValue =
+      defaultValuesPerFilterType[formFilter?.filterType];
     // No need to check data set change because it cascading update column
-    // So check that column exists is enougph
-    if (!formFilter || !formFilter?.column) {
+    // So check that column exists is enough
+    if (!formFilter?.column) {
+      setFilterFieldValues(form, filterId, {
+        defaultValueQueriesData: [],
+        defaultValue: resolvedDefaultValue,
+      });
       return;
     }
+    const formData = getFormData({
+      datasetId: formFilter?.dataset?.value,
+      groupby: formFilter?.column,
+      allowsMultipleValues: formFilter?.allowsMultipleValues,
+      defaultValue: formFilter?.defaultValue,
+      inverseSelection: formFilter?.inverseSelection,
+    });
     getChartDataRequest({
-      formData: getFormData({
-        datasetId: formFilter?.dataset?.value,
-        groupby: formFilter?.column,
-        allowsMultipleValues: formFilter?.allowsMultipleValues,
-        currentValue: formFilter?.defaultValue,
-        defaultValue: filterToEdit?.defaultValue,
-        inverseSelection: formFilter?.inverseSelection,
-      }),
+      formData,
       force: false,
       requestParams: { dashboardId: 0 },
     }).then(response => {
-      let resolvedDefaultValue =
-        defaultValuesPerFilterType[formFilter?.filterType];
       if (
         filterToEdit?.filterType === formFilter?.filterType &&
         filterToEdit?.targets[0].datasetId === formFilter?.dataset?.value &&
-        formFilter?.column === filterToEdit?.targets[0]?.column?.name
+        formFilter?.column === filterToEdit?.targets[0]?.column?.name &&
+        filterToEdit?.allowsMultipleValues === formFilter?.allowsMultipleValues
       ) {
         resolvedDefaultValue = filterToEdit?.defaultValue;
       }
@@ -217,7 +191,8 @@ export const useBEFormUpdate = (
     });
   }, [
     formFilter?.filterType,
-    formFilter?.column, // Will process also case when update dataset
+    formFilter?.column,
+    formFilter?.dataset?.value,
     filterId,
   ]);
 };

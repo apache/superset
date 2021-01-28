@@ -274,7 +274,6 @@ export const getFormData = ({
   cascadingFilters = {},
   groupby,
   allowsMultipleValues = false,
-  currentValue,
   defaultValue,
   inverseSelection,
 }: Partial<Filter> & {
@@ -298,7 +297,7 @@ export const getFormData = ({
   url_params: {},
   viz_type: 'filter_select',
   // TODO: need process per filter type after will be decided approach
-  defaultValues: currentValue || defaultValue || [],
+  defaultValue,
 });
 
 type AppendFormData = {
@@ -306,6 +305,7 @@ type AppendFormData = {
     val?: number | string | null;
   }[];
 };
+
 export const extractDefaultValue = {
   [FilterType.filter_select]: (appendFormData: AppendFormData) =>
     appendFormData.filters?.[0]?.val,

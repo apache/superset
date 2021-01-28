@@ -435,7 +435,7 @@ export function FilterConfigModal({
     // Ant to reset formValues before Modal destroy performed ,so it re-init values before from destroyed,
     // for this case we reset it also on Modal opens if it was not processed correctly on close
     resetForm();
-  }, [isOpen, resetForm]);
+  }, [isOpen]);
 
   const unsavedFiltersIds = newFilterIds.filter(id => !removedFilters[id]);
 
