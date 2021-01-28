@@ -203,10 +203,11 @@ def cancel_github_workflows(
         seen = set()
         dups = []
         for item in reversed(runs):
-            if item["workflow_id"] in seen:
+            key = f'{item["event"]}_{item["head_branch"]}_{item["workflow_id"]}'
+            if key in seen:
                 dups.append(item)
             else:
-                seen.add(item["workflow_id"])
+                seen.add(key)
         if not dups:
             print(
                 "Only the latest runs are in queue. "
