@@ -1263,8 +1263,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <span className="input-label">seconds</span>
               </div>
             </StyledInputContainer>
-            {! isReport &&
-              (<StyledInputContainer>
+            {!isReport && (
+              <StyledInputContainer>
                 <div className="control-label">{t('Grace period')}</div>
                 <div className="input-container">
                   <input
@@ -1276,8 +1276,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   />
                   <span className="input-label">seconds</span>
                 </div>
-              </StyledInputContainer>)
-            }
+              </StyledInputContainer>
+            )}
           </div>
           <div className="column message">
             <StyledSectionTitle>
