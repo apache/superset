@@ -58,6 +58,9 @@ def request(method: Literal["GET", "POST", "DELETE", "PUT"], endpoint: str, **kw
 
 
 def list_runs(repo: str, params=None):
+    """List all github workflow runs.
+    Returns:
+      An iterator that will iterate through all pages of matching runs."""
     page = 1
     total_count = 10000
     while page * 100 < total_count:
