@@ -64,8 +64,9 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
         ),
         "owners": _("Owners is a list of users who can alter the dashboard."),
         "roles": _(
-            "Roles is a list which defines access to the dashboard. if list is "
-            "empty access is managed by the data access level."
+            "Roles is a list which defines access to the dashboard. "
+            "these roles are always applied in addition to data access leve. "
+            "if no roles then dashboard is available for all roles"
         ),
         "published": _(
             "Determines whether or not this dashboard is "
