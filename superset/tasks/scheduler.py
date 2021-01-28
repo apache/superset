@@ -15,11 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from dateutil import parser
 from datetime import datetime, timedelta
 from typing import Iterator
 
 import croniter
+from dateutil import parser
 
 from superset import app
 from superset.commands.exceptions import CommandException
