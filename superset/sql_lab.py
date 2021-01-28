@@ -379,44 +379,42 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     # Sharing a single connection and cursor across the
     # execution of all statements (if many)
     with closing(engine.raw_connection()) as conn:
-        with closing(conn.cursor()) as cursor:
-            statement_count = len(statements)
-            for i, statement in enumerate(statements):
-                # Check if stopped
-                query = get_query(query_id, session)
-                if query.status == QueryStatus.STOPPED:
-                    return None
+        # closing the connection closes the cursor as well
+        cursor = conn.cursor()
+        statement_count = len(statements)
+        for i, statement in enumerate(statements):
+            # Check if stopped
+            query = get_query(query_id, session)
+            if query.status == QueryStatus.STOPPED:
+                return None
 
-                # For CTAS we create the table only on the last statement
-                apply_ctas = query.select_as_cta and (
-                    query.ctas_method == CtasMethod.VIEW
-                    or (
-                        query.ctas_method == CtasMethod.TABLE
-                        and i == len(statements) - 1
-                    )
+            # For CTAS we create the table only on the last statement
+            apply_ctas = query.select_as_cta and (
+                query.ctas_method == CtasMethod.VIEW
+                or (query.ctas_method == CtasMethod.TABLE and i == len(statements) - 1)
+            )
+
+            # Run statement
+            msg = f"Running statement {i+1} out of {statement_count}"
+            logger.info("Query %s: %s", str(query_id), msg)
+            query.set_extra_json_key("progress", msg)
+            session.commit()
+            try:
+                result_set = execute_sql_statement(
+                    statement,
+                    query,
+                    user_name,
+                    session,
+                    cursor,
+                    log_params,
+                    apply_ctas,
                 )
-
-                # Run statement
-                msg = f"Running statement {i+1} out of {statement_count}"
-                logger.info("Query %s: %s", str(query_id), msg)
-                query.set_extra_json_key("progress", msg)
-                session.commit()
-                try:
-                    result_set = execute_sql_statement(
-                        statement,
-                        query,
-                        user_name,
-                        session,
-                        cursor,
-                        log_params,
-                        apply_ctas,
-                    )
-                except Exception as ex:  # pylint: disable=broad-except
-                    msg = str(ex)
-                    if statement_count > 1:
-                        msg = f"[Statement {i+1} out of {statement_count}] " + msg
-                    payload = handle_query_error(msg, query, session, payload)
-                    return payload
+            except Exception as ex:  # pylint: disable=broad-except
+                msg = str(ex)
+                if statement_count > 1:
+                    msg = f"[Statement {i+1} out of {statement_count}] " + msg
+                payload = handle_query_error(msg, query, session, payload)
+                return payload
 
         # Commit the connection so CTA queries will create the table.
         conn.commit()
