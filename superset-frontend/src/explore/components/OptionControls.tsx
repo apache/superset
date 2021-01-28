@@ -127,7 +127,7 @@ interface DragItem {
   type: string;
 }
 
-export const DraggableOptionControlLabel = ({
+export const OptionControlLabel = ({
   label,
   savedMetric,
   onRemove,
@@ -245,5 +245,3 @@ export const DraggableOptionControlLabel = ({
   drag(drop(ref));
   return <DragContainer ref={ref}>{getOptionControlContent()}</DragContainer>;
 };
-
-DraggableOptionControlLabel.displayName = 'DraggableOptionControlLabel';
