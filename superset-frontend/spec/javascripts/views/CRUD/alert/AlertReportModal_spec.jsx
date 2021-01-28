@@ -212,7 +212,15 @@ describe('AlertReportModal', () => {
     expect(wrapper.find('input[name="working_timeout"]')).toExist();
   });
 
-  it('renders input element for grace period', () => {
-    expect(wrapper.find('input[name="grace_period"]')).toExist();
+  it('renders input element for grace period for alert only', async () => {
+    const props = {
+      ...mockedProps,
+      isReport: false,
+    };
+
+    const addWrapper = await mountAndWait(props);
+
+    expect(addWrapper.find('input[name="grace_period"]')).toExist();
+    expect(wrapper.find('input[name="grace_period"]')).toHaveLength(0);
   });
 });

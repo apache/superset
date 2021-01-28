@@ -213,6 +213,10 @@ export const StyledInputContainer = styled.div`
     display: flex;
     align-items: center;
 
+    > div {
+      width: 100%;
+    }
+
     label {
       display: flex;
       margin-right: ${({ theme }) => theme.gridUnit * 2}px;
@@ -1259,19 +1263,21 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <span className="input-label">seconds</span>
               </div>
             </StyledInputContainer>
-            <StyledInputContainer>
-              <div className="control-label">{t('Grace period')}</div>
-              <div className="input-container">
-                <input
-                  type="number"
-                  name="grace_period"
-                  value={currentAlert ? currentAlert.grace_period : ''}
-                  placeholder={t('Time in seconds')}
-                  onChange={onTextChange}
-                />
-                <span className="input-label">seconds</span>
-              </div>
-            </StyledInputContainer>
+            {!isReport && (
+              <StyledInputContainer>
+                <div className="control-label">{t('Grace period')}</div>
+                <div className="input-container">
+                  <input
+                    type="number"
+                    name="grace_period"
+                    value={currentAlert ? currentAlert.grace_period : ''}
+                    placeholder={t('Time in seconds')}
+                    onChange={onTextChange}
+                  />
+                  <span className="input-label">seconds</span>
+                </div>
+              </StyledInputContainer>
+            )}
           </div>
           <div className="column message">
             <StyledSectionTitle>
