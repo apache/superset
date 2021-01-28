@@ -17,24 +17,11 @@
  * under the License.
  */
 
-import AntdEnhancedIcons from './all/AntdEnhanced';
-import Trash from './all/Trash';
-import Alert from './all/Alert';
-import AlertSolid from './all/AlertSolid';
-import AlertSolidSmall from './all/AlertSolidSmall';
-import Binoculars from './all/Binoculars';
-import Bolt from './all/Bolt';
-import BoltSmall from './all/BoltSmall';
-import BoltSmallRun from './all/BoltSmallRun';
+import React from 'react';
+import { ReactComponent as BoltSmallRunIcon } from 'images/icons/bolt_small_run.svg';
+import Icon from '../Icon';
+import IconType from '../IconType';
 
-export default {
-  ...AntdEnhancedIcons,
-  Alert,
-  AlertSolid,
-  AlertSolidSmall,
-  Binoculars,
-  Bolt,
-  BoltSmall,
-  BoltSmallRun,
-  Trash,
-};
+export default (props: IconType) => (
+  <Icon component={BoltSmallRunIcon} {...props} />
+);

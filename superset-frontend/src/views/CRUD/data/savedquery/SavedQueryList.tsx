@@ -37,7 +37,6 @@ import SubMenu, {
 import ListView, { ListViewProps, Filters } from 'src/components/ListView';
 import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import { IconName } from 'src/components/Icon';
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import { SavedQueryObject } from 'src/views/CRUD/types';
 import copyTextToClipboard from 'src/utils/copy';
@@ -314,7 +313,7 @@ function SavedQueryList({
               label: 'preview-action',
               tooltip: t('Query preview'),
               placement: 'bottom',
-              icon: 'binoculars' as IconName,
+              icon: 'Binoculars',
               onClick: handlePreview,
             },
             canEdit
@@ -322,7 +321,7 @@ function SavedQueryList({
                   label: 'edit-action',
                   tooltip: t('Edit query'),
                   placement: 'bottom',
-                  icon: 'edit' as IconName,
+                  icon: 'Edit',
                   onClick: handleEdit,
                 }
               : null,
@@ -330,7 +329,7 @@ function SavedQueryList({
               label: 'copy-action',
               tooltip: t('Copy query URL'),
               placement: 'bottom',
-              icon: 'copy' as IconName,
+              icon: 'Copy',
               onClick: handleCopy,
             },
             canDelete
@@ -338,7 +337,7 @@ function SavedQueryList({
                   label: 'delete-action',
                   tooltip: t('Delete query'),
                   placement: 'bottom',
-                  icon: 'trash' as IconName,
+                  icon: 'Trash',
                   onClick: handleDelete,
                 }
               : null,
