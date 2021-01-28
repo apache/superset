@@ -32,8 +32,6 @@ services:
     image: redis:3.2
     container_name: superset_cache
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:6379:6379"
     volumes:
       - redis:/data
 
@@ -42,8 +40,6 @@ services:
     image: postgres:10
     container_name: superset_db
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:5432:5432"
     volumes:
       - db_home:/var/lib/postgresql/data
 
