@@ -160,7 +160,7 @@ class BaseViz:
         return self._force_cached
 
     def process_metrics(self) -> None:
-        # metrics in TableViz is order sensitive, so metric_dict should be
+        # metrics in Viz is order sensitive, so metric_dict should be
         # OrderedDict
         self.metric_dict = OrderedDict()
         fd = self.form_data
@@ -1723,6 +1723,9 @@ class DistributionBarViz(BaseViz):
             pt = pt.T
             pt = (pt / pt.sum()).T
         pt = pt.reindex(row.index)
+
+        # Re-order the columns adhering to the metric ordering.
+        pt = pt[metrics]
         chart_data = []
         for name, ys in pt.items():
             if pt[name].dtype.kind not in "biufc" or name in self.groupby:
