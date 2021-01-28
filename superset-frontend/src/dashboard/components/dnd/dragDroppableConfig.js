@@ -55,10 +55,7 @@ export const dropConfig = [
   TYPE,
   {
     hover(props, monitor, component) {
-      if (
-        component &&
-        component.mounted
-      ) {
+      if (component && component.mounted) {
         handleHover(props, monitor, component);
       }
     },
