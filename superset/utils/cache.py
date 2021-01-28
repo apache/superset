@@ -125,9 +125,7 @@ def memoized_func(
 
 
 def etag_cache(
-    check_perms: Callable[..., Any],
-    cache: Cache = cache_manager.cache,
-    max_age: Optional[Union[int, float]] = None,
+    cache: Cache = cache_manager.cache, max_age: Optional[Union[int, float]] = None,
 ) -> Callable[..., Any]:
     """
     A decorator for caching views and handling etag conditional requests.
@@ -147,9 +145,6 @@ def etag_cache(
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)
         def wrapper(*args: Any, **kwargs: Any) -> ETagResponseMixin:
-            # check if the user can access the resource
-            check_perms(*args, **kwargs)
-
             # for POST requests we can't set cache headers, use the response
             # cache nor use conditional requests; this will still use the
             # dataframe cache in `superset/viz.py`, though.

@@ -21,7 +21,6 @@ import { CHART_LIST } from './chart_list.helper';
 describe('chart card view filters', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.visit(CHART_LIST);
     cy.get('[data-test="card-view"]').click();
   });
@@ -89,7 +88,6 @@ describe('chart card view filters', () => {
 describe('chart list view filters', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.visit(CHART_LIST);
     cy.get('[data-test="list-view"]').click();
   });

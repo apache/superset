@@ -475,12 +475,11 @@ class TestDatasetApi(SupersetTestCase):
             "database": energy_usage_ds.database_id,
             "table_name": energy_usage_ds.table_name,
         }
-        uri = "api/v1/dataset/"
-        rv = self.post_assert_metric(uri, table_data, "post")
+        rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
         assert rv.status_code == 422
         data = json.loads(rv.data.decode("utf-8"))
         assert data == {
-            "message": {"table_name": ["Datasource energy_usage already exists"]}
+            "message": {"table_name": ["Dataset energy_usage already exists"]}
         }
 
     def test_create_dataset_same_name_different_schema(self):
@@ -838,7 +837,7 @@ class TestDatasetApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
         expected_response = {
-            "message": {"table_name": ["Datasource ab_user already exists"]}
+            "message": {"table_name": ["Dataset ab_user already exists"]}
         }
         assert data == expected_response
         db.session.delete(dataset)

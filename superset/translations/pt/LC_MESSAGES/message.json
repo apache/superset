@@ -258,7 +258,7 @@
       "Charts could not be deleted.": ["Não foi possível carregar a query"],
       "Import chart failed for an unknown reason": [""],
       "Owners are invalid": [""],
-      "Datasource does not exist": ["Origem de dados %(name)s já existe"],
+      "Dataset does not exist": ["Origem de dados %(name)s já existe"],
       "`operation` property of post processing object undefined": [""],
       "Unsupported post processing operation: %(operation)s": [""],
       "Adding new datasource [{}]": ["Adicionar origem de dados Druid"],
@@ -693,9 +693,7 @@
       "Add Annotation Layer": ["Camadas de anotação"],
       "Edit Annotation Layer": ["Camadas de anotação"],
       "Name": ["Nome"],
-      "Datasource %(name)s already exists": [
-        "Origem de dados %(name)s já existe"
-      ],
+      "Dataset %(name)s already exists": ["Origem de dados %(name)s já existe"],
       "Table [%{table}s] could not be found, please double check your database connection, schema, and table name, error: {}": [
         "Tabela [{}] não encontrada, por favor verifique conexão à base de dados, esquema e nome da tabela"
       ],
@@ -1726,7 +1724,7 @@
       "%s column(s) and metric(s)": [""],
       "%s column(s)": ["Lista de Colunas"],
       "To filter on a metric, use Custom SQL tab.": [""],
-      "%s operators(s)": ["Selecione operador"],
+      "%s operator(s)": ["Selecione operador"],
       "type a value here": [""],
       "Filter value (case sensitive)": [""],
       "choose WHERE or HAVING...": [""],

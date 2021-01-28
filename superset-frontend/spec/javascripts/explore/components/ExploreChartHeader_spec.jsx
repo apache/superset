@@ -44,8 +44,10 @@ const mockProps = {
   },
   timeout: 1000,
   chart: {
+    id: 0,
     queryResponse: {},
   },
+  chartHeight: '30px',
 };
 
 describe('ExploreChartHeader', () => {

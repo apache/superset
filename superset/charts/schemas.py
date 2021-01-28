@@ -19,11 +19,14 @@ from typing import Any, Dict
 from flask_babel import gettext as _
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
 from marshmallow.validate import Length, Range
+from marshmallow_enum import EnumField
 
 from superset.common.query_context import QueryContext
 from superset.utils import schema as utils
 from superset.utils.core import (
     AnnotationType,
+    ChartDataResultFormat,
+    ChartDataResultType,
     FilterOperator,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
@@ -107,7 +110,10 @@ openapi_spec_methods_override = {
         }
     },
     "related": {
-        "get": {"description": "Get a list of all possible owners for a chart."}
+        "get": {
+            "description": "Get a list of all possible owners for a chart. "
+            "Use `owners` has the `column_name` parameter"
+        }
     },
 }
 
@@ -1012,14 +1018,9 @@ class ChartDataQueryContextSchema(Schema):
         description="Should the queries be forced to load from the source. "
         "Default: `false`",
     )
-    result_type = fields.String(
-        description="Type of results to return",
-        validate=validate.OneOf(choices=("full", "query", "results", "samples")),
-    )
-    result_format = fields.String(
-        description="Format of result payload",
-        validate=validate.OneOf(choices=("json", "csv")),
-    )
+
+    result_type = EnumField(ChartDataResultType, by_value=True)
+    result_format = EnumField(ChartDataResultFormat, by_value=True)
 
     # pylint: disable=no-self-use,unused-argument
     @post_load

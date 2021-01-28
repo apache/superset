@@ -20,10 +20,11 @@ import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { styledMount as mount } from 'spec/helpers/theming';
-
 import DatabaseModal from 'src/views/CRUD/data/database/DatabaseModal';
 import Modal from 'src/common/components/Modal';
 import Tabs from 'src/common/components/Tabs';
+import fetchMock from 'fetch-mock';
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 
 // store needed for withToasts(DatabaseModal)
 const mockStore = configureStore([thunk]);
@@ -42,9 +43,12 @@ const dbProps = {
   },
 };
 
+const DATABASE_ENDPOINT = 'glob:*/api/v1/database/*';
+
+fetchMock.get(DATABASE_ENDPOINT, {});
+
 describe('DatabaseModal', () => {
   const wrapper = mount(<DatabaseModal store={store} {...mockedProps} />);
-  const editWrapper = mount(<DatabaseModal store={store} {...dbProps} />);
 
   it('renders', () => {
     expect(wrapper.find(DatabaseModal)).toExist();
@@ -54,11 +58,13 @@ describe('DatabaseModal', () => {
     expect(wrapper.find(Modal)).toExist();
   });
 
-  it('renders "Add Database" header when no database is included', () => {
+  it('renders "Add database" header when no database is included', () => {
     expect(wrapper.find('h4').text()).toEqual('Add database');
   });
 
-  it('renders "Edit Database" header when database prop is included', () => {
+  it('renders "Edit database" header when database prop is included', () => {
+    const editWrapper = mount(<DatabaseModal store={store} {...dbProps} />);
+    waitForComponentToPaint(editWrapper);
     expect(editWrapper.find('h4').text()).toEqual('Edit database');
   });
 

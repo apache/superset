@@ -102,6 +102,11 @@ METRIC_KEYS = [
     "size",
 ]
 
+# This regex is to get user defined filter column name, which is the first param in the filter_values function.
+# see the definition of filter_values template:
+# https://github.com/apache/superset/blob/24ad6063d736c1f38ad6f962e586b9b1a21946af/superset/jinja_context.py#L63
+FILTER_VALUES_REGEX = re.compile(r"filter_values\(['\"](\w+)['\"]\,")
+
 
 class BaseViz:
 
@@ -143,13 +148,6 @@ class BaseViz:
         self._force_cached = force_cached
         self.from_dttm: Optional[datetime] = None
         self.to_dttm: Optional[datetime] = None
-
-        # Keeping track of whether some data came from cache
-        # this is useful to trigger the <CachedLabel /> when
-        # in the cases where visualization have many queries
-        # (FilterBox for instance)
-        self._any_cache_key: Optional[str] = None
-        self._any_cached_dttm: Optional[str] = None
         self._extra_chart_data: List[Tuple[str, pd.DataFrame]] = []
 
         self.process_metrics()
@@ -162,7 +160,7 @@ class BaseViz:
         return self._force_cached
 
     def process_metrics(self) -> None:
-        # metrics in TableViz is order sensitive, so metric_dict should be
+        # metrics in Viz is order sensitive, so metric_dict should be
         # OrderedDict
         self.metric_dict = OrderedDict()
         fd = self.form_data
@@ -247,6 +245,7 @@ class BaseViz:
         query_obj = self.query_obj()
         query_obj.update(
             {
+                "is_timeseries": False,
                 "groupby": [],
                 "metrics": [],
                 "orderby": [],
@@ -474,17 +473,27 @@ class BaseViz:
         filters = self.form_data.get("filters", [])
         filter_columns = [flt.get("col") for flt in filters]
         columns = set(self.datasource.column_names)
+        filter_values_columns = []
+
+        # if using virtual datasource, check filter_values
+        if self.datasource.sql:
+            filter_values_columns = (
+                re.findall(FILTER_VALUES_REGEX, self.datasource.sql)
+            ) or []
+
         applied_time_extras = self.form_data.get("applied_time_extras", {})
         applied_time_columns, rejected_time_columns = utils.get_time_filter_status(
             self.datasource, applied_time_extras
         )
         payload["applied_filters"] = [
-            {"column": col} for col in filter_columns if col in columns
+            {"column": col}
+            for col in filter_columns
+            if col in columns or col in filter_values_columns
         ] + applied_time_columns
         payload["rejected_filters"] = [
             {"reason": "not_in_datasource", "column": col}
             for col in filter_columns
-            if col not in columns
+            if col not in columns and col not in filter_values_columns
         ] + rejected_time_columns
 
         return payload
@@ -496,6 +505,7 @@ class BaseViz:
         if not query_obj:
             query_obj = self.query_obj()
         cache_key = self.cache_key(query_obj, **kwargs) if query_obj else None
+        cache_value = None
         logger.info("Cache key: {}".format(cache_key))
         is_loaded = False
         stacktrace = None
@@ -507,8 +517,6 @@ class BaseViz:
                 try:
                     df = cache_value["df"]
                     self.query = cache_value["query"]
-                    self._any_cached_dttm = cache_value["dttm"]
-                    self._any_cache_key = cache_key
                     self.status = utils.QueryStatus.SUCCESS
                     is_loaded = True
                     stats_logger.incr("loaded_from_cache")
@@ -583,13 +591,13 @@ class BaseViz:
                     self.datasource.uid,
                 )
         return {
-            "cache_key": self._any_cache_key,
-            "cached_dttm": self._any_cached_dttm,
+            "cache_key": cache_key,
+            "cached_dttm": cache_value["dttm"] if cache_value is not None else None,
             "cache_timeout": self.cache_timeout,
             "df": df,
             "errors": self.errors,
             "form_data": self.form_data,
-            "is_cached": self._any_cache_key is not None,
+            "is_cached": cache_value is not None,
             "query": self.query,
             "from_dttm": self.from_dttm,
             "to_dttm": self.to_dttm,
@@ -1715,6 +1723,9 @@ class DistributionBarViz(BaseViz):
             pt = pt.T
             pt = (pt / pt.sum()).T
         pt = pt.reindex(row.index)
+
+        # Re-order the columns adhering to the metric ordering.
+        pt = pt[metrics]
         chart_data = []
         for name, ys in pt.items():
             if pt[name].dtype.kind not in "biufc" or name in self.groupby:
