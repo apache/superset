@@ -21,6 +21,9 @@ import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
 import sinon from 'sinon';
 import ReactMarkdown from 'react-markdown';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+
 import { act } from 'react-dom/test-utils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 import Markdown from 'src/dashboard/components/gridComponents/Markdown';
@@ -31,7 +34,6 @@ import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 
-import WithDragDropContext from 'spec/helpers/WithDragDropContext';
 import { mockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 
@@ -63,9 +65,9 @@ describe('Markdown', () => {
     // otherwise we cannot assert on DragDroppable children
     const wrapper = mount(
       <Provider store={mockStore}>
-        <WithDragDropContext>
+        <DndProvider backend={HTML5Backend}>
           <Markdown {...props} {...overrideProps} />
-        </WithDragDropContext>
+        </DndProvider>
       </Provider>,
     );
     return wrapper;
