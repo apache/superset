@@ -139,14 +139,22 @@ export function applyFormattingToTabularData(data) {
 export const noOp = () => undefined;
 
 // Detects the user's OS through the browser
-export const detectOS = () => {
+export const detectOS = (version = 'Unknown') => {
   let OSName = 'Unknown OS';
+  let versionCopy = version;
   const { appVersion } = navigator;
+  if (version) {
+    versionCopy = appVersion;
+  }
 
-  if (appVersion.indexOf('Win') !== -1) OSName = 'Windows';
-  if (appVersion.indexOf('Mac') !== -1) OSName = 'MacOS';
-  if (appVersion.indexOf('X11') !== -1) OSName = 'UNIX';
-  if (appVersion.indexOf('Linux') !== -1) OSName = 'Linux';
+  console.log(versionCopy);
+
+  if (versionCopy.indexOf('Win') !== -1) OSName = 'Windows';
+  if (versionCopy.indexOf('Mac') !== -1) OSName = 'MacOS';
+  if (versionCopy.indexOf('X11') !== -1) OSName = 'UNIX';
+  if (versionCopy.indexOf('Linux') !== -1) OSName = 'Linux';
+
+  console.log(OSName);
 
   return OSName;
 };
