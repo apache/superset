@@ -27,6 +27,7 @@ import { Filter, CascadeFilter } from './types';
 interface CascadePopoverProps {
   filter: CascadeFilter;
   visible: boolean;
+  directPathToChild: string[];
   onVisibleChange: (visible: boolean) => void;
   onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
 }
@@ -73,6 +74,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   visible,
   onVisibleChange,
   onExtraFormDataChange,
+  directPathToChild,
 }) => {
   const getActiveChildren = useCallback((filter: CascadeFilter):
     | CascadeFilter[]
@@ -99,6 +101,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
     return (
       <FilterControl
         filter={filter}
+        directPathToChild={directPathToChild}
         onExtraFormDataChange={onExtraFormDataChange}
       />
     );
@@ -152,6 +155,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
             key={activeFilter.id}
             filter={activeFilter}
             onExtraFormDataChange={onExtraFormDataChange}
+            directPathToChild={directPathToChild}
             icon={
               <>
                 {filter.cascadeChildren.length !== 0 && (

@@ -23,7 +23,13 @@ import {
   t,
   ExtraFormData,
 } from '@superset-ui/core';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from 'react';
 import { useSelector } from 'react-redux';
 import cx from 'classnames';
 import { Form } from 'src/common/components';
@@ -194,16 +200,19 @@ const StyledLoadingBox = styled.div`
 interface FilterProps {
   filter: Filter;
   icon?: React.ReactElement;
+  directPathToChild?: string[];
   onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
 }
 
 interface FiltersBarProps {
   filtersOpen: boolean;
   toggleFiltersBar: any;
+  directPathToChild: string[];
 }
 
 const FilterValue: React.FC<FilterProps> = ({
   filter,
+  directPathToChild,
   onExtraFormDataChange,
 }) => {
   const {
@@ -219,6 +228,7 @@ const FilterValue: React.FC<FilterProps> = ({
   const [state, setState] = useState([]);
   const [error, setError] = useState<boolean>(false);
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
+  const inputRef = useRef<HTMLInputElement>(null);
   const [target] = targets;
   const { datasetId = 18, column } = target;
   const { name: groupby } = column;
@@ -240,6 +250,7 @@ const FilterValue: React.FC<FilterProps> = ({
     url_params: {},
     viz_type: 'filter_select',
     defaultValues: currentValue || defaultValue || [],
+    inputRef,
   });
 
   useEffect(() => {
@@ -262,6 +273,14 @@ const FilterValue: React.FC<FilterProps> = ({
         });
     }
   }, [cascadingFilters, datasetId, groupby]);
+
+  const isFocused = directPathToChild?.[0] === filter.id;
+
+  useEffect(() => {
+    if (isFocused) {
+      inputRef?.current?.focus();
+    }
+  }, [inputRef, isFocused]);
 
   const setExtraFormData = (extraFormData: ExtraFormData) =>
     onExtraFormDataChange(filter, extraFormData);
@@ -308,8 +327,10 @@ export const FilterControl: React.FC<FilterProps> = ({
   filter,
   icon,
   onExtraFormDataChange,
+  directPathToChild,
 }) => {
   const { name = '<undefined>' } = filter;
+
   return (
     <StyledFilterControlContainer>
       <StyledFilterControlTitleBox>
@@ -318,6 +339,7 @@ export const FilterControl: React.FC<FilterProps> = ({
       </StyledFilterControlTitleBox>
       <FilterValue
         filter={filter}
+        directPathToChild={directPathToChild}
         onExtraFormDataChange={onExtraFormDataChange}
       />
     </StyledFilterControlContainer>
@@ -358,6 +380,7 @@ export const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
 const FilterBar: React.FC<FiltersBarProps> = ({
   filtersOpen,
   toggleFiltersBar,
+  directPathToChild,
 }) => {
   const [filterData, setFilterData] = useState<{ [id: string]: ExtraFormData }>(
     {},
@@ -493,6 +516,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
               }
               filter={filter}
               onExtraFormDataChange={handleExtraFormDataChange}
+              directPathToChild={directPathToChild}
             />
           ))}
         </FilterControls>

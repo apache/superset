@@ -50,6 +50,7 @@ export default function AntdRangeFilter(props: AntdPluginFilterRangeProps) {
         max={max}
         defaultValue={[min, max]}
         onChange={handleChange}
+        ref={inputRef}
       />
     </Styles>
   );
