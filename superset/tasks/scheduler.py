@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from dateutil import parser
 from datetime import datetime, timedelta
 from typing import Iterator
 
@@ -60,9 +61,10 @@ def scheduler() -> None:
 
 
 @celery_app.task(name="reports.execute")
-def execute(report_schedule_id: int, scheduled_dttm: datetime) -> None:
+def execute(report_schedule_id: int, scheduled_dttm: str) -> None:
     try:
-        AsyncExecuteReportScheduleCommand(report_schedule_id, scheduled_dttm).run()
+        scheduled_dttm_ = parser.parse(scheduled_dttm)
+        AsyncExecuteReportScheduleCommand(report_schedule_id, scheduled_dttm_).run()
     except ReportScheduleUnexpectedError as ex:
         logger.error("An unexpected occurred while executing the report: %s", ex)
     except CommandException as ex:
