@@ -17,9 +17,9 @@
 import logging
 from typing import Iterator
 
+from contextlib2 import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
-from contextlib2 import contextmanager
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
 
