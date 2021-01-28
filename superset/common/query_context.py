@@ -22,7 +22,7 @@ from typing import Any, cast, ClassVar, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-from flask_babel import gettext as _
+from flask_babel import _
 
 from superset import app, db, is_feature_enabled
 from superset.annotation_layers.dao import AnnotationLayerDAO
@@ -321,7 +321,7 @@ class QueryContext:
         chart = ChartDAO.find_by_id(annotation_layer["value"])
         form_data = chart.form_data.copy()
         if not chart:
-            raise QueryObjectValidationError("The chart does not exist")
+            raise QueryObjectValidationError(_("The chart does not exist"))
         try:
             viz_obj = get_viz(
                 datasource_type=chart.datasource.type,
