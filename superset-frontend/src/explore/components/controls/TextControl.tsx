@@ -32,6 +32,7 @@ interface TextControlProps {
   value?: string | number;
   controlId?: string;
   renderTrigger?: boolean;
+  datasource?: string;
 }
 
 interface TextControlState {
@@ -60,6 +61,17 @@ export default class TextControl extends React.Component<
       value: props.value,
     };
   }
+
+  componentDidUpdate(prevProps: TextControlProps) {
+    if (prevProps.datasource !== this.props.datasource) {
+      this.props.onChange?.('', []);
+      this.defaultInput();
+    }
+  }
+
+  defaultInput = () => {
+    this.setState({ value: '' });
+  };
 
   onChange = (inputValue: string) => {
     let parsedValue: string | number = inputValue;
@@ -103,7 +115,6 @@ export default class TextControl extends React.Component<
       typeof rawValue !== 'undefined' && rawValue !== null
         ? rawValue.toString()
         : '';
-
     return (
       <div>
         <ControlHeader {...this.props} />
