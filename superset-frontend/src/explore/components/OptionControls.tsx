@@ -20,6 +20,7 @@ import React, { useRef } from 'react';
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
 import { styled, useTheme } from '@superset-ui/core';
 import { ColumnOption } from '@superset-ui/chart-controls';
+import { Tooltip } from 'src/common/components/Tooltip';
 import Icon from 'src/components/Icon';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 
@@ -215,7 +216,7 @@ export const OptionControlLabel = ({
       }
       return <ColumnOption column={column} />;
     }
-    return label;
+    return <Tooltip title={label}>{label}</Tooltip>;
   };
 
   const getOptionControlContent = () => (
