@@ -21,7 +21,7 @@ import prison
 import pytest
 from flask import escape
 
-from superset import app, security_manager
+from superset import app
 from superset.models import core as models
 from tests.dashboards.base_case import DashboardTestCase
 from tests.dashboards.consts import *
@@ -91,16 +91,11 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         username = "gamma"
         user = security_manager.find_user(username)
         my_owned_dashboard = create_dashboard_to_db(
-            dashboard_title="My Dashboard",
-            slug=f"my_dash_{random_slug()}",
-            published=False,
-            owners=[user],
+            dashboard_title="My Dashboard", published=False, owners=[user],
         )
 
         not_my_owned_dashboard = create_dashboard_to_db(
-            dashboard_title="Not My Dashboard",
-            slug=f"not_my_dash_{random_slug()}",
-            published=False,
+            dashboard_title="Not My Dashboard", published=False,
         )
 
         self.login(user.username)
@@ -165,10 +160,8 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         # arrange
         admin_user = security_manager.find_user(ADMIN_USERNAME)
         gamma_user = security_manager.find_user(GAMMA_USERNAME)
-        slug = f"admin_owned_unpublished_dash_{random_slug()}"
-
         admin_and_not_published_dashboard = create_dashboard_to_db(
-            "My Dashboard", slug=slug, owners=[admin_user]
+            dashboard_title="admin_owned_unpublished_dash", owners=[admin_user]
         )
 
         self.login(gamma_user.username)
@@ -194,14 +187,12 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         # Create a published and hidden dashboard and add them to the database
         first_dash = create_dashboard_to_db(
             dashboard_title="Published Dashboard",
-            slug=f"first_dash_{random_slug()}",
             published=True,
             slices=[slice_to_add_to_dashboards],
         )
 
         second_dash = create_dashboard_to_db(
             dashboard_title="Hidden Dashboard",
-            slug=f"second_dash_{random_slug()}",
             published=True,
             slices=[slice_to_add_to_dashboards],
         )
