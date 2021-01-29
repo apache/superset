@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy import func
 
-from superset import appbuilder, db
+from superset import appbuilder, db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -105,3 +105,17 @@ def get_random_string(length):
 
 def random_str():
     return get_random_string(8)
+
+
+def grant_access_to_dashboard(dashboard, role_name):
+    role = security_manager.find_role(role_name)
+    dashboard.roles.append(role)
+    db.session.merge(dashboard)
+    db.session.commit()
+
+
+def revoke_access_to_dashboard(dashboard, role_name):
+    role = security_manager.find_role(role_name)
+    dashboard.roles.remove(role)
+    db.session.merge(dashboard)
+    db.session.commit()

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Callable, List, Optional
+from typing import List, Optional
 
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.models import User

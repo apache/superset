@@ -295,18 +295,6 @@ class SupersetTestCase(TestCase):
     def logout(self):
         self.client.get("/logout/", follow_redirects=True)
 
-    def grant_access_to_dashboard(self, dashboard, role_name):
-        role = security_manager.find_role(role_name)
-        dashboard.roles.append(role)
-        db.session.merge(dashboard)
-        db.session.commit()
-
-    def revoke_access_to_dashboard(self, dashboard, role_name):
-        role = security_manager.find_role(role_name)
-        dashboard.roles.remove(role)
-        db.session.merge(dashboard)
-        db.session.commit()
-
     def grant_public_access_to_table(self, table):
         role_name = "Public"
         self.grant_role_access_to_table(table, role_name)

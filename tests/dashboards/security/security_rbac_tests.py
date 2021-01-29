@@ -106,7 +106,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         ]
 
         for dash in published_dashboards + not_published_dashboards:
-            self.grant_access_to_dashboard(dash, new_role)
+            grant_access_to_dashboard(dash, new_role)
 
         self.login(username)
 
@@ -123,7 +123,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         # post
         for dash in published_dashboards + not_published_dashboards:
-            self.revoke_access_to_dashboard(dash, new_role)
+            revoke_access_to_dashboard(dash, new_role)
 
     def test_get_dashboards_list__public_user_without_any_permissions_get_empty_list(
         self,
@@ -150,7 +150,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         ]
 
         for dash in published_dashboards + not_published_dashboards:
-            self.grant_access_to_dashboard(dash, "Public")
+            grant_access_to_dashboard(dash, "Public")
 
         # act
         response = self.get_dashboards_list_response()
@@ -165,7 +165,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         # post
         for dash in published_dashboards + not_published_dashboards:
-            self.revoke_access_to_dashboard(dash, "Public")
+            revoke_access_to_dashboard(dash, "Public")
 
     def test_get_dashboards_api__admin_get_all_dashboards(self):
         # arrange
@@ -242,7 +242,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         ]
 
         for dash in published_dashboards + not_published_dashboards:
-            self.grant_access_to_dashboard(dash, new_role)
+            grant_access_to_dashboard(dash, new_role)
 
         self.login(username)
 
@@ -259,7 +259,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         # post
         for dash in published_dashboards + not_published_dashboards:
-            self.revoke_access_to_dashboard(dash, new_role)
+            revoke_access_to_dashboard(dash, new_role)
 
     def test_get_dashboards_api__public_user_without_any_permissions_get_empty_list(
         self,
@@ -286,7 +286,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         ]
 
         for dash in published_dashboards + not_published_dashboards:
-            self.grant_access_to_dashboard(dash, "Public")
+            grant_access_to_dashboard(dash, "Public")
 
         # act
         response = self.get_dashboards_api_response()
@@ -301,7 +301,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         # post
         for dash in published_dashboards + not_published_dashboards:
-            self.revoke_access_to_dashboard(dash, "Public")
+            revoke_access_to_dashboard(dash, "Public")
 
     @staticmethod
     def __add_dashboard_mode_params(dashboard_url):
