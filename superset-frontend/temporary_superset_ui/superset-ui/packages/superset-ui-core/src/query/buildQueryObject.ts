@@ -25,9 +25,9 @@ export default function buildQueryObject<T extends QueryFormData>(
     time_range,
     since,
     until,
-    order_desc,
     row_limit,
     row_offset,
+    order_desc,
     limit,
     timeseries_limit_metric,
     granularity,
@@ -38,7 +38,7 @@ export default function buildQueryObject<T extends QueryFormData>(
 
   const numericRowLimit = Number(row_limit);
   const numericRowOffset = Number(row_offset);
-  const { metrics, columns } = extractQueryFields(residualFormData, queryFields);
+  const { metrics, columns, orderby } = extractQueryFields(residualFormData, queryFields);
 
   const extras = extractExtras(formData);
   const extrasAndfilters = processFilters({
@@ -56,12 +56,12 @@ export default function buildQueryObject<T extends QueryFormData>(
     annotation_layers,
     columns,
     metrics,
-    order_desc: typeof order_desc === 'undefined' ? true : order_desc,
-    orderby: [],
+    orderby,
     row_limit: row_limit == null || Number.isNaN(numericRowLimit) ? undefined : numericRowLimit,
     row_offset: row_offset == null || Number.isNaN(numericRowOffset) ? undefined : numericRowOffset,
     timeseries_limit: limit ? Number(limit) : 0,
     timeseries_limit_metric,
+    order_desc: typeof order_desc === 'undefined' ? true : order_desc,
     url_params,
   };
   // append and override extra form data used by native filters

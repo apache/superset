@@ -29,11 +29,22 @@ import { QueryObject } from './Query';
 import { TimeRange, TimeRangeEndpoints } from './Time';
 import { TimeGranularity } from '../../time-format';
 
+/**
+ * Metric definition/reference in query object.
+ */
 export type QueryFormMetric = SavedMetric | AdhocMetric;
 
-// Column selects (used as dimensions in groupby and raw query mode) only
-// support existing columns for now.
+/**
+ * Column selects in query object (used as dimensions in both groupby or raw
+ * query mode). Only support referring existing columns.
+ */
 export type QueryFormColumn = string;
+
+/**
+ * Order query results by columns.
+ * Format: [metric/column, is_ascending].
+ */
+export type QueryFormOrderBy = [QueryFormColumn | QueryFormMetric, boolean];
 
 export interface FormDataResidual {
   [key: string]: any;
@@ -50,6 +61,7 @@ export enum QueryMode {
 export interface QueryFields {
   columns: QueryFormColumn[];
   metrics: QueryFormMetric[];
+  orderby: QueryFormOrderBy[];
 }
 
 /**

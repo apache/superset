@@ -97,12 +97,6 @@ export interface QueryObject extends QueryFields, TimeRange, ResidualQueryObject
   /** SIMPLE having filters */
   having_filters?: QueryObjectFilterClause[];
 
-  /**
-   * A list of metrics to query the datasource for. Could be the name of a predefined
-   * metric or an adhoc metric.
-   */
-  metrics: QueryFormMetric[];
-
   post_processing?: (PostProcessingRule | undefined)[];
 
   /** Maximum numbers of rows to return */
@@ -116,8 +110,6 @@ export interface QueryObject extends QueryFields, TimeRange, ResidualQueryObject
 
   /** The metric used to sort the returned result. */
   timeseries_limit_metric?: Maybe<QueryFormMetric>;
-
-  orderby?: Array<[QueryFormMetric, boolean]>;
 
   /** Direction to ordered by */
   order_desc?: boolean;
