@@ -208,15 +208,6 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         finally:
             self.revoke_public_access_to_table(accessed_table)
 
-    @staticmethod
-    def __add_dashboard_mode_params(dashboard_url):
-        full_url = dashboard_url
-        if dashboard_url.find("?") == -1:
-            full_url += "?"
-        else:
-            full_url += "&"
-        return full_url + "edit=true&standalone=true"
-
     def test_get_dashboard_api_no_data_access(self):
         """
         Dashboard API: Test get dashboard without data access

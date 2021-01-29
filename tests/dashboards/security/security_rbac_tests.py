@@ -302,12 +302,3 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # post
         for dash in published_dashboards + not_published_dashboards:
             revoke_access_to_dashboard(dash, "Public")
-
-    @staticmethod
-    def __add_dashboard_mode_params(dashboard_url):
-        full_url = dashboard_url
-        if dashboard_url.find("?") == -1:
-            full_url += "?"
-        else:
-            full_url += "&"
-        return full_url + "edit=true&standalone=true"
