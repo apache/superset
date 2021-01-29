@@ -18,13 +18,13 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { OverlayTrigger } from 'react-bootstrap';
+import { Tooltip } from '../../src/components/Tooltip';
 import { InfoTooltipWithTrigger } from '../../src';
 
 describe('InfoTooltipWithTrigger', () => {
   it('renders a tooltip', () => {
     const wrapper = shallow(<InfoTooltipWithTrigger label="test" tooltip="this is a test" />);
-    expect(wrapper.find(OverlayTrigger)).toHaveLength(1);
+    expect(wrapper.find(Tooltip)).toHaveLength(1);
   });
 
   it('renders an info icon', () => {
