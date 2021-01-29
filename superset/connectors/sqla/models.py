@@ -647,14 +647,14 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             # TODO(villebro): refactor to use same code that's used by
             #  sql_lab.py:execute_sql_statements
             with closing(engine.raw_connection()) as conn:
-                with closing(conn.cursor()) as cursor:
-                    query = self.database.apply_limit_to_sql(statements[0])
-                    db_engine_spec.execute(cursor, query)
-                    result = db_engine_spec.fetch_data(cursor, limit=1)
-                    result_set = SupersetResultSet(
-                        result, cursor.description, db_engine_spec
-                    )
-                    cols = result_set.columns
+                cursor = conn.cursor()
+                query = self.database.apply_limit_to_sql(statements[0])
+                db_engine_spec.execute(cursor, query)
+                result = db_engine_spec.fetch_data(cursor, limit=1)
+                result_set = SupersetResultSet(
+                    result, cursor.description, db_engine_spec
+                )
+                cols = result_set.columns
         else:
             db_dialect = self.database.get_dialect()
             cols = self.database.get_columns(
