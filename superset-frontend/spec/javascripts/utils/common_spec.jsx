@@ -21,7 +21,6 @@ import {
   optionFromValue,
   prepareCopyToClipboardTabularData,
   NULL_STRING,
-  detectOS,
 } from 'src/utils/common';
 
 describe('utils/common', () => {
