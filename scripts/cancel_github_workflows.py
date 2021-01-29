@@ -23,13 +23,13 @@ Example:
   export GITHUB_TOKEN=394ba3b48494ab8f930fbc93
   export GITHUB_REPOSITORY=apache/superset
 
-  # cancel previous jobs for a PR
+  # cancel previous jobs for a PR, will even cancel the running ones
   ./cancel_github_workflows.py 1042
 
   # cancel previous jobs for a branch
   ./cancel_github_workflows.py my-branch
 
-  # cancel all jobs
+  # cancel all jobs of a PR, including the latest runs
   ./cancel_github_workflows.py 1024 --include-last
 """
 import os
@@ -58,7 +58,21 @@ def request(method: Literal["GET", "POST", "DELETE", "PUT"], endpoint: str, **kw
 
 
 def list_runs(repo: str, params=None):
-    return request("GET", f"/repos/{repo}/actions/runs", params=params)
+    """List all github workflow runs.
+    Returns:
+      An iterator that will iterate through all pages of matching runs."""
+    page = 1
+    total_count = 10000
+    while page * 100 < total_count:
+        result = request(
+            "GET",
+            f"/repos/{repo}/actions/runs",
+            params={**params, "per_page": 100, "page": page},
+        )
+        total_count = result["total_count"]
+        for item in result["workflow_runs"]:
+            yield item
+        page += 1
 
 
 def cancel_run(repo: str, run_id: Union[str, int]):
@@ -69,9 +83,9 @@ def get_pull_request(repo: str, pull_number: Union[str, int]):
     return request("GET", f"/repos/{repo}/pulls/{pull_number}")
 
 
-def get_runs_by_branch(
+def get_runs(
     repo: str,
-    branch: str,
+    branch: Optional[str] = None,
     user: Optional[str] = None,
     statuses: Iterable[str] = ("queued", "in_progress"),
     events: Iterable[str] = ("pull_request", "push"),
@@ -81,15 +95,13 @@ def get_runs_by_branch(
         item
         for event in events
         for status in statuses
-        for item in list_runs(
-            repo, {"event": event, "status": status, "per_page": 100}
-        )["workflow_runs"]
-        if item["head_branch"] == branch
+        for item in list_runs(repo, {"event": event, "status": status})
+        if (branch is None or (branch == item["head_branch"]))
         and (user is None or (user == item["head_repository"]["owner"]["login"]))
     ]
 
 
-def print_commit(commit):
+def print_commit(commit, branch):
     """Print out commit message for verification"""
     indented_message = "    \n".join(commit["message"].split("\n"))
     date_str = (
@@ -98,7 +110,7 @@ def print_commit(commit):
         .strftime("%a, %d %b %Y %H:%M:%S")
     )
     print(
-        f"""HEAD {commit["id"]}
+        f"""HEAD {commit["id"]} ({branch})
 Author: {commit["author"]["name"]} <{commit["author"]["email"]}>
 Date:   {date_str}
 
@@ -132,10 +144,10 @@ Date:   {date_str}
     show_default=True,
     help="Whether to also cancel running workflows.",
 )
-@click.argument("branch_or_pull")
+@click.argument("branch_or_pull", required=False)
 def cancel_github_workflows(
-    branch_or_pull: str,
-    repo,
+    branch_or_pull: Optional[str],
+    repo: str,
     event: List[str],
     include_last: bool,
     include_running: bool,
@@ -145,24 +157,24 @@ def cancel_github_workflows(
         raise ClickException("Please provide GITHUB_TOKEN as an env variable")
 
     statuses = ("queued", "in_progress") if include_running else ("queued",)
+    events = event
     pr = None
 
-    if branch_or_pull.isdigit():
+    if branch_or_pull is None:
+        title = "all jobs" if include_last else "all duplicate jobs"
+    elif branch_or_pull.isdigit():
         pr = get_pull_request(repo, pull_number=branch_or_pull)
-        target_type = "pull request"
-        title = f"#{pr['number']} - {pr['title']}"
+        title = f"pull request #{pr['number']} - {pr['title']}"
     else:
-        target_type = "branch"
-        title = branch_or_pull
+        title = f"branch [{branch_or_pull}]"
 
     print(
         f"\nCancel {'active' if include_running else 'previous'} "
-        f"workflow runs for {target_type}\n\n    {title}\n"
+        f"workflow runs for {title}\n"
     )
 
     if pr:
-        # full branch name
-        runs = get_runs_by_branch(
+        runs = get_runs(
             repo,
             statuses=statuses,
             events=event,
@@ -172,26 +184,33 @@ def cancel_github_workflows(
     else:
         user = None
         branch = branch_or_pull
-        if ":" in branch:
+        if branch and ":" in branch:
             [user, branch] = branch.split(":", 2)
-        runs = get_runs_by_branch(
-            repo, statuses=statuses, events=event, branch=branch_or_pull, user=user
+        runs = get_runs(
+            repo, branch=branch, user=user, statuses=statuses, events=events,
         )
 
+    # sort old jobs to the front, so to cancel older jobs first
     runs = sorted(runs, key=lambda x: x["created_at"])
-    if not runs:
+    if runs:
+        print(
+            f"Found {len(runs)} potential runs of\n"
+            f"   status: {statuses}\n   event: {events}\n"
+        )
+    else:
         print(f"No {' or '.join(statuses)} workflow runs found.\n")
         return
 
     if not include_last:
-        # Only keep one item for each workflow
+        # Keep the latest run for each workflow and cancel all others
         seen = set()
         dups = []
         for item in reversed(runs):
-            if item["workflow_id"] in seen:
+            key = f'{item["event"]}_{item["head_branch"]}_{item["workflow_id"]}'
+            if key in seen:
                 dups.append(item)
             else:
-                seen.add(item["workflow_id"])
+                seen.add(key)
         if not dups:
             print(
                 "Only the latest runs are in queue. "
@@ -207,7 +226,8 @@ def cancel_github_workflows(
         head_commit = entry["head_commit"]
         if head_commit["id"] != last_sha:
             last_sha = head_commit["id"]
-            print_commit(head_commit)
+            print("")
+            print_commit(head_commit, entry["head_branch"])
         try:
             print(f"[{entry['status']}] {entry['name']}", end="\r")
             cancel_run(repo, entry["id"])
