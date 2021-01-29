@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Tooltip } from 'src/common/components/Tooltip';
 import columnType from 'src/explore/propTypes/columnType';
 import { OptionControlLabel } from 'src/explore/components/OptionControls';
 import { OPTION_TYPES } from 'src/explore/components/optionTypes';
@@ -71,22 +70,17 @@ class AdhocMetricOption extends React.PureComponent {
         savedMetric={savedMetric}
         datasourceType={datasourceType}
       >
-        <Tooltip
-          placement="top"
-          title={savedMetric.expression || adhocMetric.label}
-        >
-          <OptionControlLabel
-            savedMetric={savedMetric}
-            label={adhocMetric.label}
-            onRemove={this.onRemoveMetric}
-            onMoveLabel={onMoveLabel}
-            onDropLabel={onDropLabel}
-            index={index}
-            type={OPTION_TYPES.metric}
-            isAdhoc
-            isFunction
-          />
-        </Tooltip>
+        <OptionControlLabel
+          savedMetric={savedMetric}
+          label={adhocMetric.label}
+          onRemove={this.onRemoveMetric}
+          onMoveLabel={onMoveLabel}
+          onDropLabel={onDropLabel}
+          index={index}
+          type={OPTION_TYPES.metric}
+          isAdhoc
+          isFunction
+        />
       </AdhocMetricPopoverTrigger>
     );
   }
