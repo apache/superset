@@ -343,6 +343,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ALERT_REPORTS": False,
     # Enable experimental feature to search for other dashboards
     "OMNIBAR": False,
+    "DASHBOARD_RBAC": False,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.

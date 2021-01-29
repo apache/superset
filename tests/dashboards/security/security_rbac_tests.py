@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for Superset"""
+from unittest import mock
 
 from tests.dashboards.dashboard_test_utils import *
 from tests.dashboards.security.base_case import BaseTestDashboardSecurity
@@ -26,6 +27,10 @@ from tests.dashboards.superset_factory_util import (
 )
 
 
+@mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        DASHBOARD_RBAC=True,
+)
 class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
     def test_get_dashboards_list__admin_get_all_dashboards(self):
         # arrange

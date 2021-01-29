@@ -21,7 +21,7 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
 
-from superset import db, security_manager
+from superset import db, security_manager, is_feature_enabled
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -123,7 +123,9 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 Dashboard.id.in_(owner_ids_query),
                 Dashboard.id.in_(datasource_perm_query),
                 Dashboard.id.in_(users_favorite_dash_query),
-                Dashboard.id.in_(roles_based_query),
+                Dashboard.id.in_(roles_based_query)
+                if is_feature_enabled("DASHBOARD_RBAC")
+                else None,
             )
         )
 
