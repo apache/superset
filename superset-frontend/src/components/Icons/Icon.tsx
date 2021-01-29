@@ -20,6 +20,7 @@
 import React from 'react';
 import AntdIcon from '@ant-design/icons';
 import { styled } from '@superset-ui/core';
+import { CustomIconComponentProps } from '@ant-design/icons/lib/components/Icon';
 import IconType from './IconType';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -33,5 +34,18 @@ const Icon = styled(EnhancedIcon)<IconType>`
     iconSize ? `${theme.typography.sizes[iconSize]}px` : '24px'};
   vertical-align: baseline;
 `;
+
+export const renderIcon = (
+  SVGComponent:
+    | React.ComponentClass<
+        CustomIconComponentProps | React.SVGProps<SVGSVGElement>,
+        any
+      >
+    | React.FunctionComponent<
+        CustomIconComponentProps | React.SVGProps<SVGSVGElement>
+      >
+    | undefined,
+  props: IconType,
+) => <Icon component={SVGComponent} {...props} />;
 
 export default Icon;

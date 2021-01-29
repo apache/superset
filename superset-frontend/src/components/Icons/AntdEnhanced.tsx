@@ -18,10 +18,14 @@
  */
 
 import React from 'react';
-import { ReactComponent as BinocularsIcon } from 'images/icons/binoculars.svg';
-import Icon from '../Icon';
-import IconType from '../IconType';
+import * as AntdIcons from '@ant-design/icons/lib/icons';
+import Icon from './Icon';
+import IconType from './IconType';
 
-export default (props: IconType) => (
-  <Icon component={BinocularsIcon} {...props} />
-);
+const AntdEnhancedIcons = Object.keys(AntdIcons)
+  .map(k => ({
+    [k]: (props: IconType) => <Icon component={AntdIcons[k]} {...props} />,
+  }))
+  .reduce((l, r) => ({ ...l, ...r }));
+
+export default AntdEnhancedIcons;
