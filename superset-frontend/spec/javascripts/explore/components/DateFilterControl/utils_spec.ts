@@ -24,26 +24,7 @@ import {
 
 describe('Custom TimeRange', () => {
   describe('customTimeRangeEncode', () => {
-    it('1) default value', () => {
-      expect(
-        customTimeRangeEncode({
-          sinceDatetime: '2021-01-20T00:00:00',
-          sinceMode: 'relative',
-          sinceGrain: 'day',
-          sinceGrainValue: -7,
-          untilDatetime: '2021-01-27T00:00:00',
-          untilMode: 'specific',
-          untilGrain: 'day',
-          untilGrainValue: 7,
-          anchorMode: 'now',
-          anchorValue: 'now',
-        }),
-      ).toEqual(
-        'DATEADD(DATETIME("2021-01-27T00:00:00"), -7, day) : 2021-01-27T00:00:00',
-      );
-    });
-
-    it('2) specific : specific', () => {
+    it('1) specific : specific', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: '2021-01-20T00:00:00',
@@ -60,14 +41,14 @@ describe('Custom TimeRange', () => {
       ).toEqual('2021-01-20T00:00:00 : 2021-01-27T00:00:00');
     });
 
-    it('3) specific : relative', () => {
+    it('2) specific : relative', () => {
       expect(
         customTimeRangeEncode({
           sinceDatetime: '2021-01-20T00:00:00',
           sinceMode: 'specific',
           sinceGrain: 'day',
           sinceGrainValue: -7,
-          untilDatetime: '2021-01-27T00:00:00',
+          untilDatetime: '2021-01-20T00:00:00',
           untilMode: 'relative',
           untilGrain: 'day',
           untilGrainValue: 7,
@@ -79,14 +60,14 @@ describe('Custom TimeRange', () => {
       );
     });
 
-    it('4) now : relative', () => {
+    it('3) now : relative', () => {
       expect(
         customTimeRangeEncode({
-          sinceDatetime: '2021-01-20T00:00:00',
+          sinceDatetime: 'now',
           sinceMode: 'now',
           sinceGrain: 'day',
           sinceGrainValue: -7,
-          untilDatetime: '2021-01-27T00:00:00',
+          untilDatetime: 'now',
           untilMode: 'relative',
           untilGrain: 'day',
           untilGrainValue: 7,
@@ -96,14 +77,14 @@ describe('Custom TimeRange', () => {
       ).toEqual('now : DATEADD(DATETIME("now"), 7, day)');
     });
 
-    it('5) today : relative', () => {
+    it('4) today : relative', () => {
       expect(
         customTimeRangeEncode({
-          sinceDatetime: '2021-01-20T00:00:00',
+          sinceDatetime: 'today',
           sinceMode: 'today',
           sinceGrain: 'day',
           sinceGrainValue: -7,
-          untilDatetime: '2021-01-27T00:00:00',
+          untilDatetime: 'today',
           untilMode: 'relative',
           untilGrain: 'day',
           untilGrainValue: 7,
@@ -113,10 +94,10 @@ describe('Custom TimeRange', () => {
       ).toEqual('today : DATEADD(DATETIME("today"), 7, day)');
     });
 
-    it('6) relative : specific', () => {
+    it('5) relative : specific', () => {
       expect(
         customTimeRangeEncode({
-          sinceDatetime: '2021-01-20T00:00:00',
+          sinceDatetime: '2021-01-27T00:00:00',
           sinceMode: 'relative',
           sinceGrain: 'day',
           sinceGrainValue: -7,
@@ -132,14 +113,14 @@ describe('Custom TimeRange', () => {
       );
     });
 
-    it('7) relative : now', () => {
+    it('6) relative : now', () => {
       expect(
         customTimeRangeEncode({
-          sinceDatetime: '2021-01-20T00:00:00',
+          sinceDatetime: 'now',
           sinceMode: 'relative',
           sinceGrain: 'day',
           sinceGrainValue: -7,
-          untilDatetime: '2021-01-27T00:00:00',
+          untilDatetime: 'now',
           untilMode: 'now',
           untilGrain: 'day',
           untilGrainValue: 7,
@@ -149,14 +130,14 @@ describe('Custom TimeRange', () => {
       ).toEqual('DATEADD(DATETIME("now"), -7, day) : now');
     });
 
-    it('8) relative : today', () => {
+    it('7) relative : today', () => {
       expect(
         customTimeRangeEncode({
-          sinceDatetime: '2021-01-20T00:00:00',
+          sinceDatetime: 'today',
           sinceMode: 'relative',
           sinceGrain: 'day',
           sinceGrainValue: -7,
-          untilDatetime: '2021-01-27T00:00:00',
+          untilDatetime: 'today',
           untilMode: 'today',
           untilGrain: 'day',
           untilGrainValue: 7,
@@ -166,14 +147,14 @@ describe('Custom TimeRange', () => {
       ).toEqual('DATEADD(DATETIME("today"), -7, day) : today');
     });
 
-    it('9) relative : relative (now)', () => {
+    it('8) relative : relative (now)', () => {
       expect(
         customTimeRangeEncode({
-          sinceDatetime: '2021-01-20T00:00:00',
+          sinceDatetime: 'now',
           sinceMode: 'relative',
           sinceGrain: 'day',
           sinceGrainValue: -7,
-          untilDatetime: '2021-01-27T00:00:00',
+          untilDatetime: 'now',
           untilMode: 'relative',
           untilGrain: 'day',
           untilGrainValue: 7,
@@ -185,10 +166,10 @@ describe('Custom TimeRange', () => {
       );
     });
 
-    it('10) relative : relative (date/time)', () => {
+    it('9) relative : relative (date/time)', () => {
       expect(
         customTimeRangeEncode({
-          sinceDatetime: '2021-01-20T00:00:00',
+          sinceDatetime: '2021-01-27T00:00:00',
           sinceMode: 'relative',
           sinceGrain: 'day',
           sinceGrainValue: -7,
@@ -206,29 +187,7 @@ describe('Custom TimeRange', () => {
   });
 
   describe('customTimeRangeDecode', () => {
-    it('1) default value', () => {
-      expect(
-        customTimeRangeDecode(
-          'DATEADD(DATETIME("2021-01-27T00:00:00"), -7, day) : 2021-01-27T00:00:00',
-        ),
-      ).toEqual({
-        customRange: {
-          sinceDatetime: '2021-01-20T00:00:00',
-          sinceMode: 'relative',
-          sinceGrain: 'day',
-          sinceGrainValue: -7,
-          untilDatetime: '2021-01-27T00:00:00',
-          untilMode: 'specific',
-          untilGrain: 'day',
-          untilGrainValue: 7,
-          anchorMode: 'now',
-          anchorValue: 'now',
-        },
-        matchedFlag: true,
-      });
-    });
-
-    it('2) specific : specific', () => {
+    it('1) specific : specific', () => {
       expect(
         customTimeRangeDecode('2021-01-20T00:00:00 : 2021-01-27T00:00:00'),
       ).toEqual({
@@ -248,7 +207,7 @@ describe('Custom TimeRange', () => {
       });
     });
 
-    it('3) specific : relative', () => {
+    it('2) specific : relative', () => {
       expect(
         customTimeRangeDecode(
           '2021-01-20T00:00:00 : DATEADD(DATETIME("2021-01-20T00:00:00"), 7, day)',
@@ -259,7 +218,7 @@ describe('Custom TimeRange', () => {
           sinceMode: 'specific',
           sinceGrain: 'day',
           sinceGrainValue: -7,
-          untilDatetime: '2021-01-27T00:00:00',
+          untilDatetime: '2021-01-20T00:00:00',
           untilMode: 'relative',
           untilGrain: 'day',
           untilGrainValue: 7,
@@ -270,14 +229,14 @@ describe('Custom TimeRange', () => {
       });
     });
 
-    it('4) relative : specific', () => {
+    it('3) relative : specific', () => {
       expect(
         customTimeRangeDecode(
           'DATEADD(DATETIME("2021-01-27T00:00:00"), -7, day) : 2021-01-27T00:00:00',
         ),
       ).toEqual({
         customRange: {
-          sinceDatetime: '2021-01-20T00:00:00',
+          sinceDatetime: '2021-01-27T00:00:00',
           sinceMode: 'relative',
           sinceGrain: 'day',
           sinceGrainValue: -7,
@@ -292,18 +251,18 @@ describe('Custom TimeRange', () => {
       });
     });
 
-    it('5) relative : relative (now)', () => {
+    it('4) relative : relative (now)', () => {
       expect(
         customTimeRangeDecode(
           'DATEADD(DATETIME("now"), -7, day) : DATEADD(DATETIME("now"), 7, day)',
         ),
       ).toEqual({
         customRange: {
-          sinceDatetime: '2021-01-20T00:00:00',
+          sinceDatetime: 'now',
           sinceMode: 'relative',
           sinceGrain: 'day',
           sinceGrainValue: -7,
-          untilDatetime: '2021-01-27T00:00:00',
+          untilDatetime: 'now',
           untilMode: 'relative',
           untilGrain: 'day',
           untilGrainValue: 7,
@@ -314,14 +273,14 @@ describe('Custom TimeRange', () => {
       });
     });
 
-    it('6) relative : relative (date/time)', () => {
+    it('5) relative : relative (date/time)', () => {
       expect(
         customTimeRangeDecode(
           'DATEADD(DATETIME("2021-01-27T00:00:00"), -7, day) : DATEADD(DATETIME("2021-01-27T00:00:00"), 7, day)',
         ),
       ).toEqual({
         customRange: {
-          sinceDatetime: '2021-01-20T00:00:00',
+          sinceDatetime: '2021-01-27T00:00:00',
           sinceMode: 'relative',
           sinceGrain: 'day',
           sinceGrainValue: -7,
