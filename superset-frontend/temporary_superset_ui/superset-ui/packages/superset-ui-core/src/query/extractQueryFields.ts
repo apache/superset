@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '../translation';
 import { DTTM_ALIAS } from './buildQueryObject';
 import { QueryFields, QueryFieldAliases, FormDataResidual, QueryMode } from './types/QueryFormData';
 
@@ -41,11 +42,13 @@ export default function extractQueryFields(
     size: 'metrics',
     all_columns: 'columns',
     series: 'groupby',
+    order_by_cols: 'orderby',
     ...aliases,
   };
   const finalQueryFields: QueryFields = {
     columns: [],
     metrics: [],
+    orderby: [],
   };
   const { query_mode: queryMode, include_time: includeTime, ...restFormData } = formData;
 
@@ -64,14 +67,21 @@ export default function extractQueryFields(
     ) {
       return;
     }
+
     // ignore columns when (specifically) in aggregate mode.
+    // For charts that support both aggregate and raw records mode,
+    // we store both `groupby` and `columns` in `formData`, so users can
+    // switch between modes while retaining the selected options for each.
     if (queryMode === QueryMode.aggregate && normalizedKey === 'columns') {
       return;
     }
-    // groupby has been deprecated: https://github.com/apache/superset/pull/9366
+
+    // groupby has been deprecated in QueryObject: https://github.com/apache/superset/pull/9366
+    // We translate all `groupby` to `columns`.
     if (normalizedKey === 'groupby') {
       normalizedKey = 'columns';
     }
+
     if (normalizedKey === 'metrics') {
       finalQueryFields[normalizedKey] = finalQueryFields[normalizedKey].concat(value);
     } else if (normalizedKey === 'columns') {
@@ -79,6 +89,19 @@ export default function extractQueryFields(
       finalQueryFields[normalizedKey] = finalQueryFields[normalizedKey]
         .concat(value)
         .filter(x => typeof x === 'string' && x);
+    } else if (normalizedKey === 'orderby') {
+      finalQueryFields[normalizedKey] = finalQueryFields[normalizedKey].concat(value).map(item => {
+        // value can be in the format of `['["col1", true]', '["col2", false]'],
+        // where the option strings come directly from `order_by_choices`.
+        if (typeof item === 'string') {
+          try {
+            return JSON.parse(item);
+          } catch (error) {
+            throw new Error(t('Found invalid orderby options'));
+          }
+        }
+        return item;
+      });
     }
   });
 

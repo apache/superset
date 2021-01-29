@@ -181,7 +181,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               label: t('Ordering'),
-              description: t('One or many metrics to display'),
+              description: t('Order results by selected columns'),
               multi: true,
               default: [],
               mapStateToProps: ({ datasource }) => ({
