@@ -17,44 +17,51 @@
  * under the License.
  */
 import {
-  isLegacyResponse,
   getChartAliases,
-  parsePostForm,
-} from 'cypress/utils';
+  isLegacyResponse,
+  getSliceIdFromRequestUrl,
+  JsonObject,
+} from '../../utils/vizPlugins';
 import { WORLD_HEALTH_DASHBOARD } from './dashboard.helper';
 
-describe('Dashboard form data', () => {
-  const urlParams = { param1: '123', param2: 'abc' };
+describe('Dashboard load', () => {
   let dashboard;
-
+  let aliases: string[];
   beforeEach(() => {
     cy.login();
 
-    cy.visit(WORLD_HEALTH_DASHBOARD, { qs: urlParams });
+    cy.visit(WORLD_HEALTH_DASHBOARD);
 
-    cy.get('#app').then(data => {
-      const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
+    cy.get('#app').then(nodes => {
+      const bootstrapData = JSON.parse(nodes[0].dataset.bootstrap || '');
       dashboard = bootstrapData.dashboard_data;
+      const { slices } = dashboard;
+      // then define routes and create alias for each requests
+      aliases = getChartAliases(slices);
     });
   });
 
-  it('should apply url params to slice requests', () => {
-    const aliases = getChartAliases(dashboard.slices);
+  it('should load dashboard', () => {
     // wait and verify one-by-one
-    cy.wait(aliases, { timeout: 18000 }).then(requests =>
+    cy.wait(aliases).then(requests =>
       Promise.all(
         requests.map(async ({ response, request }) => {
           const responseBody = response?.body;
+          let sliceId;
           if (isLegacyResponse(responseBody)) {
-            const requestParams = JSON.parse(
-              parsePostForm(request.body).form_data,
-            );
-            expect(requestParams.url_params).deep.eq(urlParams);
+            expect(responseBody).to.have.property('errors');
+            expect(responseBody.errors.length).to.eq(0);
+            sliceId = responseBody.form_data.slice_id;
           } else {
-            request.body.queries.forEach(query => {
-              expect(query.url_params).deep.eq(urlParams);
+            sliceId = getSliceIdFromRequestUrl(request.url);
+            responseBody.result.forEach((element: JsonObject) => {
+              expect(element).to.have.property('error', null);
+              expect(element).to.have.property('status', 'success');
             });
           }
+          cy.get('[data-test="grid-content"]')
+            .find(`#chart-id-${sliceId}`)
+            .should('be.visible');
         }),
       ),
     );
