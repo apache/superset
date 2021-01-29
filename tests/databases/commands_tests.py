@@ -35,6 +35,7 @@ from tests.fixtures.birth_names_dashboard import (
     load_birth_names_datasource,
 )
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
+from tests.fixtures.expose_db_in_sqllab import expose_in_sqllab
 from tests.fixtures.importexport import (
     database_config,
     database_metadata_config,
@@ -53,10 +54,10 @@ class TestExportDatabasesCommand(SupersetTestCase):
         "load_birth_names_dashboard_with_slices",
         "load_energy_table_with_slice",
         "load_world_bank_datasource",
+        "expose_in_sqllab",
     )
     def test_export_database_command(self, mock_g):
         example_db = get_example_database()
-        example_db.expose_in_sqllab = True
         mock_g.user = security_manager.find_user("admin")
 
         example_db = get_example_database()
@@ -259,7 +260,6 @@ class TestExportDatabasesCommand(SupersetTestCase):
         }
         expected_metadata["columns"].sort(key=lambda x: x["column_name"])
         assert metadata == expected_metadata
-        example_db.expose_in_sqllab = False
 
     @patch("superset.security.manager.g")
     def test_export_database_command_no_access(self, mock_g):

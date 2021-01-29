@@ -51,7 +51,7 @@ from tests.fixtures.importexport import (
     dataset_config,
     dataset_metadata_config,
 )
-from tests.utils.get_dashboards import get_dashboards_ids
+from tests.fixtures.get_dashboards import get_dashboards_ids
 from tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_datasource,

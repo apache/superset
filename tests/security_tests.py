@@ -35,6 +35,7 @@ from tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_datasource,
 )
+from tests.fixtures.expose_db_in_sqllab import expose_in_sqllab
 
 from superset import app, appbuilder, db, security_manager, viz, ConnectorRegistry
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
@@ -629,12 +630,13 @@ class TestRolePermission(SupersetTestCase):
         current_app.config["PUBLIC_ROLE_LIKE"] = "Gamma"
         security_manager.sync_role_definitions()
 
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices", "prepare_ds")
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "prepare_ds", "expose_in_sqllab"
+    )
     def test_sqllab_gamma_user_schema_access_to_sqllab(self):
         session = db.session
 
         example_db = session.query(Database).filter_by(database_name="examples").one()
-        example_db.expose_in_sqllab = True
         session.commit()
 
         arguments = {
@@ -650,7 +652,6 @@ class TestRolePermission(SupersetTestCase):
         databases_json = self.client.get(NEW_FLASK_GET_SQL_DBS_REQUEST).json
         self.assertEqual(databases_json["count"], 1)
         self.logout()
-        example_db.expose_in_sqllab = False
         session.commit()
 
     def assert_can_read(self, view_menu, permissions_set):

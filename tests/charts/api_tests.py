@@ -67,7 +67,7 @@ from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.query_context import get_query_context, ANNOTATION_LAYERS
 from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 from tests.annotation_layers.fixtures import create_annotation_layers
-from tests.utils.get_dashboards import get_dashboards_ids
+from tests.fixtures.get_dashboards import get_dashboards_ids
 
 CHART_DATA_URI = "api/v1/chart/data"
 CHARTS_FIXTURE_COUNT = 10
@@ -122,11 +122,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         with self.create_app().app_context():
             charts = []
             admin = self.get_user("admin")
-            ds_id = (
-                db.session.query(SqlaTable.id)
-                .filter_by(table_name="birth_names")
-                .first()[0]
-            )
+            ds_id = self.get_ds_ids("birth_names")
             for cx in range(CHARTS_FIXTURE_COUNT - 1):
                 charts.append(self.insert_chart(f"name{cx}", [admin.id], ds_id))
             fav_charts = []
@@ -150,11 +146,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
     def create_chart_with_report(self):
         with self.create_app().app_context():
             admin = self.get_user("admin")
-            ds_id = (
-                db.session.query(SqlaTable.id)
-                .filter_by(table_name="birth_names")
-                .first()[0]
-            )
+            ds_id = self.get_ds_ids("birth_names")
             chart = self.insert_chart(f"chart_report", [admin.id], ds_id)
             report_schedule = ReportSchedule(
                 type=ReportScheduleType.REPORT,
@@ -175,11 +167,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
     def add_dashboard_to_chart(self):
         with self.create_app().app_context():
             admin = self.get_user("admin")
-            ds_id = (
-                db.session.query(SqlaTable.id)
-                .filter_by(table_name="birth_names")
-                .first()[0]
-            )
+            ds_id = self.get_ds_ids("birth_names")
             self.chart = self.insert_chart("My chart", [admin.id], ds_id)
 
             self.original_dashboard = Dashboard()
@@ -242,11 +230,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test delete
         """
-        ds_id = (
-            db.session.query(SqlaTable.id)
-            .filter_by(table_name="birth_names")
-            .first()[0]
-        )
+        ds_id = self.get_ds_ids("birth_names")
         admin_id = self.get_user("admin").id
         chart_id = self.insert_chart("name", [admin_id], ds_id).id
         self.login(username="admin")
@@ -264,11 +248,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         admin = self.get_user("admin")
         chart_count = 4
         chart_ids = list()
-        ds_id = (
-            db.session.query(SqlaTable.id)
-            .filter_by(table_name="birth_names")
-            .first()[0]
-        )
+        ds_id = self.get_ds_ids("birth_names")
         for chart_name_index in range(chart_count):
             chart_ids.append(
                 self.insert_chart(
@@ -371,11 +351,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test admin delete not owned
         """
-        ds_id = (
-            db.session.query(SqlaTable.id)
-            .filter_by(table_name="birth_names")
-            .first()[0]
-        )
+        ds_id = self.get_ds_ids("birth_names")
         gamma_id = self.get_user("gamma").id
         chart_id = self.insert_chart("title", [gamma_id], ds_id).id
 
@@ -391,11 +367,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test admin delete bulk not owned
         """
-        ds_id = (
-            db.session.query(SqlaTable.id)
-            .filter_by(table_name="birth_names")
-            .first()[0]
-        )
+        ds_id = self.get_ds_ids("birth_names")
         gamma_id = self.get_user("gamma").id
         chart_count = 4
         chart_ids = list()
@@ -422,11 +394,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test delete try not owned
         """
-        ds_id = (
-            db.session.query(SqlaTable.id)
-            .filter_by(table_name="birth_names")
-            .first()[0]
-        )
+        ds_id = self.get_ds_ids("birth_names")
         user_alpha1 = self.create_user(
             "alpha1", "password", "Alpha", email="alpha1@superset.org"
         )
@@ -448,11 +416,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test delete bulk try not owned
         """
-        ds_id = (
-            db.session.query(SqlaTable.id)
-            .filter_by(table_name="birth_names")
-            .first()[0]
-        )
+        ds_id = self.get_ds_ids("birth_names")
         user_alpha1 = self.create_user(
             "alpha1", "password", "Alpha", email="alpha1@superset.org"
         )
@@ -505,11 +469,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Chart API: Test create chart
         """
         dashboards_ids = get_dashboards_ids(db, ["world_health", "births"])
-        ds_id = (
-            db.session.query(SqlaTable.id)
-            .filter_by(table_name="birth_names")
-            .first()[0]
-        )
+        ds_id = self.get_ds_ids("birth_names")
         admin_id = self.get_user("admin").id
         chart_data = {
             "slice_name": "name1",
@@ -536,11 +496,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test create simple chart
         """
-        ds_id = (
-            db.session.query(SqlaTable.id)
-            .filter_by(table_name="birth_names")
-            .first()[0]
-        )
+        ds_id = self.get_ds_ids("birth_names")
         chart_data = {
             "slice_name": "title1",
             "datasource_id": ds_id,
@@ -560,11 +516,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test create validate owners
         """
-        ds_id = (
-            db.session.query(SqlaTable.id)
-            .filter_by(table_name="birth_names")
-            .first()[0]
-        )
+        ds_id = self.get_ds_ids("birth_names")
         chart_data = {
             "slice_name": "title1",
             "datasource_id": ds_id,
@@ -584,11 +536,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test create validate params json
         """
-        ds_id = (
-            db.session.query(SqlaTable.id)
-            .filter_by(table_name="birth_names")
-            .first()[0]
-        )
+        ds_id = self.get_ds_ids("birth_names")
         chart_data = {
             "slice_name": "title1",
             "datasource_id": ds_id,
@@ -606,11 +554,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         Chart API: Test create validate datasource
         """
         self.login(username="admin")
-        ds_id = (
-            db.session.query(SqlaTable.id)
-            .filter_by(table_name="birth_names")
-            .first()[0]
-        )
+        ds_id = self.get_ds_ids("birth_names")
         chart_data = {
             "slice_name": "title1",
             "datasource_id": ds_id,
@@ -684,11 +628,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test update set new owner to current user
         """
-        ds_id = (
-            db.session.query(SqlaTable.id)
-            .filter_by(table_name="birth_names")
-            .first()[0]
-        )
+        ds_id = self.get_ds_ids("birth_names")
         gamma = self.get_user("gamma")
         admin = self.get_user("admin")
         chart_id = self.insert_chart("title", [gamma.id], ds_id).id
@@ -736,11 +676,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test update not owned
         """
-        ds_id = (
-            db.session.query(SqlaTable.id)
-            .filter_by(table_name="birth_names")
-            .first()[0]
-        )
+        ds_id = self.get_ds_ids("birth_names")
         user_alpha1 = self.create_user(
             "alpha1", "password", "Alpha", email="alpha1@superset.org"
         )
@@ -764,11 +700,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test update validate datasource
         """
-        ds_id = (
-            db.session.query(SqlaTable.id)
-            .filter_by(table_name="birth_names")
-            .first()[0]
-        )
+        ds_id = self.get_ds_ids("birth_names")
         admin = self.get_user("admin")
         chart = self.insert_chart("title", owners=[admin.id], datasource_id=ds_id)
         self.login(username="admin")
@@ -798,11 +730,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test update validate owners
         """
-        ds_id = (
-            db.session.query(SqlaTable.id)
-            .filter_by(table_name="birth_names")
-            .first()[0]
-        )
+        ds_id = self.get_ds_ids("birth_names")
         chart_data = {
             "slice_name": "title1",
             "datasource_id": ds_id,
@@ -824,11 +752,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Chart API: Test get chart
         """
-        ds_id = (
-            db.session.query(SqlaTable.id)
-            .filter_by(table_name="birth_names")
-            .first()[0]
-        )
+        ds_id = self.get_ds_ids("birth_names")
         admin = self.get_user("admin")
         chart = self.insert_chart("title", [admin.id], ds_id)
         self.login(username="admin")
@@ -903,11 +827,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Dashboard API: Test get charts changed on
         """
-        ds_id = (
-            db.session.query(SqlaTable.id)
-            .filter_by(table_name="birth_names")
-            .first()[0]
-        )
+        ds_id = self.get_ds_ids("birth_names")
         admin = self.get_user("admin")
         start_changed_on = datetime.now()
         chart = self.insert_chart("foo_a", [admin.id], ds_id, description="ZY_bar")
@@ -1869,3 +1789,8 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
                 name
             )
         return name
+
+    def get_ds_ids(self, table_name):
+        return (
+            db.session.query(SqlaTable.id).filter_by(table_name=table_name).first()[0]
+        )

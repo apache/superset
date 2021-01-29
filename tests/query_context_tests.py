@@ -14,9 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
 from time import sleep
 
 import pytest
+from freezegun import freeze_time
 
 from superset import db
 from superset.charts.schemas import ChartDataQueryContextSchema
@@ -122,12 +124,13 @@ class TestQueryContext(SupersetTestCase):
             datasource_id=payload["datasource"]["id"],
             session=db.session,
         )
-        # if create and update are performed in the same second keys are the same
-        sleep(1)
         description_original = datasource.description
         datasource.description = "temporary description"
         db.session.commit()
         datasource.description = description_original
+        # if create and update are performed in the same second keys are the same
+        with freeze_time("2021-01-01"):
+            datasource.changed_on = datetime.now()
         db.session.commit()
 
         # create new QueryContext with unchanged attributes, extract new query_cache_key
