@@ -854,14 +854,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         engine = cls.get_engine(database, schema=schema, source=source)
         costs = []
         with closing(engine.raw_connection()) as conn:
-            with closing(conn.cursor()) as cursor:
-                for statement in statements:
-                    processed_statement = cls.process_statement(
-                        statement, database, user_name
-                    )
-                    costs.append(
-                        cls.estimate_statement_cost(processed_statement, cursor)
-                    )
+            cursor = conn.cursor()
+            for statement in statements:
+                processed_statement = cls.process_statement(
+                    statement, database, user_name
+                )
+                costs.append(cls.estimate_statement_cost(processed_statement, cursor))
         return costs
 
     @classmethod
