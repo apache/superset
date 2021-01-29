@@ -1019,7 +1019,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param database: The database to get functions for
         :return: A list of function names useable in the database
         """
-        return []
+        return ["foo", "bar", "baz"]
 
     @staticmethod
     def pyodbc_rows_to_tuples(data: List[Any]) -> List[Tuple[Any, ...]]:

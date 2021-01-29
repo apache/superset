@@ -413,11 +413,15 @@ class DatabaseRelatedObjectsResponse(Schema):
     dashboards = fields.Nested(DatabaseRelatedDashboards)
 
 
+class DatabaseFunctionNamesResponse(Schema):
+    function_names = fields.List(fields.String())
+
+
 class ImportV1DatabaseExtraSchema(Schema):
     metadata_params = fields.Dict(keys=fields.Str(), values=fields.Raw())
     engine_params = fields.Dict(keys=fields.Str(), values=fields.Raw())
     metadata_cache_timeout = fields.Dict(keys=fields.Str(), values=fields.Integer())
-    schemas_allowed_for_csv_upload = fields.List(fields.String)
+    schemas_allowed_for_csv_upload = fields.List(fields.String())
     cost_estimate_enabled = fields.Boolean()
 
 
