@@ -30,7 +30,6 @@ from tests.dashboards.superset_factory_util import *
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 
 
-# @mark.amit
 class TestDashboardDatasetSecurity(DashboardTestCase):
     @pytest.fixture
     def load_dashboard(self):
@@ -187,7 +186,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         # arrange
         username = random_str()
         new_role = f"role_{random_str()}"
-        self.create_user_with_roles(username, [new_role], copy_roles=True)
+        self.create_user_with_roles(username, [new_role], should_create_roles=True)
         accessed_table = get_sql_table_by_name("energy_usage")
         self.grant_role_access_to_table(accessed_table, new_role)
         # get a slice from the allowed table

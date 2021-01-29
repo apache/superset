@@ -46,7 +46,9 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # arrange
         username = random_str()
         new_role = f"role_{random_str()}"
-        owner = self.create_user_with_roles(username, [new_role], copy_roles=True)
+        owner = self.create_user_with_roles(
+            username, [new_role], should_create_roles=True
+        )
         database = create_database_to_db()
         table = create_datasource_table_to_db(db_id=database.id, owners=[owner])
         first_dash = create_dashboard_to_db(
@@ -77,7 +79,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # arrange
         username = random_str()
         new_role = f"role_{random_str()}"
-        self.create_user_with_roles(username, [new_role], copy_roles=True)
+        self.create_user_with_roles(username, [new_role], should_create_roles=True)
 
         create_dashboard_to_db(published=True)
         self.login(username)
@@ -92,7 +94,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # arrange
         username = random_str()
         new_role = f"role_{random_str()}"
-        self.create_user_with_roles(username, [new_role], copy_roles=True)
+        self.create_user_with_roles(username, [new_role], should_create_roles=True)
 
         published_dashboards = [
             create_dashboard_to_db(published=True),
@@ -184,7 +186,9 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # arrange
         username = random_str()
         new_role = f"role_{random_str()}"
-        owner = self.create_user_with_roles(username, [new_role], copy_roles=True)
+        owner = self.create_user_with_roles(
+            username, [new_role], should_create_roles=True
+        )
         database = create_database_to_db()
         table = create_datasource_table_to_db(db_id=database.id, owners=[owner])
         first_dash = create_dashboard_to_db(
@@ -213,7 +217,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
     def test_get_dashboards_api__user_without_any_permissions_get_empty_list(self):
         username = random_str()
         new_role = f"role_{random_str()}"
-        self.create_user_with_roles(username, [new_role], copy_roles=True)
+        self.create_user_with_roles(username, [new_role], should_create_roles=True)
         create_dashboard_to_db(published=True)
         self.login(username)
 
@@ -226,7 +230,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
     def test_get_dashboards_api__user_get_only_published_permitted_dashboards(self):
         username = random_str()
         new_role = f"role_{random_str()}"
-        self.create_user_with_roles(username, [new_role], copy_roles=True)
+        self.create_user_with_roles(username, [new_role], should_create_roles=True)
         # arrange
         published_dashboards = [
             create_dashboard_to_db(published=True),

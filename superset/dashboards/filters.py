@@ -75,13 +75,14 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
+        dashboard_has_roles = Dashboard.roles.any()
         datesource_perm_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.slices)
             .filter(
                 and_(
                     Dashboard.published.is_(True),
-                    self.has_no_role_based_access(),
+                    ~dashboard_has_roles,
                     or_(
                         Slice.perm.in_(datasource_perms),
                         Slice.schema_perm.in_(schema_perms),
@@ -96,6 +97,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .filter(
                 and_(
                     Dashboard.published.is_(True),
+                    dashboard_has_roles,
                     Role.id.in_([x.id for x in get_user_roles()]),
                 ),
             )
@@ -126,7 +128,3 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         )
 
         return query
-
-    @staticmethod
-    def has_no_role_based_access() -> bool:
-        return ~Dashboard.roles.any()
