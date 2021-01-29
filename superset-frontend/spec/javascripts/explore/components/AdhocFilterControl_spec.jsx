@@ -71,7 +71,7 @@ function setup(overrides) {
     ...overrides,
   };
   const wrapper = shallow(<AdhocFilterControl {...props} />);
-  const component = wrapper.dive().dive().shallow();
+  const component = wrapper.dive().shallow();
   return { wrapper, component, onChange };
 }
 
