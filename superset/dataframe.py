@@ -24,11 +24,24 @@ from superset.utils.core import JS_MAX_INTEGER
 
 
 def _convert_big_integers(dframe: pd.DataFrame) -> pd.DataFrame:
+    """
+    Cast all integers larger than ``JS_MAX_INTEGER`` in a DataFrame to strings.
+
+    :param dframe: the DataFrame to process
+    :returns: the same DataFrame, with all integer values over
+        ``JS_MAX_INTEGER`` recast as strings
+    """
     return dframe.applymap(
         lambda v: str(v) if isinstance(v, int) and abs(v) > JS_MAX_INTEGER else v
     )
 
 
 def df_to_records(dframe: pd.DataFrame) -> List[Dict[str, Any]]:
+    """
+    Convert a DataFrame to a set of records.
+
+    :param dframe: the DataFrame to convert
+    :returns: a list of dictionaries reflecting each single row of the DataFrame
+    """
     data: List[Dict[str, Any]] = _convert_big_integers(dframe).to_dict(orient="records")
     return data
