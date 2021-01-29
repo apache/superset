@@ -384,28 +384,28 @@ class Database(
                 log_query(engine.url, sql, schema, username, __name__, security_manager)
 
         with closing(engine.raw_connection()) as conn:
-            with closing(conn.cursor()) as cursor:
-                for sql_ in sqls[:-1]:
-                    _log_query(sql_)
-                    self.db_engine_spec.execute(cursor, sql_)
-                    cursor.fetchall()
+            cursor = conn.cursor()
+            for sql_ in sqls[:-1]:
+                _log_query(sql_)
+                self.db_engine_spec.execute(cursor, sql_)
+                cursor.fetchall()
 
-                _log_query(sqls[-1])
-                self.db_engine_spec.execute(cursor, sqls[-1])
+            _log_query(sqls[-1])
+            self.db_engine_spec.execute(cursor, sqls[-1])
 
-                data = self.db_engine_spec.fetch_data(cursor)
-                result_set = SupersetResultSet(
-                    data, cursor.description, self.db_engine_spec
-                )
-                df = result_set.to_pandas_df()
-                if mutator:
-                    mutator(df)
+            data = self.db_engine_spec.fetch_data(cursor)
+            result_set = SupersetResultSet(
+                data, cursor.description, self.db_engine_spec
+            )
+            df = result_set.to_pandas_df()
+            if mutator:
+                mutator(df)
 
-                for col, coltype in df.dtypes.to_dict().items():
-                    if coltype == numpy.object_ and needs_conversion(df[col]):
-                        df[col] = df[col].apply(utils.json_dumps_w_dates)
+            for col, coltype in df.dtypes.to_dict().items():
+                if coltype == numpy.object_ and needs_conversion(df[col]):
+                    df[col] = df[col].apply(utils.json_dumps_w_dates)
 
-                return df
+            return df
 
     def compile_sqla_query(self, qry: Select, schema: Optional[str] = None) -> str:
         engine = self.get_sqla_engine(schema=schema)
