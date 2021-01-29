@@ -34,7 +34,6 @@ import {
   HeaderContainer,
   LabelsContainer,
 } from 'src/explore/components/OptionControls';
-import DndWithHTML5Backend from 'src/explore/DndContextProvider';
 import MetricDefinitionOption from './MetricDefinitionOption';
 import MetricDefinitionValue from './MetricDefinitionValue';
 import AdhocMetric from './AdhocMetric';
@@ -411,4 +410,4 @@ class MetricsControl extends React.PureComponent {
 MetricsControl.propTypes = propTypes;
 MetricsControl.defaultProps = defaultProps;
 
-export default DndWithHTML5Backend(withTheme(MetricsControl));
+export default withTheme(MetricsControl);
