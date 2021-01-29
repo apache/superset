@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import readResponseBlob from '../../../utils/readResponseBlob';
-
 describe('Visualization > Area', () => {
   const AREA_FORM_DATA = {
     datasource: '2__table',
@@ -58,9 +56,8 @@ describe('Visualization > Area', () => {
   }
 
   beforeEach(() => {
-    cy.server();
     cy.login();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
   it('should work without groupby', () => {
@@ -96,11 +93,8 @@ describe('Visualization > Area', () => {
       }),
     );
 
-    cy.wait('@getJson').then(async xhr => {
-      cy.verifyResponseCodes(xhr);
-
-      const responseBody = await readResponseBlob(xhr.response.body);
-
+    cy.wait('@getJson').then(async ({ response }) => {
+      const responseBody = response?.body;
       // Make sure data is sorted correctly
       const firstRow = responseBody.data[0].values;
       const secondRow = responseBody.data[1].values;

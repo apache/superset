@@ -20,9 +20,12 @@ import { Provider } from 'react-redux';
 import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+
 import { LineEditableTabs } from 'src/common/components/Tabs';
 import { Modal } from 'src/common/components';
-
+import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
@@ -30,11 +33,12 @@ import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import Tabs from 'src/dashboard/components/gridComponents/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import WithDragDropContext from 'spec/helpers/WithDragDropContext';
 import { dashboardLayoutWithTabs } from 'spec/fixtures/mockDashboardLayout';
 import { mockStoreWithTabs } from 'spec/fixtures/mockStore';
 
 describe('Tabs', () => {
+  fetchMock.post('glob:*/r/shortner/', {});
+
   const props = {
     id: 'TABS_ID',
     parentId: DASHBOARD_ROOT_ID,
@@ -62,9 +66,9 @@ describe('Tabs', () => {
     // otherwise we cannot assert on DragDroppable children
     const wrapper = mount(
       <Provider store={mockStoreWithTabs}>
-        <WithDragDropContext>
+        <DndProvider backend={HTML5Backend}>
           <Tabs {...props} {...overrideProps} />
-        </WithDragDropContext>
+        </DndProvider>
       </Provider>,
     );
     return wrapper;

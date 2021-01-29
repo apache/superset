@@ -91,7 +91,7 @@ function DashboardCard({
       {canDelete && (
         <Menu.Item>
           <ConfirmStatusChange
-            title={t('Please Confirm')}
+            title={t('Please confirm')}
             description={
               <>
                 {t('Are you sure you want to delete')}{' '}

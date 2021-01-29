@@ -20,7 +20,7 @@ import { Alert } from 'react-bootstrap';
 import React from 'react';
 import { mount } from 'enzyme';
 import Toast from 'src/messageToasts/components/Toast';
-
+import { act } from 'react-dom/test-utils';
 import mockMessageToasts from '../mockMessageToasts';
 
 const props = {
@@ -43,19 +43,23 @@ describe('Toast', () => {
     expect(alert.childAt(0).childAt(1).text()).toBe(props.toast.text);
   });
 
-  it('should call onCloseToast upon alert dismissal', () =>
-    new Promise(done => {
-      const onCloseToast = id => {
-        expect(id).toBe(props.toast.id);
-        done();
-      };
+  it('should call onCloseToast upon alert dismissal', async () => {
+    await act(
+      () =>
+        new Promise(done => {
+          const onCloseToast = id => {
+            expect(id).toBe(props.toast.id);
+            done();
+          };
 
-      const wrapper = setup({ onCloseToast });
-      const handleClosePress = wrapper.find('[label="Close alert"]').props()
-        .onClick;
+          const wrapper = setup({ onCloseToast });
+          const handleClosePress = wrapper.find('[label="Close alert"]').props()
+            .onClick;
 
-      const alertProps = wrapper.find(Alert).props();
-      expect(alertProps.onDismiss).toBe(handleClosePress);
-      handleClosePress(); // there is a timeout for onCloseToast to be called
-    }));
+          const alertProps = wrapper.find(Alert).props();
+          expect(alertProps.onDismiss).toBe(handleClosePress);
+          handleClosePress(); // there is a timeout for onCloseToast to be called
+        }),
+    );
+  });
 });

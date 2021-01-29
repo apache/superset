@@ -466,7 +466,7 @@ export default class ResultSet extends React.PureComponent<
               onChange={this.changeSearch}
               value={this.state.searchText}
               className="form-control input-sm"
-              placeholder={t('Filter Results')}
+              placeholder={t('Filter results')}
             />
           )}
         </div>
@@ -498,7 +498,7 @@ export default class ResultSet extends React.PureComponent<
       return (
         <div className="result-set-error-message">
           <ErrorMessageWithStackTrace
-            title={t('Database Error')}
+            title={t('Database error')}
             error={query?.errors?.[0]}
             subtitle={<MonospaceDiv>{query.errorMessage}</MonospaceDiv>}
             copyText={query.errorMessage || undefined}
@@ -602,7 +602,7 @@ export default class ResultSet extends React.PureComponent<
             buttonStyle="primary"
             onClick={() => this.fetchResults(query)}
           >
-            {t('Refetch Results')}
+            {t('Refetch results')}
           </Button>
         );
       }
@@ -623,7 +623,7 @@ export default class ResultSet extends React.PureComponent<
           buttonSize="small"
           onClick={() => query.trackingUrl && window.open(query.trackingUrl)}
         >
-          {t('Track Job')}
+          {t('Track job')}
         </Button>
       );
     }

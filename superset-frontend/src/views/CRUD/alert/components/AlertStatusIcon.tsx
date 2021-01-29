@@ -22,7 +22,9 @@ import { Tooltip } from 'src/common/components/Tooltip';
 import Icon, { IconName } from 'src/components/Icon';
 import { AlertState } from '../types';
 
-const StatusIcon = styled(Icon)<{ status: string; isReportEnabled: boolean }>`
+const StatusIcon = styled(Icon, {
+  shouldForwardProp: prop => prop !== 'status' && prop !== 'isReportEnabled',
+})<{ status: string; isReportEnabled: boolean }>`
   color: ${({ status, theme, isReportEnabled }) => {
     switch (status) {
       case AlertState.working:
@@ -59,27 +61,27 @@ export default function AlertStatusIcon({
     case AlertState.success:
       lastStateConfig.name = isReportEnabled ? 'check' : 'alert-solid-small';
       lastStateConfig.label = isReportEnabled
-        ? t('Report Sent')
-        : t('Alert Triggered, Notification Sent');
+        ? t('Report sent')
+        : t('Alert triggered, notification sent');
       lastStateConfig.status = AlertState.success;
       break;
     case AlertState.working:
       lastStateConfig.name = 'running';
       lastStateConfig.label = isReportEnabled
-        ? t('Report Sending')
-        : t('Alert Running');
+        ? t('Report sending')
+        : t('Alert running');
       lastStateConfig.status = AlertState.working;
       break;
     case AlertState.error:
       lastStateConfig.name = 'x-small';
       lastStateConfig.label = isReportEnabled
-        ? t('Report Failed')
-        : t('Alert Failed');
+        ? t('Report failed')
+        : t('Alert failed');
       lastStateConfig.status = AlertState.error;
       break;
     case AlertState.noop:
       lastStateConfig.name = 'check';
-      lastStateConfig.label = t('Nothing Triggered');
+      lastStateConfig.label = t('Nothing triggered');
       lastStateConfig.status = AlertState.noop;
       break;
     case AlertState.grace:
@@ -89,7 +91,7 @@ export default function AlertStatusIcon({
       break;
     default:
       lastStateConfig.name = 'check';
-      lastStateConfig.label = t('Nothing Triggered');
+      lastStateConfig.label = t('Nothing triggered');
       lastStateConfig.status = AlertState.noop;
   }
   return (

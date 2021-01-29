@@ -304,7 +304,11 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     }
 
     const operatorSelectProps = {
-      placeholder: t('%s operators(s)', OPERATORS_OPTIONS.length),
+      placeholder: t(
+        '%s operator(s)',
+        OPERATORS_OPTIONS.filter(op => this.isOperatorRelevant(op, subject))
+          .length,
+      ),
       // like AGGREGTES_OPTIONS, operator options are string
       value: operator,
       onChange: this.onOperatorChange,
@@ -319,11 +323,11 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       allowClear: true,
       showSearch: true,
       mode: MULTI_OPERATORS.has(operator) && 'tags',
-      tokenSeparators: [',', ' ', ';'],
+      tokenSeparators: [',', '\n', '\t', ';'],
       loading: this.state.loading,
       value: comparator,
       onChange: this.onComparatorChange,
-      notFoundContent: t('type a value here'),
+      notFoundContent: t('Type a value here'),
       disabled: DISABLE_INPUT_OPERATORS.includes(operator),
       placeholder: this.createSuggestionsPlaceholder(),
       labelText: comparator?.length > 0 && this.createSuggestionsPlaceholder(),

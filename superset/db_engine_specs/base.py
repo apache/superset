@@ -159,8 +159,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     run_multiple_statements_as_one = False
 
     # default matching patterns for identifying column types
-    db_column_types: Dict[utils.DbColumnType, Tuple[Pattern[Any], ...]] = {
-        utils.DbColumnType.NUMERIC: (
+    db_column_types: Dict[utils.GenericDataType, Tuple[Pattern[Any], ...]] = {
+        utils.GenericDataType.NUMERIC: (
             re.compile(r"BIT", re.IGNORECASE),
             re.compile(r".*DOUBLE.*", re.IGNORECASE),
             re.compile(r".*FLOAT.*", re.IGNORECASE),
@@ -172,12 +172,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             re.compile(r".*DECIMAL.*", re.IGNORECASE),
             re.compile(r".*MONEY.*", re.IGNORECASE),
         ),
-        utils.DbColumnType.STRING: (
+        utils.GenericDataType.STRING: (
             re.compile(r".*CHAR.*", re.IGNORECASE),
             re.compile(r".*STRING.*", re.IGNORECASE),
             re.compile(r".*TEXT.*", re.IGNORECASE),
         ),
-        utils.DbColumnType.TEMPORAL: (
+        utils.GenericDataType.TEMPORAL: (
             re.compile(r".*DATE.*", re.IGNORECASE),
             re.compile(r".*TIME.*", re.IGNORECASE),
         ),
@@ -185,7 +185,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def is_db_column_type_match(
-        cls, db_column_type: Optional[str], target_column_type: utils.DbColumnType
+        cls, db_column_type: Optional[str], target_column_type: utils.GenericDataType
     ) -> bool:
         """
         Check if a column type satisfies a pattern in a collection of regexes found in

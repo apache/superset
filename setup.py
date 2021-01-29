@@ -97,6 +97,7 @@ setup(
         "python-geohash",
         "pyarrow>=1.0.1, <1.1",
         "pyyaml>=5.1",
+        "PyJWT>=1.7.1, <2",
         "redis",
         "retry>=0.9.2",
         "selenium>=3.141.0",
@@ -105,6 +106,7 @@ setup(
         "sqlalchemy>=1.3.16, <2.0, !=1.3.21",
         "sqlalchemy-utils>=0.36.6,<0.37",
         "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
+        "typing-extensions>=3.7.4.3,<4",  # needed to support typing.Literal on py37
         "wtforms-json",
         "pyparsing>=2.4.7, <3.0.0",
         "holidays==0.10.3",  # PINNED! https://github.com/dr-prodigy/python-holidays/issues/406

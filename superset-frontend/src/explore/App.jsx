@@ -19,6 +19,8 @@
 import React from 'react';
 import { hot } from 'react-hot-loader/root';
 import { Provider } from 'react-redux';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import ToastPresenter from '../messageToasts/containers/ToastPresenter';
@@ -33,12 +35,14 @@ setupPlugins();
 
 const App = ({ store }) => (
   <Provider store={store}>
-    <ThemeProvider theme={supersetTheme}>
-      <DynamicPluginProvider>
-        <ExploreViewContainer />
-        <ToastPresenter />
-      </DynamicPluginProvider>
-    </ThemeProvider>
+    <DndProvider backend={HTML5Backend}>
+      <ThemeProvider theme={supersetTheme}>
+        <DynamicPluginProvider>
+          <ExploreViewContainer />
+          <ToastPresenter />
+        </DynamicPluginProvider>
+      </ThemeProvider>
+    </DndProvider>
   </Provider>
 );
 

@@ -147,6 +147,7 @@ describe('AnnotationList', () => {
     act(() => {
       wrapper.find('button').last().props().onClick();
     });
+    await waitForComponentToPaint(wrapper);
   });
 
   it('shows/hides bulk actions when bulk actions is clicked', async () => {

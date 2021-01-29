@@ -21,6 +21,8 @@ import React from 'react';
 import { mount } from 'enzyme';
 import sinon from 'sinon';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
 import Column from 'src/dashboard/components/gridComponents/Column';
@@ -32,7 +34,6 @@ import IconButton from 'src/dashboard/components/IconButton';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 
-import WithDragDropContext from 'spec/helpers/WithDragDropContext';
 import { mockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 
@@ -66,9 +67,9 @@ describe('Column', () => {
     // otherwise we cannot assert on DragDroppable children
     const wrapper = mount(
       <Provider store={mockStore}>
-        <WithDragDropContext>
+        <DndProvider backend={HTML5Backend}>
           <Column {...props} {...overrideProps} />
-        </WithDragDropContext>
+        </DndProvider>
       </Provider>,
       {
         wrappingComponent: ThemeProvider,

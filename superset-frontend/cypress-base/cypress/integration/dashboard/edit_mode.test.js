@@ -20,7 +20,6 @@ import { WORLD_HEALTH_DASHBOARD, drag } from './dashboard.helper';
 
 describe('Dashboard edit mode', () => {
   beforeEach(() => {
-    cy.server();
     cy.login();
     cy.visit(WORLD_HEALTH_DASHBOARD);
     cy.get('[data-test="dashboard-header"]')
@@ -43,7 +42,7 @@ describe('Dashboard edit mode', () => {
         // box plot should be gone
         cy.get('[data-test="grid-container"]')
           .find('.box_plot')
-          .should('not.be.visible');
+          .should('not.exist');
       });
 
     cy.get('[data-test="dashboard-builder-component-pane-tabs-navigation"]')
@@ -78,7 +77,7 @@ describe('Dashboard edit mode', () => {
     // Box plot chart should be gone
     cy.get('[data-test="grid-container"]')
       .find('.box_plot')
-      .should('not.be.visible');
+      .should('not.exist');
 
     // undo second step and expect initial items count
     cy.get('[data-test="undo-action"]').click();
