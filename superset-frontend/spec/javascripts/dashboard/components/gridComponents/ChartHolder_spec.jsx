@@ -21,6 +21,8 @@ import React from 'react';
 import { mount } from 'enzyme';
 import sinon from 'sinon';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import Chart from 'src/dashboard/containers/Chart';
 import ChartHolder from 'src/dashboard/components/gridComponents/ChartHolder';
@@ -33,7 +35,6 @@ import { getMockStore } from 'spec/fixtures/mockStore';
 import { sliceId } from 'spec/fixtures/mockChartQueries';
 import dashboardInfo from 'spec/fixtures/mockDashboardInfo';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
-import WithDragDropContext from 'spec/helpers/WithDragDropContext';
 import { sliceEntitiesForChart } from 'spec/fixtures/mockSliceEntities';
 
 describe('ChartHolder', () => {
@@ -65,9 +66,9 @@ describe('ChartHolder', () => {
     // otherwise we cannot assert on DragDroppable children
     const wrapper = mount(
       <Provider store={mockStore}>
-        <WithDragDropContext>
+        <DndProvider backend={HTML5Backend}>
           <ChartHolder {...props} {...overrideProps} />
-        </WithDragDropContext>
+        </DndProvider>
       </Provider>,
       {
         wrappingComponent: ThemeProvider,

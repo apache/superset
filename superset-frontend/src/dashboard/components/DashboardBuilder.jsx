@@ -37,7 +37,6 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 
-import getDragDropManager from 'src/dashboard/util/getDragDropManager';
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
@@ -159,12 +158,6 @@ class DashboardBuilder extends React.Component {
     this.toggleDashboardFiltersOpen = this.toggleDashboardFiltersOpen.bind(
       this,
     );
-  }
-
-  getChildContext() {
-    return {
-      dragDropManager: this.context.dragDropManager || getDragDropManager(),
-    };
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {

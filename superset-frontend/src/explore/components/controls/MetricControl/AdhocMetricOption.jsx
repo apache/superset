@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Tooltip } from 'src/common/components/Tooltip';
 import columnType from 'src/explore/propTypes/columnType';
-import { DraggableOptionControlLabel } from 'src/explore/components/OptionControls';
+import { OptionControlLabel } from 'src/explore/components/OptionControls';
 import { OPTION_TYPES } from 'src/explore/components/optionTypes';
 import AdhocMetric from './AdhocMetric';
 import savedMetricType from './savedMetricType';
@@ -75,7 +75,7 @@ class AdhocMetricOption extends React.PureComponent {
           placement="top"
           title={savedMetric.expression || adhocMetric.label}
         >
-          <DraggableOptionControlLabel
+          <OptionControlLabel
             savedMetric={savedMetric}
             label={adhocMetric.label}
             onRemove={this.onRemoveMetric}

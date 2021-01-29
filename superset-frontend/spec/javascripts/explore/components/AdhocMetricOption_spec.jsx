@@ -60,7 +60,7 @@ describe('AdhocMetricOption', () => {
   it('renders an overlay trigger wrapper for the label', () => {
     const { wrapper } = setup();
     expect(wrapper.find(Popover)).toExist();
-    expect(wrapper.find('DraggableOptionControlLabel')).toExist();
+    expect(wrapper.find('OptionControlLabel')).toExist();
   });
 
   it('overwrites the adhocMetric in state with onLabelChange', () => {

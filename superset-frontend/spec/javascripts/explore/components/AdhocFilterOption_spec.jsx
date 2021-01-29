@@ -56,6 +56,6 @@ describe('AdhocFilterOption', () => {
     const popover = overlay.find(Popover);
     expect(popover).toHaveLength(1);
     expect(popover.props().defaultVisible).toBe(false);
-    expect(overlay.find('DraggableOptionControlLabel')).toExist();
+    expect(overlay.find('OptionControlLabel')).toExist();
   });
 });

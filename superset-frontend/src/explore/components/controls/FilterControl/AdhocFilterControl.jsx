@@ -34,7 +34,6 @@ import {
   LabelsContainer,
 } from 'src/explore/components/OptionControls';
 import Icon from 'src/components/Icon';
-import DndWithHTML5Backend from 'src/explore/DndContextProvider';
 import AdhocFilterPopoverTrigger from './AdhocFilterPopoverTrigger';
 import AdhocFilterOption from './AdhocFilterOption';
 import AdhocFilter, { CLAUSES, EXPRESSION_TYPES } from './AdhocFilter';
@@ -362,4 +361,4 @@ class AdhocFilterControl extends React.Component {
 AdhocFilterControl.propTypes = propTypes;
 AdhocFilterControl.defaultProps = defaultProps;
 
-export default DndWithHTML5Backend(withTheme(AdhocFilterControl));
+export default withTheme(AdhocFilterControl);
