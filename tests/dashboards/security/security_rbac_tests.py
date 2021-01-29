@@ -28,8 +28,7 @@ from tests.dashboards.superset_factory_util import (
 
 
 @mock.patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        DASHBOARD_RBAC=True,
+    "superset.extensions.feature_flag_manager._feature_flags", DASHBOARD_RBAC=True,
 )
 class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
     def test_get_dashboards_list__admin_get_all_dashboards(self):
