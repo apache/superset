@@ -341,6 +341,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
             {...this.selectProps}
             {...subjectSelectProps}
             name="filter-column"
+            getPopupContainer={triggerNode => triggerNode.parentNode}
           >
             {columns.map(column => (
               <Select.Option
@@ -359,6 +360,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
           <Select
             {...this.selectProps}
             {...operatorSelectProps}
+            getPopupContainer={triggerNode => triggerNode.parentNode}
             name="filter-operator"
           >
             {OPERATORS_OPTIONS.filter(op =>
@@ -373,7 +375,11 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         <FormGroup data-test="adhoc-filter-simple-value">
           {MULTI_OPERATORS.has(operator) ||
           this.state.suggestions.length > 0 ? (
-            <SelectWithLabel name="filter-value" {...comparatorSelectProps}>
+            <SelectWithLabel
+              name="filter-value"
+              {...comparatorSelectProps}
+              getPopupContainer={triggerNode => triggerNode.parentNode}
+            >
               {this.state.suggestions.map(suggestion => (
                 <Select.Option value={suggestion} key={suggestion}>
                   {suggestion}

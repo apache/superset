@@ -116,6 +116,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
             {...this.selectProps}
             {...clauseSelectProps}
             className="filter-edit-clause-dropdown"
+            getPopupContainer={triggerNode => triggerNode.parentNode}
           >
             {Object.keys(CLAUSES).map(clause => (
               <Select.Option value={clause} key={clause}>
