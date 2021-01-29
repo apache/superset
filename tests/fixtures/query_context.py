@@ -21,13 +21,17 @@ from superset.utils.core import AnnotationType, DTTM_ALIAS
 from tests.base_tests import get_table_by_name
 
 query_birth_names = {
-    "extras": {"where": "", "time_range_endpoints": ["inclusive", "exclusive"]},
-    "granularity": "ds",
+    "extras": {
+        "where": "",
+        "time_range_endpoints": ["inclusive", "exclusive"],
+        "time_grain_sqla": "P1D",
+    },
     "groupby": ["name"],
     "metrics": [{"label": "sum__num"}],
     "order_desc": True,
     "orderby": [["sum__num", False]],
     "row_limit": 100,
+    "granularity": "ds",
     "time_range": "100 years ago : now",
     "timeseries_limit": 0,
     "timeseries_limit_metric": None,

@@ -25,7 +25,6 @@ from superset.utils.core import (
     AdhocMetricExpressionType,
     ChartDataResultFormat,
     ChartDataResultType,
-    FilterOperator,
     TimeRangeEndpoint,
 )
 from tests.base_tests import SupersetTestCase

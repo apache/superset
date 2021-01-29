@@ -373,7 +373,11 @@ class Database(
         username = utils.get_username()
 
         def needs_conversion(df_series: pd.Series) -> bool:
-            return not df_series.empty and isinstance(df_series[0], (list, dict))
+            return (
+                not df_series.empty
+                and isinstance(df_series, pd.Series)
+                and isinstance(df_series[0], (list, dict))
+            )
 
         def _log_query(sql: str) -> None:
             if log_query:
@@ -397,9 +401,9 @@ class Database(
                 if mutator:
                     mutator(df)
 
-                for k, v in df.dtypes.items():
-                    if v.type == numpy.object_ and needs_conversion(df[k]):
-                        df[k] = df[k].apply(utils.json_dumps_w_dates)
+                for col, coltype in df.dtypes.to_dict().items():
+                    if coltype == numpy.object_ and needs_conversion(df[col]):
+                        df[col] = df[col].apply(utils.json_dumps_w_dates)
 
                 return df
 
