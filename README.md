@@ -122,6 +122,7 @@ Here are some of the major database solutions that are supported:
   <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/exasol.png" alt="exasol" border="0" width="106" height="59" />
   <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/monet-db.png" alt="monet-db" border="0" width="106" height="46" />
   <img src="https://raw.githubusercontent.com/apache/superset/master/superset-frontend/images/apache-kylin.png" alt="apache-kylin" border="0" width="56" height="64"/>
+  <img src="superset-frontend/images/hologres.png" alt="hologres" border="0" width="71" height="64"/>
 </p>
 
 **A more comprehensive list of supported databases** along with the configuration instructions can be found
