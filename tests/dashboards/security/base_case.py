@@ -55,9 +55,7 @@ class BaseTestDashboardSecurity(DashboardTestCase):
             # # a way to parse number of dashboards returns
             # in the list view as an html response
             assert (
-                "Record Count:</strong> {count}".format(
-                    count=str(expected_counts)
-                )
+                "Record Count:</strong> {count}".format(count=str(expected_counts))
                 in response_html
             )
         expected_dashboards = expected_dashboards or []

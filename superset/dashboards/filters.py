@@ -76,7 +76,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
         dashboard_has_roles = Dashboard.roles.any()
-        datesource_perm_query = (
+        datasource_perm_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.slices)
             .filter(
@@ -121,7 +121,7 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         query = query.filter(
             or_(
                 Dashboard.id.in_(owner_ids_query),
-                Dashboard.id.in_(datesource_perm_query),
+                Dashboard.id.in_(datasource_perm_query),
                 Dashboard.id.in_(users_favorite_dash_query),
                 Dashboard.id.in_(roles_based_query),
             )

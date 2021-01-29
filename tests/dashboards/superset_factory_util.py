@@ -111,7 +111,9 @@ def create_slice_to_db(
     return slice_
 
 
-def create_slice(datasource_id, name, owners):
+def create_slice(
+    datasource_id: Optional[int], name: Optional[str], owners: Optional[List[User]]
+) -> Slice:
     name = name or random_str()
     owners = owners or []
     datasource_id = (
