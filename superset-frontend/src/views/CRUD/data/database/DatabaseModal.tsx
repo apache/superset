@@ -123,6 +123,10 @@ const StyledJsonEditor = styled(JsonEditor)`
 const StyledExpandableForm = styled.div`
   padding-left: 28px;
   padding-top: 10px;
+
+  .input-container {
+    padding: 5px;
+  }
 `;
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
@@ -267,18 +271,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     const allowCvas = target.id === 'allow_cvas';
     const allowCtas = target.id === 'allow_ctas';
     const checkedTrue = target.checked === true;
-
-    // The CTAS & CVAS schema text input needs individual setters
-    // so that the input will not disappear when one options goes
-    // unchecked but the other is still checked
-    if (allowCvas && checkedTrue) {
+    const checkedFalse = target.checked === false;
+    /* The CTAS & CVAS schema text input needs individual setters
+    so that the input will not disappear when one options goes
+    unchecked but the other is still checked */
+    // cvas: true, checked: true
+    if ((allowCvas || allowCtas) && checkedTrue) {
       setCvas(true);
-    } else {
-      setCvas(false);
-    }
-    if (allowCtas && checkedTrue) {
       setCtas(true);
     } else {
+      setCvas(false);
       setCtas(false);
     }
     // Opens the form if at least one option is checked
