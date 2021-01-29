@@ -63,11 +63,16 @@ const defaultProps = {
   columns: [],
 };
 
-function getOptionsForSavedMetrics(savedMetrics, currentMetricValues) {
+function getOptionsForSavedMetrics(
+  savedMetrics,
+  currentMetricValues,
+  currentMetric,
+) {
   return (
     savedMetrics?.filter(savedMetric =>
       Array.isArray(currentMetricValues)
-        ? !currentMetricValues.includes(savedMetric.metric_name)
+        ? !currentMetricValues.includes(savedMetric.metric_name) ||
+          savedMetric.metric_name === currentMetric
         : savedMetric,
     ) ?? []
   );
@@ -143,6 +148,7 @@ class MetricsControl extends React.PureComponent {
         savedMetricsOptions={getOptionsForSavedMetrics(
           this.props.savedMetrics,
           this.props.value,
+          this.props.value?.[index],
         )}
         datasourceType={this.props.datasourceType}
         onMoveLabel={this.moveLabel}
@@ -284,6 +290,7 @@ class MetricsControl extends React.PureComponent {
         savedMetricsOptions={getOptionsForSavedMetrics(
           this.props.savedMetrics,
           this.props.value,
+          null,
         )}
         savedMetric={{}}
         datasourceType={this.props.datasourceType}
