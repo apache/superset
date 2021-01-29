@@ -33,6 +33,7 @@
   "peerDependencies": {
     "@types/react": "*",
     "@types/react-bootstrap": "*",
+    "antd": "^4.9.1",
     "react": "^16.13.1",
     "react-bootstrap": "^0.33.1"
   }
