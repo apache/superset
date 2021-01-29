@@ -538,17 +538,6 @@ class TestRolePermission(SupersetTestCase):
         self.assertIsNotNone(vm)
         delete_schema_perm("[examples].[2]")
 
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_gamma_user_schema_access_to_dashboards(self):
-        dash = db.session.query(Dashboard).filter_by(slug="world_health").first()
-        dash.published = True
-        db.session.commit()
-
-        self.login(username="gamma")
-        data = str(self.client.get("api/v1/dashboard/").data)
-        self.assertIn("/superset/dashboard/world_health/", data)
-        self.assertNotIn("/superset/dashboard/births/", data)
-
     def test_gamma_user_schema_access_to_tables(self):
         self.login(username="gamma")
         data = str(self.client.get("tablemodelview/list/").data)
