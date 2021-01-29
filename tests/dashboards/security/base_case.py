@@ -21,8 +21,6 @@ from flask import escape, Response
 from superset.models.dashboard import Dashboard
 from tests.dashboards.base_case import DashboardTestCase
 
-DASHBOARD_COUNT_IN_DASHBOARDS_LIST_VIEW_FORMAT = "Record Count:</strong> {count}"
-
 
 class BaseTestDashboardSecurity(DashboardTestCase):
     def tearDown(self) -> None:
@@ -54,8 +52,10 @@ class BaseTestDashboardSecurity(DashboardTestCase):
         if expected_counts == 0:
             assert "No records found" in response_html
         else:
+            # # a way to parse number of dashboards returns
+            # in the list view as an html response
             assert (
-                DASHBOARD_COUNT_IN_DASHBOARDS_LIST_VIEW_FORMAT.format(
+                "Record Count:</strong> {count}".format(
                     count=str(expected_counts)
                 )
                 in response_html
