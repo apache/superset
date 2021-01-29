@@ -139,6 +139,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [isOpen, setIsOpen] = useState<boolean>(true);
   const [createAsOpen, setCreateAsOpen] = useState<boolean>(false);
+  const [ctas, setCtas] = useState<boolean>(false);
+  const [cvas, setCvas] = useState<boolean>(false);
 
   const isEditMode = database !== null;
   const defaultExtra =
@@ -261,36 +263,33 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       setIsOpen(!isOpen);
     }
 
+    // Conditional form rendering
     const allowCvas = target.id === 'allow_cvas';
     const allowCtas = target.id === 'allow_ctas';
+    const checkedTrue = target.checked === true;
 
-    if (
-      (allowCvas && target.checked === true) ||
-      (allowCtas && target.checked === true)
-    ) {
+    // The CTAS & CVAS schema text input needs individual setters
+    // so that the input will not disappear when one options goes
+    // unchecked but the other is still checked
+    if (allowCvas && checkedTrue) {
+      setCvas(true);
+    } else {
+      setCvas(false);
+    }
+    if (allowCtas && checkedTrue) {
+      setCtas(true);
+    } else {
+      setCtas(false);
+    }
+    // Opens the form if at least one option is checked
+    // Closes the form only if both options are unchecked
+    if ((allowCvas && checkedTrue) || (allowCtas && checkedTrue)) {
       setCreateAsOpen(true);
-    } else if (allowCvas.valueOf() === false && allowCtas.valueOf() === false) {
+    } else if (!ctas && !cvas) {
       setCreateAsOpen(false);
     }
 
-    // if (target.id === 'allow_ctas') {
-    //   if (target.checked === true) {
-    //     setCreateAsOpen(true);
-    //   } else {
-    //     setCreateAsOpen(false);
-    //   }
-    // }
-
     setDB(data);
-    console.log(
-      'allowCvasValue',
-      allowCvas.valueOf(),
-      'allowCtasValue',
-      allowCtas.valueOf(),
-      'createAsOpen',
-      createAsOpen,
-      target,
-    );
   };
 
   const onTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
