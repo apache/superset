@@ -70,7 +70,7 @@ class AdhocMetricOption extends React.PureComponent {
         savedMetric={savedMetric}
         datasourceType={datasourceType}
       >
-        <DOptionControlLabel
+        <OptionControlLabel
           savedMetric={savedMetric}
           label={adhocMetric.label}
           onRemove={this.onRemoveMetric}
