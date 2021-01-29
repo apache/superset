@@ -97,6 +97,7 @@ setup(
         "python-geohash",
         "pyarrow>=1.0.1, <1.1",
         "pyyaml>=5.1",
+        "PyJWT>=1.7.1, <2",
         "redis",
         "retry>=0.9.2",
         "selenium>=3.141.0",
