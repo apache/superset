@@ -138,6 +138,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [isOpen, setIsOpen] = useState<boolean>(true);
+  const [createAsOpen, setCreateAsOpen] = useState<boolean>(false);
 
   const isEditMode = database !== null;
   const defaultExtra =
@@ -256,8 +257,40 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         typeof target.value === 'string' ? target.value.trim() : target.value;
     }
 
+    if (target.id === 'expose_in_sqllab') {
+      setIsOpen(!isOpen);
+    }
+
+    const allowCvas = target.id === 'allow_cvas';
+    const allowCtas = target.id === 'allow_ctas';
+
+    if (
+      (allowCvas && target.checked === true) ||
+      (allowCtas && target.checked === true)
+    ) {
+      setCreateAsOpen(true);
+    } else if (allowCvas.valueOf() === false && allowCtas.valueOf() === false) {
+      setCreateAsOpen(false);
+    }
+
+    // if (target.id === 'allow_ctas') {
+    //   if (target.checked === true) {
+    //     setCreateAsOpen(true);
+    //   } else {
+    //     setCreateAsOpen(false);
+    //   }
+    // }
+
     setDB(data);
-    setIsOpen(!isOpen);
+    console.log(
+      'allowCvasValue',
+      allowCvas.valueOf(),
+      'allowCtasValue',
+      allowCtas.valueOf(),
+      'createAsOpen',
+      createAsOpen,
+      target,
+    );
   };
 
   const onTextChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -508,7 +541,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                       )}
                     />
                   </div>
-                  <StyledInputContainer>
+                  <StyledInputContainer
+                    style={{ display: createAsOpen ? 'inherit' : 'none' }}
+                  >
                     <div className="control-label">
                       {t('CTAS & CVAS SCHEMA')}
                     </div>
