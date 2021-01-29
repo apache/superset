@@ -27,12 +27,22 @@ def _convert_big_integers(dframe: pd.DataFrame) -> pd.DataFrame:
     """
     Cast all integers larger than ``JS_MAX_INTEGER`` in a DataFrame to strings.
 
+    Despite the additional code complexity, this dict comprehension approach is
+    faster than using pandas ``DataFrame.applymap()``.
+
     :param dframe: the DataFrame to process
     :returns: the same DataFrame, with all integer values over
         ``JS_MAX_INTEGER`` recast as strings
     """
-    return dframe.applymap(
-        lambda v: str(v) if isinstance(v, int) and abs(v) > JS_MAX_INTEGER else v
+    return pd.DataFrame(
+        {
+            column: dframe[column].map(
+                lambda v: str(v)
+                if isinstance(v, int) and abs(v) > JS_MAX_INTEGER
+                else v
+            )
+            for column in dframe.columns
+        }
     )
 
 
