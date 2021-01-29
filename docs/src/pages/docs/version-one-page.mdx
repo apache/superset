@@ -68,15 +68,36 @@ but deserve a mention in this post:
 - Exploration control panels improvements
 - Improved SQL-to-explore flows
 
-## Start Using Superset 1.0
-
 **Release Notes**
 
 To digest the full set of changes in 1.0, we recommend reading the
 [full Release Notes](https://github.com/apache/superset/tree/master/RELEASING/release-notes-1-0)
 on Github.
 
+## Start Using Superset 1.0
+
 **Source Code**
 
-You can download the official ASF release for 1.0 from
-their [website here](https://github.com/apache/superset/tree/master/superset).
+You can download Superset 1.0 from any of the following places:
+
+- Official Apache Software Foundation source [release](https://downloads.apache.org/superset/1.0.0/)
+- Python package from [PyPi](https://pypi.org/project/apache-superset/1.0.0/)
+- this commit tag from [Github](https://github.com/apache/superset/releases/tag/1.0.0)
+
+**Feature Flags & Dependency Configuration**
+
+Some of the features in Superset 1.0 require:
+
+- enabling of specific feature flags (read more about [configuring these](/docs/installation/configuring-superset))
+- custom configuration of additional services (e.g. celery, SMTP server, etc)
+
+In this section, the community takes the first steps to document the
+feature flags and configuration instructions needed.
+
+| Feature | Feature Flag | Dependencies | Documentation
+| --- | --- | --- | --- |
+| Global Async Queries | `GLOBAL_ASYNC_QUERIES: True` | Redis 5.0+, celery workers configured and running | [Extra documentation](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries )
+| Dashboard Native Filters | `DASHBOARD_NATIVE_FILTERS: True` | |
+| Alerts & Reporting | `ALERTS_REPORTS: True` | [Celery workers configured & celery beat process](/docs/installation/async-queries-celery) |
+| Homescreen Thumbnails | `THUMBNAILS: TRUE, THUMBNAIL_CACHE_CONFIG: CacheConfig = { "CACHE_TYPE": "null", "CACHE_NO_NULL_WARNING": True}`| selenium, pillow 7, celery |
+| Dynamic Viz Plugin Import | `DYNAMIC_PLUGINS: True` | |
