@@ -21,6 +21,7 @@ import {
   QueryFormData,
   SetExtraFormDataHook,
 } from '@superset-ui/core';
+import { RefObject } from 'react';
 import { AntdPluginFilterStylesProps } from '../types';
 
 interface AntdPluginFilterSelectCustomizeProps {
@@ -36,4 +37,5 @@ export type AntdPluginFilterRangeProps = AntdPluginFilterStylesProps & {
   data: DataRecord[];
   formData: PluginFilterRangeQueryFormData;
   setExtraFormData: SetExtraFormDataHook;
+  inputRef: RefObject<any>;
 };

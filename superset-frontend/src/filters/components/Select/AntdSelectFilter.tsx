@@ -41,6 +41,7 @@ export default function AntdPluginFilterSelect(
     multiSelect,
     showSearch,
     inverseSelection,
+    inputRef,
   } = {
     ...DEFAULT_FORM_DATA,
     ...formData,
@@ -79,6 +80,7 @@ export default function AntdPluginFilterSelect(
         placeholder={placeholderText}
         // @ts-ignore
         onChange={handleChange}
+        ref={inputRef}
       >
         {(data || []).map(row => {
           const option = `${groupby.map(col => row[col])[0]}`;
