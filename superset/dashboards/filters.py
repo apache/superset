@@ -75,14 +75,19 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
+
+        is_rbac_disabled_filter = []
         dashboard_has_roles = Dashboard.roles.any()
+        if is_feature_enabled("DASHBOARD_RBAC"):
+            is_rbac_disabled_filter.append(~dashboard_has_roles)
+
         datasource_perm_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.slices)
             .filter(
                 and_(
                     Dashboard.published.is_(True),
-                    ~dashboard_has_roles,
+                    *is_rbac_disabled_filter,
                     or_(
                         Slice.perm.in_(datasource_perms),
                         Slice.schema_perm.in_(schema_perms),
@@ -91,6 +96,8 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 )
             )
         )
+
+
         roles_based_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.roles)
@@ -118,14 +125,17 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             )
         )
 
+        dashboard_rbac_or_filters = []
+        if is_feature_enabled("DASHBOARD_RBAC"):
+            dashboard_rbac_or_filters.append(Dashboard.id.in_(roles_based_query))
+
         query = query.filter(
             or_(
                 Dashboard.id.in_(owner_ids_query),
                 Dashboard.id.in_(datasource_perm_query),
                 Dashboard.id.in_(users_favorite_dash_query),
-                Dashboard.id.in_(roles_based_query)
-                if is_feature_enabled("DASHBOARD_RBAC")
-                else None,
+                Dashboard.id.in_(roles_based_query),
+                *dashboard_rbac_or_filters,
             )
         )
 
