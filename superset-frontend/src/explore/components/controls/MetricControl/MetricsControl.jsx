@@ -184,10 +184,6 @@ class MetricsControl extends React.PureComponent {
     if (value !== nextProps.value) {
       this.setState({ value: coerceAdhocMetrics(nextProps.value) });
     }
-
-    if (this.props.datasource !== nextProps.datasource) {
-      this.setState({ value: [] });
-    }
   }
 
   onNewMetric(newMetric) {

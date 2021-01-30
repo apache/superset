@@ -101,9 +101,6 @@ export default class SelectControl extends React.PureComponent {
       const options = this.getOptions(nextProps);
       this.setState({ options });
     }
-    if (nextProps.datasource !== this.props.datasource) {
-      this.props.onChange([]);
-    }
   }
 
   // Beware: This is acting like an on-click instead of an on-change

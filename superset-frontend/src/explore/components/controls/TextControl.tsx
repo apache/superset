@@ -51,6 +51,16 @@ export default class TextControl extends React.Component<
     this.onChange(inputValue);
   }, 500);
 
+  static getDerivedStateFromProps(
+    props: TextControlProps,
+    state: TextControlState,
+  ) {
+    if (props.value !== state.value) {
+      return { value: props.value };
+    }
+    return null;
+  }
+
   constructor(props: TextControlProps) {
     super(props);
 
@@ -60,13 +70,6 @@ export default class TextControl extends React.Component<
       controlId: generateControlId(props.controlId),
       value: props.value,
     };
-  }
-
-  componentDidUpdate(prevProps: TextControlProps) {
-    if (prevProps.datasource !== this.props.datasource) {
-      this.props.onChange?.('', []);
-      this.defaultInput();
-    }
   }
 
   defaultInput = () => {

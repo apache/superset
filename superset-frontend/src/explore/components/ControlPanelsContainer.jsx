@@ -92,6 +92,27 @@ class ControlPanelsContainer extends React.Component {
     this.renderControlPanelSection = this.renderControlPanelSection.bind(this);
   }
 
+  componentDidUpdate(prevProps) {
+    const {
+      actions: { setControlValue },
+    } = this.props;
+    if (this.props.form_data.datasource !== prevProps.form_data.datasource) {
+      const defaultValues = [
+        'MetricsControl',
+        'AdhocFilterControl',
+        'TextControl',
+        'SelectControl',
+        'CheckboxControl',
+      ];
+      Object.entries(this.props.controls).forEach(([controlName, control]) => {
+        const { type, default: defaultValue } = control;
+        if (defaultValues.includes(type)) {
+          setControlValue(controlName, defaultValue);
+        }
+      });
+    }
+  }
+
   sectionsToRender() {
     return sectionsToRender(
       this.props.form_data.viz_type,
@@ -253,7 +274,7 @@ class ControlPanelsContainer extends React.Component {
     const expandedCustomSections = this.sectionsToExpand(
       displaySectionsToRender,
     );
-
+    console.log('controlPanelContainer props: ', this.props);
     return (
       <Styles>
         {this.props.alert && (
@@ -292,7 +313,12 @@ class ControlPanelsContainer extends React.Component {
                 expandIconPosition="right"
                 ghost
               >
-                {displaySectionsToRender.map(this.renderControlPanelSection)}
+                {(() => {
+                  console.log('lets render!!!!!');
+                  return displaySectionsToRender.map(
+                    this.renderControlPanelSection,
+                  );
+                })()}
               </Collapse>
             </Tabs.TabPane>
           )}
