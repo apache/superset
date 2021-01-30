@@ -97,7 +97,6 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             )
         )
 
-
         roles_based_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.roles)
@@ -134,7 +133,6 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 Dashboard.id.in_(owner_ids_query),
                 Dashboard.id.in_(datasource_perm_query),
                 Dashboard.id.in_(users_favorite_dash_query),
-                Dashboard.id.in_(roles_based_query),
                 *dashboard_rbac_or_filters,
             )
         )
