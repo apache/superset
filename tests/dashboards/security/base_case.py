@@ -38,7 +38,7 @@ class BaseTestDashboardSecurity(DashboardTestCase):
         self, response: Response, dashboard_to_access: Dashboard
     ) -> None:
         self.assert200(response)
-        self.assertEqual(response.json["id"], dashboard_to_access.id)
+        assert response.json["id"] == dashboard_to_access.id
 
     def assert_dashboards_list_view_response(
         self,
@@ -74,13 +74,13 @@ class BaseTestDashboardSecurity(DashboardTestCase):
     ) -> None:
         self.assert200(response)
         response_data = response.json
-        self.assertEqual(response_data["count"], expected_counts)
+        assert response_data["count"] == expected_counts
         response_dashboards_url = set(
             map(lambda dash: dash["url"], response_data["result"])
         )
         expected_dashboards = expected_dashboards or []
         for dashboard in expected_dashboards:
-            self.assertIn(dashboard.url, response_dashboards_url)
+            assert dashboard.url in response_dashboards_url
         not_expected_dashboards = not_expected_dashboards or []
         for dashboard in not_expected_dashboards:
-            self.assertNotIn(dashboard.url, response_dashboards_url)
+            assert dashboard.url not in response_dashboards_url

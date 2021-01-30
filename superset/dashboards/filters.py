@@ -116,8 +116,8 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         if is_feature_enabled("DASHBOARD_RBAC"):
             roles_based_query = (
                 db.session.query(Dashboard.id)
-                    .join(Dashboard.roles)
-                    .filter(
+                .join(Dashboard.roles)
+                .filter(
                     and_(
                         Dashboard.published.is_(True),
                         dashboard_has_roles,
@@ -127,7 +127,6 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             )
 
             dashboard_rbac_or_filters.append(Dashboard.id.in_(roles_based_query))
-
 
         query = query.filter(
             or_(
