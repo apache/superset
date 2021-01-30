@@ -43,6 +43,7 @@ import {
   Input,
 } from 'src/common/components';
 import Icon from 'src/components/Icon';
+import { detectOS } from 'src/utils/common';
 import {
   addQueryEditor,
   CtasEnum,
@@ -278,6 +279,8 @@ class SqlEditor extends React.PureComponent {
   }
 
   getHotkeyConfig() {
+    // Get the user's OS
+    const userOS = detectOS();
     return [
       {
         name: 'runQuery1',
@@ -301,12 +304,12 @@ class SqlEditor extends React.PureComponent {
       },
       {
         name: 'newTab',
-        key: 'ctrl+t',
+        key: userOS === 'Windows' ? 'ctrl+q' : 'ctrl+t',
         descr: t('New tab'),
         func: () => {
           this.props.addQueryEditor({
             ...this.props.queryEditor,
-            title: t('Untitled Query'),
+            title: t('Untitled query'),
             sql: '',
           });
         },
@@ -539,9 +542,13 @@ class SqlEditor extends React.PureComponent {
   }
 
   renderQueryLimit() {
-    const menuDropdown = (
+    // Adding SQL_MAX_ROW value to dropdown
+    const { maxRow } = this.props;
+    LIMIT_DROPDOWN.push(maxRow);
+
+    return (
       <AntdMenu>
-        {LIMIT_DROPDOWN.map(limit => (
+        {[...new Set(LIMIT_DROPDOWN)].map(limit => (
           <AntdMenu.Item onClick={() => this.setQueryLimit(limit)}>
             {/* // eslint-disable-line no-use-before-define */}
             <a role="button" styling="link">
@@ -551,8 +558,6 @@ class SqlEditor extends React.PureComponent {
         ))}
       </AntdMenu>
     );
-
-    return menuDropdown;
   }
 
   renderEditorBottomBar() {
@@ -696,13 +701,13 @@ class SqlEditor extends React.PureComponent {
   render() {
     const createViewModalTitle =
       this.state.createAs === CtasEnum.VIEW
-        ? 'Create View As'
-        : 'Create Table As';
+        ? 'CREATE VIEW AS'
+        : 'CREATE TABLE AS';
 
     const createModalPlaceHolder =
       this.state.createAs === CtasEnum.VIEW
-        ? 'Specify name to Create View AS schema in: public'
-        : 'Specify name to Create Table AS schema in: public';
+        ? 'Specify name to CREATE VIEW AS schema in: public'
+        : 'Specify name to CREATE TABLE AS schema in: public';
 
     return (
       <div ref={this.sqlEditorRef} className="SqlEditor">

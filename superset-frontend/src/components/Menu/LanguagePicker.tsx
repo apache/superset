@@ -43,6 +43,7 @@ export default function LanguagePicker({
     <NavDropdown
       onMouseEnter={() => setDropdownOpen(true)}
       onMouseLeave={() => setDropdownOpen(false)}
+      onToggle={value => setDropdownOpen(value)}
       open={dropdownOpen}
       id="locale-dropdown"
       title={

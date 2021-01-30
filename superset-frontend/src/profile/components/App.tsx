@@ -59,7 +59,7 @@ export default function App({ user }: AppProps) {
               key="2"
               tab={
                 <div>
-                  <i className="fa fa-paint-brush" /> {t('Created Content')}
+                  <i className="fa fa-paint-brush" /> {t('Created content')}
                 </div>
               }
             >
@@ -73,7 +73,7 @@ export default function App({ user }: AppProps) {
               key="3"
               tab={
                 <div>
-                  <i className="fa fa-list" /> {t('Recent Activity')}
+                  <i className="fa fa-list" /> {t('Recent activity')}
                 </div>
               }
             >

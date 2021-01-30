@@ -37,7 +37,6 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 
-import getDragDropManager from 'src/dashboard/util/getDragDropManager';
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
@@ -93,11 +92,11 @@ const StyledDashboardContent = styled.div`
     width: 100%;
     flex-grow: 1;
     position: relative;
-    margin: ${({ theme }) => theme.gridUnit * 2}px
+    margin: ${({ theme }) => theme.gridUnit * 6}px
       ${({ theme }) => theme.gridUnit * 8}px
       ${({ theme }) => theme.gridUnit * 6}px
       ${({ theme, dashboardFiltersOpen }) => {
-        if (dashboardFiltersOpen) return theme.gridUnit * 4;
+        if (dashboardFiltersOpen) return theme.gridUnit * 8;
         return 0;
       }}px;
   }
@@ -159,12 +158,6 @@ class DashboardBuilder extends React.Component {
     this.toggleDashboardFiltersOpen = this.toggleDashboardFiltersOpen.bind(
       this,
     );
-  }
-
-  getChildContext() {
-    return {
-      dragDropManager: this.context.dragDropManager || getDragDropManager(),
-    };
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {

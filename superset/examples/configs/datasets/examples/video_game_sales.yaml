@@ -41,7 +41,7 @@ metrics:
   extra: null
   warning_text: null
 columns:
-- column_name: Year
+- column_name: year
   verbose_name: null
   is_dttm: true
   is_active: null
@@ -51,7 +51,7 @@ columns:
   expression: null
   description: null
   python_date_format: '%Y'
-- column_name: NA_Sales
+- column_name: na_sales
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -61,7 +61,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: EU_Sales
+- column_name: eu_sales
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -71,7 +71,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Global_Sales
+- column_name: global_sales
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -81,7 +81,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: JP_Sales
+- column_name: jp_sales
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -91,7 +91,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Other_Sales
+- column_name: other_sales
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -101,7 +101,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Rank
+- column_name: rank
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -111,7 +111,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Genre
+- column_name: genre
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -121,7 +121,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Name
+- column_name: name
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -131,7 +131,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Platform
+- column_name: platform
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -141,7 +141,7 @@ columns:
   expression: null
   description: null
   python_date_format: null
-- column_name: Publisher
+- column_name: publisher
   verbose_name: null
   is_dttm: false
   is_active: null
@@ -153,4 +153,4 @@ columns:
   python_date_format: null
 version: 1.0.0
 database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
-data: https://github.com/apache-superset/examples-data/raw/master/datasets/examples/video_game_sales.csv
+data: https://github.com/apache-superset/examples-data/raw/lowercase_columns_examples/datasets/examples/video_game_sales.csv

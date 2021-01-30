@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Utility functions used across Superset"""
+import collections
 import decimal
 import errno
 import functools
@@ -37,7 +38,7 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
-from enum import Enum
+from enum import Enum, IntEnum
 from timeit import default_timer
 from types import TracebackType
 from typing import (
@@ -55,6 +56,7 @@ from typing import (
     Tuple,
     Type,
     TYPE_CHECKING,
+    TypeVar,
     Union,
 )
 from urllib.parse import unquote_plus
@@ -71,6 +73,7 @@ from flask import current_app, flash, g, Markup, render_template
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import Role, User
 from flask_babel import gettext as __
+from flask_babel.speaklater import LazyString
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
@@ -104,6 +107,8 @@ DTTM_ALIAS = "__timestamp"
 
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
+InputType = TypeVar("InputType")
+
 
 class LenientEnum(Enum):
     """Enums with a `get` method that convert a enum value to `Enum` if it is a
@@ -129,14 +134,15 @@ class AnnotationType(str, Enum):
     TIME_SERIES = "TIME_SERIES"
 
 
-class DbColumnType(Enum):
+class GenericDataType(IntEnum):
     """
-    Generic database column type
+    Generic database column type that fits both frontend and backend.
     """
 
     NUMERIC = 0
     STRING = 1
     TEMPORAL = 2
+    BOOLEAN = 3
 
 
 class ChartDataResultFormat(str, Enum):
@@ -504,6 +510,8 @@ def base_json_conv(  # pylint: disable=inconsistent-return-statements,too-many-r
             return obj.decode("utf-8")
         except Exception:  # pylint: disable=broad-except
             return "[bytes]"
+    if isinstance(obj, LazyString):
+        return str(obj)
 
 
 def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:
@@ -1025,8 +1033,8 @@ def merge_extra_filters(  # pylint: disable=too-many-branches
         for existing in adhoc_filters:
             if (
                 existing["expressionType"] == "SIMPLE"
-                and existing["comparator"] is not None
-                and existing["subject"] is not None
+                and existing.get("comparator") is not None
+                and existing.get("subject") is not None
             ):
                 existing_filters[get_filter_key(existing)] = existing["comparator"]
 
@@ -1095,7 +1103,7 @@ def user_label(user: User) -> Optional[str]:
 
 
 def get_or_create_db(
-    database_name: str, sqlalchemy_uri: str, *args: Any, **kwargs: Any
+    database_name: str, sqlalchemy_uri: str, always_create: Optional[bool] = True
 ) -> "Database":
     from superset import db
     from superset.models import core as models
@@ -1104,13 +1112,15 @@ def get_or_create_db(
         db.session.query(models.Database).filter_by(database_name=database_name).first()
     )
 
-    if not database:
+    if not database and always_create:
         logger.info("Creating database reference for %s", database_name)
-        database = models.Database(database_name=database_name, *args, **kwargs)
+        database = models.Database(database_name=database_name)
         db.session.add(database)
 
-    database.set_sqlalchemy_uri(sqlalchemy_uri)
-    db.session.commit()
+    if database:
+        database.set_sqlalchemy_uri(sqlalchemy_uri)
+        db.session.commit()
+
     return database
 
 
@@ -1391,6 +1401,21 @@ def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
     return columns
 
 
+def serialize_pandas_dtypes(dtypes: List[np.dtype]) -> List[GenericDataType]:
+    """Serialize pandas/numpy dtypes to JavaScript types"""
+    mapping = {
+        "object": GenericDataType.STRING,
+        "category": GenericDataType.STRING,
+        "datetime64[ns]": GenericDataType.TEMPORAL,
+        "int64": GenericDataType.NUMERIC,
+        "in32": GenericDataType.NUMERIC,
+        "float64": GenericDataType.NUMERIC,
+        "float32": GenericDataType.NUMERIC,
+        "bool": GenericDataType.BOOLEAN,
+    }
+    return [mapping.get(str(x), GenericDataType.STRING) for x in dtypes]
+
+
 def indexed(
     items: List[Any], key: Union[str, Callable[[Any], Any]]
 ) -> Dict[Any, List[Any]]:
@@ -1476,3 +1501,8 @@ def get_time_filter_status(  # pylint: disable=too-many-branches
 def format_list(items: Sequence[str], sep: str = ", ", quote: str = '"') -> str:
     quote_escaped = "\\" + quote
     return sep.join(f"{quote}{x.replace(quote, quote_escaped)}{quote}" for x in items)
+
+
+def find_duplicates(items: Iterable[InputType]) -> List[InputType]:
+    """Find duplicate items in an iterable."""
+    return [item for item, count in collections.Counter(items).items() if count > 1]

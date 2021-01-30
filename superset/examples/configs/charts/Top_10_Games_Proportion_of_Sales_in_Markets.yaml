@@ -26,21 +26,21 @@ params:
     isNew: false
     operator: <=
     sqlExpression: null
-    subject: Rank
+    subject: rank
   bar_stacked: true
   bottom_margin: auto
   color_scheme: supersetColors
   columns: []
   contribution: true
   datasource: 21__table
-  granularity_sqla: Year
+  granularity_sqla: year
   groupby:
-  - Name
+  - name
   label_colors: {}
   metrics:
   - aggregate: SUM
     column:
-      column_name: NA_Sales
+      column_name: na_sales
       description: null
       expression: null
       filterable: true
@@ -59,7 +59,7 @@ params:
     sqlExpression: null
   - aggregate: SUM
     column:
-      column_name: EU_Sales
+      column_name: eu_sales
       description: null
       expression: null
       filterable: true
@@ -78,7 +78,7 @@ params:
     sqlExpression: null
   - aggregate: SUM
     column:
-      column_name: JP_Sales
+      column_name: jp_sales
       description: null
       expression: null
       filterable: true
@@ -97,7 +97,7 @@ params:
     sqlExpression: null
   - aggregate: SUM
     column:
-      column_name: Other_Sales
+      column_name: other_sales
       description: null
       expression: null
       filterable: true

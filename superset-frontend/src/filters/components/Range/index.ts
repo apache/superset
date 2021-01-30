@@ -25,8 +25,8 @@ import thumbnail from './images/thumbnail.png';
 export default class AntdRangeFilterPlugin extends ChartPlugin {
   constructor() {
     const metadata = new ChartMetadata({
-      name: t('Range Filter Plugin'),
-      description: 'Range Filter Plugin using AntD',
+      name: t('Range filter plugin'),
+      description: 'Range filter plugin using AntD',
       isNativeFilter: true,
       thumbnail,
     });

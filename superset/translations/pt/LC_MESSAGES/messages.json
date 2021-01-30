@@ -1150,9 +1150,7 @@
       "Welcome!": ["Bem vindo!"],
       "Test Connection": ["Conexão de teste"],
       "Manage": ["Gerir"],
-      "Datasource %(name)s already exists": [
-        "Origem de dados %(name)s já existe"
-      ],
+      "Dataset %(name)s already exists": ["Origem de dados %(name)s já existe"],
       "json isn't valid": ["json não é válido"],
       "Delete": ["Eliminar"],
       "Delete all Really?": ["Tem a certeza que pretende eliminar tudo?"],

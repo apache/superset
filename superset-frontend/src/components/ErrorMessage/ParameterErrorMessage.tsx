@@ -111,7 +111,7 @@ ${extra.issue_codes.map(issueCode => issueCode.message).join('\n')}`;
 
   return (
     <ErrorAlert
-      title={t('Parameter Error')}
+      title={t('Parameter error')}
       subtitle={message}
       level={level}
       source={source}

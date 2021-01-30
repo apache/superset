@@ -21,12 +21,12 @@ import { ReactWrapper } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { act } from 'react-dom/test-utils';
 
-import MetricsControl from 'src/explore/components/controls/MetricsControl';
 import withAsyncVerification, {
   ControlPropsWithExtras,
   WithAsyncVerificationOptions,
 } from 'src/explore/components/controls/withAsyncVerification';
 import { ExtraControlProps } from '@superset-ui/chart-controls';
+import MetricsControl from 'src/explore/components/controls/MetricControl/MetricsControl';
 
 const VALID_METRIC = {
   metric_name: 'sum__value',
@@ -120,9 +120,7 @@ describe('VerifiedMetricsControl', () => {
       onChange: mockOnChange,
     });
 
-    const child = wrapper.find(MetricsControl) as ReactWrapper<{
-      onChange: (str: string[]) => void;
-    }>;
+    const child = wrapper.find(MetricsControl);
     child.props().onChange(['abc']);
 
     expect(child.length).toBe(1);

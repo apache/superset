@@ -32,7 +32,7 @@ params:
   donut: true
   granularity_sqla: time_start
   groupby:
-  - Job Location Preference
+  - job_location_preference
   innerRadius: 44
   labels_outside: true
   metric: count

@@ -18,8 +18,8 @@ slice_name: Vaccine Candidates per Approach & Stage
 viz_type: heatmap
 params:
   adhoc_filters: []
-  all_columns_x: Clinical Stage
-  all_columns_y: Product_Category
+  all_columns_x: clinical_stage
+  all_columns_y: product_category
   bottom_margin: auto
   canvas_image_rendering: pixelated
   datasource: 69__table

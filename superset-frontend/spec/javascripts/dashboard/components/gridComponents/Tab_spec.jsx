@@ -20,6 +20,8 @@ import { Provider } from 'react-redux';
 import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
 import sinon from 'sinon';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
@@ -28,7 +30,6 @@ import Tab, {
   RENDER_TAB,
   RENDER_TAB_CONTENT,
 } from 'src/dashboard/components/gridComponents/Tab';
-import WithDragDropContext from 'spec/helpers/WithDragDropContext';
 import { dashboardLayoutWithTabs } from 'spec/fixtures/mockDashboardLayout';
 import { mockStoreWithTabs } from 'spec/fixtures/mockStore';
 
@@ -42,6 +43,8 @@ describe('Tabs', () => {
     depth: 1,
     editMode: false,
     renderType: RENDER_TAB,
+    filters: {},
+    setDirectPathToChild: jest.fn(),
     onDropOnTab() {},
     onDeleteTab() {},
     availableColumnCount: 12,
@@ -61,9 +64,9 @@ describe('Tabs', () => {
     // otherwise we cannot assert on DragDroppable children
     const wrapper = mount(
       <Provider store={mockStoreWithTabs}>
-        <WithDragDropContext>
+        <DndProvider backend={HTML5Backend}>
           <Tab {...props} {...overrideProps} />
-        </WithDragDropContext>
+        </DndProvider>
       </Provider>,
     );
     return wrapper;

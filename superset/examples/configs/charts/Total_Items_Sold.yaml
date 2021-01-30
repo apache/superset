@@ -19,12 +19,12 @@ viz_type: big_number_total
 params:
   adhoc_filters: []
   datasource: 23__table
-  granularity_sqla: OrderDate
+  granularity_sqla: order_date
   header_font_size: 0.4
   metric:
     aggregate: SUM
     column:
-      column_name: QuantityOrdered
+      column_name: quantity_ordered
       description: null
       expression: null
       filterable: true

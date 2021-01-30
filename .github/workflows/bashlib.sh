@@ -164,9 +164,10 @@ cypress-run() {
   export TERM="xterm"
 
   say "::group::Run Cypress for [$page]"
-  if [[ -z $CYPRESS_RECORD_KEY ]]; then
+  if [[ -z $CYPRESS_KEY ]]; then
     $cypress --spec "cypress/integration/$page" --browser "$browser"
   else
+    export CYPRESS_RECORD_KEY=`echo $CYPRESS_KEY | base64 --decode`
     # additional flags for Cypress dashboard recording
     $cypress --spec "cypress/integration/$page" --browser "$browser" \
       --record --group "$group" --tag "${GITHUB_REPOSITORY},${GITHUB_EVENT_NAME}" \

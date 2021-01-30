@@ -24,9 +24,9 @@ params:
   comparison_type: values
   contribution: false
   datasource: 21__table
-  granularity_sqla: Year
+  granularity_sqla: year
   groupby:
-  - Platform
+  - platform
   label_colors:
     '0': '#1FA8C9'
     '1': '#454E7C'
@@ -84,7 +84,7 @@ params:
   metrics:
   - aggregate: SUM
     column:
-      column_name: Global_Sales
+      column_name: global_sales
       description: null
       expression: null
       filterable: true
@@ -118,7 +118,7 @@ params:
   - inclusive
   - exclusive
   url_params:
-    preselect_filters: '{"1389": {"Platform": ["PS", "PS2", "PS3", "PS4"], "Genre":
+    preselect_filters: '{"1389": {"platform": ["PS", "PS2", "PS3", "PS4"], "genre":
       null, "__time_range": "No filter"}}'
   viz_type: area
   x_axis_format: smart_date

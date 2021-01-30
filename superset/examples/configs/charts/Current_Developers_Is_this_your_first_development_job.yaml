@@ -26,7 +26,7 @@ params:
     isNew: false
     operator: ==
     sqlExpression: null
-    subject: Developer Type
+    subject: developer_type
   datasource: 42__table
   granularity_sqla: time_start
   header_font_size: 0.4

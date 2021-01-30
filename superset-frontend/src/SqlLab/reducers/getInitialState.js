@@ -41,7 +41,7 @@ export default function getInitialState({
   const defaultQueryEditor = {
     id: null,
     loaded: true,
-    title: t('Untitled Query'),
+    title: t('Untitled query'),
     sql: 'SELECT *\nFROM\nWHERE',
     selectedText: null,
     latestQueryId: null,

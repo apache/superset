@@ -23,7 +23,7 @@ params:
   donut: true
   granularity_sqla: time_start
   groupby:
-  - Gender
+  - gender
   innerRadius: 44
   label_line: true
   labels_outside: true

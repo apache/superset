@@ -18,12 +18,12 @@ slice_name: Popular Genres Across Platforms
 viz_type: heatmap
 params:
   adhoc_filters: []
-  all_columns_x: Platform
-  all_columns_y: Genre
+  all_columns_x: platform
+  all_columns_y: genre
   bottom_margin: auto
   canvas_image_rendering: pixelated
   datasource: 64__table
-  granularity_sqla: Year
+  granularity_sqla: year
   left_margin: auto
   linear_color_scheme: blue_white_yellow
   metric: count

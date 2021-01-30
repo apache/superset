@@ -23,7 +23,7 @@ params:
   donut: true
   granularity_sqla: time_start
   groupby:
-  - Ethnic Minority
+  - ethnic_minority
   innerRadius: 44
   label_line: true
   labels_outside: true

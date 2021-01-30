@@ -23,22 +23,23 @@ params:
   filter_configs:
   - asc: true
     clearable: true
-    column: Country_Name
+    column: country_name
     key: D00hRxPLE
     label: Country
     multiple: true
     searchAllOptions: false
   - asc: true
     clearable: true
-    column: Product_Category
+    column: product_category
     key: jJ7x2cuIc
     label: Vaccine Approach
     multiple: true
     searchAllOptions: false
   - asc: true
     clearable: true
-    column: Clinical Stage
+    column: clinical_stage
     key: EgGwwAUU6
+    label: Clinical Stage
     multiple: true
     searchAllOptions: false
   queryFields: {}

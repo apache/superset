@@ -6,10 +6,12 @@ on:
     branches-ignore:
       - "dependabot/npm_and_yarn/**"
   pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
   test-mysql:
-    runs-on: ubuntu-18.04
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         python-version: [3.7]
@@ -32,7 +34,11 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - uses: actions/checkout@v2
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
@@ -55,7 +61,8 @@ jobs:
           bash <(curl -s https://codecov.io/bash) -cF python
 
   test-postgres:
-    runs-on: ubuntu-18.04
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         python-version: [3.7, 3.8]
@@ -79,7 +86,11 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - uses: actions/checkout@v2
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
@@ -102,7 +113,8 @@ jobs:
           bash <(curl -s https://codecov.io/bash) -cF python
 
   test-sqlite:
-    runs-on: ubuntu-18.04
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         python-version: [3.7]
@@ -118,7 +130,11 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - uses: actions/checkout@v2
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
       - name: Setup Python
         uses: actions/setup-python@v2
         with:

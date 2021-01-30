@@ -19,11 +19,12 @@ import pytest
 from superset import db
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.extensions import cache_manager
+from superset.models.cache import CacheKey
 from superset.utils.core import (
     AdhocMetricExpressionType,
     ChartDataResultFormat,
     ChartDataResultType,
-    FilterOperator,
     TimeRangeEndpoint,
 )
 from tests.base_tests import SupersetTestCase
@@ -68,11 +69,39 @@ class TestQueryContext(SupersetTestCase):
                 self.assertEqual(post_proc["operation"], payload_post_proc["operation"])
                 self.assertEqual(post_proc["options"], payload_post_proc["options"])
 
-    def test_cache_key_changes_when_datasource_is_updated(self):
+    def test_cache(self):
+        table_name = "birth_names"
+        table = self.get_table_by_name(table_name)
+        payload = get_query_context(table.name, table.id)
+        payload["force"] = True
+
+        query_context = ChartDataQueryContextSchema().load(payload)
+        query_object = query_context.queries[0]
+        query_cache_key = query_context.query_cache_key(query_object)
+
+        response = query_context.get_payload(cache_query_context=True)
+        cache_key = response["cache_key"]
+        assert cache_key is not None
+
+        cached = cache_manager.cache.get(cache_key)
+        assert cached is not None
+
+        rehydrated_qc = ChartDataQueryContextSchema().load(cached["data"])
+        rehydrated_qo = rehydrated_qc.queries[0]
+        rehydrated_query_cache_key = rehydrated_qc.query_cache_key(rehydrated_qo)
+
+        self.assertEqual(rehydrated_qc.datasource, query_context.datasource)
+        self.assertEqual(len(rehydrated_qc.queries), 1)
+        self.assertEqual(query_cache_key, rehydrated_query_cache_key)
+        self.assertEqual(rehydrated_qc.result_type, query_context.result_type)
+        self.assertEqual(rehydrated_qc.result_format, query_context.result_format)
+        self.assertFalse(rehydrated_qc.force)
+
+    def test_query_cache_key_changes_when_datasource_is_updated(self):
         self.login(username="admin")
         payload = get_query_context("birth_names")
 
-        # construct baseline cache_key
+        # construct baseline query_cache_key
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         cache_key_original = query_context.query_cache_key(query_object)
@@ -89,7 +118,7 @@ class TestQueryContext(SupersetTestCase):
         datasource.description = description_original
         db.session.commit()
 
-        # create new QueryContext with unchanged attributes and extract new cache_key
+        # create new QueryContext with unchanged attributes, extract new query_cache_key
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         cache_key_new = query_context.query_cache_key(query_object)
@@ -97,16 +126,16 @@ class TestQueryContext(SupersetTestCase):
         # the new cache_key should be different due to updated datasource
         self.assertNotEqual(cache_key_original, cache_key_new)
 
-    def test_cache_key_changes_when_post_processing_is_updated(self):
+    def test_query_cache_key_changes_when_post_processing_is_updated(self):
         self.login(username="admin")
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
 
-        # construct baseline cache_key from query_context with post processing operation
+        # construct baseline query_cache_key from query_context with post processing operation
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
         cache_key_original = query_context.query_cache_key(query_object)
 
-        # ensure added None post_processing operation doesn't change cache_key
+        # ensure added None post_processing operation doesn't change query_cache_key
         payload["queries"][0]["post_processing"].append(None)
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]

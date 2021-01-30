@@ -25,8 +25,8 @@ import Popover from 'src/common/components/Popover';
 import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
-} from 'src/explore/AdhocFilter';
-import AdhocFilterOption from 'src/explore/components/AdhocFilterOption';
+} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilterOption from 'src/explore/components/controls/FilterControl/AdhocFilterOption';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
@@ -56,6 +56,6 @@ describe('AdhocFilterOption', () => {
     const popover = overlay.find(Popover);
     expect(popover).toHaveLength(1);
     expect(popover.props().defaultVisible).toBe(false);
-    expect(overlay.find('DraggableOptionControlLabel')).toExist();
+    expect(overlay.find('OptionControlLabel')).toExist();
   });
 });

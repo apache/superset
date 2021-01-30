@@ -29,9 +29,9 @@ export type ControlProps = {
   // signature to the original action factory.
   actions: Partial<ExploreActions> & Pick<ExploreActions, 'setControlValue'>;
   type: ControlType;
-  label: string;
+  label?: ReactNode;
   name: string;
-  description?: string;
+  description?: ReactNode;
   tooltipOnClick?: () => ReactNode;
   places?: number;
   rightNode?: ReactNode;

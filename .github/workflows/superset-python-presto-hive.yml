@@ -6,10 +6,12 @@ on:
     branches-ignore:
       - "dependabot/npm_and_yarn/**"
   pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
   test-postgres-presto:
-    runs-on: ubuntu-18.04
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         # run unit tests in multiple version just for fun
@@ -44,7 +46,11 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - uses: actions/checkout@v2
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
@@ -67,7 +73,8 @@ jobs:
           bash <(curl -s https://codecov.io/bash) -cF python
 
   test-postgres-hive:
-    runs-on: ubuntu-18.04
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         # run unit tests in multiple version just for fun
@@ -94,7 +101,11 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - uses: actions/checkout@v2
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
       - name: Create csv upload directory
         run: sudo mkdir -p /tmp/.superset/uploads
       - name: Give write access to the csv upload directory

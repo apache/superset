@@ -378,7 +378,9 @@ div.tablePopover {
   //double class is better than !important
   border: 1px solid @gray-light;
   font-feature-settings: @font-feature-settings;
-  font-family: @font-family-monospace;
+  // Fira Code causes problem with Ace under Firefox
+  font-family: 'Menlo', 'Lucida Console', 'Courier New', 'Ubuntu Mono',
+    'Consolas', 'source-code-pro', monospace;
 
   &.ace_autocomplete {
     // Use !important because Ace Editor applies extra CSS at the last second

@@ -19,6 +19,7 @@
 // ***********************************************
 // Tests for setting controls in the UI
 // ***********************************************
+import { interceptChart } from 'cypress/utils';
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 
 describe('Datasource control', () => {
@@ -29,11 +30,10 @@ describe('Datasource control', () => {
     let numScripts = 0;
 
     cy.login();
-    cy.server();
-    cy.route('GET', '/superset/explore_json/**').as('getJson');
-    cy.route('POST', '/superset/explore_json/**').as('postJson');
+    interceptChart({ legacy: false }).as('chartData');
+
     cy.visitChartByName('Num Births Trend');
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[data-test="open-datasource-tab').click({ force: true });
     cy.get('[data-test="datasource-menu-trigger"]').click();
@@ -91,14 +91,13 @@ describe('Datasource control', () => {
 describe('VizType control', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
-    cy.route('GET', '/superset/explore_json/**').as('getJson');
-    cy.route('POST', '/superset/explore_json/**').as('postJson');
+    interceptChart({ legacy: false }).as('tableChartData');
+    interceptChart({ legacy: true }).as('lineChartData');
   });
 
   it('Can change vizType', () => {
     cy.visitChartByName('Daily Totals');
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.verifySliceSuccess({ waitAlias: '@tableChartData' });
 
     let numScripts = 0;
     cy.get('script').then(nodes => {
@@ -112,32 +111,33 @@ describe('VizType control', () => {
     // should load mathjs for line chart
     cy.get('script[src*="mathjs"]').should('have.length', 1);
     cy.get('script').then(nodes => {
-      expect(nodes.length).to.greaterThan(numScripts);
+      expect(nodes.length).to.eq(numScripts);
     });
 
     cy.get('button[data-test="run-query-button"]').click();
-    cy.verifySliceSuccess({ waitAlias: '@postJson', chartSelector: 'svg' });
+    cy.verifySliceSuccess({
+      waitAlias: '@lineChartData',
+      chartSelector: 'svg',
+    });
   });
 });
 
 describe('Time range filter', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
-    cy.route('GET', '/superset/explore_json/**').as('getJson');
-    cy.route('POST', '/superset/explore_json/**').as('postJson');
+    interceptChart({ legacy: true }).as('chartData');
   });
 
   it('Advanced time_range params', () => {
     const formData = {
       ...FORM_DATA_DEFAULTS,
-      metrics: [NUM_METRIC],
       viz_type: 'line',
       time_range: '100 years ago : now',
+      metrics: [NUM_METRIC],
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[data-test=time-range-trigger]')
       .click()
@@ -155,13 +155,13 @@ describe('Time range filter', () => {
   it('Common time_range params', () => {
     const formData = {
       ...FORM_DATA_DEFAULTS,
-      metrics: [NUM_METRIC],
       viz_type: 'line',
+      metrics: [NUM_METRIC],
       time_range: 'Last year',
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[data-test=time-range-trigger]')
       .click()
@@ -175,13 +175,13 @@ describe('Time range filter', () => {
   it('Previous time_range params', () => {
     const formData = {
       ...FORM_DATA_DEFAULTS,
-      metrics: [NUM_METRIC],
       viz_type: 'line',
+      metrics: [NUM_METRIC],
       time_range: 'previous calendar month',
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[data-test=time-range-trigger]')
       .click()
@@ -195,13 +195,13 @@ describe('Time range filter', () => {
   it('Custom time_range params', () => {
     const formData = {
       ...FORM_DATA_DEFAULTS,
-      metrics: [NUM_METRIC],
       viz_type: 'line',
+      metrics: [NUM_METRIC],
       time_range: 'DATEADD(DATETIME("today"), -7, day) : today',
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[data-test=time-range-trigger]')
       .click()
@@ -218,13 +218,13 @@ describe('Time range filter', () => {
   it('No filter time_range params', () => {
     const formData = {
       ...FORM_DATA_DEFAULTS,
-      metrics: [NUM_METRIC],
       viz_type: 'line',
+      metrics: [NUM_METRIC],
       time_range: 'No filter',
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[data-test=time-range-trigger]')
       .click()
@@ -237,18 +237,17 @@ describe('Time range filter', () => {
 
 describe('Groupby control', () => {
   it('Set groupby', () => {
-    cy.server();
     cy.login();
-    cy.route('GET', '/superset/explore_json/**').as('getJson');
-    cy.route('POST', '/superset/explore_json/**').as('postJson');
+    interceptChart({ legacy: true }).as('chartData');
+
     cy.visitChartByName('Num Births Trend');
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[data-test=groupby]').within(() => {
       cy.get('.Select__control').click();
       cy.get('input[type=text]').type('state{enter}');
     });
     cy.get('button[data-test="run-query-button"]').click();
-    cy.verifySliceSuccess({ waitAlias: '@postJson', chartSelector: 'svg' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData', chartSelector: 'svg' });
   });
 });

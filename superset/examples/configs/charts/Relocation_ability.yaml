@@ -32,7 +32,7 @@ params:
   donut: true
   granularity_sqla: time_start
   groupby:
-  - Willing To Relocate
+  - willing_to_relocate
   innerRadius: 44
   labels_outside: true
   metric: count

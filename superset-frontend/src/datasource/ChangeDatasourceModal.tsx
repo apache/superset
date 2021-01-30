@@ -133,7 +133,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         }),
       });
     },
-    1000,
+    300,
     [filter],
   );
 
@@ -220,8 +220,10 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       show={show}
       onHide={onHide}
       responsive
-      title={t('Change Dataset')}
+      title={t('Change dataset')}
       width={confirmChange ? '432px' : ''}
+      height={confirmChange ? 'auto' : '480px'}
+      hideFooter={!confirmChange}
       footer={
         <>
           {confirmChange && (
@@ -267,6 +269,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
                 pageSize={20}
                 className="table-condensed"
                 emptyWrapperType={EmptyWrapperType.Small}
+                scrollTable
               />
             )}
           </>
