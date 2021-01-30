@@ -16,12 +16,27 @@
 # under the License.
 from flask_babel import lazy_gettext as _
 
+from ... import is_feature_enabled
 from ...dashboards.filters import DashboardFilter
 from ..base import check_ownership
 
+roles_edit = []
+roles_description = {}
+roles_label = {}
+if is_feature_enabled("DASHBOARD_RBAC"):
+    roles_edit = "roles"
+    roles_description = {
+        "roles": _(
+            "Roles is a list which defines access to the dashboard. "
+            "These roles are always applied in addition to restrictions on dataset "
+            "level access. "
+            "If no roles defined then the dashboard is available to all roles."
+        )
+    }
+    roles_label = {"roles": _("Roles")}
+
 
 class DashboardMixin:  # pylint: disable=too-few-public-methods
-
     list_title = _("Dashboards")
     show_title = _("Show Dashboard")
     add_title = _("Add Dashboard")
@@ -33,7 +48,7 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
         "dashboard_title",
         "slug",
         "owners",
-        "roles",
+        roles_edit,
         "position_json",
         "css",
         "json_metadata",
@@ -63,12 +78,7 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
             "want to alter specific parameters."
         ),
         "owners": _("Owners is a list of users who can alter the dashboard."),
-        "roles": _(
-            "Roles is a list which defines access to the dashboard. "
-            "These roles are always applied in addition to restrictions on dataset "
-            "level access. "
-            "If no roles defined then the dashboard is available to all roles."
-        ),
+        **roles_description,
         "published": _(
             "Determines whether or not this dashboard is "
             "visible in the list of all dashboards"
@@ -81,7 +91,7 @@ class DashboardMixin:  # pylint: disable=too-few-public-methods
         "slug": _("Slug"),
         "charts": _("Charts"),
         "owners": _("Owners"),
-        "roles": _("Roles"),
+        **roles_label,
         "published": _("Published"),
         "creator": _("Creator"),
         "modified": _("Modified"),
