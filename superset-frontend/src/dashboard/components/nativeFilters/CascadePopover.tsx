@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ExtraFormData, styled, t } from '@superset-ui/core';
 import Popover from 'src/common/components/Popover';
 import Icon from 'src/components/Icon';
@@ -27,6 +27,7 @@ import { Filter, CascadeFilter } from './types';
 interface CascadePopoverProps {
   filter: CascadeFilter;
   visible: boolean;
+  directPathToChild?: string[];
   onVisibleChange: (visible: boolean) => void;
   onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
 }
@@ -73,7 +74,18 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   visible,
   onVisibleChange,
   onExtraFormDataChange,
+  directPathToChild,
 }) => {
+  const [currentPathToChild, setCurrentPathToChild] = useState<string[]>();
+
+  useEffect(() => {
+    setCurrentPathToChild(directPathToChild);
+    // clear local copy of directPathToChild after 500ms
+    // to prevent triggering multiple focus
+    const timeout = setTimeout(() => setCurrentPathToChild(undefined), 500);
+    return () => clearTimeout(timeout);
+  }, [directPathToChild, setCurrentPathToChild]);
+
   const getActiveChildren = useCallback((filter: CascadeFilter):
     | CascadeFilter[]
     | null => {
@@ -95,30 +107,48 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
     return null;
   }, []);
 
+  const getAllFilters = (filter: CascadeFilter): CascadeFilter[] => {
+    const children = filter.cascadeChildren || [];
+    const allChildren = children.flatMap(getAllFilters);
+    return [filter, ...allChildren];
+  };
+
+  const allFilters = getAllFilters(filter);
+  const activeFilters = useMemo(() => getActiveChildren(filter) || [filter], [
+    filter,
+    getActiveChildren,
+  ]);
+
+  useEffect(() => {
+    const focusedFilterId = currentPathToChild?.[0];
+    // filters not directly displayed in the Filter Bar
+    const inactiveFilters = allFilters.filter(
+      filterEl => !activeFilters.includes(filterEl),
+    );
+    const focusedInactiveFilter = inactiveFilters.some(
+      cascadeChild => cascadeChild.id === focusedFilterId,
+    );
+
+    if (focusedInactiveFilter) {
+      onVisibleChange(true);
+    }
+  }, [currentPathToChild]);
+
   if (!filter.cascadeChildren?.length) {
     return (
       <FilterControl
         filter={filter}
+        directPathToChild={directPathToChild}
         onExtraFormDataChange={onExtraFormDataChange}
       />
     );
   }
 
-  const countFilters = (filter: CascadeFilter): number => {
-    let count = 1;
-    filter.cascadeChildren.forEach(child => {
-      count += countFilters(child);
-    });
-    return count;
-  };
-
-  const totalChildren = countFilters(filter);
-
   const title = (
     <StyledTitleBox>
       <StyledTitle>
         <StyledIcon name="edit" />
-        {t('Select parent filters')} ({totalChildren})
+        {t('Select parent filters')} ({allFilters.length})
       </StyledTitle>
       <StyledIcon name="close" onClick={() => onVisibleChange(false)} />
     </StyledTitleBox>
@@ -129,11 +159,10 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
       data-test="cascade-filters-control"
       key={filter.id}
       filter={filter}
+      directPathToChild={visible ? currentPathToChild : undefined}
       onExtraFormDataChange={onExtraFormDataChange}
     />
   );
-
-  const activeFilters = getActiveChildren(filter) || [filter];
 
   return (
     <Popover
@@ -152,11 +181,12 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
             key={activeFilter.id}
             filter={activeFilter}
             onExtraFormDataChange={onExtraFormDataChange}
+            directPathToChild={currentPathToChild}
             icon={
               <>
                 {filter.cascadeChildren.length !== 0 && (
                   <StyledPill onClick={() => onVisibleChange(true)}>
-                    <Icon name="filter" /> {totalChildren}
+                    <Icon name="filter" /> {allFilters.length}
                   </StyledPill>
                 )}
               </>

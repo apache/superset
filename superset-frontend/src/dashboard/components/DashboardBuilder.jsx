@@ -215,6 +215,7 @@ class DashboardBuilder extends React.Component {
       showBuilderPane,
       setColorSchemeAndUnsavedChanges,
       colorScheme,
+      directPathToChild,
     } = this.props;
     const { tabIndex } = this.state;
     const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
@@ -290,6 +291,7 @@ class DashboardBuilder extends React.Component {
                 <FilterBar
                   filtersOpen={this.state.dashboardFiltersOpen}
                   toggleFiltersBar={this.toggleDashboardFiltersOpen}
+                  directPathToChild={directPathToChild}
                 />
               </ErrorBoundary>
             </StickyVerticalBar>
