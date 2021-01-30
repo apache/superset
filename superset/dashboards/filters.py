@@ -97,18 +97,6 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             )
         )
 
-        roles_based_query = (
-            db.session.query(Dashboard.id)
-            .join(Dashboard.roles)
-            .filter(
-                and_(
-                    Dashboard.published.is_(True),
-                    dashboard_has_roles,
-                    Role.id.in_([x.id for x in get_user_roles()]),
-                ),
-            )
-        )
-
         users_favorite_dash_query = db.session.query(FavStar.obj_id).filter(
             and_(
                 FavStar.user_id == security_manager.user_model.get_user_id(),
@@ -126,7 +114,20 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
         dashboard_rbac_or_filters = []
         if is_feature_enabled("DASHBOARD_RBAC"):
+            roles_based_query = (
+                db.session.query(Dashboard.id)
+                    .join(Dashboard.roles)
+                    .filter(
+                    and_(
+                        Dashboard.published.is_(True),
+                        dashboard_has_roles,
+                        Role.id.in_([x.id for x in get_user_roles()]),
+                    ),
+                )
+            )
+
             dashboard_rbac_or_filters.append(Dashboard.id.in_(roles_based_query))
+
 
         query = query.filter(
             or_(
