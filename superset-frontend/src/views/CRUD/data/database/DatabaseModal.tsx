@@ -145,6 +145,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [createAsOpen, setCreateAsOpen] = useState<boolean>(false);
   const [ctas, setCtas] = useState<boolean>(false);
   const [cvas, setCvas] = useState<boolean>(false);
+  const [count, setCount] = useState<number>(0);
 
   const isEditMode = database !== null;
   const defaultExtra =
@@ -248,6 +249,36 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   };
 
+  const expandForm = (trueOrFalse: boolean) => {
+    // Count starts a 0 (closed)
+    // Any checkbox in this for that gets checked
+    // will increase the count and keep the form open
+    if (trueOrFalse) {
+      setCount(count + 1);
+    } else {
+      setCount(count - 1);
+    }
+  };
+
+  useEffect(() => {
+    // Opens the form if at least one option is checked
+    // Closes the form only if both options are unchecked
+    if (count > 0) {
+      setCreateAsOpen(true);
+    } else {
+      setCreateAsOpen(false);
+    }
+  }, [count]);
+
+  const cvasCtasCheck = (createAs: string, trueOrFalse: boolean) => {
+    if (createAs.includes('cvas')) {
+      setCvas(trueOrFalse);
+    } else if (createAs.includes('ctas')) {
+      setCtas(trueOrFalse);
+    }
+    expandForm(trueOrFalse);
+  };
+
   const onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { target } = event;
     const data = {
@@ -268,27 +299,23 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
 
     // Conditional form rendering
-    const allowCvas = target.id === 'allow_cvas';
-    const allowCtas = target.id === 'allow_ctas';
     const checkedTrue = target.checked === true;
-    const checkedFalse = target.checked === false;
-    /* The CTAS & CVAS schema text input needs individual setters
+    /* The CTAS & CVAS schema field needs individual setters
     so that the input will not disappear when one options goes
     unchecked but the other is still checked */
-    // cvas: true, checked: true
-    if ((allowCvas || allowCtas) && checkedTrue) {
-      setCvas(true);
-      setCtas(true);
-    } else {
-      setCvas(false);
-      setCtas(false);
+    if (target.id.includes('cvas')) {
+      if (!cvas && checkedTrue) {
+        cvasCtasCheck('cvas', true);
+      } else {
+        cvasCtasCheck('cvas', false);
+      }
     }
-    // Opens the form if at least one option is checked
-    // Closes the form only if both options are unchecked
-    if ((allowCvas && checkedTrue) || (allowCtas && checkedTrue)) {
-      setCreateAsOpen(true);
-    } else if (!ctas && !cvas) {
-      setCreateAsOpen(false);
+    if (target.id.includes('ctas')) {
+      if (!ctas && checkedTrue) {
+        cvasCtasCheck('ctas', true);
+      } else {
+        cvasCtasCheck('ctas', false);
+      }
     }
 
     setDB(data);
