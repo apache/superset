@@ -453,24 +453,6 @@ class TestDashboard(SupersetTestCase):
         db.session.commit()
         self.test_save_dash("alpha")
 
-    def test_owners_can_view_empty_dashboard(self):
-        dash = db.session.query(Dashboard).filter_by(slug="empty_dashboard").first()
-        if not dash:
-            dash = Dashboard()
-            dash.dashboard_title = "Empty Dashboard"
-            dash.slug = "empty_dashboard"
-        else:
-            dash.slices = []
-            dash.owners = []
-        db.session.merge(dash)
-        db.session.commit()
-
-        gamma_user = security_manager.find_user("gamma")
-        self.login(gamma_user.username)
-
-        resp = self.get_resp("/api/v1/dashboard/")
-        self.assertNotIn("/superset/dashboard/empty_dashboard/", resp)
-
     @pytest.mark.usefixtures("load_energy_table_with_slice", "load_dashboard")
     def test_users_can_view_published_dashboard(self):
         resp = self.get_resp("/api/v1/dashboard/")
