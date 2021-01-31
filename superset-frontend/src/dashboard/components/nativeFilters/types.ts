@@ -82,8 +82,8 @@ export enum FilterType {
 export interface Filter {
   allowsMultipleValues: boolean;
   cascadeParentIds: string[];
-  defaultValue: string | null;
-  currentValue?: (string | number | boolean)[] | null;
+  defaultValue: any;
+  currentValue?: any;
   inverseSelection: boolean;
   isInstant: boolean;
   isRequired: boolean;
@@ -103,11 +103,15 @@ export interface CascadeFilter extends Filter {
 export type FilterConfiguration = Filter[];
 
 export type SelectedValues = string[] | null;
+export type CurrentFilterState = {
+  value: any;
+};
 
 /** Current state of the filter, stored in `nativeFilters` in redux */
 export type FilterState = {
   id: string; // ties this filter state to the config object
   extraFormData?: ExtraFormData;
+  currentState?: CurrentFilterState;
 };
 
 export type AllFilterState = {

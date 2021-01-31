@@ -39,6 +39,7 @@ export default function AntdPluginFilterSelect(
     enableEmptyFilter,
     multiSelect,
     showSearch,
+    currentValue,
     inverseSelection,
     inputRef,
   } = {
@@ -46,7 +47,7 @@ export default function AntdPluginFilterSelect(
     ...formData,
   };
 
-  const [values, setValues] = useState<(string | number)[]>(defaultValue || []);
+  const [values, setValues] = useState<(string | number)[]>(defaultValue ?? []);
 
   let { groupby = [] } = formData;
   groupby = Array.isArray(groupby) ? groupby : [groupby];
@@ -65,14 +66,30 @@ export default function AntdPluginFilterSelect(
     const [col] = groupby;
     const emptyFilter =
       enableEmptyFilter && !inverseSelection && resultValue?.length === 0;
-    setExtraFormData(
-      getSelectExtraFormData(col, resultValue, emptyFilter, inverseSelection),
-    );
+    setExtraFormData({
+      // @ts-ignore
+      extraFormData: getSelectExtraFormData(
+        col,
+        resultValue,
+        emptyFilter,
+        inverseSelection,
+      ),
+      // @ts-ignore (add to superset-ui/core)
+      currentState: {
+        value: resultValue,
+      },
+    });
   };
 
   useEffect(() => {
-    handleChange(defaultValue);
-  }, [defaultValue]);
+    handleChange(currentValue ?? []);
+  }, [JSON.stringify(currentValue)]);
+
+  useEffect(() => {
+    handleChange(defaultValue ?? []);
+    // I think after Config Modal update some filter it re-creates default value for all other filters
+    // so we can process it like this `JSON.stringify` or start to use `Immer`
+  }, [JSON.stringify(defaultValue)]);
 
   const placeholderText =
     (data || []).length === 0

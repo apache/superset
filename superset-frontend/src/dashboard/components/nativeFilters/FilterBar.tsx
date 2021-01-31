@@ -23,16 +23,9 @@ import {
   t,
   ExtraFormData,
 } from '@superset-ui/core';
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-  useRef,
-} from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import cx from 'classnames';
-import { Form } from 'src/common/components';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
 import { getChartDataRequest } from 'src/chart/chartAction';
@@ -40,14 +33,14 @@ import { areObjectsEqual } from 'src/reduxUtils';
 import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import FilterConfigurationLink from './FilterConfigurationLink';
-// import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
-
 import {
   useCascadingFilters,
   useFilterConfiguration,
+  useFilters,
+  useFilterState,
   useSetExtraFormData,
 } from './state';
-import { Filter, CascadeFilter } from './types';
+import { Filter, CascadeFilter, CurrentFilterState } from './types';
 import {
   buildCascadeFiltersTree,
   getFormData,
@@ -205,7 +198,11 @@ interface FilterProps {
   filter: Filter;
   icon?: React.ReactElement;
   directPathToChild?: string[];
-  onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
+  onExtraFormDataChange: (
+    filter: Filter,
+    extraFormData: ExtraFormData,
+    currentValue: any,
+  ) => void;
 }
 
 interface FiltersBarProps {
@@ -228,6 +225,7 @@ const FilterValue: React.FC<FilterProps> = ({
     filterType,
   } = filter;
   const cascadingFilters = useCascadingFilters(id);
+  const filterState = useFilterState(id);
   const [loading, setLoading] = useState<boolean>(true);
   const [state, setState] = useState([]);
   const [error, setError] = useState<boolean>(false);
@@ -236,7 +234,7 @@ const FilterValue: React.FC<FilterProps> = ({
   const [target] = targets;
   const { datasetId = 18, column } = target;
   const { name: groupby } = column;
-
+  const currentValue = filterState.currentState?.value;
   useEffect(() => {
     const newFormData = getFormData({
       datasetId,
@@ -244,6 +242,7 @@ const FilterValue: React.FC<FilterProps> = ({
       groupby,
       allowsMultipleValues,
       defaultValue,
+      currentValue,
       inverseSelection,
     });
     if (!areObjectsEqual(formData || {}, newFormData)) {
@@ -263,7 +262,7 @@ const FilterValue: React.FC<FilterProps> = ({
           setLoading(false);
         });
     }
-  }, [cascadingFilters, datasetId, groupby]);
+  }, [cascadingFilters, datasetId, groupby, defaultValue, currentValue]);
 
   useEffect(() => {
     if (directPathToChild?.[0] === filter.id) {
@@ -276,8 +275,13 @@ const FilterValue: React.FC<FilterProps> = ({
     return undefined;
   }, [inputRef, directPathToChild, filter.id]);
 
-  const setExtraFormData = (extraFormData: ExtraFormData) =>
-    onExtraFormDataChange(filter, extraFormData);
+  const setExtraFormData = ({
+    extraFormData,
+    currentState,
+  }: {
+    extraFormData: ExtraFormData;
+    currentState: CurrentFilterState;
+  }) => onExtraFormDataChange(filter, extraFormData, currentState);
 
   if (loading) {
     return (
@@ -298,22 +302,15 @@ const FilterValue: React.FC<FilterProps> = ({
   }
 
   return (
-    <Form
-      onFinish={values => {
-        setExtraFormData(values.value);
-      }}
-    >
-      <Form.Item name="value">
-        <SuperChart
-          height={20}
-          width={220}
-          formData={formData}
-          queriesData={state}
-          chartType={filterType}
-          hooks={{ setExtraFormData }}
-        />
-      </Form.Item>
-    </Form>
+    <SuperChart
+      height={20}
+      width={220}
+      formData={formData}
+      queriesData={state}
+      chartType={filterType}
+      // @ts-ignore (update superset-ui)
+      hooks={{ setExtraFormData }}
+    />
   );
 };
 
@@ -342,7 +339,11 @@ export const FilterControl: React.FC<FilterProps> = ({
 interface CascadeFilterControlProps {
   filter: CascadeFilter;
   directPathToChild?: string[];
-  onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
+  onExtraFormDataChange: (
+    filter: Filter,
+    extraFormData: ExtraFormData,
+    currentState: CurrentFilterState,
+  ) => void;
 }
 
 export const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
@@ -379,11 +380,15 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   toggleFiltersBar,
   directPathToChild,
 }) => {
-  const [filterData, setFilterData] = useState<{ [id: string]: ExtraFormData }>(
-    {},
-  );
+  const [filterData, setFilterData] = useState<{
+    [id: string]: {
+      extraFormData: ExtraFormData;
+      currentState: CurrentFilterState;
+    };
+  }>({});
   const setExtraFormData = useSetExtraFormData();
   const filterConfigs = useFilterConfiguration();
+  const filters = useFilters();
   const canEdit = useSelector<any, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -395,51 +400,32 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     }
   }, [filterConfigs]);
 
-  const getFilterValue = useCallback(
-    (filter: Filter): (string | number | boolean)[] | null => {
-      const filters = filterData[filter.id]?.append_form_data?.filters;
-      if (filters?.length) {
-        const filter = filters[0];
-        if ('val' in filter) {
-          // need to nest these if statements to get a reference to val to appease TS
-          const { val } = filter;
-          if (Array.isArray(val)) {
-            return val;
-          }
-          return [val];
-        }
-      }
-      return null;
-    },
-    [filterData],
-  );
-
   const cascadeChildren = useMemo(
     () => mapParentFiltersToChildren(filterConfigs),
     [filterConfigs],
   );
 
-  const cascadeFilters = useMemo(() => {
-    const filtersWithValue = filterConfigs.map(filter => ({
-      ...filter,
-      currentValue: getFilterValue(filter),
-    }));
-    return buildCascadeFiltersTree(filtersWithValue);
-  }, [filterConfigs, getFilterValue]);
+  const cascadeFilters = useMemo(() => buildCascadeFiltersTree(filterConfigs), [
+    filterConfigs,
+  ]);
 
   const handleExtraFormDataChange = (
     filter: Filter,
     extraFormData: ExtraFormData,
+    currentState: CurrentFilterState,
   ) => {
     setFilterData(prevFilterData => ({
       ...prevFilterData,
-      [filter.id]: extraFormData,
+      [filter.id]: {
+        extraFormData,
+        currentState,
+      },
     }));
 
     const children = cascadeChildren[filter.id] || [];
     // force instant updating for parent filters
     if (filter.isInstant || children.length > 0) {
-      setExtraFormData(filter.id, extraFormData);
+      setExtraFormData(filter.id, extraFormData, currentState);
     }
   };
 
@@ -447,18 +433,21 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     const filterIds = Object.keys(filterData);
     filterIds.forEach(filterId => {
       if (filterData[filterId]) {
-        setExtraFormData(filterId, filterData[filterId]);
+        setExtraFormData(
+          filterId,
+          filterData[filterId]?.extraFormData,
+          filterData[filterId]?.currentState,
+        );
       }
     });
   };
 
   const handleResetAll = () => {
-    setFilterData({});
-    const filterIds = Object.keys(filterData);
-    filterIds.forEach(filterId => {
-      if (filterData[filterId]) {
-        setExtraFormData(filterId, {});
-      }
+    filterConfigs.forEach(filter => {
+      setExtraFormData(filter.id, filterData[filter.id]?.extraFormData, {
+        ...filterData[filter.id]?.currentState,
+        value: filters[filter.id]?.defaultValue,
+      });
     });
   };
 

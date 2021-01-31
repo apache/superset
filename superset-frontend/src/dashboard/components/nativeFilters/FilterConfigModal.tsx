@@ -425,17 +425,20 @@ export function FilterConfigModal({
       });
 
     await save(newFilterConfig);
-  }, [save, filterIds, removedFilters, filterConfigMap, validateForm]);
+    resetForm();
+  }, [
+    save,
+    resetForm,
+    filterIds,
+    removedFilters,
+    filterConfigMap,
+    validateForm,
+  ]);
 
   const confirmCancel = () => {
+    resetForm();
     onCancel();
   };
-
-  useEffect(() => {
-    // Ant to reset formValues before Modal destroy performed ,so it re-init values before from destroyed,
-    // for this case we reset it also on Modal opens if it was not processed correctly on close
-    resetForm();
-  }, [isOpen]);
 
   const unsavedFiltersIds = newFilterIds.filter(id => !removedFilters[id]);
 
@@ -504,6 +507,7 @@ export function FilterConfigModal({
       <ErrorBoundary>
         <StyledModalBody>
           <StyledForm
+            preserve={false}
             form={form}
             onValuesChange={(changes, values: NativeFiltersForm) => {
               if (

@@ -29,10 +29,10 @@ import {
 } from 'src/dashboard/util/componentTypes';
 import { FormInstance } from 'antd/lib/form';
 import {
+  CurrentFilterState,
   Filter,
   FilterConfiguration,
   FilterState,
-  FilterType,
   NativeFiltersForm,
   NativeFiltersState,
   TreeItem,
@@ -78,11 +78,24 @@ export function useFilterState(id: string) {
   );
 }
 
+export function useFiltersState() {
+  return useSelector<any, FilterState>(
+    state => state.nativeFilters.filtersState,
+  );
+}
+
+export function useFilters() {
+  return useSelector<any, FilterState>(state => state.nativeFilters.filters);
+}
+
 export function useSetExtraFormData() {
   const dispatch = useDispatch();
   return useCallback(
-    (id: string, extraFormData: ExtraFormData) =>
-      dispatch(setExtraFormData(id, extraFormData)),
+    (
+      id: string,
+      extraFormData: ExtraFormData,
+      currentState: CurrentFilterState,
+    ) => dispatch(setExtraFormData(id, extraFormData, currentState)),
     [dispatch],
   );
 }
@@ -123,25 +136,20 @@ export function useFilterScopeTree(): {
 }
 
 export function useCascadingFilters(id: string) {
-  return useSelector<any, ExtraFormData>(state => {
-    const { nativeFilters }: { nativeFilters: NativeFiltersState } = state;
-    const { filters, filtersState } = nativeFilters;
-    const filter = filters[id];
-    const cascadeParentIds = filter?.cascadeParentIds ?? [];
-    let cascadedFilters = {};
-    cascadeParentIds.forEach(parentId => {
-      const parentState = filtersState[parentId] || {};
-      const { extraFormData: parentExtra = {} } = parentState;
-      cascadedFilters = mergeExtraFormData(cascadedFilters, parentExtra);
-    });
-    return cascadedFilters;
+  const nativeFilters = useSelector<any, NativeFiltersState>(
+    state => state.nativeFilters,
+  );
+  const { filters, filtersState } = nativeFilters;
+  const filter = filters[id];
+  const cascadeParentIds = filter?.cascadeParentIds ?? [];
+  let cascadedFilters = {};
+  cascadeParentIds.forEach(parentId => {
+    const parentState = filtersState[parentId] || {};
+    const { extraFormData: parentExtra = {} } = parentState;
+    cascadedFilters = mergeExtraFormData(cascadedFilters, parentExtra);
   });
+  return cascadedFilters;
 }
-
-export const defaultValuesPerFilterType = {
-  [FilterType.filter_select]: [],
-  [FilterType.filter_range]: {},
-};
 
 // When some fields in form changed we need re-fetch data for Filter defaultValue
 export const useBEFormUpdate = (
@@ -152,8 +160,7 @@ export const useBEFormUpdate = (
   const forceUpdate = useForceUpdate();
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
   useEffect(() => {
-    let resolvedDefaultValue =
-      defaultValuesPerFilterType[formFilter?.filterType];
+    let resolvedDefaultValue: any = null;
     // No need to check data set change because it cascading update column
     // So check that column exists is enough
     if (!formFilter?.column) {

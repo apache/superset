@@ -25,7 +25,8 @@ import { RefObject } from 'react';
 import { AntdPluginFilterStylesProps } from '../types';
 
 interface AntdPluginFilterSelectCustomizeProps {
-  defaultValue?: (string | number)[];
+  defaultValue?: (string | number)[] | null;
+  currentValue?: (string | number)[] | null;
   enableEmptyFilter: boolean;
   fetchPredicate?: string;
   inverseSelection: boolean;
@@ -46,6 +47,7 @@ export type AntdPluginFilterSelectProps = AntdPluginFilterStylesProps & {
 
 export const DEFAULT_FORM_DATA: AntdPluginFilterSelectCustomizeProps = {
   defaultValue: [],
+  currentValue: [],
   enableEmptyFilter: false,
   fetchPredicate: '',
   inverseSelection: false,

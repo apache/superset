@@ -99,6 +99,7 @@ export interface SetExtraFormData {
   type: typeof SET_EXTRA_FORM_DATA;
   filterId: string;
   extraFormData: ExtraFormData;
+  currentState: object;
 }
 
 export function setFilterState(
@@ -117,15 +118,18 @@ export function setFilterState(
  * Sets the selected option(s) for a given filter
  * @param filterId the id of the native filter
  * @param extraFormData the selection translated into extra form data
+ * @param currentState
  */
 export function setExtraFormData(
   filterId: string,
   extraFormData: ExtraFormData,
+  currentState: object,
 ): SetExtraFormData {
   return {
     type: SET_EXTRA_FORM_DATA,
     filterId,
     extraFormData,
+    currentState,
   };
 }
 

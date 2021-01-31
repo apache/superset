@@ -34,13 +34,12 @@ import { ColumnSelect } from './ColumnSelect';
 import { Filter, FilterType, NativeFiltersForm } from './types';
 import FilterScope from './FilterScope';
 import {
-  extractDefaultValue,
   FilterTypeNames,
   getFormData,
   setFilterFieldValues,
   useForceUpdate,
 } from './utils';
-import { defaultValuesPerFilterType, useBEFormUpdate } from './state';
+import { useBEFormUpdate } from './state';
 
 type DatasetSelectValue = {
   value: number;
@@ -221,7 +220,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
           onChange={({ value }: { value: FilterType }) => {
             setFilterFieldValues(form, filterId, {
               filterType: value,
-              defaultValue: defaultValuesPerFilterType[value],
+              defaultValue: null,
               defaultValueQueriesData: [],
             });
             forceUpdate();
@@ -255,11 +254,10 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
               queriesData={formFilter.defaultValueQueriesData}
               chartType={formFilter?.filterType}
               hooks={{
-                setExtraFormData: ({ append_form_data }) => {
+                // @ts-ignore
+                setExtraFormData: ({ currentState }) => {
                   setFilterFieldValues(form, filterId, {
-                    defaultValue: extractDefaultValue[formFilter?.filterType](
-                      append_form_data,
-                    ),
+                    defaultValue: currentState?.value,
                   });
                   forceUpdate();
                 },
@@ -297,7 +295,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         <Checkbox
           onChange={() => {
             setFilterFieldValues(form, filterId, {
-              defaultValue: defaultValuesPerFilterType[formFilter?.filterType],
+              defaultValue: null,
             });
             forceUpdate();
           }}

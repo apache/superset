@@ -29,7 +29,7 @@ import {
   TAB_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import { FormInstance } from 'antd/lib/form';
-import React from 'react';
+import React, { RefObject } from 'react';
 import {
   CascadeFilter,
   Filter,
@@ -275,9 +275,12 @@ export const getFormData = ({
   groupby,
   allowsMultipleValues = false,
   defaultValue,
+  currentValue,
   inverseSelection,
+  inputRef,
 }: Partial<Filter> & {
   datasetId?: number;
+  inputRef?: RefObject<HTMLInputElement>;
   cascadingFilters?: object;
   groupby: string;
 }): Partial<QueryFormData> => ({
@@ -292,12 +295,14 @@ export const getFormData = ({
   multiSelect: allowsMultipleValues,
   row_limit: 10000,
   showSearch: true,
+  currentValue,
   time_range: 'No filter',
   time_range_endpoints: ['inclusive', 'exclusive'],
   url_params: {},
   viz_type: 'filter_select',
   // TODO: need process per filter type after will be decided approach
   defaultValue,
+  inputRef,
 });
 
 type AppendFormData = {

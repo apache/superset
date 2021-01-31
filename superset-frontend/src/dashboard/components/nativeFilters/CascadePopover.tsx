@@ -22,14 +22,19 @@ import Popover from 'src/common/components/Popover';
 import Icon from 'src/components/Icon';
 import { Pill } from 'src/dashboard/components/FiltersBadge/Styles';
 import { CascadeFilterControl, FilterControl } from './FilterBar';
-import { Filter, CascadeFilter } from './types';
+import { Filter, CascadeFilter, CurrentFilterState } from './types';
+import { useFilterState } from './state';
 
 interface CascadePopoverProps {
   filter: CascadeFilter;
   visible: boolean;
   directPathToChild?: string[];
   onVisibleChange: (visible: boolean) => void;
-  onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
+  onExtraFormDataChange: (
+    filter: Filter,
+    extraFormData: ExtraFormData,
+    currentState: CurrentFilterState,
+  ) => void;
 }
 
 const StyledTitleBox = styled.div`
@@ -77,6 +82,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   directPathToChild,
 }) => {
   const [currentPathToChild, setCurrentPathToChild] = useState<string[]>();
+  const filterState = useFilterState(filter.id);
 
   useEffect(() => {
     setCurrentPathToChild(directPathToChild);
@@ -90,7 +96,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
     | CascadeFilter[]
     | null => {
     const children = filter.cascadeChildren || [];
-    const currentValue = filter.currentValue || [];
+    const currentValue = filterState.currentState?.value;
 
     const activeChildren = children.flatMap(
       childFilter => getActiveChildren(childFilter) || [],
@@ -100,7 +106,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
       return activeChildren;
     }
 
-    if (currentValue.length > 0) {
+    if (currentValue) {
       return [filter];
     }
 
