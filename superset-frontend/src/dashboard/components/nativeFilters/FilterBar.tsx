@@ -57,6 +57,10 @@ const BarWrapper = styled.div`
   }
 `;
 
+const FilterItem = styled.div`
+  padding-bottom: 10px;
+`;
+
 const Bar = styled.div`
   position: absolute;
   top: 0;
@@ -302,15 +306,17 @@ const FilterValue: React.FC<FilterProps> = ({
   }
 
   return (
-    <SuperChart
-      height={20}
-      width={220}
-      formData={formData}
-      queriesData={state}
-      chartType={filterType}
-      // @ts-ignore (update superset-ui)
-      hooks={{ setExtraFormData }}
-    />
+    <FilterItem>
+      <SuperChart
+        height={20}
+        width={220}
+        formData={formData}
+        queriesData={state}
+        chartType={filterType}
+        // @ts-ignore (update superset-ui)
+        hooks={{ setExtraFormData }}
+      />
+    </FilterItem>
   );
 };
 
