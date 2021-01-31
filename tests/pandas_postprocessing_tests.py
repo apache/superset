@@ -524,19 +524,40 @@ class TestPostProcessing(SupersetTestCase):
                 "b": [1, 9],
             }
         )
+        with pytest.raises(QueryObjectValidationError, match="not numeric"):
+            proc.contribution(df, columns=[DTTM_ALIAS])
+
+        with pytest.raises(QueryObjectValidationError, match="same length"):
+            proc.contribution(df, columns=["a"], rename_columns=["aa", "bb"])
 
         # cell contribution across row
-        row_df = proc.contribution(df, PostProcessingContributionOrientation.ROW)
-        self.assertListEqual(df.columns.tolist(), [DTTM_ALIAS, "a", "b"])
-        self.assertListEqual(series_to_list(row_df["a"]), [0.5, 0.25])
-        self.assertListEqual(series_to_list(row_df["b"]), [0.5, 0.75])
+        processed_df = proc.contribution(
+            df, orientation=PostProcessingContributionOrientation.ROW,
+        )
+        self.assertListEqual(processed_df.columns.tolist(), [DTTM_ALIAS, "a", "b"])
+        self.assertListEqual(processed_df["a"].tolist(), [0.5, 0.25])
+        self.assertListEqual(processed_df["b"].tolist(), [0.5, 0.75])
 
         # cell contribution across column without temporal column
         df.pop(DTTM_ALIAS)
-        column_df = proc.contribution(df, PostProcessingContributionOrientation.COLUMN)
-        self.assertListEqual(df.columns.tolist(), ["a", "b"])
-        self.assertListEqual(series_to_list(column_df["a"]), [0.25, 0.75])
-        self.assertListEqual(series_to_list(column_df["b"]), [0.1, 0.9])
+        processed_df = proc.contribution(
+            df, orientation=PostProcessingContributionOrientation.COLUMN
+        )
+        self.assertListEqual(processed_df.columns.tolist(), ["a", "b"])
+        self.assertListEqual(processed_df["a"].tolist(), [0.25, 0.75])
+        self.assertListEqual(processed_df["b"].tolist(), [0.1, 0.9])
+
+        # contribution only on selected columns
+        processed_df = proc.contribution(
+            df,
+            orientation=PostProcessingContributionOrientation.COLUMN,
+            columns=["a"],
+            rename_columns=["pct_a"],
+        )
+        self.assertListEqual(processed_df.columns.tolist(), ["a", "b", "pct_a"])
+        self.assertListEqual(processed_df["a"].tolist(), [1, 3])
+        self.assertListEqual(processed_df["b"].tolist(), [1, 9])
+        self.assertListEqual(processed_df["pct_a"].tolist(), [0.25, 0.75])
 
     def test_prophet_valid(self):
         pytest.importorskip("fbprophet")

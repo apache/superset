@@ -2244,7 +2244,7 @@
       "To filter on a metric, use Custom SQL tab.": [
         "Para filtrar uma métrica, use a aba SQL personalizado."
       ],
-      "%s operators(s)": ["%s operador(es)"],
+      "%s operator(s)": ["%s operador(es)"],
       "Type a value here": ["digite um valor aqui"],
       "Filter value (case sensitive)": [
         "Filtrar valor (sensível a maiúscula/minúscula)"

@@ -34,7 +34,6 @@ import {
   LabelsContainer,
 } from 'src/explore/components/OptionControls';
 import Icon from 'src/components/Icon';
-import DndWithHTML5Backend from 'src/explore/DndContextProvider';
 import AdhocFilterPopoverTrigger from './AdhocFilterPopoverTrigger';
 import AdhocFilterOption from './AdhocFilterOption';
 import AdhocFilter, { CLAUSES, EXPRESSION_TYPES } from './AdhocFilter';
@@ -96,11 +95,13 @@ class AdhocFilterControl extends React.Component {
         onRemoveFilter={() => this.onRemoveFilter(index)}
         onMoveLabel={this.moveLabel}
         onDropLabel={() => this.props.onChange(this.state.values)}
+        partitionColumn={this.state.partitionColumn}
       />
     );
     this.state = {
       values: filters,
       options: this.optionsForSelect(this.props),
+      partitionColumn: null,
     };
   }
 
@@ -128,18 +129,7 @@ class AdhocFilterControl extends React.Component {
                 partitions.cols &&
                 Object.keys(partitions.cols).length === 1
               ) {
-                const partitionColumn = partitions.cols[0];
-                this.valueRenderer = (adhocFilter, index) => (
-                  <AdhocFilterOption
-                    adhocFilter={adhocFilter}
-                    onFilterEdit={this.onFilterEdit}
-                    options={this.state.options}
-                    datasource={this.props.datasource}
-                    partitionColumn={partitionColumn}
-                    onRemoveFilter={() => this.onRemoveFilter(index)}
-                    key={index}
-                  />
-                );
+                this.setState({ partitionColumn: partitions.cols[0] });
               }
             }
           })
@@ -323,6 +313,7 @@ class AdhocFilterControl extends React.Component {
         datasource={this.props.datasource}
         options={this.state.options}
         onFilterEdit={this.onNewFilter}
+        partitionColumn={this.state.partitionColumn}
         createNew
       >
         {trigger}
@@ -370,4 +361,4 @@ class AdhocFilterControl extends React.Component {
 AdhocFilterControl.propTypes = propTypes;
 AdhocFilterControl.defaultProps = defaultProps;
 
-export default DndWithHTML5Backend(withTheme(AdhocFilterControl));
+export default withTheme(AdhocFilterControl);

@@ -43,6 +43,7 @@ import {
   Input,
 } from 'src/common/components';
 import Icon from 'src/components/Icon';
+import { detectOS } from 'src/utils/common';
 import {
   addQueryEditor,
   CtasEnum,
@@ -278,6 +279,8 @@ class SqlEditor extends React.PureComponent {
   }
 
   getHotkeyConfig() {
+    // Get the user's OS
+    const userOS = detectOS();
     return [
       {
         name: 'runQuery1',
@@ -301,7 +304,7 @@ class SqlEditor extends React.PureComponent {
       },
       {
         name: 'newTab',
-        key: 'ctrl+t',
+        key: userOS === 'Windows' ? 'ctrl+q' : 'ctrl+t',
         descr: t('New tab'),
         func: () => {
           this.props.addQueryEditor({

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { interceptChart, parsePostForm } from 'cypress/utils';
+import { interceptChart, parsePostForm, Slice } from 'cypress/utils';
 import { TABBED_DASHBOARD } from './dashboard.helper';
 
 describe('Dashboard tabs', () => {
@@ -40,24 +40,28 @@ describe('Dashboard tabs', () => {
     cy.visit(TABBED_DASHBOARD);
 
     cy.get('#app').then(data => {
-      const bootstrapData = JSON.parse(data[0].dataset.bootstrap);
-      const dashboard = bootstrapData.dashboard_data;
+      const bootstrapData = JSON.parse(data[0].dataset.bootstrap || '');
+      const dashboard = bootstrapData.dashboard_data as { slices: Slice[] };
       filterId = dashboard.slices.find(
         slice => slice.form_data.viz_type === 'filter_box',
-      ).slice_id;
+      )?.slice_id;
       boxplotId = dashboard.slices.find(
         slice => slice.form_data.viz_type === 'box_plot',
-      ).slice_id;
+      )?.slice_id;
       treemapId = dashboard.slices.find(
         slice => slice.form_data.viz_type === 'treemap',
-      ).slice_id;
+      )?.slice_id;
       linechartId = dashboard.slices.find(
         slice => slice.form_data.viz_type === 'line',
-      ).slice_id;
-      interceptChart(filterId).as('filterRequest');
-      interceptChart(treemapId).as('treemapRequest');
-      interceptChart(linechartId).as('linechartRequest');
-      interceptChart(boxplotId, false).as('boxplotRequest');
+      )?.slice_id;
+      interceptChart({ sliceId: filterId, legacy: true }).as('filterRequest');
+      interceptChart({ sliceId: treemapId, legacy: true }).as('treemapRequest');
+      interceptChart({ sliceId: linechartId, legacy: true }).as(
+        'linechartRequest',
+      );
+      interceptChart({ sliceId: boxplotId, legacy: false }).as(
+        'boxplotRequest',
+      );
     });
   });
 
@@ -140,7 +144,7 @@ describe('Dashboard tabs', () => {
     // send new query from same tab
     cy.wait('@treemapRequest').then(({ request }) => {
       const requestBody = parsePostForm(request.body);
-      const requestParams = JSON.parse(requestBody.form_data);
+      const requestParams = JSON.parse(requestBody.form_data as string);
       expect(requestParams.extra_filters[0]).deep.eq({
         col: 'region',
         op: '==',
@@ -153,7 +157,7 @@ describe('Dashboard tabs', () => {
 
     cy.wait('@linechartRequest').then(({ request }) => {
       const requestBody = parsePostForm(request.body);
-      const requestParams = JSON.parse(requestBody.form_data);
+      const requestParams = JSON.parse(requestBody.form_data as string);
       expect(requestParams.extra_filters[0]).deep.eq({
         col: 'region',
         op: '==',

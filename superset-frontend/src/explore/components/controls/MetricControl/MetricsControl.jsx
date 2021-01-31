@@ -34,7 +34,6 @@ import {
   HeaderContainer,
   LabelsContainer,
 } from 'src/explore/components/OptionControls';
-import DndWithHTML5Backend from 'src/explore/DndContextProvider';
 import MetricDefinitionOption from './MetricDefinitionOption';
 import MetricDefinitionValue from './MetricDefinitionValue';
 import AdhocMetric from './AdhocMetric';
@@ -64,11 +63,16 @@ const defaultProps = {
   columns: [],
 };
 
-function getOptionsForSavedMetrics(savedMetrics, currentMetricValues) {
+function getOptionsForSavedMetrics(
+  savedMetrics,
+  currentMetricValues,
+  currentMetric,
+) {
   return (
     savedMetrics?.filter(savedMetric =>
       Array.isArray(currentMetricValues)
-        ? !currentMetricValues.includes(savedMetric.metric_name)
+        ? !currentMetricValues.includes(savedMetric.metric_name) ||
+          savedMetric.metric_name === currentMetric
         : savedMetric,
     ) ?? []
   );
@@ -144,6 +148,7 @@ class MetricsControl extends React.PureComponent {
         savedMetricsOptions={getOptionsForSavedMetrics(
           this.props.savedMetrics,
           this.props.value,
+          this.props.value?.[index],
         )}
         datasourceType={this.props.datasourceType}
         onMoveLabel={this.moveLabel}
@@ -285,6 +290,7 @@ class MetricsControl extends React.PureComponent {
         savedMetricsOptions={getOptionsForSavedMetrics(
           this.props.savedMetrics,
           this.props.value,
+          null,
         )}
         savedMetric={{}}
         datasourceType={this.props.datasourceType}
@@ -411,4 +417,4 @@ class MetricsControl extends React.PureComponent {
 MetricsControl.propTypes = propTypes;
 MetricsControl.defaultProps = defaultProps;
 
-export default DndWithHTML5Backend(withTheme(MetricsControl));
+export default withTheme(MetricsControl);

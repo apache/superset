@@ -22,7 +22,7 @@ from typing import Any, cast, ClassVar, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-from flask_babel import gettext as _
+from flask_babel import _
 
 from superset import app, db, is_feature_enabled
 from superset.annotation_layers.dao import AnnotationLayerDAO
@@ -85,9 +85,8 @@ class QueryContext:
         self.cache_values = {
             "datasource": datasource,
             "queries": queries,
-            "force": force,
-            "result_type": result_type,
-            "result_format": result_format,
+            "result_type": self.result_type,
+            "result_format": self.result_format,
         }
 
     def get_query_result(self, query_object: QueryObject) -> Dict[str, Any]:
@@ -143,7 +142,9 @@ class QueryContext:
         """Converting metrics to numeric when pandas.read_sql cannot"""
         for col, dtype in df.dtypes.items():
             if dtype.type == np.object_ and col in query_object.metric_names:
-                df[col] = pd.to_numeric(df[col], errors="coerce")
+                # soft-convert a metric column to numeric
+                # will stay as strings if conversion fails
+                df[col] = df[col].infer_objects()
 
     def get_data(self, df: pd.DataFrame,) -> Union[str, List[Dict[str, Any]]]:
         if self.result_format == utils.ChartDataResultFormat.CSV:
@@ -154,15 +155,15 @@ class QueryContext:
         return df.to_dict(orient="records")
 
     def get_single_payload(
-        self, query_obj: QueryObject, **kwargs: Any
+        self, query_obj: QueryObject, force_cached: Optional[bool] = False,
     ) -> Dict[str, Any]:
-        """Returns a payload of metadata and data"""
-        force_cached = kwargs.get("force_cached", False)
+        """Return results payload for a single quey"""
         if self.result_type == utils.ChartDataResultType.QUERY:
             return {
                 "query": self.datasource.get_query_str(query_obj.to_dict()),
                 "language": self.datasource.query_language,
             }
+
         if self.result_type == utils.ChartDataResultType.SAMPLES:
             row_limit = query_obj.row_limit or math.inf
             query_obj = copy.copy(query_obj)
@@ -174,10 +175,13 @@ class QueryContext:
             query_obj.row_limit = min(row_limit, config["SAMPLES_ROW_LIMIT"])
             query_obj.row_offset = 0
             query_obj.columns = [o.column_name for o in self.datasource.columns]
+
         payload = self.get_df_payload(query_obj, force_cached=force_cached)
         df = payload["df"]
         status = payload["status"]
         if status != utils.QueryStatus.FAILED:
+            payload["colnames"] = list(df.columns)
+            payload["coltypes"] = utils.serialize_pandas_dtypes(df.dtypes)
             payload["data"] = self.get_data(df)
         del payload["df"]
 
@@ -196,13 +200,19 @@ class QueryContext:
             if col not in columns
         ] + rejected_time_columns
 
-        if self.result_type == utils.ChartDataResultType.RESULTS:
+        if (
+            self.result_type == utils.ChartDataResultType.RESULTS
+            and status != utils.QueryStatus.FAILED
+        ):
             return {"data": payload["data"]}
         return payload
 
-    def get_payload(self, **kwargs: Any) -> Dict[str, Any]:
-        cache_query_context = kwargs.get("cache_query_context", False)
-        force_cached = kwargs.get("force_cached", False)
+    def get_payload(
+        self,
+        cache_query_context: Optional[bool] = False,
+        force_cached: Optional[bool] = False,
+    ) -> Dict[str, Any]:
+        """Returns the query results with both metadata and data"""
 
         # Get all the payloads from the QueryObjects
         query_results = [
@@ -311,7 +321,7 @@ class QueryContext:
         chart = ChartDAO.find_by_id(annotation_layer["value"])
         form_data = chart.form_data.copy()
         if not chart:
-            raise QueryObjectValidationError("The chart does not exist")
+            raise QueryObjectValidationError(_("The chart does not exist"))
         try:
             viz_obj = get_viz(
                 datasource_type=chart.datasource.type,
@@ -343,10 +353,9 @@ class QueryContext:
         return annotation_data
 
     def get_df_payload(  # pylint: disable=too-many-statements,too-many-locals
-        self, query_obj: QueryObject, **kwargs: Any
+        self, query_obj: QueryObject, force_cached: Optional[bool] = False,
     ) -> Dict[str, Any]:
         """Handles caching around the df payload retrieval"""
-        force_cached = kwargs.get("force_cached", False)
         cache_key = self.query_cache_key(query_obj)
         logger.info("Cache key: %s", cache_key)
         is_loaded = False
@@ -388,7 +397,7 @@ class QueryContext:
                     for col in query_obj.columns
                     + query_obj.groupby
                     + utils.get_column_names_from_metrics(query_obj.metrics)
-                    if col not in self.datasource.column_names
+                    if col not in self.datasource.column_names and col != DTTM_ALIAS
                 ]
                 if invalid_columns:
                     raise QueryObjectValidationError(
@@ -447,5 +456,6 @@ class QueryContext:
 
         :raises SupersetSecurityException: If the user cannot access the resource
         """
-
+        for query in self.queries:
+            query.validate()
         security_manager.raise_for_access(query_context=self)

@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { ReactNode } from 'react';
+import { Metric } from '@superset-ui/core';
 import Popover from 'src/common/components/Popover';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle';
 import AdhocMetricEditPopover, {
@@ -27,7 +28,7 @@ import { savedMetricType } from './types';
 
 export type AdhocMetricPopoverTriggerProps = {
   adhocMetric: AdhocMetric;
-  onMetricEdit: () => void;
+  onMetricEdit(newMetric: Metric, oldMetric: Metric): void;
   columns: { column_name: string; type: string }[];
   savedMetricsOptions: savedMetricType[];
   savedMetric: savedMetricType;
@@ -39,6 +40,7 @@ export type AdhocMetricPopoverTriggerProps = {
 export type AdhocMetricPopoverTriggerState = {
   popoverVisible: boolean;
   title: { label: string; hasCustomLabel: boolean };
+  currentLabel: string;
   labelModified: boolean;
   isTitleEditDisabled: boolean;
 };
@@ -53,26 +55,38 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     this.onLabelChange = this.onLabelChange.bind(this);
     this.closePopover = this.closePopover.bind(this);
     this.togglePopover = this.togglePopover.bind(this);
+    this.getCurrentTab = this.getCurrentTab.bind(this);
+    this.getCurrentLabel = this.getCurrentLabel.bind(this);
+    this.onChange = this.onChange.bind(this);
+
     this.state = {
       popoverVisible: false,
       title: {
         label: props.adhocMetric.label,
         hasCustomLabel: props.adhocMetric.hasCustomLabel,
       },
+      currentLabel: '',
       labelModified: false,
       isTitleEditDisabled: false,
     };
   }
 
   onLabelChange(e: any) {
+    const { verbose_name, metric_name } = this.props.savedMetric;
+    const defaultMetricLabel = this.props.adhocMetric?.getDefaultLabel();
     const label = e.target.value;
-    this.setState({
+    this.setState(state => ({
       title: {
-        label: label || this.props.adhocMetric.label,
+        label:
+          label ||
+          state.currentLabel ||
+          verbose_name ||
+          metric_name ||
+          defaultMetricLabel,
         hasCustomLabel: !!label,
       },
       labelModified: true,
-    });
+    }));
   }
 
   onPopoverResize() {
@@ -92,13 +106,51 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
     });
   }
 
+  getCurrentTab(tab: string) {
+    this.setState({
+      isTitleEditDisabled: tab === SAVED_TAB_KEY,
+    });
+  }
+
+  getCurrentLabel({
+    savedMetricLabel,
+    adhocMetricLabel,
+  }: {
+    savedMetricLabel: string;
+    adhocMetricLabel: string;
+  }) {
+    const currentLabel = savedMetricLabel || adhocMetricLabel;
+    this.setState({
+      currentLabel,
+      labelModified: true,
+    });
+    if (savedMetricLabel || !this.state.title.hasCustomLabel) {
+      this.setState({
+        title: {
+          label: currentLabel,
+          hasCustomLabel: false,
+        },
+      });
+    }
+  }
+
+  onChange(newMetric: Metric, oldMetric: Metric) {
+    this.props.onMetricEdit({ ...newMetric, ...this.state.title }, oldMetric);
+  }
+
   render() {
     const { adhocMetric, savedMetric } = this.props;
     const { verbose_name, metric_name } = savedMetric;
-    const { label, hasCustomLabel } = adhocMetric;
+    const { hasCustomLabel, label } = adhocMetric;
+    const adhocMetricLabel = hasCustomLabel
+      ? label
+      : adhocMetric.getDefaultLabel();
     const title = this.state.labelModified
       ? this.state.title
-      : { label: verbose_name || metric_name || label, hasCustomLabel };
+      : {
+          label: verbose_name || metric_name || adhocMetricLabel,
+          hasCustomLabel,
+        };
 
     const overlayContent = (
       <AdhocMetricEditPopover
@@ -110,12 +162,9 @@ class AdhocMetricPopoverTrigger extends React.PureComponent<
         datasourceType={this.props.datasourceType}
         onResize={this.onPopoverResize}
         onClose={this.closePopover}
-        onChange={this.props.onMetricEdit}
-        getCurrentTab={(tab: string) =>
-          this.setState({
-            isTitleEditDisabled: tab === SAVED_TAB_KEY,
-          })
-        }
+        onChange={this.onChange}
+        getCurrentTab={this.getCurrentTab}
+        getCurrentLabel={this.getCurrentLabel}
       />
     );
 

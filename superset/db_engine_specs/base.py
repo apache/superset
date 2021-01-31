@@ -158,28 +158,22 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
 
-    # default matching patterns for identifying column types
-    db_column_types: Dict[utils.GenericDataType, Tuple[Pattern[Any], ...]] = {
+    # default matching patterns to convert database specific column types to
+    # more generic types
+    db_column_types: Dict[utils.GenericDataType, Tuple[Pattern[str], ...]] = {
         utils.GenericDataType.NUMERIC: (
             re.compile(r"BIT", re.IGNORECASE),
-            re.compile(r".*DOUBLE.*", re.IGNORECASE),
-            re.compile(r".*FLOAT.*", re.IGNORECASE),
-            re.compile(r".*INT.*", re.IGNORECASE),
-            re.compile(r".*NUMBER.*", re.IGNORECASE),
+            re.compile(
+                r".*(DOUBLE|FLOAT|INT|NUMBER|REAL|NUMERIC|DECIMAL|MONEY).*",
+                re.IGNORECASE,
+            ),
             re.compile(r".*LONG$", re.IGNORECASE),
-            re.compile(r".*REAL.*", re.IGNORECASE),
-            re.compile(r".*NUMERIC.*", re.IGNORECASE),
-            re.compile(r".*DECIMAL.*", re.IGNORECASE),
-            re.compile(r".*MONEY.*", re.IGNORECASE),
         ),
         utils.GenericDataType.STRING: (
-            re.compile(r".*CHAR.*", re.IGNORECASE),
-            re.compile(r".*STRING.*", re.IGNORECASE),
-            re.compile(r".*TEXT.*", re.IGNORECASE),
+            re.compile(r".*(CHAR|STRING|TEXT).*", re.IGNORECASE),
         ),
         utils.GenericDataType.TEMPORAL: (
-            re.compile(r".*DATE.*", re.IGNORECASE),
-            re.compile(r".*TIME.*", re.IGNORECASE),
+            re.compile(r".*(DATE|TIME).*", re.IGNORECASE),
         ),
     }
 
@@ -860,14 +854,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         engine = cls.get_engine(database, schema=schema, source=source)
         costs = []
         with closing(engine.raw_connection()) as conn:
-            with closing(conn.cursor()) as cursor:
-                for statement in statements:
-                    processed_statement = cls.process_statement(
-                        statement, database, user_name
-                    )
-                    costs.append(
-                        cls.estimate_statement_cost(processed_statement, cursor)
-                    )
+            cursor = conn.cursor()
+            for statement in statements:
+                processed_statement = cls.process_statement(
+                    statement, database, user_name
+                )
+                costs.append(cls.estimate_statement_cost(processed_statement, cursor))
         return costs
 
     @classmethod

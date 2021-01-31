@@ -37,7 +37,6 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 
-import getDragDropManager from 'src/dashboard/util/getDragDropManager';
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
@@ -161,12 +160,6 @@ class DashboardBuilder extends React.Component {
     );
   }
 
-  getChildContext() {
-    return {
-      dragDropManager: this.context.dragDropManager || getDragDropManager(),
-    };
-  }
-
   UNSAFE_componentWillReceiveProps(nextProps) {
     const nextFocusComponent = getLeafComponentIdFromPath(
       nextProps.directPathToChild,
@@ -222,6 +215,7 @@ class DashboardBuilder extends React.Component {
       showBuilderPane,
       setColorSchemeAndUnsavedChanges,
       colorScheme,
+      directPathToChild,
     } = this.props;
     const { tabIndex } = this.state;
     const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
@@ -297,6 +291,7 @@ class DashboardBuilder extends React.Component {
                 <FilterBar
                   filtersOpen={this.state.dashboardFiltersOpen}
                   toggleFiltersBar={this.toggleDashboardFiltersOpen}
+                  directPathToChild={directPathToChild}
                 />
               </ErrorBoundary>
             </StickyVerticalBar>

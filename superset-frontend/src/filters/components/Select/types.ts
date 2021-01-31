@@ -21,6 +21,7 @@ import {
   DataRecord,
   SetExtraFormDataHook,
 } from '@superset-ui/core';
+import { RefObject } from 'react';
 import { AntdPluginFilterStylesProps } from '../types';
 
 interface AntdPluginFilterSelectCustomizeProps {
@@ -30,6 +31,7 @@ interface AntdPluginFilterSelectCustomizeProps {
   inverseSelection: boolean;
   multiSelect: boolean;
   showSearch: boolean;
+  inputRef?: RefObject<HTMLInputElement>;
 }
 
 export type AntdPluginFilterSelectQueryFormData = QueryFormData &

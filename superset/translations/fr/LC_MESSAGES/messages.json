@@ -1955,7 +1955,7 @@
       "To filter on a metric, use Custom SQL tab.": [
         "À filtrer sur une métrique, utiliser l'onglet Custom SQL."
       ],
-      "%s operators(s)": ["%s opérateur(s)"],
+      "%s operator(s)": ["%s opérateur(s)"],
       "Type a value here": ["Saisir une valeur ici"],
       "Filter value (case sensitive)": [""],
       "choose WHERE or HAVING...": ["Choisir WHERE or HAVING..."],

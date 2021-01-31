@@ -647,14 +647,14 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             # TODO(villebro): refactor to use same code that's used by
             #  sql_lab.py:execute_sql_statements
             with closing(engine.raw_connection()) as conn:
-                with closing(conn.cursor()) as cursor:
-                    query = self.database.apply_limit_to_sql(statements[0])
-                    db_engine_spec.execute(cursor, query)
-                    result = db_engine_spec.fetch_data(cursor, limit=1)
-                    result_set = SupersetResultSet(
-                        result, cursor.description, db_engine_spec
-                    )
-                    cols = result_set.columns
+                cursor = conn.cursor()
+                query = self.database.apply_limit_to_sql(statements[0])
+                db_engine_spec.execute(cursor, query)
+                result = db_engine_spec.fetch_data(cursor, limit=1)
+                result_set = SupersetResultSet(
+                    result, cursor.description, db_engine_spec
+                )
+                cols = result_set.columns
         else:
             db_dialect = self.database.get_dialect()
             cols = self.database.get_columns(
@@ -939,6 +939,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             and (is_sip_38 or (not is_sip_38 and not groupby))
         ):
             raise QueryObjectValidationError(_("Empty query?"))
+
         metrics_exprs: List[ColumnElement] = []
         for metric in metrics:
             if utils.is_adhoc_metric(metric):
@@ -950,6 +951,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 raise QueryObjectValidationError(
                     _("Metric '%(metric)s' does not exist", metric=metric)
                 )
+
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
@@ -960,14 +962,16 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         groupby_exprs_sans_timestamp = OrderedDict()
 
         assert extras is not None
-        if (is_sip_38 and metrics and columns) or (not is_sip_38 and groupby):
-            # dedup columns while preserving order
-            columns_ = columns if is_sip_38 else groupby
-            assert columns_
-            groupby = list(dict.fromkeys(columns_))
 
+        # filter out the pseudo column  __timestamp from columns
+        columns = columns or []
+        columns = [col for col in columns if col != utils.DTTM_ALIAS]
+
+        if (is_sip_38 and metrics and columns) or (not is_sip_38 and metrics):
+            # dedup columns while preserving order
+            columns = columns if is_sip_38 else (groupby or columns)
             select_exprs = []
-            for selected in groupby:
+            for selected in columns:
                 # if groupby field/expr equals granularity field/expr
                 if selected == granularity:
                     time_grain = extras.get("time_grain_sqla")
@@ -979,7 +983,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 else:
                     outer = literal_column(f"({selected})")
                     outer = self.make_sqla_column_compatible(outer, selected)
-
                 groupby_exprs_sans_timestamp[outer.name] = outer
                 select_exprs.append(outer)
         elif columns:
@@ -1001,7 +1004,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
             if is_timeseries:
                 timestamp = dttm_col.get_timestamp_expression(time_grain)
-                select_exprs += [timestamp]
+                # always put timestamp as the first column
+                select_exprs.insert(0, timestamp)
                 groupby_exprs_with_timestamp[timestamp.name] = timestamp
 
             # Use main dttm column to support index with secondary dttm columns.
