@@ -111,7 +111,6 @@ def logged_in_admin():
 
 
 class SupersetTestCase(TestCase):
-
     default_schema_backend_map = {
         "sqlite": "main",
         "mysql": "superset",
@@ -135,7 +134,9 @@ class SupersetTestCase(TestCase):
         )
 
     @staticmethod
-    def create_user_with_roles(username: str, roles: List[str]):
+    def create_user_with_roles(
+        username: str, roles: List[str], should_create_roles: bool = False
+    ):
         user_to_create = security_manager.find_user(username)
         if not user_to_create:
             security_manager.add_user(
@@ -149,7 +150,12 @@ class SupersetTestCase(TestCase):
             db.session.commit()
             user_to_create = security_manager.find_user(username)
             assert user_to_create
-        user_to_create.roles = [security_manager.find_role(r) for r in roles]
+        user_to_create.roles = []
+        for chosen_user_role in roles:
+            if should_create_roles:
+                ## copy role from gamma but without data permissions
+                security_manager.copy_role("Gamma", chosen_user_role, merge=False)
+            user_to_create.roles.append(security_manager.find_role(chosen_user_role))
         db.session.commit()
         return user_to_create
 
@@ -290,7 +296,11 @@ class SupersetTestCase(TestCase):
         self.client.get("/logout/", follow_redirects=True)
 
     def grant_public_access_to_table(self, table):
-        public_role = security_manager.find_role("Public")
+        role_name = "Public"
+        self.grant_role_access_to_table(table, role_name)
+
+    def grant_role_access_to_table(self, table, role_name):
+        role = security_manager.find_role(role_name)
         perms = db.session.query(ab_models.PermissionView).all()
         for perm in perms:
             if (
@@ -298,10 +308,14 @@ class SupersetTestCase(TestCase):
                 and perm.view_menu
                 and table.perm in perm.view_menu.name
             ):
-                security_manager.add_permission_role(public_role, perm)
+                security_manager.add_permission_role(role, perm)
 
     def revoke_public_access_to_table(self, table):
-        public_role = security_manager.find_role("Public")
+        role_name = "Public"
+        self.revoke_role_access_to_table(role_name, table)
+
+    def revoke_role_access_to_table(self, role_name, table):
+        public_role = security_manager.find_role(role_name)
         perms = db.session.query(ab_models.PermissionView).all()
         for perm in perms:
             if (
