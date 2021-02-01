@@ -26,7 +26,7 @@ import {
 import { Dropdown, Menu } from 'src/common/components';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListViewCard from 'src/components/ListViewCard';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import Label from 'src/components/Label';
 import FacePile from 'src/components/FacePile';
 import FaveStar from 'src/components/FaveStar';
@@ -78,7 +78,7 @@ function DashboardCard({
             }
             data-test="dashboard-card-option-edit-button"
           >
-            <ListViewCard.MenuIcon name="edit-alt" /> Edit
+            <Icons.EditAlt iconSize="l" /> {t('Edit')}
           </div>
         </Menu.Item>
       )}
@@ -91,7 +91,7 @@ function DashboardCard({
             className="action-button"
             data-test="dashboard-card-option-export-button"
           >
-            <ListViewCard.MenuIcon name="share" /> Export
+            <Icons.Share iconSize="l" /> {t('Export')}
           </div>
         </Menu.Item>
       )}
@@ -124,7 +124,7 @@ function DashboardCard({
                 onClick={confirmDelete}
                 data-test="dashboard-card-option-delete-button"
               >
-                <ListViewCard.MenuIcon name="trash" /> Delete
+                <Icons.Trash iconSize="l" /> {t('Delete')}
               </div>
             )}
           </ConfirmStatusChange>
@@ -165,7 +165,7 @@ function DashboardCard({
               isStarred={favoriteStatus}
             />
             <Dropdown overlay={menu}>
-              <Icon name="more-horiz" />
+              <Icons.ModeHoriz />
             </Dropdown>
           </ListViewCard.Actions>
         }

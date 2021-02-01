@@ -42,7 +42,6 @@ import { commonMenuData } from 'src/views/CRUD/data/common';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import TooltipWrapper from 'src/components/TooltipWrapper';
-import Icon from 'src/components/Icon';
 import Icons from 'src/components/Icons';
 import FacePile from 'src/components/FacePile';
 import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
@@ -204,7 +203,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 label="physical-dataset"
                 tooltip={t('Physical dataset')}
               >
-                <Icon name="dataset-physical" />
+                <Icons.DatasetPhysical/>
               </TooltipWrapper>
             );
           }
@@ -214,7 +213,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               label="virtual-dataset"
               tooltip={t('Virtual dataset')}
             >
-              <Icon name="dataset-virtual" />
+              <Icons.DatasetVirtual />
             </TooltipWrapper>
           );
         },
@@ -353,7 +352,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icon name="share" />
+                    <Icons.Share />
                   </span>
                 </TooltipWrapper>
               )}
@@ -369,7 +368,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icon name="edit-alt" />
+                    <Icons.EditAlt />
                   </span>
                 </TooltipWrapper>
               )}
@@ -486,7 +485,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
     buttonArr.push({
-      name: <Icon name="import" />,
+      name: <Icons.Import />,
       buttonStyle: 'link',
       onClick: openDatasetImportModal,
     });

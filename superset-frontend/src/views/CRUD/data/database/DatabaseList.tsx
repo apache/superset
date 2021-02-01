@@ -26,7 +26,6 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
 import TooltipWrapper from 'src/components/TooltipWrapper';
-import Icon from 'src/components/Icon';
 import Icons from 'src/components/Icons';
 import ListView, { Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
@@ -56,12 +55,16 @@ interface DatabaseListProps {
   addSuccessToast: (msg: string) => void;
 }
 
-const IconBlack = styled(Icon)`
+const IconCheck = styled(Icons.Check)`
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+`;
+
+const IconCancelX = styled(Icons.CancelX)`
   color: ${({ theme }) => theme.colors.grayscale.dark1};
 `;
 
 function BooleanDisplay({ value }: { value: Boolean }) {
-  return value ? <IconBlack name="check" /> : <IconBlack name="cancel-x" />;
+  return value ? <IconCheck /> : <IconCancelX />;
 }
 
 function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
@@ -177,7 +180,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
 
     if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
       menuData.buttons.push({
-        name: <Icon name="import" />,
+        name: <Icons.Import />,
         buttonStyle: 'link',
         onClick: openDatabaseImportModal,
       });
@@ -320,7 +323,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icon name="share" />
+                    <Icons.Share />
                   </span>
                 </TooltipWrapper>
               )}
@@ -337,7 +340,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icon name="edit-alt" />
+                    <Icons.EditAlt />
                   </span>
                 </TooltipWrapper>
               )}

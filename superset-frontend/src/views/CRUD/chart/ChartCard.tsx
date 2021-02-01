@@ -21,6 +21,7 @@ import { t } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import Chart from 'src/types/Chart';
 
 import ListViewCard from 'src/components/ListViewCard';
@@ -95,7 +96,7 @@ export default function ChartCard({
                 className="action-button"
                 onClick={confirmDelete}
               >
-                <ListViewCard.MenuIcon name="trash" /> {t('Delete')}
+                <Icons.Trash iconSize="l" /> {t('Delete')}
               </div>
             )}
           </ConfirmStatusChange>
@@ -108,7 +109,7 @@ export default function ChartCard({
             tabIndex={0}
             onClick={() => handleBulkChartExport([chart])}
           >
-            <ListViewCard.MenuIcon name="share" /> {t('Export')}
+            <Icons.Share iconSize="l" /> {t('Export')}
           </div>
         </Menu.Item>
       )}
@@ -120,7 +121,7 @@ export default function ChartCard({
             tabIndex={0}
             onClick={() => openChartEditModal(chart)}
           >
-            <ListViewCard.MenuIcon name="edit-alt" /> {t('Edit')}
+            <Icons.EditAlt iconSize="l" /> {t('Edit')}
           </div>
         </Menu.Item>
       )}

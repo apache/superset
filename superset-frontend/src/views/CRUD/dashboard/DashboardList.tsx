@@ -37,7 +37,6 @@ import ListView, {
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import FacePile from 'src/components/FacePile';
-import Icon from 'src/components/Icon';
 import Icons from 'src/components/Icons';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -320,7 +319,7 @@ function DashboardList(props: DashboardListProps) {
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icon name="share" />
+                    <Icons.Share />
                   </span>
                 </TooltipWrapper>
               )}
@@ -336,7 +335,7 @@ function DashboardList(props: DashboardListProps) {
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icon name="edit-alt" />
+                    <Icons.EditAlt />
                   </span>
                 </TooltipWrapper>
               )}
@@ -487,7 +486,7 @@ function DashboardList(props: DashboardListProps) {
   }
   if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
     subMenuButtons.push({
-      name: <Icon name="import" />,
+      name: <Icons.Import />,
       buttonStyle: 'link',
       onClick: openDashboardImportModal,
     });

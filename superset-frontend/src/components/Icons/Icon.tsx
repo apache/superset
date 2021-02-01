@@ -32,7 +32,6 @@ const Icon = styled(EnhancedIcon)<IconType>`
   color: ${({ iconColor }) => iconColor || '#666666'};
   font-size: ${({ iconSize, theme }) =>
     iconSize ? `${theme.typography.sizes[iconSize]}px` : '24px'};
-  vertical-align: baseline;
 `;
 
 export const renderIcon = (
