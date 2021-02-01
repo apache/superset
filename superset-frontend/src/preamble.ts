@@ -19,8 +19,9 @@
 import { setConfig as setHotLoaderConfig } from 'react-hot-loader';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import moment from 'moment';
-import { configure } from '@superset-ui/core';
+import { configure, supersetTheme } from '@superset-ui/core';
 import ColorScheme from '@superset-ui/core/lib/color/ColorScheme';
+import { merge } from 'lodash';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
@@ -74,3 +75,8 @@ setupColors(extraCategoricalColorSchemes, extraSequentialColorSchemes);
 
 // Setup number formatters
 setupFormatters();
+
+export const customTheme = merge(
+  supersetTheme,
+  bootstrapData?.common?.custom_theme ?? {},
+);
