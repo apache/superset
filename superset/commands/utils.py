@@ -52,7 +52,7 @@ def populate_owners(user: User, owners_ids: Optional[List[int]] = None) -> List[
 def populate_roles(roles_ids: Optional[List[int]] = None) -> List[Role]:
     """
     Helper function for commands, will fetch all roles from roles id's
-    Can raise ValidationError
+    :raises RolesNotFoundValidationError: If a role in the input list is not found 
     :param roles_ids: A List of roles by id's
     """
     roles = list()
