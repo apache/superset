@@ -78,5 +78,5 @@ setupFormatters();
 
 export const customTheme = merge(
   supersetTheme,
-  bootstrapData?.common?.custom_theme ?? {},
+  bootstrapData?.common?.theme_overrides ?? {},
 );

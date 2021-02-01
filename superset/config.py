@@ -386,9 +386,9 @@ GET_FEATURE_FLAGS_FUNC: Optional[Callable[[Dict[str, bool]], Dict[str, bool]]] =
 # This is merely a default
 EXTRA_CATEGORICAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 
-# CUSTOM_THEME is used for adding custom theme to superset
+# THEME_OVERRIDES is used for adding custom theme to superset
 # example code for "My theme" custom scheme
-# CUSTOM_THEME = {
+# THEME_OVERRIDES = {
 #   "borderRadius": 4,
 #   "colors": {
 #     "primary": {
@@ -403,7 +403,7 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 #   }
 # }
 
-CUSTOM_THEME = {}
+THEME_OVERRIDES: Dict[str, Any] = {}
 
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [
