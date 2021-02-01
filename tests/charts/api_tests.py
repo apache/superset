@@ -703,27 +703,32 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         ds_id = self.get_ds_ids("birth_names")
         admin = self.get_user("admin")
         chart = self.insert_chart("title", owners=[admin.id], datasource_id=ds_id)
-        self.login(username="admin")
+        try:
+            self.login(username="admin")
 
-        chart_data = {"datasource_id": 1, "datasource_type": "unknown"}
-        rv = self.put_assert_metric(f"/api/v1/chart/{chart.id}", chart_data, "put")
-        self.assertEqual(rv.status_code, 400)
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            response,
-            {"message": {"datasource_type": ["Must be one of: druid, table, view."]}},
-        )
+            chart_data = {"datasource_id": 1, "datasource_type": "unknown"}
+            rv = self.put_assert_metric(f"/api/v1/chart/{chart.id}", chart_data, "put")
+            self.assertEqual(rv.status_code, 400)
+            response = json.loads(rv.data.decode("utf-8"))
+            self.assertEqual(
+                response,
+                {
+                    "message": {
+                        "datasource_type": ["Must be one of: druid, table, view."]
+                    }
+                },
+            )
 
-        chart_data = {"datasource_id": 0, "datasource_type": "table"}
-        rv = self.put_assert_metric(f"/api/v1/chart/{chart.id}", chart_data, "put")
-        self.assertEqual(rv.status_code, 422)
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(
-            response, {"message": {"datasource_id": ["Dataset does not exist"]}}
-        )
-
-        db.session.delete(chart)
-        db.session.commit()
+            chart_data = {"datasource_id": 0, "datasource_type": "table"}
+            rv = self.put_assert_metric(f"/api/v1/chart/{chart.id}", chart_data, "put")
+            self.assertEqual(rv.status_code, 422)
+            response = json.loads(rv.data.decode("utf-8"))
+            self.assertEqual(
+                response, {"message": {"datasource_id": ["Dataset does not exist"]}}
+            )
+        finally:
+            db.session.delete(chart)
+            db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_update_chart_validate_owners(self):
