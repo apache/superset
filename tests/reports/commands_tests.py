@@ -49,6 +49,7 @@ from superset.reports.commands.exceptions import (
 )
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
 from superset.utils.core import get_example_database
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.reports.utils import insert_report_schedule
 from tests.test_app import app
 from tests.utils import read_fixture
@@ -434,7 +435,9 @@ def create_invalid_sql_alert_email_chart(request):
             cleanup_report_schedule(report_schedule)
 
 
-@pytest.mark.usefixtures("create_report_email_chart")
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_email_chart"
+)
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.compute_and_cache")
 def test_email_chart_report_schedule(
@@ -470,7 +473,9 @@ def test_email_chart_report_schedule(
         assert_log(ReportState.SUCCESS)
 
 
-@pytest.mark.usefixtures("create_report_email_dashboard")
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_email_dashboard"
+)
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.DashboardScreenshot.compute_and_cache")
 def test_email_dashboard_report_schedule(
@@ -500,7 +505,9 @@ def test_email_dashboard_report_schedule(
         assert_log(ReportState.SUCCESS)
 
 
-@pytest.mark.usefixtures("create_report_slack_chart")
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_slack_chart"
+)
 @patch("superset.reports.notifications.slack.WebClient.files_upload")
 @patch("superset.utils.screenshots.ChartScreenshot.compute_and_cache")
 def test_slack_chart_report_schedule(
@@ -621,7 +628,9 @@ def test_report_schedule_success_grace_end(create_alert_slack_chart_grace):
     assert create_alert_slack_chart_grace.last_state == ReportState.NOOP
 
 
-@pytest.mark.usefixtures("create_report_email_dashboard")
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_email_dashboard"
+)
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.DashboardScreenshot.compute_and_cache")
 def test_email_dashboard_report_fails(
@@ -645,7 +654,9 @@ def test_email_dashboard_report_fails(
     assert_log(ReportState.ERROR, error_message="Could not connect to SMTP XPTO")
 
 
-@pytest.mark.usefixtures("create_alert_email_chart")
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_alert_email_chart"
+)
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.compute_and_cache")
 def test_slack_chart_alert(screenshot_mock, email_mock, create_alert_email_chart):
