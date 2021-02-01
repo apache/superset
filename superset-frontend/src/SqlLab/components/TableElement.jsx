@@ -18,10 +18,12 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Collapse, Well } from 'react-bootstrap';
+import { Well } from 'react-bootstrap';
+import Collapse from 'src/common/components/Collapse';
 import ButtonGroup from 'src/components/ButtonGroup';
 import shortid from 'shortid';
 import { t, styled } from '@superset-ui/core';
+import { debounce } from 'lodash';
 
 import Fade from 'src/common/components/Fade';
 import { Tooltip } from 'src/common/components/Tooltip';
@@ -35,13 +37,11 @@ import Loading from '../../components/Loading';
 const propTypes = {
   table: PropTypes.object,
   actions: PropTypes.object,
-  timeout: PropTypes.number, // used for tests
 };
 
 const defaultProps = {
   actions: {},
   table: null,
-  timeout: 500,
 };
 
 const StyledSpan = styled.span`
@@ -57,13 +57,11 @@ class TableElement extends React.PureComponent {
     super(props);
     this.state = {
       sortColumns: false,
-      expanded: true,
       hovered: false,
     };
-    this.removeFromStore = this.removeFromStore.bind(this);
     this.toggleSortColumns = this.toggleSortColumns.bind(this);
     this.removeTable = this.removeTable.bind(this);
-    this.setHover = this.setHover.bind(this);
+    this.setHover = debounce(this.setHover.bind(this), 100);
   }
 
   setHover(hovered) {
@@ -91,16 +89,12 @@ class TableElement extends React.PureComponent {
   }
 
   removeTable() {
-    this.setState({ expanded: false });
     this.props.actions.removeDataPreview(this.props.table);
+    this.props.actions.removeTable(this.props.table);
   }
 
   toggleSortColumns() {
     this.setState(prevState => ({ sortColumns: !prevState.sortColumns }));
-  }
-
-  removeFromStore() {
-    this.props.actions.removeTable(this.props.table);
   }
 
   renderWell() {
@@ -208,7 +202,11 @@ class TableElement extends React.PureComponent {
   renderHeader() {
     const { table } = this.props;
     return (
-      <div className="clearfix header-container">
+      <div
+        className="clearfix header-container"
+        onMouseEnter={() => this.setHover(true)}
+        onMouseLeave={() => this.setHover(false)}
+      >
         <Tooltip
           id="copy-to-clipboard-tooltip"
           placement="top"
@@ -231,21 +229,13 @@ class TableElement extends React.PureComponent {
           {table.isMetadataLoading || table.isExtraMetadataLoading ? (
             <Loading position="inline" />
           ) : (
-            <Fade hovered={this.state.hovered}>{this.renderControls()}</Fade>
+            <Fade
+              hovered={this.state.hovered}
+              onClick={e => e.stopPropagation()}
+            >
+              {this.renderControls()}
+            </Fade>
           )}
-          <i
-            role="button"
-            aria-label="Toggle table"
-            tabIndex={0}
-            onClick={e => {
-              this.toggleTable(e);
-            }}
-            className={
-              'text-primary pointer m-l-10 ' +
-              'fa fa-lg ' +
-              `fa-angle-${table.expanded ? 'up' : 'down'}`
-            }
-          />
         </div>
       </div>
     );
@@ -270,39 +260,36 @@ class TableElement extends React.PureComponent {
         });
       }
     }
+
     const metadata = (
-      <Collapse in={table.expanded} timeout={this.props.timeout}>
+      <div
+        onMouseEnter={() => this.setHover(true)}
+        onMouseLeave={() => this.setHover(false)}
+        css={{ paddingTop: 6 }}
+      >
+        {this.renderWell()}
         <div>
-          {this.renderWell()}
-          <div className="table-columns m-t-5">
-            {cols &&
-              cols.map(col => <ColumnElement column={col} key={col.name} />)}
-          </div>
+          {cols &&
+            cols.map(col => <ColumnElement column={col} key={col.name} />)}
         </div>
-      </Collapse>
+      </div>
     );
     return metadata;
   }
 
   render() {
     return (
-      <Collapse
-        in={this.state.expanded}
-        timeout={this.props.timeout}
-        onExited={this.removeFromStore}
+      <Collapse.Panel
+        {...this.props}
+        header={this.renderHeader()}
+        className="TableElement"
       >
-        <div
-          className="TableElement table-schema m-b-10"
-          onMouseEnter={() => this.setHover(true)}
-          onMouseLeave={() => this.setHover(false)}
-        >
-          {this.renderHeader()}
-          <div>{this.renderBody()}</div>
-        </div>
-      </Collapse>
+        {this.renderBody()}
+      </Collapse.Panel>
     );
   }
 }
+
 TableElement.propTypes = propTypes;
 TableElement.defaultProps = defaultProps;
 

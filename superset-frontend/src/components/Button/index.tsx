@@ -20,7 +20,7 @@ import React, { CSSProperties, Children, ReactElement } from 'react';
 import { kebabCase } from 'lodash';
 import { mix } from 'polished';
 import cx from 'classnames';
-import { Button as AntdButton } from 'src/common/components';
+import { Button as AntdButton } from 'antd';
 import { useTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/common/components/Tooltip';
 
