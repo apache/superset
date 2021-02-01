@@ -24,7 +24,7 @@ import setupPlugins from '../setup/setupPlugins';
 import { DynamicPluginProvider } from '../components/DynamicPlugins';
 import AddSliceContainer from './AddSliceContainer';
 import { initFeatureFlags } from '../featureFlags';
-import { customTheme } from '../preamble';
+import { theme } from '../preamble';
 
 setupApp();
 setupPlugins();
@@ -37,7 +37,7 @@ const bootstrapData = JSON.parse(
 initFeatureFlags(bootstrapData.common.feature_flags);
 
 const App = () => (
-  <ThemeProvider theme={customTheme}>
+  <ThemeProvider theme={theme}>
     <DynamicPluginProvider>
       <AddSliceContainer datasources={bootstrapData.datasources} />
     </DynamicPluginProvider>

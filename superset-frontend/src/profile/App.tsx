@@ -27,7 +27,7 @@ import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
 import setupApp from '../setup/setupApp';
 import './main.less';
-import { customTheme } from '../preamble';
+import { theme } from '../preamble';
 
 setupApp();
 
@@ -46,7 +46,7 @@ const store = createStore(
 
 const Application = () => (
   <Provider store={store}>
-    <ThemeProvider theme={customTheme}>
+    <ThemeProvider theme={theme}>
       <App user={bootstrap.user} />
     </ThemeProvider>
   </Provider>

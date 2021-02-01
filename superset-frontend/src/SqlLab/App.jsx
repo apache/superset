@@ -41,7 +41,7 @@ import setupApp from '../setup/setupApp';
 import './main.less';
 import '../../stylesheets/reactable-pagination.less';
 import '../components/FilterableTable/FilterableTableStyles.less';
-import { customTheme } from '../preamble';
+import { theme } from '../preamble';
 
 setupApp();
 
@@ -110,7 +110,7 @@ if (sqlLabMenu) {
 
 const Application = () => (
   <Provider store={store}>
-    <ThemeProvider theme={customTheme}>
+    <ThemeProvider theme={theme}>
       <App />
     </ThemeProvider>
   </Provider>

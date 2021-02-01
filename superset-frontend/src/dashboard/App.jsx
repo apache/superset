@@ -26,7 +26,7 @@ import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
 import DashboardContainer from './containers/Dashboard';
-import { customTheme } from '../preamble';
+import { theme } from '../preamble';
 
 setupApp();
 setupPlugins();
@@ -34,7 +34,7 @@ setupPlugins();
 const App = ({ store }) => (
   <Provider store={store}>
     <DndProvider backend={HTML5Backend}>
-      <ThemeProvider theme={customTheme}>
+      <ThemeProvider theme={theme}>
         <DynamicPluginProvider>
           <DashboardContainer />
         </DynamicPluginProvider>

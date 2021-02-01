@@ -29,7 +29,7 @@ import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
 import './main.less';
 import '../../stylesheets/reactable-pagination.less';
-import { customTheme } from '../preamble';
+import { theme } from '../preamble';
 
 setupApp();
 setupPlugins();
@@ -37,7 +37,7 @@ setupPlugins();
 const App = ({ store }) => (
   <Provider store={store}>
     <DndProvider backend={HTML5Backend}>
-      <ThemeProvider theme={customTheme}>
+      <ThemeProvider theme={theme}>
         <DynamicPluginProvider>
           <ExploreViewContainer />
           <ToastPresenter />

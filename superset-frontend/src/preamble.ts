@@ -76,7 +76,7 @@ setupColors(extraCategoricalColorSchemes, extraSequentialColorSchemes);
 // Setup number formatters
 setupFormatters();
 
-export const customTheme = merge(
+export const theme = merge(
   supersetTheme,
   bootstrapData?.common?.theme_overrides ?? {},
 );

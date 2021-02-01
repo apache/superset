@@ -47,7 +47,7 @@ import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
 import Welcome from './CRUD/welcome/Welcome';
 import ToastPresenter from '../messageToasts/containers/ToastPresenter';
-import { customTheme } from '../preamble';
+import { theme } from '../preamble';
 
 setupApp();
 setupPlugins();
@@ -69,7 +69,7 @@ const store = createStore(
 
 const App = () => (
   <ReduxProvider store={store}>
-    <ThemeProvider theme={customTheme}>
+    <ThemeProvider theme={theme}>
       <FlashProvider common={common}>
         <Router>
           <DynamicPluginProvider>
