@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import Badge from 'src/common/components/Badge';
 import { t, styled } from '@superset-ui/core';
@@ -42,23 +42,15 @@ const StyledConfigEditor = styled(ConfigEditor)`
   }
 `;
 
-export default class TemplateParamsEditor extends React.Component {
-  constructor(props) {
-    super(props);
-    const codeText = props.code || '{}';
-    this.state = {
-      codeText,
-      parsedJSON: null,
-      isValid: true,
-    };
-    this.onChange = this.onChange.bind(this);
-  }
+export const TemplateParamsEditor = props => {
+  const codeText = props.code || '{}';
+  const [state, setState] = useState({
+    codeText,
+    parsedJSON: null,
+    isValid: true,
+  });
 
-  componentDidMount() {
-    this.onChange(this.state.codeText);
-  }
-
-  onChange(value) {
+  const onChange = value => {
     const codeText = value;
     let isValid;
     let parsedJSON = {};
@@ -68,15 +60,19 @@ export default class TemplateParamsEditor extends React.Component {
     } catch (e) {
       isValid = false;
     }
-    this.setState({ parsedJSON, isValid, codeText });
+    setState({ parsedJSON, isValid, codeText });
     const newValue = isValid ? codeText : '{}';
-    if (newValue !== this.props.code) {
-      this.props.onChange(newValue);
+    if (newValue !== props.code) {
+      props.onChange(newValue);
     }
-  }
+  };
 
-  renderDoc() {
-    return (
+  useEffect(() => {
+    onChange(codeText);
+  }, [codeText]);
+
+  const renderDoc = () => {
+    const renderDocContent = (
       <p>
         {t('Assign a set of parameters as')}
         <code>JSON</code>
@@ -95,53 +91,56 @@ export default class TemplateParamsEditor extends React.Component {
         syntax.
       </p>
     );
-  }
+    return renderDocContent;
+  };
 
-  renderModalBody() {
-    return (
+  const renderModalBody = () => {
+    const renderModalBodyContent = (
       <div>
-        {this.renderDoc()}
+        {renderDoc()}
         <StyledConfigEditor
           keywords={[]}
-          mode={this.props.language}
+          mode={props.language}
           minLines={25}
           maxLines={50}
-          onChange={this.onChange}
+          onChange={onChange}
           width="100%"
           editorProps={{ $blockScrolling: true }}
           enableLiveAutocompletion
-          value={this.state.codeText}
+          value={setState(state.codeText)}
         />
       </div>
     );
-  }
+    return renderModalBodyContent;
+  };
 
-  render() {
-    const paramCount = this.state.parsedJSON
-      ? Object.keys(this.state.parsedJSON).length
-      : 0;
-    return (
-      <ModalTrigger
-        modalTitle={t('Template parameters')}
-        triggerNode={
-          <div tooltip={t('Edit template parameters')} buttonSize="small">
-            {`${t('Parameters')} `}
-            <Badge count={paramCount} />
-            {!this.state.isValid && (
-              <InfoTooltipWithTrigger
-                icon="exclamation-triangle"
-                bsStyle="danger"
-                tooltip={t('Invalid JSON')}
-                label="invalid-json"
-              />
-            )}
-          </div>
-        }
-        modalBody={this.renderModalBody(true)}
-      />
-    );
-  }
-}
+  const paramCount = state.parsedJSON
+    ? Object.keys(state.parsedJSON).length
+    : 0;
+
+  return (
+    <ModalTrigger
+      modalTitle={t('Template parameters')}
+      triggerNode={
+        <div tooltip={t('Edit template parameters')} buttonSize="small">
+          {`${t('Parameters')} `}
+          <Badge count={paramCount} />
+          {!state.isValid && (
+            <InfoTooltipWithTrigger
+              icon="exclamation-triangle"
+              bsStyle="danger"
+              tooltip={t('Invalid JSON')}
+              label="invalid-json"
+            />
+          )}
+        </div>
+      }
+      modalBody={renderModalBody(true)}
+    />
+  );
+};
 
 TemplateParamsEditor.propTypes = propTypes;
 TemplateParamsEditor.defaultProps = defaultProps;
+
+export default TemplateParamsEditor;
