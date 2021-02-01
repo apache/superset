@@ -274,7 +274,6 @@ class ControlPanelsContainer extends React.Component {
     const expandedCustomSections = this.sectionsToExpand(
       displaySectionsToRender,
     );
-    console.log('controlPanelContainer props: ', this.props);
     return (
       <Styles>
         {this.props.alert && (
@@ -313,12 +312,7 @@ class ControlPanelsContainer extends React.Component {
                 expandIconPosition="right"
                 ghost
               >
-                {(() => {
-                  console.log('lets render!!!!!');
-                  return displaySectionsToRender.map(
-                    this.renderControlPanelSection,
-                  );
-                })()}
+                {displaySectionsToRender.map(this.renderControlPanelSection)}
               </Collapse>
             </Tabs.TabPane>
           )}
