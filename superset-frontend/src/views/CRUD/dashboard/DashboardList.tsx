@@ -335,7 +335,7 @@ function DashboardList(props: DashboardListProps) {
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icons.EditAlt />
+                    <Icons.EditAlt data-test="edit-alt" />
                   </span>
                 </TooltipWrapper>
               )}

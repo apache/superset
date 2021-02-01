@@ -340,7 +340,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icons.EditAlt />
+                    <Icons.EditAlt data-test="edit-alt" />
                   </span>
                 </TooltipWrapper>
               )}

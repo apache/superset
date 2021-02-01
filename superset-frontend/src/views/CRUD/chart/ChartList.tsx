@@ -350,7 +350,7 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={openEditModal}
                   >
-                    <Icons.EditAlt />
+                    <Icons.EditAlt data-test="edit-alt" />
                   </span>
                 </TooltipWrapper>
               )}

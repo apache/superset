@@ -78,7 +78,7 @@ function DashboardCard({
             }
             data-test="dashboard-card-option-edit-button"
           >
-            <Icons.EditAlt iconSize="l" /> {t('Edit')}
+            <Icons.EditAlt iconSize="l" data-test="edit-alt" /> {t('Edit')}
           </div>
         </Menu.Item>
       )}
