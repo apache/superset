@@ -13,24 +13,27 @@ export default function buildQuery(formData: TableChartFormData) {
     let { metrics, orderby } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
 
-    // orverride orderby with timeseries metric when in aggregation mode
-    if (queryMode === QueryMode.aggregate && timeseriesLimitMetric && orderDesc != null) {
-      orderby = [[timeseriesLimitMetric, !orderDesc]];
+    if (queryMode === QueryMode.aggregate) {
+      // orverride orderby with timeseries metric when in aggregation mode
+      if (timeseriesLimitMetric && orderDesc != null) {
+        orderby = [[timeseriesLimitMetric, !orderDesc]];
+      }
+      // add postprocessing for percent metrics only when in aggregation mode
+      if (percentMetrics && percentMetrics.length > 0) {
+        const percentMetricLabels = percentMetrics.map(getMetricLabel);
+        metrics = removeDuplicates(metrics.concat(percentMetrics), getMetricLabel);
+        postProcessing = [
+          {
+            operation: 'contribution',
+            options: {
+              columns: percentMetricLabels,
+              rename_columns: percentMetricLabels.map(x => `%${x}`),
+            },
+          },
+        ];
+      }
     }
 
-    if (percentMetrics) {
-      const percentMetricLabels = percentMetrics.map(getMetricLabel);
-      metrics = removeDuplicates(metrics.concat(percentMetrics), getMetricLabel);
-      postProcessing = [
-        {
-          operation: 'contribution',
-          options: {
-            columns: percentMetricLabels,
-            rename_columns: percentMetricLabels.map(x => `%${x}`),
-          },
-        },
-      ];
-    }
     return [
       {
         ...baseQueryObject,
