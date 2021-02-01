@@ -183,7 +183,7 @@ class SupersetTestCase(TestCase):
         return user
 
     @staticmethod
-    def get_role(name: str) -> ab_models.User:
+    def get_role(name: str) -> Optional[ab_models.User]:
         user = (
             db.session.query(security_manager.role_model)
             .filter_by(name=name)
