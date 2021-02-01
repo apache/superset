@@ -51,8 +51,8 @@ class CreateDashboardCommand(BaseCommand):
 
     def validate(self) -> None:
         exceptions: List[ValidationError] = list()
-        owners_ids: Optional[List[int]] = self._properties.get("owners")
-        roles_ids: Optional[List[int]] = self._properties.get("roles")
+        owner_ids: Optional[List[int]] = self._properties.get("owners")
+        role_ids: Optional[List[int]] = self._properties.get("roles")
         slug: str = self._properties.get("slug", "")
 
         # Validate slug uniqueness
@@ -60,7 +60,7 @@ class CreateDashboardCommand(BaseCommand):
             exceptions.append(DashboardSlugExistsValidationError())
 
         try:
-            owners = populate_owners(self._actor, owners_ids)
+            owners = populate_owners(self._actor, owner_ids)
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)
@@ -70,7 +70,7 @@ class CreateDashboardCommand(BaseCommand):
             raise exception
 
         try:
-            roles = populate_roles(roles_ids)
+            roles = populate_roles(role_ids)
             self._properties["roles"] = roles
         except ValidationError as ex:
             exceptions.append(ex)

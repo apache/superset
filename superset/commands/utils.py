@@ -29,19 +29,19 @@ from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.extensions import db, security_manager
 
 
-def populate_owners(user: User, owners_ids: Optional[List[int]] = None) -> List[User]:
+def populate_owners(user: User, owner_ids: Optional[List[int]] = None) -> List[User]:
     """
     Helper function for commands, will fetch all users from owners id's
     Can raise ValidationError
     :param user: The current user
-    :param owners_ids: A List of owners by id's
+    :param owner_ids: A List of owners by id's
     """
     owners = list()
-    if not owners_ids:
+    if not owner_ids:
         return [user]
-    if user.id not in owners_ids:
+    if user.id not in owner_ids:
         owners.append(user)
-    for owner_id in owners_ids:
+    for owner_id in owner_ids:
         owner = security_manager.get_user_by_id(owner_id)
         if not owner:
             raise OwnersNotFoundValidationError()
@@ -49,15 +49,15 @@ def populate_owners(user: User, owners_ids: Optional[List[int]] = None) -> List[
     return owners
 
 
-def populate_roles(roles_ids: Optional[List[int]] = None) -> List[Role]:
+def populate_roles(role_ids: Optional[List[int]] = None) -> List[Role]:
     """
     Helper function for commands, will fetch all roles from roles id's
-    :raises RolesNotFoundValidationError: If a role in the input list is not found 
-    :param roles_ids: A List of roles by id's
+     :raises RolesNotFoundValidationError: If a role in the input list is not found
+    :param role_ids: A List of roles by id's
     """
     roles = list()
-    if roles_ids:
-        for role_id in roles_ids:
+    if role_ids:
+        for role_id in role_ids:
             role = security_manager.find_role_by_id(role_id)
             if not role:
                 raise RolesNotFoundValidationError()
