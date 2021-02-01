@@ -71,7 +71,7 @@ const TabTitle = styled.span`
 `;
 
 // Get the user's OS
-const userOS = detectOS();
+const userOS = detectOS;
 
 class TabbedSqlEditors extends React.PureComponent {
   constructor(props) {

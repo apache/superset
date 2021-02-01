@@ -280,7 +280,7 @@ class SqlEditor extends React.PureComponent {
 
   getHotkeyConfig() {
     // Get the user's OS
-    const userOS = detectOS();
+    const userOS = detectOS;
     return [
       {
         name: 'runQuery1',
