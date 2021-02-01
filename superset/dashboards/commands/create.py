@@ -22,7 +22,7 @@ from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
-from superset.commands.utils import populate_owners
+from superset.commands.utils import populate_owners, populate_roles
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.dashboards.commands.exceptions import (
     DashboardCreateFailedError,
@@ -51,7 +51,8 @@ class CreateDashboardCommand(BaseCommand):
 
     def validate(self) -> None:
         exceptions: List[ValidationError] = list()
-        owner_ids: Optional[List[int]] = self._properties.get("owners")
+        owners_ids: Optional[List[int]] = self._properties.get("owners")
+        roles_ids: Optional[List[int]] = self._properties.get("roles")
         slug: str = self._properties.get("slug", "")
 
         # Validate slug uniqueness
@@ -59,8 +60,18 @@ class CreateDashboardCommand(BaseCommand):
             exceptions.append(DashboardSlugExistsValidationError())
 
         try:
-            owners = populate_owners(self._actor, owner_ids)
+            owners = populate_owners(self._actor, owners_ids)
             self._properties["owners"] = owners
+        except ValidationError as ex:
+            exceptions.append(ex)
+        if exceptions:
+            exception = DashboardInvalidError()
+            exception.add_list(exceptions)
+            raise exception
+
+        try:
+            roles = populate_roles(roles_ids)
+            self._properties["roles"] = roles
         except ValidationError as ex:
             exceptions.append(ex)
         if exceptions:

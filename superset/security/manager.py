@@ -18,7 +18,17 @@
 """A set of constants and methods to manage permissions and security"""
 import logging
 import re
-from typing import Any, Callable, cast, List, Optional, Set, Tuple, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Callable,
+    cast,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 
 from flask import current_app, g
 from flask_appbuilder import Model
@@ -58,6 +68,7 @@ if TYPE_CHECKING:
     from superset.models.sql_lab import Query
     from superset.sql_parse import Table
     from superset.viz import BaseViz
+
 
 logger = logging.getLogger(__name__)
 
@@ -655,6 +666,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     if pvm not in role_from_permissions:
                         role_from_permissions.append(pvm)
         return role_from_permissions
+
+    def find_role_by_id(self, role_id: int) -> Any:
+        return (
+            self.get_session.query(self.role_model).filter_by(id=role_id).one_or_none()
+        )
 
     def copy_role(
         self, role_from_name: str, role_to_name: str, merge: bool = True

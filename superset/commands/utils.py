@@ -16,11 +16,12 @@
 # under the License.
 from typing import List, Optional
 
-from flask_appbuilder.security.sqla.models import User
+from flask_appbuilder.security.sqla.models import Role, User
 
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
     OwnersNotFoundValidationError,
+    RolesNotFoundValidationError,
 )
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -46,6 +47,22 @@ def populate_owners(user: User, owners_ids: Optional[List[int]] = None) -> List[
             raise OwnersNotFoundValidationError()
         owners.append(owner)
     return owners
+
+
+def populate_roles(roles_ids: Optional[List[int]] = None) -> List[Role]:
+    """
+    Helper function for commands, will fetch all roles from roles id's
+    Can raise ValidationError
+    :param roles_ids: A List of roles by id's
+    """
+    roles = list()
+    if roles_ids:
+        for role_id in roles_ids:
+            role = security_manager.find_role_by_id(role_id)
+            if not role:
+                raise RolesNotFoundValidationError()
+            roles.append(role)
+    return roles
 
 
 def get_datasource_by_id(datasource_id: int, datasource_type: str) -> BaseDatasource:
