@@ -20,8 +20,6 @@ import React from 'react';
 import Button from 'src/components/Button';
 import { Empty } from 'src/common/components';
 import { t, styled } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
-import { IconContainer } from '../utils';
 
 interface EmptyStateProps {
   tableName: string;
@@ -108,16 +106,14 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
                   window.location = mineRedirects[tableName];
                 }}
               >
-                <IconContainer>
-                  <Icon name="plus-small" />{' '}
-                  {tableName === 'SAVED_QUERIES'
-                    ? t('SQL query')
-                    : t(`${tableName
-                        .split('')
-                        .slice(0, tableName.length - 1)
-                        .join('')}
+                <i className="fa fa-plus" />
+                {tableName === 'SAVED_QUERIES'
+                  ? t('SQL query')
+                  : t(`${tableName
+                      .split('')
+                      .slice(0, tableName.length - 1)
+                      .join('')}
                     `)}
-                </IconContainer>
               </Button>
             </ButtonContainer>
           )}

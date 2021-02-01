@@ -27,13 +27,12 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import { useHistory } from 'react-router-dom';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
-import Icon from 'src/components/Icon';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';
 import Chart from 'src/types/Chart';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
-import { CardContainer, IconContainer } from '../utils';
+import { CardContainer } from '../utils';
 
 const PAGE_SIZE = 3;
 
@@ -143,10 +142,10 @@ function ChartTable({
         buttons={[
           {
             name: (
-              <IconContainer>
-                <Icon name="plus-small" />
+              <div>
+                <i className="fa fa-plus" />
                 {t('Chart')}
-              </IconContainer>
+              </div>
             ),
             buttonStyle: 'tertiary',
             onClick: () => {

@@ -101,7 +101,6 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
         {!shouldOverwriteDataset && (
           <Button
             disabled={disableSaveAndExploreBtn}
-            buttonSize="medium"
             buttonStyle="primary"
             onClick={onOk}
           >
@@ -110,12 +109,9 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
         )}
         {shouldOverwriteDataset && (
           <>
-            <Button buttonSize="medium" onClick={handleOverwriteCancel}>
-              Back
-            </Button>
+            <Button onClick={handleOverwriteCancel}>Back</Button>
             <Button
               className="md"
-              buttonSize="medium"
               buttonStyle="primary"
               onClick={handleOverwriteDataset}
               disabled={disableSaveAndExploreBtn}

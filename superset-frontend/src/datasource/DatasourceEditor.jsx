@@ -1000,7 +1000,7 @@ class DatasourceEditor extends React.PureComponent {
               <ColumnButtonWrapper>
                 <span className="m-t-10 m-r-10">
                   <Button
-                    buttonSize="sm"
+                    buttonSize="small"
                     buttonStyle="primary"
                     onClick={this.syncMetadata}
                     className="sync-from-source"

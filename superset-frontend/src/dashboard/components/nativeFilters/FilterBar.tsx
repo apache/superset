@@ -497,15 +497,15 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         <ActionButtons>
           <Button
             buttonStyle="secondary"
-            buttonSize="sm"
+            buttonSize="small"
             onClick={handleResetAll}
           >
             {t('Reset all')}
           </Button>
           <Button
             buttonStyle="primary"
-            type="submit"
-            buttonSize="sm"
+            htmlType="submit"
+            buttonSize="small"
             onClick={handleApply}
           >
             {t('Apply')}
