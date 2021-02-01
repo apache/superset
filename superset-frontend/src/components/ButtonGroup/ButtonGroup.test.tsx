@@ -16,35 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import React from 'react';
+import { ReactWrapper } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { Provider } from 'react-redux';
-import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import Button from 'src/components/Button';
-import { mockStore } from 'spec/fixtures/mockStore';
+import ButtonGroup from '.';
 
-describe('FilterBar', () => {
-  const props = {
-    filtersOpen: false,
-    toggleFiltersBar: jest.fn(),
-  };
+describe('ButtonGroup', () => {
+  let wrapper: ReactWrapper;
 
-  const wrapper = mount(
-    <Provider store={mockStore}>
-      <FilterBar {...props} />
-    </Provider>,
-  );
-
-  it('is a valid', () => {
-    expect(React.isValidElement(<FilterBar {...props} />)).toBe(true);
+  it('renders 1 button', () => {
+    expect(
+      React.isValidElement(
+        <ButtonGroup>
+          <Button>Button</Button>
+        </ButtonGroup>,
+      ),
+    ).toBe(true);
   });
-  it('has filter and collapse icons', () => {
-    expect(wrapper.find({ name: 'filter' })).toExist();
-    expect(wrapper.find({ name: 'collapse' })).toExist();
-  });
-  it('has apply and reset all buttons', () => {
-    expect(wrapper.find(Button).length).toBe(2);
-    expect(wrapper.find(Button).at(0)).toHaveProp('buttonStyle', 'secondary');
-    expect(wrapper.find(Button).at(1)).toHaveProp('buttonStyle', 'primary');
+
+  it('renders 3 buttons', () => {
+    wrapper = mount(
+      <ButtonGroup>
+        <Button>Button</Button>
+        <Button>Button</Button>
+        <Button>Button</Button>
+      </ButtonGroup>,
+    );
+
+    expect(wrapper.find(Button).length).toEqual(3);
   });
 });
