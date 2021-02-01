@@ -588,7 +588,8 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 200
         assert "can_read" in data["permissions"]
         assert "can_write" in data["permissions"]
-        assert len(data["permissions"]) == 2
+        assert "can_function_names" in data["permissions"]
+        assert len(data["permissions"]) == 3
 
     def test_get_invalid_database_table_metadata(self):
         """
