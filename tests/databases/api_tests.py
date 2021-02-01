@@ -1125,3 +1125,16 @@ class TestDatabaseApi(SupersetTestCase):
 
         db.session.delete(database)
         db.session.commit()
+
+    @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.get_function_names",)
+    def test_function_names(self, mock_get_function_names):
+        mock_get_function_names.return_value = ["AVG", "MAX", "SUM"]
+
+        self.login(username="admin")
+        uri = "api/v1/database/1/function_names/"
+
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"function_names": ["AVG", "MAX", "SUM"]}
