@@ -218,13 +218,9 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
             label: FilterTypeNames[filterType],
           }))}
           onChange={({ value }: { value: FilterType }) => {
-            if (value === formFilter?.filterType) {
-              return;
-            }
             setFilterFieldValues(form, filterId, {
               filterType: value,
               defaultValue: null,
-              defaultValueQueriesData: [],
             });
             forceUpdate();
           }}
@@ -254,7 +250,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
               height={20}
               width={220}
               formData={newFormData}
-              queriesData={formFilter.defaultValueQueriesData}
+              queriesData={formFilter?.defaultValueQueriesData}
               chartType={formFilter?.filterType}
               hooks={{
                 // @ts-ignore
