@@ -137,7 +137,6 @@ class TestDatabaseApi(SupersetTestCase):
             "explore_database_id",
             "expose_in_sqllab",
             "force_ctas_schema",
-            "function_names",
             "id",
         ]
         self.assertGreater(response["count"], 0)
