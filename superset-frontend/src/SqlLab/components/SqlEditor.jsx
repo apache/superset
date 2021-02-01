@@ -62,7 +62,7 @@ import {
   validateQuery,
 } from '../actions/sqlLab';
 
-import TemplateParamsEditorRename from './TemplateParamsEditor';
+import TemplateParamsEditor from './TemplateParamsEditor';
 import ConnectedSouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
 import ScheduleQueryButton from './ScheduleQueryButton';
@@ -514,7 +514,7 @@ class SqlEditor extends React.PureComponent {
         </Menu.Item>
         {isFeatureEnabled(FeatureFlag.ENABLE_TEMPLATE_PROCESSING) && (
           <Menu.Item>
-            <TemplateParamsEditorRename
+            <TemplateParamsEditor
               language="json"
               onChange={params => {
                 this.props.actions.queryEditorSetTemplateParams(qe, params);

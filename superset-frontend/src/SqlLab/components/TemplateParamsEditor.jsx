@@ -42,7 +42,7 @@ const StyledConfigEditor = styled(ConfigEditor)`
   }
 `;
 
-export const TemplateParamsEditor = props => {
+function TemplateParamsEditor(props) {
   const codeText = props.code || '{}';
   const [state, setState] = useState({
     codeText,
@@ -132,7 +132,7 @@ export const TemplateParamsEditor = props => {
       modalBody={renderModalBody}
     />
   );
-};
+}
 
 TemplateParamsEditor.propTypes = propTypes;
 TemplateParamsEditor.defaultProps = defaultProps;
