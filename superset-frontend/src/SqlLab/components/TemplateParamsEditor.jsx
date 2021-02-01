@@ -71,33 +71,30 @@ export const TemplateParamsEditor = props => {
     onChange(codeText);
   }, [codeText]);
 
-  const renderDoc = () => {
-    const renderDocContent = (
-      <p>
-        {t('Assign a set of parameters as')}
-        <code>JSON</code>
-        {t('below (example:')}
-        <code>{'{"my_table": "foo"}'}</code>
-        {t('), and they become available in your SQL (example:')}
-        <code>SELECT * FROM {'{{ my_table }}'} </code>
-        {t(') by using')}&nbsp;
-        <a
-          href="https://superset.apache.org/sqllab.html#templating-with-jinja"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Jinja templating
-        </a>{' '}
-        syntax.
-      </p>
-    );
-    return renderDocContent;
-  };
+  const renderDoc = (
+    <p>
+      {t('Assign a set of parameters as')}
+      <code>JSON</code>
+      {t('below (example:')}
+      <code>{'{"my_table": "foo"}'}</code>
+      {t('), and they become available in your SQL (example:')}
+      <code>SELECT * FROM {'{{ my_table }}'} </code>
+      {t(') by using')}&nbsp;
+      <a
+        href="https://superset.apache.org/sqllab.html#templating-with-jinja"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Jinja templating
+      </a>{' '}
+      syntax.
+    </p>
+  );
 
   const renderModalBody = () => {
     const renderModalBodyContent = (
       <div>
-        {renderDoc()}
+        {renderDoc}
         <StyledConfigEditor
           keywords={[]}
           mode={props.language}
