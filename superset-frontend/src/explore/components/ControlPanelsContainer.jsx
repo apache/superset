@@ -103,6 +103,7 @@ class ControlPanelsContainer extends React.Component {
         'TextControl',
         'SelectControl',
         'CheckboxControl',
+        'AnnotationLayerControl',
       ];
       Object.entries(this.props.controls).forEach(([controlName, control]) => {
         const { type, default: defaultValue } = control;

@@ -81,9 +81,6 @@ class AnnotationLayerControl extends React.PureComponent {
     if (!Object.keys(annotationError).length && validationErrors.length) {
       this.props.actions.setControlValue(name, value, []);
     }
-    if (nextProps.datasource !== this.props.datasource) {
-      this.props.onChange([]);
-    }
   }
 
   addAnnotationLayer(originalAnnotation, newAnnotation) {
