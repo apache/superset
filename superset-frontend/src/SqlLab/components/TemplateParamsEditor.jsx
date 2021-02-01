@@ -91,25 +91,22 @@ export const TemplateParamsEditor = props => {
     </p>
   );
 
-  const renderModalBody = () => {
-    const renderModalBodyContent = (
-      <div>
-        {renderDoc}
-        <StyledConfigEditor
-          keywords={[]}
-          mode={props.language}
-          minLines={25}
-          maxLines={50}
-          onChange={onChange}
-          width="100%"
-          editorProps={{ $blockScrolling: true }}
-          enableLiveAutocompletion
-          value={setState(state.codeText)}
-        />
-      </div>
-    );
-    return renderModalBodyContent;
-  };
+  const renderModalBody = (
+    <div>
+      {renderDoc}
+      <StyledConfigEditor
+        keywords={[]}
+        mode={props.language}
+        minLines={25}
+        maxLines={50}
+        onChange={onChange}
+        width="100%"
+        editorProps={{ $blockScrolling: true }}
+        enableLiveAutocompletion
+        value={state.codeText}
+      />
+    </div>
+  );
 
   const paramCount = state.parsedJSON
     ? Object.keys(state.parsedJSON).length
@@ -132,7 +129,7 @@ export const TemplateParamsEditor = props => {
           )}
         </div>
       }
-      modalBody={renderModalBody(true)}
+      modalBody={renderModalBody}
     />
   );
 };
