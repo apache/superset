@@ -171,6 +171,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     }
     openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
+        DatabaseFunctionNamesResponse,
         DatabaseRelatedObjectsResponse,
         DatabaseTestConnectionSchema,
         TableMetadataResponseSchema,
