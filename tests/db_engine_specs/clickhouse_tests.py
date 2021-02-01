@@ -45,4 +45,3 @@ class TestClickHouseDbEngineSpec(TestDbEngineSpec):
         )
         with pytest.raises(SupersetDBAPIDatabaseError) as ex:
             ClickHouseEngineSpec.execute(cursor, "SELECT col1 from table1")
-            assert str(ex) == "xpyo"
