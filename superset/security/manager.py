@@ -18,17 +18,7 @@
 """A set of constants and methods to manage permissions and security"""
 import logging
 import re
-from typing import (
-    Any,
-    Callable,
-    cast,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    TYPE_CHECKING,
-    Union,
-)
+from typing import Any, Callable, cast, List, Optional, Set, Tuple, TYPE_CHECKING, Union
 
 from flask import current_app, g
 from flask_appbuilder import Model
