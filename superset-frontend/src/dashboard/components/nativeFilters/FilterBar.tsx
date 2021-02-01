@@ -411,9 +411,13 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     [filterConfigs],
   );
 
-  const cascadeFilters = useMemo(() => buildCascadeFiltersTree(filterConfigs), [
-    filterConfigs,
-  ]);
+  const cascadeFilters = useMemo(() => {
+    const filtersWithValue = filterConfigs.map(filter => ({
+      ...filter,
+      currentValue: filterData[filter.id]?.currentState?.value,
+    }));
+    return buildCascadeFiltersTree(filtersWithValue);
+  }, [filterConfigs]);
 
   const handleExtraFormDataChange = (
     filter: Filter,

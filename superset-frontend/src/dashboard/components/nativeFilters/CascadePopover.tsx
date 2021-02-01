@@ -92,26 +92,27 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
     return () => clearTimeout(timeout);
   }, [directPathToChild, setCurrentPathToChild]);
 
-  const getActiveChildren = useCallback((filter: CascadeFilter):
-    | CascadeFilter[]
-    | null => {
-    const children = filter.cascadeChildren || [];
-    const currentValue = filterState.currentState?.value;
+  const getActiveChildren = useCallback(
+    (filter: CascadeFilter): CascadeFilter[] | null => {
+      const children = filter.cascadeChildren || [];
+      const currentValue = filterState.currentState?.value;
 
-    const activeChildren = children.flatMap(
-      childFilter => getActiveChildren(childFilter) || [],
-    );
+      const activeChildren = children.flatMap(
+        childFilter => getActiveChildren(childFilter) || [],
+      );
 
-    if (activeChildren.length > 0) {
-      return activeChildren;
-    }
+      if (activeChildren.length > 0) {
+        return activeChildren;
+      }
 
-    if (currentValue) {
-      return [filter];
-    }
+      if (currentValue) {
+        return [filter];
+      }
 
-    return null;
-  }, []);
+      return null;
+    },
+    [filterState],
+  );
 
   const getAllFilters = (filter: CascadeFilter): CascadeFilter[] => {
     const children = filter.cascadeChildren || [];
