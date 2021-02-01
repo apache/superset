@@ -218,6 +218,9 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
             label: FilterTypeNames[filterType],
           }))}
           onChange={({ value }: { value: FilterType }) => {
+            if (value === formFilter?.filterType) {
+              return;
+            }
             setFilterFieldValues(form, filterId, {
               filterType: value,
               defaultValue: null,
