@@ -42,8 +42,8 @@ const StyledConfigEditor = styled(ConfigEditor)`
   }
 `;
 
-function TemplateParamsEditor(props) {
-  const codeText = props.code || '{}';
+function TemplateParamsEditor({ code, language }) {
+  const codeText = code || '{}';
   const [state, setState] = useState({
     codeText,
     parsedJSON: null,
@@ -62,8 +62,8 @@ function TemplateParamsEditor(props) {
     }
     setState({ parsedJSON, isValid, codeText });
     const newValue = isValid ? codeText : '{}';
-    if (newValue !== props.code) {
-      props.onChange(newValue);
+    if (newValue !== code) {
+      onChange(newValue);
     }
   };
 
@@ -96,7 +96,7 @@ function TemplateParamsEditor(props) {
       {renderDoc}
       <StyledConfigEditor
         keywords={[]}
-        mode={props.language}
+        mode={language}
         minLines={25}
         maxLines={50}
         onChange={onChange}
