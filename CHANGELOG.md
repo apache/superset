@@ -18,7 +18,14 @@ under the License.
 -->
 ## Change Log
 
-### 1.0.1 (Wed Jan 27 13:53:03 2021 +0000)
+### 1.0.1 (Tue Feb 2 09:24:40 2021 +0000)
+- [#12872](https://github.com/apache/superset/pull/12872) feat(release): add github token to changelog script (#12872) (@dpgaspar)
+- [#12886](https://github.com/apache/superset/pull/12886) fix: allow users to reset their passwords (#12886) (@dpgaspar)
+- [#12877](https://github.com/apache/superset/pull/12877) fix(menu): always show settings dropdown (#12877) (@nytai)
+- [#12648](https://github.com/apache/superset/pull/12648) fix(release): add typing-extensions as dependency (#12648) (@villebro)
+- [#12861](https://github.com/apache/superset/pull/12861) fix: Presto column_type_mappings time and timestamp (#12861) (@rmgpinto)
+- [#12665](https://github.com/apache/superset/pull/12665) fix: bar chart data order (#12665) (@kstrz)
+- [#12661](https://github.com/apache/superset/pull/12661) add order by for bar charts (#12661) (@bryanck)
 - [#12664](https://github.com/apache/superset/pull/12664) docs: fix, keep old names from screenshot images to pypi releases (#12664) (@dpgaspar)
 - [#12835](https://github.com/apache/superset/pull/12835) fix(explore): add current savedMetric to dropdown (#12835) (@villebro)
 - [#12817](https://github.com/apache/superset/pull/12817) chore(explore): Metric/Column and Filter popover unexpectedly closes on scroll (#12817) (@nikolagigic)
