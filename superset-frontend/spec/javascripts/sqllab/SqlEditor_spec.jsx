@@ -33,7 +33,10 @@ import ConnectedSouthPane from 'src/SqlLab/components/SouthPane';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 import { Dropdown } from 'src/common/components';
-import { queryEditorSetSelectedText } from 'src/SqlLab/actions/sqlLab';
+import {
+  queryEditorSetFunctionNames,
+  queryEditorSetSelectedText,
+} from 'src/SqlLab/actions/sqlLab';
 
 import { initialState, queries, table } from './fixtures';
 
@@ -45,7 +48,7 @@ const store = mockStore(initialState);
 
 describe('SqlEditor', () => {
   const mockedProps = {
-    actions: { queryEditorSetSelectedText },
+    actions: { queryEditorSetFunctionNames, queryEditorSetSelectedText },
     database: {},
     queryEditorId: initialState.sqlLab.queryEditors[0].id,
     latestQuery: queries[0],
