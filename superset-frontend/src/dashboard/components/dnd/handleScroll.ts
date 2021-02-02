@@ -16,29 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { throttle } from 'lodash';
-import getDropPosition from '../../util/getDropPosition';
-import handleScroll from './handleScroll';
+let scrollTopDashboardInterval: any;
+const SCROLL_STEP = 120;
+const INTERVAL_DELAY = 50;
 
-const HOVER_THROTTLE_MS = 100;
-
-function handleHover(props, monitor, Component) {
-  // this may happen due to throttling
-  if (!Component.mounted) return;
-
-  const dropPosition = getDropPosition(monitor, Component);
-
-  handleScroll(dropPosition);
-
-  if (!dropPosition || dropPosition === 'SCROLL_TOP') {
-    Component.setState(() => ({ dropIndicator: null }));
-    return;
+export default function handleScroll(dropPosition: string) {
+  if (dropPosition === 'SCROLL_TOP') {
+    if (!scrollTopDashboardInterval) {
+      scrollTopDashboardInterval = setInterval(() => {
+        let scrollTop = document.documentElement.scrollTop - SCROLL_STEP;
+        if (scrollTop < 0) {
+          scrollTop = 0;
+        }
+        window.scroll({
+          top: scrollTop,
+          behavior: 'smooth',
+        });
+      }, INTERVAL_DELAY);
+    }
   }
-
-  Component.setState(() => ({
-    dropIndicator: dropPosition,
-  }));
+  if (dropPosition !== 'SCROLL_TOP' && scrollTopDashboardInterval) {
+    clearInterval(scrollTopDashboardInterval);
+    scrollTopDashboardInterval = null;
+  }
 }
-
-// this is called very frequently by react-dnd
-export default throttle(handleHover, HOVER_THROTTLE_MS);
