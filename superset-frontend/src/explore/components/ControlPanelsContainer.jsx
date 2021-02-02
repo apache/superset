@@ -22,13 +22,18 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert } from 'react-bootstrap';
-import { t, styled, getChartControlPanelRegistry } from '@superset-ui/core';
+import {
+  t,
+  styled,
+  getChartControlPanelRegistry,
+  DatasourceType,
+} from '@superset-ui/core';
+import { InfoTooltipWithTrigger, sections } from '@superset-ui/chart-controls';
 
 import Tabs from 'src/common/components/Tabs';
 import { Collapse } from 'src/common/components';
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { sectionsToRender } from '../controlUtils';
@@ -80,6 +85,16 @@ const ControlPanelsTabs = styled(Tabs)`
     height: 100%;
   }
 `;
+
+const isTimeSection = section =>
+  !!section.label &&
+  (sections.legacyRegularTime.label === section.label ||
+    sections.legacyTimeseriesTime.label === section.label);
+
+const hasTimeColumn = datasource =>
+  datasource?.columns?.some(c => c.is_dttm) ||
+  datasource.type === DatasourceType.druid;
+
 class ControlPanelsContainer extends React.Component {
   // trigger updates to the component when async plugins load
   static contextType = PluginContext;
@@ -227,7 +242,15 @@ class ControlPanelsContainer extends React.Component {
 
     const querySectionsToRender = [];
     const displaySectionsToRender = [];
+    const {
+      exploreState: { datasource },
+    } = this.props;
+
     this.sectionsToRender().forEach(section => {
+      // skip time section if no time column present in datasource
+      if (isTimeSection(section) && !hasTimeColumn(datasource)) {
+        return;
+      }
       // if at least one control in the section is not `renderTrigger`
       // or asks to be displayed at the Data tab
       if (
