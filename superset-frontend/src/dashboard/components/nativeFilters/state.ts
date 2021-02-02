@@ -28,6 +28,7 @@ import {
   DASHBOARD_ROOT_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import { FormInstance } from 'antd/lib/form';
+import { getChartDataRequest } from 'src/chart/chartAction';
 import {
   CurrentFilterState,
   Filter,
@@ -44,7 +45,6 @@ import {
   setFilterFieldValues,
   useForceUpdate,
 } from './utils';
-import { getChartDataRequest } from '../../../chart/chartAction';
 
 const defaultFilterConfiguration: Filter[] = [];
 

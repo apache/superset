@@ -20,6 +20,7 @@
 import { ExtraFormData, makeApi } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {
+  CurrentFilterState,
   Filter,
   FilterConfiguration,
   SelectedValues,
@@ -99,7 +100,7 @@ export interface SetExtraFormData {
   type: typeof SET_EXTRA_FORM_DATA;
   filterId: string;
   extraFormData: ExtraFormData;
-  currentState: object;
+  currentState: CurrentFilterState;
 }
 
 export function setFilterState(
@@ -123,7 +124,7 @@ export function setFilterState(
 export function setExtraFormData(
   filterId: string,
   extraFormData: ExtraFormData,
-  currentState: object,
+  currentState: CurrentFilterState,
 ): SetExtraFormData {
   return {
     type: SET_EXTRA_FORM_DATA,

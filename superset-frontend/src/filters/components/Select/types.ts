@@ -46,8 +46,8 @@ export type AntdPluginFilterSelectProps = AntdPluginFilterStylesProps & {
 };
 
 export const DEFAULT_FORM_DATA: AntdPluginFilterSelectCustomizeProps = {
-  defaultValue: [],
-  currentValue: [],
+  defaultValue: null,
+  currentValue: null,
   enableEmptyFilter: false,
   fetchPredicate: '',
   inverseSelection: false,

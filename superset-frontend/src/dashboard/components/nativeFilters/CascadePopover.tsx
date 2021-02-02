@@ -30,7 +30,7 @@ interface CascadePopoverProps {
   visible: boolean;
   directPathToChild?: string[];
   onVisibleChange: (visible: boolean) => void;
-  onExtraFormDataChange: (
+  onFilterSelectionChange: (
     filter: Filter,
     extraFormData: ExtraFormData,
     currentState: CurrentFilterState,
@@ -78,7 +78,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   filter,
   visible,
   onVisibleChange,
-  onExtraFormDataChange,
+  onFilterSelectionChange,
   directPathToChild,
 }) => {
   const [currentPathToChild, setCurrentPathToChild] = useState<string[]>();
@@ -146,7 +146,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
       <FilterControl
         filter={filter}
         directPathToChild={directPathToChild}
-        onExtraFormDataChange={onExtraFormDataChange}
+        onFilterSelectionChange={onFilterSelectionChange}
       />
     );
   }
@@ -167,7 +167,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
       key={filter.id}
       filter={filter}
       directPathToChild={visible ? currentPathToChild : undefined}
-      onExtraFormDataChange={onExtraFormDataChange}
+      onFilterSelectionChange={onFilterSelectionChange}
     />
   );
 
@@ -187,7 +187,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
           <FilterControl
             key={activeFilter.id}
             filter={activeFilter}
-            onExtraFormDataChange={onExtraFormDataChange}
+            onFilterSelectionChange={onFilterSelectionChange}
             directPathToChild={currentPathToChild}
             icon={
               <>

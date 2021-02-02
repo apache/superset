@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ExtraFormData, QueryObjectFilterClause } from '@superset-ui/core';
+import {
+  ExtraFormData,
+  JsonObject,
+  QueryObjectFilterClause,
+} from '@superset-ui/core';
 
 export enum Scoping {
   all,
@@ -103,7 +107,7 @@ export interface CascadeFilter extends Filter {
 export type FilterConfiguration = Filter[];
 
 export type SelectedValues = string[] | null;
-export type CurrentFilterState = {
+export type CurrentFilterState = JsonObject & {
   value: any;
 };
 

@@ -202,10 +202,10 @@ interface FilterProps {
   filter: Filter;
   icon?: React.ReactElement;
   directPathToChild?: string[];
-  onExtraFormDataChange: (
+  onFilterSelectionChange: (
     filter: Filter,
     extraFormData: ExtraFormData,
-    currentValue: any,
+    currentState: CurrentFilterState,
   ) => void;
 }
 
@@ -218,7 +218,7 @@ interface FiltersBarProps {
 const FilterValue: React.FC<FilterProps> = ({
   filter,
   directPathToChild,
-  onExtraFormDataChange,
+  onFilterSelectionChange,
 }) => {
   const {
     id,
@@ -285,7 +285,7 @@ const FilterValue: React.FC<FilterProps> = ({
   }: {
     extraFormData: ExtraFormData;
     currentState: CurrentFilterState;
-  }) => onExtraFormDataChange(filter, extraFormData, currentState);
+  }) => onFilterSelectionChange(filter, extraFormData, currentState);
 
   if (loading) {
     return (
@@ -323,7 +323,7 @@ const FilterValue: React.FC<FilterProps> = ({
 export const FilterControl: React.FC<FilterProps> = ({
   filter,
   icon,
-  onExtraFormDataChange,
+  onFilterSelectionChange,
   directPathToChild,
 }) => {
   const { name = '<undefined>' } = filter;
@@ -336,7 +336,7 @@ export const FilterControl: React.FC<FilterProps> = ({
       <FilterValue
         filter={filter}
         directPathToChild={directPathToChild}
-        onExtraFormDataChange={onExtraFormDataChange}
+        onFilterSelectionChange={onFilterSelectionChange}
       />
     </StyledFilterControlContainer>
   );
@@ -345,7 +345,7 @@ export const FilterControl: React.FC<FilterProps> = ({
 interface CascadeFilterControlProps {
   filter: CascadeFilter;
   directPathToChild?: string[];
-  onExtraFormDataChange: (
+  onFilterSelectionChange: (
     filter: Filter,
     extraFormData: ExtraFormData,
     currentState: CurrentFilterState,
@@ -355,7 +355,7 @@ interface CascadeFilterControlProps {
 export const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
   filter,
   directPathToChild,
-  onExtraFormDataChange,
+  onFilterSelectionChange,
 }) => (
   <>
     <StyledFilterControlBox>
@@ -363,7 +363,7 @@ export const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
       <FilterControl
         filter={filter}
         directPathToChild={directPathToChild}
-        onExtraFormDataChange={onExtraFormDataChange}
+        onFilterSelectionChange={onFilterSelectionChange}
       />
     </StyledFilterControlBox>
 
@@ -373,7 +373,7 @@ export const CascadeFilterControl: React.FC<CascadeFilterControlProps> = ({
           <CascadeFilterControl
             filter={childFilter}
             directPathToChild={directPathToChild}
-            onExtraFormDataChange={onExtraFormDataChange}
+            onFilterSelectionChange={onFilterSelectionChange}
           />
         </li>
       ))}
@@ -419,7 +419,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     return buildCascadeFiltersTree(filtersWithValue);
   }, [filterConfigs]);
 
-  const handleExtraFormDataChange = (
+  const handleFilterSelectionChange = (
     filter: Filter,
     extraFormData: ExtraFormData,
     currentState: CurrentFilterState,
@@ -511,7 +511,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
                 setVisiblePopoverId(visible ? filter.id : null)
               }
               filter={filter}
-              onExtraFormDataChange={handleExtraFormDataChange}
+              onFilterSelectionChange={handleFilterSelectionChange}
               directPathToChild={directPathToChild}
             />
           ))}
