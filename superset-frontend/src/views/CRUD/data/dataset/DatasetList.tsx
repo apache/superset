@@ -203,7 +203,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 label="physical-dataset"
                 tooltip={t('Physical dataset')}
               >
-                <Icons.DatasetPhysical/>
+                <Icons.DatasetPhysical />
               </TooltipWrapper>
             );
           }
