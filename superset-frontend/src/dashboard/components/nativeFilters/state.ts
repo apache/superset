@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setExtraFormData } from 'src/dashboard/actions/nativeFilters';
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
@@ -27,14 +27,24 @@ import {
   CHART_TYPE,
   DASHBOARD_ROOT_TYPE,
 } from 'src/dashboard/util/componentTypes';
+import { FormInstance } from 'antd/lib/form';
+import { getChartDataRequest } from 'src/chart/chartAction';
 import {
+  CurrentFilterState,
   Filter,
   FilterConfiguration,
   FilterState,
+  NativeFiltersForm,
   NativeFiltersState,
   TreeItem,
 } from './types';
-import { buildTree, mergeExtraFormData } from './utils';
+import {
+  buildTree,
+  getFormData,
+  mergeExtraFormData,
+  setFilterFieldValues,
+  useForceUpdate,
+} from './utils';
 
 const defaultFilterConfiguration: Filter[] = [];
 
@@ -68,11 +78,24 @@ export function useFilterState(id: string) {
   );
 }
 
+export function useFiltersState() {
+  return useSelector<any, FilterState>(
+    state => state.nativeFilters.filtersState,
+  );
+}
+
+export function useFilters() {
+  return useSelector<any, FilterState>(state => state.nativeFilters.filters);
+}
+
 export function useSetExtraFormData() {
   const dispatch = useDispatch();
   return useCallback(
-    (id: string, extraFormData: ExtraFormData) =>
-      dispatch(setExtraFormData(id, extraFormData)),
+    (
+      id: string,
+      extraFormData: ExtraFormData,
+      currentState: CurrentFilterState,
+    ) => dispatch(setExtraFormData(id, extraFormData, currentState)),
     [dispatch],
   );
 }
@@ -113,17 +136,70 @@ export function useFilterScopeTree(): {
 }
 
 export function useCascadingFilters(id: string) {
-  return useSelector<any, ExtraFormData>(state => {
-    const { nativeFilters }: { nativeFilters: NativeFiltersState } = state;
-    const { filters, filtersState } = nativeFilters;
-    const filter = filters[id];
-    const cascadeParentIds = filter?.cascadeParentIds ?? [];
-    let cascadedFilters = {};
-    cascadeParentIds.forEach(parentId => {
-      const parentState = filtersState[parentId] || {};
-      const { extraFormData: parentExtra = {} } = parentState;
-      cascadedFilters = mergeExtraFormData(cascadedFilters, parentExtra);
-    });
-    return cascadedFilters;
+  const nativeFilters = useSelector<any, NativeFiltersState>(
+    state => state.nativeFilters,
+  );
+  const { filters, filtersState } = nativeFilters;
+  const filter = filters[id];
+  const cascadeParentIds = filter?.cascadeParentIds ?? [];
+  let cascadedFilters = {};
+  cascadeParentIds.forEach(parentId => {
+    const parentState = filtersState[parentId] || {};
+    const { extraFormData: parentExtra = {} } = parentState;
+    cascadedFilters = mergeExtraFormData(cascadedFilters, parentExtra);
   });
+  return cascadedFilters;
 }
+
+// When some fields in form changed we need re-fetch data for Filter defaultValue
+export const useBackendFormUpdate = (
+  form: FormInstance<NativeFiltersForm>,
+  filterId: string,
+  filterToEdit?: Filter,
+) => {
+  const forceUpdate = useForceUpdate();
+  const formFilter = (form.getFieldValue('filters') || {})[filterId];
+  useEffect(() => {
+    let resolvedDefaultValue: any = null;
+    // No need to check data set change because it cascading update column
+    // So check that column exists is enough
+    if (!formFilter?.column) {
+      setFilterFieldValues(form, filterId, {
+        defaultValueQueriesData: [],
+        defaultValue: resolvedDefaultValue,
+      });
+      return;
+    }
+    const formData = getFormData({
+      datasetId: formFilter?.dataset?.value,
+      groupby: formFilter?.column,
+      allowsMultipleValues: formFilter?.allowsMultipleValues,
+      defaultValue: formFilter?.defaultValue,
+      inverseSelection: formFilter?.inverseSelection,
+    });
+    getChartDataRequest({
+      formData,
+      force: false,
+      requestParams: { dashboardId: 0 },
+    }).then(response => {
+      if (
+        filterToEdit?.filterType === formFilter?.filterType &&
+        filterToEdit?.targets[0].datasetId === formFilter?.dataset?.value &&
+        formFilter?.column === filterToEdit?.targets[0]?.column?.name &&
+        filterToEdit?.allowsMultipleValues === formFilter?.allowsMultipleValues
+      ) {
+        resolvedDefaultValue = filterToEdit?.defaultValue;
+      }
+      setFilterFieldValues(form, filterId, {
+        defaultValueQueriesData: response.result,
+        defaultValue: resolvedDefaultValue,
+      });
+      forceUpdate();
+    });
+  }, [
+    formFilter?.filterType,
+    formFilter?.column,
+    formFilter?.dataset?.value,
+    filterId,
+  ]);
+};
