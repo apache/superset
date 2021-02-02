@@ -204,6 +204,9 @@ class PropertiesModal extends React.PureComponent {
       }));
       this.onOwnersChange(initialSelectedOwners);
     }, handleErrorResponse);
+    SupersetClient.get({
+      endpoint: `/api/v1/dashboard/${this.props.dashboardId}/charts`,
+    });
   }
 
   updateFormState(name, value) {
