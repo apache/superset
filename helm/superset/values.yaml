@@ -42,7 +42,7 @@ envFromSecret: '{{ template "superset.fullname" . }}-env'
 extraEnv: {}
 
 extraConfigs: {}
-  # datasources-init.yaml: | 
+  # datasources-init.yaml: |
   #     databases:
   #     - allow_csv_upload: true
   #       allow_ctas: true
