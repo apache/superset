@@ -18,7 +18,9 @@
  */
 /* eslint-env browser */
 import React from 'react';
-import { FormControl, FormGroup, Radio } from 'react-bootstrap';
+import { FormControl, FormGroup } from 'react-bootstrap';
+import { RadioChangeEvent } from 'src/common/components';
+import { Radio } from 'src/common/components/Radio';
 import Button from 'src/components/Button';
 import { t, CategoricalColorNamespace, JsonResponse } from '@superset-ui/core';
 
@@ -101,7 +103,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
     }));
   }
 
-  handleSaveTypeChange(event: React.FormEvent<Radio>) {
+  handleSaveTypeChange(event: RadioChangeEvent) {
     this.setState({
       saveType: (event.target as HTMLInputElement).value as SaveType,
     });
