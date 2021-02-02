@@ -402,7 +402,7 @@ export function FilterConfigModal({
         return {
           id,
           name: formInputs.name,
-          type: 'text',
+          filterType: formInputs.filterType,
           // for now there will only ever be one target
           targets: [
             {
@@ -497,6 +497,7 @@ export function FilterConfigModal({
       visible={isOpen}
       title={t('Filter configuration and scoping')}
       width="55%"
+      destroyOnClose
       onCancel={handleCancel}
       onOk={onOk}
       centered
@@ -506,6 +507,7 @@ export function FilterConfigModal({
       <ErrorBoundary>
         <StyledModalBody>
           <StyledForm
+            preserve={false}
             form={form}
             onValuesChange={(changes, values: NativeFiltersForm) => {
               if (
