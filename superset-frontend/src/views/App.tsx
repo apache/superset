@@ -24,7 +24,7 @@ import { Provider as ReduxProvider } from 'react-redux';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { initFeatureFlags } from 'src/featureFlags';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { ThemeProvider } from '@superset-ui/core';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Menu from 'src/components/Menu/Menu';
@@ -47,6 +47,7 @@ import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
 import Welcome from './CRUD/welcome/Welcome';
 import ToastPresenter from '../messageToasts/containers/ToastPresenter';
+import { theme } from '../preamble';
 
 setupApp();
 setupPlugins();
@@ -68,7 +69,7 @@ const store = createStore(
 
 const App = () => (
   <ReduxProvider store={store}>
-    <ThemeProvider theme={supersetTheme}>
+    <ThemeProvider theme={theme}>
       <FlashProvider common={common}>
         <Router>
           <DynamicPluginProvider>
