@@ -133,6 +133,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # arrange
         dashboard_to_access = create_dashboard_to_db(published=False)
         grant_access_to_dashboard(dashboard_to_access, "Public")
+        self.logout()
         # act
         response = self.get_dashboard_view_response(dashboard_to_access)
 
@@ -296,6 +297,8 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         for dash in published_dashboards + not_published_dashboards:
             grant_access_to_dashboard(dash, "Public")
 
+        self.logout()
+
         # act
         response = self.get_dashboards_list_response()
 
@@ -380,6 +383,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         self,
     ):
         create_dashboard_to_db(published=True)
+        self.logout()
 
         # act
         response = self.get_dashboards_api_response()
@@ -402,6 +406,8 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         for dash in published_dashboards + not_published_dashboards:
             grant_access_to_dashboard(dash, "Public")
+
+        self.logout()
 
         # act
         response = self.get_dashboards_api_response()

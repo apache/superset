@@ -15,13 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 import time
+from functools import wraps
 from typing import Any, Callable, Dict, Iterator, Union
 
 from contextlib2 import contextmanager
-from functools import wraps
-from superset.utils import core as utils
+from flask import Response
+
+from superset import is_feature_enabled
 from superset.exceptions import SupersetSecurityException
 from superset.stats_logger import BaseStatsLogger
+from superset.utils import core as utils
 from superset.utils.dates import now_as_float
 
 
@@ -73,21 +76,29 @@ def debounce(duration: Union[float, int] = 0.1) -> Callable[..., Any]:
     return decorate
 
 
-def on_security_exception(self, ex):
+def on_security_exception(self, ex) -> Response:
     return self.response(403, **{"message": utils.error_msg_from_exception(ex)})
 
 
-def check_permissions( on_error: Callable[..., Any] = on_security_exception) -> Callable[..., Any]:
-
+def check_permissions(
+    on_error: Callable[..., Any] = on_security_exception
+) -> Callable[..., Any]:
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         def wrapper(self, *args: Any, **kwargs: Any) -> Callable:
-            try:
-                from superset import security_manager
-                security_manager.can_access_dashboard_by_id(kwargs['dashboard_id_or_slug'])
-            except SupersetSecurityException as ex:
-                return on_error(self, ex)
-            except Exception as e:
-                raise e
+
+            if is_feature_enabled("DASHBOARD_RBAC"):
+                try:
+                    from superset import security_manager
+                    from superset.models.dashboard import get_dashboard
+
+                    dashboard = get_dashboard(str(kwargs["dashboard_id_or_slug"]))
+
+                    security_manager.raise_for_dashboard_access(dashboard)
+
+                except SupersetSecurityException as ex:
+                    return on_error(self, ex)
+                except Exception as e:
+                    raise e
 
             return f(self, *args, **kwargs)
 

@@ -1786,8 +1786,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @expose("/dashboard/<dashboard_id_or_slug>/")
     @event_logger.log_this_with_extra_payload
-    @check_permissions(on_error=lambda self, ex: Response(
-                           utils.error_msg_from_exception(ex), status=403))
+    @check_permissions(
+        on_error=lambda self, ex: Response(
+            utils.error_msg_from_exception(ex), status=403
+        )
+    )
     def dashboard(  # pylint: disable=too-many-locals
         self,
         dashboard_id_or_slug: str,
@@ -1807,7 +1810,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 datasource = ConnectorRegistry.get_datasource(
                     datasource_type=datasource["type"],
                     datasource_id=datasource["id"],
-                    session=session,
+                    session=db.session(),
                 )
                 if datasource and not security_manager.can_access_datasource(
                     datasource=datasource

@@ -45,6 +45,7 @@ from superset import app, ConnectorRegistry, db, is_feature_enabled, security_ma
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.druid.models import DruidColumn, DruidMetric
 from superset.connectors.sqla.models import SqlMetric, TableColumn
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import cache_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
@@ -408,6 +409,7 @@ if is_feature_enabled("DASHBOARD_CACHE"):
     sqla.event.listen(DruidMetric, "after_update", clear_dashboard_cache)
     sqla.event.listen(DruidColumn, "after_update", clear_dashboard_cache)
 
+
 def get_dashboard(id_or_slug: str) -> Dashboard:
     session = db.session()
     qry = session.query(Dashboard)
@@ -417,3 +419,19 @@ def get_dashboard(id_or_slug: str) -> Dashboard:
         qry = qry.filter_by(slug=id_or_slug)
 
     return qry.one_or_none()
+
+
+def get_dashboard_access_error_object(
+    dashboard: Dashboard,  # pylint: disable=invalid-name
+) -> SupersetError:
+    """
+        Return the error object for the denied Superset dashboard.
+        :param dashboard: The denied Superset dashboard
+        :returns: The error object
+        """
+    return SupersetError(
+        error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
+        message=f"This dashboard requires to have one of the access roles assigned it",
+        level=ErrorLevel.ERROR,
+        extra={"dashboard": dashboard.id,},
+    )
