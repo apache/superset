@@ -67,6 +67,7 @@ describe('asyncEvent middleware', () => {
   const config = {
     GLOBAL_ASYNC_QUERIES_TRANSPORT: 'polling',
     GLOBAL_ASYNC_QUERIES_POLLING_DELAY: 500,
+    GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL: '',
   };
   let featureEnabledStub: any;
 

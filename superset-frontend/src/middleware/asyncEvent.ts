@@ -29,9 +29,9 @@ export type AsyncEvent = {
   id: string;
   channel_id: string;
   job_id: string;
-  user_id: string;
+  user_id?: string;
   status: string;
-  errors: SupersetError[];
+  errors?: SupersetError[];
   result_url: string;
 };
 
@@ -39,6 +39,7 @@ type AsyncEventOptions = {
   config: {
     GLOBAL_ASYNC_QUERIES_TRANSPORT: string;
     GLOBAL_ASYNC_QUERIES_POLLING_DELAY: number;
+    GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL: string;
   };
   getPendingComponents: (state: any) => any[];
   successAction: (componentId: number, componentData: any) => { type: string };
@@ -53,8 +54,8 @@ type CachedDataResponse = {
 };
 
 const initAsyncEvents = (options: AsyncEventOptions) => {
-  // TODO: implement websocket support
   const TRANSPORT_POLLING = 'polling';
+  const TRANSPORT_WS = 'ws';
   const {
     config,
     getPendingComponents,
@@ -74,7 +75,7 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
     };
     const LOCALSTORAGE_KEY = 'last_async_event_id';
     const POLLING_URL = '/api/v1/async_event/';
-    let lastReceivedEventId: string | null;
+    let lastReceivedEventId: string | null = null;
 
     try {
       lastReceivedEventId = localStorage.getItem(LOCALSTORAGE_KEY);
@@ -118,8 +119,15 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
       }
     };
 
-    const processEvents = async () => {
-      let queuedComponents = getPendingComponents(store.getState());
+    const componentsByJobId = (queuedComponents: any[], asyncJobId: string) => (
+      queuedComponents.reduce((acc, item) => {
+        acc[item.asyncJobId] = item;
+        return acc;
+      }, {})[asyncJobId]
+    );
+
+    const loadEvents = async () => {
+      const queuedComponents = getPendingComponents(store.getState());
       const eventArgs = lastReceivedEventId
         ? { last_id: lastReceivedEventId }
         : {};
@@ -127,55 +135,7 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
       if (queuedComponents && queuedComponents.length) {
         try {
           const { result: events } = await fetchEvents(eventArgs);
-          // refetch queuedComponents due to race condition where results are available
-          // before component state is updated with asyncJobId
-          queuedComponents = getPendingComponents(store.getState());
-          if (events && events.length) {
-            const componentsByJobId = queuedComponents.reduce((acc, item) => {
-              acc[item.asyncJobId] = item;
-              return acc;
-            }, {});
-            const fetchDataEvents: Promise<CachedDataResponse>[] = [];
-            events.forEach((asyncEvent: AsyncEvent) => {
-              const component = componentsByJobId[asyncEvent.job_id];
-              if (!component) {
-                console.warn(
-                  'Component not found for job_id',
-                  asyncEvent.job_id,
-                );
-                return setLastId(asyncEvent);
-              }
-              const componentId = component.id;
-              switch (asyncEvent.status) {
-                case JOB_STATUS.DONE:
-                  fetchDataEvents.push(
-                    fetchCachedData(asyncEvent, componentId),
-                  );
-                  break;
-                case JOB_STATUS.ERROR:
-                  store.dispatch(
-                    errorAction(componentId, [parseErrorJson(asyncEvent)]),
-                  );
-                  break;
-                default:
-                  console.warn('Received event with status', asyncEvent.status);
-              }
-
-              return setLastId(asyncEvent);
-            });
-
-            const fetchResults = await Promise.all(fetchDataEvents);
-            fetchResults.forEach(result => {
-              const data = Array.isArray(result.data)
-                ? result.data
-                : [result.data];
-              if (result.status === 'success') {
-                store.dispatch(successAction(result.componentId, data));
-              } else {
-                store.dispatch(errorAction(result.componentId, data));
-              }
-            });
-          }
+          if (events && events.length) await processEvents(events);
         } catch (err) {
           console.warn(err);
         }
@@ -183,14 +143,109 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
 
       if (processEventsCallback) processEventsCallback(events);
 
-      return setTimeout(processEvents, polling_delay);
+      return setTimeout(loadEvents, polling_delay);
     };
 
-    if (
-      isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES) &&
-      transport === TRANSPORT_POLLING
-    ) {
-      processEvents();
+    const processEvents = async (events: AsyncEvent[]) => {
+      // refetch queuedComponents due to race condition where results are 
+      // available before component state is updated with asyncJobId
+      const queuedComponents = getPendingComponents(store.getState());
+      const fetchDataEvents: Promise<CachedDataResponse>[] = [];
+      events.forEach((asyncEvent: AsyncEvent) => {
+        const component = componentsByJobId(queuedComponents, asyncEvent.job_id);
+        if (!component) {
+          console.warn(
+            'component not found for job_id',
+            asyncEvent.job_id,
+          );
+          return setLastId(asyncEvent);
+        }
+        const componentId = component.id;
+        switch (asyncEvent.status) {
+          case JOB_STATUS.DONE:
+            fetchDataEvents.push(
+              fetchCachedData(asyncEvent, componentId),
+            );
+            break;
+          case JOB_STATUS.ERROR:
+            store.dispatch(
+              errorAction(componentId, [parseErrorJson(asyncEvent)]),
+            );
+            break;
+          default:
+            console.warn('received event with status', asyncEvent.status);
+        }
+
+        return setLastId(asyncEvent);
+      });
+
+      const fetchResults = await Promise.all(fetchDataEvents);
+      fetchResults.forEach(result => {
+        const data = Array.isArray(result.data)
+          ? result.data
+          : [result.data];
+        if (result.status === 'success') {
+          store.dispatch(successAction(result.componentId, data));
+        } else {
+          store.dispatch(errorAction(result.componentId, data));
+        }
+      });
+    }
+
+    const wsConnectMaxRetries: number = 6;
+    const wsConnectErrorDelay: number = 2500;
+    let wsConnectRetries: number = 0;
+    let wsConnectTimeout: any;
+    let ws: WebSocket;
+
+    const wsConnect = (): void => {
+      let url = config.GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL;
+      if (lastReceivedEventId) url += `?last_id=${lastReceivedEventId}`;
+      ws = new WebSocket(url);
+
+      ws.addEventListener('open', (event) => {
+        console.log('WebSocket connected');
+        clearTimeout(wsConnectTimeout);
+        wsConnectRetries = 0;
+      });
+
+      ws.addEventListener('close', (event) => {
+        console.log('The WebSocket connection has been closed');
+        wsConnectTimeout = setTimeout(() => {
+          if (++wsConnectRetries <= wsConnectMaxRetries) {
+            wsConnect();
+          } else {
+            console.warn("WebSocket not available, falling back to async polling");
+            loadEvents();
+          }
+        }, wsConnectErrorDelay);
+      });
+
+      ws.addEventListener('error', (event) => {
+        console.log('WebSocket error', event);
+        // https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/readyState
+        if(ws.readyState < 2) ws.close();
+      });
+
+      ws.addEventListener('message', async (event) => {
+        let events: AsyncEvent[] = [];
+        try {
+          events = [JSON.parse(event.data)];
+          await processEvents(events);
+        } catch(err) {
+          console.warn(err);
+        }
+        if (processEventsCallback) processEventsCallback(events);
+      });
+    }
+
+    if (isFeatureEnabled(FeatureFlag.GLOBAL_ASYNC_QUERIES)) {
+      if (transport === TRANSPORT_POLLING) {
+        loadEvents();
+      }
+      if (transport === TRANSPORT_WS) {
+        wsConnect();
+      }
     }
 
     return action => next(action);
