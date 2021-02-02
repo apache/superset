@@ -181,8 +181,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
         """
-        Each engine can implement and converge it's own specific exceptions into
-        SQLAlchemy DBAPI exceptions
+        Each engine can implement and converge its own specific exceptions into
+        Superset DBAPI exceptions
 
         Note: On python 3.9 this method can be changed to a classmethod property
         without the need of implementing a metaclass type
