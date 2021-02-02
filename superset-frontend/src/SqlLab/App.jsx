@@ -21,7 +21,7 @@ import { createStore, compose, applyMiddleware } from 'redux';
 import { Provider } from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
 import { hot } from 'react-hot-loader/root';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { ThemeProvider } from '@superset-ui/core';
 import {
   initFeatureFlags,
   isFeatureEnabled,
@@ -41,6 +41,7 @@ import setupApp from '../setup/setupApp';
 import './main.less';
 import '../../stylesheets/reactable-pagination.less';
 import '../components/FilterableTable/FilterableTableStyles.less';
+import { theme } from '../preamble';
 
 setupApp();
 
@@ -109,7 +110,7 @@ if (sqlLabMenu) {
 
 const Application = () => (
   <Provider store={store}>
-    <ThemeProvider theme={supersetTheme}>
+    <ThemeProvider theme={theme}>
       <App />
     </ThemeProvider>
   </Provider>
