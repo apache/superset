@@ -20,13 +20,8 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import { Moment } from 'moment';
 import { isInteger } from 'lodash';
-import {
-  Col,
-  DatePicker,
-  InputNumber,
-  Radio,
-  Row,
-} from 'src/common/components';
+import { Col, DatePicker, InputNumber, Row } from 'src/common/components';
+import { Radio } from 'src/common/components/Radio';
 import { Select } from 'src/components/Select';
 import {
   SINCE_GRAIN_OPTIONS,

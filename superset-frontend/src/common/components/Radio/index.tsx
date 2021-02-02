@@ -21,20 +21,26 @@ import { Radio as BaseRadio } from 'src/common/components';
 
 const StyledRadio = styled(BaseRadio)`
   .ant-radio-inner {
-    width: 18px;
-    height: 18px;
+    top: -1px;
+    left: 2px;
+    width: ${({ theme }) => theme.gridUnit * 4}px;
+    height: ${({ theme }) => theme.gridUnit * 4}px;
     border-width: 2px;
-    border-color: ${({ theme }) => theme.colors.grayscale.base};
+    border-color: ${({ theme }) => theme.colors.grayscale.light2};
   }
 
   .ant-radio.ant-radio-checked {
     .ant-radio-inner {
-      background-color: ${({ theme }) => theme.colors.primary.dark1};
-      border-color: ${({ theme }) => theme.colors.primary.dark1};
+      border-width: ${({ theme }) => theme.gridUnit + 1}px;
+      border-color: ${({ theme }) => theme.colors.primary.base};
     }
 
     .ant-radio-inner::after {
       background-color: ${({ theme }) => theme.colors.grayscale.light5};
+      top: 0;
+      left: 0;
+      width: ${({ theme }) => theme.gridUnit + 2}px;
+      height: ${({ theme }) => theme.gridUnit + 2}px;
     }
   }
 

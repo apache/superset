@@ -18,9 +18,10 @@
  */
 /* eslint camelcase: 0 */
 import React from 'react';
-import { Alert, FormControl, FormGroup, Radio } from 'react-bootstrap';
+import { Alert, FormControl, FormGroup } from 'react-bootstrap';
 import { JsonObject, t, styled } from '@superset-ui/core';
 import ReactMarkdown from 'react-markdown';
+import { Radio } from 'src/common/components/Radio';
 import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
@@ -220,7 +221,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           <FormGroup data-test="radio-group">
             <Radio
               id="overwrite-radio"
-              inline
               disabled={!(this.props.can_overwrite && this.props.slice)}
               checked={this.state.action === 'overwrite'}
               onChange={() => this.changeAction('overwrite')}
@@ -231,7 +231,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             <Radio
               id="saveas-radio"
               data-test="saveas-radio"
-              inline
               checked={this.state.action === 'saveas'}
               onChange={() => this.changeAction('saveas')}
             >
