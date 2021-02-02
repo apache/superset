@@ -20,16 +20,16 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Label from 'src/components/Label';
 
-import { STATE_BSSTYLE_MAP } from '../constants';
+import { STATE_TYPE_MAP } from '../constants';
 
 const propTypes = {
   query: PropTypes.object.isRequired,
 };
 
 export default function QueryStateLabel({ query }) {
-  const bsStyle = STATE_BSSTYLE_MAP[query.state];
+  const type = STATE_TYPE_MAP[query.state];
   return (
-    <Label className="m-r-3" bsStyle={bsStyle}>
+    <Label className="m-r-3" type={type}>
       {query.state}
     </Label>
   );

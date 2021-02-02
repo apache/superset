@@ -34,12 +34,12 @@ const propTypes = {
   name: PropTypes.string.isRequired,
   onChange: PropTypes.func,
   value: PropTypes.string.isRequired,
-  labelBsStyle: PropTypes.string,
+  labelType: PropTypes.string,
 };
 
 const defaultProps = {
   onChange: () => {},
-  labelBsStyle: 'default',
+  labelType: 'default',
 };
 
 const registry = getChartMetadataRegistry();
@@ -162,7 +162,7 @@ const VizTypeControl = props => {
     );
   };
 
-  const { value, labelBsStyle } = props;
+  const { value, labelType } = props;
   const filterString = filter.toLowerCase();
 
   const filteredTypes = DEFAULT_ORDER.filter(type => registry.has(type))
@@ -201,7 +201,11 @@ const VizTypeControl = props => {
         title={t('Click to change visualization type')}
       >
         <>
-          <Label onClick={toggleModal} bsStyle={labelBsStyle}>
+          <Label
+            onClick={toggleModal}
+            type={labelType}
+            data-test="visualization-type"
+          >
             {registry.has(value) ? registry.get(value).name : `${value}`}
           </Label>
           <VizSupportValidation vizType={value} />
