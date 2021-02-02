@@ -24,7 +24,7 @@ import simplejson as json
 from flask_babel import gettext as _
 from pandas import DataFrame
 
-from superset import app, is_feature_enabled
+from superset import app
 from superset.exceptions import QueryObjectValidationError
 from superset.typing import Metric
 from superset.utils import pandas_postprocessing
@@ -114,7 +114,6 @@ class QueryObject:
         columns = columns or []
         groupby = groupby or []
         extras = extras or {}
-        is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
         self.annotation_layers = [
             layer
             for layer in annotation_layers
@@ -169,16 +168,7 @@ class QueryObject:
             self.extras["time_range_endpoints"] = get_time_range_endpoints(form_data={})
 
         self.columns = columns
-        if is_sip_38:
-            if groupby:
-                logger.warning(
-                    "The field `groupby` is deprecated. Viz plugins should "
-                    "pass all selectables via the `columns` field"
-                )
-                self.columns += groupby
-        else:
-            self.groupby = groupby or []
-
+        self.groupby = groupby or []
         self.orderby = orderby or []
 
         # rename deprecated fields
@@ -254,6 +244,7 @@ class QueryObject:
     def to_dict(self) -> Dict[str, Any]:
         query_object_dict = {
             "granularity": self.granularity,
+            "groupby": self.groupby,
             "from_dttm": self.from_dttm,
             "to_dttm": self.to_dttm,
             "is_timeseries": self.is_timeseries,
@@ -268,9 +259,6 @@ class QueryObject:
             "columns": self.columns,
             "orderby": self.orderby,
         }
-        if not is_feature_enabled("SIP_38_VIZ_REARCHITECTURE"):
-            query_object_dict["groupby"] = self.groupby
-
         return query_object_dict
 
     def cache_key(self, **extra: Any) -> str:
