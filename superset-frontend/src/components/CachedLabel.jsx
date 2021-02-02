@@ -67,12 +67,12 @@ class CacheLabel extends React.PureComponent {
   }
 
   render() {
-    const labelStyle = this.state.hovered ? 'primary' : 'default';
+    const labelType = this.state.hovered ? 'primary' : 'default';
     return (
       <TooltipWrapper tooltip={this.state.tooltipContent} label="cache-desc">
         <Label
           className={`${this.props.className}`}
-          bsStyle={labelStyle}
+          type={labelType}
           onClick={this.props.onClick}
           onMouseOver={this.mouseOver.bind(this)}
           onMouseOut={this.mouseOut.bind(this)}
