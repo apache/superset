@@ -22,14 +22,19 @@ import Popover from 'src/common/components/Popover';
 import Icon from 'src/components/Icon';
 import { Pill } from 'src/dashboard/components/FiltersBadge/Styles';
 import { CascadeFilterControl, FilterControl } from './FilterBar';
-import { Filter, CascadeFilter } from './types';
+import { Filter, CascadeFilter, CurrentFilterState } from './types';
+import { useFilterState } from './state';
 
 interface CascadePopoverProps {
   filter: CascadeFilter;
   visible: boolean;
   directPathToChild?: string[];
   onVisibleChange: (visible: boolean) => void;
-  onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
+  onFilterSelectionChange: (
+    filter: Filter,
+    extraFormData: ExtraFormData,
+    currentState: CurrentFilterState,
+  ) => void;
 }
 
 const StyledTitleBox = styled.div`
@@ -73,10 +78,11 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   filter,
   visible,
   onVisibleChange,
-  onExtraFormDataChange,
+  onFilterSelectionChange,
   directPathToChild,
 }) => {
   const [currentPathToChild, setCurrentPathToChild] = useState<string[]>();
+  const filterState = useFilterState(filter.id);
 
   useEffect(() => {
     setCurrentPathToChild(directPathToChild);
@@ -86,26 +92,27 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
     return () => clearTimeout(timeout);
   }, [directPathToChild, setCurrentPathToChild]);
 
-  const getActiveChildren = useCallback((filter: CascadeFilter):
-    | CascadeFilter[]
-    | null => {
-    const children = filter.cascadeChildren || [];
-    const currentValue = filter.currentValue || [];
+  const getActiveChildren = useCallback(
+    (filter: CascadeFilter): CascadeFilter[] | null => {
+      const children = filter.cascadeChildren || [];
+      const currentValue = filterState.currentState?.value;
 
-    const activeChildren = children.flatMap(
-      childFilter => getActiveChildren(childFilter) || [],
-    );
+      const activeChildren = children.flatMap(
+        childFilter => getActiveChildren(childFilter) || [],
+      );
 
-    if (activeChildren.length > 0) {
-      return activeChildren;
-    }
+      if (activeChildren.length > 0) {
+        return activeChildren;
+      }
 
-    if (currentValue.length > 0) {
-      return [filter];
-    }
+      if (currentValue) {
+        return [filter];
+      }
 
-    return null;
-  }, []);
+      return null;
+    },
+    [filterState],
+  );
 
   const getAllFilters = (filter: CascadeFilter): CascadeFilter[] => {
     const children = filter.cascadeChildren || [];
@@ -139,7 +146,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
       <FilterControl
         filter={filter}
         directPathToChild={directPathToChild}
-        onExtraFormDataChange={onExtraFormDataChange}
+        onFilterSelectionChange={onFilterSelectionChange}
       />
     );
   }
@@ -160,7 +167,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
       key={filter.id}
       filter={filter}
       directPathToChild={visible ? currentPathToChild : undefined}
-      onExtraFormDataChange={onExtraFormDataChange}
+      onFilterSelectionChange={onFilterSelectionChange}
     />
   );
 
@@ -180,7 +187,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
           <FilterControl
             key={activeFilter.id}
             filter={activeFilter}
-            onExtraFormDataChange={onExtraFormDataChange}
+            onFilterSelectionChange={onFilterSelectionChange}
             directPathToChild={currentPathToChild}
             icon={
               <>
