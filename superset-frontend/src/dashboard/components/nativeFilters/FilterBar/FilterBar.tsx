@@ -24,11 +24,8 @@ import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
 import { CurrentFilterState } from 'src/dashboard/reducers/types';
 import FilterConfigurationLink from './FilterConfigurationLink';
-import {
-  useFilterConfiguration,
-  useFilters,
-  useSetExtraFormData,
-} from './state';
+import { useFilters, useSetExtraFormData } from './state';
+import { useFilterConfiguration } from '../state';
 import { Filter } from '../types';
 import { buildCascadeFiltersTree, mapParentFiltersToChildren } from './utils';
 import CascadePopover from './CascadePopover';

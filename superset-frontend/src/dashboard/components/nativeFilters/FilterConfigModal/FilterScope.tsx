@@ -25,11 +25,12 @@ import {
   Typography,
   Space,
   FormInstance,
-} from '../../../common/components';
-import { Filter, NativeFiltersForm, Scoping } from './types';
+} from 'src/common/components';
+import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import { NativeFiltersForm, Scoping } from './types';
 import ScopingTree from './ScopingTree';
-import { DASHBOARD_ROOT_ID } from '../../util/constants';
 import { isScopingAll, setFilterFieldValues, useForceUpdate } from './utils';
+import { Filter } from '../types';
 
 type FilterScopeProps = {
   filterId: string;

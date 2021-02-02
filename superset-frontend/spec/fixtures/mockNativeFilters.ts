@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  FilterType,
-  NativeFiltersState,
-} from 'src/dashboard/components/nativeFilters/types';
+import { FilterType } from 'src/dashboard/components/nativeFilters/types';
+import { NativeFiltersState } from 'src/dashboard/reducers/types';
 
 export const nativeFilters: NativeFiltersState = {
   filters: {

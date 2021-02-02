@@ -28,7 +28,7 @@ import Button from 'src/components/Button';
 import { LineEditableTabs } from 'src/common/components/Tabs';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import ErrorBoundary from 'src/components/ErrorBoundary';
-import { useFilterConfigMap, useFilterConfiguration } from './state';
+import { useFilterConfigMap, useFilterConfiguration } from '../state';
 import FilterConfigForm from './FilterConfigForm';
 import { FilterConfiguration, NativeFiltersForm } from './types';
 import { CancelConfirmationAlert } from './CancelConfirmationAlert';

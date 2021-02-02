@@ -18,10 +18,7 @@
  */
 import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
 import { TIME_FILTER_MAP } from '../../../visualizations/FilterBox/FilterBox';
-import {
-  NativeFiltersState,
-  FilterState as NativeFilterState,
-} from '../nativeFilters/types';
+import { NativeFiltersState, NativeFilterState } from '../../reducers/types';
 
 export enum IndicatorStatus {
   Unset = 'UNSET',

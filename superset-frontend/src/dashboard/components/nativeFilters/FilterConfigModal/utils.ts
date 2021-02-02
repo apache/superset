@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ExtraFormData, QueryFormData, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { Charts, Layout, LayoutItem } from 'src/dashboard/types';
 import {
   CHART_TYPE,
@@ -24,12 +24,10 @@ import {
   TAB_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import { FormInstance } from 'antd/lib/form';
-import React, { RefObject } from 'react';
+import React from 'react';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { NativeFiltersState } from 'src/dashboard/reducers/types';
 import { TreeItem } from './types';
-import { Filter, FilterType, Scope } from '../types';
-import { mergeExtraFormData } from '../utils';
+import { FilterType, Scope } from '../types';
 
 export const useForceUpdate = () => {
   const [, updateState] = React.useState({});
@@ -155,18 +153,6 @@ export const findFilterScope = (
   };
 };
 
-export function getExtraFormData(
-  nativeFilters: NativeFiltersState,
-): ExtraFormData {
-  let extraFormData: ExtraFormData = {};
-  Object.keys(nativeFilters.filters).forEach(key => {
-    const filterState = nativeFilters.filtersState[key] || {};
-    const { extraFormData: newExtra = {} } = filterState;
-    extraFormData = mergeExtraFormData(extraFormData, newExtra);
-  });
-  return extraFormData;
-}
-
 export const FilterTypeNames = {
   [FilterType.filter_select]: t('Select'),
   [FilterType.filter_range]: t('Range'),
@@ -191,42 +177,6 @@ export const setFilterFieldValues = (
 
 export const isScopingAll = (scope: Scope) =>
   !scope || (scope.rootPath[0] === DASHBOARD_ROOT_ID && !scope.excluded.length);
-
-export const getFormData = ({
-  datasetId = 18,
-  cascadingFilters = {},
-  groupby,
-  allowsMultipleValues = false,
-  defaultValue,
-  currentValue,
-  inverseSelection,
-  inputRef,
-}: Partial<Filter> & {
-  datasetId?: number;
-  inputRef?: RefObject<HTMLInputElement>;
-  cascadingFilters?: object;
-  groupby: string;
-}): Partial<QueryFormData> => ({
-  adhoc_filters: [],
-  datasource: `${datasetId}__table`,
-  extra_filters: [],
-  extra_form_data: cascadingFilters,
-  granularity_sqla: 'ds',
-  groupby: [groupby],
-  inverseSelection,
-  metrics: ['count'],
-  multiSelect: allowsMultipleValues,
-  row_limit: 10000,
-  showSearch: true,
-  currentValue,
-  time_range: 'No filter',
-  time_range_endpoints: ['inclusive', 'exclusive'],
-  url_params: {},
-  viz_type: 'filter_select',
-  // TODO: need process per filter type after will be decided approach
-  defaultValue,
-  inputRef,
-});
 
 type AppendFormData = {
   filters: {

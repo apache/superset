@@ -17,7 +17,7 @@
  * under the License.
  */
 import { QueryObjectFilterClause } from '@superset-ui/core';
-import { Column, Filter, FilterType, Scope } from '../types';
+import { Column, FilterType, Scope } from '../types';
 
 export enum Scoping {
   all,
@@ -50,8 +50,6 @@ interface NativeFiltersFormItem {
 export interface NativeFiltersForm {
   filters: Record<string, NativeFiltersFormItem>;
 }
-
-export type FilterConfiguration = Filter[];
 
 export type SelectedValues = string[] | null;
 

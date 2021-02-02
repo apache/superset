@@ -28,10 +28,10 @@ import { areObjectsEqual } from 'src/reduxUtils';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
+import { CurrentFilterState } from 'src/dashboard/reducers/types';
 import { FilterProps } from './types';
 import { getFormData } from '../utils';
 import { useCascadingFilters, useFilterState } from './state';
-import { CurrentFilterState } from '../../../reducers/types';
 
 const StyledLoadingBox = styled.div`
   position: relative;

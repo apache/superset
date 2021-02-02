@@ -58,3 +58,5 @@ export interface Filter {
   // when multiple targets are supported, change this to Target[]
   targets: [Target];
 }
+
+export type FilterConfiguration = Filter[];

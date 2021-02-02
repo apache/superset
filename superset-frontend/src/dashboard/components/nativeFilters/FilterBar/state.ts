@@ -17,46 +17,21 @@
  * under the License.
  */
 import { useDispatch, useSelector } from 'react-redux';
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { ExtraFormData } from '@superset-ui/core';
 import { setExtraFormData } from 'src/dashboard/actions/nativeFilters';
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
 import {
   CurrentFilterState,
-  FilterState,
+  NativeFilterState,
   NativeFiltersState,
 } from 'src/dashboard/reducers/types';
 import { mergeExtraFormData } from '../utils';
-import { Filter, FilterConfiguration } from '../FilterConfigModal/types';
-
-const defaultFilterConfiguration: Filter[] = [];
-
-export function useFilterConfiguration() {
-  return useSelector<any, FilterConfiguration>(
-    state =>
-      state.dashboardInfo?.metadata?.filter_configuration ||
-      defaultFilterConfiguration,
-  );
-}
-
-/**
- * returns the dashboard's filter configuration,
- * converted into a map of id -> filter
- */
-export function useFilterConfigMap() {
-  const filterConfig = useFilterConfiguration();
-  return useMemo(
-    () =>
-      filterConfig.reduce((acc: Record<string, Filter>, filter: Filter) => {
-        acc[filter.id] = filter;
-        return acc;
-      }, {} as Record<string, Filter>),
-    [filterConfig],
-  );
-}
 
 export function useFilters() {
-  return useSelector<any, FilterState>(state => state.nativeFilters.filters);
+  return useSelector<any, NativeFilterState>(
+    state => state.nativeFilters.filters,
+  );
 }
 
 export function useSetExtraFormData() {
@@ -88,7 +63,7 @@ export function useCascadingFilters(id: string) {
 }
 
 export function useFilterState(id: string) {
-  return useSelector<any, FilterState>(
+  return useSelector<any, NativeFilterState>(
     state => state.nativeFilters.filtersState[id] || getInitialFilterState(id),
   );
 }

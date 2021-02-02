@@ -16,7 +16,46 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ExtraFormData, QueryObject } from '@superset-ui/core';
+import { ExtraFormData, QueryFormData, QueryObject } from '@superset-ui/core';
+import { RefObject } from 'react';
+import { Filter } from './types';
+import { NativeFiltersState } from '../../reducers/types';
+
+export const getFormData = ({
+  datasetId = 18,
+  cascadingFilters = {},
+  groupby,
+  allowsMultipleValues = false,
+  defaultValue,
+  currentValue,
+  inverseSelection,
+  inputRef,
+}: Partial<Filter> & {
+  datasetId?: number;
+  inputRef?: RefObject<HTMLInputElement>;
+  cascadingFilters?: object;
+  groupby: string;
+}): Partial<QueryFormData> => ({
+  adhoc_filters: [],
+  datasource: `${datasetId}__table`,
+  extra_filters: [],
+  extra_form_data: cascadingFilters,
+  granularity_sqla: 'ds',
+  groupby: [groupby],
+  inverseSelection,
+  metrics: ['count'],
+  multiSelect: allowsMultipleValues,
+  row_limit: 10000,
+  showSearch: true,
+  currentValue,
+  time_range: 'No filter',
+  time_range_endpoints: ['inclusive', 'exclusive'],
+  url_params: {},
+  viz_type: 'filter_select',
+  // TODO: need process per filter type after will be decided approach
+  defaultValue,
+  inputRef,
+});
 
 export function mergeExtraFormData(
   originalExtra: ExtraFormData,
@@ -52,4 +91,16 @@ export function mergeExtraFormData(
     },
     append_form_data: appendFormData,
   };
+}
+
+export function getExtraFormData(
+  nativeFilters: NativeFiltersState,
+): ExtraFormData {
+  let extraFormData: ExtraFormData = {};
+  Object.keys(nativeFilters.filters).forEach(key => {
+    const filterState = nativeFilters.filtersState[key] || {};
+    const { extraFormData: newExtra = {} } = filterState;
+    extraFormData = mergeExtraFormData(extraFormData, newExtra);
+  });
+  return extraFormData;
 }
