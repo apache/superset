@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { Collapse, Well } from 'react-bootstrap';
 import ButtonGroup from 'src/components/ButtonGroup';
-import shortid from 'shortid';
 import { t, styled } from '@superset-ui/core';
 
 import Fade from 'src/common/components/Fade';
@@ -52,59 +51,40 @@ const StyledSpan = styled.span`
   cursor: pointer;
 `;
 
-class TableElement extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      sortColumns: false,
-      expanded: true,
-      hovered: false,
-    };
-    this.removeFromStore = this.removeFromStore.bind(this);
-    this.toggleSortColumns = this.toggleSortColumns.bind(this);
-    this.removeTable = this.removeTable.bind(this);
-    this.setHover = this.setHover.bind(this);
-  }
+function TableElement({ actions, table, timeout }) {
+  const [state, setState] = useState({
+    sortColumns: false,
+    expanded: true,
+    hovered: false,
+  });
 
-  setHover(hovered) {
-    this.setState({ hovered });
-  }
+  const setHover = hovered => {
+    setState({ hovered });
+  };
 
-  popSelectStar() {
-    const qe = {
-      id: shortid.generate(),
-      title: this.props.table.name,
-      dbId: this.props.table.dbId,
-      autorun: true,
-      sql: this.props.table.selectStar,
-    };
-    this.props.actions.addQueryEditor(qe);
-  }
-
-  toggleTable(e) {
+  const toggleTable = e => {
     e.preventDefault();
-    if (this.props.table.expanded) {
-      this.props.actions.collapseTable(this.props.table);
+    if (table.expanded) {
+      actions.collapseTable(table);
     } else {
-      this.props.actions.expandTable(this.props.table);
+      actions.expandTable(table);
     }
-  }
+  };
 
-  removeTable() {
-    this.setState({ expanded: false });
-    this.props.actions.removeDataPreview(this.props.table);
-  }
+  const removeTable = () => {
+    setState({ expanded: false });
+    actions.removeDataPreview(table);
+  };
 
-  toggleSortColumns() {
-    this.setState(prevState => ({ sortColumns: !prevState.sortColumns }));
-  }
+  const toggleSortColumns = () => {
+    setState(prevState => ({ sortColumns: !prevState.sortColumns }));
+  };
 
-  removeFromStore() {
-    this.props.actions.removeTable(this.props.table);
-  }
+  const removeFromStore = () => {
+    actions.removeTable(table);
+  };
 
-  renderWell() {
-    const { table } = this.props;
+  const renderWell = () => {
     let header;
     if (table.partitions) {
       let partitionQuery;
@@ -137,11 +117,10 @@ class TableElement extends React.PureComponent {
       );
     }
     return header;
-  }
+  };
 
-  renderControls() {
+  const renderControls = () => {
     let keyLink;
-    const { table } = this.props;
     if (table.indexes && table.indexes.length > 0) {
       keyLink = (
         <ModalTrigger
@@ -167,12 +146,12 @@ class TableElement extends React.PureComponent {
         {keyLink}
         <IconTooltip
           className={
-            `fa fa-sort-${!this.state.sortColumns ? 'alpha' : 'numeric'}-asc ` +
+            `fa fa-sort-${!state.sortColumns ? 'alpha' : 'numeric'}-asc ` +
             'pull-left sort-cols m-l-2 pointer'
           }
-          onClick={this.toggleSortColumns}
+          onClick={toggleSortColumns}
           tooltip={
-            !this.state.sortColumns
+            !state.sortColumns
               ? t('Sort columns alphabetically')
               : t('Original table column order')
           }
@@ -198,65 +177,61 @@ class TableElement extends React.PureComponent {
         )}
         <IconTooltip
           className="fa fa-times table-remove pull-left m-l-2 pointer"
-          onClick={this.removeTable}
+          onClick={removeTable}
           tooltip={t('Remove table preview')}
         />
       </ButtonGroup>
     );
-  }
+  };
 
-  renderHeader() {
-    const { table } = this.props;
-    return (
-      <div className="clearfix header-container">
-        <Tooltip
-          id="copy-to-clipboard-tooltip"
-          placement="top"
-          style={{ cursor: 'pointer' }}
-          title={table.name}
-          trigger={['hover']}
+  const header = (
+    <div className="clearfix header-container">
+      <Tooltip
+        id="copy-to-clipboard-tooltip"
+        placement="top"
+        style={{ cursor: 'pointer' }}
+        title={table.name}
+        trigger={['hover']}
+      >
+        <StyledSpan
+          data-test="collapse"
+          className="table-name"
+          onClick={e => {
+            toggleTable(e);
+          }}
         >
-          <StyledSpan
-            data-test="collapse"
-            className="table-name"
-            onClick={e => {
-              this.toggleTable(e);
-            }}
-          >
-            <strong>{table.name}</strong>
-          </StyledSpan>
-        </Tooltip>
+          <strong>{table.name}</strong>
+        </StyledSpan>
+      </Tooltip>
 
-        <div className="pull-right header-right-side">
-          {table.isMetadataLoading || table.isExtraMetadataLoading ? (
-            <Loading position="inline" />
-          ) : (
-            <Fade hovered={this.state.hovered}>{this.renderControls()}</Fade>
-          )}
-          <i
-            role="button"
-            aria-label="Toggle table"
-            tabIndex={0}
-            onClick={e => {
-              this.toggleTable(e);
-            }}
-            className={
-              'text-primary pointer m-l-10 ' +
-              'fa fa-lg ' +
-              `fa-angle-${table.expanded ? 'up' : 'down'}`
-            }
-          />
-        </div>
+      <div className="pull-right header-right-side">
+        {table.isMetadataLoading || table.isExtraMetadataLoading ? (
+          <Loading position="inline" />
+        ) : (
+          <Fade hovered={state.hovered}>{renderControls()}</Fade>
+        )}
+        <i
+          role="button"
+          aria-label="Toggle table"
+          tabIndex={0}
+          onClick={e => {
+            toggleTable(e);
+          }}
+          className={
+            'text-primary pointer m-l-10 ' +
+            'fa fa-lg ' +
+            `fa-angle-${table.expanded ? 'up' : 'down'}`
+          }
+        />
       </div>
-    );
-  }
+    </div>
+  );
 
-  renderBody() {
-    const { table } = this.props;
+  const renderBody = () => {
     let cols;
     if (table.columns) {
       cols = table.columns.slice();
-      if (this.state.sortColumns) {
+      if (state.sortColumns) {
         cols.sort((a, b) => {
           const colA = a.name.toUpperCase();
           const colB = b.name.toUpperCase();
@@ -271,9 +246,9 @@ class TableElement extends React.PureComponent {
       }
     }
     const metadata = (
-      <Collapse in={table.expanded} timeout={this.props.timeout}>
+      <Collapse in={table.expanded} timeout={timeout}>
         <div>
-          {this.renderWell()}
+          {renderWell()}
           <div className="table-columns m-t-5">
             {cols &&
               cols.map(col => <ColumnElement column={col} key={col.name} />)}
@@ -282,26 +257,20 @@ class TableElement extends React.PureComponent {
       </Collapse>
     );
     return metadata;
-  }
+  };
 
-  render() {
-    return (
-      <Collapse
-        in={this.state.expanded}
-        timeout={this.props.timeout}
-        onExited={this.removeFromStore}
+  return (
+    <Collapse in={state.expanded} timeout={timeout} onExited={removeFromStore}>
+      <div
+        className="TableElement table-schema m-b-10"
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
       >
-        <div
-          className="TableElement table-schema m-b-10"
-          onMouseEnter={() => this.setHover(true)}
-          onMouseLeave={() => this.setHover(false)}
-        >
-          {this.renderHeader()}
-          <div>{this.renderBody()}</div>
-        </div>
-      </Collapse>
-    );
-  }
+        {header}
+        <div>{renderBody()}</div>
+      </div>
+    </Collapse>
+  );
 }
 TableElement.propTypes = propTypes;
 TableElement.defaultProps = defaultProps;
