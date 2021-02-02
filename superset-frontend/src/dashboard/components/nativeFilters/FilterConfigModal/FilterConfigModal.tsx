@@ -30,8 +30,9 @@ import { usePrevious } from 'src/common/hooks/usePrevious';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { useFilterConfigMap, useFilterConfiguration } from '../state';
 import FilterConfigForm from './FilterConfigForm';
-import { FilterConfiguration, NativeFiltersForm } from './types';
+import { NativeFiltersForm } from './types';
 import { CancelConfirmationAlert } from './CancelConfirmationAlert';
+import { FilterConfiguration } from '../types';
 
 // how long to show the "undo" button when removing a filter
 const REMOVAL_DELAY_SECS = 5;

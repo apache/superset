@@ -18,8 +18,7 @@
  */
 import { useSelector } from 'react-redux';
 import { useMemo } from 'react';
-import { Filter } from './types';
-import { FilterConfiguration } from './FilterConfigModal/types';
+import { Filter, FilterConfiguration } from './types';
 
 const defaultFilterConfiguration: Filter[] = [];
 

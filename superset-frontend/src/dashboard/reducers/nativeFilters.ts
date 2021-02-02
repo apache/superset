@@ -22,7 +22,7 @@ import {
   SET_FILTER_CONFIG_COMPLETE,
 } from 'src/dashboard/actions/nativeFilters';
 import { NativeFiltersState, NativeFilterState } from './types';
-import { FilterConfiguration } from '../components/nativeFilters/FilterConfigModal/types';
+import { FilterConfiguration } from '../components/nativeFilters/types';
 
 export function getInitialFilterState(id: string): NativeFilterState {
   return {
