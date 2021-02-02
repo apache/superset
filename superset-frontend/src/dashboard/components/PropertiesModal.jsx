@@ -205,7 +205,7 @@ class PropertiesModal extends React.PureComponent {
       this.onOwnersChange(initialSelectedOwners);
     }, handleErrorResponse);
     SupersetClient.get({
-      endpoint: `/api/v1/dashboards/${this.props.dashboardId}/charts`,
+      endpoint: `/api/v1/dashboard/${this.props.dashboardId}/charts`,
     });
   }
 
