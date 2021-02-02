@@ -41,7 +41,22 @@ envFromSecret: '{{ template "superset.fullname" . }}-env'
 ##
 extraEnv: {}
 
+extraConfigs: {}
+  # datasources-init.yaml: | 
+  #     databases:
+  #     - allow_csv_upload: true
+  #       allow_ctas: true
+  #       allow_cvas: true
+  #       database_name: example-db
+  #       extra: "{\r\n    \"metadata_params\": {},\r\n    \"engine_params\": {},\r\n    \"\
+  #         metadata_cache_timeout\": {},\r\n    \"schemas_allowed_for_csv_upload\": []\r\n\
+  #         }"
+  #       sqlalchemy_uri: example://example-db.local
+  #       tables: []
+
 configMountPath: "/app/pythonpath"
+
+extraConfigMountPath: "/app/configs"
 
 image:
   repository: apache/superset
