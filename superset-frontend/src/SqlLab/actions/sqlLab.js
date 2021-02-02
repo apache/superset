@@ -1317,7 +1317,7 @@ export function queryEditorSetFunctionNames(queryEditor, dbId) {
       )
       .catch(() =>
         dispatch(
-          addDangerToast(t('An error occurred while fetching function names')),
+          addDangerToast(t('An error occurred while fetching function names.')),
         ),
       );
   };
