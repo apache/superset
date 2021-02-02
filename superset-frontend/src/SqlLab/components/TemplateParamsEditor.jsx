@@ -74,13 +74,12 @@ function TemplateParamsEditor({ code, language }) {
   const modalBody = (
     <div>
       <p>
-        'Assign a set of parameters as'
+        Assign a set of parameters as
         <code>JSON</code>
-        'below (example:'
+        below (example:
         <code>{'{"my_table": "foo"}'}</code>
-        '), and they become available in your SQL (example:'
-        <code>SELECT * FROM {'{{ my_table }}'} </code>
-        ') by using'&nbsp;
+        ), and they become available in your SQL (example:
+        <code>SELECT * FROM {'{{ my_table }}'} </code>) by using&nbsp;
         <a
           href="https://superset.apache.org/sqllab.html#templating-with-jinja"
           target="_blank"
