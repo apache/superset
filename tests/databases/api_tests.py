@@ -1128,6 +1128,10 @@ class TestDatabaseApi(SupersetTestCase):
 
     @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.get_function_names",)
     def test_function_names(self, mock_get_function_names):
+        example_db = get_example_database()
+        if example_db.backend in {"hive", "presto"}:
+            return
+
         mock_get_function_names.return_value = ["AVG", "MAX", "SUM"]
 
         self.login(username="admin")
