@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './shared.helper';
+import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './constants';
 
 describe('Visualization > Line', () => {
   const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };

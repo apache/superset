@@ -20,8 +20,14 @@
 // Constants for visualization tests
 // ***********************************************
 
+export enum DatasourceId {
+  engergy_use = '1__table',
+  world_population = '2__table',
+  birth_names = '3__table',
+}
+
 export const FORM_DATA_DEFAULTS = {
-  datasource: '3__table',
+  datasource: DatasourceId.birth_names,
   granularity_sqla: 'ds',
   time_grain_sqla: null,
   time_range: '100+years+ago+:+now',
@@ -34,7 +40,7 @@ export const FORM_DATA_DEFAULTS = {
 };
 
 export const HEALTH_POP_FORM_DATA_DEFAULTS = {
-  datasource: '2__table',
+  datasource: DatasourceId.world_population,
   granularity_sqla: 'ds',
   time_grain_sqla: 'P1D',
   time_range: '1960-01-01+:+2014-01-02',

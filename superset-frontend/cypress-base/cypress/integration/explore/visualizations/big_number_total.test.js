@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
+import { FORM_DATA_DEFAULTS, NUM_METRIC } from './constants';
 
 describe('Visualization > Big Number Total', () => {
   const BIG_NUMBER_DEFAULTS = {

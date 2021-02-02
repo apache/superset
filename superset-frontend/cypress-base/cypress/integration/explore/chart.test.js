@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
+import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/constants';
 
 describe('No Results', () => {
   beforeEach(() => {

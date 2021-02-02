@@ -23,7 +23,7 @@ import {
   MAX_DS,
   MAX_STATE,
   SIMPLE_FILTER,
-} from './shared.helper';
+} from './constants';
 
 // Table
 describe('Visualization > Table', () => {

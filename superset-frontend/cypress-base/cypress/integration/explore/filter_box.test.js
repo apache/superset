@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FORM_DATA_DEFAULTS } from './visualizations/shared.helper';
+import { FORM_DATA_DEFAULTS } from './visualizations/constants';
 
 describe('Edit FilterBox Chart', () => {
   const VIZ_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'filter_box' };

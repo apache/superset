@@ -20,7 +20,6 @@
 // Tests for setting controls in the UI
 // ***********************************************
 import { interceptChart } from 'cypress/utils';
-import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 
 describe('Datasource control', () => {
   const newMetricName = `abc${Date.now()}`;
@@ -119,119 +118,6 @@ describe('VizType control', () => {
       waitAlias: '@lineChartData',
       chartSelector: 'svg',
     });
-  });
-});
-
-describe('Time range filter', () => {
-  beforeEach(() => {
-    cy.login();
-    interceptChart({ legacy: true }).as('chartData');
-  });
-
-  it('Advanced time_range params', () => {
-    const formData = {
-      ...FORM_DATA_DEFAULTS,
-      viz_type: 'line',
-      time_range: '100 years ago : now',
-      metrics: [NUM_METRIC],
-    };
-
-    cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@chartData' });
-
-    cy.get('[data-test=time-range-trigger]')
-      .click()
-      .then(() => {
-        cy.get('.footer').find('button').its('length').should('eq', 2);
-        cy.get('.ant-popover-content').within(() => {
-          cy.get('input[value="100 years ago"]');
-          cy.get('input[value="now"]');
-        });
-        cy.get('[data-test=cancel-button]').click();
-        cy.get('.ant-popover').should('not.be.visible');
-      });
-  });
-
-  it('Common time_range params', () => {
-    const formData = {
-      ...FORM_DATA_DEFAULTS,
-      viz_type: 'line',
-      metrics: [NUM_METRIC],
-      time_range: 'Last year',
-    };
-
-    cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@chartData' });
-
-    cy.get('[data-test=time-range-trigger]')
-      .click()
-      .then(() => {
-        cy.get('.ant-radio-group').children().its('length').should('eq', 5);
-        cy.get('.ant-radio-checked + span').contains('last year');
-        cy.get('[data-test=cancel-button]').click();
-      });
-  });
-
-  it('Previous time_range params', () => {
-    const formData = {
-      ...FORM_DATA_DEFAULTS,
-      viz_type: 'line',
-      metrics: [NUM_METRIC],
-      time_range: 'previous calendar month',
-    };
-
-    cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@chartData' });
-
-    cy.get('[data-test=time-range-trigger]')
-      .click()
-      .then(() => {
-        cy.get('.ant-radio-group').children().its('length').should('eq', 3);
-        cy.get('.ant-radio-checked + span').contains('previous calendar month');
-        cy.get('[data-test=cancel-button]').click();
-      });
-  });
-
-  it('Custom time_range params', () => {
-    const formData = {
-      ...FORM_DATA_DEFAULTS,
-      viz_type: 'line',
-      metrics: [NUM_METRIC],
-      time_range: 'DATEADD(DATETIME("today"), -7, day) : today',
-    };
-
-    cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@chartData' });
-
-    cy.get('[data-test=time-range-trigger]')
-      .click()
-      .then(() => {
-        cy.get('[data-test=custom-frame]').then(() => {
-          cy.get('.ant-input-number-input-wrap > input')
-            .invoke('attr', 'value')
-            .should('eq', '7');
-        });
-        cy.get('[data-test=cancel-button]').click();
-      });
-  });
-
-  it('No filter time_range params', () => {
-    const formData = {
-      ...FORM_DATA_DEFAULTS,
-      viz_type: 'line',
-      metrics: [NUM_METRIC],
-      time_range: 'No filter',
-    };
-
-    cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@chartData' });
-
-    cy.get('[data-test=time-range-trigger]')
-      .click()
-      .then(() => {
-        cy.get('[data-test=no-filter]');
-      });
-    cy.get('[data-test=cancel-button]').click();
   });
 });
 

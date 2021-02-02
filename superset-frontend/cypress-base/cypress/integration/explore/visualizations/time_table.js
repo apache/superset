@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
+import { FORM_DATA_DEFAULTS, NUM_METRIC } from './constants';
 
 describe('Visualization > Time TableViz', () => {
   const VIZ_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'time_table' };
