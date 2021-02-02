@@ -882,7 +882,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         rv = self.client.post(uri, json=dashboard_data)
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
-        expected_response = {"message": {"roles": ["Some roles do not exis"]}}
+        expected_response = {"message": {"roles": ["Some roles do not exist"]}}
         self.assertEqual(response, expected_response)
 
     def test_create_dashboard_validate_json(self):
