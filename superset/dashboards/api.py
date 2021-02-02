@@ -210,7 +210,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             self.include_route_methods = self.include_route_methods | {"thumbnail"}
         super().__init__()
 
-    @expose("/<pk>/charts/", methods=["GET"])
+    @expose("/<pk>/charts", methods=["GET"])
     @protect()
     @safe
     @statsd_metrics
@@ -254,7 +254,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        DashboardDAO.get_charts_for_dashboard(pk)
+        charts = DashboardDAO.get_charts_for_dashboard(pk)
+        return self.response(200, id=pk, response=charts)
 
     @expose("/", methods=["POST"])
     @protect()
