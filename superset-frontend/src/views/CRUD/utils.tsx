@@ -302,10 +302,3 @@ export const CardStyles = styled.div`
     text-decoration: none;
   }
 `;
-
-export const IconContainer = styled.div`
-  svg {
-    vertical-align: -7px;
-    color: ${({ theme }) => theme.colors.primary.dark1};
-  }
-`;

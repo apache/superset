@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ExtraFormData, QueryObjectFilterClause } from '@superset-ui/core';
+import {
+  ExtraFormData,
+  JsonObject,
+  QueryObjectFilterClause,
+} from '@superset-ui/core';
 
 export enum Scoping {
   all,
@@ -29,12 +33,13 @@ export type AntCallback = (value1?: any, value2?: any) => void;
 interface NativeFiltersFormItem {
   scope: Scope;
   name: string;
+  filterType: FilterType;
   dataset: {
     value: number;
     label: string;
   };
   column: string;
-  defaultValue: string;
+  defaultValue: any;
   parentFilter: {
     value: string;
     label: string;
@@ -69,7 +74,10 @@ export interface Target {
   // clarityColumns?: Column[];
 }
 
-export type FilterType = 'text' | 'date';
+export enum FilterType {
+  filter_select = 'filter_select',
+  filter_range = 'filter_range',
+}
 
 /**
  * This is a filter configuration object, stored in the dashboard's json metadata.
@@ -78,15 +86,15 @@ export type FilterType = 'text' | 'date';
 export interface Filter {
   allowsMultipleValues: boolean;
   cascadeParentIds: string[];
-  defaultValue: string | null;
-  currentValue?: (string | number | boolean)[] | null;
+  defaultValue: any;
+  currentValue?: any;
   inverseSelection: boolean;
   isInstant: boolean;
   isRequired: boolean;
   id: string; // randomly generated at filter creation
   name: string;
   scope: Scope;
-  type: FilterType;
+  filterType: FilterType;
   // for now there will only ever be one target
   // when multiple targets are supported, change this to Target[]
   targets: [Target];
@@ -99,11 +107,15 @@ export interface CascadeFilter extends Filter {
 export type FilterConfiguration = Filter[];
 
 export type SelectedValues = string[] | null;
+export type CurrentFilterState = JsonObject & {
+  value: any;
+};
 
 /** Current state of the filter, stored in `nativeFilters` in redux */
 export type FilterState = {
   id: string; // ties this filter state to the config object
   extraFormData?: ExtraFormData;
+  currentState?: CurrentFilterState;
 };
 
 export type AllFilterState = {

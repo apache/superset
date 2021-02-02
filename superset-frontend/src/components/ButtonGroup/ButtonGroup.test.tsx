@@ -16,22 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import React from 'react';
-import PropTypes from 'prop-types';
-import Label from 'src/components/Label';
+import { ReactWrapper } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
+import Button from 'src/components/Button';
+import ButtonGroup from '.';
 
-import { STATE_TYPE_MAP } from '../constants';
+describe('ButtonGroup', () => {
+  let wrapper: ReactWrapper;
 
-const propTypes = {
-  query: PropTypes.object.isRequired,
-};
+  it('renders 1 button', () => {
+    expect(
+      React.isValidElement(
+        <ButtonGroup>
+          <Button>Button</Button>
+        </ButtonGroup>,
+      ),
+    ).toBe(true);
+  });
 
-export default function QueryStateLabel({ query }) {
-  const type = STATE_TYPE_MAP[query.state];
-  return (
-    <Label className="m-r-3" type={type}>
-      {query.state}
-    </Label>
-  );
-}
-QueryStateLabel.propTypes = propTypes;
+  it('renders 3 buttons', () => {
+    wrapper = mount(
+      <ButtonGroup>
+        <Button>Button</Button>
+        <Button>Button</Button>
+        <Button>Button</Button>
+      </ButtonGroup>,
+    );
+
+    expect(wrapper.find(Button).length).toEqual(3);
+  });
+});

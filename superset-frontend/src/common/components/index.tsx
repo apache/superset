@@ -52,6 +52,7 @@ export {
   Select,
   Skeleton,
   Switch,
+  Tag,
   Tabs,
   Tooltip,
   Input as AntdInput,

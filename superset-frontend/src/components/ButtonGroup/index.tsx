@@ -17,21 +17,37 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
-import Label from 'src/components/Label';
 
-import { STATE_TYPE_MAP } from '../constants';
+export interface ButtonGroupProps {
+  className?: string;
+  children?: React.ReactNode;
+}
 
-const propTypes = {
-  query: PropTypes.object.isRequired,
-};
-
-export default function QueryStateLabel({ query }) {
-  const type = STATE_TYPE_MAP[query.state];
+export default function ButtonGroup(props: ButtonGroupProps) {
+  const { className, children } = props;
   return (
-    <Label className="m-r-3" type={type}>
-      {query.state}
-    </Label>
+    <div
+      className={className}
+      css={{
+        '& :nth-child(1):not(:nth-last-child(1))': {
+          borderTopRightRadius: 0,
+          borderBottomRightRadius: 0,
+          borderRight: 0,
+          marginLeft: 0,
+        },
+        '& :not(:nth-child(1)):not(:nth-last-child(1))': {
+          borderRadius: 0,
+          borderRight: 0,
+          marginLeft: 0,
+        },
+        '& :nth-last-child(1):not(:nth-child(1))': {
+          borderTopLeftRadius: 0,
+          borderBottomLeftRadius: 0,
+          marginLeft: 0,
+        },
+      }}
+    >
+      {children}
+    </div>
   );
 }
-QueryStateLabel.propTypes = propTypes;
