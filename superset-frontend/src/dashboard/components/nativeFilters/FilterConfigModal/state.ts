@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { setExtraFormData } from 'src/dashboard/actions/nativeFilters';
-import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
-import { ExtraFormData, t } from '@superset-ui/core';
+import { useEffect, useMemo } from 'react';
+import { useSelector } from 'react-redux';
+import { t } from '@superset-ui/core';
 import { Charts, Layout, RootState } from 'src/dashboard/types';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import {
@@ -29,74 +27,19 @@ import {
 } from 'src/dashboard/util/componentTypes';
 import { FormInstance } from 'antd/lib/form';
 import { getChartDataRequest } from 'src/chart/chartAction';
-import {
-  CurrentFilterState,
-  Filter,
-  FilterConfiguration,
-  FilterState,
-  NativeFiltersForm,
-  NativeFiltersState,
-  TreeItem,
-} from './types';
+import { FilterState } from 'src/dashboard/reducers/types';
+import { NativeFiltersForm, TreeItem } from './types';
 import {
   buildTree,
   getFormData,
-  mergeExtraFormData,
   setFilterFieldValues,
   useForceUpdate,
 } from './utils';
-
-const defaultFilterConfiguration: Filter[] = [];
-
-export function useFilterConfiguration() {
-  return useSelector<any, FilterConfiguration>(
-    state =>
-      state.dashboardInfo?.metadata?.filter_configuration ||
-      defaultFilterConfiguration,
-  );
-}
-
-/**
- * returns the dashboard's filter configuration,
- * converted into a map of id -> filter
- */
-export function useFilterConfigMap() {
-  const filterConfig = useFilterConfiguration();
-  return useMemo(
-    () =>
-      filterConfig.reduce((acc: Record<string, Filter>, filter: Filter) => {
-        acc[filter.id] = filter;
-        return acc;
-      }, {} as Record<string, Filter>),
-    [filterConfig],
-  );
-}
-
-export function useFilterState(id: string) {
-  return useSelector<any, FilterState>(
-    state => state.nativeFilters.filtersState[id] || getInitialFilterState(id),
-  );
-}
+import { Filter } from '../types';
 
 export function useFiltersState() {
   return useSelector<any, FilterState>(
     state => state.nativeFilters.filtersState,
-  );
-}
-
-export function useFilters() {
-  return useSelector<any, FilterState>(state => state.nativeFilters.filters);
-}
-
-export function useSetExtraFormData() {
-  const dispatch = useDispatch();
-  return useCallback(
-    (
-      id: string,
-      extraFormData: ExtraFormData,
-      currentState: CurrentFilterState,
-    ) => dispatch(setExtraFormData(id, extraFormData, currentState)),
-    [dispatch],
   );
 }
 
@@ -133,22 +76,6 @@ export function useFilterScopeTree(): {
   }, [charts, layout, tree]);
 
   return { treeData: [tree], layout };
-}
-
-export function useCascadingFilters(id: string) {
-  const nativeFilters = useSelector<any, NativeFiltersState>(
-    state => state.nativeFilters,
-  );
-  const { filters, filtersState } = nativeFilters;
-  const filter = filters[id];
-  const cascadeParentIds = filter?.cascadeParentIds ?? [];
-  let cascadedFilters = {};
-  cascadeParentIds.forEach(parentId => {
-    const parentState = filtersState[parentId] || {};
-    const { extraFormData: parentExtra = {} } = parentState;
-    cascadedFilters = mergeExtraFormData(cascadedFilters, parentExtra);
-  });
-  return cascadedFilters;
 }
 
 // When some fields in form changed we need re-fetch data for Filter defaultValue

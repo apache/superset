@@ -19,13 +19,13 @@
 
 import { ExtraFormData, makeApi } from '@superset-ui/core';
 import { Dispatch } from 'redux';
+import { Filter } from 'src/dashboard/components/nativeFilters/types';
+import { dashboardInfoChanged } from './dashboardInfo';
+import { CurrentFilterState } from '../reducers/types';
 import {
-  CurrentFilterState,
-  Filter,
   FilterConfiguration,
   SelectedValues,
-} from 'src/dashboard/components/nativeFilters/types';
-import { dashboardInfoChanged } from './dashboardInfo';
+} from '../components/nativeFilters/FilterConfigModal/types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
 export interface SetFilterConfigBegin {
