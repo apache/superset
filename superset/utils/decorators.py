@@ -18,7 +18,9 @@ import time
 from typing import Any, Callable, Dict, Iterator, Union
 
 from contextlib2 import contextmanager
-
+from functools import wraps
+from superset.utils import core as utils
+from superset.exceptions import SupersetSecurityException
 from superset.stats_logger import BaseStatsLogger
 from superset.utils.dates import now_as_float
 
@@ -69,3 +71,26 @@ def debounce(duration: Union[float, int] = 0.1) -> Callable[..., Any]:
         return wrapped
 
     return decorate
+
+
+def on_security_exception(self, ex):
+    return self.response(403, **{"message": utils.error_msg_from_exception(ex)})
+
+
+def check_permissions( on_error: Callable[..., Any] = on_security_exception) -> Callable[..., Any]:
+
+    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
+        def wrapper(self, *args: Any, **kwargs: Any) -> Callable:
+            try:
+                from superset import security_manager
+                security_manager.can_access_dashboard_by_id(kwargs['dashboard_id_or_slug'])
+            except SupersetSecurityException as ex:
+                return on_error(self, ex)
+            except Exception as e:
+                raise e
+
+            return f(self, *args, **kwargs)
+
+        return wrapper
+
+    return decorator

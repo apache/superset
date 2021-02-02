@@ -50,6 +50,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import DatasourceName, RowLevelSecurityFilterType
 
+
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
@@ -416,6 +417,54 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
 
         return True
+
+    def can_access_dashboard_by_id(self, dashboard_id_or_slug: Union[str, int]):
+        from superset.models.dashboard import get_dashboard
+        dashboard = get_dashboard(
+            str(dashboard_id_or_slug))
+        return self.can_access_by_dashboard(dashboard)
+
+    def can_access_by_dashboard(self, dashboard: "Dashboard") -> None:
+        from superset.views.base import is_user_admin
+        from superset.views.utils import is_owner
+        is_admin = is_user_admin()
+        if not (is_admin or is_owner(dashboard, g.user) or (
+            dashboard.published and self.__can_access_by_dashboard(dashboard))):
+            raise SupersetSecurityException(self.get_dashboard_access_error_object(dashboard))
+
+    def __can_access_by_dashboard(self, dashboard: "Dashboard") -> bool:
+        from superset.views.base import  get_user_roles
+        return any(dashboard_role.id in
+                   [user_role.id for user_role in get_user_roles()]
+                   for dashboard_role in dashboard.roles)
+
+    def get_dashboard_access_error_object(
+        self,  # pylint: disable=invalid-name
+        dashboard: "Dashboard"
+    ) -> SupersetError:
+        """
+        Return the error object for the denied Superset dashboard.
+        :param dashboard: The denied Superset dashboard
+        :returns: The error object
+        """
+        return SupersetError(
+            error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
+            message=self.get_access_error_msg(dashboard),
+            level=ErrorLevel.ERROR,
+            extra={
+                "dashboard": dashboard.id,
+            },
+        )
+
+    def get_access_error_msg(self,dashboard: "Dashboard") -> str:
+        """
+        Return the error message for the denied Superset dashboard.
+        :param dashboard: The denied Superset dashboard
+        :returns: The error message
+        """
+
+        return f"This dashboard requires to have one of the access roles assigned it"
+
 
     def user_view_menu_names(self, permission_name: str) -> Set[str]:
         base_query = (

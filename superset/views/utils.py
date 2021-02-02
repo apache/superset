@@ -319,7 +319,6 @@ def get_time_range_endpoints(
 # /superset-frontend/src/dashboard/util/componentTypes.js
 CONTAINER_TYPES = ["COLUMN", "GRID", "TABS", "TAB", "ROW"]
 
-
 def get_dashboard_extra_filters(
     slice_id: int, dashboard_id: int
 ) -> List[Dict[str, Any]]:

@@ -149,6 +149,8 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         )
         grant_access_to_dashboard(dashboard_to_access, "Public")
 
+        self.logout()
+
         # act
         response = self.get_dashboard_view_response(dashboard_to_access)
 

@@ -407,3 +407,13 @@ if is_feature_enabled("DASHBOARD_CACHE"):
     sqla.event.listen(TableColumn, "after_update", clear_dashboard_cache)
     sqla.event.listen(DruidMetric, "after_update", clear_dashboard_cache)
     sqla.event.listen(DruidColumn, "after_update", clear_dashboard_cache)
+
+def get_dashboard(id_or_slug: str) -> Dashboard:
+    session = db.session()
+    qry = session.query(Dashboard)
+    if id_or_slug.isdigit():
+        qry = qry.filter_by(id=int(id_or_slug))
+    else:
+        qry = qry.filter_by(slug=id_or_slug)
+
+    return qry.one_or_none()
