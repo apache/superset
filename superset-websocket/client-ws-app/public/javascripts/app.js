@@ -16,10 +16,10 @@ function connect() {
     if(socketCount >= tokens.length) return;
 
     // using https://github.com/js-cookie/js-cookie
-    Cookies.set('jwt', tokens[socketCount], { expires: 1, path: '' });
+    Cookies.set('async-token', tokens[socketCount], { expires: 1, path: '' });
 
     // Create WebSocket connection.
-    let url = `ws://localhost:8080?last_id=${ts()}`;
+    let url = `ws://127.0.0.1:8080?last_id=${ts()}`;
     const socket = new WebSocket(url);
 
     // Connection opened

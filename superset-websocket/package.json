@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start-dev": "ts-node index.ts",
+    "dev-server": "ts-node index.ts",
     "build": "tsc"
   },
   "license": "Apache-2.0",
@@ -14,10 +14,12 @@
     "cookie": "^0.4.1",
     "ioredis": "^4.16.1",
     "jsonwebtoken": "^8.5.1",
+    "uuid": "^8.3.2",
     "ws": "^7.4.2"
   },
   "devDependencies": {
     "@types/node": "^14.14.22",
+    "@types/uuid": "^8.3.0",
     "@types/ws": "^7.4.0",
     "ts-node": "^9.1.1",
     "typescript": "^4.1.3"
