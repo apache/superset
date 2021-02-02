@@ -152,7 +152,7 @@ export function useCascadingFilters(id: string) {
 }
 
 // When some fields in form changed we need re-fetch data for Filter defaultValue
-export const useBEFormUpdate = (
+export const useBackendFormUpdate = (
   form: FormInstance<NativeFiltersForm>,
   filterId: string,
   filterToEdit?: Filter,

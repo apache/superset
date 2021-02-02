@@ -39,7 +39,7 @@ import {
   setFilterFieldValues,
   useForceUpdate,
 } from './utils';
-import { useBEFormUpdate } from './state';
+import { useBackendFormUpdate } from './state';
 
 type DatasetSelectValue = {
   value: number;
@@ -109,7 +109,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
 }) => {
   const forceUpdate = useForceUpdate();
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
-  useBEFormUpdate(form, filterId, filterToEdit);
+  useBackendFormUpdate(form, filterId, filterToEdit);
 
   const initDatasetId = filterToEdit?.targets[0].datasetId;
   const initColumn = filterToEdit?.targets[0]?.column?.name;
