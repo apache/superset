@@ -11,25 +11,9 @@ version: 1
 The recommended connector library for BigQuery is
 [pybigquery](https://github.com/mxmzdlv/pybigquery). 
 
-In order to use pybigquery with docker-compose it is needed to make this dependency included in requirements. You can make this by adding file ```docker/requirements-local.txt``` with lines:
-```flask-cors
-vertica-python
-fbprophet
-sqlalchemy-vertica-python
-redis
-pybigquery
-pandas-gbq
-pydruid```
+In order to use pybigquery with docker-compose it is needed to extend requirements file with BigQuery specific packages described in [installing-database-drivers guide](../installing-database-drivers).
 
-With this modification all required dependencies will be installed with docker-compose up command.
-
-The connection string for BigQuery looks like:
-
-```
-bigquery://{project_id}
-```
-
-When adding a new BigQuery connection in Superset, you'll also need to add the GCP Service Account
+When adding a new BigQuery connection in Superset, you'll need to create and use GCP Service Account
 credentials file (as a JSON).
 
 1. Create your Service Account via the Google Cloud Platform control panel, provide it access to the
@@ -37,16 +21,8 @@ credentials file (as a JSON).
 
 2. Make sure your Service Account meets required permissions from groups: BigQueryDataEditor,BigQueryUser. 
 
-3. In Superset, Add a JSON blob to the **Secure Extra** field in the database configuration form with
+3. In Superset database config modal (Data -> Databases -> + Database), add database URI (```bigquery://{project_id}```),name and a JSON blob to the **Secure Extra** field in the database configuration form with
    the following format:
-
-```
-{
-    "credentials_info": <contents of credentials JSON file>
-}
-```
-
-The resulting file should have this structure:
 
 ```
 {
@@ -65,7 +41,7 @@ The resulting file should have this structure:
 }
 ```
 
-You should then be able to connect to your BigQuery datasets.
+You should then be able now to connect to your BigQuery datasets.
 
 To be able to upload CSV or Excel files to BigQuery in Superset, you'll need to also add the
 [pandas_gbq](https://github.com/pydata/pandas-gbq) library.
