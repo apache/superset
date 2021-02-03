@@ -704,7 +704,11 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             data_["fetch_values_predicate"] = self.fetch_values_predicate
             data_["template_params"] = self.template_params
             data_["is_sqllab_view"] = self.is_sqllab_view
-            data_["health_check_message"] = self.health_check_message
+            data_["health_check_message"] = (
+                self.health_check_message
+                if config.get("DATASET_HEALTH_CHECK")
+                else None
+            )
         return data_
 
     @property
