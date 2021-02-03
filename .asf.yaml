@@ -61,6 +61,8 @@ github:
         # contexts are the names of checks that must pass
         contexts:
           - check
+          - lint
+          - test-mysql
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false
