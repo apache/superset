@@ -1154,6 +1154,10 @@ def start_date_filter(default: Optional[str] = None) -> Optional[Any]:
 
 
 def uri_filter(cond="none", default="") -> Optional[Any]:
+
+    if MOBI_SECRET_KEY is None:
+        raise Exception("MOBI_SECRET_KEY is not defined")
+
     logger.info(cond)
 
     # fetching form data
@@ -1185,9 +1189,6 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
     #returning default value if mobi_filter is null
     if token is None:
         return default
-
-    if MOBI_SECRET_KEY is None:
-        raise Exception("MOBI_SECRET_KEY is not defined")
 
     #fetching payload from jwt_token
     jwt_payload = jwt.decode(token,MOBI_SECRET_KEY,algorithms=['HS256'])
