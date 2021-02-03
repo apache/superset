@@ -77,7 +77,7 @@ def debounce(duration: Union[float, int] = 0.1) -> Callable[..., Any]:
     return decorate
 
 
-def on_security_exception(self, ex) -> Response:
+def on_security_exception(self: Any, ex: Exception) -> Response:
     return self.response(403, **{"message": utils.error_msg_from_exception(ex)})
 
 
@@ -85,7 +85,7 @@ def check_dashboard_access(
     on_error: Callable[..., Any] = on_security_exception
 ) -> Callable[..., Any]:
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
-        def wrapper(self, *args: Any, **kwargs: Any) -> Callable:
+        def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
 
             if is_feature_enabled("DASHBOARD_RBAC"):
                 try:

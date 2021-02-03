@@ -181,7 +181,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         (
             not_owned_dashboards,
             owned_dashboards,
-        ) = self._arrange_all_owned_dashboards_scenario()
+        ) = self._create_sample_dashboards_with_owner_access()
 
         # act
         response = self.get_dashboards_list_response()
@@ -191,7 +191,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
             response, 2, owned_dashboards, not_owned_dashboards
         )
 
-    def _arrange_all_owned_dashboards_scenario(self):
+    def _create_sample_dashboards_with_owner_access(self):
         username = random_str()
         new_role = f"role_{random_str()}"
         owner = self.create_user_with_roles(
@@ -236,7 +236,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
             new_role,
             draft_dashboards,
             published_dashboards,
-        ) = self._arrange_only_published_permitted_dashboards_scenario()
+        ) = self._create_sample_only_published_dashboard_with_roles()
 
         # act
         response = self.get_dashboards_list_response()
@@ -250,7 +250,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         for dash in published_dashboards + draft_dashboards:
             revoke_access_to_dashboard(dash, new_role)
 
-    def _arrange_only_published_permitted_dashboards_scenario(self):
+    def _create_sample_only_published_dashboard_with_roles(self):
         username = random_str()
         new_role = f"role_{random_str()}"
         self.create_user_with_roles(username, [new_role], should_create_roles=True)
@@ -328,7 +328,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         (
             not_owned_dashboards,
             owned_dashboards,
-        ) = self._arrange_all_owned_dashboards_scenario()
+        ) = self._create_sample_dashboards_with_owner_access()
 
         # act
         response = self.get_dashboards_api_response()
@@ -356,7 +356,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
             new_role,
             draft_dashboards,
             published_dashboards,
-        ) = self._arrange_only_published_permitted_dashboards_scenario()
+        ) = self._create_sample_only_published_dashboard_with_roles()
 
         # act
         response = self.get_dashboards_api_response()
