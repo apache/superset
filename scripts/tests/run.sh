@@ -138,5 +138,5 @@ fi
 
 if [ $RUN_TESTS -eq 1 ]
 then
-  pytest -x -s "${TEST_MODULE}"
+  pytest -x -s -v  --durations=0"${TEST_MODULE}"
 fi
