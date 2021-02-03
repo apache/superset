@@ -63,6 +63,10 @@ const IconCancelX = styled(Icons.CancelX)`
   color: ${({ theme }) => theme.colors.grayscale.dark1};
 `;
 
+const Actions = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
+
 function BooleanDisplay({ value }: { value: Boolean }) {
   return value ? <IconCheck /> : <IconCancelX />;
 }
@@ -293,7 +297,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
             return null;
           }
           return (
-            <span className="actions">
+            <Actions className="actions">
               {canDelete && (
                 <span
                   role="button"
@@ -344,7 +348,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
                   </span>
                 </TooltipWrapper>
               )}
-            </span>
+            </Actions>
           );
         },
         Header: t('Actions'),

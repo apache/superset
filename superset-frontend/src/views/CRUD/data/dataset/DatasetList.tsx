@@ -72,6 +72,10 @@ const FlexRowContainer = styled.div`
   }
 `;
 
+const Actions = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
+
 type Dataset = {
   changed_by_name: string;
   changed_by_url: string;
@@ -323,7 +327,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             return null;
           }
           return (
-            <span className="actions">
+            <Actions className="actions">
               {canDelete && (
                 <TooltipWrapper
                   label="delete-action"
@@ -372,7 +376,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   </span>
                 </TooltipWrapper>
               )}
-            </span>
+            </Actions>
           );
         },
         Header: t('Actions'),

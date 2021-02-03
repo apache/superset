@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, getChartMetadataRegistry, t } from '@superset-ui/core';
+import { SupersetClient, getChartMetadataRegistry, t, styled } from '@superset-ui/core';
 import React, { useMemo, useState } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
@@ -110,6 +110,10 @@ interface ChartListProps {
     userId: string | number;
   };
 }
+
+const Actions = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
 
 function ChartList(props: ChartListProps) {
   const { addDangerToast, addSuccessToast } = props;
@@ -291,7 +295,7 @@ function ChartList(props: ChartListProps) {
           }
 
           return (
-            <span className="actions">
+            <Actions className="actions">
               {canDelete && (
                 <ConfirmStatusChange
                   title={t('Please confirm')}
@@ -354,7 +358,7 @@ function ChartList(props: ChartListProps) {
                   </span>
                 </TooltipWrapper>
               )}
-            </span>
+            </Actions>
           );
         },
         Header: t('Actions'),

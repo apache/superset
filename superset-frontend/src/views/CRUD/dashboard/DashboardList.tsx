@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, t } from '@superset-ui/core';
+import { styled, SupersetClient, t } from '@superset-ui/core';
 import React, { useState, useMemo } from 'react';
 import rison from 'rison';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -81,6 +81,10 @@ interface Dashboard {
   owners: Owner[];
   created_by: object;
 }
+
+const Actions = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
 
 function DashboardList(props: DashboardListProps) {
   const { addDangerToast, addSuccessToast } = props;
@@ -277,7 +281,7 @@ function DashboardList(props: DashboardListProps) {
           const handleExport = () => handleBulkDashboardExport([original]);
 
           return (
-            <span className="actions">
+            <Actions className="actions">
               {canDelete && (
                 <ConfirmStatusChange
                   title={t('Please confirm')}
@@ -339,7 +343,7 @@ function DashboardList(props: DashboardListProps) {
                   </span>
                 </TooltipWrapper>
               )}
-            </span>
+            </Actions>
           );
         },
         Header: t('Actions'),

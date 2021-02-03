@@ -49,6 +49,10 @@ const StyledActions = styled.span`
   }
 `;
 
+const ActionWrapper = styled.span`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
+
 export default function ActionsBar({ actions }: ActionsBarProps) {
   return (
     <StyledActions className="actions">
@@ -62,7 +66,7 @@ export default function ActionsBar({ actions }: ActionsBarProps) {
               placement={action.placement || ''}
               key={index}
             >
-              <span
+              <ActionWrapper
                 role="button"
                 tabIndex={0}
                 className="action-button"
@@ -70,13 +74,13 @@ export default function ActionsBar({ actions }: ActionsBarProps) {
                 onClick={action.onClick}
               >
                 <ActionIcon />
-              </span>
+              </ActionWrapper>
             </TooltipWrapper>
           );
         }
 
         return (
-          <span
+          <ActionWrapper
             role="button"
             tabIndex={0}
             className="action-button"
@@ -85,7 +89,7 @@ export default function ActionsBar({ actions }: ActionsBarProps) {
             key={index}
           >
             <ActionIcon />
-          </span>
+          </ActionWrapper>
         );
       })}
     </StyledActions>
