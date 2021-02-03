@@ -421,11 +421,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def raise_for_dashboard_access(self, dashboard: "Dashboard") -> None:
 
-
         from superset.views.base import is_user_admin
         from superset.views.utils import is_owner
         from superset.views.base import get_user_roles
         from superset import is_feature_enabled
+
         if is_feature_enabled("DASHBOARD_RBAC"):
             has_rbac_access = any(
                 dashboard_role.id in [user_role.id for user_role in get_user_roles()]
