@@ -704,7 +704,13 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             data_["fetch_values_predicate"] = self.fetch_values_predicate
             data_["template_params"] = self.template_params
             data_["is_sqllab_view"] = self.is_sqllab_view
-            data_["health_check_message"] = self.health_check_message
+            # Don't return previously populated health check message in case
+            # the health check feature is turned off
+            data_["health_check_message"] = (
+                self.health_check_message
+                if config.get("DATASET_HEALTH_CHECK")
+                else None
+            )
         return data_
 
     @property
@@ -967,7 +973,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         columns = columns or []
         columns = [col for col in columns if col != utils.DTTM_ALIAS]
 
-        if (is_sip_38 and metrics and columns) or (not is_sip_38 and metrics):
+        if metrics or groupby:
             # dedup columns while preserving order
             columns = columns if is_sip_38 else (groupby or columns)
             select_exprs = []

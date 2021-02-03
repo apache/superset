@@ -17,18 +17,40 @@
  * under the License.
  */
 import React from 'react';
-import ReactDOM from 'react-dom';
-import { ThemeProvider } from '@superset-ui/core';
-import Menu from 'src/components/Menu/Menu';
-import { theme } from '../preamble';
+import { useArgs } from '@storybook/client-api';
+import { Radio } from './index';
 
-const container = document.getElementById('app');
-const bootstrapJson = container?.getAttribute('data-bootstrap') ?? '{}';
-const bootstrap = JSON.parse(bootstrapJson);
-const menu = { ...bootstrap.common.menu_data };
-const app = (
-  <ThemeProvider theme={theme}>
-    <Menu data={menu} />
-  </ThemeProvider>
-);
-ReactDOM.render(app, document.getElementById('app-menu'));
+export default {
+  title: 'Radio',
+  component: Radio,
+  parameters: {
+    controls: { hideNoControlsWarning: true },
+  },
+  argTypes: {
+    theme: {
+      table: {
+        disable: true,
+      },
+    },
+    checked: { control: 'boolean' },
+    disabled: { control: 'boolean' },
+  },
+};
+
+export const SupersetRadio = () => {
+  const [{ checked, ...rest }, updateArgs] = useArgs();
+  return (
+    <Radio
+      checked={checked}
+      onChange={() => updateArgs({ checked: !checked })}
+      {...rest}
+    >
+      Example
+    </Radio>
+  );
+};
+
+SupersetRadio.args = {
+  checked: false,
+  disabled: false,
+};

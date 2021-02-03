@@ -21,13 +21,13 @@ import { hot } from 'react-hot-loader/root';
 import thunk from 'redux-thunk';
 import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { Provider } from 'react-redux';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { ThemeProvider } from '@superset-ui/core';
 import App from './components/App';
 import messageToastReducer from '../messageToasts/reducers';
 import { initEnhancer } from '../reduxUtils';
 import setupApp from '../setup/setupApp';
-
 import './main.less';
+import { theme } from '../preamble';
 
 setupApp();
 
@@ -46,7 +46,7 @@ const store = createStore(
 
 const Application = () => (
   <Provider store={store}>
-    <ThemeProvider theme={supersetTheme}>
+    <ThemeProvider theme={theme}>
       <App user={bootstrap.user} />
     </ThemeProvider>
   </Provider>

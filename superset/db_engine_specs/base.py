@@ -32,6 +32,7 @@ from typing import (
     Optional,
     Pattern,
     Tuple,
+    Type,
     TYPE_CHECKING,
     Union,
 )
@@ -178,6 +179,35 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     }
 
     @classmethod
+    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+        """
+        Each engine can implement and converge its own specific exceptions into
+        Superset DBAPI exceptions
+
+        Note: On python 3.9 this method can be changed to a classmethod property
+        without the need of implementing a metaclass type
+
+        :return: A map of driver specific exception to superset custom exceptions
+        """
+        return {}
+
+    @classmethod
+    def get_dbapi_mapped_exception(cls, exception: Exception) -> Exception:
+        """
+        Get a superset custom DBAPI exception from the driver specific exception.
+
+        Override if the engine needs to perform extra changes to the exception, for
+        example change the exception message or implement custom more complex logic
+
+        :param exception: The driver specific exception
+        :return: Superset custom DBAPI exception
+        """
+        new_exception = cls.get_dbapi_exception_mapping().get(type(exception))
+        if not new_exception:
+            return exception
+        return new_exception(str(exception))
+
+    @classmethod
     def is_db_column_type_match(
         cls, db_column_type: Optional[str], target_column_type: utils.GenericDataType
     ) -> bool:
@@ -314,9 +344,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
-        if cls.limit_method == LimitMethod.FETCH_MANY and limit:
-            return cursor.fetchmany(limit)
-        return cursor.fetchall()
+        try:
+            if cls.limit_method == LimitMethod.FETCH_MANY and limit:
+                return cursor.fetchmany(limit)
+            return cursor.fetchall()
+        except Exception as ex:
+            raise cls.get_dbapi_mapped_exception(ex)
 
     @classmethod
     def expand_data(
@@ -902,7 +935,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
-        cursor.execute(query)
+        try:
+            cursor.execute(query)
+        except Exception as ex:
+            raise cls.get_dbapi_mapped_exception(ex)
 
     @classmethod
     def make_label_compatible(cls, label: str) -> Union[str, quoted_name]:

@@ -18,7 +18,7 @@
  */
 /* eslint-disable no-unused-expressions */
 import React from 'react';
-import { Radio } from 'react-bootstrap';
+import { Radio } from 'src/common/components/Radio';
 import sinon from 'sinon';
 import { styledMount as mount } from 'spec/helpers/theming';
 
