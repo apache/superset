@@ -20,6 +20,8 @@ All configuration in this file can be overridden by providing a superset_config
 in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
+
+import jwt
 import imp
 import importlib.util
 import json
@@ -576,6 +578,11 @@ MAX_TABLE_NAMES = 3000
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
+
+
+
+#key to decrypt jwt token
+MOBI_SECRET_KEY=None
 
 
 # Default celery config is to use SQLA as a broker, in a production setting
@@ -1147,11 +1154,18 @@ def start_date_filter(default: Optional[str] = None) -> Optional[Any]:
 
 
 def uri_filter(cond="none", default="") -> Optional[Any]:
+
+    if MOBI_SECRET_KEY is None:
+        raise Exception("MOBI_SECRET_KEY is not defined")
+
     logger.info(cond)
 
     # fetching form data
     form_data = request.form.get("form_data")
 
+    #fetching dashboard_id
+    dashboard_id = request.args.get("dashboard_id")
+   
     # returning default value if form is null
     if form_data is None:
         return default
@@ -1168,17 +1182,33 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
     if url_params_dict is None:
         return default
 
-    # fetching mobi_filter from url_params
-    mobi_filter = url_params_dict.get("mobi_filter")
 
-    # returning default value if mobi_filter is null
-    if mobi_filter is None:
+    #fetching mobi_filter from url_params 
+    token=url_params_dict.get("mobi_filter")
+
+    #returning default value if mobi_filter is null
+    if token is None:
         return default
 
-    # convrting mobi_filter into json node
-    mobi_filter_dict = json.loads(mobi_filter)
+    #fetching payload from jwt_token
+    jwt_payload = jwt.decode(token,MOBI_SECRET_KEY,algorithms=['HS256'])
+    logger.info("jwt_payload is :", jwt_payload)
 
-    param = mobi_filter_dict.get(cond)
+    #fetchning mobi filter from payload
+    mobi_filter_dict=jwt_payload.get("params")
+
+    mobi_resource_dict = jwt_payload.get("resource")
+
+    jwt_dashboard_id=str(mobi_resource_dict.get("dashboard"))
+
+    logger.info("url dashboard id:"+dashboard_id)
+    logger.info("jwt dashboard id:"+jwt_dashboard_id)
+
+    if jwt_dashboard_id != dashboard_id:
+        raise Exception("dashboard_id has manipulated")
+    
+    param=mobi_filter_dict.get(cond)
+
     if len(param) == 0:
         return default
     else:
