@@ -22,6 +22,7 @@ from contextlib2 import contextmanager
 from flask import Response
 
 from superset import is_feature_enabled
+from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.exceptions import SupersetSecurityException
 from superset.stats_logger import BaseStatsLogger
 from superset.utils import core as utils
@@ -80,7 +81,7 @@ def on_security_exception(self, ex) -> Response:
     return self.response(403, **{"message": utils.error_msg_from_exception(ex)})
 
 
-def check_permissions(
+def check_dashboard_access(
     on_error: Callable[..., Any] = on_security_exception
 ) -> Callable[..., Any]:
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
@@ -89,13 +90,13 @@ def check_permissions(
             if is_feature_enabled("DASHBOARD_RBAC"):
                 try:
                     from superset import security_manager
-                    from superset.models.dashboard import get_dashboard
+                    from superset.models.dashboard import Dashboard
 
-                    dashboard = get_dashboard(str(kwargs["dashboard_id_or_slug"]))
+                    dashboard = Dashboard.get(str(kwargs["dashboard_id_or_slug"]))
 
                     security_manager.raise_for_dashboard_access(dashboard)
 
-                except SupersetSecurityException as ex:
+                except DashboardAccessDeniedError as ex:
                     return on_error(self, ex)
                 except Exception as e:
                     raise e

@@ -86,7 +86,7 @@ from superset.exceptions import (
 from superset.extensions import async_query_manager, cache_manager
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database, FavStar, Log
-from superset.models.dashboard import Dashboard, get_dashboard
+from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query, TabState
@@ -104,7 +104,7 @@ from superset.utils import core as utils
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
 from superset.utils.dates import now_as_float
-from superset.utils.decorators import check_permissions
+from superset.utils.decorators import check_dashboard_access
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -1786,7 +1786,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @expose("/dashboard/<dashboard_id_or_slug>/")
     @event_logger.log_this_with_extra_payload
-    @check_permissions(
+    @check_dashboard_access(
         on_error=lambda self, ex: Response(
             utils.error_msg_from_exception(ex), status=403
         )
@@ -1799,7 +1799,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
     ) -> FlaskResponse:
         """Server side rendering for a dashboard"""
-        dash = get_dashboard(dashboard_id_or_slug)
+        dash = Dashboard.get(dashboard_id_or_slug)
         if not dash:
             abort(404)
 

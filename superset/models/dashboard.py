@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import json
 import logging
 from functools import partial
@@ -357,6 +359,17 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
             indent=4,
         )
 
+    @classmethod
+    def get(cls, id_or_slug: str) -> Dashboard:
+        session = db.session()
+        qry = session.query(Dashboard)
+        if id_or_slug.isdigit():
+            qry = qry.filter_by(id=int(id_or_slug))
+        else:
+            qry = qry.filter_by(slug=id_or_slug)
+
+        return qry.one_or_none()
+
 
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]
 
@@ -408,30 +421,3 @@ if is_feature_enabled("DASHBOARD_CACHE"):
     sqla.event.listen(TableColumn, "after_update", clear_dashboard_cache)
     sqla.event.listen(DruidMetric, "after_update", clear_dashboard_cache)
     sqla.event.listen(DruidColumn, "after_update", clear_dashboard_cache)
-
-
-def get_dashboard(id_or_slug: str) -> Dashboard:
-    session = db.session()
-    qry = session.query(Dashboard)
-    if id_or_slug.isdigit():
-        qry = qry.filter_by(id=int(id_or_slug))
-    else:
-        qry = qry.filter_by(slug=id_or_slug)
-
-    return qry.one_or_none()
-
-
-def get_dashboard_access_error_object(
-    dashboard: Dashboard,  # pylint: disable=invalid-name
-) -> SupersetError:
-    """
-        Return the error object for the denied Superset dashboard.
-        :param dashboard: The denied Superset dashboard
-        :returns: The error object
-        """
-    return SupersetError(
-        error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
-        message=f"This dashboard requires to have one of the access roles assigned it",
-        level=ErrorLevel.ERROR,
-        extra={"dashboard": dashboard.id,},
-    )
