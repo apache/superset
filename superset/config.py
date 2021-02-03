@@ -1078,6 +1078,11 @@ GLOBAL_ASYNC_QUERIES_POLLING_DELAY = 500
 # It will get executed each time when user open a chart's explore view.
 DATASET_HEALTH_CHECK = None
 
+# -------------------------------------------------------------------
+# *                WARNING:  STOP EDITING  HERE                    *
+# -------------------------------------------------------------------
+# Don't add config values below this line since local configs won't be
+# able to override them.
 if CONFIG_PATH_ENV_VAR in os.environ:
     # Explicitly import config module that is not necessarily in pythonpath; useful
     # for case where app is being executed via pex.
