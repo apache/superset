@@ -37,7 +37,6 @@ interface ActionsBarProps {
 const StyledActions = styled.span`
   white-space: nowrap;
   min-width: 100px;
-
   svg,
   i {
     margin-right: 8px;

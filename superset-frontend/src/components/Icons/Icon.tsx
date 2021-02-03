@@ -29,7 +29,7 @@ const EnhancedIcon = ({ iconColor, iconSize, ...rest }: IconType) => (
 );
 
 const Icon = styled(EnhancedIcon)<IconType>`
-  color: ${({ iconColor }) => iconColor || '#666666'};
+  ${({ iconColor }) => iconColor && `color: ${iconColor};`};
   font-size: ${({ iconSize, theme }) =>
     iconSize ? `${theme.typography.sizes[iconSize]}px` : '24px'};
 `;
