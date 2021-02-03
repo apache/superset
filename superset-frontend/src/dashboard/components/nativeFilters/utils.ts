@@ -247,6 +247,7 @@ export function buildCascadeFiltersTree(filters: Filter[]): CascadeFilter[] {
 export const FilterTypeNames = {
   [FilterType.filter_select]: t('Select'),
   [FilterType.filter_range]: t('Range'),
+  [FilterType.filter_time]: t('Time'),
 };
 
 export const setFilterFieldValues = (

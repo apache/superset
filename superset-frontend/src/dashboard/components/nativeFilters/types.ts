@@ -77,6 +77,7 @@ export interface Target {
 export enum FilterType {
   filter_select = 'filter_select',
   filter_range = 'filter_range',
+  filter_time = 'filter_time',
 }
 
 /**

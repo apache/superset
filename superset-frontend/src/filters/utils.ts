@@ -46,8 +46,8 @@ export const getSelectExtraFormData = (
 
 export const getRangeExtraFormData = (
   col: string,
-  lower?: number | null,
-  upper?: number | null,
+  lower?: number | string | null,
+  upper?: number | string | null,
 ) => {
   const filters: QueryObjectFilterClause[] = [];
   if (lower !== undefined && lower !== null) {
