@@ -51,12 +51,16 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 
 const DatasourceContainer = styled.div`
   .change-warning {
-    margin: 16px 10px 0;
+    margin: 16px 10px 0x;
     color: ${({ theme }) => theme.colors.warning.base};
   }
 
   .change-warning .bold {
     font-weight: ${({ theme }) => theme.typography.weights.bold};
+  }
+
+  .form-group {
+    margin-bottom: 8px;
   }
 `;
 
