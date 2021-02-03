@@ -27,6 +27,7 @@ import {
 } from '@superset-ui/core';
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
+import { URL_PARAMS } from 'src/constants';
 import { MULTI_OPERATORS } from './constants';
 
 const MAX_URL_LENGTH = 8000;
@@ -99,7 +100,7 @@ export function getExploreLongUrl(
     search[key] = extraSearch[key];
   });
   search.form_data = safeStringify(formData);
-  if (endpointType === 'standalone') {
+  if (endpointType === URL_PARAMS.standalone) {
     search.standalone = 'true';
   }
   const url = uri.directory(directory).search(search).toString();
@@ -172,7 +173,7 @@ export function getExploreUrl({
   if (endpointType === 'csv') {
     search.csv = 'true';
   }
-  if (endpointType === 'standalone') {
+  if (endpointType === URL_PARAMS.standalone) {
     search.standalone = 'true';
   }
   if (endpointType === 'query') {

@@ -16,19 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { URL_PARAMS } from 'src/constants';
 import serializeActiveFilterValues from './serializeActiveFilterValues';
 
 export default function getDashboardUrl(
-  pathname,
+  pathname: string,
   filters = {},
   hash = '',
   standalone = false,
 ) {
+  const oldSearchParams = new URLSearchParams(
+    window.location.search.substring(1),
+  );
+  const newSearchParams = new URLSearchParams();
+
   // convert flattened { [id_column]: values } object
   // to nested filter object
-  const obj = serializeActiveFilterValues(filters);
-  const preselectFilters = encodeURIComponent(JSON.stringify(obj));
+  newSearchParams.set(
+    URL_PARAMS.preselectFilters,
+    JSON.stringify(serializeActiveFilterValues(filters)),
+  );
+
+  const hideDashboardHeader = oldSearchParams.get(
+    URL_PARAMS.hideDashboardHeader,
+  );
+  if (hideDashboardHeader) {
+    // just proxy this param to new url
+    newSearchParams.set(URL_PARAMS.hideDashboardHeader, hideDashboardHeader);
+  }
+  if (standalone) {
+    newSearchParams.set(URL_PARAMS.standalone, 'true');
+  }
+
   const hashSection = hash ? `#${hash}` : '';
-  const standaloneParam = standalone ? '&standalone=true' : '';
-  return `${pathname}?preselect_filters=${preselectFilters}${standaloneParam}${hashSection}`;
+
+  return `${pathname}?${newSearchParams.toString()}${hashSection}`;
 }

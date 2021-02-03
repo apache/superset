@@ -29,6 +29,7 @@ import RefreshIntervalModal from './RefreshIntervalModal';
 import SaveModal from './SaveModal';
 import injectCustomCss from '../util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
+import { URL_PARAMS } from 'src/constants';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
 import FilterScopeModal from './filterscope/FilterScopeModal';
 import downloadAsImage from '../../utils/downloadAsImage';
@@ -163,7 +164,7 @@ class HeaderActionsDropdown extends React.PureComponent {
       }
       case MENU_KEYS.TOGGLE_FULLSCREEN: {
         const hasStandalone = window.location.search.includes(
-          'standalone=true',
+          `${URL_PARAMS.standalone}=true`,
         );
         const url = getDashboardUrl(
           window.location.pathname,

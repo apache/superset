@@ -24,6 +24,7 @@ import Popover from 'src/common/components/Popover';
 import FormLabel from 'src/components/FormLabel';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { getShortUrl } from 'src/utils/common';
+import { URL_PARAMS } from 'src/constants';
 import { getExploreLongUrl, getURIDirectory } from '../exploreUtils';
 
 const propTypes = {
@@ -66,7 +67,7 @@ export default class EmbedCodeButton extends React.Component {
   generateEmbedHTML() {
     const srcLink = `${window.location.origin + getURIDirectory()}?r=${
       this.state.shortUrlId
-    }&standalone=true&height=${this.state.height}`;
+    }&${URL_PARAMS.standalone}=true&height=${this.state.height}`;
     return (
       '<iframe\n' +
       `  width="${this.state.width}"\n` +

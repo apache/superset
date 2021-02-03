@@ -30,6 +30,7 @@ import { Global } from '@emotion/core';
 import { Tooltip } from 'src/common/components/Tooltip';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import Icon from 'src/components/Icon';
+import { URL_PARAMS } from 'src/constants';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
@@ -183,7 +184,7 @@ function ExploreViewContainer(props) {
     const payload = { ...props.form_data };
     const longUrl = getExploreLongUrl(
       props.form_data,
-      props.standalone ? 'standalone' : null,
+      props.standalone ? URL_PARAMS.standalone : null,
       false,
     );
     try {

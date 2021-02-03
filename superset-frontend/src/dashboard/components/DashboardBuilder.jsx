@@ -42,6 +42,7 @@ import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponen
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { URL_PARAMS } from 'src/constants';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
@@ -225,58 +226,74 @@ class DashboardBuilder extends React.Component {
 
     const childIds = topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID];
 
-    const barTopOffset = HEADER_HEIGHT + (topLevelTabs ? TABS_HEIGHT : 0);
+    const hideDashboardHeader =
+      new URLSearchParams(window.location.search.substring(1)).get(
+        URL_PARAMS.hideDashboardHeader,
+      ) === 'true';
+
+    const barTopOffset =
+      (hideDashboardHeader ? 0 : HEADER_HEIGHT) +
+      (topLevelTabs ? TABS_HEIGHT : 0);
 
     return (
       <StickyContainer
-        className={cx('dashboard', editMode && 'dashboard--editing')}
+        className={cx(
+          'dashboard',
+          editMode && 'dashboard--editing',
+          hideDashboardHeader && 'dashboard--no-header',
+        )}
       >
-        <Sticky>
-          {({ style }) => (
-            <DragDroppable
-              component={dashboardRoot}
-              parentComponent={null}
-              depth={DASHBOARD_ROOT_DEPTH}
-              index={0}
-              orientation="column"
-              onDrop={handleComponentDrop}
-              editMode={editMode}
-              // you cannot drop on/displace tabs if they already exist
-              disableDragdrop={!!topLevelTabs}
-              style={{ zIndex: 100, ...style }}
-            >
-              {({ dropIndicatorProps }) => (
-                <div>
-                  <DashboardHeader />
-                  {dropIndicatorProps && <div {...dropIndicatorProps} />}
-                  {topLevelTabs && (
-                    <WithPopoverMenu
-                      shouldFocus={DashboardBuilder.shouldFocusTabs}
-                      menuItems={[
-                        <IconButton
-                          className="fa fa-level-down"
-                          label="Collapse tab content"
-                          onClick={this.handleDeleteTopLevelTabs}
-                        />,
-                      ]}
-                      editMode={editMode}
-                    >
-                      <DashboardComponent
-                        id={topLevelTabs.id}
-                        parentId={DASHBOARD_ROOT_ID}
-                        depth={DASHBOARD_ROOT_DEPTH + 1}
-                        index={0}
-                        renderTabContent={false}
-                        renderHoverMenu={false}
-                        onChangeTab={this.handleChangeTab}
-                      />
-                    </WithPopoverMenu>
-                  )}
-                </div>
-              )}
-            </DragDroppable>
-          )}
-        </Sticky>
+        {!hideDashboardHeader && (
+          <Sticky>
+            {({ style }) => (
+              <DragDroppable
+                component={dashboardRoot}
+                parentComponent={null}
+                depth={DASHBOARD_ROOT_DEPTH}
+                index={0}
+                orientation="column"
+                onDrop={handleComponentDrop}
+                editMode={editMode}
+                // you cannot drop on/displace tabs if they already exist
+                disableDragdrop={!!topLevelTabs}
+                style={{
+                  zIndex: 100,
+                  ...style,
+                }}
+              >
+                {({ dropIndicatorProps }) => (
+                  <div>
+                    <DashboardHeader />
+                    {dropIndicatorProps && <div {...dropIndicatorProps} />}
+                    {topLevelTabs && (
+                      <WithPopoverMenu
+                        shouldFocus={DashboardBuilder.shouldFocusTabs}
+                        menuItems={[
+                          <IconButton
+                            className="fa fa-level-down"
+                            label="Collapse tab content"
+                            onClick={this.handleDeleteTopLevelTabs}
+                          />,
+                        ]}
+                        editMode={editMode}
+                      >
+                        <DashboardComponent
+                          id={topLevelTabs.id}
+                          parentId={DASHBOARD_ROOT_ID}
+                          depth={DASHBOARD_ROOT_DEPTH + 1}
+                          index={0}
+                          renderTabContent={false}
+                          renderHoverMenu={false}
+                          onChangeTab={this.handleChangeTab}
+                        />
+                      </WithPopoverMenu>
+                    )}
+                  </div>
+                )}
+              </DragDroppable>
+            )}
+          </Sticky>
+        )}
 
         <StyledDashboardContent
           className="dashboard-content"
