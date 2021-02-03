@@ -1270,6 +1270,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <div className="input-container">
                 <input
                   type="number"
+                  min="0"
                   name="working_timeout"
                   value={currentAlert ? currentAlert.working_timeout : ''}
                   placeholder={t('Time in seconds')}
@@ -1284,6 +1285,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <div className="input-container">
                   <input
                     type="number"
+                    min="0"
                     name="grace_period"
                     value={currentAlert?.grace_period || ''}
                     placeholder={t('Time in seconds')}
