@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { mount, shallow } from 'enzyme';
+import React, { useState } from 'react';
+import { mount, shallow, configure } from 'enzyme';
+import Adapter from 'enzyme-adapter-react-16';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
@@ -28,6 +29,8 @@ import TableElement from 'src/SqlLab/components/TableElement';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
 
 import { mockedActions, table } from './fixtures';
+
+configure({ adapter: new Adapter() });
 
 describe('TableElement', () => {
   const mockStore = configureStore([]);
@@ -65,8 +68,13 @@ describe('TableElement', () => {
     );
   });
   it('fades table', () => {
-    const wrapper = shallow(<TableElement {...mockedProps} />);
-    expect(wrapper.state().hovered).toBe(false);
+    const setHover = jest.fn();
+    const wrapper = shallow(<TableElement {...mockedProps} onMouseEnter={setHover} />);
+    const onMouseEnter = jest.spyOn(React, "useState");
+    onMouseEnter.mockImplementation(hover => [hover, setHover]);
+    console.log(wrapper.props());
+
+    expect(wrapper.props().hovered).toBe(false);
     expect(wrapper.find(Fade).props().hovered).toBe(false);
     wrapper.find('div.TableElement').simulate('mouseEnter');
     expect(wrapper.state().hovered).toBe(true);
