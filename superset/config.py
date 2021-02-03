@@ -582,7 +582,7 @@ SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
 
 #key to decrypt jwt token
-secret_key="am1nsn2blip944621fre"
+MOBI_SECRET_KEY=None
 
 
 # Default celery config is to use SQLA as a broker, in a production setting
@@ -1186,8 +1186,11 @@ def uri_filter(cond="none", default="") -> Optional[Any]:
     if token is None:
         return default
 
+    if MOBI_SECRET_KEY is None:
+        raise Exception("MOBI_SECRET_KEY is not defined")
+
     #fetching payload from jwt_token
-    jwt_payload = jwt.decode(token,secret_key,algorithms=['HS256'])
+    jwt_payload = jwt.decode(token,MOBI_SECRET_KEY,algorithms=['HS256'])
     logger.info("jwt_payload is :", jwt_payload)
 
     #fetchning mobi filter from payload
