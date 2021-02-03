@@ -23,13 +23,12 @@ import { styled, SupersetClient, t } from '@superset-ui/core';
 
 import { Menu, NoAnimationDropdown } from 'src/common/components';
 import Icon from 'src/components/Icon';
-
+import { URL_PARAMS } from 'src/constants';
 import CssEditor from './CssEditor';
 import RefreshIntervalModal from './RefreshIntervalModal';
 import SaveModal from './SaveModal';
 import injectCustomCss from '../util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
-import { URL_PARAMS } from 'src/constants';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
 import FilterScopeModal from './filterscope/FilterScopeModal';
 import downloadAsImage from '../../utils/downloadAsImage';
