@@ -434,6 +434,11 @@ export default function sqlLabReducer(state = {}, action) {
         dbId: action.dbId,
       });
     },
+    [actions.QUERY_EDITOR_SET_FUNCTION_NAMES]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, {
+        functionNames: action.functionNames,
+      });
+    },
     [actions.QUERY_EDITOR_SET_SCHEMA]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, {
         schema: action.schema,
