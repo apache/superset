@@ -244,7 +244,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
         """
         charts = DashboardDAO.get_charts_for_dashboard(pk)
-        return self.response(200, id=pk, response=charts)
+        return self.response(200, response=charts)
 
     @expose("/", methods=["POST"])
     @protect()
