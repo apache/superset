@@ -17,29 +17,40 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
+import { useArgs } from '@storybook/client-api';
+import { Radio } from './index';
 
-import getDragDropManager from 'src/dashboard/util/getDragDropManager';
-
-// A helper component that provides a DragDropContext for components that require it
-class WithDragDropContext extends React.Component {
-  getChildContext() {
-    return {
-      dragDropManager: this.context.dragDropManager || getDragDropManager(),
-    };
-  }
-
-  render() {
-    return this.props.children;
-  }
-}
-
-WithDragDropContext.propTypes = {
-  children: PropTypes.node.isRequired,
+export default {
+  title: 'Radio',
+  component: Radio,
+  parameters: {
+    controls: { hideNoControlsWarning: true },
+  },
+  argTypes: {
+    theme: {
+      table: {
+        disable: true,
+      },
+    },
+    checked: { control: 'boolean' },
+    disabled: { control: 'boolean' },
+  },
 };
 
-WithDragDropContext.childContextTypes = {
-  dragDropManager: PropTypes.object.isRequired,
+export const SupersetRadio = () => {
+  const [{ checked, ...rest }, updateArgs] = useArgs();
+  return (
+    <Radio
+      checked={checked}
+      onChange={() => updateArgs({ checked: !checked })}
+      {...rest}
+    >
+      Example
+    </Radio>
+  );
 };
 
-export default WithDragDropContext;
+SupersetRadio.args = {
+  checked: false,
+  disabled: false,
+};

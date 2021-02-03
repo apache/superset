@@ -118,6 +118,8 @@ git push upstream $SUPERSET_GITHUB_BRANCH
 Next, update the `CHANGELOG.md` with all the changes that are included in the release.
 Make sure the branch has been pushed to `upstream` to ensure the changelog generator
 can pick up changes since the previous release.
+Change log script requires a github token and will try to use your env var GITHUB_TOKEN.
+you can also pass the token using the parameter `--access_token`.
 
 Example:
 ```bash

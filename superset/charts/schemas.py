@@ -873,18 +873,20 @@ class ChartDataQueryObjectSchema(Schema):
     )
     applied_time_extras = fields.Dict(
         description="A mapping of temporal extras that have been applied to the query",
-        required=False,
+        allow_none=True,
         example={"__time_range": "1 year ago : now"},
     )
-    filters = fields.List(fields.Nested(ChartDataFilterSchema), required=False)
+    filters = fields.List(fields.Nested(ChartDataFilterSchema), allow_none=True)
     granularity = fields.String(
         description="Name of temporal column used for time filtering. For legacy Druid "
         "datasources this defines the time grain.",
+        allow_none=True,
     )
     granularity_sqla = fields.String(
         description="Name of temporal column used for time filtering for SQL "
         "datasources. This field is deprecated, use `granularity` "
         "instead.",
+        allow_none=True,
         deprecated=True,
     )
     groupby = fields.List(
@@ -897,9 +899,11 @@ class ChartDataQueryObjectSchema(Schema):
         "references to datasource metrics (strings), or ad-hoc metrics"
         "which are defined only within the query object. See "
         "`ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
+        allow_none=True,
     )
     post_processing = fields.List(
         fields.Nested(ChartDataPostProcessingOperationSchema, allow_none=True),
+        allow_none=True,
         description="Post processing operations to be applied to the result set. "
         "Operations are applied to the result set in sequential order.",
     )
@@ -923,40 +927,45 @@ class ChartDataQueryObjectSchema(Schema):
         "- Last X seconds/minutes/hours/days/weeks/months/years\n"
         "- Next X seconds/minutes/hours/days/weeks/months/years\n",
         example="Last week",
+        allow_none=True,
     )
     time_shift = fields.String(
         description="A human-readable date/time string. "
         "Please refer to [parsdatetime](https://github.com/bear/parsedatetime) "
         "documentation for details on valid values.",
+        allow_none=True,
     )
     is_timeseries = fields.Boolean(
-        description="Is the `query_object` a timeseries.", required=False
+        description="Is the `query_object` a timeseries.", allow_none=True,
     )
     timeseries_limit = fields.Integer(
         description="Maximum row count for timeseries queries. Default: `0`",
+        allow_none=True,
     )
     timeseries_limit_metric = fields.Raw(
         description="Metric used to limit timeseries queries by.", allow_none=True,
     )
     row_limit = fields.Integer(
         description='Maximum row count. Default: `config["ROW_LIMIT"]`',
+        allow_none=True,
         validate=[
             Range(min=1, error=_("`row_limit` must be greater than or equal to 1"))
         ],
     )
     row_offset = fields.Integer(
         description="Number of rows to skip. Default: `0`",
+        allow_none=True,
         validate=[
             Range(min=0, error=_("`row_offset` must be greater than or equal to 0"))
         ],
     )
     order_desc = fields.Boolean(
-        description="Reverse order. Default: `false`", required=False
+        description="Reverse order. Default: `false`", allow_none=True,
     )
     extras = fields.Nested(
         ChartDataExtrasSchema,
         description="Extra parameters to add to the query.",
-        required=False,
+        allow_none=True,
     )
     columns = fields.List(
         fields.String(),
@@ -967,17 +976,20 @@ class ChartDataQueryObjectSchema(Schema):
         fields.List(fields.Raw()),
         description="Expects a list of lists where the first element is the column "
         "name which to sort by, and the second element is a boolean.",
+        allow_none=True,
         example=[["my_col_1", False], ["my_col_2", True]],
     )
     where = fields.String(
         description="WHERE clause to be added to queries using AND operator."
         "This field is deprecated and should be passed to `extras`.",
+        allow_none=True,
         deprecated=True,
     )
     having = fields.String(
         description="HAVING clause to be added to aggregate queries using "
         "AND operator. This field is deprecated and should be passed "
         "to `extras`.",
+        allow_none=True,
         deprecated=True,
     )
     having_filters = fields.List(
@@ -985,6 +997,7 @@ class ChartDataQueryObjectSchema(Schema):
         description="HAVING filters to be added to legacy Druid datasource queries. "
         "This field is deprecated and should be passed to `extras` "
         "as `having_druid`.",
+        allow_none=True,
         deprecated=True,
     )
     druid_time_origin = fields.String(

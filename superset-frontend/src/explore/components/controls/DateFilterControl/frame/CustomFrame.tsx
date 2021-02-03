@@ -18,15 +18,10 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/core';
-import moment, { Moment } from 'moment';
+import { Moment } from 'moment';
 import { isInteger } from 'lodash';
-import {
-  Col,
-  DatePicker,
-  InputNumber,
-  Radio,
-  Row,
-} from 'src/common/components';
+import { Col, DatePicker, InputNumber, Row } from 'src/common/components';
+import { Radio } from 'src/common/components/Radio';
 import { Select } from 'src/components/Select';
 import {
   SINCE_GRAIN_OPTIONS,
@@ -36,22 +31,16 @@ import {
   MOMENT_FORMAT,
   MIDNIGHT,
 } from '../constants';
-import { customTimeRangeDecode, customTimeRangeEncode } from '../utils';
+import {
+  customTimeRangeDecode,
+  customTimeRangeEncode,
+  dttmToMoment,
+} from '../utils';
 import {
   CustomRangeKey,
   SelectOptionType,
   FrameComponentProps,
 } from '../types';
-
-const dttmToMoment = (dttm: string): Moment => {
-  if (dttm === 'now') {
-    return moment().utc().startOf('second');
-  }
-  if (dttm === 'today') {
-    return moment().utc().startOf('day');
-  }
-  return moment(dttm);
-};
 
 export function CustomFrame(props: FrameComponentProps) {
   const { customRange, matchedFlag } = customTimeRangeDecode(props.value);

@@ -55,7 +55,7 @@ function setup(overrides) {
     ...overrides,
   };
   const wrapper = shallow(<MetricsControl {...props} />);
-  const component = wrapper.dive().dive().shallow();
+  const component = wrapper.dive().shallow();
   return { wrapper, component, onChange };
 }
 

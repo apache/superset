@@ -32,6 +32,6 @@
   echo http://$SERVICE_IP:{{ .Values.service.port }}
 {{- else if contains "ClusterIP" .Values.service.type }}
   export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app={{ template "superset.name" . }},release={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
-  echo "Visit http://127.0.0.1:8080 to use your application"
-  kubectl port-forward $POD_NAME 8080:80
+  echo "Visit http://127.0.0.1:8088 to use your application"
+  kubectl port-forward $POD_NAME 8088:80
 {{- end }}

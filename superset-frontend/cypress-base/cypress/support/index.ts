@@ -90,9 +90,8 @@ Cypress.Commands.add(
       cy.verifySliceContainer(chartSelector);
       const responseBody = response?.body;
       if (querySubstring) {
-        const query = responseBody
-          ? (responseBody as { query: string }).query
-          : '';
+        const query: string =
+          responseBody.query || responseBody.result[0].query || '';
         if (querySubstring instanceof RegExp) {
           expect(query).to.match(querySubstring);
         } else {

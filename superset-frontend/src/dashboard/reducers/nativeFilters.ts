@@ -63,6 +63,7 @@ export default function nativeFilterReducer(
           [action.filterId]: {
             ...filtersState[action.filterId],
             extraFormData: action.extraFormData,
+            currentState: action.currentState,
           },
         },
       };

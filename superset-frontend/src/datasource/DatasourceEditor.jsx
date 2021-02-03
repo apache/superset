@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Alert, Col, Radio, Well } from 'react-bootstrap';
+import { Alert, Col, Well } from 'react-bootstrap';
+import { Radio } from 'src/common/components/Radio';
 import Badge from 'src/common/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
@@ -1000,7 +1001,7 @@ class DatasourceEditor extends React.PureComponent {
               <ColumnButtonWrapper>
                 <span className="m-t-10 m-r-10">
                   <Button
-                    buttonSize="sm"
+                    buttonSize="small"
                     buttonStyle="primary"
                     onClick={this.syncMetadata}
                     className="sync-from-source"

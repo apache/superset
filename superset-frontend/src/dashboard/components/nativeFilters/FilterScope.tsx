@@ -19,9 +19,9 @@
 
 import React, { FC } from 'react';
 import { t, styled } from '@superset-ui/core';
+import { Radio } from 'src/common/components/Radio';
 import {
   Form,
-  Radio,
   Typography,
   Space,
   FormInstance,

@@ -16,7 +16,7 @@
 # under the License.
 import logging
 from functools import partial
-from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import geohash as geohash_lib
 import numpy as np
@@ -554,29 +554,53 @@ def geodetic_parse(
         raise QueryObjectValidationError(_("Invalid geodetic string"))
 
 
+@validate_column_args("columns")
 def contribution(
-    df: DataFrame, orientation: PostProcessingContributionOrientation
+    df: DataFrame,
+    orientation: Optional[
+        PostProcessingContributionOrientation
+    ] = PostProcessingContributionOrientation.COLUMN,
+    columns: Optional[List[str]] = None,
+    rename_columns: Optional[List[str]] = None,
 ) -> DataFrame:
     """
-    Calculate cell contibution to row/column total.
+    Calculate cell contibution to row/column total for numeric columns.
+    Non-numeric columns will be kept untouched.
+
+    If `columns` are specified, only calculate contributions on selected columns.
 
     :param df: DataFrame containing all-numeric data (temporal column ignored)
+    :param columns: Columns to calculate values from.
+    :param rename_columns: The new labels for the calculated contribution columns.
+                           The original columns will not be removed.
     :param orientation: calculate by dividing cell with row/column total
-    :return: DataFrame with contributions, with temporal column at beginning if present
+    :return: DataFrame with contributions.
     """
-    temporal_series: Optional[Series] = None
     contribution_df = df.copy()
-    if DTTM_ALIAS in df.columns:
-        temporal_series = cast(Series, contribution_df.pop(DTTM_ALIAS))
-
-    if orientation == PostProcessingContributionOrientation.ROW:
-        contribution_dft = contribution_df.T
-        contribution_df = (contribution_dft / contribution_dft.sum()).T
-    else:
-        contribution_df = contribution_df / contribution_df.sum()
-
-    if temporal_series is not None:
-        contribution_df.insert(0, DTTM_ALIAS, temporal_series)
+    numeric_df = contribution_df.select_dtypes(include="number")
+    # verify column selections
+    if columns:
+        numeric_columns = numeric_df.columns.tolist()
+        for col in columns:
+            if col not in numeric_columns:
+                raise QueryObjectValidationError(
+                    _(
+                        'Column "%(column)s" is not numeric or does not '
+                        "exists in the query results.",
+                        column=col,
+                    )
+                )
+    columns = columns or numeric_df.columns
+    rename_columns = rename_columns or columns
+    if len(rename_columns) != len(columns):
+        raise QueryObjectValidationError(
+            _("`rename_columns` must have the same length as `columns`.")
+        )
+    # limit to selected columns
+    numeric_df = numeric_df[columns]
+    axis = 0 if orientation == PostProcessingContributionOrientation.COLUMN else 1
+    numeric_df = numeric_df / numeric_df.values.sum(axis=axis, keepdims=True)
+    contribution_df[rename_columns] = numeric_df
     return contribution_df
 
 

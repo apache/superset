@@ -354,7 +354,11 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
               <FormLabel>
                 <strong>{t('Saved metric')}</strong>
               </FormLabel>
-              <Select name="select-saved" {...savedSelectProps}>
+              <Select
+                {...savedSelectProps}
+                name="select-saved"
+                getPopupContainer={triggerNode => triggerNode.parentNode}
+              >
                 {Array.isArray(savedMetricsOptions) &&
                   savedMetricsOptions.map(savedMetric => (
                     <Select.Option
@@ -375,7 +379,11 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
               <FormLabel>
                 <strong>{t('column')}</strong>
               </FormLabel>
-              <Select name="select-column" {...columnSelectProps}>
+              <Select
+                {...columnSelectProps}
+                name="select-column"
+                getPopupContainer={triggerNode => triggerNode.parentNode}
+              >
                 {columns.map(column => (
                   <Select.Option
                     value={column.id}
@@ -391,7 +399,11 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
               <FormLabel>
                 <strong>{t('aggregate')}</strong>
               </FormLabel>
-              <Select name="select-aggregate" {...aggregateSelectProps}>
+              <Select
+                {...aggregateSelectProps}
+                name="select-aggregate"
+                getPopupContainer={triggerNode => triggerNode.parentNode}
+              >
                 {AGGREGATES_OPTIONS.map(option => (
                   <Select.Option value={option} key={option}>
                     {option}

@@ -20,18 +20,11 @@ import React, { CSSProperties } from 'react';
 import { kebabCase } from 'lodash';
 import { mix } from 'polished';
 import cx from 'classnames';
-import { Button as BootstrapButton } from 'react-bootstrap';
-import { styled } from '@superset-ui/core';
+import { Button as AntdButton } from 'src/common/components';
+import { useTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/common/components/Tooltip';
-import { Menu } from 'src/common/components';
 
-export type OnClickHandler = React.MouseEventHandler<BootstrapButton>;
-
-export interface DropdownItemProps {
-  label: string;
-  url: string;
-  icon?: string;
-}
+export type OnClickHandler = React.MouseEventHandler<HTMLElement>;
 
 export interface ButtonProps {
   id?: string;
@@ -52,263 +45,163 @@ export interface ButtonProps {
     | 'rightBottom';
   onClick?: OnClickHandler;
   disabled?: boolean;
-  buttonStyle?: string;
-  btnStyles?: string;
-  buttonSize?: BootstrapButton.ButtonProps['bsSize'];
-  style?: BootstrapButton.ButtonProps['style'];
+  buttonStyle?:
+    | 'primary'
+    | 'secondary'
+    | 'tertiary'
+    | 'success'
+    | 'warning'
+    | 'danger'
+    | 'default'
+    | 'link'
+    | 'dashed';
+  buttonSize?: 'default' | 'small' | 'xsmall';
+  style?: CSSProperties;
   children?: React.ReactNode;
-  dropdownItems?: DropdownItemProps[];
-  href?: string; // React-Bootstrap creates a link when this is passed in.
-  target?: string; // React-Bootstrap creates a link when this is passed in.
-  type?: string; // React-Bootstrap supports this when rendering an HTML button element
+  href?: string;
+  htmlType?: 'button' | 'submit' | 'reset';
   cta?: boolean;
 }
 
-const BUTTON_WRAPPER_STYLE = { display: 'inline-block', cursor: 'not-allowed' };
+export default function Button(props: ButtonProps) {
+  const {
+    tooltip,
+    placement,
+    disabled = false,
+    buttonSize,
+    buttonStyle,
+    className,
+    cta,
+    children,
+    href,
+    ...restProps
+  } = props;
 
-const SupersetButton = styled(BootstrapButton)`
-  &:focus,
-  &:active,
-  &:focus:active {
-    outline: none;
-    box-shadow: none;
-  }
-  transition: all ${({ theme }) => theme.transitionTiming}s;
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: none;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
-  margin-left: ${({ theme }) => theme.gridUnit * 4}px;
-  &:first-of-type {
-    margin-left: 0;
-  }
+  const theme = useTheme();
+  const { colors, transitionTiming, borderRadius, typography } = theme;
+  const { primary, grayscale, success, warning, error } = colors;
 
-  i {
-    padding: 0 ${({ theme }) => theme.gridUnit * 2}px 0 0;
-  }
-
-  /* SIP 34 colors! */
-  &.btn {
-    border: 1px solid transparent; /* this just makes sure the height is the same as tertiary/dashed buttons */
-    &:hover,
-    &:active {
-      border: 1px solid transparent;
-    }
-    &-default,
-    &-secondary {
-      background-color: ${({ theme }) => theme.colors.primary.light4};
-      color: ${({ theme }) => theme.colors.primary.dark1};
-      &:hover {
-        background-color: ${({ theme }) =>
-          mix(0.1, theme.colors.grayscale.light5, theme.colors.primary.light4)};
-        color: ${({ theme }) => theme.colors.primary.dark1};
-      }
-      &:active {
-        background-color: ${({ theme }) =>
-          mix(0.25, theme.colors.primary.base, theme.colors.primary.light4)};
-        color: ${({ theme }) => theme.colors.primary.dark1};
-      }
-    }
-    &-tertiary,
-    &-dashed {
-      border-width: 1px;
-      border-style: solid;
-      background-color: ${({ theme }) => theme.colors.grayscale.light5};
-      color: ${({ theme }) => theme.colors.primary.dark1};
-      border-color: ${({ theme }) => theme.colors.primary.dark1};
-      &:hover {
-        background-color: ${({ theme }) => theme.colors.grayscale.light5};
-        color: ${({ theme }) => theme.colors.primary.dark1};
-        border-color: ${({ theme }) => theme.colors.primary.light1};
-      }
-      &:active {
-        background-color: ${({ theme }) => theme.colors.grayscale.light5};
-        color: ${({ theme }) => theme.colors.primary.dark1};
-        border-color: ${({ theme }) => theme.colors.primary.dark1};
-      }
-      &[disabled],
-      &[disabled]:hover {
-        background-color: ${({ theme }) => theme.colors.grayscale.light5};
-        color: ${({ theme }) => theme.colors.grayscale.base};
-        border-color: ${({ theme }) => theme.colors.grayscale.light2};
-      }
-    }
-    &-dashed {
-      border-style: dashed;
-      &:hover,
-      &:active {
-        border-style: dashed;
-      }
-    }
-    &-link {
-      background: none;
-      text-decoration: none;
-      color: ${({ theme }) => theme.colors.primary.dark1};
-      &:hover {
-        background: none;
-        color: ${({ theme }) => theme.colors.primary.base};
-      }
-      &:active {
-        background: none;
-        color: ${({ theme }) => theme.colors.primary.dark1};
-      }
-      &[disabled],
-      &[disabled]:hover {
-        background: none;
-        color: ${({ theme }) => theme.colors.grayscale.base};
-      }
-    }
-    &-primary {
-      background-color: ${({ theme }) => theme.colors.primary.dark1};
-      color: ${({ theme }) => theme.colors.grayscale.light5};
-      &:hover {
-        background-color: ${({ theme }) =>
-          mix(0.1, theme.colors.grayscale.light5, theme.colors.primary.dark1)};
-        color: ${({ theme }) => theme.colors.grayscale.light5};
-      }
-      &:active {
-        background-color: ${({ theme }) =>
-          mix(0.2, theme.colors.grayscale.dark2, theme.colors.primary.dark1)};
-        color: ${({ theme }) => theme.colors.grayscale.light5};
-      }
-    }
-    &-danger {
-      background-color: ${({ theme }) => theme.colors.error.base};
-      color: ${({ theme }) => theme.colors.grayscale.light5};
-      &:hover {
-        background-color: ${({ theme }) =>
-          mix(0.1, theme.colors.grayscale.light5, theme.colors.error.base)};
-        color: ${({ theme }) => theme.colors.grayscale.light5};
-      }
-      &:active {
-        background-color: ${({ theme }) =>
-          mix(0.2, theme.colors.grayscale.dark2, theme.colors.error.base)};
-        color: ${({ theme }) => theme.colors.grayscale.light5};
-      }
-    }
-    &-success {
-      background-color: ${({ theme }) => theme.colors.success.base};
-      color: ${({ theme }) => theme.colors.grayscale.light5};
-      &:hover {
-        background-color: ${({ theme }) =>
-          mix(0.1, theme.colors.grayscale.light5, theme.colors.success.base)};
-        color: ${({ theme }) => theme.colors.grayscale.light5};
-      }
-      &:active {
-        background-color: ${({ theme }) =>
-          mix(0.2, theme.colors.grayscale.dark2, theme.colors.success.base)};
-        color: ${({ theme }) => theme.colors.grayscale.light5};
-      }
-    }
-    &-warning {
-      background-color: ${({ theme }) => theme.colors.warning.base};
-      color: ${({ theme }) => theme.colors.grayscale.light5};
-      &:hover {
-        background-color: ${({ theme }) =>
-          mix(0.1, theme.colors.grayscale.light5, theme.colors.warning.base)};
-        color: ${({ theme }) => theme.colors.grayscale.light5};
-      }
-      &:active {
-        background-color: ${({ theme }) =>
-          mix(0.2, theme.colors.grayscale.dark2, theme.colors.warning.base)};
-        color: ${({ theme }) => theme.colors.grayscale.light5};
-      }
-    }
-    &-info {
-      background-color: ${({ theme }) => theme.colors.info.dark1};
-      color: ${({ theme }) => theme.colors.grayscale.light5};
-      &:hover {
-        background-color: ${({ theme }) =>
-          mix(0.1, theme.colors.grayscale.light5, theme.colors.info.dark1)};
-        color: ${({ theme }) => theme.colors.grayscale.light5};
-      }
-      &:active {
-        background-color: ${({ theme }) =>
-          mix(0.2, theme.colors.grayscale.dark2, theme.colors.info.dark1)};
-        color: ${({ theme }) => theme.colors.grayscale.light5};
-      }
-    }
-    &[disabled],
-    &[disabled]:hover {
-      background-color: ${({ theme }) => theme.colors.grayscale.light2};
-      color: ${({ theme }) => theme.colors.grayscale.base};
-    }
+  let height = 32;
+  let padding = 18;
+  if (buttonSize === 'xsmall') {
+    height = 22;
+    padding = 5;
+  } else if (buttonSize === 'small') {
+    height = 30;
+    padding = 10;
   }
 
-  /* big Call to Action buttons */
-  &.cta {
-    min-width: ${({ theme }) => theme.gridUnit * 36}px;
-    min-height: ${({ theme }) => theme.gridUnit * 8}px;
-    text-transform: uppercase;
+  let backgroundColor = primary.light4;
+  let backgroundColorHover = mix(0.1, primary.base, primary.light4);
+  let backgroundColorActive = mix(0.25, primary.base, primary.light4);
+  let backgroundColorDisabled = grayscale.light2;
+  let color = primary.dark1;
+  let colorHover = color;
+  let borderWidth = 0;
+  let borderStyle = 'none';
+  let borderColor = 'transparent';
+  let borderColorHover = 'transparent';
+  let borderColorDisabled = 'transparent';
+
+  if (buttonStyle === 'primary') {
+    backgroundColor = primary.dark1;
+    backgroundColorHover = mix(0.1, grayscale.light5, primary.dark1);
+    backgroundColorActive = mix(0.2, grayscale.dark2, primary.dark1);
+    color = grayscale.light5;
+    colorHover = color;
+  } else if (buttonStyle === 'tertiary' || buttonStyle === 'dashed') {
+    backgroundColor = grayscale.light5;
+    backgroundColorHover = grayscale.light5;
+    backgroundColorActive = grayscale.light5;
+    backgroundColorDisabled = grayscale.light5;
+    borderWidth = 1;
+    borderStyle = buttonStyle === 'dashed' ? 'dashed' : 'solid';
+    borderColor = primary.dark1;
+    borderColorHover = primary.light1;
+    borderColorDisabled = grayscale.light2;
+  } else if (buttonStyle === 'danger') {
+    backgroundColor = error.base;
+    backgroundColorHover = mix(0.1, grayscale.light5, error.base);
+    backgroundColorActive = mix(0.2, grayscale.dark2, error.base);
+    color = grayscale.light5;
+    colorHover = color;
+  } else if (buttonStyle === 'warning') {
+    backgroundColor = warning.base;
+    backgroundColorHover = mix(0.1, grayscale.dark2, warning.base);
+    backgroundColorActive = mix(0.2, grayscale.dark2, warning.base);
+    color = grayscale.light5;
+    colorHover = color;
+  } else if (buttonStyle === 'success') {
+    backgroundColor = success.base;
+    backgroundColorHover = mix(0.1, grayscale.light5, success.base);
+    backgroundColorActive = mix(0.2, grayscale.dark2, success.base);
+    color = grayscale.light5;
+    colorHover = color;
+  } else if (buttonStyle === 'link') {
+    backgroundColor = 'transparent';
+    backgroundColorHover = 'transparent';
+    backgroundColorActive = 'transparent';
+    colorHover = primary.base;
   }
-`;
 
-export default function Button({
-  tooltip,
-  placement,
-  dropdownItems,
-  disabled = false,
-  buttonSize: bsSize,
-  buttonStyle: bsStyle,
-  className,
-  style: style_,
-  cta,
-  children,
-  ...restProps
-}: ButtonProps) {
-  // Working around the fact that tooltips don't get triggered when buttons are disabled
-  // https://github.com/react-bootstrap/react-bootstrap/issues/1588
-  const style: CSSProperties | undefined =
-    tooltip && disabled ? { ...style_, pointerEvents: 'none' } : style_;
-
-  const officialBootstrapStyles = [
-    'success',
-    'warning',
-    'danger',
-    'info',
-    'default',
-    'primary',
-  ];
-
-  const transformedProps = {
-    ...restProps,
-    disabled,
-    bsSize,
-    bsStyle: officialBootstrapStyles.includes(bsStyle || '')
-      ? bsStyle
-      : 'default',
-    className: cx(className, {
-      cta: !!cta,
-      [`btn-${bsStyle}`]: !officialBootstrapStyles.includes(bsStyle || ''),
-    }),
-    style,
-  };
-
-  let button = (
-    <SupersetButton {...transformedProps}>{children}</SupersetButton>
+  const button = (
+    <AntdButton
+      href={disabled ? undefined : href}
+      disabled={disabled}
+      className={cx(className, { cta: !!cta })}
+      css={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        lineHeight: 1.5715,
+        fontSize: typography.sizes.s,
+        fontWeight: typography.weights.bold,
+        height,
+        textTransform: 'uppercase',
+        padding: `0px ${padding}px`,
+        transition: `all ${transitionTiming}s`,
+        minWidth: cta ? theme.gridUnit * 36 : undefined,
+        minHeight: cta ? theme.gridUnit * 8 : undefined,
+        boxShadow: 'none',
+        borderWidth,
+        borderStyle,
+        borderColor,
+        borderRadius,
+        color,
+        backgroundColor,
+        '&:hover': {
+          color: colorHover,
+          backgroundColor: backgroundColorHover,
+          borderColor: borderColorHover,
+        },
+        '&:active': {
+          color,
+          backgroundColor: backgroundColorActive,
+        },
+        '&:focus': {
+          color,
+          backgroundColor,
+          borderColor,
+        },
+        '&[disabled], &[disabled]:hover': {
+          color: grayscale.base,
+          backgroundColor: backgroundColorDisabled,
+          borderColor: borderColorDisabled,
+        },
+        'i:first-of-type, svg:first-of-type': {
+          marginRight: theme.gridUnit * 2,
+          padding: `0 ${theme.gridUnit * 2} 0 0`,
+        },
+        marginLeft: theme.gridUnit * 2,
+        '&:first-of-type': {
+          marginLeft: 0,
+        },
+      }}
+      {...restProps}
+    >
+      {children}
+    </AntdButton>
   );
-
-  if (dropdownItems) {
-    button = (
-      <div style={BUTTON_WRAPPER_STYLE}>
-        <SupersetButton {...transformedProps} data-toggle="dropdown">
-          {children}
-        </SupersetButton>
-        <ul className="dropdown-menu">
-          <Menu>
-            {dropdownItems.map((dropdownItem: DropdownItemProps) => (
-              <Menu.Item key={`${dropdownItem.label}`}>
-                <a href={dropdownItem.url}>
-                  <i className={`fa ${dropdownItem.icon}`} />
-                  &nbsp; {dropdownItem.label}
-                </a>
-              </Menu.Item>
-            ))}
-          </Menu>
-        </ul>
-      </div>
-    );
-  }
 
   if (tooltip) {
     return (

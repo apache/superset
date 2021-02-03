@@ -16,8 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// TODO: convert to .ts after we upgrade react-dnd
-import { DragDropContext } from 'react-dnd';
-import HTML5Backend from 'react-dnd-html5-backend';
 
-export default DragDropContext(HTML5Backend);
+import React from 'react';
+import { ReactWrapper } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
+import Button from 'src/components/Button';
+import ButtonGroup from '.';
+
+describe('ButtonGroup', () => {
+  let wrapper: ReactWrapper;
+
+  it('renders 1 button', () => {
+    expect(
+      React.isValidElement(
+        <ButtonGroup>
+          <Button>Button</Button>
+        </ButtonGroup>,
+      ),
+    ).toBe(true);
+  });
+
+  it('renders 3 buttons', () => {
+    wrapper = mount(
+      <ButtonGroup>
+        <Button>Button</Button>
+        <Button>Button</Button>
+        <Button>Button</Button>
+      </ButtonGroup>,
+    );
+
+    expect(wrapper.find(Button).length).toEqual(3);
+  });
+});

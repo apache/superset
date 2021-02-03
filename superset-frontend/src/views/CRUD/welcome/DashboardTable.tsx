@@ -25,9 +25,8 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
 import SubMenu from 'src/components/Menu/SubMenu';
-import Icon from 'src/components/Icon';
 import EmptyState from './EmptyState';
-import { createErrorHandler, CardContainer, IconContainer } from '../utils';
+import { createErrorHandler, CardContainer } from '../utils';
 
 const PAGE_SIZE = 3;
 
@@ -149,9 +148,9 @@ function DashboardTable({
         buttons={[
           {
             name: (
-              <IconContainer>
-                <Icon name="plus-small" /> Dashboard{' '}
-              </IconContainer>
+              <div>
+                <i className="fa fa-plus" /> Dashboard{' '}
+              </div>
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
