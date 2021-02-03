@@ -89,6 +89,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
         "favorite_status",
+        "get_charts",
     }
     resource_name = "dashboard"
     allow_browser_login = True
