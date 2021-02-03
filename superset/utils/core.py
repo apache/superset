@@ -74,6 +74,12 @@ from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import Role, User
 from flask_babel import gettext as __
 from flask_babel.speaklater import LazyString
+from pandas.core.dtypes.common import (
+    is_bool_dtype,
+    is_datetime64_any_dtype,
+    is_numeric_dtype,
+    is_object_dtype,
+)
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
@@ -1401,19 +1407,48 @@ def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
     return columns
 
 
-def serialize_pandas_dtypes(dtypes: List[np.dtype]) -> List[GenericDataType]:
-    """Serialize pandas/numpy dtypes to JavaScript types"""
-    mapping = {
-        "object": GenericDataType.STRING,
-        "category": GenericDataType.STRING,
-        "datetime64[ns]": GenericDataType.TEMPORAL,
-        "int64": GenericDataType.NUMERIC,
-        "in32": GenericDataType.NUMERIC,
-        "float64": GenericDataType.NUMERIC,
-        "float32": GenericDataType.NUMERIC,
-        "bool": GenericDataType.BOOLEAN,
+def extract_dataframe_dtypes(df: pd.DataFrame) -> List[GenericDataType]:
+    """Serialize pandas/numpy dtypes to generic types"""
+
+    def _check_dtype(series: pd.Series) -> Optional[GenericDataType]:
+        if is_numeric_dtype(series):
+            return GenericDataType.NUMERIC
+        elif is_bool_dtype(series):
+            return GenericDataType.BOOLEAN
+        elif is_datetime64_any_dtype(series):
+            return GenericDataType.TEMPORAL
+        return None
+
+    type_map: Dict[Type[Any], GenericDataType] = {
+        date: GenericDataType.TEMPORAL,
+        datetime: GenericDataType.TEMPORAL,
+        pd.Timestamp: GenericDataType.TEMPORAL,
+        pd.DatetimeTZDtype: GenericDataType.TEMPORAL,
+        str: GenericDataType.STRING,
+        int: GenericDataType.NUMERIC,
+        float: GenericDataType.NUMERIC,
+        bool: GenericDataType.BOOLEAN,
     }
-    return [mapping.get(str(x), GenericDataType.STRING) for x in dtypes]
+
+    generic_dtypes: List[GenericDataType] = []
+    for idx, column in enumerate(df.columns):
+        generic_dtype = GenericDataType.STRING
+        series = df[column]
+        if is_object_dtype(df[column]):
+            for row_idx, cell in enumerate(series):
+                inferred_generic_type = type_map.get(type(cell))
+                if inferred_generic_type is not None:
+                    generic_dtype = inferred_generic_type
+                    break
+                if row_idx > 1000:
+                    break
+        else:
+            inferred_generic_type = _check_dtype(series)
+            if inferred_generic_type is not None:
+                generic_dtype = inferred_generic_type
+        generic_dtypes.append(generic_dtype)
+
+    return generic_dtypes
 
 
 def indexed(

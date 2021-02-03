@@ -181,7 +181,7 @@ class QueryContext:
         status = payload["status"]
         if status != utils.QueryStatus.FAILED:
             payload["colnames"] = list(df.columns)
-            payload["coltypes"] = utils.serialize_pandas_dtypes(df.dtypes)
+            payload["coltypes"] = utils.extract_dataframe_dtypes(df)
             payload["data"] = self.get_data(df)
         del payload["df"]
 
