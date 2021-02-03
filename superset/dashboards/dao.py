@@ -37,10 +37,9 @@ class DashboardDAO(BaseDAO):
 
     @staticmethod
     def get_charts_for_dashboard(dashboard_id: int) -> List[Slice]:
-        logger.info("GETTING CHARTS____")
         query = db.session.query(Dashboard).filter(Dashboard.id == dashboard_id)
-        logger.info(query.__dict__)
-        return []
+        dashboard = query.one(); 
+        return [ slice.data for slice in dashboard.slices ]
 
     @staticmethod
     def validate_slug_uniqueness(slug: str) -> bool:
