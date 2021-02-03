@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import time
-from functools import wraps
 from typing import Any, Callable, Dict, Iterator, Union
 
 from contextlib2 import contextmanager
@@ -23,7 +22,6 @@ from flask import Response
 
 from superset import is_feature_enabled
 from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
-from superset.exceptions import SupersetSecurityException
 from superset.stats_logger import BaseStatsLogger
 from superset.utils import core as utils
 from superset.utils.dates import now_as_float
@@ -89,17 +87,19 @@ def check_dashboard_access(
 
             if is_feature_enabled("DASHBOARD_RBAC"):
                 try:
-                    from superset import security_manager
-                    from superset.models.dashboard import Dashboard
+                    from superset.models.dashboard import (
+                        Dashboard,
+                        raise_for_dashboard_access,
+                    )
 
                     dashboard = Dashboard.get(str(kwargs["dashboard_id_or_slug"]))
 
-                    security_manager.raise_for_dashboard_access(dashboard)
+                    raise_for_dashboard_access(dashboard)
 
                 except DashboardAccessDeniedError as ex:
                     return on_error(self, ex)
-                except Exception as e:
-                    raise e
+                except Exception as exception:
+                    raise exception
 
             return f(self, *args, **kwargs)
 

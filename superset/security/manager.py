@@ -46,7 +46,6 @@ from sqlalchemy.orm.query import Query as SqlaQuery
 from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
-from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import DatasourceName, RowLevelSecurityFilterType
@@ -418,27 +417,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
 
         return True
-
-    def raise_for_dashboard_access(self, dashboard: "Dashboard") -> None:
-
-        from superset.views.base import is_user_admin
-        from superset.views.utils import is_owner
-        from superset.views.base import get_user_roles
-        from superset import is_feature_enabled
-
-        if is_feature_enabled("DASHBOARD_RBAC"):
-            has_rbac_access = any(
-                dashboard_role.id in [user_role.id for user_role in get_user_roles()]
-                for dashboard_role in dashboard.roles
-            )
-            can_access = (
-                is_user_admin()
-                or is_owner(dashboard, g.user)
-                or (dashboard.published and has_rbac_access)
-            )
-
-            if not can_access:
-                raise DashboardAccessDeniedError()
 
     def user_view_menu_names(self, permission_name: str) -> Set[str]:
         base_query = (
