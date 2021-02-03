@@ -53,7 +53,7 @@ idna==2.10                # via email-validator, yarl
 importlib-metadata==2.1.1  # via -r requirements/base.in, jsonschema, kombu, markdown
 isodate==0.6.0            # via apache-superset
 itsdangerous==1.1.0       # via flask, flask-wtf
-jinja2==2.11.2            # via flask, flask-babel
+jinja2==2.11.3            # via flask, flask-babel
 jsonschema==3.2.0         # via flask-appbuilder
 kombu==4.6.11             # via celery
 korean-lunar-calendar==0.2.1  # via holidays
