@@ -1,0 +1,16 @@
+name: aws_test
+
+on: pull_request
+
+jobs:
+  aws_test:
+    name: Test aws-actions compatibility
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: foo
+        aws-secret-access-key: bar
+        aws-region: us-west-2
