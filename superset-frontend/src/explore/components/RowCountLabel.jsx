@@ -37,7 +37,7 @@ const defaultProps = {
 
 export default function RowCountLabel({ rowcount, limit, suffix, loading }) {
   const limitReached = rowcount === limit;
-  const bsStyle =
+  const type =
     limitReached || (rowcount === 0 && !loading) ? 'danger' : 'default';
   const formattedRowCount = getNumberFormatter()(rowcount);
   const tooltip = (
@@ -48,7 +48,7 @@ export default function RowCountLabel({ rowcount, limit, suffix, loading }) {
   );
   return (
     <TooltipWrapper label="tt-rowcount" tooltip={tooltip}>
-      <Label bsStyle={bsStyle}>
+      <Label type={type} data-test="row-count-label">
         {loading ? 'Loading...' : `${formattedRowCount} ${suffix}`}
       </Label>
     </TooltipWrapper>

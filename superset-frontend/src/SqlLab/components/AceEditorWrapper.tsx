@@ -41,6 +41,7 @@ type HotKey = {
 interface Props {
   actions: {
     queryEditorSetSelectedText: (edit: any, text: null | string) => void;
+    queryEditorSetFunctionNames: (queryEditor: object, dbId: number) => void;
     addTable: (queryEditor: any, value: any, schema: any) => void;
   };
   autocomplete: boolean;
@@ -85,6 +86,10 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
   componentDidMount() {
     // Making sure no text is selected from previous mount
     this.props.actions.queryEditorSetSelectedText(this.props.queryEditor, null);
+    this.props.actions.queryEditorSetFunctionNames(
+      this.props.queryEditor,
+      this.props.queryEditor.dbId,
+    );
     this.setAutoCompleter(this.props);
   }
 

@@ -21,7 +21,7 @@ import React from 'react';
 import { ReactWrapper } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
 import Label from '.';
-import { LabelGallery, bsStyleKnob } from './Label.stories';
+import { LabelGallery, options } from './Label.stories';
 
 describe('Label', () => {
   let wrapper: ReactWrapper;
@@ -34,23 +34,13 @@ describe('Label', () => {
   it('works with an onClick handler', () => {
     const mockAction = jest.fn();
     wrapper = mount(<Label onClick={mockAction} />);
-    wrapper.find('.label').simulate('click');
+    wrapper.find(Label).simulate('click');
     expect(mockAction).toHaveBeenCalled();
   });
 
   // test stories from the storybook!
-  it('renders all the sorybook gallery variants', () => {
+  it('renders all the storybook gallery variants', () => {
     wrapper = mount(<LabelGallery />);
-    Object.values(bsStyleKnob.options).forEach(opt => {
-      expect(wrapper.find(`.label-${opt}`).at(0).text()).toEqual(
-        `style: "${opt}"`,
-      );
-    });
-  });
-
-  // test things NOT in the storybook!
-  it('renders custom label styles without melting', () => {
-    wrapper = mount(<Label bsStyle="foobar" />);
-    expect(wrapper.find('Label.label-foobar')).toHaveLength(1);
+    expect(wrapper.find(Label).length).toEqual(options.length * 2);
   });
 });

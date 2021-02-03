@@ -704,7 +704,13 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             data_["fetch_values_predicate"] = self.fetch_values_predicate
             data_["template_params"] = self.template_params
             data_["is_sqllab_view"] = self.is_sqllab_view
-            data_["health_check_message"] = self.health_check_message
+            # Don't return previously populated health check message in case
+            # the health check feature is turned off
+            data_["health_check_message"] = (
+                self.health_check_message
+                if config.get("DATASET_HEALTH_CHECK")
+                else None
+            )
         return data_
 
     @property
@@ -904,7 +910,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             "filter": filter,
             "columns": [col.column_name for col in self.columns],
         }
-        is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
         template_kwargs.update(self.template_params_dict)
         extra_cache_keys: List[Any] = []
         template_kwargs["extra_cache_keys"] = extra_cache_keys
@@ -933,11 +938,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     "and is required by this type of chart"
                 )
             )
-        if (
-            not metrics
-            and not columns
-            and (is_sip_38 or (not is_sip_38 and not groupby))
-        ):
+        if not metrics and not columns and not groupby:
             raise QueryObjectValidationError(_("Empty query?"))
 
         metrics_exprs: List[ColumnElement] = []
@@ -967,9 +968,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         columns = columns or []
         columns = [col for col in columns if col != utils.DTTM_ALIAS]
 
-        if (is_sip_38 and metrics and columns) or (not is_sip_38 and metrics):
+        if metrics or groupby:
             # dedup columns while preserving order
-            columns = columns if is_sip_38 else (groupby or columns)
+            columns = groupby or columns
             select_exprs = []
             for selected in columns:
                 # if groupby field/expr equals granularity field/expr
@@ -1166,7 +1167,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             is_timeseries  # pylint: disable=too-many-boolean-expressions
             and timeseries_limit
             and not time_groupby_inline
-            and ((is_sip_38 and columns) or (not is_sip_38 and groupby))
+            and groupby
         ):
             if self.database.db_engine_spec.allows_joins:
                 # some sql dialects require for order by expressions
@@ -1229,6 +1230,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     "row_limit": timeseries_limit,
                     "metrics": metrics,
                     "granularity": granularity,
+                    "groupby": groupby,
                     "from_dttm": inner_from_dttm or from_dttm,
                     "to_dttm": inner_to_dttm or to_dttm,
                     "filter": filter,
@@ -1237,8 +1239,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     "columns": columns,
                     "order_desc": True,
                 }
-                if not is_sip_38:
-                    prequery_obj["groupby"] = groupby
 
                 result = self.query(prequery_obj)
                 prequeries.append(result.query)

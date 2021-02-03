@@ -51,10 +51,20 @@ spec:
           - name: superset-config
             mountPath: {{ .Values.configMountPath | quote }}
             readOnly: true
+        {{ if .Values.extraConfigs }}
+          - name: superset-extra-config
+            mountPath: {{ .Values.extraConfigMountPath | quote }}
+            readOnly: true
+        {{- end }}
         command: {{  tpl (toJson .Values.init.command) . }}
       volumes:
         - name: superset-config
           secret:
             secretName: {{ tpl .Values.configFromSecret . }}
+        {{- if .Values.extraConfigs }}
+        - name: superset-extra-config
+          configMap:
+            name: {{ template "superset.fullname" . }}-extra-config
+        {{- end }}
       restartPolicy: Never
 {{- end }}

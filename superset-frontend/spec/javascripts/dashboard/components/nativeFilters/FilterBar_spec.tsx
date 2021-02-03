@@ -20,6 +20,7 @@ import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { Provider } from 'react-redux';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
+import Button from 'src/components/Button';
 import { mockStore } from 'spec/fixtures/mockStore';
 
 describe('FilterBar', () => {
@@ -42,7 +43,8 @@ describe('FilterBar', () => {
     expect(wrapper.find({ name: 'collapse' })).toExist();
   });
   it('has apply and reset all buttons', () => {
-    expect(wrapper.find('.btn-primary')).toExist();
-    expect(wrapper.find('.btn-secondary')).toExist();
+    expect(wrapper.find(Button).length).toBe(2);
+    expect(wrapper.find(Button).at(0)).toHaveProp('buttonStyle', 'secondary');
+    expect(wrapper.find(Button).at(1)).toHaveProp('buttonStyle', 'primary');
   });
 });

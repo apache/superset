@@ -40,7 +40,6 @@ traitlets==5.0.5          # via ipython
 typed-ast==1.4.1          # via astroid
 wcwidth==0.2.5            # via prompt-toolkit
 websocket-client==0.57.0  # via docker
-wrapt==1.12.1             # via astroid
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip

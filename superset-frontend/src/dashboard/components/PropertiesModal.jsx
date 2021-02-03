@@ -296,8 +296,8 @@ class PropertiesModal extends React.PureComponent {
         footer={
           <>
             <Button
-              type="button"
-              buttonSize="sm"
+              htmlType="button"
+              buttonSize="small"
               onClick={onHide}
               data-test="properties-modal-cancel-button"
               cta
@@ -306,7 +306,7 @@ class PropertiesModal extends React.PureComponent {
             </Button>
             <Button
               onClick={this.submit}
-              buttonSize="sm"
+              buttonSize="small"
               buttonStyle="primary"
               className="m-r-5"
               disabled={errors.length > 0}

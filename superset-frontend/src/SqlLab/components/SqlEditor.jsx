@@ -71,7 +71,7 @@ import ShareSqlLabQuery from './ShareSqlLabQuery';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
 import {
-  STATE_BSSTYLE_MAP,
+  STATE_TYPE_MAP,
   SQL_EDITOR_GUTTER_HEIGHT,
   SQL_EDITOR_GUTTER_MARGIN,
   SQL_TOOLBAR_HEIGHT,
@@ -474,9 +474,7 @@ class SqlEditor extends React.PureComponent {
             sql={this.props.queryEditor.sql}
             schemas={this.props.queryEditor.schemaOptions}
             tables={this.props.queryEditor.tableOptions}
-            functionNames={
-              this.props.database ? this.props.database.function_names : []
-            }
+            functionNames={this.props.queryEditor.functionNames}
             extendedTables={this.props.tables}
             height={`${aceEditorHeight}px`}
             hotkeys={hotkeys}
@@ -575,7 +573,7 @@ class SqlEditor extends React.PureComponent {
             this.props.latestQuery.rows,
           )}
         >
-          <Label bsStyle="warning">LIMIT</Label>
+          <Label type="warning">LIMIT</Label>
         </Tooltip>
       );
     }
@@ -670,7 +668,7 @@ class SqlEditor extends React.PureComponent {
               <Timer
                 startTime={this.props.latestQuery.startDttm}
                 endTime={this.props.latestQuery.endDttm}
-                state={STATE_BSSTYLE_MAP[this.props.latestQuery.state]}
+                state={STATE_TYPE_MAP[this.props.latestQuery.state]}
                 isRunning={this.props.latestQuery.state === 'running'}
               />
             )}
