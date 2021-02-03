@@ -141,6 +141,7 @@ class TestQueryContext(SupersetTestCase):
         # the new cache_key should be different due to updated datasource
         self.assertNotEqual(cache_key_original, cache_key_new)
 
+    @pytest.mark.usefixtures("load_birth_names_datasource")
     def test_query_cache_key_does_not_change_for_non_existent_or_null(self):
         self.login(username="admin")
         payload = get_query_context("birth_names", add_postprocessing_operations=True)
