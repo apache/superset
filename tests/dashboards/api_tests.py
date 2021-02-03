@@ -472,27 +472,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         buf.seek(0)
         return buf
 
-    def test_get_dashboards_no_data_access(self):
-        """
-        Dashboard API: Test get dashboards no data access
-        """
-        admin = self.get_user("admin")
-        dashboard = self.insert_dashboard("title", "slug1", [admin.id])
-
-        self.login(username="gamma")
-        arguments = {
-            "filters": [{"col": "dashboard_title", "opr": "sw", "value": "ti"}]
-        }
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 0)
-
-        # rollback changes
-        db.session.delete(dashboard)
-        db.session.commit()
-
     def test_delete_dashboard(self):
         """
         Dashboard API: Test delete
