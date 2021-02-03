@@ -219,30 +219,21 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def get_charts(self, pk: int) -> Response:
-        """Change this later
+        """Gets the chart definitions for a given dashboard
         ---
-        post:
+        get:
           description: >-
             Create a new Dashboard.
-          requestBody:
-            description: Dashboard schema
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
           responses:
-            201:
-              description: Dashboard added
+            200:
+              description: Dashboard chart definitions
               content:
                 application/json:
                   schema:
                     type: object
                     properties:
-                      id:
-                        type: number
                       result:
-                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+                        $ref: '#/components/schemas/ChartRestApi.post'
             302:
               description: Redirects to the current digest
             400:
@@ -251,8 +242,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
-            500:
-              $ref: '#/components/responses/500'
         """
         charts = DashboardDAO.get_charts_for_dashboard(pk)
         return self.response(200, id=pk, response=charts)
