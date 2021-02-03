@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import time
+from functools import wraps
 from typing import Any, Callable, Dict, Iterator, Union
 
 from contextlib2 import contextmanager
@@ -79,10 +80,12 @@ def on_security_exception(self: Any, ex: Exception) -> Response:
     return self.response(403, **{"message": utils.error_msg_from_exception(ex)})
 
 
+# noinspection PyPackageRequirements
 def check_dashboard_access(
     on_error: Callable[..., Any] = on_security_exception
 ) -> Callable[..., Any]:
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
+        @wraps(f)
         def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
 
             if is_feature_enabled("DASHBOARD_RBAC"):
