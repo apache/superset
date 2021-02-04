@@ -24,6 +24,7 @@ import {
   addLocaleData,
   smartDateFormatter,
   QueryMode,
+  QueryFormColumn,
 } from '@superset-ui/core';
 import {
   formatSelectOptions,
@@ -60,8 +61,8 @@ function getQueryMode(controls: ControlStateMapping): QueryMode {
   if (mode === QueryMode.aggregate || mode === QueryMode.raw) {
     return mode as QueryMode;
   }
-  const rawColumns = controls?.all_columns?.value;
-  const hasRawColumns = rawColumns && (rawColumns as string[])?.length > 0;
+  const rawColumns: QueryFormColumn[] | undefined = controls?.all_columns?.value;
+  const hasRawColumns = rawColumns && rawColumns.length > 0;
   return hasRawColumns ? QueryMode.raw : QueryMode.aggregate;
 }
 

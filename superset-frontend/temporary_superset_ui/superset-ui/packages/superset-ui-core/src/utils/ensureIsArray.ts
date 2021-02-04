@@ -16,16 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormMetric } from '@superset-ui/core';
 
-export function extractTimeseriesLimitMetric(
-  timeSeriesLimitMetric?: QueryFormMetric[] | QueryFormMetric | null,
-): QueryFormMetric[] {
-  if (timeSeriesLimitMetric === undefined || timeSeriesLimitMetric === null) {
+/**
+ * Ensure a nullable value input is an array. Useful when consolidating
+ * input format from a select control.
+ */
+export default function ensureIsArray<T>(value?: T[] | T | null): T[] {
+  if (value === undefined || value === null) {
     return [];
   }
-  if (Array.isArray(timeSeriesLimitMetric)) {
-    return timeSeriesLimitMetric;
-  }
-  return [timeSeriesLimitMetric];
+  return Array.isArray(value) ? value : [value];
 }

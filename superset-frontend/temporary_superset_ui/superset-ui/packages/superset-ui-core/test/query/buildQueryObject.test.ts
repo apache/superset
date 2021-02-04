@@ -201,13 +201,21 @@ describe('buildQueryObject', () => {
   });
 
   it('should populate url_params', () => {
-    const urlParams = { abc: '123' };
-    query = buildQueryObject({
-      datasource: '5__table',
-      granularity_sqla: 'ds',
-      viz_type: 'table',
-      url_params: urlParams,
-    });
-    expect(query.url_params).toEqual(urlParams);
+    expect(
+      buildQueryObject({
+        datasource: '5__table',
+        granularity_sqla: 'ds',
+        viz_type: 'table',
+        url_params: { abc: '123' },
+      }).url_params,
+    ).toEqual({ abc: '123' });
+    expect(
+      buildQueryObject({
+        datasource: '5__table',
+        granularity_sqla: 'ds',
+        viz_type: 'table',
+        url_params: (null as unknown) as undefined,
+      }).url_params,
+    ).toBeUndefined();
   });
 });
