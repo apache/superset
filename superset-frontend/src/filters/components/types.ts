@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export interface PluginFilterTimeProps {
+export interface AntdPluginFilterStylesProps {
   height: number;
   width: number;
 }

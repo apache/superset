@@ -17,12 +17,12 @@
  * under the License.
  */
 import { SupersetClient, TimeRange } from '@superset-ui/core';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import rison from 'rison';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl/DateFilterControl';
 import { getRangeExtraFormData } from 'src/filters/utils';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { DEFAULT_FORM_DATA, PluginFilterTimeProps } from './types';
+import { PluginFilterTimeProps } from './types';
 
 const getTimeRange = async (value: string): Promise<TimeRange> => {
   const query = rison.encode(value);
@@ -42,17 +42,17 @@ const getTimeRange = async (value: string): Promise<TimeRange> => {
 };
 
 export default function PluginFilterTime(props: PluginFilterTimeProps) {
-  const { data, formData, height, width, setExtraFormData } = props;
-  const {
-    defaultValue,
-    enableEmptyFilter,
-    currentValue,
-    inverseSelection,
-    inputRef,
-  } = {
-    ...DEFAULT_FORM_DATA,
-    ...formData,
-  };
+  const { formData, setExtraFormData } = props;
+  // const {
+  //   defaultValue,
+  //   enableEmptyFilter,
+  //   currentValue,
+  //   inverseSelection,
+  //   inputRef,
+  // } = {
+  //   ...DEFAULT_FORM_DATA,
+  //   ...formData,
+  // };
 
   const [value, setValue] = useState<string>();
 
@@ -71,6 +71,7 @@ export default function PluginFilterTime(props: PluginFilterTimeProps) {
           timeRange.since,
           timeRange.until,
         );
+        // @ts-ignore
         setExtraFormData({ extraFormData, currentState: { value: [value] } });
       });
     }
