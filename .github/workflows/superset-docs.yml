@@ -10,7 +10,7 @@ on:
 
 jobs:
   docs:
-    name: build
+    name: docs
     runs-on: ubuntu-20.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
