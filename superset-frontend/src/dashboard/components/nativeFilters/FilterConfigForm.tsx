@@ -245,6 +245,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       <StyledFormItem
         name={['filters', filterId, 'defaultValue']}
         initialValue={filterToEdit?.defaultValue}
+        data-test="default-input"
         label={<StyledLabel>{t('Default Value')}</StyledLabel>}
       >
         {formFilter?.dataset &&
