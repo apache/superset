@@ -1409,8 +1409,8 @@ def extract_dataframe_dtypes(df: pd.DataFrame) -> List[GenericDataType]:
     inferred_type_map: Dict[str, GenericDataType] = {
         "floating": GenericDataType.NUMERIC,
         "integer": GenericDataType.NUMERIC,
-        "mixed - integer": GenericDataType.NUMERIC,
-        "mixed - integer - float": GenericDataType.NUMERIC,
+        "mixed-integer": GenericDataType.STRING,
+        "mixed-integer-float": GenericDataType.NUMERIC,
         "decimal": GenericDataType.NUMERIC,
         "boolean": GenericDataType.BOOLEAN,
         "datetime64": GenericDataType.TEMPORAL,

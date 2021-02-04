@@ -23,6 +23,7 @@ import hashlib
 import json
 import os
 import re
+from typing import Any, Tuple, List
 from unittest.mock import Mock, patch
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
@@ -1071,37 +1072,32 @@ class TestUtils(SupersetTestCase):
         assert re.match(r"^token_[a-z0-9]{8}$", generated_token) is not None
 
     def test_extract_dataframe_dtypes(self):
-        df = pd.DataFrame(
-            data={
-                "dt": [date(2021, 2, 4), date(2021, 2, 4)],
-                "dttm": [datetime(2021, 2, 4, 1, 1, 1), datetime(2021, 2, 4, 1, 1, 1)],
-                "str": ["foo", "foo"],
-                "int": [1, 1],
-                "float": [0.5, 0.5],
-                "bool": [True, False],
-                "obj": [{"a": 1}, {"a": 1}],
-                "dt_null": [None, date(2021, 2, 4)],
-                "dttm_null": [None, datetime(2021, 2, 4, 1, 1, 1)],
-                "str_null": [None, "foo"],
-                "int_null": [None, 1],
-                "float_null": [None, 0.5],
-                "bool_null": [None, False],
-                "obj_null": [None, {"a": 1}],
-            }
+        cols: Tuple[Tuple[str, GenericDataType, List[Any]], ...] = (
+            ("dt", GenericDataType.TEMPORAL, [date(2021, 2, 4), date(2021, 2, 4)]),
+            (
+                "dttm",
+                GenericDataType.TEMPORAL,
+                [datetime(2021, 2, 4, 1, 1, 1), datetime(2021, 2, 4, 1, 1, 1)],
+            ),
+            ("str", GenericDataType.STRING, ["foo", "foo"]),
+            ("int", GenericDataType.NUMERIC, [1, 1]),
+            ("float", GenericDataType.NUMERIC, [0.5, 0.5]),
+            ("mixed-int-float", GenericDataType.NUMERIC, [0.5, 1.0]),
+            ("bool", GenericDataType.BOOLEAN, [True, False]),
+            ("mixed-str-int", GenericDataType.STRING, ["abc", 1.0]),
+            ("obj", GenericDataType.STRING, [{"a": 1}, {"a": 1}]),
+            ("dt_null", GenericDataType.TEMPORAL, [None, date(2021, 2, 4)]),
+            (
+                "dttm_null",
+                GenericDataType.TEMPORAL,
+                [None, datetime(2021, 2, 4, 1, 1, 1)],
+            ),
+            ("str_null", GenericDataType.STRING, [None, "foo"]),
+            ("int_null", GenericDataType.NUMERIC, [None, 1]),
+            ("float_null", GenericDataType.NUMERIC, [None, 0.5]),
+            ("bool_null", GenericDataType.BOOLEAN, [None, False]),
+            ("obj_null", GenericDataType.STRING, [None, {"a": 1}]),
         )
-        assert extract_dataframe_dtypes(df) == [
-            GenericDataType.TEMPORAL,
-            GenericDataType.TEMPORAL,
-            GenericDataType.STRING,
-            GenericDataType.NUMERIC,
-            GenericDataType.NUMERIC,
-            GenericDataType.BOOLEAN,
-            GenericDataType.STRING,
-            GenericDataType.TEMPORAL,
-            GenericDataType.TEMPORAL,
-            GenericDataType.STRING,
-            GenericDataType.NUMERIC,
-            GenericDataType.NUMERIC,
-            GenericDataType.BOOLEAN,
-            GenericDataType.STRING,
-        ]
+
+        df = pd.DataFrame(data={col[0]: col[2] for col in cols})
+        assert extract_dataframe_dtypes(df) == [col[1] for col in cols]
