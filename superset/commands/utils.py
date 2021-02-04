@@ -55,7 +55,7 @@ def populate_roles(role_ids: Optional[List[int]] = None) -> List[Role]:
      :raises RolesNotFoundValidationError: If a role in the input list is not found
     :param role_ids: A List of roles by id's
     """
-    roles = list()
+    roles: List[Role] = []
     if role_ids:
         for role_id in role_ids:
             role = security_manager.find_role_by_id(role_id)
