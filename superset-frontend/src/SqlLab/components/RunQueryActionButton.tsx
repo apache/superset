@@ -109,7 +109,11 @@ const RunQueryActionButton = ({
               overlay: overlayCreateAsMenu,
               icon: (
                 <Icon
-                  color={supersetTheme.colors.grayscale.light5}
+                  color={
+                    !sql.trim()
+                      ? supersetTheme.colors.grayscale.base
+                      : supersetTheme.colors.grayscale.light5
+                  }
                   name="caret-down"
                 />
               ),

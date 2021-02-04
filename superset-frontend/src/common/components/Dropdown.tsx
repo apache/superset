@@ -82,14 +82,18 @@ const StyledDropdownButton = styled.div`
         margin: 0;
         width: 120px;
       }
-      &:last-of-type {
+      :disabled {
+        background-color: ${({ theme }) => theme.colors.grayscale.light2};
+        color: ${({ theme }) => theme.colors.grayscale.base};
+      }
+      &:nth-child(2) {
         margin: 0;
         border-radius: ${({ theme }) =>
           `0 ${theme.gridUnit}px ${theme.gridUnit}px 0`};
         width: ${({ theme }) => theme.gridUnit * 9}px;
         &:before,
         &:hover:before {
-          border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light5};
+          border-left: 2px solid ${({ theme }) => theme.colors.grayscale.light5};
           content: '';
           display: block;
           height: 23px;
@@ -97,6 +101,9 @@ const StyledDropdownButton = styled.div`
           position: absolute;
           top: ${({ theme }) => theme.gridUnit * 0.75}px;
           width: ${({ theme }) => theme.gridUnit * 0.25}px;
+        }
+        :disabled:before {
+          border-left: 1px solid ${({ theme }) => theme.colors.grayscale.base};
         }
       }
     }
