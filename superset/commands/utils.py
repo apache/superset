@@ -58,7 +58,7 @@ def populate_roles(role_ids: Optional[List[int]] = None) -> List[Role]:
     roles: List[Role] = []
     if role_ids:
         roles = security_manager.find_roles_by_id(role_ids)
-        if len(roles)!=len(role_ids):
+        if len(roles) != len(role_ids):
             raise RolesNotFoundValidationError()
     return roles
 

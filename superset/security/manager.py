@@ -27,7 +27,8 @@ from flask_appbuilder.security.sqla.models import (
     assoc_permissionview_role,
     assoc_user_role,
     PermissionView,
-    User, Role,
+    Role,
+    User,
 )
 from flask_appbuilder.security.views import (
     PermissionModelView,
