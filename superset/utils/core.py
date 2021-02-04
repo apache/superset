@@ -74,6 +74,7 @@ from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import Role, User
 from flask_babel import gettext as __
 from flask_babel.speaklater import LazyString
+from pandas.api.types import infer_dtype
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
@@ -1401,19 +1402,29 @@ def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
     return columns
 
 
-def serialize_pandas_dtypes(dtypes: List[np.dtype]) -> List[GenericDataType]:
-    """Serialize pandas/numpy dtypes to JavaScript types"""
-    mapping = {
-        "object": GenericDataType.STRING,
-        "category": GenericDataType.STRING,
-        "datetime64[ns]": GenericDataType.TEMPORAL,
-        "int64": GenericDataType.NUMERIC,
-        "in32": GenericDataType.NUMERIC,
-        "float64": GenericDataType.NUMERIC,
-        "float32": GenericDataType.NUMERIC,
-        "bool": GenericDataType.BOOLEAN,
+def extract_dataframe_dtypes(df: pd.DataFrame) -> List[GenericDataType]:
+    """Serialize pandas/numpy dtypes to generic types"""
+
+    # omitting string types as those will be the default type
+    inferred_type_map: Dict[str, GenericDataType] = {
+        "floating": GenericDataType.NUMERIC,
+        "integer": GenericDataType.NUMERIC,
+        "mixed-integer-float": GenericDataType.NUMERIC,
+        "decimal": GenericDataType.NUMERIC,
+        "boolean": GenericDataType.BOOLEAN,
+        "datetime64": GenericDataType.TEMPORAL,
+        "datetime": GenericDataType.TEMPORAL,
+        "date": GenericDataType.TEMPORAL,
     }
-    return [mapping.get(str(x), GenericDataType.STRING) for x in dtypes]
+
+    generic_types: List[GenericDataType] = []
+    for column in df.columns:
+        series = df[column]
+        inferred_type = infer_dtype(series)
+        generic_type = inferred_type_map.get(inferred_type, GenericDataType.STRING)
+        generic_types.append(generic_type)
+
+    return generic_types
 
 
 def indexed(
