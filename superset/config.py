@@ -404,15 +404,21 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 
 THEME_OVERRIDES: Dict[str, Any] = {}
 
-# EXTRA_SCRIPTS: Dict[str, str] = {}
-EXTRA_SCRIPTS: Dict[str, str] = {
-    "position" : 'head',
-    "code": """
-        fetch('https://jsonplaceholder.typicode.com/posts/42', {
-            method: 'GET',
-        }).then(response => response.json()).then(result => console.log("Result from remote server: ", result));
-    """
-}
+# EXTRA_SCRIPTS gives opportunity to inject custom scripts to head/body tags in html page
+# Parameters:
+# - position: 'head' / 'body' - specify position of injected script (in the end of <head/> or <body/> tag)
+# - code: valid js snippet code that will be called when page loaded
+#
+# Example:
+# EXTRA_SCRIPTS: Dict[str, str] = {
+#     "position" : 'head',
+#     "code": """
+#         fetch('https://jsonplaceholder.typicode.com/posts/42', {
+#             method: 'GET',
+#         }).then(response => response.json()).then(result => console.log("Result from remote server: ", result));
+#     """
+# }
+EXTRA_SCRIPTS: Dict[str, str] = {}
 
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [
