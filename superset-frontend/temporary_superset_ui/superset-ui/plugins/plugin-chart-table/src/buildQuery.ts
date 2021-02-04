@@ -46,7 +46,17 @@ export default function buildQuery(formData: TableChartFormData) {
   const { percent_metrics: percentMetrics, order_desc: orderDesc = false } = formData;
   const queryMode = getQueryMode(formData);
   const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
-  return buildQueryContext(formData, baseQueryObject => {
+  let formDataCopy = formData;
+
+  // never include time in raw records mode
+  if (queryMode === QueryMode.raw) {
+    formDataCopy = {
+      ...formData,
+      include_time: false,
+    };
+  }
+
+  return buildQueryContext(formDataCopy, baseQueryObject => {
     let { metrics, orderby } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
 
