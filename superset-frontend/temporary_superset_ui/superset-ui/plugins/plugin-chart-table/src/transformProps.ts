@@ -25,6 +25,7 @@ import {
   smartDateFormatter,
   getTimeFormatterForGranularity,
   TimeFormatter,
+  TimeFormats,
   GenericDataType,
   getMetricLabel,
 } from '@superset-ui/core';
@@ -34,6 +35,7 @@ import DateWithFormatter from './utils/DateWithFormatter';
 import { TableChartProps, TableChartTransformedProps, DataColumnMeta } from './types';
 
 const { PERCENT_3_POINT } = NumberFormats;
+const { DATABASE_DATETIME } = TimeFormats;
 const TIME_COLUMN = '__timestamp';
 
 function isTimeColumn(key: string) {
@@ -114,9 +116,12 @@ const processColumns = memoizeOne(function processColumns(props: TableChartProps
           } else if (format) {
             // other columns respect the column-specific format
             formatter = getTimeFormatter(format);
+          } else if (isNumeric(key, records)) {
+            // if column is numeric values, it is considered a timestamp64
+            formatter = getTimeFormatter(DATABASE_DATETIME);
           } else {
-            // if no column-specific format, use smart_date
-            formatter = smartDateFormatter;
+            // if no column-specific format, print cell as is
+            formatter = String;
           }
         } else if (timeFormat) {
           formatter = getTimeFormatter(timeFormat);
