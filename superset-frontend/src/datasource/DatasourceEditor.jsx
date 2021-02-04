@@ -59,7 +59,7 @@ const DatasourceContainer = styled.div`
     font-weight: ${({ theme }) => theme.typography.weights.bold};
   }
 
-  .form-group {
+  .help-block {
     margin-bottom: 8px;
   }
 `;
