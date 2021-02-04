@@ -60,7 +60,7 @@ const DatasourceContainer = styled.div`
   }
 
   .help-block {
-    margin-bottom: 8px;
+    margin-top: 8px;
   }
 `;
 
