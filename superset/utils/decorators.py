@@ -87,24 +87,21 @@ def check_dashboard_access(
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(f)
         def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
+            from superset.models.dashboard import (
+                Dashboard,
+                raise_for_dashboard_access,
+            )
 
+            dashboard = Dashboard.get(str(kwargs["dashboard_id_or_slug"]))
             if is_feature_enabled("DASHBOARD_RBAC"):
                 try:
-                    from superset.models.dashboard import (
-                        Dashboard,
-                        raise_for_dashboard_access,
-                    )
-
-                    dashboard = Dashboard.get(str(kwargs["dashboard_id_or_slug"]))
-
                     raise_for_dashboard_access(dashboard)
-
                 except DashboardAccessDeniedError as ex:
                     return on_error(self, ex)
                 except Exception as exception:
                     raise exception
 
-            return f(self, *args, **kwargs)
+            return f(self, *args, dashboard=dashboard, **kwargs)
 
         return wrapper
 
