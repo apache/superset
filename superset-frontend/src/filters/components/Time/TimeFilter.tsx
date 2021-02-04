@@ -16,82 +16,58 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, TimeRange } from '@superset-ui/core';
-import React, { useState } from 'react';
-import rison from 'rison';
+import { styled, TimeRange } from '@superset-ui/core';
+import React, { useState, useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl/DateFilterControl';
 import { getRangeExtraFormData } from 'src/filters/utils';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { PluginFilterTimeProps } from './types';
+import { AntdPluginFilterStylesProps } from '../types';
+import { DEFAULT_FORM_DATA, PluginFilterTimeProps } from './types';
 
-const getTimeRange = async (value: string): Promise<TimeRange> => {
-  const query = rison.encode(value);
-  const endpoint = `/api/v1/time_range/?q=${query}`;
-  try {
-    const response = await SupersetClient.get({ endpoint });
-    const { since, until } = response?.json?.result || {};
-    return {
-      time_range: value,
-      since,
-      until,
-    };
-  } catch (response) {
-    const clientError = await getClientErrorObject(response);
-    throw clientError.message || clientError.error;
-  }
-};
+const Styles = styled.div<AntdPluginFilterStylesProps>`
+  height: ${({ height }) => height}px;
+  width: ${({ width }) => width}px;
+  overflow-x: scroll;
+`;
 
 export default function PluginFilterTime(props: PluginFilterTimeProps) {
-  const { formData, setExtraFormData } = props;
-  // const {
-  //   defaultValue,
-  //   enableEmptyFilter,
-  //   currentValue,
-  //   inverseSelection,
-  //   inputRef,
-  // } = {
-  //   ...DEFAULT_FORM_DATA,
-  //   ...formData,
-  // };
+  const { formData, setExtraFormData, width, height } = props;
+  const { defaultValue } = {
+    ...DEFAULT_FORM_DATA,
+    ...formData,
+  };
 
-  const [value, setValue] = useState<string>();
+  const firstDefault = (defaultValue?.[0] || '').toString();
+  const [value, setValue] = useState<string>(firstDefault || 'Last week');
 
   let { groupby = [] } = formData;
   groupby = Array.isArray(groupby) ? groupby : [groupby];
 
-  const handleChange = (value?: string) => {
-    setValue(value);
-
+  const handleTimeRangeChange = (timeRange: TimeRange) => {
     const [col] = groupby;
-
-    if (value) {
-      getTimeRange(value).then(timeRange => {
-        const extraFormData = getRangeExtraFormData(
-          col,
-          timeRange.since,
-          timeRange.until,
-        );
-        // @ts-ignore
-        setExtraFormData({ extraFormData, currentState: { value: [value] } });
-      });
-    }
+    const extraFormData = getRangeExtraFormData(
+      col,
+      timeRange.since,
+      timeRange.until,
+    );
+    // @ts-ignore
+    setExtraFormData({ extraFormData, currentState: { value: [value] } });
   };
 
-  // useEffect(() => {
-  //   if (currentValue?.length) {
-  //     handleChange(currentValue[0].toString());
-  //   } else {
-  //     handleChange();
-  //   }
-  // }, [JSON.stringify(currentValue)]);
+  useEffect(() => {
+    if (firstDefault) {
+      console.log('Setting first default', firstDefault);
+      setValue(firstDefault);
+    }
+  }, [firstDefault]);
 
-  // useEffect(() => {
-  //   if (defaultValue?.length) {
-  //     handleChange(defaultValue[0].toString());
-  //   } else {
-  //     handleChange();
-  //   }
-  // }, [JSON.stringify(defaultValue)]);
-
-  return <DateFilterControl value={value} name="" onChange={handleChange} />;
+  return (
+    <Styles width={width} height={height}>
+      <DateFilterControl
+        value={value}
+        name=""
+        onChange={setValue}
+        onTimeRangeChange={handleTimeRangeChange}
+      />
+    </Styles>
+  );
 }

@@ -24,6 +24,7 @@ import {
   supersetTheme,
   t,
   TimeRangeEndpoints,
+  TimeRange,
 } from '@superset-ui/core';
 import {
   buildTimeRangeString,
@@ -76,12 +77,13 @@ const fetchTimeRange = async (
   const endpoint = `/api/v1/time_range/?q=${query}`;
   try {
     const response = await SupersetClient.get({ endpoint });
-    const timeRangeString = buildTimeRangeString(
-      response?.json?.result?.since || '',
-      response?.json?.result?.until || '',
-    );
+    const { since = '', until = '' } = response?.json?.result || {};
+    const timeRangeString = buildTimeRangeString(since, until);
+
     return {
       value: formatTimeRange(timeRangeString, endpoints),
+      since,
+      until,
     };
   } catch (response) {
     const clientError = await getClientErrorObject(response);
@@ -168,13 +170,20 @@ const IconWrapper = styled.span`
 interface DateFilterLabelProps {
   name: string;
   onChange: (timeRange: string) => void;
+  onTimeRangeChange?: (timeRange: TimeRange) => void;
   value?: string;
   endpoints?: TimeRangeEndpoints;
   datasource?: string;
 }
 
 export default function DateFilterControl(props: DateFilterLabelProps) {
-  const { value = 'Last week', endpoints, onChange, datasource } = props;
+  const {
+    value = 'Last week',
+    endpoints,
+    datasource,
+    onChange,
+    onTimeRangeChange = () => {},
+  } = props;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
@@ -187,13 +196,14 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
 
   useEffect(() => {
     if (!isMounted) setIsMounted(true);
-    fetchTimeRange(value, endpoints).then(({ value: actualRange, error }) => {
-      if (error) {
-        setEvalResponse(error || '');
-        setValidTimeRange(false);
-        setTooltipTitle(value || '');
-      } else {
-        /*
+    fetchTimeRange(value, endpoints).then(
+      ({ value: actualRange, since, until, error }) => {
+        if (error) {
+          setEvalResponse(error || '');
+          setValidTimeRange(false);
+          setTooltipTitle(value || '');
+        } else {
+          /*
           HRT == human readable text
           ADR == actual datetime range
           +--------------+------+----------+--------+----------+-----------+
@@ -204,20 +214,24 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           | tooltip      | ADR  | ADR      | HRT    | HRT      |   ADR     |
           +--------------+------+----------+--------+----------+-----------+
         */
-        if (
-          frame === 'Common' ||
-          frame === 'Calendar' ||
-          frame === 'No filter'
-        ) {
-          setActualTimeRange(value);
-          setTooltipTitle(actualRange || '');
-        } else {
-          setActualTimeRange(actualRange || '');
-          setTooltipTitle(value || '');
+          const currentFrame = guessFrame(value);
+          if (
+            currentFrame === 'Common' ||
+            currentFrame === 'Calendar' ||
+            currentFrame === 'No filter'
+          ) {
+            setActualTimeRange(value);
+            setTooltipTitle(actualRange || '');
+            onTimeRangeChange({ time_range: value, since, until });
+          } else {
+            setActualTimeRange(actualRange || '');
+            setTooltipTitle(value || '');
+            onTimeRangeChange({ time_range: actualRange, since, until });
+          }
+          setValidTimeRange(true);
         }
-        setValidTimeRange(true);
-      }
-    });
+      },
+    );
   }, [value]);
 
   useEffect(() => {
@@ -243,6 +257,12 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   function onSave() {
     onChange(timeRangeValue);
     setShow(false);
+  }
+
+  function onOpen() {
+    setTimeRangeValue(value);
+    setFrame(guessFrame(value));
+    setShow(true);
   }
 
   function onHide() {
@@ -355,7 +375,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           <Label
             className="pointer"
             data-test="time-range-trigger"
-            onClick={() => setShow(true)}
+            onClick={onOpen}
           >
             {actualTimeRange}
           </Label>

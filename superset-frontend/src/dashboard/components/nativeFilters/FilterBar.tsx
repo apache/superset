@@ -248,6 +248,7 @@ const FilterValue: React.FC<FilterProps> = ({
       defaultValue,
       currentValue,
       inverseSelection,
+      inputRef,
     });
     if (!areObjectsEqual(formData || {}, newFormData)) {
       setFormData(newFormData);
@@ -308,7 +309,7 @@ const FilterValue: React.FC<FilterProps> = ({
   return (
     <FilterItem>
       <SuperChart
-        height={20}
+        height={25}
         width={220}
         formData={formData}
         queriesData={state}
