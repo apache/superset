@@ -28,9 +28,8 @@
   "dependencies": {
     "@superset-ui/chart-controls": "0.17.5",
     "@superset-ui/core": "0.17.5",
-    "@types/echarts": "^4.9.3",
     "@types/mathjs": "^6.0.7",
-    "echarts": "^5.0.0",
+    "echarts": "^5.0.1",
     "mathjs": "^8.0.1"
   },
   "peerDependencies": {
