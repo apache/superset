@@ -160,7 +160,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         # arrange
         admin_user = security_manager.find_user(ADMIN_USERNAME)
         gamma_user = security_manager.find_user(GAMMA_USERNAME)
-        admin_and_not_published_dashboard = create_dashboard_to_db(
+        admin_and_draft_dashboard = create_dashboard_to_db(
             dashboard_title="admin_owned_unpublished_dash", owners=[admin_user]
         )
 
@@ -171,7 +171,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
 
         # assert
         self.assertNotIn(
-            admin_and_not_published_dashboard.url, get_dashboards_response_as_gamma
+            admin_and_draft_dashboard.url, get_dashboards_response_as_gamma
         )
 
     @pytest.mark.usefixtures("load_energy_table_with_slice", "load_dashboard")
