@@ -23,10 +23,12 @@ import hashlib
 import json
 import os
 import re
+from typing import Any, Tuple, List
 from unittest.mock import Mock, patch
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
-import numpy
+import numpy as np
+import pandas as pd
 import pytest
 from flask import Flask, g
 import marshmallow
@@ -44,6 +46,7 @@ from superset.utils.core import (
     convert_legacy_filters_into_adhoc,
     create_ssl_cert_file,
     format_timedelta,
+    GenericDataType,
     get_form_data_token,
     get_iterable,
     get_email_address_list,
@@ -57,6 +60,7 @@ from superset.utils.core import (
     merge_request_params,
     parse_ssl_cert,
     parse_js_uri_path_item,
+    extract_dataframe_dtypes,
     split,
     TimeRangeEndpoint,
     validate_json,
@@ -113,9 +117,9 @@ class TestUtils(SupersetTestCase):
             json_iso_dttm_ser("this is not a date")
 
     def test_base_json_conv(self):
-        assert isinstance(base_json_conv(numpy.bool_(1)), bool) is True
-        assert isinstance(base_json_conv(numpy.int64(1)), int) is True
-        assert isinstance(base_json_conv(numpy.array([1, 2, 3])), list) is True
+        assert isinstance(base_json_conv(np.bool_(1)), bool) is True
+        assert isinstance(base_json_conv(np.int64(1)), int) is True
+        assert isinstance(base_json_conv(np.array([1, 2, 3])), list) is True
         assert isinstance(base_json_conv(set([1])), list) is True
         assert isinstance(base_json_conv(Decimal("1.0")), float) is True
         assert isinstance(base_json_conv(uuid.uuid4()), str) is True
@@ -1066,3 +1070,34 @@ class TestUtils(SupersetTestCase):
         assert get_form_data_token({"token": "token_abcdefg1"}) == "token_abcdefg1"
         generated_token = get_form_data_token({})
         assert re.match(r"^token_[a-z0-9]{8}$", generated_token) is not None
+
+    def test_extract_dataframe_dtypes(self):
+        cols: Tuple[Tuple[str, GenericDataType, List[Any]], ...] = (
+            ("dt", GenericDataType.TEMPORAL, [date(2021, 2, 4), date(2021, 2, 4)]),
+            (
+                "dttm",
+                GenericDataType.TEMPORAL,
+                [datetime(2021, 2, 4, 1, 1, 1), datetime(2021, 2, 4, 1, 1, 1)],
+            ),
+            ("str", GenericDataType.STRING, ["foo", "foo"]),
+            ("int", GenericDataType.NUMERIC, [1, 1]),
+            ("float", GenericDataType.NUMERIC, [0.5, 0.5]),
+            ("mixed-int-float", GenericDataType.NUMERIC, [0.5, 1.0]),
+            ("bool", GenericDataType.BOOLEAN, [True, False]),
+            ("mixed-str-int", GenericDataType.STRING, ["abc", 1.0]),
+            ("obj", GenericDataType.STRING, [{"a": 1}, {"a": 1}]),
+            ("dt_null", GenericDataType.TEMPORAL, [None, date(2021, 2, 4)]),
+            (
+                "dttm_null",
+                GenericDataType.TEMPORAL,
+                [None, datetime(2021, 2, 4, 1, 1, 1)],
+            ),
+            ("str_null", GenericDataType.STRING, [None, "foo"]),
+            ("int_null", GenericDataType.NUMERIC, [None, 1]),
+            ("float_null", GenericDataType.NUMERIC, [None, 0.5]),
+            ("bool_null", GenericDataType.BOOLEAN, [None, False]),
+            ("obj_null", GenericDataType.STRING, [None, {"a": 1}]),
+        )
+
+        df = pd.DataFrame(data={col[0]: col[2] for col in cols})
+        assert extract_dataframe_dtypes(df) == [col[1] for col in cols]
