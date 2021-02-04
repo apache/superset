@@ -55,7 +55,6 @@ export default function PluginFilterTime(props: PluginFilterTimeProps) {
 
   useEffect(() => {
     if (firstDefault) {
-      console.log('Setting first default', firstDefault);
       setValue(firstDefault);
     }
   }, [firstDefault]);
