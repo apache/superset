@@ -115,15 +115,18 @@ describe('Visualization > Table', () => {
       metrics: [NUM_METRIC, MAX_DS],
       groupby: ['name'],
     });
-    cy.verifySliceSuccess({
-      waitAlias: '@chartData',
-      querySubstring: /group by.*name/i,
-      chartSelector: 'table',
+    cy.wait('@chartData').then(({ response }) => {
+      cy.verifySliceContainer('table');
+      const records = response?.body.result[0].data;
+      // should sort by first metric when no sort by metric is set
+      expect(records[0][NUM_METRIC.label]).greaterThan(
+        records[1][NUM_METRIC.label],
+      );
     });
 
-    // should handle sorting correctly
+    // should handle frontend sorting correctly
     cy.get('.chart-container th').contains('name').click();
-    cy.get('.chart-container td:nth-child(2):eq(0)').contains('Aaron');
+    cy.get('.chart-container td:nth-child(2):eq(0)').contains('Adam');
     cy.get('.chart-container th').contains('Time').click().click();
     cy.get('.chart-container td:nth-child(1):eq(0)').contains('2008');
   });
