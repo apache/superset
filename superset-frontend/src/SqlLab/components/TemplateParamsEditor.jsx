@@ -42,7 +42,7 @@ const StyledConfigEditor = styled(ConfigEditor)`
   }
 `;
 
-function TemplateParamsEditor({ code, language }) {
+function TemplateParamsEditor({ code, language, onChange }) {
   const codeText = code || '{}';
   const [state, setState] = useState({
     codeText,
@@ -50,7 +50,7 @@ function TemplateParamsEditor({ code, language }) {
     isValid: true,
   });
 
-  const onChange = value => {
+  const onChangefunc = value => {
     const codeText = value;
     let isValid;
     let parsedJSON = {};
@@ -66,10 +66,6 @@ function TemplateParamsEditor({ code, language }) {
       onChange(newValue);
     }
   };
-
-  useEffect(() => {
-    onChange(codeText);
-  }, [codeText]);
 
   const modalBody = (
     <div>
@@ -94,7 +90,7 @@ function TemplateParamsEditor({ code, language }) {
         mode={language}
         minLines={25}
         maxLines={50}
-        onChange={onChange}
+        onChange={onChangefunc}
         width="100%"
         editorProps={{ $blockScrolling: true }}
         enableLiveAutocompletion
