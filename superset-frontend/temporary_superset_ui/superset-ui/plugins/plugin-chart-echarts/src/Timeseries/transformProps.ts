@@ -32,6 +32,7 @@ import {
   TimeseriesChartDataResponseResult,
   TimeFormatter,
 } from '@superset-ui/core';
+import { EChartsOption, SeriesOption } from 'echarts';
 import { DEFAULT_FORM_DATA, EchartsTimeseriesFormData } from './types';
 import { EchartsProps, ForecastSeriesEnum, ProphetValue } from '../types';
 import { parseYAxisBound } from '../utils/controls';
@@ -85,7 +86,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseTimeseriesDatum(data);
   const rawSeries = extractTimeseriesSeries(rebasedData);
-  const series: echarts.EChartOption.Series[] = [];
+  const series: SeriesOption[] = [];
   const formatter = getNumberFormatter(contributionMode ? ',.0%' : yAxisFormat);
 
   rawSeries.forEach(entry => {
@@ -136,7 +137,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     xAxisFormatter = String;
   }
 
-  const echartOptions: echarts.EChartOption = {
+  const echartOptions: EChartsOption = {
     useUTC: true,
     grid: {
       ...defaultGrid,
@@ -168,7 +169,6 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     tooltip: {
       ...defaultTooltip,
       trigger: richTooltip ? 'axis' : 'item',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       formatter: (params: any) => {
         const value: number = !richTooltip ? params.value : params[0].value[0];
         const prophetValue = !richTooltip ? [params] : params;
@@ -193,10 +193,12 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     },
     legend: {
       ...getLegendProps(legendType, legendOrientation, showLegend),
+      // @ts-ignore
       data: rawSeries
         .filter(
           entry =>
-            extractForecastSeriesContext(entry.name || '').type === ForecastSeriesEnum.Observation,
+            extractForecastSeriesContext((entry.name || '') as string).type ===
+            ForecastSeriesEnum.Observation,
         )
         .map(entry => entry.name || '')
         .concat(extractAnnotationLabels(annotationLayers, annotationData)),
@@ -227,7 +229,6 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
   };
 
   return {
-    // @ts-ignore
     echartOptions,
     width,
     height,
