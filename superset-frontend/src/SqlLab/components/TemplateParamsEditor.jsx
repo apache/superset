@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import Badge from 'src/common/components/Badge';
 import { t, styled } from '@superset-ui/core';
@@ -42,13 +42,10 @@ const StyledConfigEditor = styled(ConfigEditor)`
   }
 `;
 
-function TemplateParamsEditor({ code, language, onChange }) {
-  const codeText = code || '{}';
-  const [state, setState] = useState({
-    codeText,
-    parsedJSON: null,
-    isValid: true,
-  });
+function TemplateParamsEditor({ code = '{}', language, onChange }) {
+  const [codeText, setCodeText] = useState(code);
+  const [parsedJSON, setParsedJSON] = useState(null);
+  const [isValid, setIsValid] = useState(true);
 
   const onChangefunc = value => {
     const codeText = value;
@@ -60,7 +57,9 @@ function TemplateParamsEditor({ code, language, onChange }) {
     } catch (e) {
       isValid = false;
     }
-    setState({ parsedJSON, isValid, codeText });
+    setCodeText(codeText);
+    setIsValid(isValid);
+    setParsedJSON(parsedJSON);
     const newValue = isValid ? codeText : '{}';
     if (newValue !== code) {
       onChange(newValue);
@@ -94,14 +93,12 @@ function TemplateParamsEditor({ code, language, onChange }) {
         width="100%"
         editorProps={{ $blockScrolling: true }}
         enableLiveAutocompletion
-        value={state.codeText}
+        value={codeText}
       />
     </div>
   );
 
-  const paramCount = state.parsedJSON
-    ? Object.keys(state.parsedJSON).length
-    : 0;
+  const paramCount = parsedJSON ? Object.keys(parsedJSON).length : 0;
 
   return (
     <ModalTrigger
@@ -110,7 +107,7 @@ function TemplateParamsEditor({ code, language, onChange }) {
         <div tooltip={t('Edit template parameters')} buttonSize="small">
           {`${t('Parameters')} `}
           <Badge count={paramCount} />
-          {!state.isValid && (
+          {!isValid && (
             <InfoTooltipWithTrigger
               icon="exclamation-triangle"
               bsStyle="danger"
