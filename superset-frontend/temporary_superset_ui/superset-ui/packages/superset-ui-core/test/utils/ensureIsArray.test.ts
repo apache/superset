@@ -16,18 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { extractTimeseriesLimitMetric } from '../src/utils/extractOrderby';
+import { ensureIsArray } from '../../src';
 
-describe('utils', () => {
-  it('should add post-processing in aggregate mode', () => {
-    expect(extractTimeseriesLimitMetric(undefined)).toEqual([]);
-    expect(extractTimeseriesLimitMetric(null)).toEqual([]);
-    expect(extractTimeseriesLimitMetric([])).toEqual([]);
-    expect(extractTimeseriesLimitMetric('my_metric')).toEqual(['my_metric']);
-    expect(extractTimeseriesLimitMetric(['my_metric'])).toEqual(['my_metric']);
-    expect(extractTimeseriesLimitMetric(['my_metric_1', 'my_metric_2'])).toEqual([
-      'my_metric_1',
-      'my_metric_2',
-    ]);
+describe('ensureIsArray', () => {
+  it('handle inputs correctly', () => {
+    expect(ensureIsArray(undefined)).toEqual([]);
+    expect(ensureIsArray(null)).toEqual([]);
+    expect(ensureIsArray([])).toEqual([]);
+    expect(ensureIsArray('my_metric')).toEqual(['my_metric']);
+    expect(ensureIsArray(['my_metric'])).toEqual(['my_metric']);
+    expect(ensureIsArray(['my_metric_1', 'my_metric_2'])).toEqual(['my_metric_1', 'my_metric_2']);
   });
 });

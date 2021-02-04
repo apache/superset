@@ -17,6 +17,7 @@
  * under the License.
  */
 export { default as convertKeysToCamelCase } from './convertKeysToCamelCase';
+export { default as ensureIsArray } from './ensureIsArray';
 export { default as isDefined } from './isDefined';
 export { default as isRequired } from './isRequired';
 export { default as makeSingleton } from './makeSingleton';
