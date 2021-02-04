@@ -1,0 +1,68 @@
+name: ephemeral_env
+
+on: pull_request
+
+jobs:
+  ephemeral_env:
+    name: Spin up an ephemeral environment
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-west-2
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: superset-ci
+        IMAGE_TAG: ${{ github.sha }}
+        SUPERSET_LOAD_EXAMPLES: yes
+      run: |
+        docker build --target ci -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+    - name: Fill in the new image ID in the Amazon ECS task definition
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: .github/workflows/ecs-task-definition.json
+        container-name: superset-ci
+        image: ${{ steps.build-image.outputs.image }}
+
+    # TODO: check if service already exists
+
+
+    # TODO create service only if necessary
+    - name: Create ECS service
+      id: create-service
+      run: |
+        aws ecs create-service \
+        --cluster superset-ci \
+        --service-name ${{ github.sha }}-service \
+        --task-definition superset-ci \
+        --launch-type FARGATE \
+        --desired-count 1 \
+        --platform-version LATEST \
+        --network-configuration "awsvpcConfiguration={subnets=[subnet-0e15a5034b4121710,subnet-0e8efef4a72224974],securityGroups=[sg-092ff3a6ae0574d91],assignPublicIp=ENABLED}" \
+        --tags key=sha,value=${{ github.sha }} key=github_user,value=${{ github.actor }}
+
+    - name: Deploy Amazon ECS task definition
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      with:
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        service: ${{ github.sha }}-service
+        cluster: superset-ci
+        wait-for-service-stability: true
+        wait-for-minutes: 10
