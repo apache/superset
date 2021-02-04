@@ -18,95 +18,25 @@
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
 import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
-import { DEFAULT_FORM_DATA } from './types';
-
-const {
-  enableEmptyFilter,
-  fetchPredicate,
-  inverseSelection,
-  multiSelect,
-  showSearch,
-} = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
+  // For control input types, see: superset-frontend/src/explore/components/controls/index.js
   controlPanelSections: [
     // @ts-ignore
     sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [
-        ['groupby'],
-        ['metrics'],
-        ['adhoc_filters'],
-        [
-          {
-            name: 'multiSelect',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Multiple select'),
-              default: multiSelect,
-              description: t('Allow selecting multiple values'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'enableEmptyFilter',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Enable empty filter'),
-              default: enableEmptyFilter,
-              description: t(
-                'When selection is empty, should an always false filter event be emitted',
-              ),
-            },
-          },
-        ],
-        [
-          {
-            name: 'inverseSelection',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Inverse selection'),
-              default: inverseSelection,
-              description: t('Exclude selected values'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'showSearch',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Search field'),
-              default: showSearch,
-              description: t('Allow typing search terms'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'fetchPredicate',
-            config: {
-              type: 'TextControl',
-              label: t('Fetch predicate'),
-              default: fetchPredicate,
-              description: t(
-                'Predicate applied when fetching distinct value to populate the filter control component.',
-              ),
-            },
-          },
-          null,
-        ],
-        ['row_limit', null],
-      ],
+      controlSetRows: [['groupby'], ['adhoc_filters']],
     },
   ],
   controlOverrides: {
     groupby: {
-      multi: false,
       validators: [validateNonEmpty],
+      clearable: false,
+    },
+    row_limit: {
+      default: 100,
     },
   },
 };
