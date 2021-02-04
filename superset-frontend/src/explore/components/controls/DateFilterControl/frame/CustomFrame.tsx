@@ -23,6 +23,7 @@ import { isInteger } from 'lodash';
 import { Col, DatePicker, InputNumber, Row } from 'src/common/components';
 import { Radio } from 'src/common/components/Radio';
 import { Select } from 'src/components/Select';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   SINCE_GRAIN_OPTIONS,
   SINCE_MODE_OPTIONS,
@@ -110,7 +111,13 @@ export function CustomFrame(props: FrameComponentProps) {
       <div className="section-title">{t('Configure custom time range')}</div>
       <Row gutter={24}>
         <Col span={12}>
-          <div className="control-label">{t('START')}</div>
+          <div className="control-label">
+            {t('START (INCLUSIVE)')}{' '}
+            <InfoTooltipWithTrigger
+              tooltip={t('Start date included in time range')}
+              placement="right"
+            />
+          </div>
           <Select
             options={SINCE_MODE_OPTIONS}
             value={SINCE_MODE_OPTIONS.filter(
@@ -162,7 +169,13 @@ export function CustomFrame(props: FrameComponentProps) {
           )}
         </Col>
         <Col span={12}>
-          <div className="control-label">{t('END')}</div>
+          <div className="control-label">
+            {t('END (EXCLUSIVE)')}{' '}
+            <InfoTooltipWithTrigger
+              tooltip={t('End date excluded from time range')}
+              placement="right"
+            />
+          </div>
           <Select
             options={UNTIL_MODE_OPTIONS}
             value={UNTIL_MODE_OPTIONS.filter(
