@@ -17,14 +17,17 @@
  * under the License.
  */
 import { TimeseriesDataRecord, NumberFormatter } from '@superset-ui/core';
+import { CallbackDataParams, OptionName } from 'echarts/types/src/util/types';
+import { TooltipMarker } from 'echarts/types/src/util/format';
 import { ForecastSeriesContext, ForecastSeriesEnum, ProphetValue } from '../types';
 
 const seriesTypeRegex = new RegExp(
   `(.+)(${ForecastSeriesEnum.ForecastLower}|${ForecastSeriesEnum.ForecastTrend}|${ForecastSeriesEnum.ForecastUpper})$`,
 );
-export const extractForecastSeriesContext = (seriesName: string): ForecastSeriesContext => {
-  const regexMatch = seriesTypeRegex.exec(seriesName);
-  if (!regexMatch) return { name: seriesName, type: ForecastSeriesEnum.Observation };
+export const extractForecastSeriesContext = (seriesName: OptionName): ForecastSeriesContext => {
+  const name = seriesName as string;
+  const regexMatch = seriesTypeRegex.exec(name);
+  if (!regexMatch) return { name, type: ForecastSeriesEnum.Observation };
   return {
     name: regexMatch[1],
     type: regexMatch[2] as ForecastSeriesEnum,
@@ -32,7 +35,7 @@ export const extractForecastSeriesContext = (seriesName: string): ForecastSeries
 };
 
 export const extractProphetValuesFromTooltipParams = (
-  params: (echarts.EChartOption.Tooltip.Format & { seriesId: string })[],
+  params: (CallbackDataParams & { seriesId: string })[],
 ): Record<string, ProphetValue> => {
   const values: Record<string, ProphetValue> = {};
   params.forEach(param => {
@@ -67,7 +70,7 @@ export const formatProphetTooltipSeries = ({
   formatter,
 }: ProphetValue & {
   seriesName: string;
-  marker: string;
+  marker: TooltipMarker;
   formatter: NumberFormatter;
 }): string => {
   let row = `${marker}${seriesName}: `;
