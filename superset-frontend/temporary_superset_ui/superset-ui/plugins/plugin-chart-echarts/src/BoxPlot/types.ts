@@ -17,7 +17,7 @@
  * under the License.
  */
 import { QueryFormData } from '@superset-ui/core';
-import { PostProcessingBoxplot } from '@superset-ui/core/src/query/types/PostProcessing';
+import { PostProcessingBoxplot } from '@superset-ui/core/lib/query/types/PostProcessing';
 
 export type BoxPlotQueryFormData = QueryFormData & {
   numberFormat?: string;

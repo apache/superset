@@ -25,6 +25,8 @@ import {
   NumberFormats,
   NumberFormatter,
 } from '@superset-ui/core';
+import { CallbackDataParams } from 'echarts/types/src/util/types';
+import { EChartsOption, PieSeriesOption } from 'echarts';
 import {
   DEFAULT_FORM_DATA as DEFAULT_PIE_FORM_DATA,
   EchartsPieFormData,
@@ -41,7 +43,7 @@ export function formatPieLabel({
   labelType,
   numberFormatter,
 }: {
-  params: echarts.EChartOption.Tooltip.Format;
+  params: CallbackDataParams;
   labelType: EchartsPieLabelType;
   numberFormatter: NumberFormatter;
 }): string {
@@ -93,7 +95,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
 
-  const transformedData = data.map(datum => {
+  const transformedData: PieSeriesOption[] = data.map(datum => {
     const name = extractGroupbyLabel({ datum, groupby });
     return {
       value: datum[metricLabel],
@@ -104,7 +106,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     };
   });
 
-  const formatter = (params: { name: string; value: number; percent: number }) =>
+  const formatter = (params: CallbackDataParams) =>
     formatPieLabel({ params, numberFormatter, labelType });
 
   const defaultLabel = {
@@ -113,16 +115,47 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     color: '#000000',
   };
 
-  const echartOptions: echarts.EChartOption<echarts.EChartOption.SeriesPie> = {
+  const series: PieSeriesOption[] = [
+    {
+      type: 'pie',
+      ...getChartPadding(showLegend, legendOrientation, legendMargin),
+      animation: false,
+      radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
+      center: ['50%', '50%'],
+      avoidLabelOverlap: true,
+      labelLine: labelsOutside && labelLine ? { show: true } : { show: false },
+      label: labelsOutside
+        ? {
+            ...defaultLabel,
+            position: 'outer',
+            alignTo: 'none',
+            bleedMargin: 5,
+          }
+        : {
+            ...defaultLabel,
+            position: 'inner',
+          },
+      emphasis: {
+        label: {
+          show: true,
+          fontWeight: 'bold',
+          backgroundColor: 'white',
+        },
+      },
+      data: transformedData,
+    },
+  ];
+
+  const echartOptions: EChartsOption = {
     grid: {
       ...defaultGrid,
     },
     tooltip: {
       ...defaultTooltip,
       trigger: 'item',
-      formatter: params =>
+      formatter: (params: any) =>
         formatPieLabel({
-          params: params as echarts.EChartOption.Tooltip.Format,
+          params,
           numberFormatter,
           labelType: EchartsPieLabelType.KeyValuePercent,
         }),
@@ -131,37 +164,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
       ...getLegendProps(legendType, legendOrientation, showLegend),
       data: keys,
     },
-    series: [
-      {
-        type: 'pie',
-        ...getChartPadding(showLegend, legendOrientation, legendMargin),
-        animation: false,
-        radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
-        center: ['50%', '50%'],
-        avoidLabelOverlap: true,
-        labelLine: labelsOutside && labelLine ? { show: true } : { show: false },
-        label: labelsOutside
-          ? {
-              ...defaultLabel,
-              position: 'outer',
-              alignTo: 'none',
-              bleedMargin: 5,
-            }
-          : {
-              ...defaultLabel,
-              position: 'inner',
-            },
-        emphasis: {
-          label: {
-            show: true,
-            fontWeight: 'bold',
-            backgroundColor: 'white',
-          },
-        },
-        // @ts-ignore
-        data: transformedData,
-      },
-    ],
+    series,
   };
 
   return {

@@ -18,15 +18,28 @@
  */
 import {
   AnnotationData,
+  AnnotationLayer,
   AnnotationOpacity,
   CategoricalColorScale,
   EventAnnotationLayer,
-  FormulaAnnotationLayer,
   IntervalAnnotationLayer,
   isTimeseriesAnnotationResult,
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
 } from '@superset-ui/core';
+import { SeriesOption } from 'echarts';
+import {
+  CallbackDataParams,
+  DefaultExtraStateOpts,
+  ItemStyleOption,
+  LineStyleOption,
+  OptionName,
+  ZRLineType,
+} from 'echarts/types/src/util/types';
+import {
+  MarkArea1DDataItemOption,
+  MarkArea2DDataItemOption,
+} from 'echarts/types/src/component/marker/MarkAreaModel';
 import { extractForecastSeriesContext } from '../utils/prophet';
 import { ForecastSeriesEnum } from '../types';
 import { DEFAULT_FORM_DATA, EchartsTimeseriesFormData } from './types';
@@ -38,10 +51,10 @@ import {
 } from '../utils/annotation';
 
 export function transformSeries(
-  series: echarts.EChartOption.Series,
+  series: SeriesOption,
   formData: EchartsTimeseriesFormData,
   colorScale: CategoricalColorScale,
-): echarts.EChartOption.Series | undefined {
+): SeriesOption | undefined {
   const { name } = series;
   const {
     area,
@@ -52,7 +65,7 @@ export function transformSeries(
     seriesType,
     stack,
     richTooltip,
-  } = {
+  }: EchartsTimeseriesFormData = {
     ...DEFAULT_FORM_DATA,
     ...formData,
   };
@@ -93,9 +106,10 @@ export function transformSeries(
     itemStyle: {
       color: colorScale(forecastSeries.name),
     },
-    type: plotType,
     // @ts-ignore
+    type: plotType,
     smooth: seriesType === 'smooth',
+    // @ts-ignore
     step: ['start', 'middle', 'end'].includes(seriesType as string) ? seriesType : undefined,
     stack: stackId,
     lineStyle,
@@ -113,10 +127,10 @@ export function transformSeries(
 }
 
 export function transformFormulaAnnotation(
-  layer: FormulaAnnotationLayer,
+  layer: AnnotationLayer,
   data: TimeseriesDataRecord[],
   colorScale: CategoricalColorScale,
-): echarts.EChartOption.Series {
+): SeriesOption {
   const { name, color, opacity, width, style } = layer;
   return {
     name,
@@ -126,12 +140,11 @@ export function transformFormulaAnnotation(
     },
     lineStyle: {
       opacity: parseAnnotationOpacity(opacity),
-      type: style,
+      type: style as ZRLineType,
       width,
     },
     type: 'line',
     smooth: true,
-    // @ts-ignore
     data: evalFormula(layer, data),
     symbolSize: 0,
     z: 0,
@@ -143,14 +156,14 @@ export function transformIntervalAnnotation(
   data: TimeseriesDataRecord[],
   annotationData: AnnotationData,
   colorScale: CategoricalColorScale,
-): echarts.EChartOption.Series[] {
-  const series: echarts.EChartOption.Series[] = [];
+): SeriesOption[] {
+  const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
   annotations.forEach(annotation => {
     const { name, color, opacity } = layer;
     const { descriptions, intervalEnd, time, title } = annotation;
     const label = formatAnnotationLabel(name, title, descriptions);
-    const intervalData = [
+    const intervalData: (MarkArea1DDataItemOption | MarkArea2DDataItemOption)[] = [
       [
         {
           name: label,
@@ -173,10 +186,11 @@ export function transformIntervalAnnotation(
           emphasis: {
             opacity: 0.8,
           },
-        },
+        } as ItemStyleOption,
         label: {
           show: false,
           color: '#000000',
+          // @ts-ignore
           emphasis: {
             fontWeight: 'bold',
             show: true,
@@ -185,7 +199,6 @@ export function transformIntervalAnnotation(
             backgroundColor: '#ffffff',
           },
         },
-        // @ts-ignore
         data: intervalData,
       },
     });
@@ -198,8 +211,8 @@ export function transformEventAnnotation(
   data: TimeseriesDataRecord[],
   annotationData: AnnotationData,
   colorScale: CategoricalColorScale,
-): echarts.EChartOption.Series[] {
-  const series: echarts.EChartOption.Series[] = [];
+): SeriesOption[] {
+  const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
   annotations.forEach(annotation => {
     const { name, color, opacity, style, width } = layer;
@@ -208,9 +221,21 @@ export function transformEventAnnotation(
     const eventData = [
       {
         name: label,
-        xAxis: time,
+        xAxis: (time as unknown) as number,
       },
     ];
+
+    const lineStyle: LineStyleOption & DefaultExtraStateOpts['emphasis'] = {
+      width,
+      type: style as ZRLineType,
+      color: color || colorScale(name),
+      opacity: parseAnnotationOpacity(opacity),
+      emphasis: {
+        width: width ? width + 1 : width,
+        opacity: 1,
+      },
+    };
+
     series.push({
       id: `Event - ${label}`,
       type: 'line',
@@ -218,32 +243,19 @@ export function transformEventAnnotation(
       markLine: {
         silent: false,
         symbol: 'none',
-        lineStyle: {
-          width,
-          type: style,
-          color: color || colorScale(name),
-          opacity: parseAnnotationOpacity(opacity),
-          emphasis: {
-            width: width ? width + 1 : width,
-            opacity: 1,
-          },
-        },
+        lineStyle,
         label: {
           show: false,
           color: '#000000',
           position: 'insideEndTop',
+          // @ts-ignore
           emphasis: {
-            // @ts-ignore
-            formatter: params =>
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-              params.name,
-            // @ts-ignore
+            formatter: (params: CallbackDataParams) => params.name,
             fontWeight: 'bold',
             show: true,
             backgroundColor: '#ffffff',
           },
         },
-        // @ts-ignore
         data: eventData,
       },
     });
@@ -256,8 +268,8 @@ export function transformTimeseriesAnnotation(
   formData: EchartsTimeseriesFormData,
   data: TimeseriesDataRecord[],
   annotationData: AnnotationData,
-): echarts.EChartOption.Series[] {
-  const series: echarts.EChartOption.Series[] = [];
+): SeriesOption[] {
+  const series: SeriesOption[] = [];
   const { markerSize } = formData;
   const { hideLine, name, opacity, showMarkers, style, width } = layer;
   const result = annotationData[name];
@@ -268,11 +280,11 @@ export function transformTimeseriesAnnotation(
         type: 'line',
         id: key,
         name: key,
-        data: values.map(row => [row.x, row.y] as [number | string, number]),
+        data: values.map(row => [row.x, row.y] as [OptionName, number]),
         symbolSize: showMarkers ? markerSize : 0,
         lineStyle: {
           opacity: parseAnnotationOpacity(opacity),
-          type: style,
+          type: style as ZRLineType,
           width: hideLine ? 0 : width,
         },
       });

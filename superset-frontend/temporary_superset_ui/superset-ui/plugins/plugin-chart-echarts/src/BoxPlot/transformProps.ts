@@ -23,6 +23,8 @@ import {
   getMetricLabel,
   getNumberFormatter,
 } from '@superset-ui/core';
+import { EChartsOption, BoxplotSeriesOption } from 'echarts';
+import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { BoxPlotQueryFormData } from './types';
 import { EchartsProps } from '../types';
 import { extractGroupbyLabel } from '../utils/series';
@@ -43,7 +45,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
   const metricLabels = formdataMetrics.map(getMetricLabel);
 
   const transformedData = data
-    .map(datum => {
+    .map((datum: any) => {
       const groupbyLabel = extractGroupbyLabel({ datum, groupby });
       return metricLabels.map(metric => {
         const name = metricLabels.length === 1 ? groupbyLabel : `${groupbyLabel}, ${metric}`;
@@ -102,8 +104,43 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
   else if (xTicksLayout === 'staggered') axisLabel = { rotate: -45 };
   else axisLabel = { show: true };
 
-  // @ts-ignore
-  const echartOptions: echarts.EChartOption<echarts.EChartOption.SeriesBoxplot> = {
+  const series: BoxplotSeriesOption[] = [
+    {
+      name: 'boxplot',
+      type: 'boxplot',
+      data: transformedData,
+      tooltip: {
+        formatter: (param: CallbackDataParams) => {
+          // @ts-ignore
+          const {
+            value,
+            name,
+          }: {
+            value: [number, number, number, number, number, number, number, number, number[]];
+            name: string;
+          } = param;
+          const headline = name ? `<p><strong>${name}</strong></p>` : '';
+          const stats = [
+            `Max: ${numberFormatter(value[5])}`,
+            `3rd Quartile: ${numberFormatter(value[4])}`,
+            `Mean: ${numberFormatter(value[6])}`,
+            `Median: ${numberFormatter(value[3])}`,
+            `1st Quartile: ${numberFormatter(value[2])}`,
+            `Min: ${numberFormatter(value[1])}`,
+            `# Observations: ${numberFormatter(value[7])}`,
+          ];
+          if (value[8].length > 0) {
+            stats.push(`# Outliers: ${numberFormatter(value[8].length)}`);
+          }
+          return headline + stats.join('<br/>');
+        },
+      },
+    },
+    // @ts-ignore
+    ...outlierData,
+  ];
+
+  const echartOptions: EChartsOption = {
     grid: {
       ...defaultGrid,
       top: 30,
@@ -128,43 +165,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
         type: 'shadow',
       },
     },
-    series: [
-      {
-        name: 'boxplot',
-        type: 'boxplot',
-        avoidLabelOverlap: true,
-        // @ts-ignore
-        data: transformedData,
-        tooltip: {
-          formatter: param => {
-            // @ts-ignore
-            const {
-              value,
-              name,
-            }: {
-              value: [number, number, number, number, number, number, number, number, number[]];
-              name: string;
-            } = param;
-            const headline = name ? `<p><strong>${name}</strong></p>` : '';
-            const stats = [
-              `Max: ${numberFormatter(value[5])}`,
-              `3rd Quartile: ${numberFormatter(value[4])}`,
-              `Mean: ${numberFormatter(value[6])}`,
-              `Median: ${numberFormatter(value[3])}`,
-              `1st Quartile: ${numberFormatter(value[2])}`,
-              `Min: ${numberFormatter(value[1])}`,
-              `# Observations: ${numberFormatter(value[7])}`,
-            ];
-            if (value[8].length > 0) {
-              stats.push(`# Outliers: ${numberFormatter(value[8].length)}`);
-            }
-            return headline + stats.join('<br/>');
-          },
-        },
-      },
-      // @ts-ignore
-      ...outlierData,
-    ],
+    series,
   };
 
   return {
