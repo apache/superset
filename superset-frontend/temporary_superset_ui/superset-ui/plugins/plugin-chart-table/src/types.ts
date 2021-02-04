@@ -50,6 +50,7 @@ export interface TableChartData {
 export type TableChartFormData = QueryFormData & {
   align_pn?: boolean;
   color_pn?: boolean;
+  include_time?: boolean;
   include_search?: boolean;
   query_mode?: QueryMode;
   page_length?: string | number | null; // null means auto-paginate
