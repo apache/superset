@@ -1078,12 +1078,14 @@ class TestUtils(SupersetTestCase):
                 "str": ["foo", "foo"],
                 "int": [1, 1],
                 "float": [0.5, 0.5],
+                "bool": [True, False],
                 "obj": [{"a": 1}, {"a": 1}],
                 "dt_null": [None, date(2021, 2, 4)],
                 "dttm_null": [None, datetime(2021, 2, 4, 1, 1, 1)],
                 "str_null": [None, "foo"],
                 "int_null": [None, 1],
                 "float_null": [None, 0.5],
+                "bool_null": [None, False],
                 "obj_null": [None, {"a": 1}],
             }
         )
@@ -1093,11 +1095,13 @@ class TestUtils(SupersetTestCase):
             GenericDataType.STRING,
             GenericDataType.NUMERIC,
             GenericDataType.NUMERIC,
+            GenericDataType.BOOLEAN,
             GenericDataType.STRING,
             GenericDataType.TEMPORAL,
             GenericDataType.TEMPORAL,
             GenericDataType.STRING,
             GenericDataType.NUMERIC,
             GenericDataType.NUMERIC,
+            GenericDataType.BOOLEAN,
             GenericDataType.STRING,
         ]
