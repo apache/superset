@@ -824,6 +824,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             bootstrap_data=json.dumps(
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
+            extra_scripts=conf.get("EXTRA_SCRIPTS"),
             entry="explore",
             title=title,
             standalone_mode=standalone,
@@ -1884,6 +1885,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return self.render_template(
             "superset/dashboard.html",
             entry="dashboard",
+            extra_scripts=conf.get("EXTRA_SCRIPTS"),
             standalone_mode=standalone_mode,
             title=dash.dashboard_title,
             custom_css=dash.css,
@@ -2820,6 +2822,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "superset/basic.html",
             title=_("%(user)s's profile", user=username),
             entry="profile",
+            extra_scripts=conf.get("EXTRA_SCRIPTS"),
             bootstrap_data=json.dumps(
                 payload, default=utils.pessimistic_json_iso_dttm_ser
             ),
@@ -2894,7 +2897,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
         return self.render_template(
-            "superset/basic.html", entry="sqllab", bootstrap_data=bootstrap_data
+            "superset/basic.html",
+            extra_scripts=conf.get("EXTRA_SCRIPTS"),
+            entry="sqllab",
+            bootstrap_data=bootstrap_data,
         )
 
     @has_access

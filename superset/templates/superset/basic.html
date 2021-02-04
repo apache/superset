@@ -70,13 +70,17 @@
         {% include 'appbuilder/navbar.html' %}
       {% endif %}
     {% endblock %}
-
     {% block body %}
       <div id="app" data-bootstrap="{{ bootstrap_data }}">
         <img src="/static/assets/images/loading.gif" style="width: 50px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%)">
       </div>
     {% endblock %}
 
+    {% if extra_scripts and extra_scripts.position == 'head' %}
+      <script>
+        {{ extra_scripts.code | safe }}
+      </script>
+    {% endif %}
     <!-- Modal for misc messages / alerts  -->
     <div class="misc-modal modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
       <div class="modal-dialog" role="document">
@@ -105,5 +109,11 @@
       {% endif %}
       {% include "tail_js_custom_extra.html" %}
     {% endblock %}
+
+    {% if extra_scripts and extra_scripts.position == 'body' %}
+      <script>
+        {{ extra_scripts.code | safe }}
+      </script>
+    {% endif %}
   </body>
 </html>
