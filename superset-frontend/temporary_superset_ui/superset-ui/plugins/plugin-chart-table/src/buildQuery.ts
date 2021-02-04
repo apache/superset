@@ -16,29 +16,48 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, getMetricLabel, QueryMode, removeDuplicates } from '@superset-ui/core';
+import {
+  buildQueryContext,
+  getMetricLabel,
+  QueryMode,
+  removeDuplicates,
+  ensureIsArray,
+} from '@superset-ui/core';
 import { PostProcessingRule } from '@superset-ui/core/src/query/types/PostProcessing';
 import { TableChartFormData } from './types';
-import { extractTimeseriesLimitMetric } from './utils/extractOrderby';
+
+/**
+ * Infer query mode from form data. If `all_columns` is set, then raw records mode,
+ * otherwise defaults to aggregation mode.
+ *
+ * The same logic is used in `controlPanel` with control values as well.
+ */
+export function getQueryMode(formData: TableChartFormData) {
+  const { query_mode: mode } = formData;
+  if (mode === QueryMode.aggregate || mode === QueryMode.raw) {
+    return mode;
+  }
+  const rawColumns = formData?.all_columns;
+  const hasRawColumns = rawColumns && rawColumns.length > 0;
+  return hasRawColumns ? QueryMode.raw : QueryMode.aggregate;
+}
 
 export default function buildQuery(formData: TableChartFormData) {
-  const { percent_metrics: percentMetrics, order_desc: orderDesc = null } = formData;
-  let { query_mode: queryMode } = formData;
-  const timeseriesLimitMetric = extractTimeseriesLimitMetric(formData.timeseries_limit_metric);
+  const { percent_metrics: percentMetrics, order_desc: orderDesc = false } = formData;
+  const queryMode = getQueryMode(formData);
+  const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
   return buildQueryContext(formData, baseQueryObject => {
     let { metrics, orderby } = baseQueryObject;
-    if (queryMode === undefined && metrics.length > 0) {
-      queryMode = QueryMode.aggregate;
-    }
     let postProcessing: PostProcessingRule[] = [];
 
     if (queryMode === QueryMode.aggregate) {
       // orverride orderby with timeseries metric when in aggregation mode
-      if (timeseriesLimitMetric.length > 0 && orderDesc != null) {
-        orderby = [[timeseriesLimitMetric[0], !orderDesc]];
-      } else if (timeseriesLimitMetric.length === 0 && metrics?.length > 0 && orderDesc != null) {
-        // default to ordering by first metric when no sort order has been specified
-        orderby = [[metrics[0], !orderDesc]];
+      if (sortByMetric) {
+        orderby = [[sortByMetric, !orderDesc]];
+      } else if (metrics?.length > 0) {
+        // default to ordering by first metric in descending order
+        // when no "sort by" metric is set (regargless if "SORT DESC" is set to true)
+        orderby = [[metrics[0], false]];
       }
       // add postprocessing for percent metrics only when in aggregation mode
       if (percentMetrics && percentMetrics.length > 0) {
