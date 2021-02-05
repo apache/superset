@@ -100,6 +100,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         db.session.commit()
         return dashboard
 
+    def get_nonexistent_dashboard_id(self):
+        return (db.session.query(func.max(Dashboard.id)).scalar() or 0) + 1
+
     @pytest.fixture()
     def create_dashboards(self):
         with self.create_app().app_context():
@@ -165,6 +168,34 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(data["result"], [slice.data])
         db.session.delete(dashboard)
         db.session.delete(slice)
+        db.session.commit()
+
+    def test_get_dashboard_charts_not_found(self):
+        """
+        Dashboard API: Test getting charts belonging to a dashboard that does not exist
+        """
+        self.login(username="admin")
+        bad_id = self.get_nonexistent_dashboard_id()
+        uri = f"api/v1/dashboard/{bad_id}/charts"
+        response = self.get_assert_metric(uri, "get_charts")
+        self.assertEqual(response.status_code, 404)
+        db.session.commit()
+
+    def test_get_dashboard_charts_empty(self):
+        """
+        Dashboard API: Test getting charts belonging to a dashboard without any charts
+        """
+        self.login(username="admin")
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "charted", [admin.id], admin, slices=[]
+        )
+        uri = f"api/v1/dashboard/{dashboard.id}/charts"
+        response = self.get_assert_metric(uri, "get_charts")
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data.decode("utf-8"))
+        self.assertEqual(data["result"], [])
+        db.session.delete(dashboard)
         db.session.commit()
 
     def test_get_dashboard(self):

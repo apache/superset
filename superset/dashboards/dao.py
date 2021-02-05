@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.dao.base import BaseDAO
+from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.filters import DashboardFilter
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
@@ -38,8 +39,10 @@ class DashboardDAO(BaseDAO):
     @staticmethod
     def get_charts_for_dashboard(dashboard_id: int) -> List[Slice]:
         query = db.session.query(Dashboard).filter(Dashboard.id == dashboard_id)
-        dashboard = query.one(); 
-        return [ slice.data for slice in dashboard.slices ]
+        dashboard = query.scalar()
+        if not dashboard:
+            raise DashboardNotFoundError()
+        return [slice.data for slice in dashboard.slices]
 
     @staticmethod
     def validate_slug_uniqueness(slug: str) -> bool:

@@ -244,8 +244,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        charts = DashboardDAO.get_charts_for_dashboard(pk)
-        return self.response(200, result=charts)
+        try:
+            charts = DashboardDAO.get_charts_for_dashboard(pk)
+            return self.response(200, result=charts)
+        except DashboardNotFoundError:
+            return self.response_404()
 
     @expose("/", methods=["POST"])
     @protect()
