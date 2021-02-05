@@ -144,6 +144,7 @@ class MetricsControl extends React.PureComponent {
         onMetricEdit={this.onMetricEdit}
         onRemoveMetric={() => this.onRemoveMetric(index)}
         columns={this.props.columns}
+        datasource={this.props.datasource}
         savedMetrics={this.props.savedMetrics}
         savedMetricsOptions={getOptionsForSavedMetrics(
           this.props.savedMetrics,
@@ -292,6 +293,7 @@ class MetricsControl extends React.PureComponent {
           this.props.value,
           null,
         )}
+        datasource={this.props.datasource}
         savedMetric={{}}
         datasourceType={this.props.datasourceType}
         createNew
@@ -375,7 +377,6 @@ class MetricsControl extends React.PureComponent {
 
   render() {
     const { theme } = this.props;
-
     return (
       <div className="metrics-select">
         <HeaderContainer>
