@@ -9,7 +9,7 @@ on:
     types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
-  lint:
+  python-lint:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
