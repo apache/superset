@@ -17,7 +17,6 @@
  * under the License.
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
-import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
@@ -32,7 +31,6 @@ export default class TimeFilterPlugin extends ChartPlugin {
     });
 
     super({
-      buildQuery,
       controlPanel,
       loadChart: () => import('./TimeFilter'),
       metadata,

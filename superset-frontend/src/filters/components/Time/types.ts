@@ -21,18 +21,11 @@ import {
   DataRecord,
   SetExtraFormDataHook,
 } from '@superset-ui/core';
-import { RefObject } from 'react';
 import { AntdPluginFilterStylesProps } from '../types';
 
 interface PluginFilterTimeCustomizeProps {
   defaultValue?: (string | number)[] | null;
   currentValue?: (string | number)[] | null;
-  enableEmptyFilter: boolean;
-  fetchPredicate?: string;
-  inverseSelection: boolean;
-  multiSelect: boolean;
-  showSearch: boolean;
-  inputRef?: RefObject<HTMLInputElement>;
 }
 
 export type AntdPluginFilterSelectQueryFormData = QueryFormData &
@@ -48,9 +41,4 @@ export type PluginFilterTimeProps = AntdPluginFilterStylesProps & {
 export const DEFAULT_FORM_DATA: PluginFilterTimeCustomizeProps = {
   defaultValue: null,
   currentValue: null,
-  enableEmptyFilter: false,
-  fetchPredicate: '',
-  inverseSelection: false,
-  multiSelect: true,
-  showSearch: true,
 };
