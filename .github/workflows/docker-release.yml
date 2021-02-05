@@ -4,8 +4,8 @@ on:
   release:
     types: [published]
 jobs:
-  build:
-    name: build
+  docker-release:
+    name: docker-release
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"

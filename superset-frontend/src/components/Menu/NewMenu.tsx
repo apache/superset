@@ -48,6 +48,7 @@ export default function NewMenu() {
   return (
     <NavDropdown
       id="new-dropdown"
+      data-test="new-dropdown"
       title={<StyledI className="fa fa-plus" />}
       onMouseEnter={() => setDropdownOpen(true)}
       onMouseLeave={() => setDropdownOpen(false)}
@@ -58,7 +59,11 @@ export default function NewMenu() {
         {dropdownItems.map((menu, i) => (
           <Menu.Item key={i}>
             <a href={menu.url}>
-              <i className={`fa ${menu.icon}`} /> {menu.label}
+              <i
+                data-test={`menu-item-${menu.label}`}
+                className={`fa ${menu.icon}`}
+              />{' '}
+              {menu.label}
             </a>
           </Menu.Item>
         ))}

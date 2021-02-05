@@ -17,12 +17,13 @@
  * under the License.
  */
 import isValidChild from './isValidChild';
-import { TAB_TYPE, TABS_TYPE } from './componentTypes';
+import { DASHBOARD_ROOT_TYPE, TAB_TYPE, TABS_TYPE } from './componentTypes';
 
 export const DROP_TOP = 'DROP_TOP';
 export const DROP_RIGHT = 'DROP_RIGHT';
 export const DROP_BOTTOM = 'DROP_BOTTOM';
 export const DROP_LEFT = 'DROP_LEFT';
+export const SCROLL_TOP = 'SCROLL_TOP';
 
 // this defines how close the mouse must be to the edge of a component to display
 // a sibling type drop indicator
@@ -52,6 +53,10 @@ export default function getDropPosition(monitor, Component) {
   // if dropped self on self, do nothing
   if (!draggingItem || draggingItem.id === component.id) {
     return null;
+  }
+
+  if (component.type === DASHBOARD_ROOT_TYPE) {
+    return SCROLL_TOP;
   }
 
   // TODO need a better solution to prevent nested tabs
