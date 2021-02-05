@@ -22,6 +22,8 @@ from io import BytesIO
 from typing import List, Optional
 from unittest.mock import patch
 from zipfile import is_zipfile, ZipFile
+
+from tests.insert_chart_mixin import InsertChartMixin
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import pytest
@@ -54,7 +56,7 @@ from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_s
 DASHBOARDS_FIXTURE_COUNT = 10
 
 
-class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
+class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
     resource_name = "dashboard"
 
     dashboard_data = {
@@ -145,6 +147,25 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             db.session.delete(report_schedule)
             db.session.delete(dashboard)
             db.session.commit()
+
+    def test_get_charts(self):
+        """
+        Dashboard API: Test getting charts belonging to a dashboard
+        """
+        self.login(username="admin")
+        admin = self.get_user("admin")
+        slice = self.insert_chart("slice1", [admin.id], 1, params="{}")
+        dashboard = self.insert_dashboard(
+            "title", "charted", [admin.id], admin, slices=[slice]
+        )
+        uri = f"api/v1/dashboard/{dashboard.id}/charts"
+        response = self.get_assert_metric(uri, "get_charts")
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data.decode("utf-8"))
+        self.assertEqual(data["result"], [slice.data])
+        db.session.delete(dashboard)
+        db.session.delete(slice)
+        db.session.commit()
 
     def test_get_dashboard(self):
         """
