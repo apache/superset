@@ -56,9 +56,8 @@ jobs:
         env:
           GITHUB_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          CHECKS: python
         continue-on-error: true
-        run: ./scripts/ci_check_no_file_changes.sh
+        run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
         if: steps.check.outcome == 'failure'
         uses: actions/setup-python@v2
@@ -124,9 +123,8 @@ jobs:
         env:
           GITHUB_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          CHECKS: python
         continue-on-error: true
-        run: ./scripts/ci_check_no_file_changes.sh
+        run: ./scripts/ci_check_no_file_changes.sh python
       - name: Create csv upload directory
         if: steps.check.outcome == 'failure'
         run: sudo mkdir -p /tmp/.superset/uploads

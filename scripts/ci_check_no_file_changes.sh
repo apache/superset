@@ -21,7 +21,7 @@
 #
 # to check for python changes, run with CHECKS=python
 # To check for frontend changes, run with CHECKS=frontend
-# To check for python andn frontend changes, run with CHECKS="python frontend"
+# To check for python and frontend changes, run with CHECKS="python frontend"
 
 URL="https://api.github.com/repos/${GITHUB_REPO}/pulls/${PR_NUMBER}/files"
 FILES=$(curl -s -X GET -G $URL | jq -r '.[] | .filename')
@@ -32,14 +32,13 @@ $FILES
 
 EOF
 
-IFS=' ' read -ra CHECK_ARRAY <<< "$CHECKS"
-for CHECK in "${CHECK_ARRAY[@]}"
+for CHECK in "$@"
 do
   if [[ ${CHECK} == "python" ]]; then
     REGEX="(^tests\/|^superset\/|^setup\.py|^requirements\/.+\.txt)"
     echo "Searching for changes in python files"
   elif [[ ${CHECK} == "frontend" ]]; then
-    REGEX="(^superset_frontend\/)"
+    REGEX="(^superset-frontend\/)"
     echo "Searching for changes in frontend files"
   else
     echo "Invalid check: \"${CHECK}\". Falling back to exiting with FAILURE code"

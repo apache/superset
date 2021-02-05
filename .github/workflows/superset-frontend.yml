@@ -23,9 +23,8 @@ jobs:
         env:
           GITHUB_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          CHECKS: frontend
         continue-on-error: true
-        run: ./scripts/ci_check_no_file_changes.sh
+        run: ./scripts/ci_check_no_file_changes.sh frontend
       - name: Install dependencies
         if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
