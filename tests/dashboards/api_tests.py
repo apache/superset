@@ -1323,7 +1323,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
 
     def test_import_dashboard_invalid(self):
         """
-        Dataset API: Test import invalid dashboard
+        Dashboard API: Test import invalid dashboard
         """
         self.login(username="admin")
         uri = "api/v1/dashboard/import/"
