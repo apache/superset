@@ -109,12 +109,3 @@ jobs:
         with:
           name: screenshots
           path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots
-  Cypress:
-    if: github.event.pull_request.draft == false && ${{ always() }}
-    name: Cypress (chrome)
-    runs-on: ubuntu-20.04
-    needs: cypress-matrix
-    steps:
-      - name: Check build matrix status
-        if: ${{ needs.cypress-matrix.result != 'success' }}
-        run: exit 1
