@@ -23,27 +23,15 @@ import pandas as pd
 from superset.utils.core import JS_MAX_INTEGER
 
 
-def _convert_big_integers(dframe: pd.DataFrame) -> pd.DataFrame:
+def _convert_big_integers(row: List[Any]) -> List[Any]:
     """
-    Cast all integers larger than ``JS_MAX_INTEGER`` in a DataFrame to strings.
+    Cast all integers larger than ``JS_MAX_INTEGER`` in a row to strings.
 
-    Despite the additional code complexity, this dict comprehension approach is
-    faster than using pandas ``DataFrame.applymap()``.
-
-    :param dframe: the DataFrame to process
-    :returns: the same DataFrame, with all integer values over
+    :param row: the DataFrame row to process
+    :returns: the same DataFrame row, with all integer values over
         ``JS_MAX_INTEGER`` recast as strings
     """
-    return pd.DataFrame(
-        {
-            column: dframe[column].map(
-                lambda v: str(v)
-                if isinstance(v, int) and abs(v) > JS_MAX_INTEGER
-                else v
-            )
-            for column in dframe.columns
-        }
-    )
+    return [str(v) if isinstance(v, int) and v > JS_MAX_INTEGER else v for v in row]
 
 
 def df_to_records(dframe: pd.DataFrame) -> List[Dict[str, Any]]:
@@ -53,5 +41,9 @@ def df_to_records(dframe: pd.DataFrame) -> List[Dict[str, Any]]:
     :param dframe: the DataFrame to convert
     :returns: a list of dictionaries reflecting each single row of the DataFrame
     """
-    data: List[Dict[str, Any]] = _convert_big_integers(dframe).to_dict(orient="records")
+    data: List[Dict[str, Any]] = list(
+        dict(zip(dframe.columns, _convert_big_integers(row)))
+        for row in dframe.itertuples(index=False, name=None)
+    )
+
     return data
