@@ -24,7 +24,7 @@
 # To check for python and frontend changes, run with CHECKS="python frontend"
 
 URL="https://api.github.com/repos/${GITHUB_REPO}/pulls/${PR_NUMBER}/files"
-FILES=$(curl -s -X GET -G $URL | jq -r '.[] | .filename')
+FILES=$(curl -s -X GET -G "${URL}" | jq -r '.[] | .filename')
 
 cat<<EOF
 CHANGED FILES:
