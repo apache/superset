@@ -59,8 +59,8 @@ const DatasourceContainer = styled.div`
     font-weight: ${({ theme }) => theme.typography.weights.bold};
   }
 
-  .help-block {
-    margin-top: 8px;
+  .form-group.has-feedback > .help-block {
+    margin-top: -8px;
   }
 `;
 
