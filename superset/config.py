@@ -322,7 +322,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # designs introduced in https://github.com/apache/superset/issues/8976
     # (SIP-34). This is a work in progress so not all features available in FAB have
     # been implemented.
-    "ENABLE_REACT_CRUD_VIEWS": False,
+    "ENABLE_REACT_CRUD_VIEWS": True,
     # When True, this flag allows display of HTML tags in Markdown components
     "DISPLAY_MARKDOWN_HTML": True,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
@@ -342,7 +342,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ALERT_REPORTS": False,
     # Enable experimental feature to search for other dashboards
     "OMNIBAR": False,
-    "DASHBOARD_RBAC": True,
+    "DASHBOARD_RBAC": False,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.
