@@ -41,11 +41,13 @@ jobs:
         container-name: superset-ci
         image: ${{ steps.build-image.outputs.image }}
 
-    # TODO: check if service already exists
+    - name: Describe ECS service
+      id: describe-services
+      run: |
+        echo "::set-output name=count::$(aws ecs describe-services --cluster superset-ci --services ${{ github.sha }}-service | jq '.services | length')"
 
-
-    # TODO create service only if necessary
     - name: Create ECS service
+      if: ${{ steps.describe-services.outputs.count == '0' }}
       id: create-service
       run: |
         aws ecs create-service \
@@ -59,6 +61,7 @@ jobs:
         --tags key=sha,value=${{ github.sha }} key=github_user,value=${{ github.actor }}
 
     - name: Deploy Amazon ECS task definition
+      id: deploy-task
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
@@ -66,3 +69,18 @@ jobs:
         cluster: superset-ci
         wait-for-service-stability: true
         wait-for-minutes: 10
+
+    - name: List tasks
+      id: list-tasks
+      run: |
+        echo "::set-output name=task::$(aws ecs list-tasks --cluster superset-ci --service-name ${{ github.sha }}-service | jq '.taskArns | first')"
+
+    - name: Get network interface
+      id: get-eni
+      run: |
+        echo "::set-output name=eni::$(aws ecs describe-tasks --cluster superset-ci --tasks ${{ steps.list-tasks.outputs.task }} | jq '.tasks | .[0] | .attachments | .[0] | .details | map(select(.name=="networkInterfaceId")) | .[0] | .value')"
+
+    - name: Get public IP
+      id: get-ip
+      run: |
+        echo "::set-output name=ip::$(aws ec2 describe-network-interfaces --network-interface-ids ${{ steps.get-eni.outputs.eni }} | jq '.NetworkInterfaces | first | .Association.PublicIp')"
