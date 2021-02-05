@@ -224,7 +224,12 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         ---
         get:
           description: >-
-           Get the chart definitions for a given dashboard
+            Get the chart definitions for a given dashboard
+          parameters:
+          - id: path
+            schema:
+              type: integer
+            name: pk
           responses:
             200:
               description: Dashboard chart definitions
