@@ -11,11 +11,13 @@ from ais_service_discovery import call
 
 from superset.security import SupersetSecurityManager
 
+ALLOWED_RESOURCES = ['SEGMENT EXPLORER', 'AD OPTIMIZATION', 'RECOMMENDER', 'DEMAND EXPLORER']
+
 def has_resource_access(privileges):
     for config in privileges['level']['tenant']['tenants']:
         if config['tenant'] == environ['TENANT']:
             for resource in config['resources']:
-                if ('appId' in resource) and (resource['appId'] in ['customerAi', 'demandAi']):
+                if ('name' in resource) and (resource['name'] in ALLOWED_RESOURCES):
                     return True
     return False
 
