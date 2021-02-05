@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import Badge from 'src/common/components/Badge';
 import { t, styled } from '@superset-ui/core';
@@ -42,29 +42,18 @@ const StyledConfigEditor = styled(ConfigEditor)`
   }
 `;
 
-function TemplateParamsEditor({ code = '{}', language, onChange }) {
-  const [codeText, setCodeText] = useState(code);
-  const [parsedJSON, setParsedJSON] = useState(null);
+function TemplateParamsEditor({ code, language, onChange }) {
+  const [parsedJSON, setParsedJSON] = useState();
   const [isValid, setIsValid] = useState(true);
 
-  const onChangefunc = value => {
-    const codeText = value;
-    let isValid;
-    let parsedJSON = {};
+  useEffect(() => {
     try {
-      parsedJSON = JSON.parse(value);
-      isValid = true;
-    } catch (e) {
-      isValid = false;
+      setParsedJSON(JSON.parse(code));
+      setIsValid(true);
+    } catch {
+      setIsValid(false);
     }
-    setCodeText(codeText);
-    setIsValid(isValid);
-    setParsedJSON(parsedJSON);
-    const newValue = isValid ? codeText : '{}';
-    if (newValue !== code) {
-      onChange(newValue);
-    }
-  };
+  }, [code]);
 
   const modalBody = (
     <div>
@@ -89,11 +78,11 @@ function TemplateParamsEditor({ code = '{}', language, onChange }) {
         mode={language}
         minLines={25}
         maxLines={50}
-        onChange={onChangefunc}
+        onChange={onChange}
         width="100%"
         editorProps={{ $blockScrolling: true }}
         enableLiveAutocompletion
-        value={codeText}
+        value={code}
       />
     </div>
   );
