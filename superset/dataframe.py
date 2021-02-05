@@ -29,7 +29,7 @@ def _convert_big_integers(val: Any) -> Any:
 
     :param val: the value to process
     :returns: the same value but recast as a string if it was an integer over
-        ``JS_MAX_INTEGER`` 
+        ``JS_MAX_INTEGER``
     """
     return str(val) if isinstance(val, int) and val > JS_MAX_INTEGER else val
 
