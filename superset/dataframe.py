@@ -41,9 +41,7 @@ def df_to_records(dframe: pd.DataFrame) -> List[Dict[str, Any]]:
     :param dframe: the DataFrame to convert
     :returns: a list of dictionaries reflecting each single row of the DataFrame
     """
-    data: List[Dict[str, Any]] = list(
+    return list(
         dict(zip(dframe.columns, map(_convert_big_integers, row)))
         for row in zip(*[dframe[col] for col in dframe.columns])
     )
-
-    return data
