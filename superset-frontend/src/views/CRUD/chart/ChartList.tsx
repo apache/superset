@@ -207,7 +207,11 @@ function ChartList(props: ChartListProps) {
           row: {
             original: { url, slice_name: sliceName },
           },
-        }: any) => <a href={url}>{sliceName}</a>,
+        }: any) => (
+          <a href={url} data-test={`${sliceName}-list-chart-title`}>
+            {sliceName}
+          </a>
+        ),
         Header: t('Chart'),
         accessor: 'slice_name',
       },

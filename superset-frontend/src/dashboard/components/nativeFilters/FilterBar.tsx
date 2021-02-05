@@ -306,7 +306,7 @@ const FilterValue: React.FC<FilterProps> = ({
   }
 
   return (
-    <FilterItem>
+    <FilterItem data-test="form-item-value">
       <SuperChart
         height={20}
         width={220}
@@ -330,8 +330,10 @@ export const FilterControl: React.FC<FilterProps> = ({
   return (
     <StyledFilterControlContainer>
       <StyledFilterControlTitleBox>
-        <StyledFilterControlTitle>{name}</StyledFilterControlTitle>
-        <div>{icon}</div>
+        <StyledFilterControlTitle data-test="filter-control-name">
+          {name}
+        </StyledFilterControlTitle>
+        <div data-test="filter-icon">{icon}</div>
       </StyledFilterControlTitleBox>
       <FilterValue
         filter={filter}
@@ -489,6 +491,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             buttonStyle="secondary"
             buttonSize="small"
             onClick={handleResetAll}
+            data-test="filter-reset-button"
           >
             {t('Reset all')}
           </Button>
@@ -497,6 +500,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             htmlType="submit"
             buttonSize="small"
             onClick={handleApply}
+            data-test="filter-apply-button"
           >
             {t('Apply')}
           </Button>
