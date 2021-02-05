@@ -17,13 +17,13 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
-from typing import List, Optional
 from datetime import datetime, timedelta
 from io import BytesIO
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
 
 from superset.models.sql_lab import Query
+from tests.insert_chart_mixin import InsertChartMixin
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import humanize
@@ -36,9 +36,8 @@ from sqlalchemy.sql import func
 from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 from tests.test_app import app
 from superset.charts.commands.data import ChartDataCommand
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
-from superset.extensions import async_query_manager, cache_manager, db, security_manager
+from superset.extensions import async_query_manager, cache_manager, db
 from superset.models.annotations import AnnotationLayer
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
@@ -67,43 +66,8 @@ CHART_DATA_URI = "api/v1/chart/data"
 CHARTS_FIXTURE_COUNT = 10
 
 
-class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
+class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
     resource_name = "chart"
-
-    def insert_chart(
-        self,
-        slice_name: str,
-        owners: List[int],
-        datasource_id: int,
-        created_by=None,
-        datasource_type: str = "table",
-        description: Optional[str] = None,
-        viz_type: Optional[str] = None,
-        params: Optional[str] = None,
-        cache_timeout: Optional[int] = None,
-    ) -> Slice:
-        obj_owners = list()
-        for owner in owners:
-            user = db.session.query(security_manager.user_model).get(owner)
-            obj_owners.append(user)
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id, db.session
-        )
-        slice = Slice(
-            cache_timeout=cache_timeout,
-            created_by=created_by,
-            datasource_id=datasource.id,
-            datasource_name=datasource.name,
-            datasource_type=datasource.type,
-            description=description,
-            owners=obj_owners,
-            params=params,
-            slice_name=slice_name,
-            viz_type=viz_type,
-        )
-        db.session.add(slice)
-        db.session.commit()
-        return slice
 
     @pytest.fixture(autouse=True)
     def clear_data_cache(self):
