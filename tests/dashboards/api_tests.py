@@ -148,7 +148,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             db.session.delete(dashboard)
             db.session.commit()
 
-    def test_get_charts(self):
+    def test_get_dashboard_charts(self):
         """
         Dashboard API: Test getting charts belonging to a dashboard
         """
