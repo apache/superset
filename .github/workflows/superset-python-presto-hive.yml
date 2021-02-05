@@ -51,11 +51,20 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+      - name: Check if python changes are present
+        id: check
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        continue-on-error: true
+        run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
+        if: steps.check.outcome == 'failure'
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
+        if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
           run: |
@@ -64,11 +73,14 @@ jobs:
             pip install -r requirements/testing.txt
             setup-postgres
       - name: Run celery
+        if: steps.check.outcome == 'failure'
         run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
       - name: Python unit tests (PostgreSQL)
+        if: steps.check.outcome == 'failure'
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
+        if: steps.check.outcome == 'failure'
         run: |
           bash <(curl -s https://codecov.io/bash) -cF python
 
@@ -106,17 +118,29 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+      - name: Check if python changes are present
+        id: check
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        continue-on-error: true
+        run: ./scripts/ci_check_no_file_changes.sh python
       - name: Create csv upload directory
+        if: steps.check.outcome == 'failure'
         run: sudo mkdir -p /tmp/.superset/uploads
       - name: Give write access to the csv upload directory
+        if: steps.check.outcome == 'failure'
         run: sudo chown -R $USER:$USER /tmp/.superset
       - name: Start hadoop and hive
+        if: steps.check.outcome == 'failure'
         run: docker-compose -f scripts/databases/hive/docker-compose.yml up -d
       - name: Setup Python
+        if: steps.check.outcome == 'failure'
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
+        if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
           run: |
@@ -125,10 +149,13 @@ jobs:
             pip install -r requirements/testing.txt
             setup-postgres
       - name: Run celery
+        if: steps.check.outcome == 'failure'
         run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
       - name: Python unit tests (PostgreSQL)
+        if: steps.check.outcome == 'failure'
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
+        if: steps.check.outcome == 'failure'
         run: |
           bash <(curl -s https://codecov.io/bash) -cF python
