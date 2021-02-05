@@ -61,6 +61,10 @@ github:
         # contexts are the names of checks that must pass
         contexts:
           - check
+          - cypress-matrix (1, chrome)
+          - cypress-matrix (2, chrome)
+          - cypress-matrix (3, chrome)
+          - docker-build
           - frontend-build
           - python-lint (3.7)
           - test-mysql (3.7)
