@@ -308,6 +308,133 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         for dash in published_dashboards + draft_dashboards:
             revoke_access_to_dashboard(dash, "Public")
 
+    def test_get_dashboard_api__admin_can_access(self):
+        # arrange
+        dashboard_to_access = create_dashboard_to_db(
+            owners=[], slices=[create_slice_to_db()], published=False
+        )
+        self.login("admin")
+
+        # act
+        response = self.get_dashboard_api_response(dashboard_to_access)
+
+        # assert
+        self.assert_dashboard_api_response(response, dashboard_to_access)
+
+    def test_get_dashboard_api__owner_can_access(self):
+        # arrange
+        username = random_str()
+        new_role = f"role_{random_str()}"
+        owner = self.create_user_with_roles(
+            username, [new_role], should_create_roles=True
+        )
+        dashboard_to_access = create_dashboard_to_db(
+            owners=[owner], slices=[create_slice_to_db()], published=False
+        )
+        self.login(username)
+
+        # act
+        response = self.get_dashboard_api_response(dashboard_to_access)
+
+        # assert
+        self.assert_dashboard_api_response(response, dashboard_to_access)
+
+    def test_get_dashboard_api__user_can_not_access_without_permission(self):
+        username = random_str()
+        new_role = f"role_{random_str()}"
+        self.create_user_with_roles(username, [new_role], should_create_roles=True)
+        dashboard_to_access = create_dashboard_to_db(published=True)
+        self.login(username)
+
+        # act
+        response = self.get_dashboard_api_response(dashboard_to_access)
+
+        # assert
+        self.assert403(response)
+
+    def test_get_dashboard_api__user_with_dashboard_permission_can_not_access_draft(
+        self,
+    ):
+        # arrange
+        username = random_str()
+        new_role = f"role_{random_str()}"
+        self.create_user_with_roles(username, [new_role], should_create_roles=True)
+        dashboard_to_access = create_dashboard_to_db(published=False)
+        self.login(username)
+        grant_access_to_dashboard(dashboard_to_access, new_role)
+        # act
+        response = self.get_dashboard_api_response(dashboard_to_access)
+
+        # assert
+        self.assert403(response)
+
+        # post
+        revoke_access_to_dashboard(dashboard_to_access, new_role)
+
+    def test_get_dashboard_api__user_access_with_dashboard_permission(self):
+        # arrange
+        username = random_str()
+        new_role = f"role_{random_str()}"
+        self.create_user_with_roles(username, [new_role], should_create_roles=True)
+        dashboard_to_access = create_dashboard_to_db(
+            published=True, slices=[create_slice_to_db()]
+        )
+        self.login(username)
+        grant_access_to_dashboard(dashboard_to_access, new_role)
+
+        # act
+        response = self.get_dashboard_api_response(dashboard_to_access)
+
+        # assert
+        self.assert_dashboard_api_response(response, dashboard_to_access)
+
+        # post
+        revoke_access_to_dashboard(dashboard_to_access, new_role)
+
+    def test_get_dashboard_api__public_user_can_not_access_without_permission(self):
+        dashboard_to_access = create_dashboard_to_db(published=True)
+
+        self.logout()
+
+        # act
+        response = self.get_dashboard_api_response(dashboard_to_access)
+
+        # assert
+        self.assert403(response)
+
+    def test_get_dashboard_api__public_user_with_dashboard_permission_can_not_access_draft(
+        self,
+    ):
+        # arrange
+        dashboard_to_access = create_dashboard_to_db(published=False)
+        grant_access_to_dashboard(dashboard_to_access, "Public")
+        # act
+        response = self.get_dashboard_api_response(dashboard_to_access)
+        self.logout()
+
+        # assert
+        self.assert403(response)
+
+        # post
+        revoke_access_to_dashboard(dashboard_to_access, "Public")
+
+    def test_get_dashboard_api__public_user_access_with_dashboard_permission(self):
+        # arrange
+        dashboard_to_access = create_dashboard_to_db(
+            published=True, slices=[create_slice_to_db()]
+        )
+        grant_access_to_dashboard(dashboard_to_access, "Public")
+        self.logout()
+
+        # act
+        response = self.get_dashboard_api_response(dashboard_to_access)
+
+        # assert
+        self.assert_dashboard_api_response(response, dashboard_to_access)
+
+        # post
+        revoke_access_to_dashboard(dashboard_to_access, "Public")
+
     def test_get_dashboards_api__admin_get_all_dashboards(self):
         # arrange
         create_dashboard_to_db(

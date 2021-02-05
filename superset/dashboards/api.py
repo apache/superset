@@ -22,7 +22,10 @@ from typing import Any, Dict
 from zipfile import ZipFile
 
 from flask import g, make_response, redirect, request, Response, send_file, url_for
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison, safe, merge_response_func, \
+    ModelRestApi, get_item_schema
+from flask_appbuilder.const import API_LABEL_COLUMNS_RIS_KEY, \
+    API_DESCRIPTION_COLUMNS_RIS_KEY, API_SHOW_COLUMNS_RIS_KEY, API_SHOW_TITLE_RIS_KEY
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
@@ -68,6 +71,7 @@ from superset.dashboards.schemas import (
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
+from superset.utils.decorators import check_dashboard_access
 from superset.utils.screenshots import DashboardScreenshot
 from superset.utils.urls import get_url_path
 from superset.views.base import generate_download_headers
@@ -77,7 +81,7 @@ from superset.views.base_api import (
     statsd_metrics,
 )
 from superset.views.filters import FilterRelatedOwners
-
+from superset.utils import core as utils
 logger = logging.getLogger(__name__)
 
 
@@ -459,6 +463,26 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except DashboardBulkDeleteFailedError as ex:
             return self.response_422(message=str(ex))
+
+    @expose("/<int:pk>", methods=["GET"])
+    @protect()
+    # @permission_name("get")
+    @rison(get_item_schema)
+    @check_dashboard_access(
+        dashboard_key='pk',
+        on_error=lambda self, ex: Response(
+            utils.error_msg_from_exception(ex), status=403
+        )
+    )
+    @safe
+    @merge_response_func(ModelRestApi.merge_show_label_columns,
+                         API_LABEL_COLUMNS_RIS_KEY)
+    @merge_response_func(ModelRestApi.merge_show_columns, API_SHOW_COLUMNS_RIS_KEY)
+    @merge_response_func(ModelRestApi.merge_description_columns,
+                         API_DESCRIPTION_COLUMNS_RIS_KEY)
+    @merge_response_func(ModelRestApi.merge_show_title, API_SHOW_TITLE_RIS_KEY)
+    def get(self, pk, **kwargs):
+        return super(DashboardRestApi, self).get(pk, **kwargs)
 
     @expose("/export/", methods=["GET"])
     @protect()

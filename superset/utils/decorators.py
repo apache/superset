@@ -82,6 +82,7 @@ def on_security_exception(self: Any, ex: Exception) -> Response:
 
 # noinspection PyPackageRequirements
 def check_dashboard_access(
+    dashboard_key: str,
     on_error: Callable[..., Any] = on_security_exception
 ) -> Callable[..., Any]:
     def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
@@ -92,7 +93,7 @@ def check_dashboard_access(
                 raise_for_dashboard_access,
             )
 
-            dashboard = Dashboard.get(str(kwargs["dashboard_id_or_slug"]))
+            dashboard = Dashboard.get(str(kwargs[dashboard_key]))
             if is_feature_enabled("DASHBOARD_RBAC"):
                 try:
                     raise_for_dashboard_access(dashboard)

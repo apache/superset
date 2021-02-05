@@ -1787,6 +1787,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/dashboard/<dashboard_id_or_slug>/")
     @event_logger.log_this_with_extra_payload
     @check_dashboard_access(
+        dashboard_key='dashboard_id_or_slug',
         on_error=lambda self, ex: Response(
             utils.error_msg_from_exception(ex), status=403
         )
