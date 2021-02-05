@@ -226,7 +226,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
           description: >-
             Get the chart definitions for a given dashboard
           parameters:
-          - id: path
+          - in: path
             schema:
               type: integer
             name: pk
