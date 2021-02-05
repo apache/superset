@@ -234,7 +234,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     type: object
                     properties:
                       result:
-                        $ref: '#/components/schemas/ChartRestApi.post'
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ChartRestApi.post'
             302:
               description: Redirects to the current digest
             400:
