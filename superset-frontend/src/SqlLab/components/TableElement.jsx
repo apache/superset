@@ -52,14 +52,12 @@ const StyledSpan = styled.span`
 `;
 
 function TableElement({ actions, table, timeout }) {
-  const [state, setState] = useState({
-    sortColumns: false,
-    expanded: true,
-    hovered: false,
-  });
+  const [sortColumns, setSortColumns] = useState(false);
+  const [expanded, setExpanded] = useState(true);
+  const [hovered, setHovered] = useState(false);
 
   const setHover = hovered => {
-    setState({ hovered });
+    setHovered(hovered);
   };
 
   const toggleTable = e => {
@@ -72,12 +70,12 @@ function TableElement({ actions, table, timeout }) {
   };
 
   const removeTable = () => {
-    setState({ expanded: false });
+    setExpanded(false);
     actions.removeDataPreview(table);
   };
 
   const toggleSortColumns = () => {
-    setState(prevState => ({ sortColumns: !prevState.sortColumns }));
+    setSortColumns(!sortColumns);
   };
 
   const removeFromStore = () => {
@@ -146,12 +144,12 @@ function TableElement({ actions, table, timeout }) {
         {keyLink}
         <IconTooltip
           className={
-            `fa fa-sort-${!state.sortColumns ? 'alpha' : 'numeric'}-asc ` +
+            `fa fa-sort-${!sortColumns ? 'alpha' : 'numeric'}-asc ` +
             'pull-left sort-cols m-l-2 pointer'
           }
           onClick={toggleSortColumns}
           tooltip={
-            !state.sortColumns
+            !sortColumns
               ? t('Sort columns alphabetically')
               : t('Original table column order')
           }
@@ -208,7 +206,7 @@ function TableElement({ actions, table, timeout }) {
         {table.isMetadataLoading || table.isExtraMetadataLoading ? (
           <Loading position="inline" />
         ) : (
-          <Fade hovered={state.hovered}>{renderControls()}</Fade>
+          <Fade hovered={hovered}>{renderControls()}</Fade>
         )}
         <i
           role="button"
@@ -231,7 +229,7 @@ function TableElement({ actions, table, timeout }) {
     let cols;
     if (table.columns) {
       cols = table.columns.slice();
-      if (state.sortColumns) {
+      if (sortColumns) {
         cols.sort((a, b) => {
           const colA = a.name.toUpperCase();
           const colB = b.name.toUpperCase();
@@ -260,7 +258,7 @@ function TableElement({ actions, table, timeout }) {
   };
 
   return (
-    <Collapse in={state.expanded} timeout={timeout} onExited={removeFromStore}>
+    <Collapse in={expanded} timeout={timeout} onExited={removeFromStore}>
       <div
         className="TableElement table-schema m-b-10"
         onMouseEnter={() => setHover(true)}
