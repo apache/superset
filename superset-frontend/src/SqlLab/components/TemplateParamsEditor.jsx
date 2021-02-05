@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import Badge from 'src/common/components/Badge';
 import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { throttle } from 'lodash';
+import { debounce } from 'lodash';
 
 import ModalTrigger from 'src/components/ModalTrigger';
 import { ConfigEditor } from 'src/components/AsyncAceEditor';
@@ -80,7 +80,7 @@ function TemplateParamsEditor({ code, language, onChange }) {
         mode={language}
         minLines={25}
         maxLines={50}
-        onChange={throttle(onChange, 200)}
+        onChange={debounce(onChange, 200)}
         width="100%"
         editorProps={{ $blockScrolling: true }}
         enableLiveAutocompletion
