@@ -8,9 +8,9 @@ on:
     types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
-  build:
+  docker-build:
     if: github.event.pull_request.draft == false
-    name: build
+    name: docker-build
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
