@@ -1005,6 +1005,8 @@ def merge_extra_filters(  # pylint: disable=too-many-branches
     extra_form_data = form_data.pop("extra_form_data", {})
     append_form_data = extra_form_data.pop("append_form_data", {})
     append_filters = append_form_data.get("filters", None)
+    override_form_data = extra_form_data.pop("override_form_data", {})
+    form_data.update(override_form_data)
     if append_filters:
         adhoc_filters.extend(
             [to_adhoc({"isExtra": True, **fltr}) for fltr in append_filters if fltr]

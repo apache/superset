@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, TimeRange } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import React, { useState, useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl/DateFilterControl';
-import { getRangeExtraFormData } from 'src/filters/utils';
 import { AntdPluginFilterStylesProps } from '../types';
 import { DEFAULT_FORM_DATA, PluginFilterTimeProps } from './types';
 
@@ -39,18 +38,16 @@ export default function PluginFilterTime(props: PluginFilterTimeProps) {
   const firstDefault = (defaultValue?.[0] || '').toString();
   const [value, setValue] = useState<string>(firstDefault || 'Last week');
 
-  let { groupby = [] } = formData;
-  groupby = Array.isArray(groupby) ? groupby : [groupby];
-
-  const handleTimeRangeChange = (timeRange: TimeRange) => {
-    const [col] = groupby;
-    const extraFormData = getRangeExtraFormData(
-      col,
-      timeRange.since,
-      timeRange.until,
-    );
-    // @ts-ignore
-    setExtraFormData({ extraFormData, currentState: { value: [value] } });
+  const handleTimeRangeChange = (textValue: string, timeRange: string) => {
+    setExtraFormData({
+      // @ts-ignore
+      extraFormData: {
+        override_form_data: {
+          time_range: timeRange,
+        },
+      },
+      currentState: { value: [textValue] },
+    });
   };
 
   useEffect(() => {

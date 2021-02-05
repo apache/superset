@@ -24,7 +24,6 @@ import {
   supersetTheme,
   t,
   TimeRangeEndpoints,
-  TimeRange,
 } from '@superset-ui/core';
 import {
   buildTimeRangeString,
@@ -82,8 +81,7 @@ const fetchTimeRange = async (
 
     return {
       value: formatTimeRange(timeRangeString, endpoints),
-      since,
-      until,
+      timeRangeString,
     };
   } catch (response) {
     const clientError = await getClientErrorObject(response);
@@ -170,7 +168,7 @@ const IconWrapper = styled.span`
 interface DateFilterLabelProps {
   name: string;
   onChange: (timeRange: string) => void;
-  onTimeRangeChange?: (timeRange: TimeRange) => void;
+  onTimeRangeChange?: (textValue?: string, timeRange?: string) => void;
   value?: string;
   endpoints?: TimeRangeEndpoints;
   datasource?: string;
@@ -197,7 +195,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
   useEffect(() => {
     if (!isMounted) setIsMounted(true);
     fetchTimeRange(value, endpoints).then(
-      ({ value: actualRange, since, until, error }) => {
+      ({ value: actualRange, timeRangeString, error }) => {
         if (error) {
           setEvalResponse(error || '');
           setValidTimeRange(false);
@@ -222,11 +220,11 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           ) {
             setActualTimeRange(value);
             setTooltipTitle(actualRange || '');
-            onTimeRangeChange({ time_range: value, since, until });
+            onTimeRangeChange(value, timeRangeString);
           } else {
             setActualTimeRange(actualRange || '');
             setTooltipTitle(value || '');
-            onTimeRangeChange({ time_range: actualRange, since, until });
+            onTimeRangeChange(actualRange, timeRangeString);
           }
           setValidTimeRange(true);
         }
