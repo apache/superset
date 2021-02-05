@@ -91,17 +91,20 @@ const RunQueryActionButton = ({
     ? (DropdownButton as React.FC)
     : Button;
 
+  const isDisabled = !sql.trim();
+
   return (
     <StyledButton>
       <ButtonComponent
         onClick={() =>
           onClick(shouldShowStopBtn, allowAsync, runQuery, stopQuery)
         }
-        disabled={!sql.trim()}
+        disabled={isDisabled}
         tooltip={
-          shouldShowStopBtn
+          sql.trim() &&
+          (shouldShowStopBtn
             ? t('Stop running (Ctrl + x)')
-            : t('Run query (Ctrl + Return)')
+            : t('Run query (Ctrl + Return)'))
         }
         cta
         {...(overlayCreateAsMenu
@@ -110,7 +113,7 @@ const RunQueryActionButton = ({
               icon: (
                 <Icon
                   color={
-                    !sql.trim()
+                    isDisabled
                       ? supersetTheme.colors.grayscale.base
                       : supersetTheme.colors.grayscale.light5
                   }

@@ -93,7 +93,7 @@ const StyledDropdownButton = styled.div`
         width: ${({ theme }) => theme.gridUnit * 9}px;
         &:before,
         &:hover:before {
-          border-left: 2px solid ${({ theme }) => theme.colors.grayscale.light5};
+          border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light5};
           content: '';
           display: block;
           height: 23px;
