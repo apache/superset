@@ -83,40 +83,40 @@ describe('DatabaseModal', () => {
     expect(wrapper.find('input[name="sqlalchemy_uri"]')).toExist();
   });
 
-  it('renders solely "Expose in SQL Lab" option when unchecked', () => {
-    const editWrapper = mount(<DatabaseModal store={store} {...dbProps} />);
-    waitForComponentToPaint(editWrapper);
-
-    // Open edit db modal
-    const dbEditButton = editWrapper.find('h4');
-    dbEditButton.simulate('click');
-
-    // Select SQL Lab settings tab
-    const sqlLabSettingsTab = editWrapper.find('span').at(5);
-    sqlLabSettingsTab.simulate('click');
-
-    // Uncheck "Expose in SQL Lab"
-    const exposeInSqlLabCheckbox = editWrapper.find('input[name="expose_in_sqllab"]');
-    console.log(exposeInSqlLabCheckbox.prop('checked'));
-    exposeInSqlLabCheckbox.simulate('click');
-    exposeInSqlLabCheckbox.simulate('change', { target: { name: 'checked', value: true } });
-    // exposeInSqlLabCheckbox.setState({ checked: true })
-
-    console.log(exposeInSqlLabCheckbox.prop('checked'));
-    expect(sqlLabSettingsTab.text()).toEqual('SQL Lab settings');
-  });
-
   // it('renders solely "Expose in SQL Lab" option when unchecked', () => {
-  //   const { getByTestId } = render(<DatabaseModal store={store} {...dbProps} />);
+  //   const editWrapper = mount(<DatabaseModal store={store} {...dbProps} />);
+  //   waitForComponentToPaint(editWrapper);
 
   //   // Open edit db modal
-  //   const dbEditButton = getByTestId('edit-database-button');
-  //   console.log(dbEditButton);
+  //   const dbEditButton = editWrapper.find('h4');
+  //   dbEditButton.simulate('click');
 
   //   // Select SQL Lab settings tab
-  //   // const sqlLabSettingsTab = getByRole('tab', { id: "rc-tabs-test-tab-3" });
-  //   // console.log(sqlLabSettingsTab);
+  //   const sqlLabSettingsTab = editWrapper.find('span').at(5);
+  //   sqlLabSettingsTab.simulate('click');
 
   //   // Uncheck "Expose in SQL Lab"
+  //   const exposeInSqlLabCheckbox = editWrapper.find('input[name="expose_in_sqllab"]');
+  //   console.log(exposeInSqlLabCheckbox.prop('checked'));
+  //   exposeInSqlLabCheckbox.simulate('click');
+  //   exposeInSqlLabCheckbox.simulate('change', { target: { name: 'checked', value: true } });
+  //   // exposeInSqlLabCheckbox.setState({ checked: true })
+
+  //   console.log(exposeInSqlLabCheckbox.prop('checked'));
+  //   expect(sqlLabSettingsTab.text()).toEqual('SQL Lab settings');
   // });
+
+  it('renders solely "Expose in SQL Lab" option when unchecked', () => {
+    const { getByTestId } = render(<DatabaseModal store={store} {...dbProps} />);
+
+    // Open edit db modal
+    const dbEditButton = screen.getByTestId('edit-database-button');
+    console.log(dbEditButton);
+
+    // Select SQL Lab settings tab
+    // const sqlLabSettingsTab = getByRole('tab', { id: "rc-tabs-test-tab-3" });
+    // console.log(sqlLabSettingsTab);
+
+    // Uncheck "Expose in SQL Lab"
+  });
 });

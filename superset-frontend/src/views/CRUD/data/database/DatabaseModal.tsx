@@ -413,7 +413,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       show={show}
       title={
         <h4>
-          <StyledIcon name="database" />
+          <StyledIcon name="database" data-test-id="edit-database-button" />
           {isEditMode ? t('Edit database') : t('Add database')}
         </h4>
       }
