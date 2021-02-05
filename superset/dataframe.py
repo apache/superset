@@ -43,7 +43,7 @@ def df_to_records(dframe: pd.DataFrame) -> List[Dict[str, Any]]:
     """
     data: List[Dict[str, Any]] = list(
         dict(zip(dframe.columns, map(_convert_big_integers, row)))
-        for row in dframe.itertuples(index=False, name=None)
+        for row in zip(*[dframe[col] for col in dframe.columns])
     )
 
     return data
