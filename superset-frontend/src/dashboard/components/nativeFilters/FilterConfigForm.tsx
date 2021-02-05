@@ -137,8 +137,12 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       <RemovedContent>
         <p>{t('You have removed this filter.')}</p>
         <div>
-          <Button type="primary" onClick={() => restore(filterId)}>
-            {t('Restore filter')}
+          <Button
+            data-test="restore-filter-button"
+            type="primary"
+            onClick={() => restore(filterId)}
+          >
+            {t('Restore Filter')}
           </Button>
         </div>
       </RemovedContent>
@@ -241,6 +245,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       <StyledFormItem
         name={['filters', filterId, 'defaultValue']}
         initialValue={filterToEdit?.defaultValue}
+        data-test="default-input"
         label={<StyledLabel>{t('Default Value')}</StyledLabel>}
       >
         {formFilter?.dataset &&
@@ -270,6 +275,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         initialValue={parentFilterOptions.find(
           ({ value }) => value === filterToEdit?.cascadeParentIds[0],
         )}
+        data-test="parent-filter-input"
       >
         <Select
           placeholder={t('None')}
@@ -283,7 +289,9 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         valuePropName="checked"
         colon={false}
       >
-        <Checkbox>{t('Apply changes instantly')}</Checkbox>
+        <Checkbox data-test="apply-changes-instantly-checkbox">
+          {t('Apply changes instantly')}
+        </Checkbox>
       </StyledCheckboxFormItem>
       <StyledCheckboxFormItem
         name={['filters', filterId, 'allowsMultipleValues']}
