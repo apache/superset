@@ -224,7 +224,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         ---
         get:
           description: >-
-            Create a new Dashboard.
+           Get the chart definitions for a given dashboard
           responses:
             200:
               description: Dashboard chart definitions
