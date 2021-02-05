@@ -101,8 +101,14 @@ def get_upload_db():
     return db.session.query(Database).filter_by(database_name=CSV_UPLOAD_DATABASE).one()
 
 
-def upload_csv(filename: str, table_name: str, extra: Optional[Dict[str, str]] = None):
-    csv_upload_db_id = get_upload_db().id
+def upload_csv(
+    filename: str,
+    table_name: str,
+    extra: Optional[Dict[str, str]] = None,
+    csv_upload_db_id=None,
+):
+    if csv_upload_db_id is None:
+        csv_upload_db_id = get_upload_db().id
     form_data = {
         "csv_file": open(filename, "rb"),
         "sep": ",",
@@ -167,10 +173,14 @@ def test_import_csv_enforced_schema(setup_csv_upload, create_csv_files):
     if utils.backend() == "sqlite":
         pytest.skip("Sqlite doesn't support schema / database creation")
 
+    csv_upload_db_id = get_upload_db().id
+
     full_table_name = f"admin_database.{CSV_UPLOAD_TABLE_W_SCHEMA}"
 
     # no schema specified, fail upload
-    resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE_W_SCHEMA)
+    resp = upload_csv(
+        CSV_FILENAME1, CSV_UPLOAD_TABLE_W_SCHEMA, csv_upload_db_id=csv_upload_db_id
+    )
     assert (
         f'Database "{CSV_UPLOAD_DATABASE}" schema "None" is not allowed for csv uploads'
         in resp
@@ -181,6 +191,7 @@ def test_import_csv_enforced_schema(setup_csv_upload, create_csv_files):
         CSV_FILENAME1,
         CSV_UPLOAD_TABLE_W_SCHEMA,
         extra={"schema": "admin_database", "if_exists": "replace"},
+        csv_upload_db_id=csv_upload_db_id,
     )
     assert success_msg in resp
 
@@ -192,7 +203,10 @@ def test_import_csv_enforced_schema(setup_csv_upload, create_csv_files):
 
     # user specified schema doesn't match, fail
     resp = upload_csv(
-        CSV_FILENAME1, CSV_UPLOAD_TABLE_W_SCHEMA, extra={"schema": "gold"}
+        CSV_FILENAME1,
+        CSV_UPLOAD_TABLE_W_SCHEMA,
+        extra={"schema": "gold"},
+        csv_upload_db_id=csv_upload_db_id,
     )
     assert (
         f'Database "{CSV_UPLOAD_DATABASE}" schema "gold" is not allowed for csv uploads'
@@ -206,6 +220,7 @@ def test_import_csv_enforced_schema(setup_csv_upload, create_csv_files):
         CSV_FILENAME1,
         CSV_UPLOAD_TABLE_W_SCHEMA,
         extra={"schema": "admin_database", "if_exists": "append"},
+        csv_upload_db_id=csv_upload_db_id,
     )
     assert success_msg in resp
 
@@ -215,7 +230,10 @@ def test_import_csv_explore_database(setup_csv_upload, create_csv_files):
     if utils.backend() == "sqlite":
         pytest.skip("Sqlite doesn't support schema / database creation")
 
-    resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE_W_EXPLORE)
+    csv_upload_db_id = get_upload_db().id
+    resp = upload_csv(
+        CSV_FILENAME1, CSV_UPLOAD_TABLE_W_EXPLORE, csv_upload_db_id=csv_upload_db_id
+    )
     assert (
         f'CSV file "{CSV_FILENAME1}" uploaded to table "{CSV_UPLOAD_TABLE_W_EXPLORE}"'
         in resp
@@ -226,41 +244,64 @@ def test_import_csv_explore_database(setup_csv_upload, create_csv_files):
 
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
 def test_import_csv(setup_csv_upload, create_csv_files):
+    csv_upload_db_id = get_upload_db().id
     success_msg_f1 = (
         f'CSV file "{CSV_FILENAME1}" uploaded to table "{CSV_UPLOAD_TABLE}"'
     )
 
     # initial upload with fail mode
-    resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE)
+    resp = upload_csv(
+        CSV_FILENAME1, CSV_UPLOAD_TABLE, csv_upload_db_id=csv_upload_db_id
+    )
     assert success_msg_f1 in resp
 
     # upload again with fail mode; should fail
     fail_msg = (
         f'Unable to upload CSV file "{CSV_FILENAME1}" to table "{CSV_UPLOAD_TABLE}"'
     )
-    resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE)
+    resp = upload_csv(
+        CSV_FILENAME1, CSV_UPLOAD_TABLE, csv_upload_db_id=csv_upload_db_id
+    )
     assert fail_msg in resp
 
     if utils.backend() != "hive":
         # upload again with append mode
         resp = upload_csv(
-            CSV_FILENAME1, CSV_UPLOAD_TABLE, extra={"if_exists": "append"}
+            CSV_FILENAME1,
+            CSV_UPLOAD_TABLE,
+            extra={"if_exists": "append"},
+            csv_upload_db_id=csv_upload_db_id,
         )
         assert success_msg_f1 in resp
 
     # upload again with replace mode
-    resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE, extra={"if_exists": "replace"})
+    resp = upload_csv(
+        CSV_FILENAME1,
+        CSV_UPLOAD_TABLE,
+        extra={"if_exists": "replace"},
+        csv_upload_db_id=csv_upload_db_id,
+    )
     assert success_msg_f1 in resp
 
     # try to append to table from file with different schema
-    resp = upload_csv(CSV_FILENAME2, CSV_UPLOAD_TABLE, extra={"if_exists": "append"})
+    resp = upload_csv(
+        CSV_FILENAME2,
+        CSV_UPLOAD_TABLE,
+        extra={"if_exists": "append"},
+        csv_upload_db_id=csv_upload_db_id,
+    )
     fail_msg_f2 = (
         f'Unable to upload CSV file "{CSV_FILENAME2}" to table "{CSV_UPLOAD_TABLE}"'
     )
     assert fail_msg_f2 in resp
 
     # replace table from file with different schema
-    resp = upload_csv(CSV_FILENAME2, CSV_UPLOAD_TABLE, extra={"if_exists": "replace"})
+    resp = upload_csv(
+        CSV_FILENAME2,
+        CSV_UPLOAD_TABLE,
+        extra={"if_exists": "replace"},
+        csv_upload_db_id=csv_upload_db_id,
+    )
     success_msg_f2 = (
         f'CSV file "{CSV_FILENAME2}" uploaded to table "{CSV_UPLOAD_TABLE}"'
     )
@@ -275,6 +316,7 @@ def test_import_csv(setup_csv_upload, create_csv_files):
         CSV_FILENAME2,
         CSV_UPLOAD_TABLE,
         extra={"null_values": '["", "john"]', "if_exists": "replace"},
+        csv_upload_db_id=csv_upload_db_id,
     )
     # make sure that john and empty string are replaced with None
     engine = get_upload_db().get_sqla_engine()
@@ -288,7 +330,12 @@ def test_import_csv(setup_csv_upload, create_csv_files):
         assert data == [(None, 1, "x"), ("paul", 2, None)]
 
     # default null values
-    upload_csv(CSV_FILENAME2, CSV_UPLOAD_TABLE, extra={"if_exists": "replace"})
+    upload_csv(
+        CSV_FILENAME2,
+        CSV_UPLOAD_TABLE,
+        extra={"if_exists": "replace"},
+        csv_upload_db_id=csv_upload_db_id,
+    )
     # make sure that john and empty string are replaced with None
     data = engine.execute(f"SELECT * from {CSV_UPLOAD_TABLE}").fetchall()
     if utils.backend() == "hive":
