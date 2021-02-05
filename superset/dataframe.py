@@ -31,7 +31,7 @@ def _convert_big_integers(val: Any) -> Any:
     :returns: the same value but recast as a string if it was an integer over
         ``JS_MAX_INTEGER``
     """
-    return str(val) if isinstance(val, int) and val > JS_MAX_INTEGER else val
+    return str(val) if isinstance(val, int) and abs(val) > JS_MAX_INTEGER else val
 
 
 def df_to_records(dframe: pd.DataFrame) -> List[Dict[str, Any]]:
