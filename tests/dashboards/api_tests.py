@@ -270,9 +270,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         """
         Dashboard API: Test get dashboard not found
         """
-        max_id = db.session.query(func.max(Dashboard.id)).scalar() or 0
+        bad_id = self.get_nonexistent_dashboard_id()
         self.login(username="admin")
-        uri = f"api/v1/dashboard/{max_id + 1}"
+        uri = f"api/v1/dashboard/{bad_id}"
         rv = self.get_assert_metric(uri, "get")
         self.assertEqual(rv.status_code, 404)
 
