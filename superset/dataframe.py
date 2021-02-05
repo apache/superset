@@ -23,15 +23,15 @@ import pandas as pd
 from superset.utils.core import JS_MAX_INTEGER
 
 
-def _convert_big_integers(row: List[Any]) -> List[Any]:
+def _convert_big_integers(val: Any) -> Any:
     """
-    Cast all integers larger than ``JS_MAX_INTEGER`` in a row to strings.
+    Cast integers larger than ``JS_MAX_INTEGER`` to strings.
 
-    :param row: the DataFrame row to process
-    :returns: the same DataFrame row, with all integer values over
-        ``JS_MAX_INTEGER`` recast as strings
+    :param val: the value to process
+    :returns: the same value but recast as a string if it was an integer over
+        ``JS_MAX_INTEGER`` 
     """
-    return [str(v) if isinstance(v, int) and v > JS_MAX_INTEGER else v for v in row]
+    return str(val) if isinstance(val, int) and val > JS_MAX_INTEGER else val
 
 
 def df_to_records(dframe: pd.DataFrame) -> List[Dict[str, Any]]:
@@ -42,7 +42,7 @@ def df_to_records(dframe: pd.DataFrame) -> List[Dict[str, Any]]:
     :returns: a list of dictionaries reflecting each single row of the DataFrame
     """
     data: List[Dict[str, Any]] = list(
-        dict(zip(dframe.columns, _convert_big_integers(row)))
+        dict(zip(dframe.columns, map(_convert_big_integers, row)))
         for row in dframe.itertuples(index=False, name=None)
     )
 
