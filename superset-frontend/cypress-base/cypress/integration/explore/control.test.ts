@@ -242,7 +242,7 @@ describe('Time range filter', () => {
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[data-test=time-range-trigger]')
       .click()
@@ -252,10 +252,11 @@ describe('Time range filter', () => {
           cy.get('.frame-dropdown').click();
           cy.contains('Custom').click();
           cy.get('.ant-input-number-input').clear().type('30{enter}');
+          cy.get('[data-test=apply-button]').click();
         });
-
-        cy.get('[data-test=apply-button]').click();
         cy.get('[data-test=time-range-modal]').should('not.exist');
+        // wait to see applied value - hack for delayed UI change
+        cy.wait(500);
         cy.get('[data-test=time-range-trigger]').then($range => {
           const secondRange = $range.text();
           expect(secondRange).to.not.equal(firstRange);
@@ -271,7 +272,7 @@ describe('Time range filter', () => {
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[data-test=time-range-trigger]')
       .click()
@@ -286,6 +287,7 @@ describe('Time range filter', () => {
         });
         cy.get('[data-test=apply-button]').click();
         cy.get('[data-test=time-range-modal]').should('not.exist');
+        cy.wait(500);
         cy.get('[data-test=time-range-trigger]').then($range => {
           const secondRange = $range.text();
           expect(secondRange).to.not.equal(firstRange);
@@ -302,6 +304,7 @@ describe('Time range filter', () => {
             });
             cy.get('[data-test=apply-button]').click();
             cy.get('[data-test=time-range-modal]').should('not.exist');
+            cy.wait(500);
             cy.get('[data-test=time-range-trigger]').then($range => {
               const secondRange = $range.text();
               expect(secondRange).to.not.equal(firstRange);
@@ -318,7 +321,7 @@ describe('Time range filter', () => {
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData' });
     cy.get('[data-test=time-range-trigger]')
       .click()
       .then(() => {
@@ -330,6 +333,7 @@ describe('Time range filter', () => {
 
         cy.get('[data-test=apply-button]').click();
         cy.get('[data-test=time-range-modal]').should('not.exist');
+        cy.wait(500);
         cy.get('[data-test=time-range-trigger]').then($range => {
           const customRange = $range.text();
           cy.get('[data-test=time-range-trigger]')
@@ -344,6 +348,7 @@ describe('Time range filter', () => {
               });
               cy.get('[data-test=apply-button]').click();
               cy.get('[data-test=time-range-modal]').should('not.exist');
+              cy.wait(500);
               cy.get('[data-test=time-range-trigger]')
                 .click()
                 .then($range => {
@@ -353,13 +358,14 @@ describe('Time range filter', () => {
                   cy.get('[data-test="date-filter-control-modal"]').within(
                     () => {
                       cy.get('.frame-dropdown').should('be.visible').click();
-                      cy.contains('No Filter').should('be.visible').click();
+                      cy.contains('No filter').should('be.visible').click();
                       cy.get('[data-test=apply-button]').click();
                       cy.get('[data-test=time-range-modal]').should(
                         'not.exist',
                       );
                     },
                   );
+                  cy.wait(500);
                   cy.get('[data-test=time-range-trigger]')
                     .should('be.visible')
                     .click({ force: true })
@@ -381,6 +387,7 @@ describe('Time range filter', () => {
                           );
                         },
                       );
+                      cy.wait(500);
                       cy.get('[data-test=time-range-trigger]').then($range => {
                         const previousCalendarYearRange = $range.text();
                         expect(previousCalendarYearRange).to.not.equal(

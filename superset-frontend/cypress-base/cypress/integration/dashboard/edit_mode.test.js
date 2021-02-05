@@ -101,7 +101,6 @@ describe('Dashboard edit mode', () => {
   });
 });
 
-describe('Single component tests', () => {
   before(() => {});
   beforeEach(() => {
     cy.login();
@@ -112,7 +111,7 @@ describe('Single component tests', () => {
       '[data-test=grid-content] > [data-test=dragdroppable-object]',
     );
     drag('[data-test="new-component"]', 'Row').to(
-      '.dashboard-component-tabs-content > :nth-child(1)',
+      '[data-test="dashboard-component-tabs-droppable-content"] > :nth-child(1)',
     );
     cy.get('.dashboard-component-tabs-content')
       .find('[data-test="icon-button-fa fa-trash"]')

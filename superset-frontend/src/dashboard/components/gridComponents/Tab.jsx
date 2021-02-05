@@ -123,7 +123,10 @@ export default class Tab extends React.PureComponent {
     } = this.props;
 
     return (
-      <div className="dashboard-component-tabs-content">
+      <div
+        className="dashboard-component-tabs-content"
+        data-test="dashboard-component-tabs-droppable-content"
+      >
         {/* Make top of tab droppable */}
         {editMode && (
           <DragDroppable
@@ -135,6 +138,7 @@ export default class Tab extends React.PureComponent {
             onDrop={this.handleTopDropTargetDrop}
             editMode
             className="empty-droptarget"
+            data-test="tab-empty-droptarget"
           >
             {({ dropIndicatorProps }) =>
               dropIndicatorProps && (

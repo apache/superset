@@ -40,8 +40,8 @@ export function drag(selector: string, content: string | number | RegExp) {
       (typeof target === 'string' ? cy.get(target) : target)
         .trigger('dragover', { dataTransfer })
         .trigger('drop', { dataTransfer })
-        .trigger('dragend', { dataTransfer })
-        .trigger('mouseup', { which: 1 });
+        .trigger('dragend', { dataTransfer, force: true })
+        .trigger('mouseup', { which: 1, force: true });
     },
   };
 }
