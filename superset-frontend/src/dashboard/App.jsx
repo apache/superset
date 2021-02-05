@@ -17,30 +17,34 @@
  * under the License.
  */
 import { hot } from 'react-hot-loader/root';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Provider } from 'react-redux';
-import { ThemeProvider } from '@superset-ui/core';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
 import DashboardContainer from './containers/Dashboard';
-import { theme } from '../preamble';
 
 setupApp();
 setupPlugins();
 
-const App = ({ store }) => (
-  <Provider store={store}>
-    <DndProvider backend={HTML5Backend}>
-      <ThemeProvider theme={theme}>
+const App = ({ store }) => {
+  const [bootstrapData, setBootstrapData] = useState('');
+
+  useEffect(() => {
+    const appContainer = document.getElementById('app');
+    setBootstrapData(appContainer?.getAttribute('data-bootstrap') || '');
+  }, []);
+
+  return (
+    <Provider store={store}>
+      <ThemeProvider theme={supersetTheme}>
         <DynamicPluginProvider>
-          <DashboardContainer />
+          <DashboardContainer bootstrapData={bootstrapData} />
         </DynamicPluginProvider>
       </ThemeProvider>
-    </DndProvider>
-  </Provider>
-);
+    </Provider>
+  );
+};
 
 export default hot(App);
