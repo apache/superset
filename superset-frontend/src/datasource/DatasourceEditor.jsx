@@ -60,7 +60,11 @@ const DatasourceContainer = styled.div`
   }
 
   .form-group.has-feedback > .help-block {
-    margin-top: -8px;
+    margin-top: 8px;
+  }
+
+  .form-group.form-group-md {
+    margin-bottom: 8px;
   }
 `;
 
