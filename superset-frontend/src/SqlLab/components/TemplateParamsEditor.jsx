@@ -51,6 +51,7 @@ function TemplateParamsEditor({ code, language, onChange }) {
       setParsedJSON(JSON.parse(code));
       setIsValid(true);
     } catch {
+      setParsedJSON({});
       setIsValid(false);
     }
   }, [code]);
