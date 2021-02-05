@@ -61,6 +61,8 @@ github:
         # contexts are the names of checks that must pass
         contexts:
           - check
+          - test-mysql (3.7)
+          - test-postgres (3.7)
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false
