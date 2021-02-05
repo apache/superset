@@ -101,10 +101,10 @@ const RunQueryActionButton = ({
         }
         disabled={isDisabled}
         tooltip={
-          sql.trim() &&
-          (shouldShowStopBtn
-            ? t('Stop running (Ctrl + x)')
-            : t('Run query (Ctrl + Return)'))
+          (!isDisabled &&
+            (shouldShowStopBtn
+              ? t('Stop running (Ctrl + x)')
+              : t('Run query (Ctrl + Return)'))) as string
         }
         cta
         {...(overlayCreateAsMenu
