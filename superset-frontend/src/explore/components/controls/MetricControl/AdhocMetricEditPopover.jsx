@@ -123,6 +123,9 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
         adhocMetricLabel: this.state.adhocMetric?.getDefaultLabel(),
       });
     }
+    if (prevProps.datasource !== this.props.datasource) {
+      this.props.onChange(null);
+    }
   }
 
   componentWillUnmount() {
@@ -272,7 +275,6 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       datasourceType,
       ...popoverProps
     } = this.props;
-
     const { adhocMetric, savedMetric } = this.state;
     const keywords = sqlKeywords.concat(
       columns.map(column => ({
