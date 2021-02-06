@@ -488,9 +488,13 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             utils.error_msg_from_exception(ex), status=403
         ),
     )
-    @merge_response_func(ModelRestApi.merge_show_label_columns, API_LABEL_COLUMNS_RIS_KEY)
+    @merge_response_func(
+        ModelRestApi.merge_show_label_columns, API_LABEL_COLUMNS_RIS_KEY
+    )
     @merge_response_func(ModelRestApi.merge_show_columns, API_SHOW_COLUMNS_RIS_KEY)
-    @merge_response_func(ModelRestApi.merge_description_columns, API_DESCRIPTION_COLUMNS_RIS_KEY)
+    @merge_response_func(
+        ModelRestApi.merge_description_columns, API_DESCRIPTION_COLUMNS_RIS_KEY
+    )
     @merge_response_func(ModelRestApi.merge_show_title, API_SHOW_TITLE_RIS_KEY)
     def get(self, pk, **kwargs):
         """Get Dashboard from Model
