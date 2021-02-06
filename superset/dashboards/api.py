@@ -488,7 +488,84 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             utils.error_msg_from_exception(ex), status=403
         ),
     )
+    @merge_response_func(ModelRestApi.merge_show_label_columns, API_LABEL_COLUMNS_RIS_KEY)
+    @merge_response_func(ModelRestApi.merge_show_columns, API_SHOW_COLUMNS_RIS_KEY)
+    @merge_response_func(ModelRestApi.merge_description_columns, API_DESCRIPTION_COLUMNS_RIS_KEY)
+    @merge_response_func(ModelRestApi.merge_show_title, API_SHOW_TITLE_RIS_KEY)
     def get(self, pk, **kwargs):
+        """Get Dashboard from Model
+        ---
+        get:
+          description: >-
+            Get an dashboard model
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_item_schema'
+          responses:
+            200:
+              description: Item from Model
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      label_columns:
+                        type: object
+                        properties:
+                          column_name:
+                            description: >-
+                              The label for the column name.
+                              Will be translated by babel
+                            example: A Nice label for the column
+                            type: string
+                      show_columns:
+                        description: >-
+                          A list of columns
+                        type: array
+                        items:
+                          type: string
+                      description_columns:
+                        type: object
+                        properties:
+                          column_name:
+                            description: >-
+                              The description for the column name.
+                              Will be translated by babel
+                            example: A Nice description for the column
+                            type: string
+                      show_title:
+                        description: >-
+                          A title to render.
+                          Will be translated by babel
+                        example: Show Item Details
+                        type: string
+                      id:
+                        description: The item id
+                        type: string
+                      result:
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.get'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+
         return super(DashboardRestApi, self).get(pk, **kwargs)
 
     @expose("/export/", methods=["GET"])
