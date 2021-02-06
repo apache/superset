@@ -61,7 +61,6 @@ github:
         # contexts are the names of checks that must pass
         contexts:
           - check
-          - docker-release
           - frontend-build
           - python-lint (3.7)
           - test-mysql (3.7)
