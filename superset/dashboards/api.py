@@ -507,55 +507,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             schema:
               type: integer
             name: pk
-          - in: query
-            name: q
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/get_item_schema'
           responses:
             200:
-              description: Item from Model
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      label_columns:
-                        type: object
-                        properties:
-                          column_name:
-                            description: >-
-                              The label for the column name.
-                              Will be translated by babel
-                            example: A Nice label for the column
-                            type: string
-                      show_columns:
-                        description: >-
-                          A list of columns
-                        type: array
-                        items:
-                          type: string
-                      description_columns:
-                        type: object
-                        properties:
-                          column_name:
-                            description: >-
-                              The description for the column name.
-                              Will be translated by babel
-                            example: A Nice description for the column
-                            type: string
-                      show_title:
-                        description: >-
-                          A title to render.
-                          Will be translated by babel
-                        example: Show Item Details
-                        type: string
-                      id:
-                        description: The item id
-                        type: string
-                      result:
-                        $ref: '#/components/schemas/{{self.__class__.__name__}}.get'
+              $ref: '#/components/responses/200'
             400:
               $ref: '#/components/responses/400'
             401:
