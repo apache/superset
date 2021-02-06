@@ -496,7 +496,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         ModelRestApi.merge_description_columns, API_DESCRIPTION_COLUMNS_RIS_KEY
     )
     @merge_response_func(ModelRestApi.merge_show_title, API_SHOW_TITLE_RIS_KEY)
-    def get(self, pk, **kwargs):
+    def get(self, pk: int, **kwargs: Dict[str, Any]) -> Response:
         """Get Dashboard from Model
         ---
         get:
