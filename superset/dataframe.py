@@ -48,8 +48,8 @@ def df_to_records(dframe: pd.DataFrame) -> List[Dict[str, Any]]:
             UserWarning,
             stacklevel=2,
         )
-
+    columns = dframe.columns
     return list(
-        dict(zip(dframe.columns, map(_convert_big_integers, row)))
-        for row in zip(*[dframe[col] for col in dframe.columns])
+        dict(zip(columns, map(_convert_big_integers, row)))
+        for row in zip(*[dframe[col] for col in columns])
     )
