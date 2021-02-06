@@ -16,6 +16,7 @@
 # under the License.
 """ Superset utilities for pandas.DataFrame.
 """
+import warnings
 from typing import Any, Dict, List
 
 import pandas as pd
@@ -41,6 +42,13 @@ def df_to_records(dframe: pd.DataFrame) -> List[Dict[str, Any]]:
     :param dframe: the DataFrame to convert
     :returns: a list of dictionaries reflecting each single row of the DataFrame
     """
+    if not dframe.columns.is_unique:
+        warnings.warn(
+            "DataFrame columns are not unique, some columns will be omitted.",
+            UserWarning,
+            stacklevel=2,
+        )
+
     return list(
         dict(zip(dframe.columns, map(_convert_big_integers, row)))
         for row in zip(*[dframe[col] for col in dframe.columns])
