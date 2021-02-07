@@ -20,6 +20,7 @@ from flask_appbuilder.security.sqla.models import Role
 from flask_babel import lazy_gettext as _
 from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
+
 from superset.views.base import BaseFilter
 
 
