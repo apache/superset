@@ -23,11 +23,8 @@ export default function getDashboardUrl(
   pathname: string,
   filters = {},
   hash = '',
-  standalone = false,
+  standalone?: number | null,
 ) {
-  const oldSearchParams = new URLSearchParams(
-    window.location.search.substring(1),
-  );
   const newSearchParams = new URLSearchParams();
 
   // convert flattened { [id_column]: values } object
@@ -37,18 +34,42 @@ export default function getDashboardUrl(
     JSON.stringify(serializeActiveFilterValues(filters)),
   );
 
-  const hideDashboardHeader = oldSearchParams.get(
-    URL_PARAMS.hideDashboardHeader,
-  );
-  if (hideDashboardHeader) {
-    // just proxy this param to new url
-    newSearchParams.set(URL_PARAMS.hideDashboardHeader, hideDashboardHeader);
-  }
   if (standalone) {
-    newSearchParams.set(URL_PARAMS.standalone, 'true');
+    newSearchParams.set(URL_PARAMS.standalone, standalone.toString());
   }
 
   const hashSection = hash ? `#${hash}` : '';
 
   return `${pathname}?${newSearchParams.toString()}${hashSection}`;
+}
+
+export type UrlParamType = 'string' | 'number' | 'boolean';
+export function getUrlParam(paramName: string, type: 'string'): string;
+export function getUrlParam(paramName: string, type: 'number'): number;
+export function getUrlParam(paramName: string, type: 'boolean'): boolean;
+export function getUrlParam(paramName: string, type: UrlParamType): unknown {
+  const urlParam = new URLSearchParams(window.location.search.substring(1)).get(
+    paramName,
+  );
+  switch (type) {
+    case 'number':
+      if (!urlParam) {
+        return null;
+      }
+      if (urlParam === 'true') {
+        return 1;
+      }
+      if (urlParam === 'false') {
+        return 0;
+      }
+      // eslint-disable-next-line no-case-declarations
+      const parsedNumber = parseInt(urlParam, 10);
+      if (Number.isInteger(parsedNumber)) {
+        return parsedNumber;
+      }
+      return null;
+    // TODO: process other types when needed
+    default:
+      return urlParam;
+  }
 }

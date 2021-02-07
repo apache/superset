@@ -401,8 +401,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             parse.quote(json.dumps({"slice_id": slice_id}))
         )
         param = utils.ReservedUrlParameters.STANDALONE.value
-        if request.args.get(param) == "true":
-            endpoint += f"&{param}=true"
+        if request.args.get(param) != "false" and request.args.get(param) != None:
+            endpoint += f"&{param}={request.args.get(param)}"
         return redirect(endpoint)
 
     def get_query_string_response(self, viz_obj: BaseViz) -> FlaskResponse:
@@ -783,9 +783,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 datasource.type,
                 datasource.name,
             )
-
+        standalone_param = request.args.get(utils.ReservedUrlParameters.STANDALONE.value)
         standalone = (
-            request.args.get(utils.ReservedUrlParameters.STANDALONE.value) == "true"
+            standalone_param != "false" or standalone_param != None
         )
         dummy_datasource_data: Dict[str, Any] = {
             "type": datasource_type,
@@ -1831,9 +1831,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         superset_can_explore = security_manager.can_access("can_explore", "Superset")
         superset_can_csv = security_manager.can_access("can_csv", "Superset")
         slice_can_edit = security_manager.can_access("can_edit", "SliceModelView")
-
+        standalone_param = request.args.get(utils.ReservedUrlParameters.STANDALONE.value)
         standalone_mode = (
-            request.args.get(utils.ReservedUrlParameters.STANDALONE.value) == "true"
+            standalone_param != "false" and standalone_param != None
         )
         edit_mode = (
             request.args.get(utils.ReservedUrlParameters.EDIT_MODE.value) == "true"

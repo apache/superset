@@ -101,7 +101,7 @@ export function getExploreLongUrl(
   });
   search.form_data = safeStringify(formData);
   if (endpointType === URL_PARAMS.standalone) {
-    search.standalone = 'true';
+    search.standalone = '1';
   }
   const url = uri.directory(directory).search(search).toString();
   if (!allowOverflow && url.length > MAX_URL_LENGTH) {
@@ -174,7 +174,7 @@ export function getExploreUrl({
     search.csv = 'true';
   }
   if (endpointType === URL_PARAMS.standalone) {
-    search.standalone = 'true';
+    search.standalone = '1';
   }
   if (endpointType === 'query') {
     search.query = 'true';

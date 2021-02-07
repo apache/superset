@@ -64,7 +64,7 @@ const propTypes = {
   controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
-  standalone: PropTypes.bool.isRequired,
+  standalone: PropTypes.number.isRequired,
   timeout: PropTypes.number,
   impressionId: PropTypes.string,
   vizType: PropTypes.string,

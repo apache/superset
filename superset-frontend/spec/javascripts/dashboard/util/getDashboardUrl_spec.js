@@ -39,15 +39,6 @@ describe('getChartIdsFromLayout', () => {
     );
   });
 
-  it('should encode filters with standalone and hide_dashboard_header', () => {
-    delete window.location;
-    window.location = new URL('https://path?hide_dashboard_header=true');
-    const urlWithStandalone = getDashboardUrl('path', filters, '', true);
-    expect(urlWithStandalone).toBe(
-      'path?preselect_filters=%7B%2235%22%3A%7B%22key%22%3A%5B%22value%22%5D%7D%7D&hide_dashboard_header=true&standalone=true',
-    );
-  });
-
   it('should encode filters with hash', () => {
     const urlWithHash = getDashboardUrl('path', filters, 'iamhashtag');
     expect(urlWithHash).toBe(
@@ -56,9 +47,16 @@ describe('getChartIdsFromLayout', () => {
   });
 
   it('should encode filters with standalone', () => {
-    const urlWithStandalone = getDashboardUrl('path', filters, '', true);
+    const urlWithStandalone = getDashboardUrl('path', filters, '', '1');
     expect(urlWithStandalone).toBe(
-      'path?preselect_filters=%7B%2235%22%3A%7B%22key%22%3A%5B%22value%22%5D%7D%7D&standalone=true',
+      'path?preselect_filters=%7B%2235%22%3A%7B%22key%22%3A%5B%22value%22%5D%7D%7D&standalone=1',
+    );
+  });
+
+  it('should encode filters with missed standalone', () => {
+    const urlWithStandalone = getDashboardUrl('path', filters, '', null);
+    expect(urlWithStandalone).toBe(
+      'path?preselect_filters=%7B%2235%22%3A%7B%22key%22%3A%5B%22value%22%5D%7D%7D',
     );
   });
 });

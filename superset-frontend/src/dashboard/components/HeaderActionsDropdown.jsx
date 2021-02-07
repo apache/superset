@@ -32,7 +32,7 @@ import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
 import FilterScopeModal from './filterscope/FilterScopeModal';
 import downloadAsImage from '../../utils/downloadAsImage';
-import getDashboardUrl from '../util/getDashboardUrl';
+import getDashboardUrl, { getUrlParam } from '../util/getDashboardUrl';
 import { getActiveFilters } from '../util/activeDashboardFilters';
 
 const propTypes = {
@@ -162,14 +162,11 @@ class HeaderActionsDropdown extends React.PureComponent {
         break;
       }
       case MENU_KEYS.TOGGLE_FULLSCREEN: {
-        const hasStandalone = window.location.search.includes(
-          `${URL_PARAMS.standalone}=true`,
-        );
         const url = getDashboardUrl(
           window.location.pathname,
           getActiveFilters(),
           window.location.hash,
-          !hasStandalone,
+          getUrlParam(URL_PARAMS.standalone, 'number'),
         );
         window.location.replace(url);
         break;
