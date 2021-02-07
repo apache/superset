@@ -85,6 +85,13 @@ class OwnersNotFoundValidationError(ValidationError):
         super().__init__([_("Owners are invalid")], field_name="owners")
 
 
+class RolesNotFoundValidationError(ValidationError):
+    status = 422
+
+    def __init__(self) -> None:
+        super().__init__([_("Some roles do not exist")], field_name="roles")
+
+
 class DatasourceNotFoundValidationError(ValidationError):
     status = 404
 
