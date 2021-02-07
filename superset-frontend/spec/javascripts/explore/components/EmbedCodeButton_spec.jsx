@@ -98,7 +98,7 @@ describe('EmbedCodeButton', () => {
       '  seamless\n' +
       '  frameBorder="0"\n' +
       '  scrolling="no"\n' +
-      '  src="http://localhostendpoint_url?r=100&standalone=true&height=1000"\n' +
+      '  src="http://localhostendpoint_url?r=100&standalone=1&height=1000"\n' +
       '>\n' +
       '</iframe>';
     expect(wrapper.instance().generateEmbedHTML()).toBe(embedHTML);
