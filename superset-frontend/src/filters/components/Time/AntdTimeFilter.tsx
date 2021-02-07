@@ -20,7 +20,9 @@ import { styled } from '@superset-ui/core';
 import React, { useState, useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl/DateFilterControl';
 import { AntdPluginFilterStylesProps } from '../types';
-import { DEFAULT_FORM_DATA, PluginFilterTimeProps } from './types';
+import { AntdPluginFilterTimeProps } from './types';
+
+const DEFAULT_VALUE = 'Last week';
 
 const Styles = styled.div<AntdPluginFilterStylesProps>`
   height: ${({ height }) => height}px;
@@ -28,15 +30,11 @@ const Styles = styled.div<AntdPluginFilterStylesProps>`
   overflow-x: scroll;
 `;
 
-export default function PluginFilterTime(props: PluginFilterTimeProps) {
+export default function AntdTimeFilter(props: AntdPluginFilterTimeProps) {
   const { formData, setExtraFormData, width, height } = props;
-  const { defaultValue } = {
-    ...DEFAULT_FORM_DATA,
-    ...formData,
-  };
+  const { defaultValue, currentValue } = formData;
 
-  const firstDefault = (defaultValue?.[0] || '').toString();
-  const [value, setValue] = useState<string>(firstDefault || 'Last week');
+  const [value, setValue] = useState<string>(defaultValue ?? DEFAULT_VALUE);
 
   const handleTimeRangeChange = (textValue: string, timeRange: string) => {
     setExtraFormData({
@@ -46,15 +44,17 @@ export default function PluginFilterTime(props: PluginFilterTimeProps) {
           time_range: timeRange,
         },
       },
-      currentState: { value: [textValue] },
+      currentState: { value: textValue },
     });
   };
 
   useEffect(() => {
-    if (firstDefault) {
-      setValue(firstDefault);
-    }
-  }, [firstDefault]);
+    setValue(currentValue ?? DEFAULT_VALUE);
+  }, [currentValue]);
+
+  useEffect(() => {
+    setValue(defaultValue ?? DEFAULT_VALUE);
+  }, [defaultValue]);
 
   return (
     <Styles width={width} height={height}>

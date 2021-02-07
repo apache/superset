@@ -24,15 +24,15 @@ import {
 import { AntdPluginFilterStylesProps } from '../types';
 
 interface PluginFilterTimeCustomizeProps {
-  defaultValue?: (string | number)[] | null;
-  currentValue?: (string | number)[] | null;
+  defaultValue?: string | null;
+  currentValue?: string | null;
 }
 
 export type AntdPluginFilterSelectQueryFormData = QueryFormData &
   AntdPluginFilterStylesProps &
   PluginFilterTimeCustomizeProps;
 
-export type PluginFilterTimeProps = AntdPluginFilterStylesProps & {
+export type AntdPluginFilterTimeProps = AntdPluginFilterStylesProps & {
   data: DataRecord[];
   setExtraFormData: SetExtraFormDataHook;
   formData: AntdPluginFilterSelectQueryFormData;

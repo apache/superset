@@ -224,7 +224,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           } else {
             setActualTimeRange(actualRange || '');
             setTooltipTitle(value || '');
-            onTimeRangeChange(actualRange, timeRangeString);
+            onTimeRangeChange(value, timeRangeString);
           }
           setValidTimeRange(true);
         }

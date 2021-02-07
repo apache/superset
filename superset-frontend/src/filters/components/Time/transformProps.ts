@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ChartProps } from '@superset-ui/core';
+import { DEFAULT_FORM_DATA } from './types';
 
 export default function transformProps(chartProps: ChartProps) {
   const { formData, height, hooks, queriesData, width } = chartProps;
@@ -25,7 +26,10 @@ export default function transformProps(chartProps: ChartProps) {
 
   return {
     data,
-    formData,
+    formData: {
+      ...DEFAULT_FORM_DATA,
+      ...formData,
+    },
     height,
     setExtraFormData,
     width,
