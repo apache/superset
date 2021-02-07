@@ -254,7 +254,7 @@ class ReservedUrlParameters(str, Enum):
     @classmethod
     def is_standalone_mode(cls) -> Any:
         standalone_param = request.args.get(ReservedUrlParameters.STANDALONE.value)
-        standalone = standalone_param != "false" or standalone_param is not None
+        standalone = standalone_param != "false" and standalone_param is not None
         return standalone
 
 
