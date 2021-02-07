@@ -51,10 +51,13 @@ const FilterControl: React.FC<FilterProps> = ({
   return (
     <StyledFilterControlContainer>
       <StyledFilterControlTitleBox>
-        <StyledFilterControlTitle>{name}</StyledFilterControlTitle>
+        <StyledFilterControlTitle data-test="filter-control-name">
+          {name}
+        </StyledFilterControlTitle>
         <div>{icon}</div>
       </StyledFilterControlTitleBox>
       <FilterValue
+        data-test="filter-icon"
         filter={filter}
         directPathToChild={directPathToChild}
         onFilterSelectionChange={onFilterSelectionChange}

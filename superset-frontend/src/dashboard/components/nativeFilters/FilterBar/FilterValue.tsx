@@ -134,7 +134,7 @@ const FilterValue: React.FC<FilterProps> = ({
   }
 
   return (
-    <FilterItem>
+    <FilterItem data-test="form-item-value">
       <SuperChart
         height={20}
         width={220}

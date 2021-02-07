@@ -249,6 +249,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             buttonStyle="secondary"
             buttonSize="small"
             onClick={handleResetAll}
+            data-test="filter-reset-button"
           >
             {t('Reset all')}
           </Button>
@@ -257,6 +258,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             htmlType="submit"
             buttonSize="small"
             onClick={handleApply}
+            data-test="filter-apply-button"
           >
             {t('Apply')}
           </Button>
