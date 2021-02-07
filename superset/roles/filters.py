@@ -33,8 +33,4 @@ class RoleFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         if not value:
             return query
         ilike_value = f"%{value}%"
-        return query.filter(
-            or_(
-                Role.name.ilike(ilike_value),
-            )
-        )
+        return query.filter(or_(Role.name.ilike(ilike_value),))

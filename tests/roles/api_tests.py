@@ -22,7 +22,6 @@ from tests.base_tests import SupersetTestCase
 
 
 class TestRolesApi(SupersetTestCase):
-
     def test_get_list_roles(self):
         """
         Roles Api: Test get list roles
@@ -61,4 +60,3 @@ class TestRolesApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == 1
         assert data["result"][0] == expected_result
-
