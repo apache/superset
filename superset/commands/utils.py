@@ -16,11 +16,12 @@
 # under the License.
 from typing import List, Optional
 
-from flask_appbuilder.security.sqla.models import User
+from flask_appbuilder.security.sqla.models import Role, User
 
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
     OwnersNotFoundValidationError,
+    RolesNotFoundValidationError,
 )
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -28,24 +29,38 @@ from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.extensions import db, security_manager
 
 
-def populate_owners(user: User, owners_ids: Optional[List[int]] = None) -> List[User]:
+def populate_owners(user: User, owner_ids: Optional[List[int]] = None) -> List[User]:
     """
     Helper function for commands, will fetch all users from owners id's
     Can raise ValidationError
     :param user: The current user
-    :param owners_ids: A List of owners by id's
+    :param owner_ids: A List of owners by id's
     """
     owners = list()
-    if not owners_ids:
+    if not owner_ids:
         return [user]
-    if user.id not in owners_ids:
+    if user.id not in owner_ids:
         owners.append(user)
-    for owner_id in owners_ids:
+    for owner_id in owner_ids:
         owner = security_manager.get_user_by_id(owner_id)
         if not owner:
             raise OwnersNotFoundValidationError()
         owners.append(owner)
     return owners
+
+
+def populate_roles(role_ids: Optional[List[int]] = None) -> List[Role]:
+    """
+    Helper function for commands, will fetch all roles from roles id's
+     :raises RolesNotFoundValidationError: If a role in the input list is not found
+    :param role_ids: A List of roles by id's
+    """
+    roles: List[Role] = []
+    if role_ids:
+        roles = security_manager.find_roles_by_id(role_ids)
+        if len(roles) != len(role_ids):
+            raise RolesNotFoundValidationError()
+    return roles
 
 
 def get_datasource_by_id(datasource_id: int, datasource_type: str) -> BaseDatasource:
