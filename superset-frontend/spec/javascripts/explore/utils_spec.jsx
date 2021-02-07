@@ -99,7 +99,7 @@ describe('exploreUtils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore/').search({ standalone: 'true' }),
+        URI('/superset/explore/').search({ standalone: '1' }),
       );
     });
     it('preserves main URLs params', () => {
@@ -205,7 +205,7 @@ describe('exploreUtils', () => {
         URI(getExploreLongUrl(formData, 'standalone')),
         URI('/superset/explore/').search({
           form_data: sFormData,
-          standalone: 'true',
+          standalone: '1',
         }),
       );
     });
