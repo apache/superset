@@ -220,4 +220,9 @@ export const Databases = [
     href: 'https://www.vertica.com/',
     imgName: 'vertica.png',
   },
+  {
+    title: 'Hologres',
+    href: 'https://www.alibabacloud.com/product/hologres',
+    imgName: 'hologres.png',
+  },
 ];

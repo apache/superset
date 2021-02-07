@@ -24,7 +24,8 @@ import { Provider } from 'react-redux';
 
 import { shallow } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { FormControl, Radio } from 'react-bootstrap';
+import { FormControl } from 'react-bootstrap';
+import { Radio } from 'src/common/components/Radio';
 import Button from 'src/components/Button';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';

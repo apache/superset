@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Utility functions used across Superset"""
+import collections
 import decimal
 import errno
 import functools
@@ -37,7 +38,7 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
-from enum import Enum
+from enum import Enum, IntEnum
 from timeit import default_timer
 from types import TracebackType
 from typing import (
@@ -55,6 +56,7 @@ from typing import (
     Tuple,
     Type,
     TYPE_CHECKING,
+    TypeVar,
     Union,
 )
 from urllib.parse import unquote_plus
@@ -72,6 +74,7 @@ from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import Role, User
 from flask_babel import gettext as __
 from flask_babel.speaklater import LazyString
+from pandas.api.types import infer_dtype
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
@@ -105,6 +108,8 @@ DTTM_ALIAS = "__timestamp"
 
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
+InputType = TypeVar("InputType")
+
 
 class LenientEnum(Enum):
     """Enums with a `get` method that convert a enum value to `Enum` if it is a
@@ -130,14 +135,15 @@ class AnnotationType(str, Enum):
     TIME_SERIES = "TIME_SERIES"
 
 
-class GenericDataType(Enum):
+class GenericDataType(IntEnum):
     """
-    Generic database column type
+    Generic database column type that fits both frontend and backend.
     """
 
     NUMERIC = 0
     STRING = 1
     TEMPORAL = 2
+    BOOLEAN = 3
 
 
 class ChartDataResultFormat(str, Enum):
@@ -1396,6 +1402,31 @@ def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
     return columns
 
 
+def extract_dataframe_dtypes(df: pd.DataFrame) -> List[GenericDataType]:
+    """Serialize pandas/numpy dtypes to generic types"""
+
+    # omitting string types as those will be the default type
+    inferred_type_map: Dict[str, GenericDataType] = {
+        "floating": GenericDataType.NUMERIC,
+        "integer": GenericDataType.NUMERIC,
+        "mixed-integer-float": GenericDataType.NUMERIC,
+        "decimal": GenericDataType.NUMERIC,
+        "boolean": GenericDataType.BOOLEAN,
+        "datetime64": GenericDataType.TEMPORAL,
+        "datetime": GenericDataType.TEMPORAL,
+        "date": GenericDataType.TEMPORAL,
+    }
+
+    generic_types: List[GenericDataType] = []
+    for column in df.columns:
+        series = df[column]
+        inferred_type = infer_dtype(series)
+        generic_type = inferred_type_map.get(inferred_type, GenericDataType.STRING)
+        generic_types.append(generic_type)
+
+    return generic_types
+
+
 def indexed(
     items: List[Any], key: Union[str, Callable[[Any], Any]]
 ) -> Dict[Any, List[Any]]:
@@ -1481,3 +1512,8 @@ def get_time_filter_status(  # pylint: disable=too-many-branches
 def format_list(items: Sequence[str], sep: str = ", ", quote: str = '"') -> str:
     quote_escaped = "\\" + quote
     return sep.join(f"{quote}{x.replace(quote, quote_escaped)}{quote}" for x in items)
+
+
+def find_duplicates(items: Iterable[InputType]) -> List[InputType]:
+    """Find duplicate items in an iterable."""
+    return [item for item, count in collections.Counter(items).items() if count > 1]

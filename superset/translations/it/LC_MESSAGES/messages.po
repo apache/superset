@@ -6126,7 +6126,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:307
 #, python-format
-msgid "%s operators(s)"
+msgid "%s operator(s)"
 msgstr "Seleziona operatore"
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:326

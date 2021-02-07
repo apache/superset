@@ -16,19 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ExtraFormData, styled, t } from '@superset-ui/core';
 import Popover from 'src/common/components/Popover';
 import Icon from 'src/components/Icon';
 import { Pill } from 'src/dashboard/components/FiltersBadge/Styles';
 import { CascadeFilterControl, FilterControl } from './FilterBar';
-import { Filter, CascadeFilter } from './types';
+import { Filter, CascadeFilter, CurrentFilterState } from './types';
+import { useFilterState } from './state';
 
 interface CascadePopoverProps {
   filter: CascadeFilter;
   visible: boolean;
+  directPathToChild?: string[];
   onVisibleChange: (visible: boolean) => void;
-  onExtraFormDataChange: (filter: Filter, extraFormData: ExtraFormData) => void;
+  onFilterSelectionChange: (
+    filter: Filter,
+    extraFormData: ExtraFormData,
+    currentState: CurrentFilterState,
+  ) => void;
 }
 
 const StyledTitleBox = styled.div`
@@ -72,53 +78,84 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   filter,
   visible,
   onVisibleChange,
-  onExtraFormDataChange,
+  onFilterSelectionChange,
+  directPathToChild,
 }) => {
-  const getActiveChildren = useCallback((filter: CascadeFilter):
-    | CascadeFilter[]
-    | null => {
-    const children = filter.cascadeChildren || [];
-    const currentValue = filter.currentValue || [];
+  const [currentPathToChild, setCurrentPathToChild] = useState<string[]>();
+  const filterState = useFilterState(filter.id);
 
-    const activeChildren = children.flatMap(
-      childFilter => getActiveChildren(childFilter) || [],
+  useEffect(() => {
+    setCurrentPathToChild(directPathToChild);
+    // clear local copy of directPathToChild after 500ms
+    // to prevent triggering multiple focus
+    const timeout = setTimeout(() => setCurrentPathToChild(undefined), 500);
+    return () => clearTimeout(timeout);
+  }, [directPathToChild, setCurrentPathToChild]);
+
+  const getActiveChildren = useCallback(
+    (filter: CascadeFilter): CascadeFilter[] | null => {
+      const children = filter.cascadeChildren || [];
+      const currentValue = filterState.currentState?.value;
+
+      const activeChildren = children.flatMap(
+        childFilter => getActiveChildren(childFilter) || [],
+      );
+
+      if (activeChildren.length > 0) {
+        return activeChildren;
+      }
+
+      if (currentValue) {
+        return [filter];
+      }
+
+      return null;
+    },
+    [filterState],
+  );
+
+  const getAllFilters = (filter: CascadeFilter): CascadeFilter[] => {
+    const children = filter.cascadeChildren || [];
+    const allChildren = children.flatMap(getAllFilters);
+    return [filter, ...allChildren];
+  };
+
+  const allFilters = getAllFilters(filter);
+  const activeFilters = useMemo(() => getActiveChildren(filter) || [filter], [
+    filter,
+    getActiveChildren,
+  ]);
+
+  useEffect(() => {
+    const focusedFilterId = currentPathToChild?.[0];
+    // filters not directly displayed in the Filter Bar
+    const inactiveFilters = allFilters.filter(
+      filterEl => !activeFilters.includes(filterEl),
+    );
+    const focusedInactiveFilter = inactiveFilters.some(
+      cascadeChild => cascadeChild.id === focusedFilterId,
     );
 
-    if (activeChildren.length > 0) {
-      return activeChildren;
+    if (focusedInactiveFilter) {
+      onVisibleChange(true);
     }
-
-    if (currentValue.length > 0) {
-      return [filter];
-    }
-
-    return null;
-  }, []);
+  }, [currentPathToChild]);
 
   if (!filter.cascadeChildren?.length) {
     return (
       <FilterControl
         filter={filter}
-        onExtraFormDataChange={onExtraFormDataChange}
+        directPathToChild={directPathToChild}
+        onFilterSelectionChange={onFilterSelectionChange}
       />
     );
   }
-
-  const countFilters = (filter: CascadeFilter): number => {
-    let count = 1;
-    filter.cascadeChildren.forEach(child => {
-      count += countFilters(child);
-    });
-    return count;
-  };
-
-  const totalChildren = countFilters(filter);
 
   const title = (
     <StyledTitleBox>
       <StyledTitle>
         <StyledIcon name="edit" />
-        {t('Select parent filters')} ({totalChildren})
+        {t('Select parent filters')} ({allFilters.length})
       </StyledTitle>
       <StyledIcon name="close" onClick={() => onVisibleChange(false)} />
     </StyledTitleBox>
@@ -129,11 +166,10 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
       data-test="cascade-filters-control"
       key={filter.id}
       filter={filter}
-      onExtraFormDataChange={onExtraFormDataChange}
+      directPathToChild={visible ? currentPathToChild : undefined}
+      onFilterSelectionChange={onFilterSelectionChange}
     />
   );
-
-  const activeFilters = getActiveChildren(filter) || [filter];
 
   return (
     <Popover
@@ -151,12 +187,13 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
           <FilterControl
             key={activeFilter.id}
             filter={activeFilter}
-            onExtraFormDataChange={onExtraFormDataChange}
+            onFilterSelectionChange={onFilterSelectionChange}
+            directPathToChild={currentPathToChild}
             icon={
               <>
                 {filter.cascadeChildren.length !== 0 && (
                   <StyledPill onClick={() => onVisibleChange(true)}>
-                    <Icon name="filter" /> {totalChildren}
+                    <Icon name="filter" /> {allFilters.length}
                   </StyledPill>
                 )}
               </>

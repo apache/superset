@@ -45,6 +45,6 @@ describe('RowCountLabel', () => {
       limit: 100,
     };
     const wrapper = shallow(<RowCountLabel {...props} />);
-    expect(wrapper.find(Label).first().props().bsStyle).toBe('danger');
+    expect(wrapper.find(Label).first().props().type).toBe('danger');
   });
 });

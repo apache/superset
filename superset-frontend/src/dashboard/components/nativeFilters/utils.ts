@@ -18,8 +18,10 @@
  */
 import {
   ExtraFormData,
+  QueryFormData,
   getChartMetadataRegistry,
   QueryObject,
+  t,
 } from '@superset-ui/core';
 import { Charts, Layout, LayoutItem } from 'src/dashboard/types';
 import {
@@ -28,11 +30,12 @@ import {
   TAB_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import { FormInstance } from 'antd/lib/form';
-import React from 'react';
+import React, { RefObject } from 'react';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   CascadeFilter,
   Filter,
+  FilterType,
   NativeFiltersState,
   Scope,
   TreeItem,
@@ -258,6 +261,11 @@ export function buildCascadeFiltersTree(filters: Filter[]): CascadeFilter[] {
     .map(getCascadeFilter);
 }
 
+export const FilterTypeNames = {
+  [FilterType.filter_select]: t('Select'),
+  [FilterType.filter_range]: t('Range'),
+};
+
 export const setFilterFieldValues = (
   form: FormInstance,
   filterId: string,
@@ -277,3 +285,54 @@ export const setFilterFieldValues = (
 
 export const isScopingAll = (scope: Scope) =>
   !scope || (scope.rootPath[0] === DASHBOARD_ROOT_ID && !scope.excluded.length);
+
+export const getFormData = ({
+  datasetId = 18,
+  cascadingFilters = {},
+  groupby,
+  allowsMultipleValues = false,
+  defaultValue,
+  currentValue,
+  inverseSelection,
+  inputRef,
+}: Partial<Filter> & {
+  datasetId?: number;
+  inputRef?: RefObject<HTMLInputElement>;
+  cascadingFilters?: object;
+  groupby: string;
+}): Partial<QueryFormData> => ({
+  adhoc_filters: [],
+  datasource: `${datasetId}__table`,
+  extra_filters: [],
+  extra_form_data: cascadingFilters,
+  granularity_sqla: 'ds',
+  groupby: [groupby],
+  inverseSelection,
+  metrics: ['count'],
+  multiSelect: allowsMultipleValues,
+  row_limit: 10000,
+  showSearch: true,
+  currentValue,
+  time_range: 'No filter',
+  time_range_endpoints: ['inclusive', 'exclusive'],
+  url_params: {},
+  viz_type: 'filter_select',
+  // TODO: need process per filter type after will be decided approach
+  defaultValue,
+  inputRef,
+});
+
+type AppendFormData = {
+  filters: {
+    val?: number | string | null;
+  }[];
+};
+
+export const extractDefaultValue = {
+  [FilterType.filter_select]: (appendFormData: AppendFormData) =>
+    appendFormData.filters?.[0]?.val,
+  [FilterType.filter_range]: (appendFormData: AppendFormData) => ({
+    min: appendFormData.filters?.[0].val,
+    max: appendFormData.filters?.[1].val,
+  }),
+};

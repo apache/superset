@@ -402,7 +402,7 @@ export function FilterConfigModal({
         return {
           id,
           name: formInputs.name,
-          type: 'text',
+          filterType: formInputs.filterType,
           // for now there will only ever be one target
           targets: [
             {
@@ -483,10 +483,20 @@ export function FilterConfigModal({
     }
 
     return [
-      <Button key="cancel" buttonStyle="secondary" onClick={handleCancel}>
+      <Button
+        key="cancel"
+        buttonStyle="secondary"
+        data-test="native-filter-modal-cancel-button"
+        onClick={handleCancel}
+      >
         {t('Cancel')}
       </Button>,
-      <Button key="submit" buttonStyle="primary" onClick={onOk}>
+      <Button
+        key="submit"
+        buttonStyle="primary"
+        onClick={onOk}
+        data-test="native-filter-modal-save-button"
+      >
         {t('Save')}
       </Button>,
     ];
@@ -497,6 +507,7 @@ export function FilterConfigModal({
       visible={isOpen}
       title={t('Filter configuration and scoping')}
       width="55%"
+      destroyOnClose
       onCancel={handleCancel}
       onOk={onOk}
       centered
@@ -506,6 +517,7 @@ export function FilterConfigModal({
       <ErrorBoundary>
         <StyledModalBody>
           <StyledForm
+            preserve={false}
             form={form}
             onValuesChange={(changes, values: NativeFiltersForm) => {
               if (
@@ -528,7 +540,8 @@ export function FilterConfigModal({
               onEdit={onTabEdit}
               addIcon={
                 <StyledAddFilterBox>
-                  <PlusOutlined /> <span>{t('Add filter')}</span>
+                  <PlusOutlined />{' '}
+                  <span data-test="add-filter-button">{t('Add filter')}</span>
                 </StyledAddFilterBox>
               }
             >
@@ -546,6 +559,7 @@ export function FilterConfigModal({
                       {removedFilters[id] && (
                         <StyledSpan
                           role="button"
+                          data-test="undo-button"
                           tabIndex={0}
                           onClick={() => restoreFilter(id)}
                         >

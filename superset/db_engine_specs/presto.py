@@ -173,9 +173,9 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
         engine = cls.get_engine(database, schema=schema)
         with closing(engine.raw_connection()) as conn:
-            with closing(conn.cursor()) as cursor:
-                cursor.execute(sql, params)
-                results = cursor.fetchall()
+            cursor = conn.cursor()
+            cursor.execute(sql, params)
+            results = cursor.fetchall()
 
         return [row[0] for row in results]
 
@@ -353,8 +353,8 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         (re.compile(r"^varbinary.*", re.IGNORECASE), types.VARBINARY()),
         (re.compile(r"^json.*", re.IGNORECASE), types.JSON()),
         (re.compile(r"^date.*", re.IGNORECASE), types.DATE()),
-        (re.compile(r"^time.*", re.IGNORECASE), types.Time()),
         (re.compile(r"^timestamp.*", re.IGNORECASE), types.TIMESTAMP()),
+        (re.compile(r"^time.*", re.IGNORECASE), types.Time()),
         (re.compile(r"^interval.*", re.IGNORECASE), Interval()),
         (re.compile(r"^array.*", re.IGNORECASE), Array()),
         (re.compile(r"^map.*", re.IGNORECASE), Map()),
@@ -758,18 +758,18 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
         engine = cls.get_engine(database, schema)
         with closing(engine.raw_connection()) as conn:
-            with closing(conn.cursor()) as cursor:
-                sql = f"SHOW CREATE VIEW {schema}.{table}"
-                try:
-                    cls.execute(cursor, sql)
-                    polled = cursor.poll()
+            cursor = conn.cursor()
+            sql = f"SHOW CREATE VIEW {schema}.{table}"
+            try:
+                cls.execute(cursor, sql)
+                polled = cursor.poll()
 
-                    while polled:
-                        time.sleep(0.2)
-                        polled = cursor.poll()
-                except DatabaseError:  # not a VIEW
-                    return None
-                rows = cls.fetch_data(cursor, 1)
+                while polled:
+                    time.sleep(0.2)
+                    polled = cursor.poll()
+            except DatabaseError:  # not a VIEW
+                return None
+            rows = cls.fetch_data(cursor, 1)
         return rows[0][0]
 
     @classmethod

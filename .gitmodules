@@ -24,9 +24,6 @@
 [submodule ".github/actions/file-changes-action"]
 	path = .github/actions/file-changes-action
 	url = https://github.com/trilom/file-changes-action
-[submodule ".github/actions/cancel-workflow-action"]
-	path = .github/actions/cancel-workflow-action
-	url = https://github.com/styfle/cancel-workflow-action
 [submodule ".github/actions/cached-dependencies"]
 	path = .github/actions/cached-dependencies
 	url = https://github.com/apache-superset/cached-dependencies

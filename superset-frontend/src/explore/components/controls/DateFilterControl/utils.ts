@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import moment, { Moment } from 'moment';
 import { SEPARATOR } from 'src/explore/dateFilterUtils';
 import {
   CustomRangeDecodeType,
@@ -23,7 +24,7 @@ import {
   DateTimeGrainType,
   DateTimeModeType,
 } from './types';
-import { SEVEN_DAYS_AGO, MIDNIGHT } from './constants';
+import { SEVEN_DAYS_AGO, MIDNIGHT, MOMENT_FORMAT } from './constants';
 
 /**
  * RegExp to test a string for a full ISO 8601 Date
@@ -59,6 +60,19 @@ const defaultCustomRange: CustomRangeType = {
   anchorValue: 'now',
 };
 const SPECIFIC_MODE = ['specific', 'today', 'now'];
+
+export const dttmToMoment = (dttm: string): Moment => {
+  if (dttm === 'now') {
+    return moment().utc().startOf('second');
+  }
+  if (dttm === 'today') {
+    return moment().utc().startOf('day');
+  }
+  return moment(dttm);
+};
+
+export const dttmToString = (dttm: string): string =>
+  dttmToMoment(dttm).format(MOMENT_FORMAT);
 
 export const customTimeRangeDecode = (
   timeRange: string,
@@ -104,6 +118,7 @@ export const customTimeRangeDecode = (
           ...defaultCustomRange,
           sinceGrain: grain as DateTimeGrainType,
           sinceGrainValue: parseInt(grainValue, 10),
+          sinceDatetime: dttm,
           untilDatetime: dttm,
           sinceMode: 'relative',
           untilMode,
@@ -129,6 +144,7 @@ export const customTimeRangeDecode = (
           untilGrain: grain as DateTimeGrainType,
           untilGrainValue: parseInt(grainValue, 10),
           sinceDatetime: dttm,
+          untilDatetime: dttm,
           untilMode: 'relative',
           sinceMode,
         },
@@ -150,8 +166,10 @@ export const customTimeRangeDecode = (
             ...defaultCustomRange,
             sinceGrain: sinceGrain as DateTimeGrainType,
             sinceGrainValue: parseInt(sinceGrainValue, 10),
+            sinceDatetime: sinceDttm,
             untilGrain: untilGrain as DateTimeGrainType,
             untilGrainValue: parseInt(untilGrainValue, 10),
+            untilDatetime: untileDttm,
             anchorValue: sinceDttm,
             sinceMode: 'relative',
             untilMode: 'relative',
@@ -183,31 +201,35 @@ export const customTimeRangeEncode = (customRange: CustomRangeType): string => {
   } = { ...customRange };
   // specific : specific
   if (SPECIFIC_MODE.includes(sinceMode) && SPECIFIC_MODE.includes(untilMode)) {
-    const since = sinceMode === 'specific' ? sinceDatetime : sinceMode;
-    const until = untilMode === 'specific' ? untilDatetime : untilMode;
+    const since =
+      sinceMode === 'specific' ? dttmToString(sinceDatetime) : sinceMode;
+    const until =
+      untilMode === 'specific' ? dttmToString(untilDatetime) : untilMode;
     return `${since} : ${until}`;
   }
 
   // specific : relative
   if (SPECIFIC_MODE.includes(sinceMode) && untilMode === 'relative') {
-    const since = sinceMode === 'specific' ? sinceDatetime : sinceMode;
+    const since =
+      sinceMode === 'specific' ? dttmToString(sinceDatetime) : sinceMode;
     const until = `DATEADD(DATETIME("${since}"), ${untilGrainValue}, ${untilGrain})`;
     return `${since} : ${until}`;
   }
 
   // relative : specific
   if (sinceMode === 'relative' && SPECIFIC_MODE.includes(untilMode)) {
-    const until = untilMode === 'specific' ? untilDatetime : untilMode;
+    const until =
+      untilMode === 'specific' ? dttmToString(untilDatetime) : untilMode;
     const since = `DATEADD(DATETIME("${until}"), ${-Math.abs(
       sinceGrainValue,
-    )}, ${sinceGrain})`; // eslint-disable-line
+    )}, ${sinceGrain})`;
     return `${since} : ${until}`;
   }
 
   // relative : relative
   const since = `DATEADD(DATETIME("${anchorValue}"), ${-Math.abs(
     sinceGrainValue,
-  )}, ${sinceGrain})`; // eslint-disable-line
+  )}, ${sinceGrain})`;
   const until = `DATEADD(DATETIME("${anchorValue}"), ${untilGrainValue}, ${untilGrain})`;
   return `${since} : ${until}`;
 };

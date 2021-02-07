@@ -54,6 +54,11 @@ const DatabaseSelectorWrapper = styled.div`
   }
 `;
 
+const DatabaseOption = styled.span`
+  display: inline-flex;
+  align-items: center;
+`;
+
 interface DatabaseSelectorProps {
   dbId: number;
   formMode?: boolean;
@@ -184,9 +189,9 @@ export default function DatabaseSelector({
 
   function renderDatabaseOption(db: any) {
     return (
-      <span title={db.database_name}>
-        <Label bsStyle="default">{db.backend}</Label> {db.database_name}
-      </span>
+      <DatabaseOption title={db.database_name}>
+        <Label type="default">{db.backend}</Label> {db.database_name}
+      </DatabaseOption>
     );
   }
 

@@ -362,7 +362,7 @@ ignored-argument-names=_.*
 max-locals=15
 
 # Maximum number of return / yield for function / method body
-max-returns=6
+max-returns=10
 
 # Maximum number of branch for function / method body
 max-branches=12

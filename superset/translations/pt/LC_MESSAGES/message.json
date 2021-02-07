@@ -1724,7 +1724,7 @@
       "%s column(s) and metric(s)": [""],
       "%s column(s)": ["Lista de Colunas"],
       "To filter on a metric, use Custom SQL tab.": [""],
-      "%s operators(s)": ["Selecione operador"],
+      "%s operator(s)": ["Selecione operador"],
       "type a value here": [""],
       "Filter value (case sensitive)": [""],
       "choose WHERE or HAVING...": [""],
