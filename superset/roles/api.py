@@ -15,9 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-
-from flask import request, Response
-from flask_appbuilder.models.generic.filters import FilterIContains
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.sqla.models import Role
 
