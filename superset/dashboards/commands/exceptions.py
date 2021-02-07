@@ -75,3 +75,7 @@ class DashboardForbiddenError(ForbiddenError):
 
 class DashboardImportError(ImportFailedError):
     message = _("Import dashboard failed for an unknown reason")
+
+
+class DashboardAccessDeniedError(ForbiddenError):
+    message = _("You don't have access to this dashboard.")

@@ -104,6 +104,7 @@ from superset.utils import core as utils
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
 from superset.utils.dates import now_as_float
+from superset.utils.decorators import check_dashboard_access
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -159,7 +160,6 @@ DATABASE_KEYS = [
     "force_ctas_schema",
     "id",
 ]
-
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
@@ -867,7 +867,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         Those should not be saved when saving the chart"""
         return [f for f in filters if not f.get("isExtra")]
 
-    def save_or_overwrite_slice(  # pylint: disable=too-many-arguments,too-many-locals,no-self-use
+    def save_or_overwrite_slice(
+        # pylint: disable=too-many-arguments,too-many-locals,no-self-use
         self,
         slc: Optional[Slice],
         slice_add_perm: bool,
@@ -1785,33 +1786,34 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @expose("/dashboard/<dashboard_id_or_slug>/")
     @event_logger.log_this_with_extra_payload
+    @check_dashboard_access(
+        on_error=lambda self, ex: Response(
+            utils.error_msg_from_exception(ex), status=403
+        )
+    )
     def dashboard(  # pylint: disable=too-many-locals
-        self,
-        dashboard_id_or_slug: str,
-        # this parameter is added by `log_this_with_manual_updates`,
-        # set a default value to appease pylint
+        self,  # pylint: disable=no-self-use
+        dashboard_id_or_slug: str,  # pylint: disable=unused-argument
         add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+        dashboard: Optional[Dashboard] = None,
     ) -> FlaskResponse:
-        """Server side rendering for a dashboard"""
-        session = db.session()
-        qry = session.query(Dashboard)
-        if dashboard_id_or_slug.isdigit():
-            qry = qry.filter_by(id=int(dashboard_id_or_slug))
-        else:
-            qry = qry.filter_by(slug=dashboard_id_or_slug)
-
-        dash = qry.one_or_none()
-        if not dash:
+        """
+        Server side rendering for a dashboard
+        :param dashboard_id_or_slug: identifier for dashboard. used in the decorators
+        :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a default value to appease pylint
+        :param dashboard: added by `check_dashboard_access`
+        """
+        if not dashboard:
             abort(404)
 
-        data = dash.full_data()
+        data = dashboard.full_data()
 
         if config["ENABLE_ACCESS_REQUEST"]:
             for datasource in data["datasources"].values():
                 datasource = ConnectorRegistry.get_datasource(
                     datasource_type=datasource["type"],
                     datasource_id=datasource["id"],
-                    session=session,
+                    session=db.session(),
                 )
                 if datasource and not security_manager.can_access_datasource(
                     datasource=datasource
@@ -1822,10 +1824,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         ),
                         "danger",
                     )
-                    return redirect(f"/superset/request_access/?dashboard_id={dash.id}")
+                    return redirect(
+                        f"/superset/request_access/?dashboard_id={dashboard.id}"
+                    )
 
         dash_edit_perm = check_ownership(
-            dash, raise_if_false=False
+            dashboard, raise_if_false=False
         ) and security_manager.can_access("can_save_dash", "Superset")
         dash_save_perm = security_manager.can_access("can_save_dash", "Superset")
         superset_can_explore = security_manager.can_access("can_explore", "Superset")
@@ -1840,7 +1844,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
         add_extra_log_payload(
-            dashboard_id=dash.id,
+            dashboard_id=dashboard.id,
             dashboard_version="v2",
             dash_edit_perm=dash_edit_perm,
             edit_mode=edit_mode,
@@ -1885,8 +1889,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "superset/dashboard.html",
             entry="dashboard",
             standalone_mode=standalone_mode,
-            title=dash.dashboard_title,
-            custom_css=dash.css,
+            title=dashboard.dashboard_title,
+            custom_css=dashboard.css,
             bootstrap_data=json.dumps(
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
@@ -2238,7 +2242,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/validate_sql_json/", methods=["POST", "GET"])
-    def validate_sql_json(  # pylint: disable=too-many-locals,too-many-return-statements,no-self-use
+    def validate_sql_json(
+        # pylint: disable=too-many-locals,too-many-return-statements,no-self-use
         self,
     ) -> FlaskResponse:
         """Validates that arbitrary sql is acceptable for the given database.
