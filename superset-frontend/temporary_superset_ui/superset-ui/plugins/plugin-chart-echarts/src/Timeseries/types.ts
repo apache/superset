@@ -63,6 +63,7 @@ export type EchartsTimeseriesFormData = {
   yAxisBounds: [number | undefined | null, number | undefined | null];
   zoomable: boolean;
   richTooltip: boolean;
+  xAxisLabelRotation: number;
 } & EchartsLegendFormData;
 
 export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
@@ -90,4 +91,5 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   xAxisShowMaxLabel: true,
   zoomable: false,
   richTooltip: true,
+  xAxisLabelRotation: 45,
 };
