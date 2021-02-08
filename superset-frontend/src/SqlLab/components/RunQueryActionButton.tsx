@@ -70,6 +70,7 @@ const StyledButton = styled.span`
   button {
     line-height: 13px;
     transition: background-color 0ms;
+    // this is to over ride a previous transition built into the component
     &:last-of-type {
       margin-right: ${({ theme }) => theme.gridUnit * 2}px;
     }
