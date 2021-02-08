@@ -58,6 +58,14 @@ const DatasourceContainer = styled.div`
   .change-warning .bold {
     font-weight: ${({ theme }) => theme.typography.weights.bold};
   }
+
+  .form-group.has-feedback > .help-block {
+    margin-top: 8px;
+  }
+
+  .form-group.form-group-md {
+    margin-bottom: 8px;
+  }
 `;
 
 const FlexRowContainer = styled.div`
@@ -610,6 +618,9 @@ class DatasourceEditor extends React.PureComponent {
           fieldKey="offset"
           label={t('Hours offset')}
           control={<TextControl controlId="offset" />}
+          description={t(
+            'The number of hours, negative or positive, to shift the time column. This can be used to move UTC time to local time.',
+          )}
         />
         {this.state.isSqla && (
           <Field
