@@ -291,3 +291,6 @@ class TestDateParser(SupersetTestCase):
 
         field = "   8 days   "
         self.assertRegex(field, DateRangeMigration.x_dateunit)
+
+        field = "last week"
+        self.assertNotRegex(field, DateRangeMigration.x_dateunit)
