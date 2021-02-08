@@ -65,7 +65,6 @@ const MenuDotsWrapper = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 2}px;
   padding-left: ${({ theme }) => theme.gridUnit}px;
 `;
-
 const StyledDropdownButton = styled.div`
   .ant-btn-group {
     button.ant-btn {
