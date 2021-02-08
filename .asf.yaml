@@ -69,6 +69,7 @@ github:
           - python-lint (3.7)
           - test-mysql (3.7)
           - test-postgres (3.7)
+          - test-postgres (3.8)
           - test-sqlite (3.7)
 
       required_pull_request_reviews:
