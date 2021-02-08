@@ -76,6 +76,7 @@ const StyledDropdownButton = styled.div`
       line-height: 13px;
       outline: none;
       text-transform: uppercase;
+      transition: background-color 500ms;
       &:first-of-type {
         border-radius: ${({ theme }) =>
           `${theme.gridUnit}px 0 0 ${theme.gridUnit}px`};
@@ -87,6 +88,7 @@ const StyledDropdownButton = styled.div`
         color: ${({ theme }) => theme.colors.grayscale.base};
       }
       &:nth-child(2) {
+        transition: background-color 0ms;
         margin: 0;
         border-radius: ${({ theme }) =>
           `0 ${theme.gridUnit}px ${theme.gridUnit}px 0`};
