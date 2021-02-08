@@ -48,7 +48,7 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
         return None
 
 
-class OpenDistro(BaseEngineSpec):  # pylint: disable=abstract-method
+class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     time_groupby_inline = True
     time_secondary_columns = True
