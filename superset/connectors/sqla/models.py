@@ -44,6 +44,7 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    text,
 )
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.schema import UniqueConstraint
@@ -1107,7 +1108,11 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         )
         if is_feature_enabled("ROW_LEVEL_SECURITY"):
             where_clause_and += self._get_sqla_row_level_filters(template_processor)
-        if extras:
+
+        predicate_string  = self.fetch_values_predicate
+        if (predicate_string):
+            qry = qry.where(text(predicate_string))
+        if extras:            
             where = extras.get("where")
             if where:
                 try:
