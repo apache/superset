@@ -38,7 +38,8 @@ export default function AntdRangeFilter(props: AntdPluginFilterRangeProps) {
 
   const handleChange = (value: [number, number]) => {
     const [lower, upper] = value;
-
+    // TODO: fix in future
+    // @ts-ignore
     setExtraFormData(getRangeExtraFormData(col, lower, upper));
   };
 
