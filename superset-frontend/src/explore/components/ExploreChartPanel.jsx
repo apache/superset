@@ -23,9 +23,12 @@ import { styled, useTheme } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/chart/ChartContainer';
+import {
+  getFromLocalStorage,
+  setInLocalStorage,
+} from 'src/utils/localStorageHelpers';
 import ConnectedExploreChartHeader from './ExploreChartHeader';
 import { DataTablesPane } from './DataTablesPane';
-import { getFromLocalStorage, setInLocalStorage } from '../exploreUtils';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,

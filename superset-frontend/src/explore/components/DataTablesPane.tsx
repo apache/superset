@@ -25,13 +25,16 @@ import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import {
+  getFromLocalStorage,
+  setInLocalStorage,
+} from 'src/utils/localStorageHelpers';
+import {
   CopyToClipboardButton,
   FilterInput,
   RowCount,
   useFilteredTableData,
   useTableColumns,
 } from './DataTableControl';
-import { getFromLocalStorage, setInLocalStorage } from '../exploreUtils';
 
 const RESULT_TYPES = {
   results: 'results' as const,
