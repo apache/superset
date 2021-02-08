@@ -49,6 +49,8 @@ const STORAGE_KEYS = {
   isOpen: 'is_datapanel_open',
 };
 
+const DATAPANEL_KEY = 'data';
+
 const TableControlsWrapper = styled.div`
   display: flex;
   align-items: center;
@@ -255,12 +257,12 @@ export const DataTablesPane = ({
         <Collapse
           accordion
           bordered={false}
-          defaultActiveKey={panelOpen ? 'data' : undefined}
+          defaultActiveKey={panelOpen ? DATAPANEL_KEY : undefined}
           onChange={handleCollapseChange}
           bold
           ghost
         >
-          <Collapse.Panel header={t('Data')} key="data">
+          <Collapse.Panel header={t('Data')} key={DATAPANEL_KEY}>
             <Tabs
               fullWidth={false}
               tabBarExtraContent={TableControls}
