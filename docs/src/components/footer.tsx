@@ -73,7 +73,7 @@ const LayoutFooter = () => (
     <div css={iconContainerStyle}>
       <div className="icons">
         <a
-          href="https://apache-superset.slack.com/join/shared_invite/zt-g8lpruog-HeqpgYrwdfrD5OYhlU7hPQ#/"
+          href="https://join.slack.com/t/apache-superset/shared_invite/zt-l5f5e0av-fyYu8tlfdqbMdz_sPLwUqQ"
           target="_blank"
           rel="noreferrer"
         >
