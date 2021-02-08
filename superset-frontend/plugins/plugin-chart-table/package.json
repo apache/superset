@@ -1,0 +1,47 @@
+{
+  "name": "@superset-ui/plugin-chart-table",
+  "version": "0.17.6",
+  "description": "Superset Chart - Table",
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "sideEffects": false,
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "keywords": [
+    "superset"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@emotion/core": "^10.0.28",
+    "@superset-ui/chart-controls": "0.17.5",
+    "@superset-ui/core": "0.17.5",
+    "@types/d3-array": "^2.0.0",
+    "@types/react-table": "^7.0.19",
+    "d3-array": "^2.4.0",
+    "match-sorter": "^6.1.0",
+    "memoize-one": "^5.1.1",
+    "react-icons": "^3.10.0",
+    "react-table": "^7.2.1",
+    "regenerator-runtime": "^0.13.5",
+    "xss": "^1.0.6"
+  },
+  "peerDependencies": {
+    "@types/react": "*",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1"
+  }
+}

@@ -1,4 +1,45 @@
-coverage/*
-cypress/screenshots
-cypress/videos
-src/temp
+.DS_Store
+*.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Cache
+.bundle/
+.happo/
+.idea/
+.next/
+.cache
+.eslintcache
+.idea
+*.iml
+.npm
+.vscode
+.yarnclean
+
+# Directories
+build/
+coverage/
+dist/
+esm/
+lib/
+public/
+node_modules/
+tmp/
+_gh-pages/
+
+# Custom
+*.map
+*.min.js
+test-changelog.md
+
+*.tsbuildinfo
+
+# Ignore npm lock files, always use yarn.lock instead
+npm-shrinkwrap.json
+package-lock.json
+
+# Ignore yarn.lock in packages
+plugins/*/yarn.lock
+packages/*/yarn.lock

@@ -1,48 +1,126 @@
 {
-  "compilerOptions": {
-    "allowJs": true,
-    "allowSyntheticDefaultImports": true,
-    "baseUrl": ".",
-    "esModuleInterop": false,
-    "forceConsistentCasingInFileNames": true,
-    "importHelpers": false,
-    "jsx": "preserve",
-    "lib": ["dom", "esnext"],
-    "module": "esnext",
-    "moduleResolution": "node",
-    "noImplicitAny": true,
-    "noImplicitReturns": true,
-    "noImplicitThis": true,
-    "noUnusedLocals": true,
-    "outDir": "./dist",
-    "pretty": true,
-    "paths": {
-      "@superset-ui/core": [
-        "./node_modules/@superset-ui/core/src",
-        "./node_modules/@superset-ui/core"
-      ],
-      "@superset-ui/chart-controls": [
-        "./node_modules/@superset-ui/chart-controls/src",
-        "./node_modules/@superset-ui/chart-controls"
-      ],
-      // for supressing errors caused by incompatible @types/react when `npm link`
-      // Ref: https://github.com/Microsoft/typescript/issues/6496#issuecomment-384786222
-      "react": ["./node_modules/@types/react", "react"]
+  "files": [],
+  "references": [
+    {
+      "path": "packages/superset-ui-chart-controls"
     },
-    "skipLibCheck": true,
-    "sourceMap": true,
-    "strictNullChecks": true,
-    "suppressImplicitAnyIndexErrors": true,
-    "target": "esnext"
-  },
-  "include": [
-    "./src/**/*",
-    "./spec/**/*",
-    // include the source code of each plugin
-    "./node_modules/*superset-ui*/**/src/**/*",
-    "./node_modules/*superset-ui*/**/types/**/*",
-    // and the type defs of their dependencies
-    "./node_modules/*superset-ui*/**/node_modules/**/*.d.ts"
+    {
+      "path": "packages/superset-ui-chart-controls/test"
+    },
+    {
+      "path": "packages/superset-ui-core"
+    },
+    {
+      "path": "packages/superset-ui-core/test"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-calendar"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-chord"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-country-map"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-event-flow"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-force-directed"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-heatmap"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-histogram"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-horizon"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-map-box"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-map-box/test"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-paired-t-test"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-parallel-coordinates"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-partition"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-partition/test"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-pivot-table"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-rose"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-sankey"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-sankey-loop"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-sunburst"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-time-table"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-treemap"
+    },
+    {
+      "path": "plugins/legacy-plugin-chart-world-map"
+    },
+    {
+      "path": "plugins/legacy-preset-chart-big-number"
+    },
+    {
+      "path": "plugins/legacy-preset-chart-big-number/test"
+    },
+    {
+      "path": "plugins/legacy-preset-chart-nvd3"
+    },
+    {
+      "path": "plugins/legacy-preset-chart-nvd3/test"
+    },
+    {
+      "path": "plugins/plugin-chart-choropleth-map"
+    },
+    {
+      "path": "plugins/plugin-chart-choropleth-map/test"
+    },
+    {
+      "path": "plugins/plugin-chart-echarts"
+    },
+    {
+      "path": "plugins/plugin-chart-echarts/test"
+    },
+    {
+      "path": "plugins/plugin-chart-table"
+    },
+    {
+      "path": "plugins/plugin-chart-table/test"
+    },
+    {
+      "path": "plugins/plugin-chart-word-cloud"
+    },
+    {
+      "path": "plugins/plugin-chart-word-cloud/test"
+    },
+    {
+      "path": "plugins/preset-chart-xy"
+    },
+    {
+      "path": "plugins/preset-chart-xy/test"
+    }
   ],
-  "exclude": ["./node_modules/*superset-ui*/**/node_modules/@superset-ui/**/*"]
+  "extends": "./tsconfig.options.json"
 }

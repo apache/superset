@@ -1,0 +1,15 @@
+.palette-label {
+  margin: 4px 12px 4px 0;
+}
+
+.palette-container {
+  display: flex;
+  flex-direction: row;
+  border: 1px solid #eaeaea;
+  width: fit-content;
+}
+
+.palette-item {
+  width: 16px;
+  height: 16px;
+}
