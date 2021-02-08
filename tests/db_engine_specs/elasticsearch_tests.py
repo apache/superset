@@ -40,7 +40,7 @@ class TestElasticSearchDbEngineSpec(TestDbEngineSpec):
 
         self.assertEqual(
             OpenDistroEngineSpec.convert_dttm("DATETIME", dttm),
-            "CAST('2019-01-02T03:04:05' AS DATETIME)",
+            "'2019-01-02T03:04:05'",
         )
 
     def test_opendistro_sqla_column_label(self):
