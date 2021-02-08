@@ -76,7 +76,10 @@ export default function AntdPluginFilterSelect(
       ),
       // @ts-ignore (add to superset-ui/core)
       currentState: {
-        value: resultValue,
+        value:
+          Array.isArray(resultValue) && resultValue.length === 0
+            ? null
+            : resultValue,
       },
     });
   };
