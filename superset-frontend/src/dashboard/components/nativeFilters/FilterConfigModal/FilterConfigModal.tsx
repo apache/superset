@@ -28,10 +28,11 @@ import Button from 'src/components/Button';
 import { LineEditableTabs } from 'src/common/components/Tabs';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import ErrorBoundary from 'src/components/ErrorBoundary';
-import { useFilterConfigMap, useFilterConfiguration } from './state';
+import { useFilterConfigMap, useFilterConfiguration } from '../state';
 import FilterConfigForm from './FilterConfigForm';
-import { FilterConfiguration, NativeFiltersForm } from './types';
+import { NativeFiltersForm } from './types';
 import { CancelConfirmationAlert } from './CancelConfirmationAlert';
+import { FilterConfiguration } from '../types';
 
 // how long to show the "undo" button when removing a filter
 const REMOVAL_DELAY_SECS = 5;
@@ -483,10 +484,20 @@ export function FilterConfigModal({
     }
 
     return [
-      <Button key="cancel" buttonStyle="secondary" onClick={handleCancel}>
+      <Button
+        key="cancel"
+        buttonStyle="secondary"
+        data-test="native-filter-modal-cancel-button"
+        onClick={handleCancel}
+      >
         {t('Cancel')}
       </Button>,
-      <Button key="submit" buttonStyle="primary" onClick={onOk}>
+      <Button
+        key="submit"
+        buttonStyle="primary"
+        onClick={onOk}
+        data-test="native-filter-modal-save-button"
+      >
         {t('Save')}
       </Button>,
     ];
@@ -531,7 +542,8 @@ export function FilterConfigModal({
               onEdit={onTabEdit}
               addIcon={
                 <StyledAddFilterBox>
-                  <PlusOutlined /> <span>{t('Add filter')}</span>
+                  <PlusOutlined />{' '}
+                  <span data-test="add-filter-button">{t('Add filter')}</span>
                 </StyledAddFilterBox>
               }
             >
@@ -549,6 +561,7 @@ export function FilterConfigModal({
                       {removedFilters[id] && (
                         <StyledSpan
                           role="button"
+                          data-test="undo-button"
                           tabIndex={0}
                           onClick={() => restoreFilter(id)}
                         >

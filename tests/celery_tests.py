@@ -210,7 +210,6 @@ def test_run_sync_query_cta_config(setup_sqllab, ctas_method):
     )
 
     assert query.select_sql == get_select_star(tmp_table_name, schema=CTAS_SCHEMA_NAME)
-    time.sleep(CELERY_SLEEP_TIME)
     results = run_sql(query.select_sql)
     assert QueryStatus.SUCCESS == results["status"], result
 
@@ -231,9 +230,8 @@ def test_run_async_query_cta_config(setup_sqllab, ctas_method):
         QUERY, cta=True, ctas_method=ctas_method, async_=True, tmp_table=tmp_table_name,
     )
 
-    time.sleep(CELERY_SLEEP_TIME)
+    query = wait_for_success(result)
 
-    query = get_query_by_id(result["query"]["serverId"])
     assert QueryStatus.SUCCESS == query.status
     assert get_select_star(tmp_table_name, schema=CTAS_SCHEMA_NAME) == query.select_sql
     assert (
@@ -252,9 +250,8 @@ def test_run_async_cta_query(setup_sqllab, ctas_method):
         QUERY, cta=True, ctas_method=ctas_method, async_=True, tmp_table=table_name
     )
 
-    time.sleep(CELERY_SLEEP_TIME)
+    query = wait_for_success(result)
 
-    query = get_query_by_id(result["query"]["serverId"])
     assert QueryStatus.SUCCESS == query.status
     assert get_select_star(table_name) in query.select_sql
 
@@ -274,9 +271,8 @@ def test_run_async_cta_query_with_lower_limit(setup_sqllab, ctas_method):
     result = run_sql(
         QUERY, cta=True, ctas_method=ctas_method, async_=True, tmp_table=tmp_table
     )
-    time.sleep(CELERY_SLEEP_TIME)
+    query = wait_for_success(result)
 
-    query = get_query_by_id(result["query"]["serverId"])
     assert QueryStatus.SUCCESS == query.status
 
     assert get_select_star(tmp_table) == query.select_sql
@@ -429,3 +425,12 @@ def test_in_app_context():
 
 def delete_tmp_view_or_table(name: str, db_object_type: str):
     db.get_engine().execute(f"DROP {db_object_type} IF EXISTS {name}")
+
+
+def wait_for_success(result):
+    for _ in range(CELERY_SLEEP_TIME * 2):
+        time.sleep(0.5)
+        query = get_query_by_id(result["query"]["serverId"])
+        if QueryStatus.SUCCESS == query.status:
+            break
+    return query
