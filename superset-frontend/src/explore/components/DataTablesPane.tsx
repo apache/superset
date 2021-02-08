@@ -31,6 +31,7 @@ import {
   useFilteredTableData,
   useTableColumns,
 } from './DataTableControl';
+import { getFromLocalStorage, setInLocalStorage } from '../exploreUtils';
 
 const RESULT_TYPES = {
   results: 'results' as const,
@@ -43,6 +44,10 @@ const NULLISH_RESULTS_STATE = {
 };
 
 const DATA_TABLE_PAGE_SIZE = 50;
+
+const STORAGE_KEYS = {
+  isOpen: 'is_datapanel_open',
+};
 
 const TableControlsWrapper = styled.div`
   display: flex;
@@ -98,7 +103,9 @@ export const DataTablesPane = ({
     [RESULT_TYPES.results]?: boolean;
     [RESULT_TYPES.samples]?: boolean;
   }>(NULLISH_RESULTS_STATE);
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(
+    getFromLocalStorage(STORAGE_KEYS.isOpen, false),
+  );
 
   const getData = useCallback(
     (resultType: string) => {
@@ -139,6 +146,10 @@ export const DataTablesPane = ({
     },
     [queryFormData],
   );
+
+  useEffect(() => {
+    setInLocalStorage(STORAGE_KEYS.isOpen, panelOpen);
+  }, [panelOpen]);
 
   useEffect(() => {
     setIsRequestPending(prevState => ({
@@ -244,6 +255,7 @@ export const DataTablesPane = ({
         <Collapse
           accordion
           bordered={false}
+          defaultActiveKey={panelOpen ? 'data' : undefined}
           onChange={handleCollapseChange}
           bold
           ghost

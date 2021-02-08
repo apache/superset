@@ -330,3 +330,19 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
   }
   return expression;
 };
+
+export const getFromLocalStorage = (key, defaultValue) => {
+  try {
+    return JSON.parse(localStorage.getItem(key)) || defaultValue;
+  } catch {
+    return defaultValue;
+  }
+};
+
+export const setInLocalStorage = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Catch in case localStorage is unavailable
+  }
+};

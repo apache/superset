@@ -25,6 +25,7 @@ import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/chart/ChartContainer';
 import ConnectedExploreChartHeader from './ExploreChartHeader';
 import { DataTablesPane } from './DataTablesPane';
+import { getFromLocalStorage, setInLocalStorage } from '../exploreUtils';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -55,6 +56,10 @@ const GUTTER_SIZE_FACTOR = 1.25;
 
 const CHART_PANEL_PADDING = 30;
 const HEADER_PADDING = 15;
+
+const STORAGE_KEYS = {
+  sizes: 'chart_split_sizes',
+};
 
 const INITIAL_SIZES = [90, 10];
 const MIN_SIZES = [300, 50];
@@ -114,7 +119,9 @@ const ExploreChartPanel = props => {
     refreshMode: 'debounce',
     refreshRate: 300,
   });
-  const [splitSizes, setSplitSizes] = useState(INITIAL_SIZES);
+  const [splitSizes, setSplitSizes] = useState(
+    getFromLocalStorage(STORAGE_KEYS.sizes, INITIAL_SIZES),
+  );
 
   const calcSectionHeight = useCallback(
     percent => {
@@ -148,6 +155,10 @@ const ExploreChartPanel = props => {
   useEffect(() => {
     recalcPanelSizes(splitSizes);
   }, [recalcPanelSizes, splitSizes]);
+
+  useEffect(() => {
+    setInLocalStorage(STORAGE_KEYS.sizes, splitSizes);
+  }, [splitSizes]);
 
   const onDragEnd = sizes => {
     setSplitSizes(sizes);
