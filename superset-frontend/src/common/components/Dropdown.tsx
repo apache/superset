@@ -76,19 +76,17 @@ const StyledDropdownButton = styled.div`
       line-height: 13px;
       outline: none;
       text-transform: uppercase;
-      transition: background-color 500ms;
       &:first-of-type {
         border-radius: ${({ theme }) =>
           `${theme.gridUnit}px 0 0 ${theme.gridUnit}px`};
         margin: 0;
         width: 120px;
       }
-      :disabled {
+      &:disabled {
         background-color: ${({ theme }) => theme.colors.grayscale.light2};
         color: ${({ theme }) => theme.colors.grayscale.base};
       }
       &:nth-child(2) {
-        transition: background-color 0ms;
         margin: 0;
         border-radius: ${({ theme }) =>
           `0 ${theme.gridUnit}px ${theme.gridUnit}px 0`};
@@ -104,7 +102,7 @@ const StyledDropdownButton = styled.div`
           top: ${({ theme }) => theme.gridUnit * 0.75}px;
           width: ${({ theme }) => theme.gridUnit * 0.25}px;
         }
-        :disabled:before {
+        &:disabled:before {
           border-left: 1px solid ${({ theme }) => theme.colors.grayscale.base};
         }
       }
