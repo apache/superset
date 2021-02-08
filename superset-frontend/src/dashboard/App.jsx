@@ -17,7 +17,7 @@
  * under the License.
  */
 import { hot } from 'react-hot-loader/root';
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Provider } from 'react-redux';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
@@ -28,23 +28,14 @@ import DashboardContainer from './containers/Dashboard';
 setupApp();
 setupPlugins();
 
-const App = ({ store }) => {
-  const [bootstrapData, setBootstrapData] = useState('');
-
-  useEffect(() => {
-    const appContainer = document.getElementById('app');
-    setBootstrapData(appContainer?.getAttribute('data-bootstrap') || '');
-  }, []);
-
-  return (
-    <Provider store={store}>
-      <ThemeProvider theme={supersetTheme}>
-        <DynamicPluginProvider>
-          <DashboardContainer bootstrapData={bootstrapData} />
-        </DynamicPluginProvider>
-      </ThemeProvider>
-    </Provider>
-  );
-};
+const App = ({ store }) => (
+  <Provider store={store}>
+    <ThemeProvider theme={supersetTheme}>
+      <DynamicPluginProvider>
+        <DashboardContainer />
+      </DynamicPluginProvider>
+    </ThemeProvider>
+  </Provider>
+);
 
 export default hot(App);

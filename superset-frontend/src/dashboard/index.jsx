@@ -45,13 +45,30 @@ const asyncEventMiddleware = initAsyncEvents({
     actions.chartUpdateFailed(response, componentId),
 });
 
+/*const asyncFunctionMiddleware = store => next => action => {
+  if (typeof action === 'function') {
+    return action(store.dispatch, store.getState);
+  }
+  return next(action);
+};*/
+
 const store = createStore(
   rootReducer,
   initState,
   compose(
-    applyMiddleware(thunk, logger, asyncEventMiddleware),
+    applyMiddleware(
+      thunk,
+      logger,
+      asyncEventMiddleware,
+      // asyncFunctionMiddleware,
+    ),
     initEnhancer(false),
   ),
 );
+
+//store.dispatch((dispatch, getState) => {
+  // make API call
+  // dispatch({ type: 'SET_BOOTSTRAP_DATA', bootstrapData });
+//});
 
 ReactDOM.render(<App store={store} />, document.getElementById('app'));

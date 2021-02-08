@@ -93,7 +93,9 @@ class Dashboard extends React.PureComponent {
   }
 
   componentDidMount() {
-    const { dashboardState, layout, bootstrapData } = this.props;
+    const appContainer = document.getElementById('app');
+    const bootstrapData = appContainer?.getAttribute('data-bootstrap') || '';
+    const { dashboardState, layout } = this.props;
     const eventData = {
       is_edit_mode: dashboardState.editMode,
       mount_duration: Logger.getTimestamp(),
