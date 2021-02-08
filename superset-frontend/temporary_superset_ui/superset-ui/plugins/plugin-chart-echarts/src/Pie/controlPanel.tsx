@@ -38,8 +38,6 @@ const {
   showLabels,
 } = DEFAULT_FORM_DATA;
 
-const noopControl = { name: 'noop', config: { type: '', renderTrigger: true } };
-
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.legacyRegularTime,
@@ -52,17 +50,18 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['color_scheme', noopControl],
+        ['color_scheme'],
         // eslint-disable-next-line react/jsx-key
         [<h1 className="section-header">{t('Legend')}</h1>],
         [showLegendControl],
-        [legendTypeControl, legendOrientationControl],
-        [legendMarginControl, noopControl],
+        [legendTypeControl],
+        [legendOrientationControl],
+        [legendMarginControl],
         // eslint-disable-next-line react/jsx-key
         [<h1 className="section-header">{t('Labels')}</h1>],
         [
           {
-            name: 'pie_label_type',
+            name: 'label_type',
             config: {
               type: 'SelectControl',
               label: t('Label Type'),
@@ -79,6 +78,8 @@ const config: ControlPanelConfig = {
               description: t('What should be shown on the label?'),
             },
           },
+        ],
+        [
           {
             name: 'number_format',
             config: {
@@ -117,6 +118,8 @@ const config: ControlPanelConfig = {
               description: t('Put the labels outside of the pie?'),
             },
           },
+        ],
+        [
           {
             name: 'label_line',
             config: {
@@ -144,7 +147,6 @@ const config: ControlPanelConfig = {
               description: t('Outer edge of Pie chart'),
             },
           },
-          noopControl,
         ],
         [
           {
@@ -172,7 +174,6 @@ const config: ControlPanelConfig = {
               description: t('Inner radius of donut hole'),
             },
           },
-          noopControl,
         ],
       ],
     },

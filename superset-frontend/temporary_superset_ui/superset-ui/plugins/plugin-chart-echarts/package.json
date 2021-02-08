@@ -29,7 +29,7 @@
     "@superset-ui/chart-controls": "0.17.5",
     "@superset-ui/core": "0.17.5",
     "@types/mathjs": "^6.0.7",
-    "echarts": "^5.0.1",
+    "echarts": "^5.0.2",
     "mathjs": "^8.0.1"
   },
   "peerDependencies": {
