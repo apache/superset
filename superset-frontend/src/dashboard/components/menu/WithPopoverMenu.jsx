@@ -38,7 +38,9 @@ const defaultProps = {
   menuItems: [],
   isFocused: false,
   shouldFocus: (event, container) =>
-    container && container.contains(event.target),
+    container?.contains(event.target) ||
+    event.target.id === 'menu-item' ||
+    event.target.parentNode?.id === 'menu-item',
   style: null,
 };
 
