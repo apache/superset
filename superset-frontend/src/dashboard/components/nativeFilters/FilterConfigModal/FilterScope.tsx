@@ -20,16 +20,12 @@
 import React, { FC } from 'react';
 import { t, styled } from '@superset-ui/core';
 import { Radio } from 'src/common/components/Radio';
-import {
-  Form,
-  Typography,
-  Space,
-  FormInstance,
-} from '../../../common/components';
-import { Filter, NativeFiltersForm, Scoping } from './types';
+import { Form, Typography, Space, FormInstance } from 'src/common/components';
+import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import { NativeFiltersForm, Scoping } from './types';
 import ScopingTree from './ScopingTree';
-import { DASHBOARD_ROOT_ID } from '../../util/constants';
 import { isScopingAll, setFilterFieldValues, useForceUpdate } from './utils';
+import { Filter } from '../types';
 
 type FilterScopeProps = {
   filterId: string;

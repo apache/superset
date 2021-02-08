@@ -9,7 +9,7 @@ on:
     types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
-  lint:
+  python-lint:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-20.04
     strategy:
@@ -21,11 +21,19 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+      - name: Check if python changes are present
+        id: check
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        continue-on-error: true
+        run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
+        if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
           run: |
@@ -33,6 +41,7 @@ jobs:
             pip-upgrade
             pip install -r requirements/testing.txt
       - name: pylint
+        if: steps.check.outcome == 'failure'
         # `-j 0` run Pylint in parallel
         run: pylint -j 0 superset
 

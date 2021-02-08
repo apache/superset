@@ -22,7 +22,7 @@ import { act } from 'react-dom/test-utils';
 import { ReactWrapper } from 'enzyme';
 import { Provider } from 'react-redux';
 import Alert from 'react-bootstrap/lib/Alert';
-import { FilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterConfigModal';
+import { FilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterConfigModal/FilterConfigModal';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { mockStore } from 'spec/fixtures/mockStore';
 
