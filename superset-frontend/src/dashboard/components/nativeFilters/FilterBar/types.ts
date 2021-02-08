@@ -17,29 +17,21 @@
  * under the License.
  */
 import React from 'react';
-import { styledMount as mount } from 'spec/helpers/theming';
-import { Provider } from 'react-redux';
-import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
-import { mockStore } from 'spec/fixtures/mockStore';
+import { ExtraFormData } from '@superset-ui/core';
+import { CurrentFilterState } from 'src/dashboard/reducers/types';
+import { Filter } from '../types';
 
-describe('FilterConfigurationButton', () => {
-  const mockedProps = {
-    createNewOnOpen: false,
-  };
-  it('is valid', () => {
-    expect(
-      React.isValidElement(<FilterConfigurationLink {...mockedProps} />),
-    ).toBe(true);
-  });
-  it('takes in children', () => {
-    const wrapper = mount(
-      <Provider store={mockStore}>
-        <FilterConfigurationLink {...mockedProps}>
-          {' '}
-          <span>Test</span>
-        </FilterConfigurationLink>
-      </Provider>,
-    );
-    expect(wrapper.find('span')).toHaveLength(1);
-  });
-});
+export interface FilterProps {
+  filter: Filter;
+  icon?: React.ReactElement;
+  directPathToChild?: string[];
+  onFilterSelectionChange: (
+    filter: Filter,
+    extraFormData: ExtraFormData,
+    currentState: CurrentFilterState,
+  ) => void;
+}
+
+export interface CascadeFilter extends Filter {
+  cascadeChildren: CascadeFilter[];
+}

@@ -47,7 +47,7 @@ import {
   DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
 } from '../util/constants';
-import FilterBar from './nativeFilters/FilterBar';
+import FilterBar from './nativeFilters/FilterBar/FilterBar';
 import { StickyVerticalBar } from './StickyVerticalBar';
 
 const TABS_HEIGHT = 47;

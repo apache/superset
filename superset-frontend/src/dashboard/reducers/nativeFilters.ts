@@ -21,13 +21,10 @@ import {
   AnyFilterAction,
   SET_FILTER_CONFIG_COMPLETE,
 } from 'src/dashboard/actions/nativeFilters';
-import {
-  FilterConfiguration,
-  FilterState,
-  NativeFiltersState,
-} from 'src/dashboard/components/nativeFilters/types';
+import { NativeFiltersState, NativeFilterState } from './types';
+import { FilterConfiguration } from '../components/nativeFilters/types';
 
-export function getInitialFilterState(id: string): FilterState {
+export function getInitialFilterState(id: string): NativeFilterState {
   return {
     id,
     extraFormData: {},
@@ -36,7 +33,7 @@ export function getInitialFilterState(id: string): FilterState {
 
 export function getInitialState(
   filterConfig: FilterConfiguration,
-  prevFiltersState: { [filterId: string]: FilterState },
+  prevFiltersState: { [filterId: string]: NativeFilterState },
 ): NativeFiltersState {
   const filters = {};
   const filtersState = {};

@@ -19,7 +19,7 @@
 import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { Provider } from 'react-redux';
-import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
+import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar/FilterBar';
 import Button from 'src/components/Button';
 import { mockStore } from 'spec/fixtures/mockStore';
 
