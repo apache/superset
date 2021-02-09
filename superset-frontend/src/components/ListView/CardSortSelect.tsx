@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { styled, withTheme, SupersetThemeProps } from '@superset-ui/core';
+import { styled, withTheme, SupersetThemeProps, t } from '@superset-ui/core';
 import { PartialThemeConfig, Select } from 'src/components/Select';
 import { CardSortSelectOption, FetchDataConfig, SortColumn } from './types';
 import { filterSelectStyles } from './utils';
@@ -100,7 +100,7 @@ export const CardSortSelect = ({
 
   return (
     <SortContainer>
-      <SortTitle>Sort:</SortTitle>
+      <SortTitle>{t('Sort:')}</SortTitle>
       <StyledCardSortSelect
         onChange={(value: CardSortSelectOption) => handleOnChange(value)}
         options={options}
