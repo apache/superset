@@ -298,3 +298,6 @@ class TestDateParser(SupersetTestCase):
 
         field = "last week"
         self.assertNotRegex(field, DateRangeMigration.x_dateunit)
+
+        field = "10 years ago"
+        self.assertNotRegex(field, DateRangeMigration.x_dateunit)
