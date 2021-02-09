@@ -79,10 +79,21 @@ export type NativeFilterState = {
   currentState?: CurrentFilterState;
 };
 
+export type FiltersSet = {
+  id: string;
+  name: string;
+  filtersState: NativeFilterState;
+};
+
+export type FilterSets = {
+  [filtersSetId: string]: FiltersSet;
+};
+
 export type NativeFiltersState = {
   filters: {
     [filterId: string]: Filter;
   };
+  filterSets: FilterSets;
   filtersState: {
     [filterId: string]: NativeFilterState;
   };
