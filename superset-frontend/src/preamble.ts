@@ -40,7 +40,7 @@ if (typeof window !== 'undefined') {
   if (bootstrapData.common && bootstrapData.common.language_pack) {
     const languagePack = bootstrapData.common.language_pack;
     configure({ languagePack });
-    moment.locale(bootstrapData.common.locale);
+    moment.locale(bootstrapData.common.moment_locale);
   } else {
     configure();
   }

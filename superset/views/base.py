@@ -313,11 +313,13 @@ def common_bootstrap_payload() -> Dict[str, Any]:
     """Common data always sent to the client"""
     messages = get_flashed_messages(with_categories=True)
     locale = str(get_locale())
+    moment_locale = get_moment_locale(locale)
 
     return {
         "flash_messages": messages,
         "conf": {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
         "locale": locale,
+        "moment_locale": moment_locale,
         "language_pack": get_language_pack(locale),
         "feature_flags": get_feature_flags(),
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
@@ -325,6 +327,17 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         "theme_overrides": conf["THEME_OVERRIDES"],
         "menu_data": menu_data(),
     }
+
+
+def get_moment_locale(locale):
+    moment_locale = locale
+    if "_" in moment_locale:
+        moment_locale = moment_locale.split("_")[0]
+
+    flag = conf.get("LANGUAGES").get(locale).get("flag")
+    if flag != locale:
+        moment_locale = locale + "-" + flag
+    return moment_locale
 
 
 @superset_app.context_processor
