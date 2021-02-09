@@ -150,7 +150,7 @@ class FilterRelatedRoles(BaseFilter):
     }
     """
 
-    name = lazy_gettext("Role")
+    name = _("Role")
     arg_name = "roles"
 
     def apply(self, query: Query, value: Optional[Any]) -> Query:
