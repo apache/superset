@@ -18,8 +18,11 @@
  */
 import React, { useRef } from 'react';
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
-import { styled, useTheme } from '@superset-ui/core';
-import { ColumnOption } from '@superset-ui/chart-controls';
+import { styled, t, useTheme } from '@superset-ui/core';
+import {
+  ColumnOption,
+  InfoTooltipWithTrigger,
+} from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/common/components/Tooltip';
 import Icon from 'src/components/Icon';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
@@ -138,6 +141,7 @@ export const OptionControlLabel = ({
   isFunction,
   type,
   index,
+  isExtra,
   ...props
 }: {
   label: string | React.ReactNode;
@@ -150,6 +154,7 @@ export const OptionControlLabel = ({
   isDraggable?: boolean;
   type: string;
   index: number;
+  isExtra?: boolean;
 }) => {
   const theme = useTheme();
   const ref = useRef<HTMLDivElement>(null);
@@ -236,6 +241,18 @@ export const OptionControlLabel = ({
         {isFunction && <Icon name="function" viewBox="0 0 16 11" />}
         {getLabelContent()}
       </Label>
+      {isExtra && (
+        <InfoTooltipWithTrigger
+          icon="exclamation-triangle"
+          placement="top"
+          className="m-r-5 m-l-5"
+          bsStyle="warning"
+          tooltip={t(`
+                This filter was inherited from the dashboard's context.
+                It won't be saved when saving the chart.
+              `)}
+        />
+      )}
       {isAdhoc && (
         <CaretContainer>
           <Icon name="caret-right" color={theme.colors.grayscale.light1} />
