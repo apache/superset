@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, useCallback } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
@@ -42,9 +42,27 @@ function HighlightedSql({
   maxLines = 5,
   shrink = false,
 }) {
-  const [modalBody, setModalBody] = useState(null);
+  return (
+    <ModalTrigger
+      modalTitle={t('SQL')}
+      modalBody={<Modal rawSql={rawSql} sql={sql} />}
+      triggerNode={
+        <TriggerNode
+          shrink={shrink}
+          sql={sql}
+          maxLines={maxLines}
+          maxWidth={maxWidth}
+        />
+      }
+    />
+  );
+}
+HighlightedSql.propTypes = propTypes;
 
-  const shrinkSql = useCallback(() => {
+export default HighlightedSql;
+
+function TriggerNode({ shrink, sql, maxLines, maxWidth }) {
+  const shrinkSql = () => {
     const ssql = sql || '';
     let lines = ssql.split('\n');
     if (lines.length >= maxLines) {
@@ -59,62 +77,30 @@ function HighlightedSql({
         return line;
       })
       .join('\n');
-  }, [maxLines, maxWidth, sql]);
+  };
 
-  const triggerNode = useCallback(() => {
-    const shownSql = shrink ? shrinkSql(sql) : sql;
-    return (
+  return (
+    <SyntaxHighlighter language="sql" style={github}>
+      {shrink ? shrinkSql() : sql}
+    </SyntaxHighlighter>
+  );
+}
+
+function Modal({ rawSql, sql }) {
+  return (
+    <div>
+      <h4>{t('Source SQL')}</h4>
       <SyntaxHighlighter language="sql" style={github}>
-        {shownSql}
+        {sql}
       </SyntaxHighlighter>
-    );
-  }, [shrink, shrinkSql, sql]);
-
-  const generateModal = useCallback(() => {
-    let internalRawSql;
-    if (rawSql && rawSql !== sql) {
-      internalRawSql = (
+      {rawSql && rawSql !== sql ? (
         <div>
           <h4>{t('Raw SQL')}</h4>
           <SyntaxHighlighter language="sql" style={github}>
             {rawSql}
           </SyntaxHighlighter>
         </div>
-      );
-    }
-    setModalBody(
-      <div>
-        <h4>{t('Source SQL')}</h4>
-        <SyntaxHighlighter language="sql" style={github}>
-          {sql}
-        </SyntaxHighlighter>
-        {internalRawSql}
-      </div>,
-    );
-  }, [rawSql, sql]);
-
-  const [modalTrigger, setModalTrigger] = useState(
-    <ModalTrigger
-      modalTitle={t('SQL')}
-      triggerNode={triggerNode()}
-      modalBody={modalBody}
-      beforeOpen={() => generateModal()}
-    />,
+      ) : null}
+    </div>
   );
-
-  useEffect(() => {
-    setModalTrigger(
-      <ModalTrigger
-        modalTitle={t('SQL')}
-        triggerNode={triggerNode()}
-        modalBody={modalBody}
-        beforeOpen={generateModal}
-      />,
-    );
-  }, [triggerNode, modalBody, generateModal]);
-
-  return modalTrigger;
 }
-HighlightedSql.propTypes = propTypes;
-
-export default HighlightedSql;
