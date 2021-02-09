@@ -114,7 +114,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       .catch(e => {
         setLoading(false);
         addDangerToast(
-          `There was an issue fetching your recent activity: ${e}`,
+          t('There was an issue fetching your recent activity: %s', e),
         );
       });
   }, []);
