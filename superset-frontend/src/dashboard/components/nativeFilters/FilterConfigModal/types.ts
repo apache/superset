@@ -36,6 +36,9 @@ export interface NativeFiltersFormItem {
     label: string;
   };
   column: string;
+  controlValues: {
+    [key: string]: any;
+  };
   defaultValue: any;
   parentFilter: {
     value: string;

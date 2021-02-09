@@ -75,9 +75,9 @@ export function mergeExtraFormData(
   appendKeys.forEach(key => {
     appendFormData[key] = [
       // @ts-ignore
-      ...(originalAppend[key] || []),
+      ...(originalAppend?.[key] || []),
       // @ts-ignore
-      ...(newAppend[key] || []),
+      ...(newAppend?.[key] || []),
     ];
   });
 

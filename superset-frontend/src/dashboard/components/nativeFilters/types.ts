@@ -54,6 +54,9 @@ export interface Filter {
   // for now there will only ever be one target
   // when multiple targets are supported, change this to Target[]
   targets: [Target];
+  controlValues: {
+    [key: string]: any;
+  };
 }
 
 export type FilterConfiguration = Filter[];

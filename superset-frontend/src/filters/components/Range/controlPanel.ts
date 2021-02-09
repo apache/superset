@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
-  controlPanelSections: [],
+  // @ts-ignore
+  controlPanelSections: [sections.legacyRegularTime],
+  // TODO: here to add the relevant controls
 };
 
 export default config;

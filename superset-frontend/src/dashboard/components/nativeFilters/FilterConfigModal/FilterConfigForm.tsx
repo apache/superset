@@ -311,8 +311,8 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         )
         .map(controlItem => (
           <StyledCheckboxFormItem
-            name={['filters', filterId, controlItem.name]}
-            initialValue={filterToEdit?.[controlItem.name]}
+            name={['filters', filterId, 'controlValues', controlItem.name]}
+            initialValue={filterToEdit?.controlValues?.[controlItem.name]}
             valuePropName="checked"
             colon={false}
           >
