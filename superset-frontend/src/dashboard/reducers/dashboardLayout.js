@@ -43,7 +43,15 @@ import {
   DASHBOARD_TITLE_CHANGED,
 } from '../actions/dashboardLayout';
 
+import { SET_BOOTSTRAP_DATA } from '../actions/bootstrapData';
+
 const actionHandlers = {
+  [SET_BOOTSTRAP_DATA](state, action) {
+    return {
+      ...state,
+      ...action.initState.dashbaordLayout,
+    };
+  },
   [UPDATE_COMPONENTS](state, action) {
     const {
       payload: { nextComponents },

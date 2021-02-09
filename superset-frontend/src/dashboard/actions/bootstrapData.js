@@ -16,27 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SET_DATASOURCE } from '../actions/datasources';
-import { SET_BOOTSTRAP_DATA } from '../actions/bootstrapData';
+export const SET_BOOTSTRAP_DATA = 'SET_BOOTSTRAP_DATA';
 
-export default function datasourceReducer(datasources = {}, action) {
-  const actionHandlers = {
-    [SET_BOOTSTRAP_DATA]() {
-      return action.initState.datasource;
-    },
-    [SET_DATASOURCE]() {
-      return action.datasource;
-    },
+export function setBoostrapData(data) {
+  return {
+    type: SET_BOOTSTRAP_DATA,
+    data,
   };
-
-  if (action.type in actionHandlers) {
-    return {
-      ...datasources,
-      [action.key]: actionHandlers[action.type](
-        datasources[action.key],
-        action,
-      ),
-    };
-  }
-  return datasources;
 }

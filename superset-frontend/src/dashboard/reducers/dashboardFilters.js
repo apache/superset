@@ -25,6 +25,7 @@ import {
   UPDATE_LAYOUT_COMPONENTS,
   UPDATE_DASHBOARD_FILTERS_SCOPE,
 } from '../actions/dashboardFilters';
+import { SET_BOOTSTRAP_DATA } from '../actions/bootstrapData';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 import { DASHBOARD_ROOT_ID } from '../util/constants';
 import getFilterConfigsFromFormdata from '../util/getFilterConfigsFromFormdata';
@@ -53,6 +54,9 @@ const CHANGE_FILTER_VALUE_ACTIONS = [ADD_FILTER, REMOVE_FILTER, CHANGE_FILTER];
 
 export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
   const actionHandlers = {
+    [SET_BOOTSTRAP_DATA]() {
+      return { dashboardFilters: action.initState.dashboardFilters };
+    },
     [ADD_FILTER]() {
       const { chartId, component, form_data } = action;
       const { columns, labels } = getFilterConfigsFromFormdata(form_data);

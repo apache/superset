@@ -36,9 +36,13 @@ import {
   SET_FOCUSED_FILTER_FIELD,
   UNSET_FOCUSED_FILTER_FIELD,
 } from '../actions/dashboardState';
+import { SET_BOOTSTRAP_DATA } from '../actions/bootstrapData';
 
 export default function dashboardStateReducer(state = {}, action) {
   const actionHandlers = {
+    [SET_BOOTSTRAP_DATA]() {
+      return { ...state, ...action.initState.dashboardState };
+    },
     [UPDATE_CSS]() {
       return { ...state, css: action.css };
     },

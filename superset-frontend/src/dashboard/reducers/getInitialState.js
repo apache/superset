@@ -263,6 +263,7 @@ export default function getInitialState(bootstrapData) {
     dashboard.metadata.filter_configuration || [],
   );
 
+  // console.log('nativeFilter', nativeFilters)
   return {
     datasources,
     sliceEntities: { ...initSliceEntities, slices, isLoading: false },

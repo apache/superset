@@ -23,6 +23,7 @@ import {
 } from 'src/dashboard/actions/nativeFilters';
 import { NativeFiltersState, NativeFilterState } from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
+import { SET_BOOTSTRAP_DATA } from '../actions/bootstrapData';
 
 export function getInitialFilterState(id: string): NativeFilterState {
   return {
@@ -52,6 +53,11 @@ export default function nativeFilterReducer(
 ) {
   const { filters, filtersState } = state;
   switch (action.type) {
+    case SET_BOOTSTRAP_DATA:
+      return {
+        filters: action.initState.nativeFilters.filters,
+        filtersState: action.initState.nativeFilters.filtersState,
+      };
     case SET_EXTRA_FORM_DATA:
       return {
         filters,

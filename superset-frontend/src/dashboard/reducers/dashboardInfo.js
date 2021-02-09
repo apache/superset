@@ -18,8 +18,10 @@
  */
 
 import { DASHBOARD_INFO_UPDATED } from '../actions/dashboardInfo';
+import { SET_BOOTSTRAP_DATA } from '../actions/bootstrapData';
 
 export default function dashboardStateReducer(state = {}, action) {
+  console.log('action', action.data);
   switch (action.type) {
     case DASHBOARD_INFO_UPDATED:
       return {
@@ -27,6 +29,12 @@ export default function dashboardStateReducer(state = {}, action) {
         ...action.newInfo,
         // server-side compare last_modified_time in second level
         lastModifiedTime: Math.round(new Date().getTime() / 1000),
+      };
+    case SET_BOOTSTRAP_DATA:
+      return {
+        ...state,
+        ...action.initState.dashboardInfo,
+        // set async api call data
       };
     default:
       return state;
