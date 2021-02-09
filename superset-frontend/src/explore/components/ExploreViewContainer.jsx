@@ -30,6 +30,10 @@ import { Global } from '@emotion/core';
 import { Tooltip } from 'src/common/components/Tooltip';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import Icon from 'src/components/Icon';
+import {
+  getFromLocalStorage,
+  setInLocalStorage,
+} from 'src/utils/localStorageHelpers';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
@@ -379,20 +383,12 @@ function ExploreViewContainer(props) {
   }
 
   function getSidebarWidths(key) {
-    try {
-      return localStorage.getItem(key) || defaultSidebarsWidth[key];
-    } catch {
-      return defaultSidebarsWidth[key];
-    }
+    return getFromLocalStorage(key, defaultSidebarsWidth[key]);
   }
 
   function setSidebarWidths(key, dimension) {
-    try {
-      const newDimension = Number(getSidebarWidths(key)) + dimension.width;
-      localStorage.setItem(key, newDimension);
-    } catch {
-      // Catch in case localStorage is unavailable
-    }
+    const newDimension = Number(getSidebarWidths(key)) + dimension.width;
+    setInLocalStorage(key, newDimension);
   }
 
   if (props.standalone) {
