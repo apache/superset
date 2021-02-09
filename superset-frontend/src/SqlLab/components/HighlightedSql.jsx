@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
@@ -27,12 +27,6 @@ import ModalTrigger from '../../components/ModalTrigger';
 
 SyntaxHighlighter.registerLanguage('sql', sql);
 
-const defaultProps = {
-  maxWidth: 50,
-  maxLines: 5,
-  shrink: false,
-};
-
 const propTypes = {
   sql: PropTypes.string.isRequired,
   rawSql: PropTypes.string,
@@ -41,10 +35,16 @@ const propTypes = {
   shrink: PropTypes.bool,
 };
 
-function HighlightedSql({ sql, rawSql, maxWidth, maxLines, shrink }) {
+function HighlightedSql({
+  sql,
+  rawSql,
+  maxWidth = 50,
+  maxLines = 5,
+  shrink = false,
+}) {
   const [modalBody, setModalBody] = useState(null);
 
-  const shrinkSql = () => {
+  const shrinkSql = useCallback(() => {
     const ssql = sql || '';
     let lines = ssql.split('\n');
     if (lines.length >= maxLines) {
@@ -59,18 +59,18 @@ function HighlightedSql({ sql, rawSql, maxWidth, maxLines, shrink }) {
         return line;
       })
       .join('\n');
-  };
+  }, [maxLines, maxWidth, sql]);
 
-  const triggerNode = () => {
+  const triggerNode = useCallback(() => {
     const shownSql = shrink ? shrinkSql(sql) : sql;
     return (
       <SyntaxHighlighter language="sql" style={github}>
         {shownSql}
       </SyntaxHighlighter>
     );
-  };
+  }, [shrink, shrinkSql, sql]);
 
-  const generateModal = () => {
+  const generateModal = useCallback(() => {
     let internalRawSql;
     if (rawSql && rawSql !== sql) {
       internalRawSql = (
@@ -91,18 +91,30 @@ function HighlightedSql({ sql, rawSql, maxWidth, maxLines, shrink }) {
         {internalRawSql}
       </div>,
     );
-  };
+  }, [rawSql, sql]);
 
-  return (
+  const [modalTrigger, setModalTrigger] = useState(
     <ModalTrigger
       modalTitle={t('SQL')}
       triggerNode={triggerNode()}
       modalBody={modalBody}
       beforeOpen={() => generateModal()}
-    />
+    />,
   );
+
+  useEffect(() => {
+    setModalTrigger(
+      <ModalTrigger
+        modalTitle={t('SQL')}
+        triggerNode={triggerNode()}
+        modalBody={modalBody}
+        beforeOpen={() => generateModal()}
+      />,
+    );
+  }, [triggerNode, modalBody, generateModal]);
+
+  return modalTrigger;
 }
 HighlightedSql.propTypes = propTypes;
-HighlightedSql.defaultProps = defaultProps;
 
 export default HighlightedSql;
