@@ -27,7 +27,6 @@ import {
 import { FormInstance } from 'antd/lib/form';
 import React from 'react';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { ChartControlPanel } from '@superset-ui/core/src/chart/models/ChartControlPanel';
 import { CustomControlItem } from '@superset-ui/chart-controls';
 import { NativeFiltersFormItem, TreeItem } from './types';
 import { FilterType, Scope } from '../types';
@@ -192,7 +191,7 @@ export const filterOutSecondaryFields = (formInputs: NativeFiltersFormItem) =>
   }, {} as NativeFiltersFormItem);
 
 export const getControlItems = (
-  controlConfig: ChartControlPanel = {},
+  controlConfig: { [key: string]: any } = {},
 ): CustomControlItem[] =>
   (flatMapDeep(controlConfig.controlPanelSections)?.reduce(
     (acc: any, { controlSetRows = [] }: any) => [

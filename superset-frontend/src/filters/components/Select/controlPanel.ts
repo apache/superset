@@ -29,7 +29,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['groupby'], ['metric'], ['row_limit', null]],
+      controlSetRows: [['groupby']],
     },
     {
       label: t('UI Configuration'),
