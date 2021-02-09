@@ -108,7 +108,7 @@ function HighlightedSql({
         modalTitle={t('SQL')}
         triggerNode={triggerNode()}
         modalBody={modalBody}
-        beforeOpen={() => generateModal()}
+        beforeOpen={generateModal}
       />,
     );
   }, [triggerNode, modalBody, generateModal]);
