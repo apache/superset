@@ -16,32 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
-import { useMemo } from 'react';
-import { Filter, FilterConfiguration } from './types';
 
-const defaultFilterConfiguration: Filter[] = [];
+export const getFromLocalStorage = (key: string, defaultValue: any) => {
+  try {
+    const value = localStorage.getItem(key);
+    return JSON.parse(value || 'null') || defaultValue;
+  } catch {
+    return defaultValue;
+  }
+};
 
-export function useFilterConfiguration() {
-  return useSelector<any, FilterConfiguration>(
-    state =>
-      state.dashboardInfo?.metadata?.filter_configuration ||
-      defaultFilterConfiguration,
-  );
-}
-
-/**
- * returns the dashboard's filter configuration,
- * converted into a map of id -> filter
- */
-export function useFilterConfigMap() {
-  const filterConfig = useFilterConfiguration();
-  return useMemo(
-    () =>
-      filterConfig.reduce((acc: Record<string, Filter>, filter: Filter) => {
-        acc[filter.id] = filter;
-        return acc;
-      }, {} as Record<string, Filter>),
-    [filterConfig],
-  );
-}
+export const setInLocalStorage = (key: string, value: any) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Catch in case localStorage is unavailable
+  }
+};

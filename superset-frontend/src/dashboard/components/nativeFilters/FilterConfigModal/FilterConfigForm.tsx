@@ -31,15 +31,12 @@ import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ColumnSelect } from './ColumnSelect';
-import { Filter, FilterType, NativeFiltersForm } from './types';
+import { NativeFiltersForm } from './types';
 import FilterScope from './FilterScope';
-import {
-  FilterTypeNames,
-  getFormData,
-  setFilterFieldValues,
-  useForceUpdate,
-} from './utils';
+import { FilterTypeNames, setFilterFieldValues, useForceUpdate } from './utils';
 import { useBackendFormUpdate } from './state';
+import { getFormData } from '../utils';
+import { Filter, FilterType } from '../types';
 
 type DatasetSelectValue = {
   value: number;

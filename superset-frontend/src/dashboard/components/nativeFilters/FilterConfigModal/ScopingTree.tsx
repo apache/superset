@@ -19,15 +19,16 @@
 
 import React, { FC, useMemo, useState } from 'react';
 import { FormInstance, Tree } from 'src/common/components';
+import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { useFilterScopeTree } from './state';
-import { DASHBOARD_ROOT_ID } from '../../util/constants';
 import {
   findFilterScope,
   getTreeCheckedItems,
   setFilterFieldValues,
   useForceUpdate,
 } from './utils';
-import { NativeFiltersForm, Scope } from './types';
+import { NativeFiltersForm } from './types';
+import { Scope } from '../types';
 
 type ScopingTreeProps = {
   form: FormInstance<NativeFiltersForm>;
