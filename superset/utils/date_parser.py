@@ -39,7 +39,11 @@ from pyparsing import (
     Suppress,
 )
 
-from .core import memoized
+from superset.charts.commands.exceptions import (
+    TimeRangeParseFailError,
+    TimeRangeUnclearError,
+)
+from superset.utils.core import memoized
 
 ParserElement.enablePackrat()
 
@@ -73,15 +77,7 @@ def parse_human_datetime(human_readable: str) -> datetime:
     """
     x_periods = r"^\s*([0-9]+)\s+(second|minute|hour|day|week|month|quarter|year)s?\s*$"
     if re.search(x_periods, human_readable, re.IGNORECASE):
-        raise ValueError(
-            _(
-                "Date string is unclear."
-                " Please specify [%(human_readable)s ago]"
-                " or [%(human_readable)s later]",
-                human_readable=human_readable,
-            )
-        )
-
+        raise TimeRangeUnclearError(human_readable)
     try:
         dttm = parse(human_readable)
     except (ValueError, OverflowError) as ex:
@@ -90,12 +86,7 @@ def parse_human_datetime(human_readable: str) -> datetime:
         # 0 == not parsed at all
         if parsed_flags == 0:
             logger.exception(ex)
-            raise ValueError(
-                _(
-                    "Couldn't parse date string [%(human_readable)s]",
-                    human_readable=human_readable,
-                )
-            )
+            raise TimeRangeParseFailError(human_readable)
         # when time is not extracted, we 'reset to midnight'
         if parsed_flags & 2 == 0:
             parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
@@ -492,9 +483,9 @@ def datetime_eval(datetime_expression: Optional[str] = None) -> Optional[datetim
 
 class DateRangeMigration:  # pylint: disable=too-few-public-methods
     x_dateunit_in_since = (
-        r'"time_range":\s"\s*[0-9]+\s(day|week|month|quarter|year)s?\s*\s:\s'
+        r'"time_range":\s*"\s*[0-9]+\s+(day|week|month|quarter|year)s?\s*\s:\s'
     )
     x_dateunit_in_until = (
-        r'"time_range":\s".*\s:\s\s*[0-9]+\s(day|week|month|quarter|year)s?\s*"'
+        r'"time_range":\s*".*\s:\s*[0-9]+\s+(day|week|month|quarter|year)s?\s*"'
     )
-    x_dateunit = r"\s*[0-9]+\s(day|week|month|quarter|year)s?\s*"
+    x_dateunit = r"^\s*[0-9]+\s+(day|week|month|quarter|year)s?\s*$"

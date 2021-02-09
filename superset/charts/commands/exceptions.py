@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_babel import lazy_gettext as _
+from flask_babel import _
 from marshmallow.validate import ValidationError
 
 from superset.commands.exceptions import (
@@ -28,13 +28,41 @@ from superset.commands.exceptions import (
 )
 
 
+class TimeRangeUnclearError(ValidationError):
+    """
+    Time range is in valid error.
+    """
+
+    def __init__(self, human_readable: str) -> None:
+        super().__init__(
+            _(
+                "Time string is unclear."
+                " Please specify [%(human_readable)s ago]"
+                " or [%(human_readable)s later].",
+                human_readable=human_readable,
+            ),
+            field_name="time_range",
+        )
+
+
+class TimeRangeParseFailError(ValidationError):
+    def __init__(self, human_readable: str) -> None:
+        super().__init__(
+            _(
+                "Cannot parse time string [%(human_readable)s]",
+                human_readable=human_readable,
+            ),
+            field_name="time_range",
+        )
+
+
 class DatabaseNotFoundValidationError(ValidationError):
     """
     Marshmallow validation error for database does not exist
     """
 
     def __init__(self) -> None:
-        super().__init__(_("Database does not exist"), field_names=["database"])
+        super().__init__(_("Database does not exist"), field_name="database")
 
 
 class DashboardsNotFoundValidationError(ValidationError):
@@ -43,7 +71,7 @@ class DashboardsNotFoundValidationError(ValidationError):
     """
 
     def __init__(self) -> None:
-        super().__init__(_("Dashboards do not exist"), field_names=["dashboards"])
+        super().__init__(_("Dashboards do not exist"), field_name="dashboards")
 
 
 class DatasourceTypeUpdateRequiredValidationError(ValidationError):
