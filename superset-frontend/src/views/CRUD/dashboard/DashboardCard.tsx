@@ -76,7 +76,7 @@ function DashboardCard({
           }
           data-test="dashboard-card-option-edit-button"
         >
-          <ListViewCard.MenuIcon name="edit-alt" /> Edit
+          <ListViewCard.MenuIcon name="edit-alt" /> {t('Edit')}
         </Menu.Item>
       )}
       {canExport && (
@@ -85,7 +85,7 @@ function DashboardCard({
           tabIndex={0}
           onClick={() => handleBulkDashboardExport([dashboard])}
         >
-          <ListViewCard.MenuIcon name="share" /> Export
+          <ListViewCard.MenuIcon name="share" /> {t('Export')}
         </Menu.Item>
       )}
       {canDelete && (
@@ -117,7 +117,7 @@ function DashboardCard({
                 onClick={confirmDelete}
                 data-test="dashboard-card-option-delete-button"
               >
-                <ListViewCard.MenuIcon name="trash" /> Delete
+                <ListViewCard.MenuIcon name="trash" /> {t('Delete')}
               </div>
             )}
           </ConfirmStatusChange>
