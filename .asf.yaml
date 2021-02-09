@@ -77,4 +77,4 @@ github:
         require_code_owner_reviews: true
         required_approving_review_count: 1
 
-      required_signatures: true
+      required_signatures: false
