@@ -19,7 +19,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Row, Col, FormControl } from 'react-bootstrap';
-import { t, getChartMetadataRegistry } from '@superset-ui/core';
+import { t, getChartMetadataRegistry, Behaviour } from '@superset-ui/core';
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
 import { Tooltip } from 'src/common/components/Tooltip';
 import Modal from 'src/common/components/Modal';
@@ -166,7 +166,10 @@ const VizTypeControl = props => {
   const filterString = filter.toLowerCase();
 
   const filteredTypes = DEFAULT_ORDER.filter(type => registry.has(type))
-    .filter(type => !registry.get(type).isNativeFilter)
+    .filter(type => {
+      const behaviour = registry.get(type).behaviours;
+      return behaviour.includes(Behaviour.CROSS_FILTER) || !behaviour.length;
+    })
     .map(type => ({
       key: type,
       value: registry.get(type),
