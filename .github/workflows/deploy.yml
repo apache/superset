@@ -6,7 +6,7 @@ on:
 
 env:
   DOCKER_TAG: |
-    superset-${{ github.event.pull_request.head.ref }}-${{ github.event.pull_request.head.sha }}
+    ${{ github.event.pull_request.head.ref }}-${{ github.event.pull_request.head.sha }}
 
 jobs:
   deploy:
@@ -39,7 +39,7 @@ jobs:
         push: true
         build-args: |
             NPM_BUILD_CMD=build
-        tags: blotoutlabs/blotout:${{ env.DOCKER_TAG }}
+        tags: blotout/superset:${{ env.DOCKER_TAG }}
     - name: Comment
       uses: NejcZdovc/comment-pr@v1
       with:
