@@ -169,6 +169,7 @@ function DashboardList(props: DashboardListProps) {
       )}`,
     }).then(
       ({ json = {} }) => {
+        refreshData();
         addSuccessToast(json.message);
       },
       createErrorHandler(errMsg =>
@@ -471,6 +472,7 @@ function DashboardList(props: DashboardListProps) {
     subMenuButtons.push({
       name: t('Bulk select'),
       buttonStyle: 'secondary',
+      'data-test': 'bulk-select',
       onClick: toggleBulkSelect,
     });
   }
