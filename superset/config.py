@@ -623,13 +623,13 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
             "task": "email_reports.schedule_hourly",
             "schedule": crontab(minute=1, hour="*"),
         },
-        'reports.scheduler': {
-            'task': 'reports.scheduler',
-            'schedule': crontab(minute='*', hour='*'),
+        "reports.scheduler": {
+            "task": "reports.scheduler",
+            "schedule": crontab(minute="*", hour="*"),
         },
-        'reports.prune_log': {
-            'task': 'reports.prune_log',
-            'schedule': crontab(minute=0, hour=0),
+        "reports.prune_log": {
+            "task": "reports.prune_log",
+            "schedule": crontab(minute=0, hour=0),
         },
     }
 
