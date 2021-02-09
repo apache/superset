@@ -14,10 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Optional, cast
+from typing import Any, cast, Optional
 
 from flask_appbuilder.security.sqla.models import Role
-from flask_babel import lazy_gettext as _, lazy_gettext
+from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
 
@@ -156,7 +156,4 @@ class FilterRelatedRoles(BaseFilter):
     def apply(self, query: Query, value: Optional[Any]) -> Query:
         role_model = security_manager.role_model
         like_value = "%" + cast(str, value) + "%"
-        return query.filter(
-            (role_model.name).ilike(like_value),
-
-        )
+        return query.filter((role_model.name).ilike(like_value),)

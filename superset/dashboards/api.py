@@ -53,7 +53,8 @@ from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.filters import (
     DashboardFavoriteFilter,
     DashboardFilter,
-    DashboardTitleOrSlugFilter, FilterRelatedRoles,
+    DashboardTitleOrSlugFilter,
+    FilterRelatedRoles,
 )
 from superset.dashboards.schemas import (
     DashboardPostSchema,
