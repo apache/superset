@@ -76,6 +76,10 @@ const CloseContainer = styled.div`
   cursor: pointer;
 `;
 
+const StyledInfoTooltipWithTrigger = styled(InfoTooltipWithTrigger)`
+  margin: 0 ${({ theme }) => theme.gridUnit}px;
+`;
+
 export const HeaderContainer = styled.div`
   display: flex;
   align-items: center;
@@ -242,10 +246,9 @@ export const OptionControlLabel = ({
         {getLabelContent()}
       </Label>
       {isExtra && (
-        <InfoTooltipWithTrigger
+        <StyledInfoTooltipWithTrigger
           icon="exclamation-triangle"
           placement="top"
-          className="m-r-5 m-l-5"
           bsStyle="warning"
           tooltip={t(`
                 This filter was inherited from the dashboard's context.
