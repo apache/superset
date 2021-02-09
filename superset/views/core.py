@@ -404,8 +404,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         is_standalone_mode = ReservedUrlParameters.is_standalone_mode()
         if is_standalone_mode:
-            param = utils.ReservedUrlParameters.STANDALONE.value
-            endpoint += f"&{param}={is_standalone_mode}"
+            endpoint += f"&{ReservedUrlParameters.STANDALONE}={is_standalone_mode}"
         return redirect(endpoint)
 
     def get_query_string_response(self, viz_obj: BaseViz) -> FlaskResponse:

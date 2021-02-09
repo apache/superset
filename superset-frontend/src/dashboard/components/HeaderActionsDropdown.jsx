@@ -32,8 +32,9 @@ import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
 import FilterScopeModal from './filterscope/FilterScopeModal';
 import downloadAsImage from '../../utils/downloadAsImage';
-import getDashboardUrl, { getUrlParam } from '../util/getDashboardUrl';
+import getDashboardUrl from '../util/getDashboardUrl';
 import { getActiveFilters } from '../util/activeDashboardFilters';
+import { getUrlParam } from '../../utils/common';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,

@@ -47,10 +47,11 @@ import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
+  DashboardStandaloneMode,
 } from '../util/constants';
 import FilterBar from './nativeFilters/FilterBar/FilterBar';
 import { StickyVerticalBar } from './StickyVerticalBar';
-import { getUrlParam } from '../util/getDashboardUrl';
+import { getUrlParam } from '../../utils/common';
 
 const TABS_HEIGHT = 47;
 const HEADER_HEIGHT = 67;
@@ -228,7 +229,8 @@ class DashboardBuilder extends React.Component {
     const childIds = topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID];
 
     const hideDashboardHeader =
-      getUrlParam(URL_PARAMS.standalone, 'number') === 2;
+      getUrlParam(URL_PARAMS.standalone, 'number') ===
+      DashboardStandaloneMode.HIDE_NAV_AND_TITLE;
 
     const barTopOffset =
       (hideDashboardHeader ? 0 : HEADER_HEIGHT) +

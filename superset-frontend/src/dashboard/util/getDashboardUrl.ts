@@ -42,34 +42,3 @@ export default function getDashboardUrl(
 
   return `${pathname}?${newSearchParams.toString()}${hashSection}`;
 }
-
-export type UrlParamType = 'string' | 'number' | 'boolean';
-export function getUrlParam(paramName: string, type: 'string'): string;
-export function getUrlParam(paramName: string, type: 'number'): number;
-export function getUrlParam(paramName: string, type: 'boolean'): boolean;
-export function getUrlParam(paramName: string, type: UrlParamType): unknown {
-  const urlParam = new URLSearchParams(window.location.search.substring(1)).get(
-    paramName,
-  );
-  switch (type) {
-    case 'number':
-      if (!urlParam) {
-        return null;
-      }
-      if (urlParam === 'true') {
-        return 1;
-      }
-      if (urlParam === 'false') {
-        return 0;
-      }
-      // eslint-disable-next-line no-case-declarations
-      const parsedNumber = parseInt(urlParam, 10);
-      if (Number.isInteger(parsedNumber)) {
-        return parsedNumber;
-      }
-      return null;
-    // TODO: process other types when needed
-    default:
-      return urlParam;
-  }
-}

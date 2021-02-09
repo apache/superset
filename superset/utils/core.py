@@ -252,10 +252,10 @@ class ReservedUrlParameters(str, Enum):
     STANDALONE = "standalone"
     EDIT_MODE = "edit"
 
-    @classmethod
-    def is_standalone_mode(cls) -> Any:
+    @staticmethod
+    def is_standalone_mode() -> bool:
         standalone_param = request.args.get(ReservedUrlParameters.STANDALONE.value)
-        standalone = standalone_param != "false" and standalone_param is not None
+        standalone = standalone_param and standalone_param != "false" and standalone_param != "0"
         return standalone
 
 

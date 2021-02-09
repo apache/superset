@@ -33,7 +33,7 @@ export const SHORT_TIME = 'h:m a';
 
 const DATETIME_FORMATTER = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
 
-export function getParamFromQuery(query, param) {
+export function getParamFromQuery(query: string, param: string) {
   const vars = query.split('&');
   for (let i = 0; i < vars.length; i += 1) {
     const pair = vars[i].split('=');
@@ -44,7 +44,13 @@ export function getParamFromQuery(query, param) {
   return null;
 }
 
-export function storeQuery(query) {
+export function storeQuery(query: {
+  dbId: any;
+  title: any;
+  schema: any;
+  autorun: any;
+  sql: any;
+}) {
   return SupersetClient.post({
     endpoint: '/kv/store/',
     postPayload: { data: query },
@@ -55,19 +61,34 @@ export function storeQuery(query) {
   });
 }
 
-export function getParamsFromUrl() {
-  const hash = window.location.search;
-  const params = hash.split('?')[1].split('&');
-  const newParams = {};
-  params.forEach(p => {
-    const value = p.split('=')[1].replace(/\+/g, ' ');
-    const key = p.split('=')[0];
-    newParams[key] = value;
-  });
-  return newParams;
+export type UrlParamType = 'string' | 'number' | 'boolean';
+export function getUrlParam(paramName: string, type: 'string'): string;
+export function getUrlParam(paramName: string, type: 'number'): number;
+export function getUrlParam(paramName: string, type: 'boolean'): boolean;
+export function getUrlParam(paramName: string, type: UrlParamType): unknown {
+  const urlParam = new URLSearchParams(window.location.search).get(paramName);
+  switch (type) {
+    case 'number':
+      if (!urlParam) {
+        return null;
+      }
+      if (urlParam === 'true') {
+        return 1;
+      }
+      if (urlParam === 'false') {
+        return 0;
+      }
+      if (!Number.isNaN(Number(urlParam))) {
+        return Number(urlParam);
+      }
+      return null;
+    // TODO: process other types when needed
+    default:
+      return urlParam;
+  }
 }
 
-export function getShortUrl(longUrl) {
+export function getShortUrl(longUrl: string) {
   return SupersetClient.post({
     endpoint: '/r/shortner/',
     postPayload: { data: `/${longUrl}` }, // note: url should contain 2x '/' to redirect properly
@@ -76,13 +97,14 @@ export function getShortUrl(longUrl) {
   })
     .then(({ text }) => text)
     .catch(response =>
+      // @ts-ignore
       getClientErrorObject(response).then(({ error, statusText }) =>
         Promise.reject(error || statusText),
       ),
     );
 }
 
-export function optionLabel(opt) {
+export function optionLabel(opt: any) {
   if (opt === null) {
     return NULL_STRING;
   }
@@ -95,25 +117,27 @@ export function optionLabel(opt) {
   if (opt === false) {
     return '<false>';
   }
+  // @ts-ignore
   if (typeof opt !== 'string' && opt.toString) {
+    // @ts-ignore
     return opt.toString();
   }
   return opt;
 }
 
-export function optionValue(opt) {
+export function optionValue(opt: any) {
   if (opt === null) {
     return NULL_STRING;
   }
   return opt;
 }
 
-export function optionFromValue(opt) {
+export function optionFromValue(opt: any) {
   // From a list of options, handles special values & labels
   return { value: optionValue(opt), label: optionLabel(opt) };
 }
 
-export function prepareCopyToClipboardTabularData(data) {
+export function prepareCopyToClipboardTabularData(data: any) {
   let result = '';
   for (let i = 0; i < data.length; i += 1) {
     result += `${Object.values(data[i]).join('\t')}\n`;
@@ -121,11 +145,11 @@ export function prepareCopyToClipboardTabularData(data) {
   return result;
 }
 
-export function applyFormattingToTabularData(data) {
+export function applyFormattingToTabularData(data: any) {
   if (!data || data.length === 0 || !('__timestamp' in data[0])) {
     return data;
   }
-  return data.map(row => ({
+  return data.map((row: { __timestamp: string | number | Date }) => ({
     ...row,
     /* eslint-disable no-underscore-dangle */
     __timestamp:
