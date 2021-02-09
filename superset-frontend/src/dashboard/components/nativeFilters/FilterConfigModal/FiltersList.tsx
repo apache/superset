@@ -20,7 +20,7 @@ import React from 'react';
 import { styled } from '@superset-ui/core';
 import { Button } from 'src/common/components';
 import Icon from 'src/components/Icon';
-import { useFilterConfiguration } from './state';
+import { useFilterConfiguration } from '../state';
 
 interface Args {
   filter: any;

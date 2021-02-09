@@ -38,6 +38,12 @@ owners_description = (
     "Owner are users ids allowed to delete or change this dashboard. "
     "If left empty you will be one of the owners of the dashboard."
 )
+roles_description = (
+    "Roles is a list which defines access to the dashboard. "
+    "These roles are always applied in addition to restrictions on dataset "
+    "level access. "
+    "If no roles defined then the dashboard is available to all roles."
+)
 position_json_description = (
     "This json object describes the positioning of the widgets "
     "in the dashboard. It is dynamically generated when "
@@ -136,6 +142,7 @@ class DashboardPostSchema(BaseDashboardSchema):
         description=slug_description, allow_none=True, validate=[Length(1, 255)]
     )
     owners = fields.List(fields.Integer(description=owners_description))
+    roles = fields.List(fields.Integer(description=roles_description))
     position_json = fields.String(
         description=position_json_description, validate=validate_json
     )
@@ -158,6 +165,7 @@ class DashboardPutSchema(BaseDashboardSchema):
     owners = fields.List(
         fields.Integer(description=owners_description, allow_none=True)
     )
+    roles = fields.List(fields.Integer(description=roles_description, allow_none=True))
     position_json = fields.String(
         description=position_json_description, allow_none=True, validate=validate_json
     )

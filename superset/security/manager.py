@@ -27,6 +27,7 @@ from flask_appbuilder.security.sqla.models import (
     assoc_permissionview_role,
     assoc_user_role,
     PermissionView,
+    Role,
     User,
 )
 from flask_appbuilder.security.views import (
@@ -58,6 +59,7 @@ if TYPE_CHECKING:
     from superset.models.sql_lab import Query
     from superset.sql_parse import Table
     from superset.viz import BaseViz
+
 
 logger = logging.getLogger(__name__)
 
@@ -655,6 +657,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     if pvm not in role_from_permissions:
                         role_from_permissions.append(pvm)
         return role_from_permissions
+
+    def find_roles_by_id(self, role_ids: List[int]) -> List[Role]:
+        """
+        Find a List of models by a list of ids, if defined applies `base_filter`
+        """
+        query = self.get_session.query(Role).filter(Role.id.in_(role_ids))
+        return query.all()
 
     def copy_role(
         self, role_from_name: str, role_to_name: str, merge: bool = True
