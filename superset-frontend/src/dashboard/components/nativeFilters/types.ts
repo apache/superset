@@ -43,13 +43,10 @@ export interface Target {
 }
 
 export interface Filter {
-  allowsMultipleValues: boolean;
   cascadeParentIds: string[];
   defaultValue: any;
   currentValue?: any;
-  inverseSelection: boolean;
   isInstant: boolean;
-  isRequired: boolean;
   id: string; // randomly generated at filter creation
   name: string;
   scope: Scope;

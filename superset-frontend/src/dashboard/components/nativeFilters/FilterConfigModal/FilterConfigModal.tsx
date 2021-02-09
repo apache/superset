@@ -33,6 +33,7 @@ import FilterConfigForm from './FilterConfigForm';
 import { NativeFiltersForm } from './types';
 import { CancelConfirmationAlert } from './CancelConfirmationAlert';
 import { FilterConfiguration } from '../types';
+import { filterOutSecondaryFields } from './utils';
 
 // how long to show the "undo" button when removing a filter
 const REMOVAL_DELAY_SECS = 5;
@@ -397,11 +398,12 @@ export function FilterConfigModal({
       .filter(id => !removedFilters[id])
       .map(id => {
         // create a filter config object from the form inputs
-        const formInputs = values.filters[id];
+        const formInputs = filterOutSecondaryFields(values.filters[id]);
         // if user didn't open a filter, return the original config
         if (!formInputs) return filterConfigMap[id];
         return {
           id,
+          ...formInputs,
           name: formInputs.name,
           filterType: formInputs.filterType,
           // for now there will only ever be one target
@@ -418,10 +420,7 @@ export function FilterConfigModal({
             ? [formInputs.parentFilter.value]
             : [],
           scope: formInputs.scope,
-          inverseSelection: !!formInputs.inverseSelection,
-          isInstant: !!formInputs.isInstant,
-          allowsMultipleValues: !!formInputs.allowsMultipleValues,
-          isRequired: !!formInputs.isRequired,
+          isInstant: formInputs.isInstant,
         };
       });
 

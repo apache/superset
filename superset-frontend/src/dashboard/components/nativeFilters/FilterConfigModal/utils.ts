@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
+import { flatMapDeep } from 'lodash';
 import { Charts, Layout, LayoutItem } from 'src/dashboard/types';
 import {
   CHART_TYPE,
@@ -26,7 +27,9 @@ import {
 import { FormInstance } from 'antd/lib/form';
 import React from 'react';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { TreeItem } from './types';
+import { ChartControlPanel } from '@superset-ui/core/src/chart/models/ChartControlPanel';
+import { CustomControlItem } from '@superset-ui/chart-controls';
+import { NativeFiltersFormItem, TreeItem } from './types';
 import { FilterType, Scope } from '../types';
 
 export const useForceUpdate = () => {
@@ -174,6 +177,30 @@ export const setFilterFieldValues = (
     },
   });
 };
+
+const secondaryFields = ['defaultValueQueriesData', 'defaultValueFormData'];
+
+export const filterOutSecondaryFields = (formInputs: NativeFiltersFormItem) =>
+  Object.entries(formInputs).reduce((resultInFormInputs, [key, value]) => {
+    if (!secondaryFields.includes(key)) {
+      return {
+        ...resultInFormInputs,
+        [key]: value,
+      };
+    }
+    return resultInFormInputs;
+  }, {} as NativeFiltersFormItem);
+
+export const getControlItems = (
+  controlConfig: ChartControlPanel = {},
+): CustomControlItem[] =>
+  (flatMapDeep(controlConfig.controlPanelSections)?.reduce(
+    (acc: any, { controlSetRows = [] }: any) => [
+      ...acc,
+      ...flatMapDeep(controlSetRows),
+    ],
+    [],
+  ) as CustomControlItem[]) ?? [];
 
 export const isScopingAll = (scope: Scope) =>
   !scope || (scope.rootPath[0] === DASHBOARD_ROOT_ID && !scope.excluded.length);

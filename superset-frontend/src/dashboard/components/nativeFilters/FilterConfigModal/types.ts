@@ -27,7 +27,7 @@ export enum Scoping {
 // Using to pass setState React callbacks directly to And components
 export type AntCallback = (value1?: any, value2?: any) => void;
 
-interface NativeFiltersFormItem {
+export interface NativeFiltersFormItem {
   scope: Scope;
   name: string;
   filterType: FilterType;
@@ -41,10 +41,7 @@ interface NativeFiltersFormItem {
     value: string;
     label: string;
   };
-  inverseSelection: boolean;
   isInstant: boolean;
-  allowsMultipleValues: boolean;
-  isRequired: boolean;
 }
 
 export interface NativeFiltersForm {
