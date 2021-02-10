@@ -2103,6 +2103,10 @@ class HeatmapViz(BaseViz):
         fd = self.form_data
         d["metrics"] = [fd.get("metric")]
         d["groupby"] = [fd.get("all_columns_x"), fd.get("all_columns_y")]
+        
+        if self.form_data.get("sort_by_metric", False):
+            d["orderby"] = [(d["metrics"][0], False)]
+
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
