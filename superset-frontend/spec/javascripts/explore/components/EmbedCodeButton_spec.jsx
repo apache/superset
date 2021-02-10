@@ -26,7 +26,6 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import EmbedCodeButton from 'src/explore/components/EmbedCodeButton';
 import * as exploreUtils from 'src/explore/exploreUtils';
-import * as common from 'src/utils/common';
 import * as urlUtils from 'src/utils/urlUtils';
 
 const ENDPOINT = 'glob:*/r/shortner/';
