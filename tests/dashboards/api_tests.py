@@ -108,12 +108,19 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         with self.create_app().app_context():
             dashboards = []
             admin = self.get_user("admin")
+            charts = [self.insert_chart("slice", [admin.id], 1, params="{}")]
+            half_dash_count = round(DASHBOARDS_FIXTURE_COUNT / 2)
             for cx in range(DASHBOARDS_FIXTURE_COUNT - 1):
                 dashboards.append(
-                    self.insert_dashboard(f"title{cx}", f"slug{cx}", [admin.id])
+                    self.insert_dashboard(
+                        f"title{cx}",
+                        f"slug{cx}",
+                        [admin.id],
+                        slices=charts if cx < half_dash_count else [],
+                    )
                 )
             fav_dashboards = []
-            for cx in range(round(DASHBOARDS_FIXTURE_COUNT / 2)):
+            for cx in range(half_dash_count):
                 fav_star = FavStar(
                     user_id=admin.id, class_name="Dashboard", obj_id=dashboards[cx].id
                 )
@@ -123,6 +130,8 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             yield dashboards
 
             # rollback changes
+            for chart in charts:
+                db.session.delete(chart)
             for dashboard in dashboards:
                 db.session.delete(dashboard)
             for fav_dashboard in fav_dashboards:
@@ -151,24 +160,17 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             db.session.delete(dashboard)
             db.session.commit()
 
+    @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts(self):
         """
         Dashboard API: Test getting charts belonging to a dashboard
         """
-        self.login(username="admin")
-        admin = self.get_user("admin")
-        slice = self.insert_chart("slice1", [admin.id], 1, params="{}")
-        dashboard = self.insert_dashboard(
-            "title", "charted", [admin.id], admin, slices=[slice]
-        )
-        uri = f"api/v1/dashboard/{dashboard.id}/charts"
+        uri = f"api/v1/dashboard/1/charts"
         response = self.get_assert_metric(uri, "get_charts")
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data.decode("utf-8"))
-        self.assertEqual(data["result"], [slice.data])
-        db.session.delete(dashboard)
-        db.session.delete(slice)
-        db.session.commit()
+        self.assertEqual(len(data["result"]), 1)
+        self.assertEqual(data["result"][0]["slice_name"], "slice")
 
     def test_get_dashboard_charts_not_found(self):
         """
