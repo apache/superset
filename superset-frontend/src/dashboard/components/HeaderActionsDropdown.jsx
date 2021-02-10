@@ -34,7 +34,7 @@ import FilterScopeModal from './filterscope/FilterScopeModal';
 import downloadAsImage from '../../utils/downloadAsImage';
 import getDashboardUrl from '../util/getDashboardUrl';
 import { getActiveFilters } from '../util/activeDashboardFilters';
-import { getUrlParam } from '../../utils/common';
+import { getUrlParam } from '../../utils/urlUtils';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,

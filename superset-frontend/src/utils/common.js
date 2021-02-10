@@ -21,7 +21,6 @@ import {
   getTimeFormatter,
   TimeFormats,
 } from '@superset-ui/core';
-import { getClientErrorObject } from './getClientErrorObject';
 
 // ATTENTION: If you change any constants, make sure to also change constants.py
 
@@ -33,7 +32,7 @@ export const SHORT_TIME = 'h:m a';
 
 const DATETIME_FORMATTER = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
 
-export function getParamFromQuery(query: string, param: string) {
+export function getParamFromQuery(query, param) {
   const vars = query.split('&');
   for (let i = 0; i < vars.length; i += 1) {
     const pair = vars[i].split('=');
@@ -44,13 +43,7 @@ export function getParamFromQuery(query: string, param: string) {
   return null;
 }
 
-export function storeQuery(query: {
-  dbId: any;
-  title: any;
-  schema: any;
-  autorun: any;
-  sql: any;
-}) {
+export function storeQuery(query) {
   return SupersetClient.post({
     endpoint: '/kv/store/',
     postPayload: { data: query },
@@ -61,50 +54,7 @@ export function storeQuery(query: {
   });
 }
 
-export type UrlParamType = 'string' | 'number' | 'boolean';
-export function getUrlParam(paramName: string, type: 'string'): string;
-export function getUrlParam(paramName: string, type: 'number'): number;
-export function getUrlParam(paramName: string, type: 'boolean'): boolean;
-export function getUrlParam(paramName: string, type: UrlParamType): unknown {
-  const urlParam = new URLSearchParams(window.location.search).get(paramName);
-  switch (type) {
-    case 'number':
-      if (!urlParam) {
-        return null;
-      }
-      if (urlParam === 'true') {
-        return 1;
-      }
-      if (urlParam === 'false') {
-        return 0;
-      }
-      if (!Number.isNaN(Number(urlParam))) {
-        return Number(urlParam);
-      }
-      return null;
-    // TODO: process other types when needed
-    default:
-      return urlParam;
-  }
-}
-
-export function getShortUrl(longUrl: string) {
-  return SupersetClient.post({
-    endpoint: '/r/shortner/',
-    postPayload: { data: `/${longUrl}` }, // note: url should contain 2x '/' to redirect properly
-    parseMethod: 'text',
-    stringify: false, // the url saves with an extra set of string quotes without this
-  })
-    .then(({ text }) => text)
-    .catch(response =>
-      // @ts-ignore
-      getClientErrorObject(response).then(({ error, statusText }) =>
-        Promise.reject(error || statusText),
-      ),
-    );
-}
-
-export function optionLabel(opt: any) {
+export function optionLabel(opt) {
   if (opt === null) {
     return NULL_STRING;
   }
@@ -117,27 +67,25 @@ export function optionLabel(opt: any) {
   if (opt === false) {
     return '<false>';
   }
-  // @ts-ignore
   if (typeof opt !== 'string' && opt.toString) {
-    // @ts-ignore
     return opt.toString();
   }
   return opt;
 }
 
-export function optionValue(opt: any) {
+export function optionValue(opt) {
   if (opt === null) {
     return NULL_STRING;
   }
   return opt;
 }
 
-export function optionFromValue(opt: any) {
+export function optionFromValue(opt) {
   // From a list of options, handles special values & labels
   return { value: optionValue(opt), label: optionLabel(opt) };
 }
 
-export function prepareCopyToClipboardTabularData(data: any) {
+export function prepareCopyToClipboardTabularData(data) {
   let result = '';
   for (let i = 0; i < data.length; i += 1) {
     result += `${Object.values(data[i]).join('\t')}\n`;
@@ -145,11 +93,11 @@ export function prepareCopyToClipboardTabularData(data: any) {
   return result;
 }
 
-export function applyFormattingToTabularData(data: any) {
+export function applyFormattingToTabularData(data) {
   if (!data || data.length === 0 || !('__timestamp' in data[0])) {
     return data;
   }
-  return data.map((row: { __timestamp: string | number | Date }) => ({
+  return data.map(row => ({
     ...row,
     /* eslint-disable no-underscore-dangle */
     __timestamp:
