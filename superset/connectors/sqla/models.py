@@ -1107,7 +1107,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         )
         if is_feature_enabled("ROW_LEVEL_SECURITY"):
             where_clause_and += self._get_sqla_row_level_filters(template_processor)
-
         if extras:
             where = extras.get("where")
             if where:
