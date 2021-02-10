@@ -314,7 +314,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             {t('Apply')}
           </Button>
         </ActionButtons>
-        {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && (
+        {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET) && (
           <ActionButtons>
             <FilterSet>
               <StyledTitle>
