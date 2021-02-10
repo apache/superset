@@ -2020,15 +2020,6 @@ class FilterBoxViz(BaseViz):
     cache_type = "get_data"
     filter_row_limit = 1000
 
-    def __init__(
-        self,
-        datasource: "BaseDatasource",
-        form_data: Dict[str, Any],
-        force: bool,
-        force_cached: bool
-    ) -> None:
-        super().__init__(datasource, form_data, force=force, force_cached=force_cached)
-
     def query_obj(self) -> QueryObjectDict:
         return {}
 
