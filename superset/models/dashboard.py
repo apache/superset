@@ -14,12 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import json
 import logging
 from functools import partial
 from typing import Any, Callable, Dict, List, Set, Union
 
 import sqlalchemy as sqla
+from flask import g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -45,6 +48,7 @@ from superset import app, ConnectorRegistry, db, is_feature_enabled, security_ma
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.druid.models import DruidColumn, DruidMetric
 from superset.connectors.sqla.models import SqlMetric, TableColumn
+from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
 from superset.extensions import cache_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
@@ -356,6 +360,17 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
             indent=4,
         )
 
+    @classmethod
+    def get(cls, id_or_slug: str) -> Dashboard:
+        session = db.session()
+        qry = session.query(Dashboard)
+        if id_or_slug.isdigit():
+            qry = qry.filter_by(id=int(id_or_slug))
+        else:
+            qry = qry.filter_by(slug=id_or_slug)
+
+        return qry.one_or_none()
+
 
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]
 
@@ -407,3 +422,22 @@ if is_feature_enabled("DASHBOARD_CACHE"):
     sqla.event.listen(TableColumn, "after_update", clear_dashboard_cache)
     sqla.event.listen(DruidMetric, "after_update", clear_dashboard_cache)
     sqla.event.listen(DruidColumn, "after_update", clear_dashboard_cache)
+
+
+def raise_for_dashboard_access(dashboard: Dashboard) -> None:
+    from superset.views.base import get_user_roles, is_user_admin
+    from superset.views.utils import is_owner
+
+    if is_feature_enabled("DASHBOARD_RBAC"):
+        has_rbac_access = any(
+            dashboard_role.id in [user_role.id for user_role in get_user_roles()]
+            for dashboard_role in dashboard.roles
+        )
+        can_access = (
+            is_user_admin()
+            or is_owner(dashboard, g.user)
+            or (dashboard.published and has_rbac_access)
+        )
+
+        if not can_access:
+            raise DashboardAccessDeniedError()

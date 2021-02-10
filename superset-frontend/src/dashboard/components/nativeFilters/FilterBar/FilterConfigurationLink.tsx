@@ -18,10 +18,9 @@
  */
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-// import shortid from 'shortid';
 import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { FilterConfigModal } from './FilterConfigModal';
-import { FilterConfiguration } from './types';
+import { FilterConfigModal } from '../FilterConfigModal/FilterConfigModal';
+import { FilterConfiguration } from '../types';
 
 export interface FCBProps {
   createNewOnOpen?: boolean;

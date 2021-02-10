@@ -61,8 +61,21 @@ github:
         # contexts are the names of checks that must pass
         contexts:
           - check
+          - cypress-matrix (1, chrome)
+          - cypress-matrix (2, chrome)
+          - cypress-matrix (3, chrome)
+          - docker-build
+          - frontend-build
+          - pre-commit (3.7)
+          - python-lint (3.7)
+          - test-mysql (3.7)
+          - test-postgres (3.7)
+          - test-postgres (3.8)
+          - test-sqlite (3.7)
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false
         require_code_owner_reviews: true
         required_approving_review_count: 1
+
+      required_signatures: false

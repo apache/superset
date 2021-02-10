@@ -20,7 +20,7 @@ Manually cancel previous GitHub Action workflow runs in queue.
 
 Example:
   # Set up
-  export GITHUB_TOKEN=394ba3b48494ab8f930fbc93
+  export GITHUB_TOKEN={{ your personal github access token }}
   export GITHUB_REPOSITORY=apache/superset
 
   # cancel previous jobs for a PR, will even cancel the running ones

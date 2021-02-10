@@ -31,15 +31,12 @@ import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { ColumnSelect } from './ColumnSelect';
-import { Filter, FilterType, NativeFiltersForm } from './types';
+import { NativeFiltersForm } from './types';
 import FilterScope from './FilterScope';
-import {
-  FilterTypeNames,
-  getFormData,
-  setFilterFieldValues,
-  useForceUpdate,
-} from './utils';
+import { FilterTypeNames, setFilterFieldValues, useForceUpdate } from './utils';
 import { useBackendFormUpdate } from './state';
+import { getFormData } from '../utils';
+import { Filter, FilterType } from '../types';
 
 type DatasetSelectValue = {
   value: number;
@@ -137,8 +134,12 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       <RemovedContent>
         <p>{t('You have removed this filter.')}</p>
         <div>
-          <Button type="primary" onClick={() => restore(filterId)}>
-            {t('Restore filter')}
+          <Button
+            data-test="restore-filter-button"
+            type="primary"
+            onClick={() => restore(filterId)}
+          >
+            {t('Restore Filter')}
           </Button>
         </div>
       </RemovedContent>
@@ -241,6 +242,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
       <StyledFormItem
         name={['filters', filterId, 'defaultValue']}
         initialValue={filterToEdit?.defaultValue}
+        data-test="default-input"
         label={<StyledLabel>{t('Default Value')}</StyledLabel>}
       >
         {formFilter?.dataset &&
@@ -270,6 +272,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         initialValue={parentFilterOptions.find(
           ({ value }) => value === filterToEdit?.cascadeParentIds[0],
         )}
+        data-test="parent-filter-input"
       >
         <Select
           placeholder={t('None')}
@@ -283,7 +286,9 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         valuePropName="checked"
         colon={false}
       >
-        <Checkbox>{t('Apply changes instantly')}</Checkbox>
+        <Checkbox data-test="apply-changes-instantly-checkbox">
+          {t('Apply changes instantly')}
+        </Checkbox>
       </StyledCheckboxFormItem>
       <StyledCheckboxFormItem
         name={['filters', filterId, 'allowsMultipleValues']}
