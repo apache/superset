@@ -70,6 +70,7 @@ const config: ControlPanelConfig = {
                 'Timorleste',
                 'Uk',
                 'Ukraine',
+                'Uruguay',
                 'Usa',
                 'Zambia',
               ].map(s => [s, s]),
