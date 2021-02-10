@@ -481,6 +481,10 @@ class CsvResponse(Response):  # pylint: disable=too-many-ancestors
     charset = conf["CSV_EXPORT"].get("encoding", "utf-8")
 
 
+class XLSXResponse(CsvResponse):  # pylint: disable=too-many-ancestors
+    pass
+
+
 def check_ownership(obj: Any, raise_if_false: bool = True) -> bool:
     """Meant to be used in `pre_update` hooks on models to enforce ownership
 

@@ -88,6 +88,7 @@ setup(
         "markdown>=3.0",
         "msgpack>=1.0.0, <1.1",
         "pandas>=1.1.2, <1.2",
+        "xlsxwriter==1.3.7",
         "parsedatetime",
         "pathlib2",
         "pgsanity",

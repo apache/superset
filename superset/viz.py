@@ -27,6 +27,7 @@ import math
 import re
 from collections import defaultdict, OrderedDict
 from datetime import date, datetime, timedelta
+from io import BytesIO
 from itertools import product
 from typing import (
     Any,
@@ -628,6 +629,16 @@ class BaseViz:
         df = self.get_df_payload()["df"]  # leverage caching logic
         include_index = not isinstance(df.index, pd.RangeIndex)
         return df.to_csv(index=include_index, **config["CSV_EXPORT"])
+
+    def get_xlsx(self) -> Optional[bytes]:
+        df = self.get_df_payload()["df"]  # leverage caching logic
+        include_index = not isinstance(df.index, pd.RangeIndex)
+        output = BytesIO()
+        writer = pd.ExcelWriter(output, engine='xlsxwriter')
+        df.to_excel(writer, index=include_index)
+        writer.close()
+        output.seek(0)
+        return output.read()
 
     def get_data(self, df: pd.DataFrame) -> VizData:
         return df.to_dict(orient="records")

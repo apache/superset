@@ -70,6 +70,7 @@ export default function downloadAsImage(
         const link = document.createElement('a');
         link.download = `${generateFileStem(description)}.jpg`;
         link.href = dataUrl;
+        // перенаправить во view -> make_pdf()
         link.click();
       });
   };

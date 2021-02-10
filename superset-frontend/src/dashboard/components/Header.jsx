@@ -413,6 +413,7 @@ class Header extends React.PureComponent {
           )}
         </div>
 
+        {/*Куда-то сюда помещаем кнопку Download PDF OnClick make AJAX request (/javascripts/reduxUtils.js) */}
         <div className="button-container">
           {userCanSaveAs && (
             <div

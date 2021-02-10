@@ -42,6 +42,7 @@ const propTypes = {
   forceRefresh: PropTypes.func,
   exploreChart: PropTypes.func,
   exportCSV: PropTypes.func,
+  exportXLSX: PropTypes.func,
 };
 
 const defaultProps = {
@@ -49,6 +50,7 @@ const defaultProps = {
   toggleExpandSlice: () => ({}),
   exploreChart: () => ({}),
   exportCSV: () => ({}),
+  exportXLSX: () => ({}),
   cachedDttm: [],
   updatedDttm: null,
   isCached: [],
@@ -63,6 +65,7 @@ const MENU_KEYS = {
   TOGGLE_CHART_DESCRIPTION: 'toggle_chart_description',
   EXPLORE_CHART: 'explore_chart',
   EXPORT_CSV: 'export_csv',
+  EXPORT_XLSX: 'export_xlsx',
   RESIZE_LABEL: 'resize_label',
   SHARE_CHART: 'share_chart',
   DOWNLOAD_AS_IMAGE: 'download_as_image',
@@ -142,6 +145,9 @@ class SliceHeaderControls extends React.PureComponent {
         break;
       case MENU_KEYS.EXPORT_CSV:
         this.props.exportCSV(this.props.slice.slice_id);
+        break;
+      case MENU_KEYS.EXPORT_XLSX:
+        this.props.exportXLSX(this.props.slice.slice_id);
         break;
       case MENU_KEYS.RESIZE_LABEL:
         this.props.handleToggleFullSize();
@@ -253,6 +259,9 @@ class SliceHeaderControls extends React.PureComponent {
 
         {this.props.supersetCanCSV && (
           <Menu.Item key={MENU_KEYS.EXPORT_CSV}>{t('Export CSV')}</Menu.Item>
+        )}
+        {this.props.supersetCanCSV && (
+          <Menu.Item key={MENU_KEYS.EXPORT_XLSX}>{t('Export XLSX')}</Menu.Item>
         )}
       </Menu>
     );

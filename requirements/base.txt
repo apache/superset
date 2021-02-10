@@ -69,6 +69,7 @@ natsort==7.0.1            # via croniter
 numpy==1.19.4             # via pandas, pyarrow
 packaging==20.4           # via bleach
 pandas==1.1.4             # via apache-superset
+xlsxwriter==1.3.7         # разобраться как билдить
 parsedatetime==2.6        # via apache-superset
 pathlib2==2.3.5           # via apache-superset
 pgsanity==0.2.9           # via apache-superset
