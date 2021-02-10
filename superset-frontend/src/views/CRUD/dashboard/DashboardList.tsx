@@ -169,6 +169,7 @@ function DashboardList(props: DashboardListProps) {
       )}`,
     }).then(
       ({ json = {} }) => {
+        refreshData();
         addSuccessToast(json.message);
       },
       createErrorHandler(errMsg =>
@@ -360,7 +361,7 @@ function DashboardList(props: DashboardListProps) {
       id: 'owners',
       input: 'select',
       operator: FilterOperators.relationManyMany,
-      unfilteredLabel: 'All',
+      unfilteredLabel: t('All'),
       fetchSelects: createFetchRelated(
         'dashboard',
         'owners',
@@ -381,7 +382,7 @@ function DashboardList(props: DashboardListProps) {
       id: 'created_by',
       input: 'select',
       operator: FilterOperators.relationOneMany,
-      unfilteredLabel: 'All',
+      unfilteredLabel: t('All'),
       fetchSelects: createFetchRelated(
         'dashboard',
         'created_by',
@@ -402,7 +403,7 @@ function DashboardList(props: DashboardListProps) {
       id: 'published',
       input: 'select',
       operator: FilterOperators.equals,
-      unfilteredLabel: 'Any',
+      unfilteredLabel: t('Any'),
       selects: [
         { label: t('Published'), value: true },
         { label: t('Unpublished'), value: false },
@@ -414,7 +415,7 @@ function DashboardList(props: DashboardListProps) {
       urlDisplay: 'favorite',
       input: 'select',
       operator: FilterOperators.dashboardIsFav,
-      unfilteredLabel: 'Any',
+      unfilteredLabel: t('Any'),
       selects: [
         { label: t('Yes'), value: true },
         { label: t('No'), value: false },
@@ -432,19 +433,19 @@ function DashboardList(props: DashboardListProps) {
     {
       desc: false,
       id: 'dashboard_title',
-      label: 'Alphabetical',
+      label: t('Alphabetical'),
       value: 'alphabetical',
     },
     {
       desc: true,
       id: 'changed_on_delta_humanized',
-      label: 'Recently modified',
+      label: t('Recently modified'),
       value: 'recently_modified',
     },
     {
       desc: false,
       id: 'changed_on_delta_humanized',
-      label: 'Least recently modified',
+      label: t('Least recently modified'),
       value: 'least_recently_modified',
     },
   ];
@@ -471,6 +472,7 @@ function DashboardList(props: DashboardListProps) {
     subMenuButtons.push({
       name: t('Bulk select'),
       buttonStyle: 'secondary',
+      'data-test': 'bulk-select',
       onClick: toggleBulkSelect,
     });
   }
