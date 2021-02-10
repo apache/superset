@@ -1,3 +1,5 @@
+import { Behavior } from '../types/Base';
+
 interface LookupTable {
   [key: string]: boolean;
 }
@@ -7,11 +9,12 @@ export interface ChartMetadataConfig {
   canBeAnnotationTypes?: string[];
   credits?: string[];
   description?: string;
+  datasourceCount?: number;
   show?: boolean;
   supportedAnnotationTypes?: string[];
   thumbnail: string;
   useLegacyApi?: boolean;
-  isNativeFilter?: boolean;
+  behaviors?: Behavior[];
 }
 
 export default class ChartMetadata {
@@ -33,7 +36,9 @@ export default class ChartMetadata {
 
   useLegacyApi: boolean;
 
-  isNativeFilter: boolean;
+  behaviors: Behavior[];
+
+  datasourceCount: number;
 
   constructor(config: ChartMetadataConfig) {
     const {
@@ -45,7 +50,8 @@ export default class ChartMetadata {
       supportedAnnotationTypes = [],
       thumbnail,
       useLegacyApi = false,
-      isNativeFilter = false,
+      behaviors = [],
+      datasourceCount = 1,
     } = config;
 
     this.name = name;
@@ -65,7 +71,8 @@ export default class ChartMetadata {
     this.supportedAnnotationTypes = supportedAnnotationTypes;
     this.thumbnail = thumbnail;
     this.useLegacyApi = useLegacyApi;
-    this.isNativeFilter = isNativeFilter;
+    this.behaviors = behaviors;
+    this.datasourceCount = datasourceCount;
   }
 
   canBeAnnotationType(type: string): boolean {
@@ -82,7 +89,8 @@ export default class ChartMetadata {
       supportedAnnotationTypes: this.supportedAnnotationTypes,
       thumbnail: this.thumbnail,
       useLegacyApi: this.useLegacyApi,
-      isNativeFilter: this.isNativeFilter,
+      behaviors: this.behaviors,
+      datasourceCount: this.datasourceCount,
     });
   }
 }
