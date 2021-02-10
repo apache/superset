@@ -20,6 +20,7 @@ import { FilterType } from 'src/dashboard/components/nativeFilters/types';
 import { NativeFiltersState } from 'src/dashboard/reducers/types';
 
 export const nativeFilters: NativeFiltersState = {
+  filterSets: {},
   filters: {
     'NATIVE_FILTER-e7Q8zKixx': {
       id: 'NATIVE_FILTER-e7Q8zKixx',

@@ -46,6 +46,7 @@ describe('getFormDataWithExtraFilters', () => {
     },
     sliceId: chartId,
     nativeFilters: {
+      filterSets: {},
       filters: {
         [filterId]: ({
           id: filterId,
