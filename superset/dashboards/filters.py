@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+# pylint: disable=too-few-public-methods
 from typing import Any, cast, Optional
 
 from flask_appbuilder.security.sqla.models import Role
@@ -29,7 +31,7 @@ from superset.views.base import BaseFilter, get_user_roles, is_user_admin
 from superset.views.base_api import BaseFavoriteFilter
 
 
-class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+class DashboardTitleOrSlugFilter(BaseFilter):
     name = _("Title or Slug")
     arg_name = "title_or_slug"
 
@@ -47,7 +49,7 @@ class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-
 
 class DashboardFavoriteFilter(
     BaseFavoriteFilter
-):  # pylint: disable=too-few-public-methods
+):
     """
     Custom filter for the GET list that filters all dashboards that a user has favored
     """
@@ -57,7 +59,7 @@ class DashboardFavoriteFilter(
     model = Dashboard
 
 
-class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+class DashboardFilter(BaseFilter):
     """
     List dashboards with the following criteria:
         1. Those which the user owns
