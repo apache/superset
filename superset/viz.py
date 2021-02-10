@@ -42,8 +42,6 @@ from typing import (
     Union,
 )
 
-from sqlalchemy.sql.sqltypes import String
-
 import geohash
 import numpy as np
 import pandas as pd
@@ -179,7 +177,7 @@ class BaseViz:
         self.all_metrics = list(self.metric_dict.values())
         self.metric_labels = list(self.metric_dict.keys())
 
-    def construct_where(self, query_obj: QueryObjectDict, predicate_string: String) -> String:
+    def construct_where(self, query_obj: QueryObjectDict, predicate_string: str) -> str:
         if query_obj:
             predicate_string = "{} AND {}".format(query_obj, predicate_string)
         return predicate_string
