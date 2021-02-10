@@ -180,6 +180,8 @@ class BaseViz:
         self.metric_labels = list(self.metric_dict.keys())
 
     def construct_where(self, predicate_string: String) -> String:
+        if not self.qry:
+            return
         if self.qry["extras"]["where"]:
             predicate_string = "{} AND {}".format(self.qry["extras"]["where"], predicate_string)
         return predicate_string
@@ -2023,10 +2025,10 @@ class FilterBoxViz(BaseViz):
     def __init__(
         self,
         datasource: "BaseDatasource",
-        form_data: None,
+        form_data: Dict[str, Any],
         force: bool,
         force_cached: bool
-    ) -> Dict[str, Any]:
+    ) -> None:
         super().__init__(datasource, form_data, force=force, force_cached=force_cached)
         self.qry = super().query_obj()
 
