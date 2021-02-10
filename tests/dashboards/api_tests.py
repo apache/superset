@@ -640,7 +640,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(rv.status_code, 404)
 
     @pytest.mark.usefixtures("create_dashboard_with_report", "create_dashboards")
-    def test_bulk_delete_dashboard_with_report(self):
+    def test_delete_bulk_dashboard_with_report(self):
         """
         Dashboard API: Test bulk delete with associated report
         """
