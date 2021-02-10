@@ -126,7 +126,7 @@ setup(
         "drill": ["sqlalchemy-drill==0.1.dev"],
         "druid": ["pydruid>=0.6.1,<0.7"],
         "solr": ["sqlalchemy-solr >= 0.2.0"],
-        "elasticsearch": ["elasticsearch-dbapi>=0.1.0, <0.2.0"],
+        "elasticsearch": ["elasticsearch-dbapi>=0.2.0, <0.3.0"],
         "exasol": ["sqlalchemy-exasol>=2.1.0, <2.2"],
         "excel": ["xlrd>=1.2.0, <1.3"],
         "gsheets": ["gsheetsdb>=0.1.9"],
