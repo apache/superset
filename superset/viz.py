@@ -177,9 +177,9 @@ class BaseViz:
         self.all_metrics = list(self.metric_dict.values())
         self.metric_labels = list(self.metric_dict.keys())
 
-    def construct_where(self, query_obj: QueryObjectDict, predicate_string: str) -> str:
+    def construct_where(self, query_obj: Optional[str], predicate_string: str) -> str:
         if query_obj:
-            predicate_string = "({}) AND ({})".format(query_obj, predicate_string)
+            predicate_string = f"({query_obj}) AND ({predicate_string})"
         return predicate_string
 
     @staticmethod
