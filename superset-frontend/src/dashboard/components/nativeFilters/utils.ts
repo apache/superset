@@ -28,7 +28,7 @@ export const getFormData = ({
   currentValue,
   inputRef,
   defaultValue,
-  ...otherProps
+  controlValues,
 }: Partial<Filter> & {
   datasetId?: number;
   inputRef?: RefObject<HTMLInputElement>;
@@ -51,7 +51,7 @@ export const getFormData = ({
   url_params: {},
   viz_type: 'filter_select',
   inputRef,
-  ...otherProps,
+  ...controlValues,
 });
 
 export function mergeExtraFormData(

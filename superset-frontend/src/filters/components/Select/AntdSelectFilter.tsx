@@ -19,7 +19,7 @@
 import { styled } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
-import { DEFAULT_FORM_DATA, AntdPluginFilterSelectProps } from './types';
+import { AntdPluginFilterSelectProps } from './types';
 import { AntdPluginFilterStylesProps } from '../types';
 import { getSelectExtraFormData } from '../../utils';
 
@@ -42,10 +42,7 @@ export default function AntdPluginFilterSelect(
     currentValue,
     inverseSelection,
     inputRef,
-  } = {
-    ...DEFAULT_FORM_DATA,
-    ...formData,
-  };
+  } = formData;
 
   const [values, setValues] = useState<(string | number)[]>(defaultValue ?? []);
 
