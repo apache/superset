@@ -179,7 +179,7 @@ class BaseViz:
         self.all_metrics = list(self.metric_dict.values())
         self.metric_labels = list(self.metric_dict.keys())
 
-    def construct_where(self, predicate_string) -> String:
+    def construct_where(self, predicate_string: String) -> String:
         if self.qry["extras"]["where"]:
             predicate_string = "{} AND {}".format(self.qry["extras"]["where"], predicate_string)
         return predicate_string
@@ -2020,7 +2020,13 @@ class FilterBoxViz(BaseViz):
     cache_type = "get_data"
     filter_row_limit = 1000
 
-    def __init__(self, datasource: "BaseDatasource", form_data: None, force: bool, force_cached: bool) -> None:
+    def __init__(
+        self,
+        datasource: "BaseDatasource",
+        form_data: None,
+        force: bool,
+        force_cached: bool
+    ) -> Dict[str, Any]:
         super().__init__(datasource, form_data, force=force, force_cached=force_cached)
         self.qry = super().query_obj()
 
@@ -2030,7 +2036,6 @@ class FilterBoxViz(BaseViz):
     def run_extra_queries(self) -> None:
         filters = self.form_data.get("filter_configs") or []
         self.qry["row_limit"] = self.filter_row_limit
-        self.qry["extras"]["where"] = "product_category='aaaa'"
         predicate_string = self.datasource.fetch_values_predicate
         if predicate_string:
             self.qry["extras"]["where"] = self.construct_where(predicate_string)
