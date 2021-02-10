@@ -46,7 +46,6 @@ from typing import (
     Any,
     Callable,
     cast,
-    ContextManager,
     Dict,
     Iterable,
     Iterator,
@@ -84,7 +83,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator
 
-import _thread
+import _thread  # pylint: disable=C0411
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import (
     CertificateException,
