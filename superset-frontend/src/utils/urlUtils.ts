@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {SupersetClient} from "@superset-ui/core";
-import {getClientErrorObject} from "./getClientErrorObject";
-
+import { SupersetClient } from "@superset-ui/core";
+import { getClientErrorObject } from "./getClientErrorObject";
 
 export type UrlParamType = 'string' | 'number' | 'boolean';
 export function getUrlParam(paramName: string, type: 'string'): string;
