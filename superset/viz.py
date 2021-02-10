@@ -1900,6 +1900,8 @@ class ChordViz(BaseViz):
         fd = self.form_data
         qry["groupby"] = [fd.get("groupby"), fd.get("columns")]
         qry["metrics"] = [fd.get("metric")]
+        if self.form_data.get("sort_by_metric", False):
+            qry["orderby"] = [(qry["metrics"][0], False)]
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
