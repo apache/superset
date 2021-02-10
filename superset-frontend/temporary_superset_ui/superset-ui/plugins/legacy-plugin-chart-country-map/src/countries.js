@@ -25,6 +25,7 @@ import thailand from 'file-loader!./countries/thailand.geojson';
 import timorleste from 'file-loader!./countries/timorleste.geojson';
 import uk from 'file-loader!./countries/uk.geojson';
 import ukraine from 'file-loader!./countries/ukraine.geojson';
+import uruguay from 'file-loader!./countries/uruguay.geojson';
 import usa from 'file-loader!./countries/usa.geojson';
 import zambia from 'file-loader!./countries/zambia.geojson';
 
@@ -55,6 +56,7 @@ const countries = {
   timorleste,
   uk,
   ukraine,
+  uruguay,
   usa,
   zambia,
 };
