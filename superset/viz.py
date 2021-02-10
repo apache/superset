@@ -179,11 +179,9 @@ class BaseViz:
         self.all_metrics = list(self.metric_dict.values())
         self.metric_labels = list(self.metric_dict.keys())
 
-    def construct_where(self, predicate_string: String) -> String:
-        if not self.qry:
-            return
-        if self.qry["extras"]["where"]:
-            predicate_string = "{} AND {}".format(self.qry["extras"]["where"], predicate_string)
+    def construct_where(self, query_obj: QueryObjectDict, predicate_string: String) -> String:
+        if query_obj:
+            predicate_string = "{} AND {}".format(query_obj, predicate_string)
         return predicate_string
 
     @staticmethod
@@ -2030,17 +2028,17 @@ class FilterBoxViz(BaseViz):
         force_cached: bool
     ) -> None:
         super().__init__(datasource, form_data, force=force, force_cached=force_cached)
-        self.qry = super().query_obj()
 
     def query_obj(self) -> QueryObjectDict:
         return {}
 
     def run_extra_queries(self) -> None:
+        qry = super().query_obj()
         filters = self.form_data.get("filter_configs") or []
-        self.qry["row_limit"] = self.filter_row_limit
+        qry["row_limit"] = self.filter_row_limit
         predicate_string = self.datasource.fetch_values_predicate
         if predicate_string:
-            self.qry["extras"]["where"] = self.construct_where(predicate_string)
+            qry["extras"]["where"] = self.construct_where(qry["extras"]["where"], predicate_string)
         self.dataframes = {}
         for flt in filters:
             col = flt.get("column")
@@ -2048,10 +2046,10 @@ class FilterBoxViz(BaseViz):
                 raise QueryObjectValidationError(
                     _("Invalid filter configuration, please select a column")
                 )
-            self.qry["groupby"] = [col]
+            qry["groupby"] = [col]
             metric = flt.get("metric")
-            self.qry["metrics"] = [metric] if metric else []
-            df = self.get_df_payload(query_obj=self.qry).get("df")
+            qry["metrics"] = [metric] if metric else []
+            df = self.get_df_payload(query_obj=qry).get("df")
             self.dataframes[col] = df
 
     def get_data(self, df: pd.DataFrame) -> VizData:
