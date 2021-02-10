@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin, Behaviour } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
@@ -27,7 +27,7 @@ export default class AntdFilterSelectPlugin extends ChartPlugin {
     const metadata = new ChartMetadata({
       name: t('Select filter plugin'),
       description: 'Select filter plugin using AntD',
-      behaviours: [Behaviour.NATIVE_FILTER, Behaviour.CROSS_FILTER],
+      behaviors: [Behavior.NATIVE_FILTER, Behavior.CROSS_FILTER],
       thumbnail,
     });
 
