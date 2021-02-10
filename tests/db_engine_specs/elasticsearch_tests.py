@@ -14,7 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.db_engine_specs.elasticsearch import ElasticSearchEngineSpec
+from sqlalchemy import column
+
+from superset.db_engine_specs.elasticsearch import (
+    ElasticSearchEngineSpec,
+    OpenDistroEngineSpec,
+)
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
@@ -26,3 +31,26 @@ class TestElasticSearchDbEngineSpec(TestDbEngineSpec):
             ElasticSearchEngineSpec.convert_dttm("DATETIME", dttm),
             "CAST('2019-01-02T03:04:05' AS DATETIME)",
         )
+
+    def test_opendistro_convert_dttm(self):
+        """
+        DB Eng Specs (opendistro): Test convert_dttm
+        """
+        dttm = self.get_dttm()
+
+        self.assertEqual(
+            OpenDistroEngineSpec.convert_dttm("DATETIME", dttm),
+            "'2019-01-02T03:04:05'",
+        )
+
+    def test_opendistro_sqla_column_label(self):
+        """
+        DB Eng Specs (opendistro): Test column label
+        """
+        test_cases = {
+            "Col": "Col",
+            "Col.keyword": "Col_keyword",
+        }
+        for original, expected in test_cases.items():
+            actual = OpenDistroEngineSpec.make_label_compatible(column(original).name)
+            self.assertEqual(actual, expected)
