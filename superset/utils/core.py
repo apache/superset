@@ -23,6 +23,7 @@ import hashlib
 import json
 import logging
 import os
+import platform
 import re
 import signal
 import smtplib
@@ -82,6 +83,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator
 
+import _thread  # pylint: disable=C0411
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import (
     CertificateException,
@@ -710,7 +712,7 @@ def validate_json(obj: Union[bytes, bytearray, str]) -> None:
             raise SupersetException("JSON is not valid")
 
 
-class timeout:  # pylint: disable=invalid-name
+class SigalrmTimeout:
     """
     To be used in a ``with`` block and timeout its content.
     """
@@ -747,6 +749,34 @@ class timeout:  # pylint: disable=invalid-name
         except ValueError as ex:
             logger.warning("timeout can't be used in the current context")
             logger.exception(ex)
+
+
+class TimerTimeout:
+    def __init__(self, seconds: int = 1, error_message: str = "Timeout") -> None:
+        self.seconds = seconds
+        self.error_message = error_message
+        self.timer = threading.Timer(seconds, _thread.interrupt_main)
+
+    def __enter__(self) -> None:
+        self.timer.start()
+
+    def __exit__(  # pylint: disable=redefined-outer-name,unused-variable,redefined-builtin
+        self, type: Any, value: Any, traceback: TracebackType
+    ) -> None:
+        self.timer.cancel()
+        if type is KeyboardInterrupt:  # raised by _thread.interrupt_main
+            raise SupersetTimeoutException(
+                error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+                message=self.error_message,
+                level=ErrorLevel.ERROR,
+                extra={"timeout": self.seconds},
+            )
+
+
+# Windows has no support for SIGALRM, so we use the timer based timeout
+timeout: Union[Type[TimerTimeout], Type[SigalrmTimeout]] = (
+    TimerTimeout if platform.system() == "Windows" else SigalrmTimeout
+)
 
 
 def pessimistic_connection_handling(some_engine: Engine) -> None:
