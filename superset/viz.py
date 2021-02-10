@@ -1791,6 +1791,8 @@ class SunburstViz(BaseViz):
         secondary_metric = fd.get("secondary_metric")
         if secondary_metric and secondary_metric != fd["metric"]:
             qry["metrics"].append(secondary_metric)
+        if self.form_data.get("sort_by_metric", False):
+            qry["orderby"] = [(qry["metrics"][0], False)]
         return qry
 
 
