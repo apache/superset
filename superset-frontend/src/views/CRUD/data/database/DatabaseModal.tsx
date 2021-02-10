@@ -302,11 +302,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         .then(() => {
           setDB(dbFetched);
         })
-        .catch(e =>
+        .catch(errMsg =>
           addDangerToast(
             t(
               'Sorry there was an error fetching database information: %s',
-              e.message,
+              errMsg.message,
             ),
           ),
         );
