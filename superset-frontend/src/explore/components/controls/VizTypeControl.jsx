@@ -19,7 +19,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Row, Col, FormControl } from 'react-bootstrap';
-import { t, getChartMetadataRegistry } from '@superset-ui/core';
+import { Behavior, t, getChartMetadataRegistry } from '@superset-ui/core';
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
 import { Tooltip } from 'src/common/components/Tooltip';
 import Modal from 'src/common/components/Modal';
@@ -167,11 +167,10 @@ const VizTypeControl = props => {
   const filterString = filter.toLowerCase();
 
   const filteredTypes = DEFAULT_ORDER.filter(type => registry.has(type))
-    .filter(
-      type =>
-        isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ||
-        !registry.get(type).isNativeFilter,
-    )
+    .filter(type => {
+      const behaviors = registry.get(type)?.behaviors || [];
+      return isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) && behaviors.includes(Behavior.CROSS_FILTER) || !behaviors.length;
+    })
     .map(type => ({
       key: type,
       value: registry.get(type),
@@ -179,11 +178,10 @@ const VizTypeControl = props => {
     .concat(
       registry
         .entries()
-        .filter(
-          entry =>
-            isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) ||
-            !entry.value.isNativeFilter,
-        )
+        .filter(entry => {
+          const behaviors = entry.value?.behaviors || [];
+          return isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) && behaviors.includes(Behavior.CROSS_FILTER) || !behaviors.length;
+        })
         .filter(({ key }) => !typesWithDefaultOrder.has(key)),
     )
     .filter(entry => entry.value.name.toLowerCase().includes(filterString));
