@@ -48,6 +48,7 @@ from superset.models.sql_types.presto_sql_types import (
     Map,
     Row,
     TinyInteger,
+    TimeStamp
 )
 from superset.result_set import destringify
 from superset.sql_parse import ParsedQuery
@@ -911,10 +912,14 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         if values is None:
             return None
 
-        column_names = {column.get("name") for column in columns or []}
+        column_names = {column.get("name") : column.get('type') for column in columns or []}
         for col_name, value in zip(col_names, values):
             if col_name in column_names:
-                query = query.where(Column(col_name) == value)
+                col_type = column_names.get(col_name)
+                if col_type == 'TIMESTAMP':
+                    query = query.where(Column(col_name, TimeStamp()) == value)
+                else:
+                    query = query.where(Column(col_name) == value)
         return query
 
     @classmethod
