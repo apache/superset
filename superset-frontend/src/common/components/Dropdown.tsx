@@ -82,7 +82,8 @@ const StyledDropdownButton = styled.div`
         margin: 0;
         width: 120px;
       }
-      :disabled {
+
+      &:disabled {
         background-color: ${({ theme }) => theme.colors.grayscale.light2};
         color: ${({ theme }) => theme.colors.grayscale.base};
       }
@@ -102,7 +103,8 @@ const StyledDropdownButton = styled.div`
           top: ${({ theme }) => theme.gridUnit * 0.75}px;
           width: ${({ theme }) => theme.gridUnit * 0.25}px;
         }
-        :disabled:before {
+
+        &:disabled:before {
           border-left: 1px solid ${({ theme }) => theme.colors.grayscale.base};
         }
       }
