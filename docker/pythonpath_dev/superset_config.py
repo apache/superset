@@ -92,18 +92,3 @@ try:
     )
 except ImportError:
     logger.info("Using default Docker config...")
-
-
-def DB_CONNECTION_MUTATOR(uri, params, username, security_manager, source):  
-    if str(uri).startswith("presto"):    
-        engine_params = { 
-            "protocol" : "https",
-            "requests_kwargs" : {
-                "verify" : "/app/docker/dev_certs/ca/cacerts.pem", 
-                "cert" :  ["/app/docker/dev_certs/client/certificates/client.pem","/app/docker/dev_certs/client/keys/client-key.pem"]
-            }
-        } 
-
-        params.update({ "connect_args" : engine_params })
-        logger.debug("Data source connection parameters: %s", params)
-    return uri, params
