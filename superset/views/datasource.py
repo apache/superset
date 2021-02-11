@@ -53,16 +53,13 @@ class Datasource(BaseSupersetView):
         )
         orm_datasource.database_id = database_id
 
-        if (
-            app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]
-            and "owners" in datasource_dict
-            and orm_datasource.owner_class is not None
-        ):
+        if "owners" in datasource_dict and orm_datasource.owner_class is not None:
             # Check ownership
-            try:
-                check_ownership(orm_datasource)
-            except SupersetSecurityException:
-                raise DatasetForbiddenError()
+            if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
+                try:
+                    check_ownership(orm_datasource)
+                except SupersetSecurityException:
+                    raise DatasetForbiddenError()
 
             datasource_dict["owners"] = (
                 db.session.query(orm_datasource.owner_class)
