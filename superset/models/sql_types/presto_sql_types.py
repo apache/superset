@@ -100,7 +100,7 @@ class TimeStamp(types.TypeDecorator):
 
     impl = TIMESTAMP
 
-    def process_literal_param(self, value, dialect):
+    def process_bind_param(self, value, dialect):
         """
         Used for in-line rendering of TIMESTAMP data type
         as Presto does not support automatic casting.
