@@ -70,7 +70,7 @@ import sqlalchemy as sa
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.backends.openssl.x509 import _Certificate
-from flask import current_app, flash, g, Markup, render_template
+from flask import current_app, flash, g, Markup, render_template, request
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import Role, User
 from flask_babel import gettext as __
@@ -253,6 +253,14 @@ class ReservedUrlParameters(str, Enum):
 
     STANDALONE = "standalone"
     EDIT_MODE = "edit"
+
+    @staticmethod
+    def is_standalone_mode() -> Optional[bool]:
+        standalone_param = request.args.get(ReservedUrlParameters.STANDALONE.value)
+        standalone: Optional[bool] = (
+            standalone_param and standalone_param != "false" and standalone_param != "0"
+        )
+        return standalone
 
 
 class RowLevelSecurityFilterType(str, Enum):

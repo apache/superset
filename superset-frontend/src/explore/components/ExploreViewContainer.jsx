@@ -34,6 +34,7 @@ import {
   getFromLocalStorage,
   setInLocalStorage,
 } from 'src/utils/localStorageHelpers';
+import { URL_PARAMS } from 'src/constants';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
@@ -67,7 +68,7 @@ const propTypes = {
   controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
-  standalone: PropTypes.bool.isRequired,
+  standalone: PropTypes.number.isRequired,
   timeout: PropTypes.number,
   impressionId: PropTypes.string,
   vizType: PropTypes.string,
@@ -187,7 +188,7 @@ function ExploreViewContainer(props) {
     const payload = { ...props.form_data };
     const longUrl = getExploreLongUrl(
       props.form_data,
-      props.standalone ? 'standalone' : null,
+      props.standalone ? URL_PARAMS.standalone : null,
       false,
     );
     try {
