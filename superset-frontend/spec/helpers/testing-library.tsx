@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import '@testing-library/jest-dom/extend-expect';
 import React, { ReactNode, ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
