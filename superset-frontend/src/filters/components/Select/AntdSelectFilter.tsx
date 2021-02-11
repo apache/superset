@@ -67,14 +67,12 @@ export default function AntdPluginFilterSelect(
     const emptyFilter =
       enableEmptyFilter && !inverseSelection && resultValue?.length === 0;
     setExtraFormData({
-      // @ts-ignore
       extraFormData: getSelectExtraFormData(
         col,
         resultValue,
         emptyFilter,
         inverseSelection,
       ),
-      // @ts-ignore (add to superset-ui/core)
       currentState: {
         value: resultValue,
       },
