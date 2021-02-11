@@ -17,14 +17,14 @@
 """add granularity to charts where missing
 
 Revision ID: 070c043f2fdb
-Revises: e11ccdd12658
+Revises: 41ce8799acc3
 Create Date: 2021-02-04 09:34:13.608891
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "070c043f2fdb"
-down_revision = "e11ccdd12658"
+down_revision = "41ce8799acc3"
 
 import json
 
