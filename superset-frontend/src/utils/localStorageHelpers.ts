@@ -16,19 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import serializeActiveFilterValues from './serializeActiveFilterValues';
 
-export default function getDashboardUrl(
-  pathname,
-  filters = {},
-  hash = '',
-  standalone = false,
-) {
-  // convert flattened { [id_column]: values } object
-  // to nested filter object
-  const obj = serializeActiveFilterValues(filters);
-  const preselectFilters = encodeURIComponent(JSON.stringify(obj));
-  const hashSection = hash ? `#${hash}` : '';
-  const standaloneParam = standalone ? '&standalone=true' : '';
-  return `${pathname}?preselect_filters=${preselectFilters}${standaloneParam}${hashSection}`;
-}
+export const getFromLocalStorage = (key: string, defaultValue: any) => {
+  try {
+    const value = localStorage.getItem(key);
+    return JSON.parse(value || 'null') || defaultValue;
+  } catch {
+    return defaultValue;
+  }
+};
+
+export const setInLocalStorage = (key: string, value: any) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Catch in case localStorage is unavailable
+  }
+};

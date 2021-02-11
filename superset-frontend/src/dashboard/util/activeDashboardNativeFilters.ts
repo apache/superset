@@ -17,8 +17,9 @@
  * under the License.
  */
 import { CHART_TYPE } from './componentTypes';
-import { NativeFiltersState, Scope } from '../components/nativeFilters/types';
+import { Scope } from '../components/nativeFilters/types';
 import { ActiveFilters, LayoutItem } from '../types';
+import { NativeFiltersState } from '../reducers/types';
 
 // Looking for affected chart scopes and values
 export const findAffectedCharts = ({

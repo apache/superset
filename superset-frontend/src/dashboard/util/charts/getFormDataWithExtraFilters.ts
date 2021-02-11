@@ -22,10 +22,10 @@ import {
   DataRecordFilters,
 } from '@superset-ui/core';
 import { ChartQueryPayload, LayoutItem } from 'src/dashboard/types';
-import { NativeFiltersState } from 'src/dashboard/components/nativeFilters/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getActiveNativeFilters } from '../activeDashboardNativeFilters';
+import { NativeFiltersState } from '../../reducers/types';
 
 // We cache formData objects so that our connected container components don't always trigger
 // render cascades. we cannot leverage the reselect library because our cache size is >1

@@ -2342,6 +2342,7 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:444
 #: superset-frontend/src/views/CRUD/welcome/SavedQueries.tsx:230
 #: superset/views/base.py:446
+#: superset-frontend/src/views/CRUD/dashboard/DashboardCard.tsx:120
 msgid "Delete"
 msgstr ""
 
@@ -2783,6 +2784,7 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:346
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:600
 #: superset/views/dashboard/views.py:66
+#: superset-frontend/src/views/CRUD/dashboard/DashboardCard.tsx:88
 msgid "Export"
 msgstr ""
 
@@ -3545,6 +3547,7 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:329
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:362
 #: superset-frontend/src/views/CRUD/welcome/SavedQueries.tsx:211
+#: superset-frontend/src/views/CRUD/dashboard/DashboardCard.tsx:79
 msgid "Edit"
 msgstr ""
 
@@ -7738,4 +7741,30 @@ msgstr ""
 
 #: superset-frontend/src/visualizations/TimeTable/TimeTableChartPlugin.js:24
 msgid "Time-series Table"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:385
+#: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:364
+msgid "All"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:406
+#: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:418
+msgid "Any"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:436
+msgid "Alphabetical"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:442
+msgid "Recently modified"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:448
+msgid "Least recently modified"
+msgstr ""
+
+#: superset-frontend/src/components/ListView/ListView.tsx:393
+msgid "No Data"
 msgstr ""

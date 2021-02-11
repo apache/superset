@@ -30,6 +30,11 @@ import { Global } from '@emotion/core';
 import { Tooltip } from 'src/common/components/Tooltip';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import Icon from 'src/components/Icon';
+import {
+  getFromLocalStorage,
+  setInLocalStorage,
+} from 'src/utils/localStorageHelpers';
+import { URL_PARAMS } from 'src/constants';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
@@ -63,7 +68,7 @@ const propTypes = {
   controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
-  standalone: PropTypes.bool.isRequired,
+  standalone: PropTypes.number.isRequired,
   timeout: PropTypes.number,
   impressionId: PropTypes.string,
   vizType: PropTypes.string,
@@ -183,7 +188,7 @@ function ExploreViewContainer(props) {
     const payload = { ...props.form_data };
     const longUrl = getExploreLongUrl(
       props.form_data,
-      props.standalone ? 'standalone' : null,
+      props.standalone ? URL_PARAMS.standalone : null,
       false,
     );
     try {
@@ -379,20 +384,12 @@ function ExploreViewContainer(props) {
   }
 
   function getSidebarWidths(key) {
-    try {
-      return localStorage.getItem(key) || defaultSidebarsWidth[key];
-    } catch {
-      return defaultSidebarsWidth[key];
-    }
+    return getFromLocalStorage(key, defaultSidebarsWidth[key]);
   }
 
   function setSidebarWidths(key, dimension) {
-    try {
-      const newDimension = Number(getSidebarWidths(key)) + dimension.width;
-      localStorage.setItem(key, newDimension);
-    } catch {
-      // Catch in case localStorage is unavailable
-    }
+    const newDimension = Number(getSidebarWidths(key)) + dimension.width;
+    setInLocalStorage(key, newDimension);
   }
 
   if (props.standalone) {
