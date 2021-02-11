@@ -32,6 +32,7 @@ import {
 } from 'src/explore/dateFilterUtils';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
 import { getChartMetadataRegistry } from '@superset-ui/core';
+import { DashboardStandaloneMode } from '../../../src/dashboard/util/constants';
 
 describe('exploreUtils', () => {
   const { location } = window;
@@ -99,7 +100,9 @@ describe('exploreUtils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore/').search({ standalone: '1' }),
+        URI('/superset/explore/').search({
+          standalone: DashboardStandaloneMode.HIDE_NAV,
+        }),
       );
     });
     it('preserves main URLs params', () => {
@@ -205,7 +208,7 @@ describe('exploreUtils', () => {
         URI(getExploreLongUrl(formData, 'standalone')),
         URI('/superset/explore/').search({
           form_data: sFormData,
-          standalone: '1',
+          standalone: DashboardStandaloneMode.HIDE_NAV,
         }),
       );
     });

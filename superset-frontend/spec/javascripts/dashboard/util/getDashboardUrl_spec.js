@@ -18,6 +18,7 @@
  */
 import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { DASHBOARD_FILTER_SCOPE_GLOBAL } from 'src/dashboard/reducers/dashboardFilters';
+import { DashboardStandaloneMode } from '../../../../src/dashboard/util/constants';
 
 describe('getChartIdsFromLayout', () => {
   const filters = {
@@ -47,9 +48,14 @@ describe('getChartIdsFromLayout', () => {
   });
 
   it('should encode filters with standalone', () => {
-    const urlWithStandalone = getDashboardUrl('path', filters, '', '1');
+    const urlWithStandalone = getDashboardUrl(
+      'path',
+      filters,
+      '',
+      DashboardStandaloneMode.HIDE_NAV,
+    );
     expect(urlWithStandalone).toBe(
-      'path?preselect_filters=%7B%2235%22%3A%7B%22key%22%3A%5B%22value%22%5D%7D%7D&standalone=1',
+      `path?preselect_filters=%7B%2235%22%3A%7B%22key%22%3A%5B%22value%22%5D%7D%7D&standalone=${DashboardStandaloneMode.HIDE_NAV}`,
     );
   });
 

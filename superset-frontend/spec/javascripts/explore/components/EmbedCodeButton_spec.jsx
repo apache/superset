@@ -27,6 +27,7 @@ import fetchMock from 'fetch-mock';
 import EmbedCodeButton from 'src/explore/components/EmbedCodeButton';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import * as urlUtils from 'src/utils/urlUtils';
+import { DashboardStandaloneMode } from '../../../../src/dashboard/util/constants';
 
 const ENDPOINT = 'glob:*/r/shortner/';
 
@@ -92,15 +93,17 @@ describe('EmbedCodeButton', () => {
       shortUrlId: 100,
     });
     const embedHTML =
-      '<iframe\n' +
-      '  width="2000"\n' +
-      '  height="1000"\n' +
-      '  seamless\n' +
-      '  frameBorder="0"\n' +
-      '  scrolling="no"\n' +
-      '  src="http://localhostendpoint_url?r=100&standalone=1&height=1000"\n' +
-      '>\n' +
-      '</iframe>';
+      `${
+        '<iframe\n' +
+        '  width="2000"\n' +
+        '  height="1000"\n' +
+        '  seamless\n' +
+        '  frameBorder="0"\n' +
+        '  scrolling="no"\n' +
+        '  src="http://localhostendpoint_url?r=100&standalone='
+      }${DashboardStandaloneMode.HIDE_NAV}&height=1000"\n` +
+      `>\n` +
+      `</iframe>`;
     expect(wrapper.instance().generateEmbedHTML()).toBe(embedHTML);
     stub.restore();
   });
