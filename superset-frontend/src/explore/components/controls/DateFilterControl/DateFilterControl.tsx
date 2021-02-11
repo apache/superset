@@ -76,12 +76,12 @@ const fetchTimeRange = async (
   const endpoint = `/api/v1/time_range/?q=${query}`;
   try {
     const response = await SupersetClient.get({ endpoint });
-    const { since = '', until = '' } = response?.json?.result || {};
-    const timeRangeString = buildTimeRangeString(since, until);
-
+    const timeRangeString = buildTimeRangeString(
+      response?.json?.result?.since || '',
+      response?.json?.result?.until || '',
+    );
     return {
       value: formatTimeRange(timeRangeString, endpoints),
-      timeRangeString,
     };
   } catch (response) {
     const clientError = await getClientErrorObject(response);
@@ -168,20 +168,13 @@ const IconWrapper = styled.span`
 interface DateFilterLabelProps {
   name: string;
   onChange: (timeRange: string) => void;
-  onTimeRangeChange?: (textValue?: string, timeRange?: string) => void;
   value?: string;
   endpoints?: TimeRangeEndpoints;
   datasource?: string;
 }
 
 export default function DateFilterControl(props: DateFilterLabelProps) {
-  const {
-    value = 'Last week',
-    endpoints,
-    datasource,
-    onChange,
-    onTimeRangeChange = () => {},
-  } = props;
+  const { value = 'Last week', endpoints, onChange, datasource } = props;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
@@ -194,14 +187,13 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
 
   useEffect(() => {
     if (!isMounted) setIsMounted(true);
-    fetchTimeRange(value, endpoints).then(
-      ({ value: actualRange, timeRangeString, error }) => {
-        if (error) {
-          setEvalResponse(error || '');
-          setValidTimeRange(false);
-          setTooltipTitle(value || '');
-        } else {
-          /*
+    fetchTimeRange(value, endpoints).then(({ value: actualRange, error }) => {
+      if (error) {
+        setEvalResponse(error || '');
+        setValidTimeRange(false);
+        setTooltipTitle(value || '');
+      } else {
+        /*
           HRT == human readable text
           ADR == actual datetime range
           +--------------+------+----------+--------+----------+-----------+
@@ -212,24 +204,20 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           | tooltip      | ADR  | ADR      | HRT    | HRT      |   ADR     |
           +--------------+------+----------+--------+----------+-----------+
         */
-          const currentFrame = guessFrame(value);
-          if (
-            currentFrame === 'Common' ||
-            currentFrame === 'Calendar' ||
-            currentFrame === 'No filter'
-          ) {
-            setActualTimeRange(value);
-            setTooltipTitle(actualRange || '');
-            onTimeRangeChange(value, timeRangeString);
-          } else {
-            setActualTimeRange(actualRange || '');
-            setTooltipTitle(value || '');
-            onTimeRangeChange(value, timeRangeString);
-          }
-          setValidTimeRange(true);
+        if (
+          frame === 'Common' ||
+          frame === 'Calendar' ||
+          frame === 'No filter'
+        ) {
+          setActualTimeRange(value);
+          setTooltipTitle(actualRange || '');
+        } else {
+          setActualTimeRange(actualRange || '');
+          setTooltipTitle(value || '');
         }
-      },
-    );
+        setValidTimeRange(true);
+      }
+    });
   }, [value]);
 
   useEffect(() => {

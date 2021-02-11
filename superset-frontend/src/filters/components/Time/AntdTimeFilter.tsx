@@ -36,7 +36,7 @@ export default function AntdTimeFilter(props: AntdPluginFilterTimeProps) {
 
   const [value, setValue] = useState<string>(defaultValue ?? DEFAULT_VALUE);
 
-  const handleTimeRangeChange = (textValue: string, timeRange: string) => {
+  const handleTimeRangeChange = (timeRange: string): void => {
     setExtraFormData({
       // @ts-ignore
       extraFormData: {
@@ -44,8 +44,9 @@ export default function AntdTimeFilter(props: AntdPluginFilterTimeProps) {
           time_range: timeRange,
         },
       },
-      currentState: { value: textValue },
+      currentState: { value: timeRange },
     });
+    setValue(timeRange);
   };
 
   useEffect(() => {
@@ -58,12 +59,7 @@ export default function AntdTimeFilter(props: AntdPluginFilterTimeProps) {
 
   return (
     <Styles width={width} height={height}>
-      <DateFilterControl
-        value={value}
-        name=""
-        onChange={setValue}
-        onTimeRangeChange={handleTimeRangeChange}
-      />
+      <DateFilterControl value={value} name="" onChange={handleTimeRangeChange} />
     </Styles>
   );
 }
