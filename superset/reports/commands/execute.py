@@ -185,14 +185,13 @@ class BaseReportState:
             )
         return NotificationContent(name=name, screenshot=screenshot_data)
 
-    def send(self) -> None:
+    def _send(self, notification_content: NotificationContent) -> None:
         """
-        Creates the notification content and sends them to all recipients
+        Sends a notification to all recipients
 
         :raises: ReportScheduleNotificationError
         """
         notification_errors = []
-        notification_content = self._get_notification_content()
         for recipient in self._report_schedule.recipients:
             notification = create_notification(recipient, notification_content)
             try:
@@ -202,6 +201,24 @@ class BaseReportState:
                 notification_errors.append(str(ex))
         if notification_errors:
             raise ReportScheduleNotificationError(";".join(notification_errors))
+
+    def send(self) -> None:
+        """
+        Creates the notification content and sends them to all recipients
+
+        :raises: ReportScheduleNotificationError
+        """
+        notification_content = self._get_notification_content()
+        self._send(notification_content)
+
+    def send_error(self, name: str, message: str) -> None:
+        """
+        Creates and sends a notification for an error, to all recipients
+
+        :raises: ReportScheduleNotificationError
+        """
+        notification_content = NotificationContent(name=name, text=message)
+        self._send(notification_content)
 
     def is_in_grace_period(self) -> bool:
         """
@@ -258,6 +275,11 @@ class ReportNotTriggeredErrorState(BaseReportState):
             self.set_state_and_log(ReportState.SUCCESS)
         except CommandException as ex:
             self.set_state_and_log(ReportState.ERROR, error_message=str(ex))
+            self.send_error(
+                f"Error occurred for {self._report_schedule.type}:"
+                f" {self._report_schedule.name}",
+                str(ex)
+            )
             raise ex
 
 

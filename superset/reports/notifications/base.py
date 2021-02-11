@@ -31,6 +31,7 @@ class ScreenshotData:
 class NotificationContent:
     name: str
     screenshot: ScreenshotData
+    text: str
 
 
 class BaseNotification:  # pylint: disable=too-few-public-methods
