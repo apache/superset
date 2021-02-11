@@ -45,7 +45,7 @@ function HighlightedSql({
   return (
     <ModalTrigger
       modalTitle={t('SQL')}
-      modalBody={<Modal rawSql={rawSql} sql={sql} />}
+      modalBody={<HighlightSqlModal rawSql={rawSql} sql={sql} />}
       triggerNode={
         <TriggerNode
           shrink={shrink}
@@ -86,21 +86,21 @@ function TriggerNode({ shrink, sql, maxLines, maxWidth }) {
   );
 }
 
-function Modal({ rawSql, sql }) {
+function HighlightSqlModal({ rawSql, sql }) {
   return (
     <div>
       <h4>{t('Source SQL')}</h4>
       <SyntaxHighlighter language="sql" style={github}>
         {sql}
       </SyntaxHighlighter>
-      {rawSql && rawSql !== sql ? (
+      {rawSql && rawSql !== sql && (
         <div>
           <h4>{t('Raw SQL')}</h4>
           <SyntaxHighlighter language="sql" style={github}>
             {rawSql}
           </SyntaxHighlighter>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
