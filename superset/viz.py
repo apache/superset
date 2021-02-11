@@ -2836,6 +2836,19 @@ class RoseViz(NVD3TimeSeriesViz):
     sort_series = False
     is_timeseries = True
 
+    def query_obj(self) -> QueryObjectDict:
+        d = super().query_obj()
+        groupby = self.form_data.get("groupby")
+        columns = self.form_data.get("columns")
+        metrics = self.form_data.get("metrics")
+        sort_by = self.form_data.get("timeseries_limit_metric")
+        if sort_by:
+            sort_by_label = utils.get_metric_name(sort_by)
+            if sort_by_label not in d["metrics"]:
+                d["metrics"].append(sort_by)
+            d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
+        return d
+
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
             return None
