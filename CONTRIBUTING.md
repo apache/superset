@@ -222,6 +222,7 @@ Finally, never submit a PR that will put master branch in broken state. If the P
     - `fix(chart-api): cached-indicator always shows value is cached`
 
 - Add prefix `[WIP]` to title if not ready for review (WIP = work-in-progress). We recommend creating a PR with `[WIP]` first and remove it once you have passed CI test and read through your code changes at least once.
+- If you believe your PR contributes a potentially breaking change, put a `!` after the semantic prefix but before the colon in the PR title, like so: `feat!: Added foo functionality to bar`
 - **Screenshots/GIFs:** Changes to user interface require before/after screenshots, or GIF for interactions
   - Recommended capture tools ([Kap](https://getkap.co/), [LICEcap](https://www.cockos.com/licecap/), [Skitch](https://download.cnet.com/Skitch/3000-13455_4-189876.html))
   - If no screenshot is provided, the committers will mark the PR with `need:screenshot` label and will not review until screenshot is provided.
