@@ -78,6 +78,7 @@ elasticsearch-dbapi
 python-crontab
 Authlib
 apache-superset[cors]
+gevent==20.9.0
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
