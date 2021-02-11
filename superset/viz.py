@@ -1962,6 +1962,8 @@ class WorldMapViz(BaseViz):
     def query_obj(self) -> QueryObjectDict:
         qry = super().query_obj()
         qry["groupby"] = [self.form_data["entity"]]
+        if self.form_data.get("sort_by_metric", False):
+            qry["orderby"] = [(qry["metrics"][0], False)]
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
