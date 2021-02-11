@@ -27,13 +27,14 @@ describe('AnchorLink', () => {
     anchorLinkId: 'CHART-123',
   };
 
+  const globalLocation = window.location;
+  afterEach(() => {
+    window.location = globalLocation;
+  });
+
   beforeEach(() => {
-    global.window = Object.create(window);
-    Object.defineProperty(window, 'location', {
-      value: {
-        hash: `#${props.anchorLinkId}`,
-      },
-    });
+    delete window.location;
+    window.location = new URL(`https://path?#${props.anchorLinkId}`);
   });
 
   afterEach(() => {
