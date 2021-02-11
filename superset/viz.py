@@ -2838,8 +2838,6 @@ class RoseViz(NVD3TimeSeriesViz):
 
     def query_obj(self) -> QueryObjectDict:
         d = super().query_obj()
-        groupby = self.form_data.get("groupby")
-        columns = self.form_data.get("columns")
         metrics = self.form_data.get("metrics")
         sort_by = self.form_data.get("timeseries_limit_metric")
         if sort_by:
@@ -2887,6 +2885,12 @@ class PartitionViz(NVD3TimeSeriesViz):
         time_op = self.form_data.get("time_series_option", "not_time")
         # Return time series data if the user specifies so
         query_obj["is_timeseries"] = time_op != "not_time"
+        sort_by = self.form_data.get("timeseries_limit_metric")
+        if sort_by:
+            sort_by_label = utils.get_metric_name(sort_by)
+            if sort_by_label not in query_obj["metrics"]:
+                query_obj["metrics"].append(sort_by)
+            query_obj["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
         return query_obj
 
     def levels_for(
