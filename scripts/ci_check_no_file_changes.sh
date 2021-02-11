@@ -39,7 +39,7 @@ do
     echo "Invalid check: \"${CHECK}\". Falling back to exiting with FAILURE code"
     exit 1
   fi
-  REGEXES=(${REGEXES[@]} ${REGEX})
+  REGEXES=("${REGEXES[@]}" "${REGEX}")
 done
 echo
 
@@ -51,10 +51,11 @@ EOF
 
 for FILE in ${FILES}
 do
-  for REGEX in ${REGEXES[@]}
+  for REGEX in "${REGEXES[@]}"
   do
     if [[ "${FILE}" =~ ${REGEX} ]]; then
-      echo "Detected changes in following file: ${FILE}... Exiting with FAILURE code"
+      echo "Detected changes in following file: ${FILE}"
+      echo "Exiting with FAILURE code"
       exit 1
     fi
   done
