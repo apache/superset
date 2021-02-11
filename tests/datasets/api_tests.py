@@ -1119,6 +1119,7 @@ class TestDatasetApi(SupersetTestCase):
         {"VERSIONED_EXPORT": True},
         clear=True,
     )
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_export_dataset_bundle(self):
         """
         Dataset API: Test export dataset
