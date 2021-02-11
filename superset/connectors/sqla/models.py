@@ -1150,6 +1150,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 col = self.adhoc_metric_to_sqla(col, columns_by_name)
             elif col in columns_by_name:
                 col = columns_by_name[col].get_sqla_col()
+            elif col in metrics_by_name:
+                col = metrics_by_name[col].get_sqla_col()
 
             if isinstance(col, Label):
                 label = col._label  # pylint: disable=protected-access
