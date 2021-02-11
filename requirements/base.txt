@@ -303,7 +303,7 @@ zipp==3.4.0
 PyAthenaJDBC>1.0.9
 PyAthena>1.2.0
 sqlalchemy-redshift
-psycopg2
+psycopg2==2.8.5
 elasticsearch-dbapi
 python-crontab
 Authlib
