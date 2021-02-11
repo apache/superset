@@ -1059,6 +1059,8 @@ SIP_15_TOAST_MESSAGE = (
 
 # Turn this key to False to disable ownership check on the old dataset MVC and
 # datasource API /datasource/save.
+#
+# Warning: This config key is deprecated and will be removed in version 2.0.0"
 OLD_API_CHECK_DATASET_OWNERSHIP = True
 
 # SQLA table mutator, every time we fetch the metadata for a certain table
