@@ -29,6 +29,7 @@ import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { URL_PARAMS } from 'src/constants';
 import { MULTI_OPERATORS } from './constants';
+import {DashboardStandaloneMode} from "../dashboard/util/constants";
 
 const MAX_URL_LENGTH = 8000;
 
@@ -101,7 +102,7 @@ export function getExploreLongUrl(
   });
   search.form_data = safeStringify(formData);
   if (endpointType === URL_PARAMS.standalone) {
-    search.standalone = '1';
+    search.standalone = DashboardStandaloneMode.HIDE_NAV;
   }
   const url = uri.directory(directory).search(search).toString();
   if (!allowOverflow && url.length > MAX_URL_LENGTH) {
