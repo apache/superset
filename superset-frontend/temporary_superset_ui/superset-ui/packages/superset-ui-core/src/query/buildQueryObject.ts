@@ -32,6 +32,7 @@ export default function buildQueryObject<T extends QueryFormData>(
     timeseries_limit_metric,
     granularity,
     url_params = {},
+    custom_params = {},
     ...residualFormData
   } = formData;
   const { append_form_data = {}, override_form_data = {} } = extra_form_data;
@@ -65,6 +66,7 @@ export default function buildQueryObject<T extends QueryFormData>(
     timeseries_limit_metric: timeseries_limit_metric || undefined,
     order_desc: typeof order_desc === 'undefined' ? true : order_desc,
     url_params: url_params || undefined,
+    custom_params,
   };
   // append and override extra form data used by native filters
   queryObject = appendExtraFormData(queryObject, append_form_data);

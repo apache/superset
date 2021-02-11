@@ -143,6 +143,7 @@ export interface BaseFormData extends TimeRange, FormDataResidual {
   time_range_endpoints?: TimeRangeEndpoints;
   annotation_layers?: AnnotationLayer[];
   url_params?: Record<string, string>;
+  custom_params?: Record<string, string>;
 }
 
 /**
