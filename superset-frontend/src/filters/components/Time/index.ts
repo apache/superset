@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
@@ -26,7 +26,7 @@ export default class TimeFilterPlugin extends ChartPlugin {
     const metadata = new ChartMetadata({
       name: t('Time range filter plugin'),
       description: 'Custom time filter plugin',
-      isNativeFilter: true,
+      behaviors: [Behavior.NATIVE_FILTER],
       thumbnail,
     });
 

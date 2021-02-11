@@ -31,7 +31,7 @@ const Styles = styled.div<AntdPluginFilterStylesProps>`
 `;
 
 export default function AntdTimeFilter(props: AntdPluginFilterTimeProps) {
-  const { formData, setExtraFormData, width, height } = props;
+  const { formData, setExtraFormData, width } = props;
   const { defaultValue, currentValue } = formData;
 
   const [value, setValue] = useState<string>(defaultValue ?? DEFAULT_VALUE);
@@ -58,8 +58,13 @@ export default function AntdTimeFilter(props: AntdPluginFilterTimeProps) {
   }, [defaultValue]);
 
   return (
-    <Styles width={width} height={height}>
-      <DateFilterControl value={value} name="" onChange={handleTimeRangeChange} />
+    // @ts-ignore
+    <Styles width={width}>
+      <DateFilterControl
+        value={value}
+        name=""
+        onChange={handleTimeRangeChange}
+      />
     </Styles>
   );
 }
