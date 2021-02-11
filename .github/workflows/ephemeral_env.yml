@@ -1,14 +1,37 @@
-name: ephemeral_env
+name: Ephemeral env spinup
 
-on: pull_request
+on:
+  workflow_run:
+    workflows: ["Ephemeral env trigger"]
+    types:
+      - completed
 
 jobs:
   ephemeral_env:
     name: Spin up an ephemeral environment
+    if: >
+      ${{ github.event.workflow_run.event == 'issue_comment' &&
+      github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/download-artifact@v2
+      with:
+        name: build
+
+    - name: Display structure of downloaded files (debug)
+      run: ls -R
+
+    - name: Get SHA
+      id: get-sha
+      run: echo "::set-output name=sha::$(cat ./SHA)"
+
+    - name: Get PR number
+      id: get-pr
+      run: echo "::set-output name=pr::$(cat ./PR)"
+
+    - name: Load Docker image
+      run: docker load < ${{ steps.get-sha.outputs.sha }}.tar.gz
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -21,15 +44,15 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
 
-    - name: Build, tag, and push image to Amazon ECR
+    - name: Tag and push image to Amazon ECR
       id: build-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: superset-ci
-        IMAGE_TAG: ${{ github.sha }}
+        IMAGE_TAG: ${{ steps.get-sha.outputs.sha }}
         SUPERSET_LOAD_EXAMPLES: yes
       run: |
-        docker build --target ci -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker tag $IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
@@ -41,31 +64,35 @@ jobs:
         container-name: superset-ci
         image: ${{ steps.build-image.outputs.image }}
 
+    # TODO: handle "inactive" (deleted) services
     - name: Describe ECS service
       id: describe-services
       run: |
-        echo "::set-output name=count::$(aws ecs describe-services --cluster superset-ci --services ${{ github.sha }}-service | jq '.services | length')"
+        echo "::set-output name=count::$(aws ecs describe-services --cluster superset-ci --services PR-${{ steps.get-pr.outputs.pr }}-service | jq '.services | length')"
 
     - name: Create ECS service
       if: ${{ steps.describe-services.outputs.count == '0' }}
       id: create-service
+      env:
+        ECR_SUBNETS: subnet-0e15a5034b4121710,subnet-0e8efef4a72224974
+        ECR_SECURITY_GROUP: sg-092ff3a6ae0574d91
       run: |
         aws ecs create-service \
         --cluster superset-ci \
-        --service-name ${{ github.sha }}-service \
+        --service-name PR-${{ steps.get-pr.outputs.pr }}-service \
         --task-definition superset-ci \
         --launch-type FARGATE \
         --desired-count 1 \
         --platform-version LATEST \
-        --network-configuration "awsvpcConfiguration={subnets=[subnet-0e15a5034b4121710,subnet-0e8efef4a72224974],securityGroups=[sg-092ff3a6ae0574d91],assignPublicIp=ENABLED}" \
-        --tags key=sha,value=${{ github.sha }} key=github_user,value=${{ github.actor }}
+        --network-configuration "awsvpcConfiguration={subnets=[$ECR_SUBNETS],securityGroups=[$ECR_SECURITY_GROUP],assignPublicIp=ENABLED}" \
+        --tags key=pr,value=${{ steps.get-pr.outputs.pr }} key=sha,value=${{ steps.get-sha.outputs.sha }} key=github_user,value=${{ github.actor }}
 
     - name: Deploy Amazon ECS task definition
       id: deploy-task
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: ${{ github.sha }}-service
+        service: PR-${{ steps.get-pr.outputs.pr }}-service
         cluster: superset-ci
         wait-for-service-stability: true
         wait-for-minutes: 10
@@ -73,7 +100,7 @@ jobs:
     - name: List tasks
       id: list-tasks
       run: |
-        echo "::set-output name=task::$(aws ecs list-tasks --cluster superset-ci --service-name ${{ github.sha }}-service | jq '.taskArns | first')"
+        echo "::set-output name=task::$(aws ecs list-tasks --cluster superset-ci --service-name PR-${{ steps.get-pr.outputs.pr }}-service | jq '.taskArns | first')"
 
     - name: Get network interface
       id: get-eni
@@ -84,3 +111,15 @@ jobs:
       id: get-ip
       run: |
         echo "::set-output name=ip::$(aws ec2 describe-network-interfaces --network-interface-ids ${{ steps.get-eni.outputs.eni }} | jq '.NetworkInterfaces | first | .Association.PublicIp')"
+
+    - name: Comment
+      uses: actions/github-script@v3
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          github.issues.createComment({
+            issue_number: ${{ steps.get-pr.outputs.pr }},
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: 'Ephemeral env spinning up at http://${{ steps.get-ip.outputs.ip }}:8080'
+          })
