@@ -63,7 +63,7 @@ function DashboardTable({
     addDangerToast,
   );
   const [editModal, setEditModal] = useState<Dashboard>();
-  const [dashboardFilter, setDashboardFilter] = useState('Mine');
+  const [dashboardFilter, setDashboardFilter] = useState('Favorite');
 
   const handleDashboardEdit = (edits: Dashboard) =>
     SupersetClient.get({

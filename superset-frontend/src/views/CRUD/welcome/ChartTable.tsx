@@ -78,7 +78,7 @@ function ChartTable({
     closeChartEditModal,
   } = useChartEditModal(setCharts, charts);
 
-  const [chartFilter, setChartFilter] = useState('Mine');
+  const [chartFilter, setChartFilter] = useState('Favorite');
 
   const getFilters = (filterName: string) => {
     const filters = [];
