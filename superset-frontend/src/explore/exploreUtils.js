@@ -29,7 +29,7 @@ import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { URL_PARAMS } from 'src/constants';
 import { MULTI_OPERATORS } from './constants';
-import {DashboardStandaloneMode} from "../dashboard/util/constants";
+import { DashboardStandaloneMode } from '../dashboard/util/constants';
 
 const MAX_URL_LENGTH = 8000;
 
