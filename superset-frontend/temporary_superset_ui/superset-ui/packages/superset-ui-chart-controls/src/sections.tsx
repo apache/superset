@@ -75,7 +75,18 @@ export const datasourceAndVizType: ControlPanelSectionConfig = {
           type: 'HiddenControl',
           label: t('URL Parameters'),
           hidden: true,
-          description: t('Extra parameters for use in jinja templated queries'),
+          description: t('Extra url parameters for use in Jinja templated queries'),
+        },
+      },
+      {
+        name: 'custom_params',
+        config: {
+          type: 'HiddenControl',
+          label: t('Extra Parameters'),
+          hidden: true,
+          description: t(
+            'Extra parameters that any plugins can choose to set for use in Jinja templated queries',
+          ),
         },
       },
       {

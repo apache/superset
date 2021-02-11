@@ -116,6 +116,8 @@ export interface QueryObject extends QueryFields, TimeRange, ResidualQueryObject
 
   url_params?: Record<string, string>;
 
+  custom_params?: Record<string, string>;
+
   /** Free-form WHERE SQL: multiple clauses are concatenated by AND */
   where?: string;
 }
