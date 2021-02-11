@@ -134,3 +134,25 @@ body > footer {
 .filter-scope-container .dashboard-modal-actions-container {
   margin: 0;
 }
+
+/* Welcome page */
+.ant-collapse-content-box header > nav ul {
+  display: block;
+}
+
+.ant-collapse-content-box nav {
+  border: none;
+}
+
+.ant-collapse-content-box nav::after {
+  display: none !important;
+}
+
+.ant-collapse-content-box header > nav .navbar-right {
+  padding-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+#main-menu + div {
+  background: none;
+}
