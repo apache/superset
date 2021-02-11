@@ -23,7 +23,7 @@ import { styled, SupersetClient, t } from '@superset-ui/core';
 
 import { Menu, NoAnimationDropdown } from 'src/common/components';
 import Icon from 'src/components/Icon';
-
+import { URL_PARAMS } from 'src/constants';
 import CssEditor from './CssEditor';
 import RefreshIntervalModal from './RefreshIntervalModal';
 import SaveModal from './SaveModal';
@@ -34,6 +34,7 @@ import FilterScopeModal from './filterscope/FilterScopeModal';
 import downloadAsImage from '../../utils/downloadAsImage';
 import getDashboardUrl from '../util/getDashboardUrl';
 import { getActiveFilters } from '../util/activeDashboardFilters';
+import { getUrlParam } from '../../utils/urlUtils';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -162,14 +163,11 @@ class HeaderActionsDropdown extends React.PureComponent {
         break;
       }
       case MENU_KEYS.TOGGLE_FULLSCREEN: {
-        const hasStandalone = window.location.search.includes(
-          'standalone=true',
-        );
         const url = getDashboardUrl(
           window.location.pathname,
           getActiveFilters(),
           window.location.hash,
-          !hasStandalone,
+          getUrlParam(URL_PARAMS.standalone, 'number'),
         );
         window.location.replace(url);
         break;

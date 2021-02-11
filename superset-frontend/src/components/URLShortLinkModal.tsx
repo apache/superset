@@ -19,7 +19,7 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 import CopyToClipboard from './CopyToClipboard';
-import { getShortUrl } from '../utils/common';
+import { getShortUrl } from '../utils/urlUtils';
 import withToasts from '../messageToasts/enhancers/withToasts';
 import ModalTrigger from './ModalTrigger';
 

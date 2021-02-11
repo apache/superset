@@ -22,8 +22,6 @@ import { StickyContainer, Sticky } from 'react-sticky';
 import { styled } from '@superset-ui/core';
 import cx from 'classnames';
 
-export const SUPERSET_HEADER_HEIGHT = 59;
-
 const Wrapper = styled.div`
   position: relative;
   width: ${({ theme }) => theme.gridUnit * 8}px;
