@@ -27,7 +27,7 @@ import fetchMock from 'fetch-mock';
 import EmbedCodeButton from 'src/explore/components/EmbedCodeButton';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import * as urlUtils from 'src/utils/urlUtils';
-import { DashboardStandaloneMode } from '../../../../src/dashboard/util/constants';
+import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 
 const ENDPOINT = 'glob:*/r/shortner/';
 

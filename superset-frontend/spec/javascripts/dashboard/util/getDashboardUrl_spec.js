@@ -59,7 +59,7 @@ describe('getChartIdsFromLayout', () => {
     );
   });
 
-  it('should encode filters with missed standalone', () => {
+  it('should encode filters with missing standalone', () => {
     const urlWithStandalone = getDashboardUrl('path', filters, '', null);
     expect(urlWithStandalone).toBe(
       'path?preselect_filters=%7B%2235%22%3A%7B%22key%22%3A%5B%22value%22%5D%7D%7D',
