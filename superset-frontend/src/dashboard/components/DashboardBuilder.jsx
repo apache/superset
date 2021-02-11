@@ -42,13 +42,16 @@ import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponen
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { URL_PARAMS } from 'src/constants';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
+  DashboardStandaloneMode,
 } from '../util/constants';
 import FilterBar from './nativeFilters/FilterBar/FilterBar';
 import { StickyVerticalBar } from './StickyVerticalBar';
+import { getUrlParam } from '../../utils/urlUtils';
 
 const TABS_HEIGHT = 47;
 const HEADER_HEIGHT = 67;
@@ -225,7 +228,13 @@ class DashboardBuilder extends React.Component {
 
     const childIds = topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID];
 
-    const barTopOffset = HEADER_HEIGHT + (topLevelTabs ? TABS_HEIGHT : 0);
+    const hideDashboardHeader =
+      getUrlParam(URL_PARAMS.standalone, 'number') ===
+      DashboardStandaloneMode.HIDE_NAV_AND_TITLE;
+
+    const barTopOffset =
+      (hideDashboardHeader ? 0 : HEADER_HEIGHT) +
+      (topLevelTabs ? TABS_HEIGHT : 0);
 
     return (
       <StickyContainer
@@ -243,11 +252,14 @@ class DashboardBuilder extends React.Component {
               editMode={editMode}
               // you cannot drop on/displace tabs if they already exist
               disableDragdrop={!!topLevelTabs}
-              style={{ zIndex: 100, ...style }}
+              style={{
+                zIndex: 100,
+                ...style,
+              }}
             >
               {({ dropIndicatorProps }) => (
                 <div>
-                  <DashboardHeader />
+                  {!hideDashboardHeader && <DashboardHeader />}
                   {dropIndicatorProps && <div {...dropIndicatorProps} />}
                   {topLevelTabs && (
                     <WithPopoverMenu
@@ -277,7 +289,6 @@ class DashboardBuilder extends React.Component {
             </DragDroppable>
           )}
         </Sticky>
-
         <StyledDashboardContent
           className="dashboard-content"
           dashboardFiltersOpen={this.state.dashboardFiltersOpen}

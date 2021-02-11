@@ -16,19 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { URL_PARAMS } from 'src/constants';
 import serializeActiveFilterValues from './serializeActiveFilterValues';
 
 export default function getDashboardUrl(
-  pathname,
+  pathname: string,
   filters = {},
   hash = '',
-  standalone = false,
+  standalone?: number | null,
 ) {
+  const newSearchParams = new URLSearchParams();
+
   // convert flattened { [id_column]: values } object
   // to nested filter object
-  const obj = serializeActiveFilterValues(filters);
-  const preselectFilters = encodeURIComponent(JSON.stringify(obj));
+  newSearchParams.set(
+    URL_PARAMS.preselectFilters,
+    JSON.stringify(serializeActiveFilterValues(filters)),
+  );
+
+  if (standalone) {
+    newSearchParams.set(URL_PARAMS.standalone, standalone.toString());
+  }
+
   const hashSection = hash ? `#${hash}` : '';
-  const standaloneParam = standalone ? '&standalone=true' : '';
-  return `${pathname}?preselect_filters=${preselectFilters}${standaloneParam}${hashSection}`;
+
+  return `${pathname}?${newSearchParams.toString()}${hashSection}`;
 }
