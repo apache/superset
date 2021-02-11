@@ -111,6 +111,8 @@ RUN useradd --user-group --no-create-home --no-log-init --shell /bin/bash supers
         && rm -rf /var/lib/apt/lists/*
 
 COPY --from=superset-py /usr/local/lib/python3.7/site-packages/ /usr/local/lib/python3.7/site-packages/
+COPY --from=superset-py /usr/bin/geckodriver/ /usr/bin/geckodriver/
+COPY --from=superset-py /usr/bin/wires/ /usr/bin/wires/
 # Copying site-packages doesn't move the CLIs, so let's copy them one by one
 COPY --from=superset-py /usr/local/bin/gunicorn /usr/local/bin/celery /usr/local/bin/flask /usr/bin/
 COPY --from=superset-node /app/superset/static/assets /app/superset/static/assets
@@ -134,17 +136,3 @@ HEALTHCHECK CMD curl -f "http://localhost:$SUPERSET_PORT/health"
 EXPOSE ${SUPERSET_PORT}
 
 ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
-
-######################################################################
-# Dev image...
-######################################################################
-FROM lean AS dev
-
-COPY ./requirements/*.txt ./docker/requirements-*.txt/ /app/requirements/
-
-USER root
-# Cache everything for dev purposes...
-RUN cd /app \
-    && pip install --no-cache -r requirements/docker.txt \
-    && pip install --no-cache -r requirements/requirements-local.txt || true
-USER superset
