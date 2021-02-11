@@ -95,7 +95,7 @@ class Row(TypeEngine):
 
 class TimeStamp(types.TypeDecorator):
     """
-    A type to extend functionality of timestamp data type.dsad
+    A type to extend functionality of timestamp data type.
     """
 
     impl = TIMESTAMP
