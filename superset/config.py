@@ -45,6 +45,7 @@ from superset.typing import CacheConfig
 from superset.utils.core import is_test
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
+from superset.security.security import CustomSecurityManager
 
 logger = logging.getLogger(__name__)
 
@@ -1116,3 +1117,17 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise
+
+# our custom security manager
+CUSTOM_SECURITY_MANAGER = CustomSecurityManager
+# let's set a default dashboard for all users
+DASHBOARD_TEMPLATE_ID = 4
+
+# if DASHBOARD_TEMPLATE_ID is set, a copy of the
+# dashboard will be created and then he/she will
+# be redirected to it.
+# Otherwise, he/she will be redirected to the welcome page.
+DEFAULT_WELCOME_DASHBOARD = '/superset/dashboard/births'
+
+LOGIN_WITH_TOKEN = True
+TOKEN_API_URL = "http://localhost:5000/"

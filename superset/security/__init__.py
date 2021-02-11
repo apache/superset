@@ -15,3 +15,4 @@
 # specific language governing permissions and limitations
 # under the License.
 from superset.security.manager import SupersetSecurityManager  # noqa: F401
+from superset.security.security import CustomSecurityManager
