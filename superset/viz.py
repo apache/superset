@@ -2086,6 +2086,12 @@ class ParallelCoordinatesViz(BaseViz):
         d = super().query_obj()
         fd = self.form_data
         d["groupby"] = [fd.get("series")]
+        sort_by = self.form_data.get("timeseries_limit_metric")
+        if sort_by:
+            sort_by_label = utils.get_metric_name(sort_by)
+            if sort_by_label not in d["metrics"]:
+                d["metrics"].append(sort_by)
+            d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
