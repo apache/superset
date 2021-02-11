@@ -112,6 +112,8 @@ RUN mkdir -p ${PYTHONPATH} \
         && rm -rf /var/lib/apt/lists/*
 
 COPY --from=superset-py /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
+COPY --from=superset-py /usr/bin/geckodriver/ /usr/bin/geckodriver/
+COPY --from=superset-py /usr/bin/wires/ /usr/bin/wires/
 # Copying site-packages doesn't move the CLIs, so let's copy them one by one
 COPY --from=superset-py /usr/local/bin/gunicorn /usr/local/bin/celery /usr/local/bin/flask /usr/bin/
 COPY --from=superset-node /app/superset/static/assets /app/superset/static/assets
@@ -135,48 +137,3 @@ HEALTHCHECK CMD curl -f "http://localhost:$SUPERSET_PORT/health"
 EXPOSE ${SUPERSET_PORT}
 
 ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
-
-######################################################################
-# Dev image...
-######################################################################
-FROM lean AS dev
-ARG GECKODRIVER_VERSION=v0.28.0
-ARG FIREFOX_VERSION=88.0
-
-COPY ./requirements/*.txt ./docker/requirements-*.txt/ /app/requirements/
-
-USER root
-
-RUN apt-get update -y \
-    && apt-get install -y --no-install-recommends libnss3 libdbus-glib-1-2 libgtk-3-0 libx11-xcb1
-
-# Install GeckoDriver WebDriver
-RUN wget https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O /tmp/geckodriver.tar.gz && \
-    tar xvfz /tmp/geckodriver.tar.gz -C /tmp && \
-    mv /tmp/geckodriver /usr/local/bin/geckodriver && \
-    rm /tmp/geckodriver.tar.gz
-
-# Install Firefox
-RUN wget https://download-installer.cdn.mozilla.net/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 -O /opt/firefox.tar.bz2 && \
-    tar xvf /opt/firefox.tar.bz2 -C /opt && \
-    ln -s /opt/firefox/firefox /usr/local/bin/firefox
-
-# Cache everything for dev purposes...
-RUN cd /app \
-    && pip install --no-cache -r requirements/docker.txt \
-    && pip install --no-cache -r requirements/requirements-local.txt || true
-USER superset
-
-
-######################################################################
-# CI image...
-######################################################################
-FROM lean AS ci
-
-COPY --chown=superset ./docker/docker-bootstrap.sh /app/docker/
-COPY --chown=superset ./docker/docker-init.sh /app/docker/
-COPY --chown=superset ./docker/docker-ci.sh /app/docker/
-
-RUN chmod a+x /app/docker/*.sh
-
-CMD /app/docker/docker-ci.sh
