@@ -968,7 +968,7 @@ class TreemapViz(BaseViz):
     verbose_name = _("Treemap")
     credits = '<a href="https://d3js.org">d3.js</a>'
     is_timeseries = False
-    
+
     def query_obj(self) -> QueryObjectDict:
         d = super().query_obj()
         metrics = self.form_data.get("metrics")
@@ -2802,7 +2802,7 @@ class PairedTTestViz(BaseViz):
     verbose_name = _("Time Series - Paired t-test")
     sort_series = False
     is_timeseries = True
-    
+
     def query_obj(self) -> QueryObjectDict:
         d = super().query_obj()
         metrics = self.form_data.get("metrics")
@@ -2923,7 +2923,9 @@ class PartitionViz(NVD3TimeSeriesViz):
             sort_by_label = utils.get_metric_name(sort_by)
             if sort_by_label not in query_obj["metrics"]:
                 query_obj["metrics"].append(sort_by)
-            query_obj["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
+            query_obj["orderby"] = [
+                (sort_by, not self.form_data.get("order_desc", True))
+            ]
         return query_obj
 
     def levels_for(
