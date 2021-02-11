@@ -177,8 +177,19 @@ const StyledSectionContainer = styled.div`
 `;
 
 const StyledSectionTitle = styled.div`
+  display: flex;
+  align-items: center;
   margin: ${({ theme }) => theme.gridUnit * 2}px auto
     ${({ theme }) => theme.gridUnit * 4}px auto;
+
+  h4 {
+    margin: 0;
+  }
+
+  .required {
+    margin-left: ${({ theme }) => theme.gridUnit}px;
+    color: ${({ theme }) => theme.colors.error.base};
+  }
 `;
 
 const StyledSwitchContainer = styled.div`
@@ -1213,6 +1224,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   ? t('Report schedule')
                   : t('Alert condition schedule')}
               </h4>
+              <span className="required">*</span>
             </StyledSectionTitle>
             <AlertReportCronScheduler
               value={
@@ -1282,6 +1294,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           <div className="column message">
             <StyledSectionTitle>
               <h4>{t('Message content')}</h4>
+              <span className="required">*</span>
             </StyledSectionTitle>
             <div className="inline-container add-margin">
               <Radio.Group onChange={onContentTypeChange} value={contentType}>
@@ -1331,6 +1344,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             />
             <StyledSectionTitle>
               <h4>{t('Notification method')}</h4>
+              <span className="required">*</span>
             </StyledSectionTitle>
             <NotificationMethod
               setting={notificationSettings[0]}
