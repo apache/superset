@@ -21,6 +21,7 @@ import {
   QueryFormData,
   getChartMetadataRegistry,
   QueryObject,
+  Behavior,
 } from '@superset-ui/core';
 import { Charts } from 'src/dashboard/types';
 import { RefObject } from 'react';
@@ -100,9 +101,11 @@ export function mergeExtraFormData(
   };
 }
 
-export function isNativeFilter(vizType: string) {
+export function isCrossFilter(vizType: string) {
   // @ts-ignore need export from superset-ui `ItemWithValue`
-  return getChartMetadataRegistry().items[vizType]?.value.isNativeFilter;
+  return getChartMetadataRegistry().items[vizType]?.value.behaviors?.includes(
+    Behavior.CROSS_FILTER,
+  );
 }
 
 export function getExtraFormData(
@@ -117,7 +120,7 @@ export function getExtraFormData(
   });
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     Object.entries(charts).forEach(([key, chart]) => {
-      if (isNativeFilter(chart?.formData?.viz_type)) {
+      if (isCrossFilter(chart?.formData?.viz_type)) {
         const filterState = nativeFilters.filtersState[key] || {};
         const { extraFormData: newExtra = {} } = filterState;
         extraFormData = mergeExtraFormData(extraFormData, newExtra);
