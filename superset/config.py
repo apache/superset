@@ -616,45 +616,6 @@ SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 # http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
 
 
-class CeleryConfig(object):
-    BROKER_URL = os.environ.get("REDIS_HOST")
-    CELERY_IMPORTS = (
-        'superset.sql_lab',
-        'superset.tasks',
-    )
-    CELERY_RESULT_BACKEND = os.environ.get("REDIS_HOST")
-    CELERYD_LOG_LEVEL = 'DEBUG'
-    CELERYD_PREFETCH_MULTIPLIER = 1
-    CELERY_ACKS_LATE = False
-    CELERY_ANNOTATIONS = {
-        'sql_lab.get_sql_results': {
-            'rate_limit': '100/s',
-        },
-        'email_reports.send': {
-            'rate_limit': '1/s',
-            'time_limit': 300,
-            'soft_time_limit': 300,
-            'ignore_result': True,
-        },
-    }
-    CELERYBEAT_SCHEDULE = {
-        'email_reports.schedule_hourly': {
-            'task': 'email_reports.schedule_hourly',
-            'schedule': crontab(minute='1', hour='*'),
-        },
-        'reports.scheduler': {
-            'task': 'reports.scheduler',
-            'schedule': crontab(minute='*', hour='*'),
-        },
-        'reports.prune_log': {
-            'task': 'reports.prune_log',
-            'schedule': crontab(minute=0, hour=0),
-        },
-    }
-
-
-CELERY_CONFIG = CeleryConfig  # pylint: disable=invalid-name
-
 # Set celery config to None to disable all the above configuration
 # CELERY_CONFIG = None
 

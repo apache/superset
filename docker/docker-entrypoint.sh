@@ -18,8 +18,12 @@
 set -eo pipefail
 
 if [ "${#}" -ne 0 ]; then
+    echo ">>>>>Total args passed to me >>>> $#" 
+    echo "****Total args passed to @ **** $@"
     exec "${@}"
+
 else
+    echo "&&&& FLASK_APP is $FLASK_APP"
     gunicorn \
         --bind  "0.0.0.0:${SUPERSET_PORT}" \
         --access-logfile '-' \
