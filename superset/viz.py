@@ -545,7 +545,8 @@ class BaseViz:
                     + (query_obj.get("groupby") or [])
                     + utils.get_column_names_from_metrics(
                         cast(
-                            List[Union[str, Dict[str, Any]]], query_obj.get("metrics"),
+                            List[Union[str, Dict[str, Any]]],
+                            query_obj.get("metrics"),
                         )
                     )
                     if col not in self.datasource.column_names
@@ -1825,7 +1826,12 @@ class SankeyViz(BaseViz):
         source, target = self.groupby
         (value,) = self.metric_labels
         df.rename(
-            columns={source: "source", target: "target", value: "value",}, inplace=True,
+            columns={
+                source: "source",
+                target: "target",
+                value: "value",
+            },
+            inplace=True,
         )
         df["source"] = df["source"].astype(str)
         df["target"] = df["target"].astype(str)
@@ -2027,7 +2033,9 @@ class FilterBoxViz(BaseViz):
         qry["row_limit"] = self.filter_row_limit
         predicate_string = self.datasource.fetch_values_predicate
         if predicate_string:
-            qry["extras"]["where"] = self.construct_where(qry["extras"]["where"], predicate_string)
+            qry["extras"]["where"] = self.construct_where(
+                qry["extras"]["where"], predicate_string
+            )
         self.dataframes = {}
         for flt in filters:
             col = flt.get("column")
