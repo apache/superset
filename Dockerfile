@@ -48,6 +48,9 @@ RUN wget --no-verbose -O /tmp/geckodriver.tar.gz https://github.com/mozilla/geck
   && ln -fs /opt/geckodriver-$GECKODRIVER_VERSION /usr/bin/geckodriver \
   && ln -fs /opt/geckodriver-$GECKODRIVER_VERSION /usr/bin/wires
 
+RUN Xvfb :10 -ac &
+RUN export DISPLAY=:10
+
 # First, we just wanna install requirements, which will allow us to utilize the cache
 # in order to only build if and only if requirements change
 COPY ./requirements/*.txt  /app/requirements/
@@ -111,8 +114,10 @@ RUN useradd --user-group --no-create-home --no-log-init --shell /bin/bash supers
         && rm -rf /var/lib/apt/lists/*
 
 COPY --from=superset-py /usr/local/lib/python3.7/site-packages/ /usr/local/lib/python3.7/site-packages/
-COPY --from=superset-py /usr/bin/geckodriver/ /usr/bin/geckodriver/
-COPY --from=superset-py /usr/bin/wires/ /usr/bin/wires/
+COPY --from=superset-py /usr/bin/geckodriver/ /usr/bin/
+COPY --from=superset-py /usr/bin/wires/ /usr/bin/
+
+ENV PATH "$PATH:/usr/bin/geckodriver"
 # Copying site-packages doesn't move the CLIs, so let's copy them one by one
 COPY --from=superset-py /usr/local/bin/gunicorn /usr/local/bin/celery /usr/local/bin/flask /usr/bin/
 COPY --from=superset-node /app/superset/static/assets /app/superset/static/assets

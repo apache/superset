@@ -307,6 +307,7 @@ psycopg2==2.8.5
 elasticsearch-dbapi
 python-crontab
 Authlib
+gevent==20.9.0
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

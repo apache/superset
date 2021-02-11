@@ -28,11 +28,11 @@ else
         --bind  "0.0.0.0:${SUPERSET_PORT}" \
         --access-logfile '-' \
         --error-logfile '-' \
-        --workers 5 \
-        --worker-class gevent \
-        --threads 4 \
-        --timeout 120 \
-        --limit-request-line 4094 \
-        --limit-request-field_size 8190 \
+        --workers 1 \
+        --worker-class gthread \
+        --threads 20 \
+        --timeout 60 \
+        --limit-request-line 0 \
+        --limit-request-field_size 0 \
         "${FLASK_APP}"
 fi
