@@ -25,10 +25,10 @@ if [ "${#}" -ne 0 ]; then
 else
     echo "&&&& FLASK_APP is $FLASK_APP"
     gunicorn \
-        --bind  "0.0.0.0:${SUPERSET_PORT}" \
+        --bind "0.0.0.0:${SUPERSET_PORT}" \
         --access-logfile '-' \
         --error-logfile '-' \
-        --workers 1 \
+        --workers ${GUNIOCORN_WORKERS} \
         --worker-class gthread \
         --threads 20 \
         --timeout 60 \
