@@ -69,7 +69,6 @@ REDIS_RESULTS_DB = get_env_variable("REDIS_RESULTS_DB", "1")
 
 RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 
-
 class CeleryConfig(object):
     BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
     CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks")
@@ -87,7 +86,6 @@ class CeleryConfig(object):
             "schedule": crontab(minute=10, hour=0),
         },
     }
-
 
 CELERY_CONFIG = CeleryConfig
 
