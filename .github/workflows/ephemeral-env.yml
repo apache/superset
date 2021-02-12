@@ -107,9 +107,11 @@ jobs:
         wait-for-service-stability: true
         wait-for-minutes: 10
 
+    # TODO: post comment upon failure
+
     - name: Update ECS service task count
       run: |
-        aws ecs update-service --service PR-${{ github.event.issue.number }}-service --desired-count 1
+        aws ecs update-service --cluster superset-ci --service PR-${{ github.event.issue.number }}-service --desired-count 1
 
     - name: List tasks
       id: list-tasks
