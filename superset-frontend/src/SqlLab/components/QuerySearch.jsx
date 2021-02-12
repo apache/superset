@@ -62,8 +62,8 @@ const TableStyles = styled.div`
 const StyledTableStylesContainer = styled.div`
   overflow: auto;
 `;
-
-function QuerySearch({ actions, height, displayLimit }) {
+// height is invoked in the interface above, and I also saw that there were some functions that pass height into this function, but it is never used
+function QuerySearch({ actions, displayLimit }) {
   const [databaseId, setDatabaseId] = useState(null);
   const [userId, setUserId] = useState(null);
   const [searchText, setSearchText] = useState(null);
@@ -123,10 +123,10 @@ function QuerySearch({ actions, height, displayLimit }) {
         actions.addDangerToast(t('An error occurred when refreshing queries'));
       });
   };
-
+  // functionally this is closest to componentDidMount, though Abramov recommends that it is better if you have a more robust dependency array, though I am afraid that will go into a useCallback loop like before. Though, I could remove some of the refreshQueries in the other methods, and instead have the dependency array focus on when values are changed? That would maybe not play nicely with onChange though.
   useEffect(() => {
     refreshQueries();
-  });
+  }, []);
 
   const onUserClicked = userId => {
     setUserId(userId);
