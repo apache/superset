@@ -338,12 +338,12 @@ def create_no_alert_email_chart(request):
             "validator_config_json": '{"op": "!=", "threshold": 10}',
         },
         "alert6": {
-            "sql": "SELECT first from test_table where first=0",
+            "sql": "SELECT first from test_table where 1=0",
             "validator_type": ReportScheduleValidatorType.NOT_NULL,
             "validator_config_json": "{}",
         },
         "alert7": {
-            "sql": "SELECT first from test_table where first=0",
+            "sql": "SELECT first from test_table where 1=0",
             "validator_type": ReportScheduleValidatorType.OPERATOR,
             "validator_config_json": '{"op": ">", "threshold": 0}',
         },
