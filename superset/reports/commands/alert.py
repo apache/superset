@@ -47,7 +47,7 @@ class AlertCommand(BaseCommand):
     def run(self) -> bool:
         self.validate()
 
-        if self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL:
+        if self._is_validator_not_null:
             self._report_schedule.last_value_row_json = str(self._result)
             return self._result is not None
         self._report_schedule.last_value = self._result
@@ -96,6 +96,18 @@ class AlertCommand(BaseCommand):
         except (AssertionError, TypeError, ValueError):
             raise AlertQueryInvalidTypeError()
 
+    @property
+    def _is_validator_not_null(self) -> bool:
+        return (
+            self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL
+        )
+
+    @property
+    def _is_validator_operator(self) -> bool:
+        return (
+            self._report_schedule.validator_type == ReportScheduleValidatorType.OPERATOR
+        )
+
     def validate(self) -> None:
         """
         Validate the query result as a Pandas DataFrame
@@ -109,14 +121,14 @@ class AlertCommand(BaseCommand):
         except Exception as ex:
             raise AlertQueryError(message=str(ex))
 
-        if df.empty and ReportScheduleValidatorType.NOT_NULL:
+        if df.empty and self._is_validator_not_null:
             self._result = None
             return
-        if df.empty and ReportScheduleValidatorType.OPERATOR:
+        if df.empty and self._is_validator_operator:
             self._result = 0.0
             return
         rows = df.to_records()
-        if self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL:
+        if self._is_validator_not_null:
             self._validate_not_null(rows)
             return
         self._validate_operator(rows)
