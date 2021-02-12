@@ -21,7 +21,7 @@ import {
   CategoricalColorNamespace,
   DataRecordFilters,
 } from '@superset-ui/core';
-import { ChartQueryPayload, LayoutItem } from 'src/dashboard/types';
+import { ChartQueryPayload, Charts, LayoutItem } from 'src/dashboard/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getActiveNativeFilters } from '../activeDashboardNativeFilters';
@@ -34,6 +34,7 @@ const cachedFormdataByChart = {};
 
 export interface GetFormDataWithExtraFiltersArguments {
   chart: ChartQueryPayload;
+  charts: Charts;
   filters: DataRecordFilters;
   layout: { [key: string]: LayoutItem };
   colorScheme?: string;
@@ -47,6 +48,7 @@ export interface GetFormDataWithExtraFiltersArguments {
 // filters param only contains those applicable to this chart.
 export default function getFormDataWithExtraFilters({
   chart,
+  charts,
   filters,
   colorScheme,
   colorNamespace,
@@ -78,7 +80,7 @@ export default function getFormDataWithExtraFilters({
   );
   if (isAffectedChart) {
     extraData = {
-      extra_form_data: getExtraFormData(nativeFilters),
+      extra_form_data: getExtraFormData(nativeFilters, charts),
     };
   }
 

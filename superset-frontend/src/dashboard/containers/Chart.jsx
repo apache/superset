@@ -60,6 +60,7 @@ function mapStateToProps(
   const formData = getFormDataWithExtraFilters({
     layout: dashboardLayout.present,
     chart,
+    charts: chartQueries,
     filters: getAppliedFilterValues(id),
     colorScheme,
     colorNamespace,

@@ -24,9 +24,9 @@ import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
 import { Tooltip } from 'src/common/components/Tooltip';
 import Modal from 'src/common/components/Modal';
 import Label from 'src/components/Label';
-
 import ControlHeader from '../ControlHeader';
 import './VizTypeControl.less';
+import { FeatureFlag, isFeatureEnabled } from '../../../featureFlags';
 
 const propTypes = {
   description: PropTypes.string,
@@ -168,7 +168,11 @@ const VizTypeControl = props => {
   const filteredTypes = DEFAULT_ORDER.filter(type => registry.has(type))
     .filter(type => {
       const behaviors = registry.get(type)?.behaviors || [];
-      return behaviors.includes(Behavior.CROSS_FILTER) || !behaviors.length;
+      return (
+        (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+          behaviors.includes(Behavior.CROSS_FILTER)) ||
+        !behaviors.length
+      );
     })
     .map(type => ({
       key: type,
@@ -179,7 +183,11 @@ const VizTypeControl = props => {
         .entries()
         .filter(entry => {
           const behaviors = entry.value?.behaviors || [];
-          return behaviors.includes(Behavior.CROSS_FILTER) || !behaviors.length;
+          return (
+            (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+              behaviors.includes(Behavior.CROSS_FILTER)) ||
+            !behaviors.length
+          );
         })
         .filter(({ key }) => !typesWithDefaultOrder.has(key)),
     )

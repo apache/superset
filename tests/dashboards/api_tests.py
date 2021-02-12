@@ -22,7 +22,6 @@ from io import BytesIO
 from typing import List, Optional
 from unittest.mock import patch
 from zipfile import is_zipfile, ZipFile
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import pytest
 import prison
@@ -49,6 +48,7 @@ from tests.fixtures.importexport import (
     dataset_metadata_config,
 )
 from tests.utils.get_dashboards import get_dashboards_ids
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 DASHBOARDS_FIXTURE_COUNT = 10
@@ -223,6 +223,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         assert "can_write" in data["permissions"]
         assert len(data["permissions"]) == 2
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_not_found(self):
         """
         Dashboard API: Test get dashboard not found

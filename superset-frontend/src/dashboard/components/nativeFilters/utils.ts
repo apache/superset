@@ -16,8 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ExtraFormData, QueryFormData, QueryObject } from '@superset-ui/core';
+import {
+  ExtraFormData,
+  QueryFormData,
+  getChartMetadataRegistry,
+  QueryObject,
+  Behavior,
+} from '@superset-ui/core';
+import { Charts } from 'src/dashboard/types';
 import { RefObject } from 'react';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { Filter } from './types';
 import { NativeFiltersState } from '../../reducers/types';
 
@@ -93,8 +101,16 @@ export function mergeExtraFormData(
   };
 }
 
+export function isCrossFilter(vizType: string) {
+  // @ts-ignore need export from superset-ui `ItemWithValue`
+  return getChartMetadataRegistry().items[vizType]?.value.behaviors?.includes(
+    Behavior.CROSS_FILTER,
+  );
+}
+
 export function getExtraFormData(
   nativeFilters: NativeFiltersState,
+  charts: Charts,
 ): ExtraFormData {
   let extraFormData: ExtraFormData = {};
   Object.keys(nativeFilters.filters).forEach(key => {
@@ -102,5 +118,14 @@ export function getExtraFormData(
     const { extraFormData: newExtra = {} } = filterState;
     extraFormData = mergeExtraFormData(extraFormData, newExtra);
   });
+  if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
+    Object.entries(charts).forEach(([key, chart]) => {
+      if (isCrossFilter(chart?.formData?.viz_type)) {
+        const filterState = nativeFilters.filtersState[key] || {};
+        const { extraFormData: newExtra = {} } = filterState;
+        extraFormData = mergeExtraFormData(extraFormData, newExtra);
+      }
+    });
+  }
   return extraFormData;
 }
