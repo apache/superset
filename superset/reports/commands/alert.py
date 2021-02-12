@@ -49,9 +49,7 @@ class AlertCommand(BaseCommand):
 
         if self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL:
             self._report_schedule.last_value_row_json = str(self._result)
-            return self._result not in (0, 0.0, None, np.nan)
-        if self._result in (0, 0.0, None, np.nan):
-            self._result = 0.0
+            return self._result is not None
         self._report_schedule.last_value = self._result
         try:
             operator = json.loads(self._report_schedule.validator_config_json)["op"]
@@ -111,8 +109,10 @@ class AlertCommand(BaseCommand):
         except Exception as ex:
             raise AlertQueryError(message=str(ex))
 
-        if df.empty:
-            return
+        if df.empty and ReportScheduleValidatorType.NOT_NULL:
+            self._result = None
+        if df.empty and ReportScheduleValidatorType.OPERATOR:
+            self._result = 0.0
         rows = df.to_records()
         if self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL:
             self._validate_not_null(rows)
