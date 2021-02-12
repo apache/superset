@@ -5,9 +5,9 @@ on:
     types: [created]
 
 jobs:
-  ephemeral_env:
+  ephemeral_env_comment:
     if: ${{ github.event.issue.pull_request }}
-    name: Spin up an ephemeral environment
+    name: Evaluate ephemeral env comment trigger (/testenv)
     runs-on: ubuntu-latest
 
     steps:
@@ -25,15 +25,32 @@ jobs:
           const pattern = /^\/testenv/
           return String(pattern.test(context.payload.comment.body))
 
-    - name: Exit on invalid command
+    - name: Exit on non-matching comment body
       if: steps.eval-body.outputs.result == 'false'
-      run: exit 0
+      run: exit 1
 
     # https://docs.github.com/en/graphql/reference/enums#commentauthorassociation
     - name: Limit to committers
       if: github.event.comment.author_association != 'MEMBER' && github.event.comment.author_association != 'OWNER'
-      run: exit 1
+      uses: actions/github-script@v3
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          const errMsg = 'Ephemeral environment creation is currently limited to committers.'
+          github.issues.createComment({
+            issue_number: ${{ github.event.issue.number }},
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: errMsg
+          })
+          core.setFailed(errMsg)
 
+  ephemeral_env_creation:
+    needs: ephemeral_env_comment
+    name: Spin up an ephemeral environment
+    runs-on: ubuntu-latest
+
+    steps:
     - uses: actions/checkout@v2
       with:
         persist-credentials: false
@@ -65,6 +82,8 @@ jobs:
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
+
+    # TODO: check that the target image exists on ECR
 
     - name: Fill in the new image ID in the Amazon ECS task definition
       id: task-def
@@ -106,8 +125,6 @@ jobs:
         cluster: superset-ci
         wait-for-service-stability: true
         wait-for-minutes: 10
-
-    # TODO: post comment upon failure
 
     - name: Update ECS service task count
       run: |
