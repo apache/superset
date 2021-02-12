@@ -870,7 +870,8 @@ class PivotTableViz(BaseViz):
             sort_by_label = utils.get_metric_name(sort_by)
             if sort_by_label not in d["metrics"]:
                 d["metrics"].append(sort_by)
-            d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
+            if self.form_data.get("order_desc"):
+                d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
         return d
 
     @staticmethod
@@ -977,7 +978,8 @@ class TreemapViz(BaseViz):
             sort_by_label = utils.get_metric_name(sort_by)
             if sort_by_label not in d["metrics"]:
                 d["metrics"].append(sort_by)
-            d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
+            if self.form_data.get("order_desc"):
+                d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
         return d
 
     def _nest(self, metric: str, df: pd.DataFrame) -> List[Dict[str, Any]]:
@@ -1646,7 +1648,8 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
             sort_by_label = utils.get_metric_name(sort_by)
             if sort_by_label not in d["metrics"]:
                 d["metrics"].append(sort_by)
-            d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
+            if self.form_data.get("order_desc"):
+                d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
         return d
 
 
@@ -2113,7 +2116,8 @@ class ParallelCoordinatesViz(BaseViz):
             sort_by_label = utils.get_metric_name(sort_by)
             if sort_by_label not in d["metrics"]:
                 d["metrics"].append(sort_by)
-            d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
+            if self.form_data.get("order_desc"):
+                d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -2186,6 +2190,18 @@ class HorizonViz(NVD3TimeSeriesViz):
         '<a href="https://www.npmjs.com/package/d3-horizon-chart">'
         "d3-horizon-chart</a>"
     )
+
+    def query_obj(self) -> QueryObjectDict:
+        d = super().query_obj()
+        metrics = self.form_data.get("metrics")
+        sort_by = self.form_data.get("timeseries_limit_metric")
+        if sort_by:
+            sort_by_label = utils.get_metric_name(sort_by)
+            if sort_by_label not in d["metrics"]:
+                d["metrics"].append(sort_by)
+            if self.form_data.get("order_desc"):
+                d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
+        return d
 
 
 class MapboxViz(BaseViz):
@@ -2811,7 +2827,8 @@ class PairedTTestViz(BaseViz):
             sort_by_label = utils.get_metric_name(sort_by)
             if sort_by_label not in d["metrics"]:
                 d["metrics"].append(sort_by)
-            d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
+            if self.form_data.get("order_desc"):
+                d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -2877,7 +2894,8 @@ class RoseViz(NVD3TimeSeriesViz):
             sort_by_label = utils.get_metric_name(sort_by)
             if sort_by_label not in d["metrics"]:
                 d["metrics"].append(sort_by)
-            d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
+            if self.form_data.get("order_desc"):
+                d["orderby"] = [(sort_by, not self.form_data.get("order_desc", True))]
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
