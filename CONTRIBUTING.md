@@ -470,8 +470,8 @@ First, be sure you are using recent versions of NodeJS and npm. We recommend usi
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash
 
 cd superset-frontend
-nvm install
-nvm use
+nvm install --lts
+nvm use --lts
 ```
 
 For those interested, you may also try out [avn](https://github.com/nvm-sh/nvm#deeper-shell-integration) to automatically switch to the node version that is required to run Superset frontend.
