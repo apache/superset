@@ -22,3 +22,8 @@ export const TIME_WITH_MS = 'HH:mm:ss.SSS';
 
 export const BOOL_TRUE_DISPLAY = 'True';
 export const BOOL_FALSE_DISPLAY = 'False';
+
+export const URL_PARAMS = {
+  standalone: 'standalone',
+  preselectFilters: 'preselect_filters',
+};
