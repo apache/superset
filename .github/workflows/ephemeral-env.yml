@@ -126,9 +126,10 @@ jobs:
     - name: Get public IP
       id: get-ip
       run: |
-        echo "::set-output name=ip::$(aws ec2 describe-network-interfaces --network-interface-ids ${{ steps.get-eni.outputs.eni }} | jq '.NetworkInterfaces | first | .Association.PublicIp')"
+        echo "::set-output name=ip::$(aws ec2 describe-network-interfaces --network-interface-ids ${{ steps.get-eni.outputs.eni }} | jq -r '.NetworkInterfaces | first | .Association.PublicIp')"
 
-    - name: Comment
+    - name: Comment (success)
+      if: ${{ success() }}
       uses: actions/github-script@v3
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
@@ -137,5 +138,18 @@ jobs:
             issue_number: ${{ github.event.issue.number }},
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: 'Ephemeral env spinning up at http://${{ steps.get-ip.outputs.ip }}:8080'
+            body: 'Ephemeral environment spinning up at http://${{ steps.get-ip.outputs.ip }}:8080. Please allow several minutes for startup.'
+          })
+
+    - name: Comment (failure)
+      if: ${{ failure() }}
+      uses: actions/github-script@v3
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          github.issues.createComment({
+            issue_number: ${{ github.event.issue.number }},
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: 'Ephemeral environment creation failed. Please check the Actions logs for details.'
           })
