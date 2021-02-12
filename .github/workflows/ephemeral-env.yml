@@ -83,7 +83,29 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
 
-    # TODO: check that the target image exists on ECR
+    - name: Check target image exists in ECR
+      id: check-image
+      continue-on-error: true
+      run: |
+        aws ecr describe-images \
+        --registry-id ${{ steps.login-ecr.outputs.registry }} \
+        --repository-name superset-ci \
+        --image-ids imageTag=${{ fromJSON(steps.get-pr.outputs.result).merge_commit_sha }}
+
+    - name: Fail on missing container image
+      if: steps.check-image.outcome == 'failure'
+      uses: actions/github-script@v3
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          const errMsg = 'Container image not yet published for this commit. Please try again when build is complete.'
+          github.issues.createComment({
+            issue_number: ${{ github.event.issue.number }},
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: errMsg
+          })
+          core.setFailed(errMsg)
 
     - name: Fill in the new image ID in the Amazon ECS task definition
       id: task-def
