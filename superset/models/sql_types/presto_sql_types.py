@@ -17,7 +17,7 @@
 from typing import Any, Dict, List, Optional, Type
 
 from sqlalchemy import types
-from sqlalchemy.sql.sqltypes import Integer, TIMESTAMP
+from sqlalchemy.sql.sqltypes import Integer, TIMESTAMP, DATE
 from sqlalchemy.sql.type_api import TypeEngine
 from sqlalchemy.sql.visitors import Visitable
 
@@ -106,3 +106,18 @@ class TimeStamp(types.TypeDecorator):
         as Presto does not support automatic casting.
         """
         return "TIMESTAMP '%s'" % value
+
+class Date(types.TypeDecorator):
+    """
+    A type to extend functionality of date data type.
+    """
+
+    impl = DATE
+
+    def process_bind_param(self, value, dialect):
+        """
+        Used for in-line rendering of DATE data type
+        as Presto does not support automatic casting.
+        """
+        return "DATE '%s'" % value
+        

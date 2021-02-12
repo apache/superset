@@ -48,7 +48,8 @@ from superset.models.sql_types.presto_sql_types import (
     Map,
     Row,
     TinyInteger,
-    TimeStamp
+    TimeStamp,
+    Date
 )
 from superset.result_set import destringify
 from superset.sql_parse import ParsedQuery
@@ -918,6 +919,8 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
                 col_type = column_names.get(col_name)
                 if col_type == 'TIMESTAMP':
                     query = query.where(Column(col_name, TimeStamp()) == value)
+                elif col_type == 'DATE':
+                    query = query.where(Column(col_name, Date()) == value)
                 else:
                     query = query.where(Column(col_name) == value)
         return query
