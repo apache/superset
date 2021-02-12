@@ -72,7 +72,7 @@ jobs:
       with:
         task-definition: .github/workflows/ecs-task-definition.json
         container-name: superset-ci
-        image: ${{ steps.login-ecr.outputs.registry }}/superset-ci:${{ fromJSON(steps.get-pr.outputs.result).head.sha }}
+        image: ${{ steps.login-ecr.outputs.registry }}/superset-ci:${{ fromJSON(steps.get-pr.outputs.result).merge_commit_sha }}
 
     # TODO: handle "inactive" (deleted) services
     - name: Describe ECS service
@@ -95,7 +95,7 @@ jobs:
         --desired-count 0 \
         --platform-version LATEST \
         --network-configuration "awsvpcConfiguration={subnets=[$ECR_SUBNETS],securityGroups=[$ECR_SECURITY_GROUP],assignPublicIp=ENABLED}" \
-        --tags key=pr,value=${{ github.event.issue.number }} key=sha,value=${{ fromJSON(steps.get-pr.outputs.result).head.sha }} key=github_user,value=${{ github.actor }}
+        --tags key=pr,value=${{ github.event.issue.number }} key=sha,value=${{ fromJSON(steps.get-pr.outputs.result).merge_commit_sha }} key=github_user,value=${{ github.actor }}
 
     - name: Deploy Amazon ECS task definition
       id: deploy-task
@@ -107,14 +107,16 @@ jobs:
         wait-for-service-stability: true
         wait-for-minutes: 10
 
+    # TODO: post comment upon failure
+
     - name: Update ECS service task count
       run: |
-        aws ecs update-service --service PR-${{ github.event.issue.number }}-service --desired-count 1
+        aws ecs update-service --cluster superset-ci --service PR-${{ github.event.issue.number }}-service --desired-count 1
 
     - name: List tasks
       id: list-tasks
       run: |
-        echo "::set-output name=task::$(aws ecs list-tasks --cluster superset-ci --service-name PR-${{ steps.get-pr.outputs.pr }}-service | jq '.taskArns | first')"
+        echo "::set-output name=task::$(aws ecs list-tasks --cluster superset-ci --service-name PR-${{ github.event.issue.number }}-service | jq '.taskArns | first')"
 
     - name: Get network interface
       id: get-eni
