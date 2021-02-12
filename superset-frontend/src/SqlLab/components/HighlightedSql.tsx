@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
@@ -27,41 +26,27 @@ import ModalTrigger from '../../components/ModalTrigger';
 
 SyntaxHighlighter.registerLanguage('sql', sql);
 
-const propTypes = {
-  sql: PropTypes.string.isRequired,
-  rawSql: PropTypes.string,
-  maxWidth: PropTypes.number,
-  maxLines: PropTypes.number,
-  shrink: PropTypes.bool,
-};
-
-function HighlightedSql({
-  sql,
-  rawSql,
-  maxWidth = 50,
-  maxLines = 5,
-  shrink = false,
-}) {
-  return (
-    <ModalTrigger
-      modalTitle={t('SQL')}
-      modalBody={<HighlightSqlModal rawSql={rawSql} sql={sql} />}
-      triggerNode={
-        <TriggerNode
-          shrink={shrink}
-          sql={sql}
-          maxLines={maxLines}
-          maxWidth={maxWidth}
-        />
-      }
-    />
-  );
+interface propTypes {
+  sql: string;
+  rawSql?: string;
+  maxWidth?: number;
+  maxLines?: number;
+  shrink?: any;
 }
-HighlightedSql.propTypes = propTypes;
 
-export default HighlightedSql;
+interface HighlightedSqlModalTypes {
+  rawSql?: string;
+  sql: string;
+}
 
-function TriggerNode({ shrink, sql, maxLines, maxWidth }) {
+interface TriggerNodeProps {
+  shrink: boolean;
+  sql: string;
+  maxLines: number;
+  maxWidth: number;
+}
+
+function TriggerNode({ shrink, sql, maxLines, maxWidth }: TriggerNodeProps) {
   const shrinkSql = () => {
     const ssql = sql || '';
     let lines = ssql.split('\n');
@@ -86,7 +71,7 @@ function TriggerNode({ shrink, sql, maxLines, maxWidth }) {
   );
 }
 
-function HighlightSqlModal({ rawSql, sql }) {
+function HighlightSqlModal({ rawSql, sql }: HighlightedSqlModalTypes) {
   return (
     <div>
       <h4>{t('Source SQL')}</h4>
@@ -104,3 +89,28 @@ function HighlightSqlModal({ rawSql, sql }) {
     </div>
   );
 }
+
+function HighlightedSql({
+  sql,
+  rawSql,
+  maxWidth = 50,
+  maxLines = 5,
+  shrink = false,
+}: propTypes) {
+  return (
+    <ModalTrigger
+      modalTitle={t('SQL')}
+      modalBody={<HighlightSqlModal rawSql={rawSql} sql={sql} />}
+      triggerNode={
+        <TriggerNode
+          shrink={shrink}
+          sql={sql}
+          maxLines={maxLines}
+          maxWidth={maxWidth}
+        />
+      }
+    />
+  );
+}
+
+export default HighlightedSql;
