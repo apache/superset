@@ -164,15 +164,6 @@ export default function exploreReducer(state = {}, action) {
         sliceName: action.sliceName,
       };
     },
-    [actions.RESET_FIELDS]() {
-      return {
-        ...state,
-        controls: getControlsState(
-          state,
-          getFormDataFromControls(state.controls),
-        ),
-      };
-    },
     [actions.CREATE_NEW_SLICE]() {
       return {
         ...state,
