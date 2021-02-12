@@ -949,7 +949,7 @@ WEBDRIVER_BASEURL = os.environ.get("WEBDRIVER_BASEURL")
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 # Time in seconds, selenium will wait for the page to load
 # and render for the email report.
-EMAIL_PAGE_RENDER_WAIT = 30
+EMAIL_PAGE_RENDER_WAIT = 120
 
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
