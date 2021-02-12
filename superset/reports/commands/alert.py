@@ -49,13 +49,16 @@ class AlertCommand(BaseCommand):
 
         if self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL:
             self._report_schedule.last_value_row_json = str(self._result)
-            return self._result not in (0, None, np.nan)
+            return self._result not in (0, 0.0, None, np.nan)
+        if self._result in (0, 0.0, None, np.nan):
+            self._result = 0.0
         self._report_schedule.last_value = self._result
         try:
             operator = json.loads(self._report_schedule.validator_config_json)["op"]
             threshold = json.loads(self._report_schedule.validator_config_json)[
                 "threshold"
             ]
+
             return OPERATOR_FUNCTIONS[operator](self._result, threshold)
         except (KeyError, json.JSONDecodeError):
             raise AlertValidatorConfigError()
