@@ -50,11 +50,11 @@ export default function AntdTimeFilter(props: AntdPluginFilterTimeProps) {
   };
 
   useEffect(() => {
-    setValue(currentValue ?? DEFAULT_VALUE);
+    handleTimeRangeChange(currentValue ?? DEFAULT_VALUE);
   }, [currentValue]);
 
   useEffect(() => {
-    setValue(defaultValue ?? DEFAULT_VALUE);
+    handleTimeRangeChange(defaultValue ?? DEFAULT_VALUE);
   }, [defaultValue]);
 
   return (
@@ -62,7 +62,7 @@ export default function AntdTimeFilter(props: AntdPluginFilterTimeProps) {
     <Styles width={width}>
       <DateFilterControl
         value={value}
-        name=""
+        name="time_range"
         onChange={handleTimeRangeChange}
       />
     </Styles>
