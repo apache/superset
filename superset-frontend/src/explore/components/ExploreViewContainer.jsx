@@ -352,6 +352,10 @@ function ExploreViewContainer(props) {
     return false;
   }, [previousControls, props.controls]);
 
+  if (chartIsStale) {
+    props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS);
+  }
+
   function renderErrorMessage() {
     // Returns an error message as a node if any errors are in the store
     const errors = Object.entries(props.controls)
