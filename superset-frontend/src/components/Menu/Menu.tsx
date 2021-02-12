@@ -21,6 +21,7 @@ import { t, styled } from '@superset-ui/core';
 import { Nav, Navbar, NavItem } from 'react-bootstrap';
 import NavDropdown from 'src/components/NavDropdown';
 import { Menu as DropdownMenu } from 'src/common/components';
+import { Link } from 'react-router-dom';
 import MenuObject, {
   MenuObjectProps,
   MenuObjectChildProps,
@@ -56,6 +57,9 @@ export interface MenuProps {
     brand: BrandProps;
     navbar_right: NavBarProps;
     settings: MenuObjectProps[];
+  };
+  frontEndRoutes?: {
+    [route: string]: boolean;
   };
 }
 
@@ -99,7 +103,7 @@ const StyledHeader = styled.header`
     padding-left: 12px;
   }
 
-  .navbar-inverse .navbar-nav > li > a {
+  .navbar-inverse .navbar-nav li a {
     color: ${({ theme }) => theme.colors.grayscale.dark1};
     border-bottom: none;
     transition: background-color ${({ theme }) => theme.transitionTiming}s;
@@ -153,6 +157,7 @@ const StyledHeader = styled.header`
 
 export function Menu({
   data: { menu, brand, navbar_right: navbarRight, settings },
+  frontEndRoutes,
 }: MenuProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -169,7 +174,12 @@ export function Menu({
         </Navbar.Header>
         <Nav data-test="navbar-top">
           {menu.map((item, index) => (
-            <MenuObject {...item} key={item.label} index={index + 1} />
+            <MenuObject
+              {...item}
+              frontEndRoutes={frontEndRoutes}
+              key={item.label}
+              index={index + 1}
+            />
           ))}
         </Nav>
         <Nav className="navbar-right">
@@ -192,7 +202,11 @@ export function Menu({
                     if (typeof child !== 'string') {
                       return (
                         <DropdownMenu.Item key={`${child.label}`}>
-                          <a href={child.url}>{child.label}</a>
+                          {frontEndRoutes && frontEndRoutes[child.url || ''] ? (
+                            <Link to={child.url || ''}>{child.label}</Link>
+                          ) : (
+                            <a href={child.url}>{child.label}</a>
+                          )}
                         </DropdownMenu.Item>
                       );
                     }
@@ -276,7 +290,7 @@ export function Menu({
 }
 
 // transform the menu data to reorganize components
-export default function MenuWrapper({ data }: MenuProps) {
+export default function MenuWrapper({ data, frontEndRoutes }: MenuProps) {
   const newMenuData = {
     ...data,
   };
@@ -322,5 +336,5 @@ export default function MenuWrapper({ data }: MenuProps) {
   newMenuData.menu = cleanedMenu;
   newMenuData.settings = settings;
 
-  return <Menu data={newMenuData} />;
+  return <Menu data={newMenuData} frontEndRoutes={frontEndRoutes} />;
 }

@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { NavItem } from 'react-bootstrap';
 import { Menu } from 'src/common/components';
 import NavDropdown from '../NavDropdown';
@@ -36,6 +37,9 @@ export interface MenuObjectProps {
   url?: string;
   childs?: (MenuObjectChildProps | string)[];
   isHeader?: boolean;
+  frontEndRoutes?: {
+    [route: string]: boolean;
+  };
 }
 
 export default function MenuObject({
@@ -43,9 +47,18 @@ export default function MenuObject({
   childs,
   url,
   index,
+  frontEndRoutes,
 }: MenuObjectProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-
+  if (url && frontEndRoutes && frontEndRoutes[url]) {
+    return (
+      <li role="presentation">
+        <Link role="button" to={url}>
+          {label}
+        </Link>
+      </li>
+    );
+  }
   if (url) {
     return (
       <NavItem eventKey={index} href={url}>
@@ -71,7 +84,11 @@ export default function MenuObject({
           if (typeof child !== 'string') {
             return (
               <Menu.Item key={`${child.label}`}>
-                <a href={child.url}>&nbsp; {child.label}</a>
+                {frontEndRoutes && frontEndRoutes[child.url || ''] ? (
+                  <Link to={child.url || ''}>&nbsp; {child.label}</Link>
+                ) : (
+                  <a href={child.url}>&nbsp; {child.label}</a>
+                )}
               </Menu.Item>
             );
           }

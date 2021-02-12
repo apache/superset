@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { hot } from 'react-hot-loader/root';
 import thunk from 'redux-thunk';
 import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
@@ -27,27 +27,83 @@ import { initFeatureFlags } from 'src/featureFlags';
 import { ThemeProvider } from '@superset-ui/core';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import ErrorBoundary from 'src/components/ErrorBoundary';
+import Loading from 'src/components/Loading';
 import Menu from 'src/components/Menu/Menu';
 import FlashProvider from 'src/components/FlashProvider';
-import AlertList from 'src/views/CRUD/alert/AlertList';
-import ExecutionLog from 'src/views/CRUD/alert/ExecutionLog';
-import AnnotationLayersList from 'src/views/CRUD/annotationlayers/AnnotationLayersList';
-import AnnotationList from 'src/views/CRUD/annotation/AnnotationList';
-import ChartList from 'src/views/CRUD/chart/ChartList';
-import CssTemplatesList from 'src/views/CRUD/csstemplates/CssTemplatesList';
-import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
-import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
-import DatasetList from 'src/views/CRUD/data/dataset/DatasetList';
-import QueryList from 'src/views/CRUD/data/query/QueryList';
-import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
+import Welcome from 'src/views/CRUD/welcome/Welcome';
+import { theme } from 'src/preamble';
+import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
+import setupPlugins from 'src/setup/setupPlugins';
+import setupApp from 'src/setup/setupApp';
+import messageToastReducer from 'src/messageToasts/reducers';
+import { initEnhancer } from 'src/reduxUtils';
 
-import messageToastReducer from '../messageToasts/reducers';
-import { initEnhancer } from '../reduxUtils';
-import setupApp from '../setup/setupApp';
-import setupPlugins from '../setup/setupPlugins';
-import Welcome from './CRUD/welcome/Welcome';
-import ToastPresenter from '../messageToasts/containers/ToastPresenter';
-import { theme } from '../preamble';
+const AnnotationLayersList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "AnnotationLayersList" */ 'src/views/CRUD/annotationlayers/AnnotationLayersList'
+    ),
+);
+const AlertList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "AlertList" */ 'src/views/CRUD/alert/AlertList'
+    ),
+);
+const AnnotationList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "AnnotationList" */ 'src/views/CRUD/annotation/AnnotationList'
+    ),
+);
+const ChartList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "ChartList" */ 'src/views/CRUD/chart/ChartList'
+    ),
+);
+const CssTemplatesList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "CssTemplatesList" */ 'src/views/CRUD/csstemplates/CssTemplatesList'
+    ),
+);
+const DashboardList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "DashboardList" */ 'src/views/CRUD/dashboard/DashboardList'
+    ),
+);
+const DatabaseList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "DatabaseList" */ 'src/views/CRUD/data/database/DatabaseList'
+    ),
+);
+const DatasetList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "DatasetList" */ 'src/views/CRUD/data/dataset/DatasetList'
+    ),
+);
+const ExecutionLog = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "ExecutionLog" */ 'src/views/CRUD/alert/ExecutionLog'
+    ),
+);
+const QueryList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "QueryList" */ 'src/views/CRUD/data/query/QueryList'
+    ),
+);
+const SavedQueryList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "SavedQueryList" */ 'src/views/CRUD/data/savedquery/SavedQueryList'
+    ),
+);
 
 setupApp();
 setupPlugins();
@@ -66,7 +122,29 @@ const store = createStore(
   {},
   compose(applyMiddleware(thunk), initEnhancer(false)),
 );
-
+const routes = {
+  welcome: '/superset/welcome/',
+  dashboards: '/dashboard/list/',
+  charts: '/chart/list/',
+  datasets: '/tablemodelview/list/',
+  databases: '/databaseview/list/',
+  savedQueries: '/savedqueryview/list/',
+  cssTemplates: '/csstemplatemodelview/list/',
+  annotationLayers: '/annotationlayermodelview/list/',
+  annotations: '/annotationmodelview/:annotationLayerId/annotation/',
+  queries: '/superset/sqllab/history/',
+  alerts: '/alert/list/',
+  reports: '/report/list/',
+  alertLogs: '/alert/:alertId/log/',
+  reportLogs: '/report/:alertId/log/',
+};
+const frontEndRoutes = Object.values(routes).reduce(
+  (acc, curr) => ({
+    ...acc,
+    [curr]: true,
+  }),
+  {},
+);
 const App = () => (
   <ReduxProvider store={store}>
     <ThemeProvider theme={theme}>
@@ -77,79 +155,81 @@ const App = () => (
               ReactRouterRoute={Route}
               stringifyOptions={{ encode: false }}
             >
-              <Menu data={menu} />
-              <Switch>
-                <Route path="/superset/welcome/">
-                  <ErrorBoundary>
-                    <Welcome user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/dashboard/list/">
-                  <ErrorBoundary>
-                    <DashboardList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/chart/list/">
-                  <ErrorBoundary>
-                    <ChartList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/tablemodelview/list/">
-                  <ErrorBoundary>
-                    <DatasetList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/databaseview/list/">
-                  <ErrorBoundary>
-                    <DatabaseList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/savedqueryview/list/">
-                  <ErrorBoundary>
-                    <SavedQueryList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/csstemplatemodelview/list/">
-                  <ErrorBoundary>
-                    <CssTemplatesList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/annotationlayermodelview/list/">
-                  <ErrorBoundary>
-                    <AnnotationLayersList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/annotationmodelview/:annotationLayerId/annotation/">
-                  <ErrorBoundary>
-                    <AnnotationList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/superset/sqllab/history/">
-                  <ErrorBoundary>
-                    <QueryList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/alert/list/">
-                  <ErrorBoundary>
-                    <AlertList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/report/list/">
-                  <ErrorBoundary>
-                    <AlertList user={user} isReportEnabled />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/alert/:alertId/log">
-                  <ErrorBoundary>
-                    <ExecutionLog user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/report/:alertId/log">
-                  <ErrorBoundary>
-                    <ExecutionLog user={user} isReportEnabled />
-                  </ErrorBoundary>
-                </Route>
-              </Switch>
+              <Menu data={menu} frontEndRoutes={frontEndRoutes} />
+              <Suspense fallback={<Loading />}>
+                <Switch>
+                  <Route path={routes.welcome}>
+                    <ErrorBoundary>
+                      <Welcome user={user} />
+                    </ErrorBoundary>
+                  </Route>
+                  <Route path={routes.dashboards}>
+                    <ErrorBoundary>
+                      <DashboardList user={user} />
+                    </ErrorBoundary>
+                  </Route>
+                  <Route path={routes.charts}>
+                    <ErrorBoundary>
+                      <ChartList user={user} />
+                    </ErrorBoundary>
+                  </Route>
+                  <Route path={routes.datasets}>
+                    <ErrorBoundary>
+                      <DatasetList user={user} />
+                    </ErrorBoundary>
+                  </Route>
+                  <Route path={routes.databases}>
+                    <ErrorBoundary>
+                      <DatabaseList user={user} />
+                    </ErrorBoundary>
+                  </Route>
+                  <Route path={routes.savedQueries}>
+                    <ErrorBoundary>
+                      <SavedQueryList user={user} />
+                    </ErrorBoundary>
+                  </Route>
+                  <Route path={routes.cssTemplates}>
+                    <ErrorBoundary>
+                      <CssTemplatesList user={user} />
+                    </ErrorBoundary>
+                  </Route>
+                  <Route path={routes.annotationLayers}>
+                    <ErrorBoundary>
+                      <AnnotationLayersList user={user} />
+                    </ErrorBoundary>
+                  </Route>
+                  <Route path={routes.annotations}>
+                    <ErrorBoundary>
+                      <AnnotationList user={user} />
+                    </ErrorBoundary>
+                  </Route>
+                  <Route path={routes.queries}>
+                    <ErrorBoundary>
+                      <QueryList user={user} />
+                    </ErrorBoundary>
+                  </Route>
+                  <Route path={routes.alerts}>
+                    <ErrorBoundary>
+                      <AlertList user={user} />
+                    </ErrorBoundary>
+                  </Route>
+                  <Route path={routes.reports}>
+                    <ErrorBoundary>
+                      <AlertList user={user} isReportEnabled />
+                    </ErrorBoundary>
+                  </Route>
+                  <Route path={routes.alertLogs}>
+                    <ErrorBoundary>
+                      <ExecutionLog user={user} />
+                    </ErrorBoundary>
+                  </Route>
+                  <Route path={routes.reportLogs}>
+                    <ErrorBoundary>
+                      <ExecutionLog user={user} isReportEnabled />
+                    </ErrorBoundary>
+                  </Route>
+                </Switch>
+              </Suspense>
               <ToastPresenter />
             </QueryParamProvider>
           </DynamicPluginProvider>

@@ -44,7 +44,7 @@ const defaultProps = {
             name: 'Datasets',
             icon: 'fa-table',
             label: 'Datasets',
-            url: '/tablemodelview/list/?_flt_1_is_sqllab_view=y',
+            url: '/tablemodelview/list/',
           },
           '-',
           {
