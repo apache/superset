@@ -233,7 +233,7 @@ def create_alert_slack_chart_grace():
 
 
 @pytest.yield_fixture(
-    params=["alert1", "alert2", "alert3", "alert4", "alert5", "alert6", "alert7",]
+    params=["alert1", "alert2", "alert3", "alert4", "alert5", "alert6", "alert7"]
 )
 def create_alert_email_chart(request):
     param_config = {

@@ -111,8 +111,10 @@ class AlertCommand(BaseCommand):
 
         if df.empty and ReportScheduleValidatorType.NOT_NULL:
             self._result = None
+            return
         if df.empty and ReportScheduleValidatorType.OPERATOR:
             self._result = 0.0
+            return
         rows = df.to_records()
         if self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL:
             self._validate_not_null(rows)
