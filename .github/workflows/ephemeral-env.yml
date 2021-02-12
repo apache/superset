@@ -34,6 +34,10 @@ jobs:
       if: github.event.comment.author_association != 'MEMBER' && github.event.comment.author_association != 'OWNER'
       run: exit 1
 
+    - uses: actions/checkout@v2
+      with:
+        persist-credentials: false
+
     - uses: actions/github-script@v3
       id: get-pr
       with:
