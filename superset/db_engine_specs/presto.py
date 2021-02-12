@@ -913,16 +913,15 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         if values is None:
             return None
 
-        column_type_by_name = { 
+        column_type_by_name = {
             column.get("name") : column.get('type') for column in columns or []
         }
 
         for col_name, value in zip(col_names, values):
             if col_name in column_type_by_name:
-                col_type = column_type_by_name.get(col_name)
-                if col_type == 'TIMESTAMP':
+                if column_type_by_name.get(col_name) == 'TIMESTAMP':
                     query = query.where(Column(col_name, TimeStamp()) == value)
-                elif col_type == 'DATE':
+                elif column_type_by_name.get(col_name) == 'DATE':
                     query = query.where(Column(col_name, Date()) == value)
                 else:
                     query = query.where(Column(col_name) == value)

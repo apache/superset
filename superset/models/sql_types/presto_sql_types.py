@@ -16,7 +16,7 @@
 # under the License.
 from typing import Any, Dict, List, Optional, Type
 
-from sqlalchemy import types
+from sqlalchemy.types import TypeDecorator
 from sqlalchemy.sql.sqltypes import Integer, TIMESTAMP, DATE
 from sqlalchemy.sql.type_api import TypeEngine
 from sqlalchemy.sql.visitors import Visitable
@@ -93,7 +93,7 @@ class Row(TypeEngine):
     def _compiler_dispatch(cls, _visitor: Visitable, **_kw: Any) -> str:
         return "ROW"
 
-class TimeStamp(types.TypeDecorator):
+class TimeStamp(TypeDecorator):
     """
     A type to extend functionality of timestamp data type.
     """
@@ -108,7 +108,7 @@ class TimeStamp(types.TypeDecorator):
         """
         return "TIMESTAMP '%s'" % value
 
-class Date(types.TypeDecorator):
+class Date(TypeDecorator):
     """
     A type to extend functionality of date data type.
     """
