@@ -17,9 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-
 import Popover from 'src/common/components/Popover';
 import columnType from 'src/explore/propTypes/columnType';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
@@ -85,30 +82,17 @@ class AdhocFilterPopoverTrigger extends React.PureComponent<
     );
 
     return (
-      <>
-        {adhocFilter.isExtra && (
-          <InfoTooltipWithTrigger
-            icon="exclamation-triangle"
-            placement="top"
-            className="m-r-5 text-muted"
-            tooltip={t(`
-                This filter was inherited from the dashboard's context.
-                It won't be saved when saving the chart.
-              `)}
-          />
-        )}
-        <Popover
-          placement="right"
-          trigger="click"
-          content={overlayContent}
-          defaultVisible={this.state.popoverVisible}
-          visible={this.state.popoverVisible}
-          onVisibleChange={this.togglePopover}
-          destroyTooltipOnHide={this.props.createNew}
-        >
-          {this.props.children}
-        </Popover>
-      </>
+      <Popover
+        placement="right"
+        trigger="click"
+        content={overlayContent}
+        defaultVisible={this.state.popoverVisible}
+        visible={this.state.popoverVisible}
+        onVisibleChange={this.togglePopover}
+        destroyTooltipOnHide={this.props.createNew}
+      >
+        {this.props.children}
+      </Popover>
     );
   }
 }
