@@ -26,11 +26,11 @@ jobs:
           return String(pattern.test(context.payload.comment.body))
 
     - name: Exit on invalid command
-      if: ${{ steps.eval-body.outputs.result === "false" }}
+      if: steps.eval-body.outputs.result == 'false'
       run: exit 0
 
     - name: Limit to committers
-      if: ${{ github.event.comment.author_association != 'MEMBER' }}
+      if: github.event.comment.author_association != 'MEMBER'
       run: exit 1
 
     - uses: actions/github-script@v3
@@ -80,7 +80,7 @@ jobs:
         echo "::set-output name=count::$(aws ecs describe-services --cluster superset-ci --services PR-${{ github.event.issue.number }}-service | jq '.services | length')"
 
     - name: Create ECS service
-      if: ${{ steps.describe-services.outputs.count == '0' }}
+      if: steps.describe-services.outputs.count == '0'
       id: create-service
       env:
         ECR_SUBNETS: subnet-0e15a5034b4121710,subnet-0e8efef4a72224974
