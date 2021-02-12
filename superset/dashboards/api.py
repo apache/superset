@@ -30,6 +30,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
 from superset import is_feature_enabled, thumbnail_cache
+from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -181,6 +182,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     add_model_schema = DashboardPostSchema()
     edit_model_schema = DashboardPutSchema()
+    chart_entity_response_schema = ChartEntityResponseSchema()
 
     base_filters = [["slice", DashboardFilter, lambda: []]]
 
@@ -196,7 +198,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Dashboards"
     """ Override the name set for this collection of endpoints """
-    openapi_spec_component_schemas = (GetFavStarIdsSchema,)
+    openapi_spec_component_schemas = (ChartEntityResponseSchema, GetFavStarIdsSchema)
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
         "get_export_ids_schema": get_export_ids_schema,
@@ -241,7 +243,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                       result:
                         type: array
                         items:
-                          $ref: '#/components/schemas/ChartRestApi.post'
+                          $ref: '#/components/schemas/ChartEntityResponseSchema'
             302:
               description: Redirects to the current digest
             400:
@@ -253,7 +255,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """
         try:
             charts = DashboardDAO.get_charts_for_dashboard(pk)
-            return self.response(200, result=charts)
+            result = [self.chart_entity_response_schema.dump(chart) for chart in charts]
+            return self.response(200, result=result)
         except DashboardNotFoundError:
             return self.response_404()
 
