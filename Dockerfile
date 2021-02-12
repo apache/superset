@@ -31,26 +31,6 @@ RUN mkdir /app \
             libecpg-dev \
         && rm -rf /var/lib/apt/lists/*
 
-RUN apt update \
- && apt install default-jdk -y
-
-RUN apt-get install -y build-essential libssl-dev \
-    libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev \
-    default-jre libgtk-3-0 xvfb firefox-esr
-
-ENV GECKODRIVER_VERSION 0.29.0
-RUN wget --no-verbose -O /tmp/geckodriver.tar.gz https://github.com/mozilla/geckodriver/releases/download/v$GECKODRIVER_VERSION/geckodriver-v$GECKODRIVER_VERSION-linux64.tar.gz \
-  && rm -rf /opt/geckodriver \
-  && tar -C /opt -zxf /tmp/geckodriver.tar.gz \
-  && rm /tmp/geckodriver.tar.gz \
-  && mv /opt/geckodriver /opt/geckodriver-$GECKODRIVER_VERSION \
-  && chmod 755 /opt/geckodriver-$GECKODRIVER_VERSION \
-  && ln -fs /opt/geckodriver-$GECKODRIVER_VERSION /usr/bin/geckodriver \
-  && ln -fs /opt/geckodriver-$GECKODRIVER_VERSION /usr/bin/wires
-
-RUN Xvfb :10 -ac &
-RUN export DISPLAY=:10
-
 # First, we just wanna install requirements, which will allow us to utilize the cache
 # in order to only build if and only if requirements change
 COPY ./requirements/*.txt  /app/requirements/
@@ -114,10 +94,6 @@ RUN useradd --user-group --no-create-home --no-log-init --shell /bin/bash supers
         && rm -rf /var/lib/apt/lists/*
 
 COPY --from=superset-py /usr/local/lib/python3.7/site-packages/ /usr/local/lib/python3.7/site-packages/
-COPY --from=superset-py /usr/bin/geckodriver/ /usr/bin/
-COPY --from=superset-py /usr/bin/wires/ /usr/bin/
-
-ENV PATH "$PATH:/usr/bin/geckodriver"
 # Copying site-packages doesn't move the CLIs, so let's copy them one by one
 COPY --from=superset-py /usr/local/bin/gunicorn /usr/local/bin/celery /usr/local/bin/flask /usr/bin/
 COPY --from=superset-node /app/superset/static/assets /app/superset/static/assets
@@ -131,6 +107,25 @@ RUN cd /app \
         && pip install -e .
 
 COPY ./docker/docker-entrypoint.sh /usr/bin/
+
+RUN apt update \
+ && apt install default-jdk -y
+
+RUN apt-get install -y build-essential libssl-dev \
+    libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev \
+    default-jre libgtk-3-0 xvfb firefox-esr
+
+ENV GECKODRIVER_VERSION 0.29.0
+RUN wget --no-verbose -O /tmp/geckodriver.tar.gz https://github.com/mozilla/geckodriver/releases/download/v$GECKODRIVER_VERSION/geckodriver-v$GECKODRIVER_VERSION-linux64.tar.gz \
+  && rm -rf /opt/geckodriver \
+  && tar -C /opt -zxf /tmp/geckodriver.tar.gz \
+  && rm /tmp/geckodriver.tar.gz \
+  && mv /opt/geckodriver /opt/geckodriver-$GECKODRIVER_VERSION \
+  && chmod 755 /opt/geckodriver-$GECKODRIVER_VERSION \
+  && ln -fs /opt/geckodriver-$GECKODRIVER_VERSION /usr/bin/geckodriver \
+  && ln -fs /opt/geckodriver-$GECKODRIVER_VERSION /usr/bin/wires
+
+ENV PATH "$PATH:/usr/bin/geckodriver"
 
 WORKDIR /app
 
