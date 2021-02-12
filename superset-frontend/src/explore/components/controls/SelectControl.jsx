@@ -82,7 +82,10 @@ const defaultProps = {
 export default class SelectControl extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = { options: this.getOptions(props) };
+    this.state = {
+      options: this.getOptions(props),
+      value: this.props.value,
+    };
     this.onChange = this.onChange.bind(this);
     this.createMetaSelectAllOption = this.createMetaSelectAllOption.bind(this);
     this.select = null; // pointer to the react-select instance
@@ -184,7 +187,7 @@ export default class SelectControl extends React.PureComponent {
   }
 
   isMetaSelectAllOption(o) {
-    return o.meta && o.meta === true && o.label === 'Select All';
+    return o.meta && o.meta === true && o.label === 'Select all';
   }
 
   optionsIncludesSelectAll(o) {
@@ -205,8 +208,8 @@ export default class SelectControl extends React.PureComponent {
   }
 
   createMetaSelectAllOption() {
-    const option = { label: 'Select All', meta: true };
-    option[this.props.valueKey] = 'Select All';
+    const option = { label: 'Select all', meta: true };
+    option[this.props.valueKey] = 'Select all';
     return option;
   }
 
@@ -240,7 +243,12 @@ export default class SelectControl extends React.PureComponent {
     const isMulti = this.props.isMulti || this.props.multi;
 
     let assistiveText;
-    if (isMulti && optionsRemaining && Array.isArray(value) && !!value.length) {
+    if (
+      isMulti &&
+      optionsRemaining &&
+      Array.isArray(this.state.value) &&
+      !!value.length
+    ) {
       assistiveText = optionRemaingText;
     }
 
@@ -262,12 +270,12 @@ export default class SelectControl extends React.PureComponent {
       onChange: this.onChange,
       onFocus,
       optionRenderer,
+      value,
       options: this.state.options,
       placeholder,
       assistiveText,
       promptTextCreator,
       selectRef: this.getSelectRef,
-      value,
       valueKey,
       valueRenderer,
     };

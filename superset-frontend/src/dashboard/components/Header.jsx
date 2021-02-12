@@ -21,7 +21,7 @@ import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { styled, CategoricalColorNamespace, t } from '@superset-ui/core';
-import { ButtonGroup } from 'react-bootstrap';
+import ButtonGroup from 'src/components/ButtonGroup';
 
 import {
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
@@ -456,7 +456,7 @@ class Header extends React.PureComponent {
                     buttonStyle="default"
                     data-test="discard-changes-button"
                   >
-                    {t('Discard Changes')}
+                    {t('Discard changes')}
                   </Button>
                   <Button
                     buttonSize="small"
@@ -482,7 +482,7 @@ class Header extends React.PureComponent {
             <>
               <span
                 role="button"
-                title="Edit Dashboard"
+                title="Edit dashboard"
                 tabIndex={0}
                 className="action-button"
                 onClick={this.toggleEditMode}

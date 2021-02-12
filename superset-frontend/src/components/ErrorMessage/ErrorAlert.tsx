@@ -120,7 +120,7 @@ export default function ErrorAlert({
             className="link"
             onClick={() => setIsModalOpen(true)}
           >
-            {t('See More')}
+            {t('See more')}
           </span>
         )}
       </div>
@@ -136,7 +136,7 @@ export default function ErrorAlert({
                   className="link"
                   onClick={() => setIsBodyExpanded(true)}
                 >
-                  {t('See More')}
+                  {t('See more')}
                 </span>
               )}
               {isBodyExpanded && (
@@ -149,7 +149,7 @@ export default function ErrorAlert({
                     className="link"
                     onClick={() => setIsBodyExpanded(false)}
                   >
-                    {t('See Less')}
+                    {t('See less')}
                   </span>
                 </>
               )}
@@ -178,7 +178,7 @@ export default function ErrorAlert({
                   text={copyText}
                   shouldShowText={false}
                   wrapped={false}
-                  copyNode={<Button onClick={noOp}>{t('Copy Message')}</Button>}
+                  copyNode={<Button onClick={noOp}>{t('Copy message')}</Button>}
                 />
               )}
               <Button

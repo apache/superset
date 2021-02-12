@@ -18,6 +18,7 @@
 """Unit tests for Superset"""
 import imp
 import json
+from contextlib import contextmanager
 from typing import Any, Dict, Union, List, Optional
 from unittest.mock import Mock, patch
 
@@ -26,6 +27,7 @@ import pytest
 from flask import Response
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
+from sqlalchemy.ext.declarative.api import DeclarativeMeta
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
@@ -110,7 +112,6 @@ def logged_in_admin():
 
 
 class SupersetTestCase(TestCase):
-
     default_schema_backend_map = {
         "sqlite": "main",
         "mysql": "superset",
@@ -138,7 +139,9 @@ class SupersetTestCase(TestCase):
         )
 
     @staticmethod
-    def create_user_with_roles(username: str, roles: List[str]):
+    def create_user_with_roles(
+        username: str, roles: List[str], should_create_roles: bool = False
+    ):
         user_to_create = security_manager.find_user(username)
         if not user_to_create:
             security_manager.add_user(
@@ -152,7 +155,12 @@ class SupersetTestCase(TestCase):
             db.session.commit()
             user_to_create = security_manager.find_user(username)
             assert user_to_create
-        user_to_create.roles = [security_manager.find_role(r) for r in roles]
+        user_to_create.roles = []
+        for chosen_user_role in roles:
+            if should_create_roles:
+                ## copy role from gamma but without data permissions
+                security_manager.copy_role("Gamma", chosen_user_role, merge=False)
+            user_to_create.roles.append(security_manager.find_role(chosen_user_role))
         db.session.commit()
         return user_to_create
 
@@ -175,6 +183,15 @@ class SupersetTestCase(TestCase):
         user = (
             db.session.query(security_manager.user_model)
             .filter_by(username=username)
+            .one_or_none()
+        )
+        return user
+
+    @staticmethod
+    def get_role(name: str) -> Optional[ab_models.User]:
+        user = (
+            db.session.query(security_manager.role_model)
+            .filter_by(name=name)
             .one_or_none()
         )
         return user
@@ -293,7 +310,11 @@ class SupersetTestCase(TestCase):
         self.client.get("/logout/", follow_redirects=True)
 
     def grant_public_access_to_table(self, table):
-        public_role = security_manager.find_role("Public")
+        role_name = "Public"
+        self.grant_role_access_to_table(table, role_name)
+
+    def grant_role_access_to_table(self, table, role_name):
+        role = security_manager.find_role(role_name)
         perms = db.session.query(ab_models.PermissionView).all()
         for perm in perms:
             if (
@@ -301,10 +322,14 @@ class SupersetTestCase(TestCase):
                 and perm.view_menu
                 and table.perm in perm.view_menu.name
             ):
-                security_manager.add_permission_role(public_role, perm)
+                security_manager.add_permission_role(role, perm)
 
     def revoke_public_access_to_table(self, table):
-        public_role = security_manager.find_role("Public")
+        role_name = "Public"
+        self.revoke_role_access_to_table(role_name, table)
+
+    def revoke_role_access_to_table(self, role_name, table):
+        public_role = security_manager.find_role(role_name)
         perms = db.session.query(ab_models.PermissionView).all()
         for perm in perms:
             if (
@@ -500,3 +525,16 @@ class SupersetTestCase(TestCase):
         else:
             mock_method.assert_called_once_with("error", func_name)
         return rv
+
+
+@contextmanager
+def db_insert_temp_object(obj: DeclarativeMeta):
+    """Insert a temporary object in database; delete when done."""
+    session = db.session
+    try:
+        session.add(obj)
+        session.commit()
+        yield obj
+    finally:
+        session.delete(obj)
+        session.commit()

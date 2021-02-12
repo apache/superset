@@ -292,12 +292,12 @@ class PropertiesModal extends React.PureComponent {
       <Modal
         show={this.props.show}
         onHide={this.props.onHide}
-        title={t('Dashboard Properties')}
+        title={t('Dashboard properties')}
         footer={
           <>
             <Button
-              type="button"
-              buttonSize="sm"
+              htmlType="button"
+              buttonSize="small"
               onClick={onHide}
               data-test="properties-modal-cancel-button"
               cta
@@ -306,7 +306,7 @@ class PropertiesModal extends React.PureComponent {
             </Button>
             <Button
               onClick={this.submit}
-              buttonSize="sm"
+              buttonSize="small"
               buttonStyle="primary"
               className="m-r-5"
               disabled={errors.length > 0}
@@ -321,7 +321,7 @@ class PropertiesModal extends React.PureComponent {
         <form data-test="dashboard-edit-properties-form" onSubmit={this.submit}>
           <Row>
             <Col md={12}>
-              <h3>{t('Basic Information')}</h3>
+              <h3>{t('Basic information')}</h3>
             </Col>
           </Row>
           <Row>
@@ -338,7 +338,7 @@ class PropertiesModal extends React.PureComponent {
               />
             </Col>
             <Col md={6}>
-              <FormLabel htmlFor="embed-height">{t('URL Slug')}</FormLabel>
+              <FormLabel htmlFor="embed-height">{t('URL slug')}</FormLabel>
               <FormControl
                 name="slug"
                 type="text"
@@ -397,7 +397,7 @@ class PropertiesModal extends React.PureComponent {
               {isAdvancedOpen && (
                 <>
                   <FormLabel htmlFor="json_metadata">
-                    {t('JSON Metadata')}
+                    {t('JSON metadata')}
                   </FormLabel>
                   <StyledJsonEditor
                     showLoadingForImport

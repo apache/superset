@@ -30,6 +30,11 @@ import { Global } from '@emotion/core';
 import { Tooltip } from 'src/common/components/Tooltip';
 import { usePrevious } from 'src/common/hooks/usePrevious';
 import Icon from 'src/components/Icon';
+import {
+  getFromLocalStorage,
+  setInLocalStorage,
+} from 'src/utils/localStorageHelpers';
+import { URL_PARAMS } from 'src/constants';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
@@ -63,7 +68,7 @@ const propTypes = {
   controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
-  standalone: PropTypes.bool.isRequired,
+  standalone: PropTypes.number.isRequired,
   timeout: PropTypes.number,
   impressionId: PropTypes.string,
   vizType: PropTypes.string,
@@ -95,6 +100,9 @@ const Styles = styled.div`
     flex: 1;
     min-width: ${({ theme }) => theme.gridUnit * 128}px;
     border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    .panel {
+      margin-bottom: 0;
+    }
   }
   .controls-column {
     align-self: flex-start;
@@ -166,11 +174,21 @@ function ExploreViewContainer(props) {
     ? `${props.forcedHeight}px`
     : `${windowSize.height - navHeight}px`;
 
+  const storageKeys = {
+    controlsWidth: 'controls_width',
+    dataSourceWidth: 'datasource_width',
+  };
+
+  const defaultSidebarsWidth = {
+    controls_width: 320,
+    datasource_width: 300,
+  };
+
   function addHistory({ isReplace = false, title } = {}) {
     const payload = { ...props.form_data };
     const longUrl = getExploreLongUrl(
       props.form_data,
-      props.standalone ? 'standalone' : null,
+      props.standalone ? URL_PARAMS.standalone : null,
       false,
     );
     try {
@@ -365,6 +383,15 @@ function ExploreViewContainer(props) {
     );
   }
 
+  function getSidebarWidths(key) {
+    return getFromLocalStorage(key, defaultSidebarsWidth[key]);
+  }
+
+  function setSidebarWidths(key, dimension) {
+    const newDimension = Number(getSidebarWidths(key)) + dimension.width;
+    setInLocalStorage(key, newDimension);
+  }
+
   if (props.standalone) {
     return renderChartContainer();
   }
@@ -404,8 +431,14 @@ function ExploreViewContainer(props) {
         />
       )}
       <Resizable
-        defaultSize={{ width: 300 }}
-        minWidth={300}
+        onResizeStop={(evt, direction, ref, d) =>
+          setSidebarWidths(storageKeys.dataSourceWidth, d)
+        }
+        defaultSize={{
+          width: getSidebarWidths(storageKeys.dataSourceWidth),
+          height: '100%',
+        }}
+        minWidth={defaultSidebarsWidth[storageKeys.dataSourceWidth]}
         maxWidth="33%"
         enable={{ right: true }}
         className={
@@ -443,7 +476,7 @@ function ExploreViewContainer(props) {
           tabIndex={0}
         >
           <span role="button" tabIndex={0} className="action-button">
-            <Tooltip title={t('Open Datasource Tab')}>
+            <Tooltip title={t('Open Datasource tab')}>
               <Icon
                 name="collapse"
                 color={supersetTheme.colors.primary.base}
@@ -456,8 +489,14 @@ function ExploreViewContainer(props) {
         </div>
       ) : null}
       <Resizable
-        defaultSize={{ width: 320 }}
-        minWidth={320}
+        onResizeStop={(evt, direction, ref, d) =>
+          setSidebarWidths(storageKeys.controlsWidth, d)
+        }
+        defaultSize={{
+          width: getSidebarWidths(storageKeys.controlsWidth),
+          height: '100%',
+        }}
+        minWidth={defaultSidebarsWidth[storageKeys.controlsWidth]}
         maxWidth="33%"
         enable={{ right: true }}
         className="col-sm-3 explore-column controls-column"

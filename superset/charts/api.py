@@ -65,7 +65,7 @@ from superset.charts.schemas import (
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
@@ -549,21 +549,30 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        json_body = None
         if request.is_json:
             json_body = request.json
         elif request.form.get("form_data"):
             # CSV export submits regular form data
-            json_body = json.loads(request.form["form_data"])
-        else:
-            return self.response_400(message="Request is not JSON")
+            try:
+                json_body = json.loads(request.form["form_data"])
+            except (TypeError, json.JSONDecodeError):
+                pass
+
+        if json_body is None:
+            return self.response_400(message=_("Request is not JSON"))
 
         try:
             command = ChartDataCommand()
             query_context = command.set_query_context(json_body)
             command.validate()
+        except QueryObjectValidationError as error:
+            return self.response_400(message=error.message)
         except ValidationError as error:
             return self.response_400(
-                message=_("Request is incorrect: %(error)s", error=error.messages)
+                message=_(
+                    "Request is incorrect: %(error)s", error=error.normalized_messages()
+                )
             )
         except SupersetSecurityException:
             return self.response_401()

@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/core';
-import { Radio } from 'src/common/components';
+import { Radio } from 'src/common/components/Radio';
 import { CALENDAR_RANGE_OPTIONS, CALENDAR_RANGE_SET } from '../constants';
 import {
   CalendarRangeType,

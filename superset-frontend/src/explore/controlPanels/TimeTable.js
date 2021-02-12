@@ -35,12 +35,13 @@ export default {
             name: 'column_collection',
             config: {
               type: 'CollectionControl',
-              label: t('Time Series Columns'),
+              label: t('Time series columns'),
               validators: [validateNonEmpty],
               controlName: 'TimeSeriesColumnControl',
             },
           },
         ],
+        ['row_limit'],
         [
           {
             name: 'url',

@@ -28,10 +28,17 @@ import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 // mock data
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import datasources from 'spec/fixtures/mockDatasource';
+import {
+  extraFormData,
+  NATIVE_FILTER_ID,
+  layoutForSingleNativeFilter,
+  singleNativeFiltersState,
+} from 'spec/fixtures/mockNativeFilters';
 import dashboardInfo from 'spec/fixtures/mockDashboardInfo';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
 import dashboardState from 'spec/fixtures/mockDashboardState';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
+import { getActiveNativeFilters } from 'src/dashboard/util/activeDashboardNativeFilters';
 
 describe('Dashboard', () => {
   const props = {
@@ -139,6 +146,27 @@ describe('Dashboard', () => {
       wrapper.instance().componentDidUpdate(prevProps);
       expect(refreshSpy.callCount).toBe(0);
       expect(wrapper.instance().appliedFilters).toBe(OVERRIDE_FILTERS);
+    });
+
+    it('should call refresh when native filters changed', () => {
+      wrapper.setProps({
+        activeFilters: {
+          ...OVERRIDE_FILTERS,
+          ...getActiveNativeFilters({
+            nativeFilters: singleNativeFiltersState,
+            layout: layoutForSingleNativeFilter,
+          }),
+        },
+      });
+      wrapper.instance().componentDidUpdate(prevProps);
+      expect(refreshSpy.callCount).toBe(1);
+      expect(wrapper.instance().appliedFilters).toEqual({
+        ...OVERRIDE_FILTERS,
+        [NATIVE_FILTER_ID]: {
+          scope: [230],
+          values: [extraFormData],
+        },
+      });
     });
 
     it('should call refresh if a filter is added', () => {

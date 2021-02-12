@@ -143,8 +143,8 @@ const QueryTable = props => {
             <ModalTrigger
               className="ResultsModal"
               triggerNode={
-                <Label bsStyle="info" className="pointer">
-                  {t('view results')}
+                <Label type="info" className="pointer">
+                  {t('View results')}
                 </Label>
               }
               modalTitle={t('Data preview')}

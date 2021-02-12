@@ -10,11 +10,13 @@ on:
 
 jobs:
   docs:
-    name: build
+    name: docs
     runs-on: ubuntu-20.04
     steps:
-      - name: Checkout code
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2
+        with:
+          persist-credentials: false
       - name: npm install
         working-directory: ./docs
         run: |

@@ -17,7 +17,8 @@
  * under the License.
  */
 import React, { CSSProperties } from 'react';
-import { Alert, ButtonGroup } from 'react-bootstrap';
+import { Alert } from 'react-bootstrap';
+import ButtonGroup from 'src/components/ButtonGroup';
 import ProgressBar from 'src/common/components/ProgressBar';
 import moment from 'moment';
 import { RadioChangeEvent } from 'antd/lib/radio';
@@ -466,7 +467,7 @@ export default class ResultSet extends React.PureComponent<
               onChange={this.changeSearch}
               value={this.state.searchText}
               className="form-control input-sm"
-              placeholder={t('Filter Results')}
+              placeholder={t('Filter results')}
             />
           )}
         </div>
@@ -498,7 +499,7 @@ export default class ResultSet extends React.PureComponent<
       return (
         <div className="result-set-error-message">
           <ErrorMessageWithStackTrace
-            title={t('Database Error')}
+            title={t('Database error')}
             error={query?.errors?.[0]}
             subtitle={<MonospaceDiv>{query.errorMessage}</MonospaceDiv>}
             copyText={query.errorMessage || undefined}
@@ -580,7 +581,7 @@ export default class ResultSet extends React.PureComponent<
       if (query.isDataPreview) {
         return (
           <Button
-            buttonSize="sm"
+            buttonSize="small"
             className="fetch"
             buttonStyle="primary"
             onClick={() =>
@@ -597,12 +598,12 @@ export default class ResultSet extends React.PureComponent<
       if (query.resultsKey) {
         return (
           <Button
-            buttonSize="sm"
+            buttonSize="small"
             className="fetch"
             buttonStyle="primary"
             onClick={() => this.fetchResults(query)}
           >
-            {t('Refetch Results')}
+            {t('Refetch results')}
           </Button>
         );
       }
@@ -623,7 +624,7 @@ export default class ResultSet extends React.PureComponent<
           buttonSize="small"
           onClick={() => query.trackingUrl && window.open(query.trackingUrl)}
         >
-          {t('Track Job')}
+          {t('Track job')}
         </Button>
       );
     }

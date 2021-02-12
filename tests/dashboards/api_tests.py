@@ -24,7 +24,6 @@ from unittest.mock import patch
 from zipfile import is_zipfile, ZipFile
 
 from tests.insert_chart_mixin import InsertChartMixin
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import pytest
 import prison
@@ -51,6 +50,7 @@ from tests.fixtures.importexport import (
     dataset_metadata_config,
 )
 from tests.utils.get_dashboards import get_dashboards_ids
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 DASHBOARDS_FIXTURE_COUNT = 10
@@ -74,6 +74,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         dashboard_title: str,
         slug: Optional[str],
         owners: List[int],
+        roles: List[int] = [],
         created_by=None,
         slices: Optional[List[Slice]] = None,
         position_json: str = "",
@@ -82,14 +83,19 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         published: bool = False,
     ) -> Dashboard:
         obj_owners = list()
+        obj_roles = list()
         slices = slices or []
         for owner in owners:
             user = db.session.query(security_manager.user_model).get(owner)
             obj_owners.append(user)
+        for role in roles:
+            role_obj = db.session.query(security_manager.role_model).get(role)
+            obj_roles.append(role_obj)
         dashboard = Dashboard(
             dashboard_title=dashboard_title,
             slug=slug,
             owners=obj_owners,
+            roles=obj_roles,
             position_json=position_json,
             css=css,
             json_metadata=json_metadata,
@@ -207,7 +213,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         Dashboard API: Test get dashboard
         """
         admin = self.get_user("admin")
-        dashboard = self.insert_dashboard("title", "slug1", [admin.id], admin)
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.get_assert_metric(uri, "get")
@@ -230,6 +238,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                     "last_name": "user",
                 }
             ],
+            "roles": [],
             "position_json": "",
             "published": False,
             "url": "/superset/dashboard/slug1/",
@@ -270,6 +279,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         assert "can_write" in data["permissions"]
         assert len(data["permissions"]) == 2
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_not_found(self):
         """
         Dashboard API: Test get dashboard not found
@@ -527,27 +537,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                 fp.write(yaml.safe_dump(dashboard_config).encode())
         buf.seek(0)
         return buf
-
-    def test_get_dashboards_no_data_access(self):
-        """
-        Dashboard API: Test get dashboards no data access
-        """
-        admin = self.get_user("admin")
-        dashboard = self.insert_dashboard("title", "slug1", [admin.id])
-
-        self.login(username="gamma")
-        arguments = {
-            "filters": [{"col": "dashboard_title", "opr": "sw", "value": "ti"}]
-        }
-        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
-        rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 0)
-
-        # rollback changes
-        db.session.delete(dashboard)
-        db.session.commit()
 
     def test_delete_dashboard(self):
         """
@@ -919,6 +908,19 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         expected_response = {"message": {"owners": ["Owners are invalid"]}}
         self.assertEqual(response, expected_response)
 
+    def test_create_dashboard_validate_roles(self):
+        """
+        Dashboard API: Test create validate roles
+        """
+        dashboard_data = {"dashboard_title": "title1", "roles": [1000]}
+        self.login(username="admin")
+        uri = "api/v1/dashboard/"
+        rv = self.client.post(uri, json=dashboard_data)
+        self.assertEqual(rv.status_code, 422)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": {"roles": ["Some roles do not exist"]}}
+        self.assertEqual(response, expected_response)
+
     def test_create_dashboard_validate_json(self):
         """
         Dashboard API: Test create validate json
@@ -949,7 +951,10 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         Dashboard API: Test update
         """
         admin = self.get_user("admin")
-        dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
+        admin_role = self.get_role("Admin")
+        dashboard_id = self.insert_dashboard(
+            "title1", "slug1", [admin.id], roles=[admin_role.id]
+        ).id
         self.login(username="admin")
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.put_assert_metric(uri, self.dashboard_data, "put")
@@ -962,6 +967,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.assertEqual(model.json_metadata, self.dashboard_data["json_metadata"])
         self.assertEqual(model.published, self.dashboard_data["published"])
         self.assertEqual(model.owners, [admin])
+        self.assertEqual(model.roles, [admin_role])
 
         db.session.delete(model)
         db.session.commit()

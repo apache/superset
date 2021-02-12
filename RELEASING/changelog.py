@@ -17,17 +17,21 @@
 # pylint: disable=no-value-for-parameter
 
 import csv as lib_csv
-import json
 import os
 import re
 import sys
 from dataclasses import dataclass
-from time import sleep
 from typing import Any, Dict, Iterator, List, Optional, Union
-from urllib import request
-from urllib.error import HTTPError
 
 import click
+
+try:
+    from github import BadCredentialsException, Github, PullRequest
+except ModuleNotFoundError:
+    print("PyGithub is a required package for this script")
+    exit(1)
+
+SUPERSET_REPO = "apache/superset"
 
 
 @dataclass
@@ -60,47 +64,31 @@ class GitChangeLog:
     We want to map a git author to a github login, for that we call github's API
     """
 
-    def __init__(self, version: str, logs: List[GitLog]) -> None:
+    def __init__(
+        self, version: str, logs: List[GitLog], access_token: Optional[str] = None
+    ) -> None:
         self._version = version
         self._logs = logs
         self._github_login_cache: Dict[str, Optional[str]] = {}
         self._wait = 10
+        github_token = access_token or os.environ.get("GITHUB_TOKEN")
+        self._github = Github(github_token)
+        self._superset_repo = ""
 
-    def _wait_github_rate_limit(self) -> None:
-        """
-        Waits for available rate limit slots on the github API
-        """
-        while True:
-            rate_limit_payload = self._fetch_github_rate_limit()
-            if rate_limit_payload["rate"]["remaining"] > 1:
-                break
-            print(".", end="", flush=True)
-            sleep(self._wait)
-        print()
-
-    @staticmethod
-    def _fetch_github_rate_limit() -> Dict[str, Any]:
-        """
-        Fetches current github rate limit info
-        """
-        with request.urlopen("https://api.github.com/rate_limit") as response:
-            payload = json.loads(response.read())
-        return payload
-
-    def _fetch_github_pr(self, pr_number: int) -> Dict[str, Any]:
+    def _fetch_github_pr(self, pr_number: int) -> PullRequest:
         """
         Fetches a github PR info
         """
-        payload = {}
         try:
-            self._wait_github_rate_limit()
-            with request.urlopen(
-                "https://api.github.com/repos/apache/superset/pulls/" f"{pr_number}"
-            ) as response:
-                payload = json.loads(response.read())
-        except HTTPError as ex:
-            print(f"{ex}", flush=True)
-        return payload
+            github_repo = self._github.get_repo(SUPERSET_REPO)
+        except BadCredentialsException as ex:
+            print(
+                f"Bad credentials to github provided"
+                f" use access_token parameter or set GITHUB_TOKEN"
+            )
+            sys.exit(1)
+
+        return github_repo.get_pull(pr_number)
 
     def _get_github_login(self, git_log: GitLog) -> Optional[str]:
         """
@@ -113,7 +101,7 @@ class GitChangeLog:
         if git_log.pr_number:
             pr_info = self._fetch_github_pr(git_log.pr_number)
             if pr_info:
-                github_login = pr_info["user"]["login"]
+                github_login = pr_info.user.login
             else:
                 github_login = author_name
         # set cache
@@ -131,7 +119,7 @@ class GitChangeLog:
                 github_login = log.author
             result = result + (
                 f"- [#{log.pr_number}]"
-                f"(https://github.com/apache/superset/pull/{log.pr_number}) "
+                f"(https://github.com/{SUPERSET_REPO}/pull/{log.pr_number}) "
                 f"{log.message} (@{github_login})\n"
             )
             print(f"\r {i}/{len(self._logs)}", end="", flush=True)
@@ -141,7 +129,7 @@ class GitChangeLog:
         for log in self._logs:
             yield {
                 "pr_number": log.pr_number,
-                "pr_link": f"https://github.com/apache/superset/pull/"
+                "pr_link": f"https://github.com/{SUPERSET_REPO}/pull/"
                 f"{log.pr_number}",
                 "message": log.message,
                 "time": log.time,
@@ -276,13 +264,20 @@ def compare(base_parameters: BaseParameters) -> None:
 @click.option(
     "--csv", help="The csv filename to export the changelog to",
 )
+@click.option(
+    "--access_token",
+    help="The github access token,"
+    " if not provided will try to fetch from GITHUB_TOKEN env var",
+)
 @click.pass_obj
-def change_log(base_parameters: BaseParameters, csv: str) -> None:
+def change_log(base_parameters: BaseParameters, csv: str, access_token: str) -> None:
     """ Outputs a changelog (by PR) """
     previous_logs = base_parameters.previous_logs
     current_logs = base_parameters.current_logs
     previous_diff_logs = previous_logs.diff(current_logs)
-    logs = GitChangeLog(current_logs.git_ref, previous_diff_logs[::-1])
+    logs = GitChangeLog(
+        current_logs.git_ref, previous_diff_logs[::-1], access_token=access_token
+    )
     if csv:
         with open(csv, "w") as csv_file:
             log_items = list(logs)

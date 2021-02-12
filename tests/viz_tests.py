@@ -79,10 +79,10 @@ class TestBaseViz(SupersetTestCase):
         datasource.type = "table"
         test_viz = viz.BaseViz(datasource, form_data)
         expect_metric_labels = [
-            u"sum__SP_POP_TOTL",
-            u"SUM(SE_PRM_NENR_MA)",
-            u"SUM(SP_URB_TOTL)",
-            u"count",
+            "sum__SP_POP_TOTL",
+            "SUM(SE_PRM_NENR_MA)",
+            "SUM(SP_URB_TOTL)",
+            "count",
         ]
         self.assertEqual(test_viz.metric_labels, expect_metric_labels)
         self.assertEqual(test_viz.all_metrics, expect_metric_labels)
@@ -500,6 +500,7 @@ class TestDistBarViz(SupersetTestCase):
             {"x": "2.0", "y": 29},
             {"x": NULL_STRING, "y": 3},
         ]
+
         self.assertEqual(expected_values, data["values"])
 
     def test_column_nulls(self):
@@ -529,6 +530,92 @@ class TestDistBarViz(SupersetTestCase):
                 "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
             },
         ]
+        self.assertEqual(expected, data)
+
+    def test_column_metrics_in_order(self):
+        form_data = {
+            "metrics": ["z_column", "votes", "a_column"],
+            "adhoc_filters": [],
+            "groupby": ["toppings"],
+            "columns": [],
+        }
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame(
+            {
+                "toppings": ["cheese", "pepperoni", "cheese", "pepperoni"],
+                "role": ["engineer", "engineer", None, None],
+                "votes": [3, 5, 1, 2],
+                "a_column": [3, 5, 1, 2],
+                "z_column": [3, 5, 1, 2],
+            }
+        )
+        test_viz = viz.DistributionBarViz(datasource, form_data)
+        data = test_viz.get_data(df)
+
+        expected = [
+            {
+                "key": "z_column",
+                "values": [{"x": "pepperoni", "y": 3.5}, {"x": "cheese", "y": 2.0}],
+            },
+            {
+                "key": "votes",
+                "values": [{"x": "pepperoni", "y": 3.5}, {"x": "cheese", "y": 2.0}],
+            },
+            {
+                "key": "a_column",
+                "values": [{"x": "pepperoni", "y": 3.5}, {"x": "cheese", "y": 2.0}],
+            },
+        ]
+
+        self.assertEqual(expected, data)
+
+    def test_column_metrics_in_order_with_breakdowns(self):
+        form_data = {
+            "metrics": ["z_column", "votes", "a_column"],
+            "adhoc_filters": [],
+            "groupby": ["toppings"],
+            "columns": ["role"],
+        }
+        datasource = self.get_datasource_mock()
+        df = pd.DataFrame(
+            {
+                "toppings": ["cheese", "pepperoni", "cheese", "pepperoni"],
+                "role": ["engineer", "engineer", None, None],
+                "votes": [3, 5, 1, 2],
+                "a_column": [3, 5, 1, 2],
+                "z_column": [3, 5, 1, 2],
+            }
+        )
+        test_viz = viz.DistributionBarViz(datasource, form_data)
+        data = test_viz.get_data(df)
+
+        expected = [
+            {
+                "key": f"z_column, {NULL_STRING}",
+                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
+            },
+            {
+                "key": "z_column, engineer",
+                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
+            },
+            {
+                "key": f"votes, {NULL_STRING}",
+                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
+            },
+            {
+                "key": "votes, engineer",
+                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
+            },
+            {
+                "key": f"a_column, {NULL_STRING}",
+                "values": [{"x": "pepperoni", "y": 2}, {"x": "cheese", "y": 1}],
+            },
+            {
+                "key": "a_column, engineer",
+                "values": [{"x": "pepperoni", "y": 5}, {"x": "cheese", "y": 3}],
+            },
+        ]
+
         self.assertEqual(expected, data)
 
 
@@ -1179,18 +1266,18 @@ class TestTimeSeriesViz(SupersetTestCase):
         viz_data = test_viz.get_data(df)
         expected = [
             {
-                u"values": [
-                    {u"y": 4, u"x": u"2018-02-20T00:00:00"},
-                    {u"y": 4, u"x": u"2018-03-09T00:00:00"},
+                "values": [
+                    {"y": 4, "x": "2018-02-20T00:00:00"},
+                    {"y": 4, "x": "2018-03-09T00:00:00"},
                 ],
-                u"key": (u"Real Madrid Basket",),
+                "key": ("Real Madrid Basket",),
             },
             {
-                u"values": [
-                    {u"y": 2, u"x": u"2018-02-20T00:00:00"},
-                    {u"y": 2, u"x": u"2018-03-09T00:00:00"},
+                "values": [
+                    {"y": 2, "x": "2018-02-20T00:00:00"},
+                    {"y": 2, "x": "2018-03-09T00:00:00"},
                 ],
-                u"key": (u"Real Madrid C.F.\U0001f1fa\U0001f1f8\U0001f1ec\U0001f1e7",),
+                "key": ("Real Madrid C.F.\U0001f1fa\U0001f1f8\U0001f1ec\U0001f1e7",),
             },
         ]
         self.assertEqual(expected, viz_data)

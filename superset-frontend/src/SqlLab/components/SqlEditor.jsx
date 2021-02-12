@@ -43,6 +43,7 @@ import {
   Input,
 } from 'src/common/components';
 import Icon from 'src/components/Icon';
+import { detectOS } from 'src/utils/common';
 import {
   addQueryEditor,
   CtasEnum,
@@ -70,7 +71,7 @@ import ShareSqlLabQuery from './ShareSqlLabQuery';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
 import {
-  STATE_BSSTYLE_MAP,
+  STATE_TYPE_MAP,
   SQL_EDITOR_GUTTER_HEIGHT,
   SQL_EDITOR_GUTTER_MARGIN,
   SQL_TOOLBAR_HEIGHT,
@@ -278,6 +279,8 @@ class SqlEditor extends React.PureComponent {
   }
 
   getHotkeyConfig() {
+    // Get the user's OS
+    const userOS = detectOS();
     return [
       {
         name: 'runQuery1',
@@ -301,12 +304,12 @@ class SqlEditor extends React.PureComponent {
       },
       {
         name: 'newTab',
-        key: 'ctrl+t',
+        key: userOS === 'Windows' ? 'ctrl+q' : 'ctrl+t',
         descr: t('New tab'),
         func: () => {
           this.props.addQueryEditor({
             ...this.props.queryEditor,
-            title: t('Untitled Query'),
+            title: t('Untitled query'),
             sql: '',
           });
         },
@@ -471,9 +474,7 @@ class SqlEditor extends React.PureComponent {
             sql={this.props.queryEditor.sql}
             schemas={this.props.queryEditor.schemaOptions}
             tables={this.props.queryEditor.tableOptions}
-            functionNames={
-              this.props.database ? this.props.database.function_names : []
-            }
+            functionNames={this.props.queryEditor.functionNames}
             extendedTables={this.props.tables}
             height={`${aceEditorHeight}px`}
             hotkeys={hotkeys}
@@ -572,7 +573,7 @@ class SqlEditor extends React.PureComponent {
             this.props.latestQuery.rows,
           )}
         >
-          <Label bsStyle="warning">LIMIT</Label>
+          <Label type="warning">LIMIT</Label>
         </Tooltip>
       );
     }
@@ -667,7 +668,7 @@ class SqlEditor extends React.PureComponent {
               <Timer
                 startTime={this.props.latestQuery.startDttm}
                 endTime={this.props.latestQuery.endDttm}
-                state={STATE_BSSTYLE_MAP[this.props.latestQuery.state]}
+                state={STATE_TYPE_MAP[this.props.latestQuery.state]}
                 isRunning={this.props.latestQuery.state === 'running'}
               />
             )}
@@ -698,13 +699,13 @@ class SqlEditor extends React.PureComponent {
   render() {
     const createViewModalTitle =
       this.state.createAs === CtasEnum.VIEW
-        ? 'Create View As'
-        : 'Create Table As';
+        ? 'CREATE VIEW AS'
+        : 'CREATE TABLE AS';
 
     const createModalPlaceHolder =
       this.state.createAs === CtasEnum.VIEW
-        ? 'Specify name to Create View AS schema in: public'
-        : 'Specify name to Create Table AS schema in: public';
+        ? 'Specify name to CREATE VIEW AS schema in: public'
+        : 'Specify name to CREATE TABLE AS schema in: public';
 
     return (
       <div ref={this.sqlEditorRef} className="SqlEditor">

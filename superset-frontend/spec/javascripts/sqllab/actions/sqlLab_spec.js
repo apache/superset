@@ -23,7 +23,7 @@ import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import shortid from 'shortid';
 import * as featureFlags from 'src/featureFlags';
-
+import { ADD_TOAST } from 'src/messageToasts/actions';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { defaultQueryEditor, query } from '../fixtures';
 
@@ -62,7 +62,12 @@ describe('async actions', () => {
 
   describe('saveQuery', () => {
     const saveQueryEndpoint = 'glob:*/savedqueryviewapi/api/create';
-    fetchMock.post(saveQueryEndpoint, 'ok');
+    fetchMock.post(saveQueryEndpoint, { results: { json: {} } });
+
+    const makeRequest = () => {
+      const request = actions.saveQuery(query);
+      return request(dispatch);
+    };
 
     it('posts to the correct url', () => {
       expect.assertions(1);
@@ -81,6 +86,38 @@ describe('async actions', () => {
         Object.keys(query).forEach(key => {
           expect(formData.get(key)).toBeDefined();
         });
+      });
+    });
+
+    it('calls 3 dispatch actions', () => {
+      expect.assertions(1);
+
+      return makeRequest().then(() => {
+        expect(dispatch.callCount).toBe(3);
+      });
+    });
+
+    it('calls QUERY_EDITOR_SAVED after making a request', () => {
+      expect.assertions(1);
+
+      return makeRequest().then(() => {
+        expect(dispatch.args[0][0].type).toBe(actions.QUERY_EDITOR_SAVED);
+      });
+    });
+
+    it('onSave calls QUERY_EDITOR_SAVED and QUERY_EDITOR_SET_TITLE', () => {
+      expect.assertions(1);
+
+      const store = mockStore({});
+      const expectedActionTypes = [
+        actions.QUERY_EDITOR_SAVED,
+        ADD_TOAST,
+        actions.QUERY_EDITOR_SET_TITLE,
+      ];
+      return store.dispatch(actions.saveQuery(query)).then(() => {
+        expect(store.getActions().map(a => a.type)).toEqual(
+          expectedActionTypes,
+        );
       });
     });
   });

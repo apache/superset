@@ -41,6 +41,7 @@ little bit helps, and credit will always be given.
       - [Reviewing](#reviewing)
       - [Merging](#merging)
       - [Post-merge Responsibility](#post-merge-responsibility)
+  - [Design Guidelines](#design-guidelines)
   - [Managing Issues and PRs](#managing-issues-and-prs)
   - [Reporting a Security Vulnerability](#reporting-a-security-vulnerability)
   - [Revert Guidelines](#revert-guidelines)
@@ -83,6 +84,7 @@ little bit helps, and credit will always be given.
     - [Adding a DB migration](#adding-a-db-migration)
     - [Merging DB migrations](#merging-db-migrations)
     - [SQL Lab Async](#sql-lab-async)
+    - [Async Chart Queries](#async-chart-queries)
   - [Chart Parameters](#chart-parameters)
     - [Datasource & Chart Type](#datasource--chart-type)
     - [Time](#time)
@@ -192,6 +194,8 @@ The purpose is to separate problem from possible solutions.
 
 In general, small PRs are always easier to review than large PRs. The best practice is to break your work into smaller independent PRs and refer to the same issue. This will greatly reduce turnaround time.
 
+If you wish to share your work which is not ready to merge yet, create a [Draft PR](https://github.blog/2019-02-14-introducing-draft-pull-requests/). This will enable maintainers and the CI runner to prioritize mature PR's.
+
 Finally, never submit a PR that will put master branch in broken state. If the PR is part of multiple PRs to complete a large feature and cannot work on its own, you can create a feature branch and merge all related PRs into the feature branch before creating a PR from feature branch to master.
 
 ### Protocol
@@ -218,6 +222,7 @@ Finally, never submit a PR that will put master branch in broken state. If the P
     - `fix(chart-api): cached-indicator always shows value is cached`
 
 - Add prefix `[WIP]` to title if not ready for review (WIP = work-in-progress). We recommend creating a PR with `[WIP]` first and remove it once you have passed CI test and read through your code changes at least once.
+- If you believe your PR contributes a potentially breaking change, put a `!` after the semantic prefix but before the colon in the PR title, like so: `feat!: Added foo functionality to bar`
 - **Screenshots/GIFs:** Changes to user interface require before/after screenshots, or GIF for interactions
   - Recommended capture tools ([Kap](https://getkap.co/), [LICEcap](https://www.cockos.com/licecap/), [Skitch](https://download.cnet.com/Skitch/3000-13455_4-189876.html))
   - If no screenshot is provided, the committers will mark the PR with `need:screenshot` label and will not review until screenshot is provided.
@@ -248,6 +253,50 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 
 - Project maintainers may contact the PR author if new issues are introduced by the PR.
 - Project maintainers may revert your changes if a critical issue is found, such as breaking master branch CI.
+
+## Design Guidelines
+
+### Capitalization guidelines
+
+#### Sentence case
+Use sentence-case capitalization for everything in the UI (except these **).
+
+Sentence case is predominantly lowercase. Capitalize only the initial character of the first word, and other words that require capitalization, like:
+- **Proper nouns.** Objects in the product _are not_ considered proper nouns e.g. dashboards, charts, saved queries etc. Proprietary feature names eg. SQL Lab, Preset Manager _are_ considered proper nouns
+- **Acronyms** (e.g. CSS, HTML)
+- When referring to **UI labels that are themselves capitalized** from sentence case (e.g. page titles - Dashboards page, Charts page, Saved queries page, etc.)
+- User input that is reflected in the UI. E.g. a user-named a dashboard tab
+
+**Sentence case vs. Title case:**
+Title case: "A Dog Takes a Walk in Paris"
+Sentence case: "A dog takes a walk in Paris"
+
+**Why sentence case?**
+- It’s generally accepted as the quickest to read
+- It’s the easiest form to distinguish between common and proper nouns
+
+#### How to refer to UI elements
+When writing about a UI element, use the same capitalization as used in the UI.
+
+For example, if an input field is labeled “Name” then you refer to this as the “Name input field”. Similarly, if a button has the label “Save” in it, then it is correct to refer to the “Save button”.
+
+Where a product page is titled “Settings”, you refer to this in writing as follows:
+“Edit your personal information on the Settings page”.
+
+Often a product page will have the same title as the objects it contains. In this case, refer to the page as it appears in the UI, and the objects as common nouns:
+
+- Upload a dashboard on the Dashboards page
+- Go to Dashboards
+- View dashboard
+- View all dashboards
+- Upload CSS templates on the CSS templates page
+- Queries that you save will appear on the Saved queries page
+- Create custom queries in SQL Lab then create dashboards
+
+#### **Exceptions to sentence case:
+
+- Input labels, buttons and UI tabs are all caps
+- User input values (e.g. column names, SQL Lab tab names) should be in their original case
 
 ## Managing Issues and PRs
 
@@ -343,12 +392,12 @@ For example, the image referenced above actually lives in `superset-frontend/ima
 
 #### OS Dependencies
 
-Make sure your machine meets the [OS dependencies](https://superset.apache.org/installation.html#os-dependencies) before following these steps.
+Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
 
 Ensure Python versions >3.7, Then proceed with:
 
 ```bash
-# Create a virtual environemnt and activate it (recommended)
+# Create a virtual environment and activate it (recommended)
 python3 -m venv venv # setup a python3 virtualenv
 source venv/bin/activate
 
@@ -515,7 +564,7 @@ pip3 install -r requirements/integration.txt
 pre-commit install
 ```
 
-Alternatively it possible to run pre-commit via tox:
+Alternatively it is possible to run pre-commit via tox:
 
 ```bash
 tox -e pre-commit
@@ -604,7 +653,7 @@ tox -e <environment>
 For example,
 
 ```bash
-tox -e py36
+tox -e py38
 ```
 
 Alternatively, you can run all tests in a single file via,
@@ -633,6 +682,7 @@ npm run test
 ```
 
 To run a single test file:
+
 ```bash
 npm run test -- path/to/file.js
 ```
@@ -684,14 +734,14 @@ See [`superset-frontend/cypress_build.sh`](https://github.com/apache/superset/bl
 As an alternative you can use docker-compose environment for testing:
 
 Make sure you have added below line to your /etc/hosts file:
-```127.0.0.1 db```
+`127.0.0.1 db`
 
 If you already have launched Docker environment please use the following command to assure a fresh database instance:
-```docker-compose down -v```
+`docker-compose down -v`
 
 Launch environment:
 
-```CYPRESS_CONFIG=true docker-compose up```
+`CYPRESS_CONFIG=true docker-compose up`
 
 It will serve backend and frontend on port 8088.
 
@@ -755,22 +805,35 @@ LANGUAGES = {
 ### Extracting new strings for translation
 
 ```bash
-flask fab babel-extract --target superset/translations --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _ -k __ -k t -k tn -k tct
+pybabel extract -F superset/translations/babel.cfg -o superset/translations/messages.pot -k _ -k __ -k t -k tn -k tct .
 ```
+
+This will update the template file `superset/translations/messages.pot` with current application strings. Do not forget to update
+this file with the appropriate license information.
+
+### Updating language files
+
+```bash
+ pybabel update -i superset/translations/messages.pot -d superset/translations --ignore-obsolete
+```
+
+This will update language files with the new extracted strings.
 
 You can then translate the strings gathered in files located under
 `superset/translation`, where there's one per language. You can use [Poedit](https://poedit.net/features)
 to translate the `po` file more conveniently.
 There are some [tutorials in the wiki](https://wiki.lxde.org/en/Translate_*.po_files_with_Poedit).
 
-For the translations to take effect:
+In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the npm package po2json.
 
 ```bash
-# In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the npm package po2json.
 npm install -g po2json
-flask fab babel-compile --target superset/translations
-# Convert the en PO file into a JSON file
-po2json -d superset -f jed1.x superset/translations/en/LC_MESSAGES/messages.po superset/translations/en/LC_MESSAGES/messages.json
+```
+
+To convert all PO files to formatted JSON files you can use the `po2json.sh` script.
+
+```bash
+./scripts/po2json.sh
 ```
 
 If you get errors running `po2json`, you might be running the Ubuntu package with the same
@@ -779,6 +842,12 @@ there is a conflict, you may need to update your `PATH` environment variable or 
 the executable path (e.g. `/usr/local/bin/po2json` instead of `po2json`).
 If you get a lot of `[null,***]` in `messages.json`, just delete all the `null,`.
 For example, `"year":["年"]` is correct while `"year":[null,"年"]`is incorrect.
+
+For the translations to take effect we need to compile translation catalogs into binary MO files.
+
+```bash
+pybabel compile -d superset/translations
+```
 
 ### Creating a new language dictionary
 
@@ -977,6 +1046,29 @@ Note that:
 - In some cases, you may want to create a context that is more aligned
   to your production environment, and use the similar broker as well as
   results backend configuration
+
+### Async Chart Queries
+
+It's possible to configure database queries for charts to operate in `async` mode. This is especially useful for dashboards with many charts that may otherwise be affected by browser connection limits. To enable async queries for dashboards and Explore, the following dependencies are required:
+
+- Redis 5.0+ (the feature utilizes [Redis Streams](https://redis.io/topics/streams-intro))
+- Cache backends enabled via the `CACHE_CONFIG` and `DATA_CACHE_CONFIG` config settings
+- Celery workers configured and running to process async tasks
+
+The following configuration settings are available for async queries (see config.py for default values)
+
+- `GLOBAL_ASYNC_QUERIES` (feature flag) - enable or disable async query operation
+- `GLOBAL_ASYNC_QUERIES_REDIS_CONFIG` - Redis connection info
+- `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX` - the prefix used with Redis Streams
+- `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT` - the maximum number of events for each user-specific event stream (FIFO eviction)
+- `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE` - the maximum number of events for all users (FIFO eviction)
+- `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME` - the async query feature uses a [JWT](https://tools.ietf.org/html/rfc7519) cookie for authentication, this setting is the cookie's name
+- `GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE` - JWT cookie secure option
+- `GLOBAL_ASYNC_QUERIES_JWT_SECRET` - JWT's use a secret key to sign and validate the contents. This value should be at least 32 bytes and have sufficient randomness for proper security
+- `GLOBAL_ASYNC_QUERIES_TRANSPORT` - currently the only available option is (HTTP) `polling`, but support for a WebSocket will be added in future versions
+- `GLOBAL_ASYNC_QUERIES_POLLING_DELAY` - the time (in ms) between polling requests
+
+More information on the async query feature can be found in [SIP-39](https://github.com/apache/superset/issues/9190).
 
 ## Chart Parameters
 

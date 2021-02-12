@@ -18,10 +18,11 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { FormControl, FormGroup, InputGroup, Radio } from 'react-bootstrap';
+import { FormControl, FormGroup, InputGroup } from 'react-bootstrap';
 import { Tooltip } from 'src/common/components/Tooltip';
 import Popover from 'src/common/components/Popover';
 import { Select, Input } from 'src/common/components';
+import { Radio } from 'src/common/components/Radio';
 import Button from 'src/components/Button';
 import Datetime from 'react-datetime';
 import 'react-datetime/css/react-datetime.css';
