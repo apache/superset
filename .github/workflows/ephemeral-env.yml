@@ -29,8 +29,9 @@ jobs:
       if: steps.eval-body.outputs.result == 'false'
       run: exit 0
 
+    # https://docs.github.com/en/graphql/reference/enums#commentauthorassociation
     - name: Limit to committers
-      if: github.event.comment.author_association != 'MEMBER'
+      if: github.event.comment.author_association != 'MEMBER' && github.event.comment.author_association != 'OWNER'
       run: exit 1
 
     - uses: actions/github-script@v3
