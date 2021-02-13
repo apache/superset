@@ -88,7 +88,7 @@ jobs:
       continue-on-error: true
       run: |
         aws ecr describe-images \
-        --registry-id ${{ steps.login-ecr.outputs.registry }}
+        --registry-id ${{ steps.login-ecr.outputs.registry }} \
         --repository-name superset-ci \
         --image-ids imageTag=${{ fromJSON(steps.get-pr.outputs.result).merge_commit_sha }}
 
