@@ -255,7 +255,6 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
               queriesData={formFilter?.defaultValueQueriesData}
               chartType={formFilter?.filterType}
               hooks={{
-                // @ts-ignore
                 setExtraFormData: ({ currentState }) => {
                   setFilterFieldValues(form, filterId, {
                     defaultValue: currentState?.value,
