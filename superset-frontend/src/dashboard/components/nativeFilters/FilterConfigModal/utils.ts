@@ -156,6 +156,7 @@ export const findFilterScope = (
 export const FilterTypeNames = {
   [FilterType.filter_select]: t('Select'),
   [FilterType.filter_range]: t('Range'),
+  [FilterType.filter_time]: t('Time'),
 };
 
 export const setFilterFieldValues = (
@@ -177,18 +178,3 @@ export const setFilterFieldValues = (
 
 export const isScopingAll = (scope: Scope) =>
   !scope || (scope.rootPath[0] === DASHBOARD_ROOT_ID && !scope.excluded.length);
-
-type AppendFormData = {
-  filters: {
-    val?: number | string | null;
-  }[];
-};
-
-export const extractDefaultValue = {
-  [FilterType.filter_select]: (appendFormData: AppendFormData) =>
-    appendFormData.filters?.[0]?.val,
-  [FilterType.filter_range]: (appendFormData: AppendFormData) => ({
-    min: appendFormData.filters?.[0].val,
-    max: appendFormData.filters?.[1].val,
-  }),
-};
