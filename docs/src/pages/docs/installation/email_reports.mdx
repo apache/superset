@@ -19,19 +19,19 @@ Alerts and reports are not turned on by default. They are currently behind a fea
 
 #### Requirements:
 
-- `Dockerfile`
--- webdriver to run a headless browser (for taking screenshots of the charts and dahboards)
+ `Dockerfile`
+	- webdriver to run a headless browser (for taking screenshots of the charts and dahboards)
 - `docker-compose.yaml`
--- redis message broker
--- replacing SQLlite DB with Postgres DB
--- celery worker
--- celery beat
+	- redis message broker
+	- replacing SQLlite DB with Postgres DB
+	- celery worker
+	- celery beat
 - `superset_config.py`
--- feature flag turned to True
--- all configs as outlined in the template below
+	- feature flag turned to True
+	- all configs as outlined in the template below
 - At least one of these is needed to send alerts and reports:
--- (optional) SMTP server for sending email
--- (optional) Slack app integration for sending to Slack channels
+	- (optional) SMTP server for sending email
+	- (optional) Slack app integration for sending to Slack channels
  
 #### Summary of steps to turn on alerts and reporting:
 
@@ -117,7 +117,7 @@ services:
     depends_on:
       - superset
       - postgres
-      - redis-superset
+      - redis
     command: "celery worker --app=superset.tasks.celery_app:app --pool=prefork --max-tasks-per-child=128 -O fair"
     volumes:
       - ./config/:/app/pythonpath/
@@ -129,7 +129,7 @@ services:
     depends_on:
       - superset
       - postgres
-      - redis-superset
+      - redis
     command: "celery beat --app=superset.tasks.celery_app:app --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule"
     volumes:
       - ./config/:/app/pythonpath/
@@ -142,7 +142,7 @@ services:
       - "8088:8088"
     depends_on:
       - postgres
-      - redis-superset
+      - redis
     command: gunicorn --bind  0.0.0.0:8088 --access-logfile - --error-logfile - --workers 5 --worker-class gthread --threads 4 --timeout 200 --limit-request-line 4094 --limit-request-field_size 8190 superset.app:create_app()
     volumes:
       - ./config/:/app/pythonpath/
@@ -286,15 +286,15 @@ SUPERSET_WEBSERVER_TIMEOUT=600
 With the extended image created by using the `Dockerfile`, and then running that image using `docker-compose.yaml`, plus the required configurations in the `superset_config.py` you should now have alerts and reporting working correctly.
 
 - For Kubernetes you can see the Helm chart here
-- The above templates also work in a Docker swarm environment, you would just need to add `Deploy:` to the Superset, redis and Postgres services along with your specific configs for your swarm
+- The above templates also work in a Docker swarm environment, you would just need to add `Deploy:` to the Superset, Redis and Postgres services along with your specific configs for your swarm
 
 ### Optional - Slack integration
 To send alerts and reports to a Slack channel, you need to create a new Slack APP on your domain.
 1. Head to https://api.slack.com/apps
 2. Create a new APP, give it a name (eg. Superset)
 3. Under the OAuth and Permissions section, give the following scopes to the app:
-	a) incoming-webhook
-	b) calls:write 
+	1. `incoming-webhook`
+	2. `calls:write` 
 4. At the top of the OAuth and Permissions section, click 'install to workspace'
 5. Select a default channel for the app to post to and continue. (You can post to any channel by inviting your Superset app into that channel)
 6. The app should now be installed on the workspace, and a 'Bot User OAuth Access Token' should be created. Copy the OAuth token and add it into the Slack section in the `superset_config.py`
