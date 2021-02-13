@@ -76,6 +76,7 @@ const FilterValue: React.FC<FilterProps> = ({
       defaultValue,
       currentValue,
       inverseSelection,
+      inputRef,
     });
     if (!areObjectsEqual(formData || {}, newFormData)) {
       setFormData(newFormData);

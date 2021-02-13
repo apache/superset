@@ -245,6 +245,12 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
     setShow(false);
   }
 
+  function onOpen() {
+    setTimeRangeValue(value);
+    setFrame(guessFrame(value));
+    setShow(true);
+  }
+
   function onHide() {
     setTimeRangeValue(value);
     setFrame(guessFrame(value));
@@ -355,7 +361,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           <Label
             className="pointer"
             data-test="time-range-trigger"
-            onClick={() => setShow(true)}
+            onClick={onOpen}
           >
             {actualTimeRange}
           </Label>
