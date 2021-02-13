@@ -15,23 +15,23 @@ Users can configure automated alerts and reports to send charts and dashboards t
 - Reports are sent on a specified schedule 
 
 ### Turning on Alerts and reports
-Alerts and reports are not on by default, they are currently behind a feature flag, and also require some additional services and configurations.
+Alerts and reports are not turned on by default. They are currently behind a feature flag, and require some additional services and configurations.
 
 #### Requirements:
 
 - `Dockerfile`
--- webdriver to run a headless browser (for screenshots)
+-- webdriver to run a headless browser (for taking screenshots of the charts and dahboards)
 - `docker-compose.yaml`
--- redis message broker running
+-- redis message broker
 -- replacing SQLlite DB with Postgres DB
 -- celery worker
 -- celery beat
 - `superset_config.py`
--- feature flag turned on
+-- feature flag turned to True
 -- all configs as outlined in the template below
-- At least one of these is needed to sent alerts and reports:
+- At least one of these is needed to send alerts and reports:
 -- (optional) SMTP server for sending email
--- (optional) Slack app integration for sending to slack channels
+-- (optional) Slack app integration for sending to Slack channels
  
 #### Summary of steps to turn on alerts and reporting:
 
