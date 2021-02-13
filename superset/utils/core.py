@@ -1039,7 +1039,8 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
         "druid_time_origin": "__time_origin",
         "granularity": "__granularity",
     }
-    applied_time_extras = form_data["applied_time_extras"]
+    applied_time_extras = form_data.get("applied_time_extras", {})
+    form_data["applied_time_extras"] = applied_time_extras
     extra_form_data = form_data.pop("extra_form_data", {})
     append_form_data = extra_form_data.pop("append_form_data", {})
     append_filters = append_form_data.get("filters", None)
