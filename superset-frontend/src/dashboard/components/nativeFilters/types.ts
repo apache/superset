@@ -30,6 +30,7 @@ export interface Scope {
 export enum FilterType {
   filter_select = 'filter_select',
   filter_range = 'filter_range',
+  filter_time = 'filter_time',
 }
 
 /** The target of a filter is the datasource/column being filtered */
