@@ -506,6 +506,7 @@ export function FilterConfigModal({
   return (
     <StyledModal
       visible={isOpen}
+      maskClosable={false}
       title={t('Filter configuration and scoping')}
       width="55%"
       destroyOnClose

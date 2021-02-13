@@ -16,6 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as AntdSelectFilterPlugin } from './Select';
-export { default as AntdRangeFilterPlugin } from './Range';
-export { default as TimeFilterPlugin } from './Time';
+import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import controlPanel from './controlPanel';
+import transformProps from './transformProps';
+import thumbnail from './images/thumbnail.png';
+
+export default class TimeFilterPlugin extends ChartPlugin {
+  constructor() {
+    const metadata = new ChartMetadata({
+      name: t('Time range filter plugin'),
+      description: 'Custom time filter plugin',
+      behaviors: [Behavior.CROSS_FILTER, Behavior.NATIVE_FILTER],
+      thumbnail,
+    });
+
+    super({
+      controlPanel,
+      loadChart: () => import('./AntdTimeFilter'),
+      metadata,
+      transformProps,
+    });
+  }
+}

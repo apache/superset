@@ -16,6 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as AntdSelectFilterPlugin } from './Select';
-export { default as AntdRangeFilterPlugin } from './Range';
-export { default as TimeFilterPlugin } from './Time';
+import { ControlPanelConfig } from '@superset-ui/chart-controls';
+
+const config: ControlPanelConfig = {
+  // For control input types, see: superset-frontend/src/explore/components/controls/index.js
+  controlPanelSections: [],
+};
+
+export default config;
