@@ -38,6 +38,7 @@ export default function AntdRangeFilter(props: AntdPluginFilterRangeProps) {
 
   const handleChange = (value: [number, number]) => {
     const [lower, upper] = value;
+
     setExtraFormData({
       extraFormData: getRangeExtraFormData(col, lower, upper),
       currentState: {
