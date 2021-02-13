@@ -74,7 +74,7 @@ export default function AntdPluginFilterSelect(
         inverseSelection,
       ),
       currentState: {
-        value: resultValue,
+        value: resultValue.length ? resultValue : null,
       },
     });
   };
