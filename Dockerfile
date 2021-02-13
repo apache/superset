@@ -111,10 +111,12 @@ COPY ./docker/docker-entrypoint.sh /usr/bin/
 RUN apt update \
  && apt install default-jdk -y
 
-RUN apt-get install -y build-essential libssl-dev \
-    libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev \
-    default-jre libgtk-3-0 xvfb firefox-esr
+# # Install for firefox
+# RUN apt-get install -y build-essential libssl-dev \
+#     libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev \
+#     default-jre libgtk-3-0 xvfb firefox-esr
 
+# Install for google chrome
 RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
     apt install -y ./google-chrome-stable_current_amd64.deb && \
     wget https://chromedriver.storage.googleapis.com/88.0.4324.96/chromedriver_linux64.zip && \
