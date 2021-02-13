@@ -36,7 +36,6 @@ import AsyncSelect from '../../components/AsyncSelect';
 const propTypes = {
   actions: PropTypes.object.isRequired,
   // why is height required and then never used or invoked?
-  height: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   displayLimit: PropTypes.number.isRequired,
 };
 
@@ -132,21 +131,12 @@ function QuerySearch({ actions, displayLimit }) {
     setUserId(userId);
     refreshQueries();
   };
+  // add these to dependency array instead of having their own functions.
 
   const onDbClicked = dbId => {
     // By my reading of this, it is setting state, and then running the refreshQueries function. Is that correct?
-    // this.setState({ databaseId: dbId }, () => {
-    //   this.refreshQueries();
-    // });
-
     setDatabaseId(dbId);
     refreshQueries();
-    // Based on my reading of this code, we are first setting the new state, and then running refresh queries to update the query field? I am writing the rest of these with this understanding.
-  };
-
-  const onChange = db => {
-    const val = db ? db.value : null;
-    setDatabaseId(val);
   };
 
   const onKeyDown = event => {
@@ -154,38 +144,6 @@ function QuerySearch({ actions, displayLimit }) {
       refreshQueries();
     }
   };
-
-  const changeFrom = user => {
-    const val = user ? user.value : null;
-    setFrom(val);
-  };
-
-  const changeTo = status => {
-    const val = status ? status.value : null;
-    setTo(val);
-  };
-
-  const changeUser = user => {
-    const val = user ? user.value : null;
-    setUserId(val);
-  };
-
-  const changeStatus = status => {
-    const val = status ? status.value : null;
-    setStatus(val);
-  };
-
-  const changeSearch = event => {
-    setSearchText(event.target.value);
-  };
-
-  // This is defined here, but never used within the file. I commented it out because I didn't want to delete it.
-  // const userLabel = user => {
-  //   if (user.first_name && user.last_name) {
-  //     return `${user.first_name} ${user.last_name}`;
-  //   }
-  //   return user.username;
-  // };
 
   const userMutator = data =>
     data.result.map(({ value, text }) => ({
@@ -215,13 +173,13 @@ function QuerySearch({ actions, displayLimit }) {
             dataEndpoint="api/v1/query/related/user"
             mutator={userMutator}
             value={userId}
-            onChange={changeUser}
+            onChange={selected => setUserId(selected?.value)}
             placeholder={t('Filter by user')}
           />
         </div>
         <div className="col-sm-2">
           <AsyncSelect
-            onChange={onChange}
+            onChange={db => setDatabaseId(db?.value)}
             dataEndpoint="/api/v1/database/?q=(filters:!((col:expose_in_sqllab,opr:eq,value:!t)))"
             value={databaseId}
             mutator={dbMutator}
@@ -231,7 +189,7 @@ function QuerySearch({ actions, displayLimit }) {
         <div className="col-sm-4">
           <input
             type="text"
-            onChange={changeSearch}
+            onChange={event => setSearchText(event.target.value)}
             onKeyDown={onKeyDown}
             className="form-control input-sm"
             placeholder={t('Query search string')}
@@ -247,7 +205,7 @@ function QuerySearch({ actions, displayLimit }) {
             }))}
             value={from}
             autosize={false}
-            onChange={changeFrom}
+            onChange={selected => setFrom(selected?.value)}
           />
 
           <Select
@@ -256,7 +214,7 @@ function QuerySearch({ actions, displayLimit }) {
             options={TIME_OPTIONS.map(xt => ({ value: xt, label: xt }))}
             value={to}
             autosize={false}
-            onChange={changeTo}
+            onChange={selected => setTo(selected?.value)}
           />
 
           <Select
@@ -269,7 +227,7 @@ function QuerySearch({ actions, displayLimit }) {
             value={status}
             isLoading={false}
             autosize={false}
-            onChange={changeStatus}
+            onChange={selected => setStatus(selected?.value)}
           />
 
           <Button
@@ -310,4 +268,5 @@ function QuerySearch({ actions, displayLimit }) {
   );
 }
 QuerySearch.propTypes = propTypes;
+// using memo here because the original component was a Pure Component, and memo replicates that.
 export default memo(QuerySearch);
