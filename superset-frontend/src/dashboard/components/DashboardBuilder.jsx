@@ -301,6 +301,7 @@ class DashboardBuilder extends React.Component {
               <ErrorBoundary>
                 <FilterBar
                   filtersOpen={this.state.dashboardFiltersOpen}
+                  editMode={editMode}
                   toggleFiltersBar={this.toggleDashboardFiltersOpen}
                   directPathToChild={directPathToChild}
                 />

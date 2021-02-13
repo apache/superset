@@ -26,6 +26,7 @@ import { mockStore } from 'spec/fixtures/mockStore';
 describe('FilterBar', () => {
   const props = {
     filtersOpen: false,
+    editMode: false,
     toggleFiltersBar: jest.fn(),
   };
 
