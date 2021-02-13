@@ -6,8 +6,305 @@ index: 10
 version: 1
 ---
 
-## Scheduling and Emailing Reports
+## Alerts and Reports
+(version 1.0.1 and above)
 
+Users can configure automated alerts and reports to send charts and dashboards to an email recipient or slack channel.
+
+- Alerts are sent when a specified condition is passed.
+- Reports are sent on a specified schedule 
+
+### Turning on Alerts and reports
+Alerts and reports are not on by default, and are currently behind a feature flag. They also require the addition of some extra running services.
+
+#### Requirements:
+
+- `Dockerfile`
+-- webdriver to run a headless browser (for screenshots)
+- `docker-compose.yaml`
+-- redis message broker running
+-- replacing SQLlite DB with Postgres DB
+-- celery worker
+-- celery beat
+- `superset_config.py`
+-- feature flag turned on
+-- all configs as outlined in the template below
+- At least one of these is needed to sent alerts and reports:
+-- (optional) SMTP server for sending email
+-- (optional) Slack app integration for sending to slack channels
+ 
+#### Summary of steps to turn on alerts and reporting:
+
+Using the templates below,
+1. Create a new directory and create the Dockerfile
+2. Build the extended image using the Dockerfile
+3. Create the `docker-compose.yaml` file in the same directory
+4. Create a new sub directory called `config`
+5. Create the `superset_config.py` file in the `config` sub directory
+6. Run the image using `docker-compose up` in the same directory as the `docker-compose.py` file
+ 
+(note: v 1.0.1 is current at time of writing, you can change the version number to the latest version if a newer version is available)
+### Dockerfile
+
+A webdriver (and headless browser) is needed to capture screenshots of the charts and dashboards which are then sent to the recipient. As the base image does not have a webdriver installed by default, we need to extend the base image and install the webdriver (this template uses the Chrome webdriver). We are also adding in connectors for Mysql and Postgres, as well as Redis and Flower (Flower and Mysql are optional depending on your requirements)
+
+You can extend the image by running this Docker build command from the directory that contains the Dockerfile:
+`docker build -t superset-1.0.1-extended -f Dockerfile`
+
+Config for `Dockerfile`:
+```docker
+FROM apache/superset:1.0.1
+USER root
+RUN apt update
+RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+    apt install -y --no-install-recommends ./google-chrome-stable_current_amd64.deb && \
+    wget https://chromedriver.storage.googleapis.com/88.0.4324.96/chromedriver_linux64.zip && \
+    unzip chromedriver_linux64.zip && \
+    chmod +x chromedriver && \
+    mv chromedriver /usr/bin && \
+    apt autoremove -yqq --purge && \
+    apt clean && \
+    rm -f google-chrome-stable_current_amd64.deb chromedriver_linux64.zip
+RUN pip install --no-cache-dir gevent
+RUN pip install --no-cache-dir mysqlclient
+RUN pip install --no-cache-dir psycopg2
+RUN pip install --no-cache-dir redis
+RUN pip install --no-cache-dir flower
+USER superset
+
+```
+### Docker compose
+The docker compose file lists the services that will be used when running the image. The specific services needed for alerts and reporting are outlined below.
+
+#### Redis message broker
+To ferry requests between the celery worker and the Superset instance, we use a message broker. This template uses Redis.
+
+#### Replacing SQLite with Postgres
+While it might be possible to use SQLite for alerts and reporting, it is highly recommended to use a more production ready DB for Superset in general. Our template uses Postgres.
+
+#### Celery worker
+The worker will process the tasks that need to be performed when an alert or report is fired. 
+
+#### Celery beat
+The beat is the scheduler that tells the worker when to perform its tasks. This schedule is defined when you create the alert or report. 
+
+#### Full `docker-compose.yaml` configuration
+The Redis, Postgres, Celery worker and Celery beat services are defined in the template:
+
+Config for `docker-compose.yaml`:
+```docker
+version: '3.6'
+services:
+  redis-superset:
+    image: redis:6.0.9-buster
+    restart: on-failure
+    volumes: 
+      - redis:/data
+  postgres:
+    image: postgres
+    restart: on-failure
+    environment:
+      POSTGRES_DB: superset
+      POSTGRES_PASSWORD: superset
+      POSTGRES_USER: superset
+    volumes:
+      - db:/var/lib/postgresql/data
+  worker: 
+    image: superset-1.0.1-extended
+    restart: on-failure
+    healthcheck:
+      disable: true
+    depends_on:
+      - superset
+      - postgres
+      - redis-superset
+    command: "celery worker --app=superset.tasks.celery_app:app --pool=prefork --max-tasks-per-child=128 -O fair"
+    volumes:
+      - ./config/:/app/pythonpath/
+  beat:
+    image: superset-1.0.1-extended
+    restart: on-failure
+    healthcheck:
+      disable: true
+    depends_on:
+      - superset
+      - postgres
+      - redis-superset
+    command: "celery beat --app=superset.tasks.celery_app:app --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule"
+    volumes:
+      - ./config/:/app/pythonpath/
+  superset:
+    image: superset-1.0.1-extended
+    restart: on-failure
+    environment:
+      - SUPERSET_PORT=8088
+    ports:
+      - "8088:8088"
+    depends_on:
+      - postgres
+      - redis-superset
+    command: gunicorn --bind  0.0.0.0:8088 --access-logfile - --error-logfile - --workers 5 --worker-class gthread --threads 4 --timeout 200 --limit-request-line 4094 --limit-request-field_size 8190 superset.app:create_app()
+    volumes:
+      - ./config/:/app/pythonpath/
+volumes:
+  db:
+    external: false
+  redis:
+    external: false
+```
+
+### Superset_config.py
+
+The following configurations need to be added to the `superset_config.py` file. This file is loaded when the image runs, and any configurations in it will override the default configurations found in the `config.py`.
+
+You will need to add your custom SMTP settings, and or Slack APP token
+
+Config for `superset_config.py`:
+```python
+from superset_config import *
+from celery.schedules import crontab
+from cachelib import RedisCache
+from superset.typing import CacheConfig
+import os
+
+FEATURE_FLAGS = {
+    "ALERT_REPORTS": True
+}
+
+# slack API token (optional)
+SLACK_API_TOKEN = "xoxb-"
+SLACK_PROXY = None
+
+POSTGRES_USER = "superset"
+POSTGRES_PASS = "superset"
+POSTGRES_HOST = "postgres"
+POSTGRES_PORT = "5432"
+POSTGRES_DATABASE = "superset"
+REDIS_HOST = "redis-superset"
+REDIS_PORT = "6379"
+# The SQLAlchemy connection string.
+SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://%s:%s@%s:%s/%s?client_encoding=utf8' % (POSTGRES_USER,
+                                                          POSTGRES_PASS,
+                                                          POSTGRES_HOST,
+                                                          POSTGRES_PORT,
+                                                          POSTGRES_DATABASE)
+CACHE_CONFIG: CacheConfig = {
+    'CACHE_TYPE': 'redis',
+    'CACHE_DEFAULT_TIMEOUT': 24*60*60, # 1 day
+    'CACHE_KEY_PREFIX': 'superset_',
+    'CACHE_REDIS_URL': 'redis://%s:%s/1' % (REDIS_HOST, REDIS_PORT)
+}
+DATA_CACHE_CONFIG: CacheConfig = {
+    'CACHE_TYPE': 'redis',
+    'CACHE_DEFAULT_TIMEOUT': 24*60*60, # 1 day
+    'CACHE_KEY_PREFIX': 'data_',
+    'CACHE_REDIS_URL': 'redis://%s:%s/1' % (REDIS_HOST, REDIS_PORT)
+}
+THUMBNAIL_SELENIUM_USER = "admin"
+THUMBNAIL_CACHE_CONFIG: CacheConfig = {
+    'CACHE_TYPE': 'redis',
+    'CACHE_DEFAULT_TIMEOUT': 24*60*60*30,
+    'CACHE_KEY_PREFIX': 'thumbnail_',
+    'CACHE_NO_NULL_WARNING': True,
+    'CACHE_REDIS_URL': 'redis://%s:%s/1' % (REDIS_HOST, REDIS_PORT)
+}
+SCREENSHOT_LOCATE_WAIT = 100
+SCREENSHOT_LOAD_WAIT = 600
+RESULTS_BACKEND = RedisCache(host=REDIS_HOST, port=REDIS_PORT, key_prefix='superset_results')
+class CeleryConfig(object):
+    BROKER_URL = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
+    CELERY_IMPORTS = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
+    CELERY_RESULT_BACKEND = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
+    CELERYD_PREFETCH_MULTIPLIER = 10
+    CELERY_ACKS_LATE = True
+    CELERY_ANNOTATIONS = {
+        'sql_lab.get_sql_results': {
+            'rate_limit': '100/s',
+        },
+        'email_reports.send': {
+            'rate_limit': '1/s',
+            'time_limit': 600,
+            'soft_time_limit': 600,
+            'ignore_result': True,
+        },
+    }
+    CELERYBEAT_SCHEDULE = {
+        'reports.scheduler': {
+            'task': 'reports.scheduler',
+            'schedule': crontab(minute='*', hour='*'),
+        },
+        'reports.prune_log': {
+            'task': 'reports.prune_log',
+            'schedule': crontab(minute=0, hour=0),
+        },
+        'cache-warmup-hourly': {
+            'task': 'cache-warmup',
+            'schedule': crontab(minute='*/30', hour='*'),
+             'kwargs': {
+                'strategy_name': 'top_n_dashboards',
+                'top_n': 10,
+                'since': '7 days ago',
+            },
+       },
+    }
+CELERY_CONFIG = CeleryConfig
+
+# SMTP email configuration
+EMAIL_REPORTS_USER="admin"
+EMAIL_PAGE_RENDER_WAIT=300
+EMAIL_NOTIFICATIONS = True
+
+SMTP_HOST = "smtp.sendgrid.net"
+SMTP_STARTTLS = True
+SMTP_SSL = False
+SMTP_USER = "your_user"
+SMTP_PORT = 2525 # your port eg. 587
+SMTP_PASSWORD = "your_password"
+SMTP_MAIL_FROM = "noreply@youremail.com"
+
+WEBDRIVER_TYPE= "chrome"
+WEBDRIVER_OPTION_ARGS = [
+        "--force-device-scale-factor=2.0",
+        "--high-dpi-support=2.0",
+        "--headless",
+        "--disable-gpu",
+        "--disable-dev-shm-usage",
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-extensions",
+        ]
+
+WEBDRIVER_BASEURL="http://superset:8088"
+WEBDRIVER_BASEURL_USER_FRIENDLY="http://localhost:8088" # change to your domain eg. https://superset.mydomain.com - this is the link that is sent to the recipient
+SUPERSET_WEBSERVER_ADDRESS = "localhost"
+SUPERSET_WEBSERVER_PORT = 8088
+SUPERSET_WEBSERVER_TIMEOUT=600
+
+```
+
+### Summary
+With the extended image created by using the `Dockerfile`, and then running that image using `docker-compose.yaml`, plus the required configurations in the `superset_config.py` you should now have alerts and reporting working correctly.
+
+- For Kubernetes you can see the Helm chart here
+- The above templates also work in a Docker swarm environment, you would just need to add `Deploy:` to the Superset, redis and Postgres services along with your specific configs for your swarm
+
+### Optional - Slack integration
+To send alerts and reports to a Slack channel, you need to create a new Slack APP on your domain.
+1. Head to https://api.slack.com/apps
+2. Create a new APP, give it a name (eg. Superset)
+3. Under the OAuth and Permissions section, give the following scopes to the app:
+	a) incoming-webhook
+	b) calls:write 
+4. At the top of the OAuth and Permissions section, click 'install to workspace'
+5. Select a default channel for the app to post to and continue. (You can post to any channel by inviting your Superset app into that channel)
+6. The app should now be installed on the workspace, and a 'Bot User OAuth Access Token' should be created. Copy the OAuth token and add it into the Slack section in the `superset_config.py`
+7. Restart the service (or run `superset init`) to pull in the new configuration.
+8. Note when sending to the channel from the alerts and reports UI, set the channel without the leading '#' eg. use `alerts` instead of `#alerts`
+
+
+#
+## Scheduling and Emailing Reports
+(version 0.38 and below)
 ### Email Reports
 
 Email reports allow users to schedule email reports for:
