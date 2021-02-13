@@ -36,18 +36,10 @@ import {
   FILTER_CONFIG_ATTRIBUTES,
   FILTER_OPTIONS_LIMIT,
   TIME_FILTER_LABELS,
+  TIME_FILTER_MAP,
 } from 'src/explore/constants';
 
 import './FilterBox.less';
-
-// maps control names to their key in extra_filters
-export const TIME_FILTER_MAP = {
-  time_range: '__time_range',
-  granularity_sqla: '__time_col',
-  time_grain_sqla: '__time_grain',
-  druid_time_origin: '__time_origin',
-  granularity: '__granularity',
-};
 
 // a shortcut to a map key, used by many components
 export const TIME_RANGE = TIME_FILTER_MAP.time_range;

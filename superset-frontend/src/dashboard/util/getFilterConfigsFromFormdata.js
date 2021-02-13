@@ -17,11 +17,11 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { TIME_FILTER_MAP } from '../../visualizations/FilterBox/FilterBox';
 import {
   FILTER_CONFIG_ATTRIBUTES,
   TIME_FILTER_LABELS,
-} from '../../explore/constants';
+  TIME_FILTER_MAP,
+} from 'src/explore/constants';
 
 export default function getFilterConfigsFromFormdata(form_data = {}) {
   const {
