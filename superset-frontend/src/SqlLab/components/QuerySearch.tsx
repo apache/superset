@@ -67,7 +67,6 @@ const TableStyles = styled.div`
 const StyledTableStylesContainer = styled.div`
   overflow: auto;
 `;
-<<<<<<< HEAD:superset-frontend/src/SqlLab/components/QuerySearch.tsx
 function QuerySearch({ actions, displayLimit }: propTypes) {
   const [databaseId, setDatabaseId] = useState<any>('');
   const [userId, setUserId] = useState<string>('');
@@ -79,20 +78,6 @@ function QuerySearch({ actions, displayLimit }: propTypes) {
   const [queriesLoading, setQueriesLoading] = useState<boolean>(true);
 
   const getTimeFromSelection = (selection: string) => {
-=======
-// height is invoked in the interface above, and I also saw that there were some functions that pass height into this function, but it is never used
-function QuerySearch({ actions, displayLimit }) {
-  const [databaseId, setDatabaseId] = useState(null);
-  const [userId, setUserId] = useState(null);
-  const [searchText, setSearchText] = useState(null);
-  const [from, setFrom] = useState('28 days ago');
-  const [to, setTo] = useState('now');
-  const [status, setStatus] = useState('success');
-  const [queriesArray, setQueriesArray] = useState([]);
-  const [queriesLoading, setQueriesLoading] = useState(true);
-
-  const getTimeFromSelection = selection => {
->>>>>>> 3f3c98b7f... switching:superset-frontend/src/SqlLab/components/QuerySearch.jsx
     switch (selection) {
       case 'now':
         return now();
@@ -143,13 +128,9 @@ function QuerySearch({ actions, displayLimit }) {
       setQueriesLoading(false);
     }
   };
-  // functionally this is closest to componentDidMount, though Abramov recommends that it is better if you have a more robust dependency array, though I am afraid that will go into a useCallback loop like before. Though, I could remove some of the refreshQueries in the other methods, and instead have the dependency array focus on when values are changed? That would maybe not play nicely with onChange though.
   useEffect(() => {
     refreshQueries();
-<<<<<<< HEAD:superset-frontend/src/SqlLab/components/QuerySearch.tsx
     // eslint-disable-next-line react-hooks/exhaustive-deps
-=======
->>>>>>> 3f3c98b7f... switching:superset-frontend/src/SqlLab/components/QuerySearch.jsx
   }, []);
 
   const onUserClicked = (userId: string) => {
