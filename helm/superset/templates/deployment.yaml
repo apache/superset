@@ -31,11 +31,17 @@ spec:
       release: {{ .Release.Name }}
   template:
     metadata:
-      {{ if .Values.supersetNode.forceReload }}
       annotations:
-        # Optionally force the thing to reload
+        # Force reload on config changes
+        checksum/superset_config.py: {{ include "superset-config" . | sha256sum }}
+        checksum/superset_init.sh: {{ tpl .Values.init.initscript . | sha256sum }}
+        checksum/superset_bootstrap.sh: {{ include "superset-bootstrap" . | sha256sum }}
+        checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
+        checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
+        {{- if .Values.supersetNode.forceReload }}
+        # Optionally force the thing to reload unconditionally
         force-reload: {{ randAlphaNum 5 | quote }}
-      {{ end }}
+       {{- end }}
       labels:
         app: {{ template "superset.name" . }}
         release: {{ .Release.Name }}
