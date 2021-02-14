@@ -16,7 +16,7 @@
 # under the License.
 
 # pylint: disable=too-few-public-methods
-from typing import Any, cast, Optional
+from typing import Any, Optional
 
 from flask_appbuilder.security.sqla.models import Role
 from flask_babel import lazy_gettext as _
@@ -47,9 +47,7 @@ class DashboardTitleOrSlugFilter(BaseFilter):
         )
 
 
-class DashboardFavoriteFilter(
-    BaseFavoriteFilter
-):
+class DashboardFavoriteFilter(BaseFavoriteFilter):
     """
     Custom filter for the GET list that filters all dashboards that a user has favored
     """
@@ -158,6 +156,5 @@ class FilterRelatedRoles(BaseFilter):
     def apply(self, query: Query, value: Optional[Any]) -> Query:
         role_model = security_manager.role_model
         if value:
-            return query.filter(role_model.name.ilike(f'%{value}%'), )
-        else:
-            return query
+            return query.filter(role_model.name.ilike(f"%{value}%"),)
+        return query
