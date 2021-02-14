@@ -75,7 +75,7 @@ def downgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    for slc in session.query(Slice).filter(Slice.viz_type.like("directed_force")):
+    for slc in session.query(Slice).filter(Slice.viz_type.like("graph_chart")):
         params = json.loads(slc.params)
         source = params.get("source", "")
         target = params.get("target", "")
