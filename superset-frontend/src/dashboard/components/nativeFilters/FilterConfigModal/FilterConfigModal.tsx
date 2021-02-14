@@ -54,7 +54,7 @@ const StyledForm = styled(Form)`
 const StyledSpan = styled.span`
   cursor: pointer;
   color: ${({ theme }) => theme.colors.primary.dark1};
-  &: hover {
+  &:hover {
     color: ${({ theme }) => theme.colors.primary.dark2};
   }
 `;
@@ -402,6 +402,7 @@ export function FilterConfigModal({
         if (!formInputs) return filterConfigMap[id];
         return {
           id,
+          controlValues: formInputs.controlValues,
           name: formInputs.name,
           filterType: formInputs.filterType,
           // for now there will only ever be one target
@@ -418,10 +419,7 @@ export function FilterConfigModal({
             ? [formInputs.parentFilter.value]
             : [],
           scope: formInputs.scope,
-          inverseSelection: !!formInputs.inverseSelection,
-          isInstant: !!formInputs.isInstant,
-          allowsMultipleValues: !!formInputs.allowsMultipleValues,
-          isRequired: !!formInputs.isRequired,
+          isInstant: formInputs.isInstant,
         };
       });
 
