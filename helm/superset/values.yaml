@@ -99,7 +99,7 @@ service:
   port: 8088
   annotations: {}
     # cloud.google.com/load-balancer-type: "Internal"
-  loadBalancerIP: null 
+  loadBalancerIP: null
 
 ingress:
   enabled: false
