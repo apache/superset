@@ -156,3 +156,7 @@ body > footer {
 #main-menu + div {
   background: none;
 }
+
+.slice_container .filter_box > div {
+  overflow: initial !important;
+}
