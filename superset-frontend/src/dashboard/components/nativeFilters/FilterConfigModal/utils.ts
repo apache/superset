@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
+import { flatMapDeep } from 'lodash';
 import { Charts, Layout, LayoutItem } from 'src/dashboard/types';
 import {
   CHART_TYPE,
@@ -26,6 +27,7 @@ import {
 import { FormInstance } from 'antd/lib/form';
 import React from 'react';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import { CustomControlItem } from '@superset-ui/chart-controls';
 import { TreeItem } from './types';
 import { FilterType, Scope } from '../types';
 
@@ -175,6 +177,17 @@ export const setFilterFieldValues = (
     },
   });
 };
+
+export const getControlItems = (
+  controlConfig: { [key: string]: any } = {},
+): CustomControlItem[] =>
+  (flatMapDeep(controlConfig.controlPanelSections)?.reduce(
+    (acc: any, { controlSetRows = [] }: any) => [
+      ...acc,
+      ...flatMapDeep(controlSetRows),
+    ],
+    [],
+  ) as CustomControlItem[]) ?? [];
 
 export const isScopingAll = (scope: Scope) =>
   !scope || (scope.rootPath[0] === DASHBOARD_ROOT_ID && !scope.excluded.length);

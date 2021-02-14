@@ -20,13 +20,7 @@ import { t, validateNonEmpty } from '@superset-ui/core';
 import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
-const {
-  enableEmptyFilter,
-  fetchPredicate,
-  inverseSelection,
-  multiSelect,
-  showSearch,
-} = DEFAULT_FORM_DATA;
+const { enableEmptyFilter, inverseSelection, multiSelect } = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -35,10 +29,12 @@ const config: ControlPanelConfig = {
     {
       label: t('Query'),
       expanded: true,
+      controlSetRows: [['groupby']],
+    },
+    {
+      label: t('UI Configuration'),
+      expanded: true,
       controlSetRows: [
-        ['groupby'],
-        ['metrics'],
-        ['adhoc_filters'],
         [
           {
             name: 'multiSelect',
@@ -46,6 +42,8 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Multiple select'),
               default: multiSelect,
+              resetConfig: true,
+              renderTrigger: true,
               description: t('Allow selecting multiple values'),
             },
           },
@@ -57,6 +55,7 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Enable empty filter'),
               default: enableEmptyFilter,
+              renderTrigger: true,
               description: t(
                 'When selection is empty, should an always false filter event be emitted',
               ),
@@ -68,38 +67,13 @@ const config: ControlPanelConfig = {
             name: 'inverseSelection',
             config: {
               type: 'CheckboxControl',
+              renderTrigger: true,
               label: t('Inverse selection'),
               default: inverseSelection,
               description: t('Exclude selected values'),
             },
           },
         ],
-        [
-          {
-            name: 'showSearch',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Search field'),
-              default: showSearch,
-              description: t('Allow typing search terms'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'fetchPredicate',
-            config: {
-              type: 'TextControl',
-              label: t('Fetch predicate'),
-              default: fetchPredicate,
-              description: t(
-                'Predicate applied when fetching distinct value to populate the filter control component.',
-              ),
-            },
-          },
-          null,
-        ],
-        ['row_limit', null],
       ],
     },
   ],

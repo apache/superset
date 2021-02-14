@@ -33,11 +33,10 @@ export const getFormData = ({
   datasetId = 18,
   cascadingFilters = {},
   groupby,
-  allowsMultipleValues = false,
-  defaultValue,
   currentValue,
-  inverseSelection,
   inputRef,
+  defaultValue,
+  controlValues,
 }: Partial<Filter> & {
   datasetId?: number;
   inputRef?: RefObject<HTMLInputElement>;
@@ -50,19 +49,17 @@ export const getFormData = ({
   extra_form_data: cascadingFilters,
   granularity_sqla: 'ds',
   groupby: [groupby],
-  inverseSelection,
   metrics: ['count'],
-  multiSelect: allowsMultipleValues,
   row_limit: 10000,
   showSearch: true,
   currentValue,
+  defaultValue,
   time_range: 'No filter',
   time_range_endpoints: ['inclusive', 'exclusive'],
   url_params: {},
   viz_type: 'filter_select',
-  // TODO: need process per filter type after will be decided approach
-  defaultValue,
   inputRef,
+  ...controlValues,
 });
 
 export function mergeExtraFormData(
@@ -86,9 +83,9 @@ export function mergeExtraFormData(
   appendKeys.forEach(key => {
     appendFormData[key] = [
       // @ts-ignore
-      ...(originalAppend[key] || []),
+      ...(originalAppend?.[key] || []),
       // @ts-ignore
-      ...(newAppend[key] || []),
+      ...(newAppend?.[key] || []),
     ];
   });
 
