@@ -31,8 +31,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from superset import db
 
 # revision identifiers, used by Alembic.
-revision = '1412ec1e5a7b'
-down_revision = '070c043f2fdb'
+revision = "1412ec1e5a7b"
+down_revision = "070c043f2fdb"
 
 
 Base = declarative_base()
