@@ -214,12 +214,12 @@ const TimeTable = ({
             let stats = reversedEntries
                 .slice(undefined, column.timeLag)
                 .reduce(function ({count, sum}, entry) {
-                return ( entry[valueField] != null )
-                    ? {count: count+1, sum: sum + entry[valueField]}
-                    : {count, sum};
-                    }, {count:0, sum: 0})
+                  return ( entry[valueField] != null )
+                      ? {count: count+1, sum: sum + entry[valueField]}
+                      : {count, sum};
+                }, {count:0, sum: 0})
             if (stats.count>0) {
-                v = stats.sum / stats.count;
+              v = stats.sum / stats.count;
             }
         }
 
