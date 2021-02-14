@@ -58,6 +58,7 @@ import {
   EchartsPieChartPlugin,
   EchartsBoxPlotChartPlugin,
   EchartsTimeseriesChartPlugin,
+  EchartsGraphChartPlugin
 } from '@superset-ui/plugin-chart-echarts';
 import {
   AntdSelectFilterPlugin,
@@ -88,7 +89,7 @@ export default class MainPreset extends Preset {
         new DualLineChartPlugin().configure({ key: 'dual_line' }),
         new EventFlowChartPlugin().configure({ key: 'event_flow' }),
         new FilterBoxChartPlugin().configure({ key: 'filter_box' }),
-        new ForceDirectedChartPlugin().configure({ key: 'directed_force' }),
+        new EchartsGraphChartPlugin().configure({ key: 'graph_chart' }),
         new HeatmapChartPlugin().configure({ key: 'heatmap' }),
         new HistogramChartPlugin().configure({ key: 'histogram' }),
         new HorizonChartPlugin().configure({ key: 'horizon' }),
