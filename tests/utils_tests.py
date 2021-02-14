@@ -57,6 +57,7 @@ from superset.utils.core import (
     JSONEncodedDict,
     memoized,
     merge_extra_filters,
+    merge_extra_form_data,
     merge_request_params,
     parse_ssl_cert,
     parse_js_uri_path_item,
@@ -901,6 +902,35 @@ class TestUtils(SupersetTestCase):
         assert build_extra_filters(
             layout, filter_scopes, default_filters, box_plot.id
         ) == [{"col": "region", "op": "==", "val": "North America"}]
+
+    def test_merge_extra_filters_with_no_extras(self):
+        form_data = {
+            "time_range": "Last 10 days",
+        }
+        merge_extra_form_data(form_data)
+        self.assertEqual(
+            form_data,
+            {
+                "time_range": "Last 10 days",
+                "applied_time_extras": {},
+                "adhoc_filters": [],
+            },
+        )
+
+    def test_merge_extra_filters_with_extras(self):
+        form_data = {
+            "time_range": "Last 10 days",
+            "extra_form_data": {
+                "append_form_data": {
+                    "filters": [{"col": "foo", "op": "IN", "val": "bar"}]
+                },
+                "override_form_data": {"time_range": "Last 100 years",},
+            },
+        }
+        merge_extra_form_data(form_data)
+        assert form_data["applied_time_extras"] == {"__time_range": "Last 100 years"}
+        assert form_data["time_range"] == "Last 100 years"
+        assert len(form_data["adhoc_filters"]) == 1
 
     def test_ssl_certificate_parse(self):
         parsed_certificate = parse_ssl_cert(ssl_certificate)

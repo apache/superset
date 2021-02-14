@@ -249,13 +249,12 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
           formFilter?.column &&
           formFilter?.defaultValueQueriesData && (
             <SuperChart
-              height={20}
-              width={220}
+              height={25}
+              width={250}
               formData={newFormData}
               queriesData={formFilter?.defaultValueQueriesData}
               chartType={formFilter?.filterType}
               hooks={{
-                // @ts-ignore
                 setExtraFormData: ({ currentState }) => {
                   setFilterFieldValues(form, filterId, {
                     defaultValue: currentState?.value,

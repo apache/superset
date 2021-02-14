@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 import Popover from 'src/common/components/Popover';
 import CopyToClipboard from './CopyToClipboard';
-import { getShortUrl } from '../utils/common';
+import { getShortUrl } from '../utils/urlUtils';
 import withToasts from '../messageToasts/enhancers/withToasts';
 
 const propTypes = {
