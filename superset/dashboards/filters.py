@@ -157,5 +157,7 @@ class FilterRelatedRoles(BaseFilter):
 
     def apply(self, query: Query, value: Optional[Any]) -> Query:
         role_model = security_manager.role_model
-        like_value = "%" + cast(str, value) + "%"
-        return query.filter((role_model.name).ilike(like_value),)
+        if value:
+            return query.filter(role_model.name.ilike(f'%{value}%'), )
+        else:
+            return query
