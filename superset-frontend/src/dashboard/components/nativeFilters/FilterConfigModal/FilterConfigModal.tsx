@@ -54,7 +54,7 @@ const StyledForm = styled(Form)`
 const StyledSpan = styled.span`
   cursor: pointer;
   color: ${({ theme }) => theme.colors.primary.dark1};
-  & :hover {
+  &:hover {
     color: ${({ theme }) => theme.colors.primary.dark2};
   }
 `;
