@@ -69,6 +69,7 @@ const AdhocFilterOption = ({
       index={index}
       type={OPTION_TYPES.filter}
       isAdhoc
+      isExtra={adhocFilter.isExtra}
     />
   </AdhocFilterPopoverTrigger>
 );

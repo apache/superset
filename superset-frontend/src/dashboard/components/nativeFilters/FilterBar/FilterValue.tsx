@@ -66,6 +66,7 @@ const FilterValue: React.FC<FilterProps> = ({
       cascadingFilters,
       groupby,
       currentValue,
+      inputRef,
       ...filter,
     });
     if (!areObjectsEqual(formData || {}, newFormData)) {

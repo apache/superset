@@ -27,19 +27,24 @@ import { sliceId as chartId } from '../../../fixtures/mockChartQueries';
 
 describe('getFormDataWithExtraFilters', () => {
   const filterId = 'native-filter-1';
-  const mockArgs: GetFormDataWithExtraFiltersArguments = {
-    chart: {
-      id: chartId,
-      formData: {
-        filters: [
-          {
-            col: 'country_name',
-            op: 'IN',
-            val: ['United States'],
-          },
-        ],
-      },
+  const mockChart = {
+    id: chartId,
+    formData: {
+      viz_type: 'filter_select',
+      filters: [
+        {
+          col: 'country_name',
+          op: 'IN',
+          val: ['United States'],
+        },
+      ],
     },
+  };
+  const mockArgs: GetFormDataWithExtraFiltersArguments = {
+    charts: {
+      [chartId]: mockChart,
+    },
+    chart: mockChart,
     filters: {
       region: ['Spain'],
       color: ['pink', 'purple'],

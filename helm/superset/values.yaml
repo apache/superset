@@ -41,6 +41,13 @@ envFromSecret: '{{ template "superset.fullname" . }}-env'
 ##
 extraEnv: {}
 
+## Extra environment variables to pass as secrets
+##
+extraSecretEnv: {}
+  # MAPBOX_API_KEY: ...
+  # GOOGLE_KEY: ...
+  # GOOGLE_SECRET: ...
+
 extraConfigs: {}
   # datasources-init.yaml: |
   #     databases:
@@ -53,6 +60,30 @@ extraConfigs: {}
   #         }"
   #       sqlalchemy_uri: example://example-db.local
   #       tables: []
+
+# A dictionary of overrides to append at the end of superset_config.py - the name does not matter
+# WARNING: the order is not guaranteed
+configOverrides: {}
+  # enable_oauth: |
+  #   from flask_appbuilder.security.manager import AUTH_DB
+  #   AUTH_TYPE = AUTH_OAUTH
+
+  #   OAUTH_PROVIDERS = [
+  #       {
+  #           "name": "google",
+  #           "icon": "fa-google",
+  #           "token_key": "access_token",
+  #           "remote_app": {
+  #               "client_id": os.environ.get("GOOGLE_KEY"),
+  #               "client_secret": os.environ.get("GOOGLE_SECRET"),
+  #               "api_base_url": "https://www.googleapis.com/oauth2/v2/",
+  #               "client_kwargs": {"scope": "email profile"},
+  #               "request_token_url": None,
+  #               "access_token_url": "https://accounts.google.com/o/oauth2/token",
+  #               "authorize_url": "https://accounts.google.com/o/oauth2/auth",
+  #           },
+  #       }
+  #   ]
 
 configMountPath: "/app/pythonpath"
 

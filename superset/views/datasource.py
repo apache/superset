@@ -22,7 +22,7 @@ from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
 from flask_babel import _
 
-from superset import db
+from superset import app, db
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.datasets.commands.exceptions import DatasetForbiddenError
 from superset.exceptions import SupersetException, SupersetSecurityException
@@ -55,10 +55,11 @@ class Datasource(BaseSupersetView):
 
         if "owners" in datasource_dict and orm_datasource.owner_class is not None:
             # Check ownership
-            try:
-                check_ownership(orm_datasource)
-            except SupersetSecurityException:
-                raise DatasetForbiddenError()
+            if app.config["OLD_API_CHECK_DATASET_OWNERSHIP"]:
+                try:
+                    check_ownership(orm_datasource)
+                except SupersetSecurityException:
+                    raise DatasetForbiddenError()
 
             datasource_dict["owners"] = (
                 db.session.query(orm_datasource.owner_class)

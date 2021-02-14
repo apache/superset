@@ -62,6 +62,7 @@ import {
 import {
   AntdSelectFilterPlugin,
   AntdRangeFilterPlugin,
+  TimeFilterPlugin,
 } from 'src/filters/components/';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable/TimeTableChartPlugin';
@@ -113,6 +114,7 @@ export default class MainPreset extends Preset {
         }),
         new AntdSelectFilterPlugin().configure({ key: 'filter_select' }),
         new AntdRangeFilterPlugin().configure({ key: 'filter_range' }),
+        new TimeFilterPlugin().configure({ key: 'filter_time' }),
       ],
     });
   }

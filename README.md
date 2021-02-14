@@ -93,7 +93,7 @@ Superset provides:
     authentication backends (database, OpenID, LDAP, OAuth, REMOTE_USER, etc)
 * The ability to add custom visualization plugins
 * An API for programmatic customization
-* A cloud-native archiecture designed from the ground up for scale
+* A cloud-native architecture designed from the ground up for scale
 
 ## Supported Databases
 
