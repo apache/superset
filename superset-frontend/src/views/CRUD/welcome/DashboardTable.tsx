@@ -107,6 +107,10 @@ function DashboardTable({
     setPreparingExport(true);
   };
 
+  useEffect(() => {
+    getData('Favorite').then()
+  }, [])
+
   const handleDashboardEdit = (edits: Dashboard) =>
     SupersetClient.get({
       endpoint: `/api/v1/dashboard/${edits.id}`,

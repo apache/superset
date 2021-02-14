@@ -117,6 +117,10 @@ function ChartTable({
     setPreparingExport(true);
   };
 
+  useEffect(() => {
+    getData('Favorite').then()
+  }, [])
+
   const getFilters = (filterName: string) => {
     const filters = [];
 
