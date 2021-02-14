@@ -47,7 +47,7 @@ export type Layout = { [key: string]: LayoutItem };
 
 /** State of nativeFilters currentState */
 export type CurrentFilterState = JsonObject & {
-  value: any;
+  value?: any;
 };
 
 /** State of charts in redux */
@@ -73,17 +73,21 @@ export type LayoutItem = {
 };
 
 /** Current state of the filter, stored in `nativeFilters` in redux */
-export type NativeFilterState = {
+export type FilterState = {
   id: string; // ties this filter state to the config object
   extraFormData?: ExtraFormData;
   currentState?: CurrentFilterState;
+};
+
+export type FiltersState = {
+  native: { [filterId: string]: FilterState };
+  cross: { [filterId: string]: FilterState };
+  private: { [filterId: string]: FilterState };
 };
 
 export type NativeFiltersState = {
   filters: {
     [filterId: string]: Filter;
   };
-  filtersState: {
-    [filterId: string]: NativeFilterState;
-  };
+  filtersState: FiltersState;
 };

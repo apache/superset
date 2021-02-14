@@ -19,19 +19,17 @@
 import { useDispatch, useSelector } from 'react-redux';
 import { useCallback } from 'react';
 import { ExtraFormData } from '@superset-ui/core';
-import { setExtraFormData } from 'src/dashboard/actions/nativeFilters';
+import { updateExtraFormData } from 'src/dashboard/actions/nativeFilters';
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
 import {
   CurrentFilterState,
-  NativeFilterState,
+  FilterState,
   NativeFiltersState,
 } from 'src/dashboard/reducers/types';
 import { mergeExtraFormData } from '../utils';
 
 export function useFilters() {
-  return useSelector<any, NativeFilterState>(
-    state => state.nativeFilters.filters,
-  );
+  return useSelector<any, FilterState>(state => state.nativeFilters.filters);
 }
 
 export function useSetExtraFormData() {
@@ -41,7 +39,7 @@ export function useSetExtraFormData() {
       id: string,
       extraFormData: ExtraFormData,
       currentState: CurrentFilterState,
-    ) => dispatch(setExtraFormData(id, extraFormData, currentState)),
+    ) => dispatch(updateExtraFormData(id, extraFormData, currentState)),
     [dispatch],
   );
 }
@@ -50,12 +48,15 @@ export function useCascadingFilters(id: string) {
   const nativeFilters = useSelector<any, NativeFiltersState>(
     state => state.nativeFilters,
   );
-  const { filters, filtersState } = nativeFilters;
+  const {
+    filters,
+    filtersState: { native },
+  } = nativeFilters;
   const filter = filters[id];
   const cascadeParentIds = filter?.cascadeParentIds ?? [];
   let cascadedFilters = {};
   cascadeParentIds.forEach(parentId => {
-    const parentState = filtersState[parentId] || {};
+    const parentState = native[parentId] || {};
     const { extraFormData: parentExtra = {} } = parentState;
     cascadedFilters = mergeExtraFormData(cascadedFilters, parentExtra);
   });
@@ -63,7 +64,8 @@ export function useCascadingFilters(id: string) {
 }
 
 export function useFilterState(id: string) {
-  return useSelector<any, NativeFilterState>(
-    state => state.nativeFilters.filtersState[id] || getInitialFilterState(id),
+  return useSelector<any, FilterState>(
+    state =>
+      state.nativeFilters.filtersState.native[id] || getInitialFilterState(id),
   );
 }

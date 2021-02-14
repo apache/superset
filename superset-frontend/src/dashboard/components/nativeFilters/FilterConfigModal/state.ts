@@ -27,15 +27,15 @@ import {
 } from 'src/dashboard/util/componentTypes';
 import { FormInstance } from 'antd/lib/form';
 import { getChartDataRequest } from 'src/chart/chartAction';
-import { NativeFilterState } from 'src/dashboard/reducers/types';
+import { FilterState } from 'src/dashboard/reducers/types';
 import { NativeFiltersForm, TreeItem } from './types';
 import { buildTree, setFilterFieldValues, useForceUpdate } from './utils';
 import { Filter } from '../types';
 import { getFormData } from '../utils';
 
 export function useFiltersState() {
-  return useSelector<any, NativeFilterState>(
-    state => state.nativeFilters.filtersState,
+  return useSelector<any, FilterState>(
+    state => state.nativeFilters.filtersState.native,
   );
 }
 

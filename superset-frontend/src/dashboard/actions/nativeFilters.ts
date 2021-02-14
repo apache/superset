@@ -17,14 +17,14 @@
  * under the License.
  */
 
-import { ExtraFormData, makeApi } from '@superset-ui/core';
+import { makeApi } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {
   Filter,
   FilterConfiguration,
 } from 'src/dashboard/components/nativeFilters/types';
 import { dashboardInfoChanged } from './dashboardInfo';
-import { CurrentFilterState } from '../reducers/types';
+import { FilterState } from '../reducers/types';
 import { SelectedValues } from '../components/nativeFilters/FilterConfigModal/types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
@@ -95,12 +95,13 @@ export const setFilterConfiguration = (
   }
 };
 
-export const SET_EXTRA_FORM_DATA = 'SET_EXTRA_FORM_DATA';
-export interface SetExtraFormData {
-  type: typeof SET_EXTRA_FORM_DATA;
+export const UPDATE_EXTRA_FORM_DATA = 'UPDATE_EXTRA_FORM_DATA';
+export interface UpdateExtraFormData {
+  type: typeof UPDATE_EXTRA_FORM_DATA;
   filterId: string;
-  extraFormData: ExtraFormData;
-  currentState: CurrentFilterState;
+  native?: Omit<FilterState, 'id'>;
+  cross?: Omit<FilterState, 'id'>;
+  private?: Omit<FilterState, 'id'>;
 }
 
 export function setFilterState(
@@ -118,19 +119,20 @@ export function setFilterState(
 /**
  * Sets the selected option(s) for a given filter
  * @param filterId the id of the native filter
- * @param extraFormData the selection translated into extra form data
- * @param currentState
+ * @param filterState
  */
-export function setExtraFormData(
+export function updateExtraFormData(
   filterId: string,
-  extraFormData: ExtraFormData,
-  currentState: CurrentFilterState,
-): SetExtraFormData {
+  filterState: {
+    native?: Omit<FilterState, 'id'>;
+    cross?: Omit<FilterState, 'id'>;
+    private?: Omit<FilterState, 'id'>;
+  },
+): UpdateExtraFormData {
   return {
-    type: SET_EXTRA_FORM_DATA,
+    type: UPDATE_EXTRA_FORM_DATA,
     filterId,
-    extraFormData,
-    currentState,
+    ...filterState,
   };
 }
 
@@ -138,5 +140,5 @@ export type AnyFilterAction =
   | SetFilterConfigBegin
   | SetFilterConfigComplete
   | SetFilterConfigFail
-  | SetExtraFormData
+  | UpdateExtraFormData
   | SetFilterState;

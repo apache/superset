@@ -77,10 +77,10 @@ export const getActiveNativeFilters = ({
   layout: { [key: string]: LayoutItem };
 }): ActiveFilters => {
   const activeNativeFilters = {};
-  if (!nativeFilters?.filtersState) {
+  if (!nativeFilters?.filtersState?.native) {
     return activeNativeFilters;
   }
-  Object.values(nativeFilters.filtersState).forEach(
+  Object.values(nativeFilters.filtersState.native).forEach(
     ({ id: filterId, extraFormData }) => {
       const scope = nativeFilters?.filters?.[filterId]?.scope;
       if (!scope) {

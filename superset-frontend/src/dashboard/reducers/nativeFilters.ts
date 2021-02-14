@@ -17,51 +17,72 @@
  * under the License.
  */
 import {
-  SET_EXTRA_FORM_DATA,
+  UPDATE_EXTRA_FORM_DATA,
   AnyFilterAction,
   SET_FILTER_CONFIG_COMPLETE,
+  UpdateExtraFormData,
 } from 'src/dashboard/actions/nativeFilters';
-import { NativeFiltersState, NativeFilterState } from './types';
+import { NativeFiltersState, FilterState, FiltersState } from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
 
-export function getInitialFilterState(id: string): NativeFilterState {
+export function getInitialFilterState(id: string): FilterState {
   return {
     id,
     extraFormData: {},
+    currentState: {},
   };
 }
 
 export function getInitialState(
   filterConfig: FilterConfiguration,
-  prevFiltersState: { [filterId: string]: NativeFilterState },
+  prevFiltersState: FiltersState = { native: {}, cross: {}, private: {} },
 ): NativeFiltersState {
   const filters = {};
-  const filtersState = {};
+  const filtersState = { ...prevFiltersState };
   const state = { filters, filtersState };
   filterConfig.forEach(filter => {
     const { id } = filter;
     filters[id] = filter;
-    filtersState[id] = prevFiltersState?.[id] || getInitialFilterState(id);
+    filtersState.native[id] =
+      prevFiltersState?.native[id] ?? getInitialFilterState(id);
   });
   return state;
 }
 
+const getUnitState = (
+  unitName: string,
+  action: UpdateExtraFormData,
+  filtersState: FiltersState,
+) => {
+  if (action[unitName])
+    return {
+      ...filtersState.native,
+      [action.filterId]: {
+        ...filtersState[unitName][action.filterId],
+        extraFormData: action[unitName].extraFormData,
+        currentState: action[unitName].currentState,
+      },
+    };
+  return { ...filtersState[unitName] };
+};
+
 export default function nativeFilterReducer(
-  state: NativeFiltersState = { filters: {}, filtersState: {} },
+  state: NativeFiltersState = {
+    filters: {},
+    filtersState: { native: {}, cross: {}, private: {} },
+  },
   action: AnyFilterAction,
 ) {
   const { filters, filtersState } = state;
   switch (action.type) {
-    case SET_EXTRA_FORM_DATA:
+    case UPDATE_EXTRA_FORM_DATA:
       return {
         filters,
         filtersState: {
           ...filtersState,
-          [action.filterId]: {
-            ...filtersState[action.filterId],
-            extraFormData: action.extraFormData,
-            currentState: action.currentState,
-          },
+          native: getUnitState('native', action, filtersState),
+          cross: getUnitState('cross', action, filtersState),
+          private: getUnitState('private', action, filtersState),
         },
       };
 

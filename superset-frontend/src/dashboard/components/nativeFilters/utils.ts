@@ -114,14 +114,14 @@ export function getExtraFormData(
 ): ExtraFormData {
   let extraFormData: ExtraFormData = {};
   Object.keys(nativeFilters.filters).forEach(key => {
-    const filterState = nativeFilters.filtersState[key] || {};
+    const filterState = nativeFilters.filtersState.native[key] || {};
     const { extraFormData: newExtra = {} } = filterState;
     extraFormData = mergeExtraFormData(extraFormData, newExtra);
   });
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     Object.entries(charts).forEach(([key, chart]) => {
       if (isCrossFilter(chart?.formData?.viz_type)) {
-        const filterState = nativeFilters.filtersState[key] || {};
+        const filterState = nativeFilters.filtersState.cross[key] || {};
         const { extraFormData: newExtra = {} } = filterState;
         extraFormData = mergeExtraFormData(extraFormData, newExtra);
       }

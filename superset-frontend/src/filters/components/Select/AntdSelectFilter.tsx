@@ -67,14 +67,16 @@ export default function AntdPluginFilterSelect(
     const emptyFilter =
       enableEmptyFilter && !inverseSelection && resultValue?.length === 0;
     setExtraFormData({
-      extraFormData: getSelectExtraFormData(
-        col,
-        resultValue,
-        emptyFilter,
-        inverseSelection,
-      ),
-      currentState: {
-        value: resultValue,
+      native: {
+        extraFormData: getSelectExtraFormData(
+          col,
+          resultValue,
+          emptyFilter,
+          inverseSelection,
+        ),
+        currentState: {
+          value: resultValue,
+        },
       },
     });
   };

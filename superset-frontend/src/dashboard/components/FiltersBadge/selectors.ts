@@ -18,7 +18,7 @@
  */
 import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
 import { TIME_FILTER_MAP } from '../../../visualizations/FilterBox/FilterBox';
-import { NativeFiltersState, NativeFilterState } from '../../reducers/types';
+import { NativeFiltersState, FilterState } from '../../reducers/types';
 
 export enum IndicatorStatus {
   Unset = 'UNSET',
@@ -169,9 +169,7 @@ export const selectIndicatorsForChart = (
   return indicators;
 };
 
-const selectNativeIndicatorValue = (
-  filterState: NativeFilterState,
-): string[] => {
+const selectNativeIndicatorValue = (filterState: FilterState): string[] => {
   const filters = filterState?.extraFormData?.append_form_data?.filters;
   if (filters?.length) {
     const filter = filters[0];
@@ -206,7 +204,7 @@ export const selectNativeIndicatorsForChart = (
 
   const indicators = Object.values(nativeFilters.filters).map(nativeFilter => {
     const column = nativeFilter.targets[0].column.name;
-    const filterState = nativeFilters.filtersState[nativeFilter.id];
+    const filterState = nativeFilters.filtersState.native.[nativeFilter.id];
     const value = selectNativeIndicatorValue(filterState);
     return {
       column,
