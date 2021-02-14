@@ -39,10 +39,12 @@ export const nativeFilters: NativeFiltersState = {
         rootPath: ['ROOT_ID'],
         excluded: [],
       },
-      inverseSelection: false,
       isInstant: true,
-      allowsMultipleValues: false,
-      isRequired: false,
+      controlValues: {
+        multiSelect: false,
+        enableEmptyFilter: false,
+        inverseSelection: false,
+      },
     },
     'NATIVE_FILTER-x9QPw0so1': {
       id: 'NATIVE_FILTER-x9QPw0so1',
@@ -62,10 +64,12 @@ export const nativeFilters: NativeFiltersState = {
         rootPath: ['ROOT_ID'],
         excluded: [],
       },
-      inverseSelection: false,
+      controlValues: {
+        multiSelect: false,
+        enableEmptyFilter: false,
+        inverseSelection: false,
+      },
       isInstant: true,
-      allowsMultipleValues: false,
-      isRequired: false,
     },
   },
   filtersState: {

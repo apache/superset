@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, SuperChart, t } from '@superset-ui/core';
+import {
+  styled,
+  SuperChart,
+  t,
+  getChartControlPanelRegistry,
+} from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
 import React, { useCallback } from 'react';
 import {
@@ -30,10 +35,16 @@ import { Select } from 'src/components/Select/SupersetStyledSelect';
 import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
+import { CustomControlItem } from '@superset-ui/chart-controls';
 import { ColumnSelect } from './ColumnSelect';
 import { NativeFiltersForm } from './types';
 import FilterScope from './FilterScope';
-import { FilterTypeNames, setFilterFieldValues, useForceUpdate } from './utils';
+import {
+  FilterTypeNames,
+  getControlItems,
+  setFilterFieldValues,
+  useForceUpdate,
+} from './utils';
 import { useBackendFormUpdate } from './state';
 import { getFormData } from '../utils';
 import { Filter, FilterType } from '../types';
@@ -104,8 +115,12 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   form,
   parentFilters,
 }) => {
+  const controlPanelRegistry = getChartControlPanelRegistry();
   const forceUpdate = useForceUpdate();
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
+  const controlItems = getControlItems(
+    controlPanelRegistry.get(formFilter?.filterType),
+  );
   useBackendFormUpdate(form, filterId, filterToEdit);
 
   const initDatasetId = filterToEdit?.targets[0].datasetId;
@@ -113,9 +128,8 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   const newFormData = getFormData({
     datasetId: formFilter?.dataset?.value,
     groupby: formFilter?.column,
-    allowsMultipleValues: formFilter?.allowsMultipleValues,
     defaultValue: formFilter?.defaultValue,
-    inverseSelection: formFilter?.inverseSelection,
+    ...formFilter,
   });
 
   const onDatasetSelectError = useCallback(
@@ -289,39 +303,33 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
           {t('Apply changes instantly')}
         </Checkbox>
       </StyledCheckboxFormItem>
-      <StyledCheckboxFormItem
-        name={['filters', filterId, 'allowsMultipleValues']}
-        initialValue={filterToEdit?.allowsMultipleValues}
-        valuePropName="checked"
-        colon={false}
-      >
-        <Checkbox
-          onChange={() => {
-            setFilterFieldValues(form, filterId, {
-              defaultValue: null,
-            });
-            forceUpdate();
-          }}
-        >
-          {t('Allow multiple selections')}
-        </Checkbox>
-      </StyledCheckboxFormItem>
-      <StyledCheckboxFormItem
-        name={['filters', filterId, 'inverseSelection']}
-        initialValue={filterToEdit?.inverseSelection}
-        valuePropName="checked"
-        colon={false}
-      >
-        <Checkbox>{t('Inverse selection')}</Checkbox>
-      </StyledCheckboxFormItem>
-      <StyledCheckboxFormItem
-        name={['filters', filterId, 'isRequired']}
-        initialValue={filterToEdit?.isRequired}
-        valuePropName="checked"
-        colon={false}
-      >
-        <Checkbox>{t('Required')}</Checkbox>
-      </StyledCheckboxFormItem>
+      {controlItems
+        .filter(
+          (controlItem: CustomControlItem) =>
+            controlItem?.config?.renderTrigger,
+        )
+        .map(controlItem => (
+          <StyledCheckboxFormItem
+            name={['filters', filterId, 'controlValues', controlItem.name]}
+            initialValue={filterToEdit?.controlValues?.[controlItem.name]}
+            valuePropName="checked"
+            colon={false}
+          >
+            <Checkbox
+              onChange={() => {
+                if (!controlItem.config.resetConfig) {
+                  return;
+                }
+                setFilterFieldValues(form, filterId, {
+                  defaultValue: null,
+                });
+                forceUpdate();
+              }}
+            >
+              {controlItem.config.label}
+            </Checkbox>
+          </StyledCheckboxFormItem>
+        ))}
       <FilterScope
         filterId={filterId}
         filterToEdit={filterToEdit}
