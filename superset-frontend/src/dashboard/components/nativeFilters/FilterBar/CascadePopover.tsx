@@ -108,7 +108,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
         return activeChildren;
       }
 
-      if (currentValue) {
+      if (currentValue !== undefined && currentValue !== null) {
         return [filter];
       }
 

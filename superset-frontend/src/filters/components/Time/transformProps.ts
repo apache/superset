@@ -16,6 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as AntdSelectFilterPlugin } from './Select';
-export { default as AntdRangeFilterPlugin } from './Range';
-export { default as TimeFilterPlugin } from './Time';
+import { ChartProps } from '@superset-ui/core';
+import { DEFAULT_FORM_DATA } from './types';
+
+export default function transformProps(chartProps: ChartProps) {
+  const { formData, height, hooks, queriesData, width } = chartProps;
+  const { setExtraFormData } = hooks;
+  const { data } = queriesData[0];
+
+  return {
+    data,
+    formData: {
+      ...DEFAULT_FORM_DATA,
+      ...formData,
+    },
+    height,
+    setExtraFormData,
+    width,
+  };
+}

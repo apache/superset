@@ -16,6 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as AntdSelectFilterPlugin } from './Select';
-export { default as AntdRangeFilterPlugin } from './Range';
-export { default as TimeFilterPlugin } from './Time';
+import {
+  QueryFormData,
+  DataRecord,
+  SetExtraFormDataHook,
+} from '@superset-ui/core';
+import { AntdPluginFilterStylesProps } from '../types';
+
+interface PluginFilterTimeCustomizeProps {
+  defaultValue?: string | null;
+  currentValue?: string | null;
+}
+
+export type AntdPluginFilterSelectQueryFormData = QueryFormData &
+  AntdPluginFilterStylesProps &
+  PluginFilterTimeCustomizeProps;
+
+export type AntdPluginFilterTimeProps = AntdPluginFilterStylesProps & {
+  data: DataRecord[];
+  setExtraFormData: SetExtraFormDataHook;
+  formData: AntdPluginFilterSelectQueryFormData;
+};
+
+export const DEFAULT_FORM_DATA: PluginFilterTimeCustomizeProps = {
+  defaultValue: null,
+  currentValue: null,
+};

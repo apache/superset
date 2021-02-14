@@ -30,6 +30,7 @@ export interface Scope {
 export enum FilterType {
   filter_select = 'filter_select',
   filter_range = 'filter_range',
+  filter_time = 'filter_time',
 }
 
 /** The target of a filter is the datasource/column being filtered */
@@ -43,13 +44,10 @@ export interface Target {
 }
 
 export interface Filter {
-  allowsMultipleValues: boolean;
   cascadeParentIds: string[];
   defaultValue: any;
   currentValue?: any;
-  inverseSelection: boolean;
   isInstant: boolean;
-  isRequired: boolean;
   id: string; // randomly generated at filter creation
   name: string;
   scope: Scope;
@@ -57,6 +55,9 @@ export interface Filter {
   // for now there will only ever be one target
   // when multiple targets are supported, change this to Target[]
   targets: [Target];
+  controlValues: {
+    [key: string]: any;
+  };
 }
 
 export type FilterConfiguration = Filter[];

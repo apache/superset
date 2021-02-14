@@ -766,13 +766,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if action == "overwrite" and not slice_overwrite_perm:
             return json_error_response(
                 _("You don't have the rights to ") + _("alter this ") + _("chart"),
-                status=400,
+                status=403,
             )
 
         if action == "saveas" and not slice_add_perm:
             return json_error_response(
                 _("You don't have the rights to ") + _("create a ") + _("chart"),
-                status=400,
+                status=403,
             )
 
         if action in ("saveas", "overwrite") and datasource:
@@ -928,7 +928,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     _("You don't have the rights to ")
                     + _("alter this ")
                     + _("dashboard"),
-                    status=400,
+                    status=403,
                 )
 
             flash(
@@ -946,7 +946,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     _("You don't have the rights to ")
                     + _("create a ")
                     + _("dashboard"),
-                    status=400,
+                    status=403,
                 )
 
             dash = Dashboard(
