@@ -293,7 +293,7 @@ class DashboardBuilder extends React.Component {
           className="dashboard-content"
           dashboardFiltersOpen={this.state.dashboardFiltersOpen}
         >
-          {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && (
+          {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && !editMode && (
             <StickyVerticalBar
               filtersOpen={this.state.dashboardFiltersOpen}
               topOffset={barTopOffset}
