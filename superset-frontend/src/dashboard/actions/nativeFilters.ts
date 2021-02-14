@@ -101,7 +101,7 @@ export interface UpdateExtraFormData {
   filterId: string;
   native?: Omit<FilterState, 'id'>;
   cross?: Omit<FilterState, 'id'>;
-  private?: Omit<FilterState, 'id'>;
+  privateData?: Omit<FilterState, 'id'>;
 }
 
 export function setFilterState(
@@ -126,7 +126,7 @@ export function updateExtraFormData(
   filterState: {
     native?: Omit<FilterState, 'id'>;
     cross?: Omit<FilterState, 'id'>;
-    private?: Omit<FilterState, 'id'>;
+    privateData?: Omit<FilterState, 'id'>;
   },
 ): UpdateExtraFormData {
   return {

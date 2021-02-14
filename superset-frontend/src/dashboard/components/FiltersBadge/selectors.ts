@@ -204,7 +204,7 @@ export const selectNativeIndicatorsForChart = (
 
   const indicators = Object.values(nativeFilters.filters).map(nativeFilter => {
     const column = nativeFilter.targets[0].column.name;
-    const filterState = nativeFilters.filtersState.native.[nativeFilter.id];
+    const filterState = nativeFilters.filtersState.native?.[nativeFilter.id];
     const value = selectNativeIndicatorValue(filterState);
     return {
       column,

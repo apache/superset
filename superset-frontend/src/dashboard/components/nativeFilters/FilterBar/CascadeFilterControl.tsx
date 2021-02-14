@@ -17,9 +17,9 @@
  * under the License.
  */
 import React from 'react';
-import { ExtraFormData, styled } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
-import { CurrentFilterState } from 'src/dashboard/reducers/types';
+import { FullFilterState } from 'src/dashboard/reducers/types';
 import FilterControl from './FilterControl';
 import { Filter } from '../types';
 import { CascadeFilter } from './types';
@@ -29,8 +29,7 @@ interface CascadeFilterControlProps {
   directPathToChild?: string[];
   onFilterSelectionChange: (
     filter: Filter,
-    extraFormData: ExtraFormData,
-    currentState: CurrentFilterState,
+    filterState: FullFilterState,
   ) => void;
 }
 

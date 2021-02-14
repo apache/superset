@@ -16,19 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t, ExtraFormData } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import cx from 'classnames';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
-import { CurrentFilterState } from 'src/dashboard/reducers/types';
+import { FullFilterState } from 'src/dashboard/reducers/types';
 import FilterConfigurationLink from './FilterConfigurationLink';
-import { useFilters, useSetExtraFormData } from './state';
+import { useFilters } from './state';
 import { useFilterConfiguration } from '../state';
 import { Filter } from '../types';
 import { buildCascadeFiltersTree, mapParentFiltersToChildren } from './utils';
 import CascadePopover from './CascadePopover';
+import { updateExtraFormData } from '../../../actions/nativeFilters';
 
 const barWidth = `250px`;
 
@@ -146,15 +147,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   toggleFiltersBar,
   directPathToChild,
 }) => {
-  const [filterData, setFilterData] = useState<{
-    [id: string]: {
-      extraFormData: ExtraFormData;
-      currentState: CurrentFilterState;
-    };
-  }>({});
-  const setExtraFormData = useSetExtraFormData();
+  const [filterData, setFilterData] = useState<FullFilterState>({});
   const filterConfigs = useFilterConfiguration();
   const filters = useFilters();
+  const dispatch = useDispatch();
   const canEdit = useSelector<any, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -181,21 +177,17 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const handleFilterSelectionChange = (
     filter: Filter,
-    extraFormData: ExtraFormData,
-    currentState: CurrentFilterState,
+    filterState: FullFilterState,
   ) => {
     setFilterData(prevFilterData => ({
       ...prevFilterData,
-      [filter.id]: {
-        extraFormData,
-        currentState,
-      },
+      [filter.id]: filterState,
     }));
 
     const children = cascadeChildren[filter.id] || [];
     // force instant updating for parent filters
     if (filter.isInstant || children.length > 0) {
-      setExtraFormData(filter.id, extraFormData, currentState);
+      dispatch(updateExtraFormData(filter.id, filterState));
     }
   };
 
@@ -203,21 +195,19 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     const filterIds = Object.keys(filterData);
     filterIds.forEach(filterId => {
       if (filterData[filterId]) {
-        setExtraFormData(
-          filterId,
-          filterData[filterId]?.extraFormData,
-          filterData[filterId]?.currentState,
-        );
+        dispatch(updateExtraFormData(filterId, filterData[filterId]));
       }
     });
   };
 
   const handleResetAll = () => {
     filterConfigs.forEach(filter => {
-      setExtraFormData(filter.id, filterData[filter.id]?.extraFormData, {
-        ...filterData[filter.id]?.currentState,
-        value: filters[filter.id]?.defaultValue,
-      });
+      dispatch(
+        updateExtraFormData(filter.id, {
+          ...filterData[filter.id]?.currentState,
+          value: filters[filter.id]?.defaultValue,
+        }),
+      );
     });
   };
 

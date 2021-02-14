@@ -35,7 +35,7 @@ export function getInitialFilterState(id: string): FilterState {
 
 export function getInitialState(
   filterConfig: FilterConfiguration,
-  prevFiltersState: FiltersState = { native: {}, cross: {}, private: {} },
+  prevFiltersState: FiltersState = { native: {}, cross: {}, privateData: {} },
 ): NativeFiltersState {
   const filters = {};
   const filtersState = { ...prevFiltersState };
@@ -56,11 +56,10 @@ const getUnitState = (
 ) => {
   if (action[unitName])
     return {
-      ...filtersState.native,
+      ...filtersState[unitName],
       [action.filterId]: {
         ...filtersState[unitName][action.filterId],
-        extraFormData: action[unitName].extraFormData,
-        currentState: action[unitName].currentState,
+        ...action[unitName],
       },
     };
   return { ...filtersState[unitName] };
@@ -69,7 +68,7 @@ const getUnitState = (
 export default function nativeFilterReducer(
   state: NativeFiltersState = {
     filters: {},
-    filtersState: { native: {}, cross: {}, private: {} },
+    filtersState: { native: {}, cross: {}, privateData: {} },
   },
   action: AnyFilterAction,
 ) {
@@ -82,7 +81,7 @@ export default function nativeFilterReducer(
           ...filtersState,
           native: getUnitState('native', action, filtersState),
           cross: getUnitState('cross', action, filtersState),
-          private: getUnitState('private', action, filtersState),
+          privateData: getUnitState('privateData', action, filtersState),
         },
       };
 

@@ -17,12 +17,12 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ExtraFormData, styled, t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import Popover from 'src/common/components/Popover';
 import Icon from 'src/components/Icon';
 import { Pill } from 'src/dashboard/components/FiltersBadge/Styles';
-import { CurrentFilterState } from 'src/dashboard/reducers/types';
-import { useFilterState } from './state';
+import { FullFilterState } from 'src/dashboard/reducers/types';
+import { useFilterStateNative } from './state';
 import FilterControl from './FilterControl';
 import CascadeFilterControl from './CascadeFilterControl';
 import { CascadeFilter } from './types';
@@ -35,8 +35,7 @@ interface CascadePopoverProps {
   onVisibleChange: (visible: boolean) => void;
   onFilterSelectionChange: (
     filter: Filter,
-    extraFormData: ExtraFormData,
-    currentState: CurrentFilterState,
+    filterState: FullFilterState,
   ) => void;
 }
 
@@ -85,7 +84,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   directPathToChild,
 }) => {
   const [currentPathToChild, setCurrentPathToChild] = useState<string[]>();
-  const filterState = useFilterState(filter.id);
+  const filterStateNative = useFilterStateNative(filter.id);
 
   useEffect(() => {
     setCurrentPathToChild(directPathToChild);
@@ -98,7 +97,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   const getActiveChildren = useCallback(
     (filter: CascadeFilter): CascadeFilter[] | null => {
       const children = filter.cascadeChildren || [];
-      const currentValue = filterState.currentState?.value;
+      const currentValue = filterStateNative.currentState?.value;
 
       const activeChildren = children.flatMap(
         childFilter => getActiveChildren(childFilter) || [],
@@ -114,7 +113,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
 
       return null;
     },
-    [filterState],
+    [filterStateNative],
   );
 
   const getAllFilters = (filter: CascadeFilter): CascadeFilter[] => {

@@ -67,6 +67,7 @@ export default function AntdPluginFilterSelect(
     const emptyFilter =
       enableEmptyFilter && !inverseSelection && resultValue?.length === 0;
     setExtraFormData({
+      // @ts-ignore
       native: {
         extraFormData: getSelectExtraFormData(
           col,

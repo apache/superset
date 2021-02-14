@@ -17,8 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { ExtraFormData } from '@superset-ui/core';
-import { CurrentFilterState } from 'src/dashboard/reducers/types';
+import { FullFilterState } from 'src/dashboard/reducers/types';
 import { Filter } from '../types';
 
 export interface FilterProps {
@@ -27,8 +26,7 @@ export interface FilterProps {
   directPathToChild?: string[];
   onFilterSelectionChange: (
     filter: Filter,
-    extraFormData: ExtraFormData,
-    currentState: CurrentFilterState,
+    filterState: FullFilterState,
   ) => void;
 }
 

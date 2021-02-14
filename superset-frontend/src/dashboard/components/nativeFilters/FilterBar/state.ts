@@ -16,56 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useDispatch, useSelector } from 'react-redux';
-import { useCallback } from 'react';
-import { ExtraFormData } from '@superset-ui/core';
-import { updateExtraFormData } from 'src/dashboard/actions/nativeFilters';
+import { useSelector } from 'react-redux';
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
-import {
-  CurrentFilterState,
-  FilterState,
-  NativeFiltersState,
-} from 'src/dashboard/reducers/types';
+import { FilterState, NativeFiltersState } from 'src/dashboard/reducers/types';
 import { mergeExtraFormData } from '../utils';
+import { Filter } from '../types';
 
 export function useFilters() {
-  return useSelector<any, FilterState>(state => state.nativeFilters.filters);
-}
-
-export function useSetExtraFormData() {
-  const dispatch = useDispatch();
-  return useCallback(
-    (
-      id: string,
-      extraFormData: ExtraFormData,
-      currentState: CurrentFilterState,
-    ) => dispatch(updateExtraFormData(id, extraFormData, currentState)),
-    [dispatch],
-  );
+  return useSelector<any, Filter>(state => state.nativeFilters.filters);
 }
 
 export function useCascadingFilters(id: string) {
-  const nativeFilters = useSelector<any, NativeFiltersState>(
-    state => state.nativeFilters,
-  );
   const {
     filters,
     filtersState: { native },
-  } = nativeFilters;
+  } = useSelector<any, NativeFiltersState>(state => state.nativeFilters);
   const filter = filters[id];
-  const cascadeParentIds = filter?.cascadeParentIds ?? [];
+  const cascadeParentIds: string[] = filter?.cascadeParentIds ?? [];
   let cascadedFilters = {};
   cascadeParentIds.forEach(parentId => {
     const parentState = native[parentId] || {};
     const { extraFormData: parentExtra = {} } = parentState;
-    cascadedFilters = mergeExtraFormData(cascadedFilters, parentExtra);
+    cascadedFilters = {
+      native: mergeExtraFormData(cascadedFilters, parentExtra),
+    };
   });
   return cascadedFilters;
 }
 
-export function useFilterState(id: string) {
+export function useFilterStateNative(id: string) {
   return useSelector<any, FilterState>(
     state =>
-      state.nativeFilters.filtersState.native[id] || getInitialFilterState(id),
+      state.nativeFilters.filtersState.native[id] ?? getInitialFilterState(id),
   );
 }

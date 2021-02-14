@@ -69,23 +69,31 @@ export const nativeFilters: NativeFiltersState = {
     },
   },
   filtersState: {
-    'NATIVE_FILTER-e7Q8zKixx': {
-      id: 'NATIVE_FILTER-e7Q8zKixx',
-      extraFormData: {
-        append_form_data: {
-          filters: [
-            {
-              col: 'region',
-              op: 'IN',
-              val: ['East Asia & Pacific'],
-            },
-          ],
+    cross: {},
+    privateData: {},
+    native: {
+      'NATIVE_FILTER-e7Q8zKixx': {
+        id: 'NATIVE_FILTER-e7Q8zKixx',
+        extraFormData: {
+          append_form_data: {
+            filters: [
+              {
+                col: 'region',
+                op: 'IN',
+                val: ['East Asia & Pacific'],
+              },
+            ],
+          },
+        },
+        currentState: {
+          value: ['East Asia & Pacific'],
         },
       },
-    },
-    'NATIVE_FILTER-x9QPw0so1': {
-      id: 'NATIVE_FILTER-x9QPw0so1',
-      extraFormData: {},
+      'NATIVE_FILTER-x9QPw0so1': {
+        id: 'NATIVE_FILTER-x9QPw0so1',
+        extraFormData: {},
+        currentState: {},
+      },
     },
   },
 };

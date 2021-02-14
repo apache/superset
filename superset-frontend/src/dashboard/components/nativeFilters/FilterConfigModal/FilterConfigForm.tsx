@@ -256,9 +256,9 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
               chartType={formFilter?.filterType}
               hooks={{
                 // @ts-ignore
-                setExtraFormData: ({ currentState }) => {
+                setExtraFormData: ({ native }) => {
                   setFilterFieldValues(form, filterId, {
-                    defaultValue: currentState?.value,
+                    defaultValue: native?.currentState?.value,
                   });
                   forceUpdate();
                 },

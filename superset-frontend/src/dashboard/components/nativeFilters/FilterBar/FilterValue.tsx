@@ -17,21 +17,15 @@
  * under the License.
  */
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  ExtraFormData,
-  QueryFormData,
-  styled,
-  SuperChart,
-  t,
-} from '@superset-ui/core';
+import { QueryFormData, styled, SuperChart, t } from '@superset-ui/core';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
-import { CurrentFilterState } from 'src/dashboard/reducers/types';
+import { FullFilterState } from 'src/dashboard/reducers/types';
 import { FilterProps } from './types';
 import { getFormData } from '../utils';
-import { useCascadingFilters, useFilterState } from './state';
+import { useCascadingFilters, useFilterStateNative } from './state';
 
 const StyledLoadingBox = styled.div`
   position: relative;
@@ -57,7 +51,7 @@ const FilterValue: React.FC<FilterProps> = ({
     filterType,
   } = filter;
   const cascadingFilters = useCascadingFilters(id);
-  const filterState = useFilterState(id);
+  const filterStateNative = useFilterStateNative(id);
   const [loading, setLoading] = useState<boolean>(true);
   const [state, setState] = useState([]);
   const [error, setError] = useState<boolean>(false);
@@ -66,7 +60,7 @@ const FilterValue: React.FC<FilterProps> = ({
   const [target] = targets;
   const { datasetId = 18, column } = target;
   const { name: groupby } = column;
-  const currentValue = filterState.currentState?.value;
+  const currentValue = filterStateNative.currentState?.value;
   useEffect(() => {
     const newFormData = getFormData({
       datasetId,
@@ -107,13 +101,8 @@ const FilterValue: React.FC<FilterProps> = ({
     return undefined;
   }, [inputRef, directPathToChild, filter.id]);
 
-  const setExtraFormData = ({
-    extraFormData,
-    currentState,
-  }: {
-    extraFormData: ExtraFormData;
-    currentState: CurrentFilterState;
-  }) => onFilterSelectionChange(filter, extraFormData, currentState);
+  const setExtraFormData = (filterState: FullFilterState) =>
+    onFilterSelectionChange(filter, filterState);
 
   if (loading) {
     return (
