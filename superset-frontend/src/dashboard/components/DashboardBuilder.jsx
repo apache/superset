@@ -293,7 +293,7 @@ class DashboardBuilder extends React.Component {
           className="dashboard-content"
           dashboardFiltersOpen={this.state.dashboardFiltersOpen}
         >
-          {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && (
+          {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && !editMode && (
             <StickyVerticalBar
               filtersOpen={this.state.dashboardFiltersOpen}
               topOffset={barTopOffset}
@@ -301,7 +301,6 @@ class DashboardBuilder extends React.Component {
               <ErrorBoundary>
                 <FilterBar
                   filtersOpen={this.state.dashboardFiltersOpen}
-                  editMode={editMode}
                   toggleFiltersBar={this.toggleDashboardFiltersOpen}
                   directPathToChild={directPathToChild}
                 />

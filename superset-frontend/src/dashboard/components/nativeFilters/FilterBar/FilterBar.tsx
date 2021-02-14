@@ -137,14 +137,12 @@ const FilterControls = styled.div`
 
 interface FiltersBarProps {
   filtersOpen: boolean;
-  editMode: boolean;
   toggleFiltersBar: any;
   directPathToChild?: string[];
 }
 
 const FilterBar: React.FC<FiltersBarProps> = ({
   filtersOpen,
-  editMode,
   toggleFiltersBar,
   directPathToChild,
 }) => {
@@ -163,7 +161,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const [visiblePopoverId, setVisiblePopoverId] = useState<string | null>(null);
 
   useEffect(() => {
-    if ((filterConfigs.length === 0 && filtersOpen) || editMode) {
+    if (filterConfigs.length === 0 && filtersOpen) {
       toggleFiltersBar(false);
     }
   }, [filterConfigs]);
@@ -231,16 +229,14 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   return (
     <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>
-      {!editMode && (
-        <CollapsedBar
-          className={cx({ open: !filtersOpen })}
-          onClick={() => toggleFiltersBar(true)}
-        >
-          <StyledCollapseIcon name="collapse" />
-          <Icon name="filter" />
-        </CollapsedBar>
-      )}
-      <Bar className={cx({ open: !editMode && filtersOpen })}>
+      <CollapsedBar
+        className={cx({ open: !filtersOpen })}
+        onClick={() => toggleFiltersBar(true)}
+      >
+        <StyledCollapseIcon name="collapse" />
+        <Icon name="filter" />
+      </CollapsedBar>
+      <Bar className={cx({ open: filtersOpen })}>
         <TitleArea>
           <span>
             {t('Filters')} ({filterConfigs.length})
