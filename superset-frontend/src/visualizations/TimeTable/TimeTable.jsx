@@ -211,7 +211,7 @@ const TimeTable = ({
         // Average over the last {timeLag}
         v = null;
         if (reversedEntries.length >0) {
-            var stats = reversedEntries
+            let stats = reversedEntries
                 .slice(undefined, column.timeLag)
                 .reduce(function ({count, sum}, entry) {
                 return ( entry[valueField] != null )
