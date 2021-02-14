@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react'
 import { t } from '@superset-ui/core';
 import {
   useListViewResource,
@@ -79,6 +79,10 @@ function ChartTable({
   } = useChartEditModal(setCharts, charts);
 
   const [chartFilter, setChartFilter] = useState('Favorite');
+
+  useEffect(() => {
+    getData('Favorite').then()
+  }, [])
 
   const getFilters = (filterName: string) => {
     const filters = [];

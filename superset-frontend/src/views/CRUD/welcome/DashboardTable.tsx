@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react'
 import { SupersetClient, t } from '@superset-ui/core';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps } from 'src/views/CRUD/types';
@@ -64,6 +64,10 @@ function DashboardTable({
   );
   const [editModal, setEditModal] = useState<Dashboard>();
   const [dashboardFilter, setDashboardFilter] = useState('Favorite');
+
+  useEffect(() => {
+    getData('Favorite').then()
+  }, [])
 
   const handleDashboardEdit = (edits: Dashboard) =>
     SupersetClient.get({
