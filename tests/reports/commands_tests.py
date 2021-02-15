@@ -763,6 +763,8 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
             AsyncExecuteReportScheduleCommand(
                 create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
+
+        # Only needed for MySQL, understand why
         db.session.commit()
         notification_targets = get_target_from_report_schedule(
             create_invalid_sql_alert_email_chart
@@ -778,6 +780,7 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
             AsyncExecuteReportScheduleCommand(
                 create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
+        db.session.commit()
         assert (
             get_notification_error_sent_count(create_invalid_sql_alert_email_chart) == 1
         )
@@ -788,6 +791,7 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
             AsyncExecuteReportScheduleCommand(
                 create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
+        db.session.commit()
         assert (
             get_notification_error_sent_count(create_invalid_sql_alert_email_chart) == 2
         )
@@ -807,7 +811,7 @@ def test_grace_period_error_flap(
             AsyncExecuteReportScheduleCommand(
                 create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
-
+        db.session.commit()
         # Assert we have 1 notification sent on the log
         assert (
             get_notification_error_sent_count(create_invalid_sql_alert_email_chart) == 1
@@ -818,7 +822,7 @@ def test_grace_period_error_flap(
             AsyncExecuteReportScheduleCommand(
                 create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
-
+        db.session.commit()
         assert (
             get_notification_error_sent_count(create_invalid_sql_alert_email_chart) == 1
         )
@@ -853,7 +857,7 @@ def test_grace_period_error_flap(
             AsyncExecuteReportScheduleCommand(
                 create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
-
+        db.session.commit()
         assert (
             get_notification_error_sent_count(create_invalid_sql_alert_email_chart) == 2
         )
