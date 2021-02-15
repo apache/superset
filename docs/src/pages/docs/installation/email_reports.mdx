@@ -9,32 +9,53 @@ version: 1
 ## Alerts and Reports
 (version 1.0.1 and above)
 
-Users can configure automated alerts and reports to send charts and dashboards to an email recipient or Slack channel.
+Users can configure automated alerts and reports to send dashboards or charts to an email recipient or Slack channel.
 
-- Alerts are sent when a specified condition is passed
-- Reports are sent on a specified schedule 
+- Alerts are sent when a SQL condition is reached
+- Reports are sent on a schedule
 
 ### Turning on Alerts and reports
-Alerts and reports are not turned on by default. They are currently behind a feature flag, and require some additional services and configurations.
+Alerts and reports are disabled by default. To turn them on, you need to do some setup, described here.
 
-#### Requirements:
+#### Requirements summary:
 
-- `Dockerfile`
-	- webdriver to run a headless browser (for taking screenshots of the charts and dahboards)
+##### Commons
+- In your `superset_config.py`:
+	- `"ALERT_REPORTS"` feature flag must be turned to True.
+    - `CELERYBEAT_SCHEDULE` in CeleryConfig must contains schedule for `reports.scheduler`.
+    - At least one of those must be configured, depending of what you want to use:
+	   - emails: `SMTP_*` settings
+	   - slack messages: `SLACK_API_TOKEN`
+- In your `Dockerfile`:
+    - You must install a headless browser, for taking screenshots of the charts and dahboards (only firefox and chrome are currently supported).
+
+##### Docker-compose specific
 - `docker-compose.yaml`
-	- redis message broker
-	- replacing SQLlite DB with Postgres DB
-	- celery worker
-	- celery beat
-- `superset_config.py`
-	- feature flag turned to True
-	- all configs as outlined in the template below
-- At least one of these is needed to send alerts and reports:
-	- (optional) SMTP server for sending email
-	- (optional) Slack app integration for sending to Slack channels
- 
-#### Summary of steps to turn on alerts and reporting:
+    - redis message broker
+    - replacing SQLlite DB with Postgres DB
+    - celery worker
+    - celery beat
 
+##### Kubernetes specific
+- you must have a celery beat pod
+
+##### Slack integration
+To send alerts and reports to Slack channels, you need to create a new Slack Application on your workspace.
+
+1. Connect to your Slack workspace, then head to https://api.slack.com/apps.
+2. Create a new app.
+3. Go to `OAuth & Permissions` section, and give the following scopes to your app:
+    1. `incoming-webhook`
+    2. `files:write` 
+4. At the top of the OAuth and Permissions section, click 'install to workspace'.
+5. Select a default channel for your app to post to and continue.
+(You can post to any channel by inviting your Superset app into that channel).
+6. The app should now be installed on your workspace, and a 'Bot User OAuth Access Token' should have been created. Copy that token in the `SLACK_API_TOKEN` variable of your `superset_config.py`.
+7. Restart the service (or run `superset init`) to pull in the new configuration.
+
+Note: when you configure an alert or a report, the Slack channel list take channel names without the leading '#' eg. use `alerts` instead of `#alerts`.
+
+#### Summary of steps to turn on alerts and reporting:
 Using the templates below,
 1. Create a new directory and create the Dockerfile
 2. Build the extended image using the Dockerfile
@@ -291,19 +312,6 @@ With the extended image created by using the `Dockerfile`, and then running that
 
 - For Kubernetes you can see the Helm chart here
 - The above templates also work in a Docker swarm environment, you would just need to add `Deploy:` to the Superset, Redis and Postgres services along with your specific configs for your swarm
-
-### Optional - Slack integration
-To send alerts and reports to a Slack channel, you need to create a new Slack APP on your domain.
-1. Head to https://api.slack.com/apps
-2. Create a new APP, give it a name (eg. Superset)
-3. Under the OAuth and Permissions section, give the following scopes to the app:
-	1. `incoming-webhook`
-	2. `calls:write` 
-4. At the top of the OAuth and Permissions section, click 'install to workspace'
-5. Select a default channel for the app to post to and continue. (You can post to any channel by inviting your Superset app into that channel)
-6. The app should now be installed on the workspace, and a 'Bot User OAuth Access Token' should be created. Copy the OAuth token and add it into the Slack section in the `superset_config.py`
-7. Restart the service (or run `superset init`) to pull in the new configuration.
-8. Note when sending to the channel from the alerts and reports UI, set the channel without the leading '#' eg. use `alerts` instead of `#alerts`
 
 
 #
