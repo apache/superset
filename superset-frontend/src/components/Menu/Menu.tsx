@@ -173,14 +173,23 @@ export function Menu({
           <Navbar.Toggle />
         </Navbar.Header>
         <Nav data-test="navbar-top">
-          {menu.map((item, index) => (
-            <MenuObject
-              {...item}
-              frontEndRoutes={frontEndRoutes}
-              key={item.label}
-              index={index + 1}
-            />
-          ))}
+          {menu.map((item, index) => {
+            const props = {
+              ...item,
+              isFrontendRoute: !!frontEndRoutes?.[item.url || ''],
+              childs: item.childs?.map(c => {
+                if (typeof c === 'string') {
+                  return c;
+                }
+
+                return {
+                  ...c,
+                  isFrontendRoute: !!frontEndRoutes?.[c.url || ''],
+                };
+              }),
+            };
+            return <MenuObject {...props} key={item.label} index={index + 1} />;
+          })}
         </Nav>
         <Nav className="navbar-right">
           {!navbarRight.user_is_anonymous && <NewMenu />}

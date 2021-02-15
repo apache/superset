@@ -28,18 +28,12 @@ export interface MenuObjectChildProps {
   icon: string;
   index: number;
   url?: string;
+  isFrontendRoute?: boolean;
 }
 
-export interface MenuObjectProps {
-  label?: string;
-  icon?: string;
-  index: number;
-  url?: string;
+export interface MenuObjectProps extends MenuObjectChildProps {
   childs?: (MenuObjectChildProps | string)[];
   isHeader?: boolean;
-  frontEndRoutes?: {
-    [route: string]: boolean;
-  };
 }
 
 export default function MenuObject({
@@ -47,10 +41,10 @@ export default function MenuObject({
   childs,
   url,
   index,
-  frontEndRoutes,
+  isFrontendRoute,
 }: MenuObjectProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  if (url && frontEndRoutes && frontEndRoutes[url]) {
+  if (url && isFrontendRoute) {
     return (
       <li role="presentation">
         <Link role="button" to={url}>
@@ -84,10 +78,10 @@ export default function MenuObject({
           if (typeof child !== 'string') {
             return (
               <Menu.Item key={`${child.label}`}>
-                {frontEndRoutes && frontEndRoutes[child.url || ''] ? (
-                  <Link to={child.url || ''}>&nbsp; {child.label}</Link>
+                {child.isFrontendRoute ? (
+                  <Link to={child.url || ''}>{child.label}</Link>
                 ) : (
-                  <a href={child.url}>&nbsp; {child.label}</a>
+                  <a href={child.url}>{child.label}</a>
                 )}
               </Menu.Item>
             );
