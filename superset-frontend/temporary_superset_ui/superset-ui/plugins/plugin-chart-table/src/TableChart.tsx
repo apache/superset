@@ -249,9 +249,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           // render `Cell`. This saves some time for large tables.
           return <td {...cellProps}>{text}</td>;
         },
-        Header: ({ column: col, title, onClick, style }) => (
+        Header: ({ column: col, onClick, style }) => (
           <th
-            title={title}
+            title="Shift + Click to sort by multiple columns"
             className={col.isSorted ? `${className || ''} is-sorted` : className}
             style={style}
             onClick={onClick}
