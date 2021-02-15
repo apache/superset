@@ -16,19 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import serializeActiveFilterValues from './serializeActiveFilterValues';
+import { ControlPanelConfig } from '@superset-ui/chart-controls';
 
-export default function getDashboardUrl(
-  pathname,
-  filters = {},
-  hash = '',
-  standalone = false,
-) {
-  // convert flattened { [id_column]: values } object
-  // to nested filter object
-  const obj = serializeActiveFilterValues(filters);
-  const preselectFilters = encodeURIComponent(JSON.stringify(obj));
-  const hashSection = hash ? `#${hash}` : '';
-  const standaloneParam = standalone ? '&standalone=true' : '';
-  return `${pathname}?preselect_filters=${preselectFilters}${standaloneParam}${hashSection}`;
-}
+const config: ControlPanelConfig = {
+  // For control input types, see: superset-frontend/src/explore/components/controls/index.js
+  controlPanelSections: [],
+};
+
+export default config;

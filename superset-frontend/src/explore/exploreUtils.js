@@ -27,7 +27,9 @@ import {
 } from '@superset-ui/core';
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
+import { URL_PARAMS } from 'src/constants';
 import { MULTI_OPERATORS } from './constants';
+import { DashboardStandaloneMode } from '../dashboard/util/constants';
 
 const MAX_URL_LENGTH = 8000;
 
@@ -99,8 +101,8 @@ export function getExploreLongUrl(
     search[key] = extraSearch[key];
   });
   search.form_data = safeStringify(formData);
-  if (endpointType === 'standalone') {
-    search.standalone = 'true';
+  if (endpointType === URL_PARAMS.standalone) {
+    search.standalone = DashboardStandaloneMode.HIDE_NAV;
   }
   const url = uri.directory(directory).search(search).toString();
   if (!allowOverflow && url.length > MAX_URL_LENGTH) {
@@ -172,8 +174,8 @@ export function getExploreUrl({
   if (endpointType === 'csv') {
     search.csv = 'true';
   }
-  if (endpointType === 'standalone') {
-    search.standalone = 'true';
+  if (endpointType === URL_PARAMS.standalone) {
+    search.standalone = '1';
   }
   if (endpointType === 'query') {
     search.query = 'true';

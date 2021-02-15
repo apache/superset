@@ -26,12 +26,7 @@
 URL="https://api.github.com/repos/${GITHUB_REPO}/pulls/${PR_NUMBER}/files"
 FILES=$(curl -s -X GET -G "${URL}" | jq -r '.[] | .filename')
 
-cat<<EOF
-CHANGED FILES:
-$FILES
-
-EOF
-
+REGEXES=()
 for CHECK in "$@"
 do
   if [[ ${CHECK} == "python" ]]; then
@@ -44,11 +39,26 @@ do
     echo "Invalid check: \"${CHECK}\". Falling back to exiting with FAILURE code"
     exit 1
   fi
+  REGEXES=("${REGEXES[@]}" "${REGEX}")
+done
+echo
 
-  if [[ "${FILES}" =~ ${REGEX} ]]; then
-    echo "Detected changes... Exiting with FAILURE code"
-    exit 1
-  fi
+cat<<EOF
+CHANGED FILES:
+$FILES
+
+EOF
+
+for FILE in ${FILES}
+do
+  for REGEX in "${REGEXES[@]}"
+  do
+    if [[ "${FILE}" =~ ${REGEX} ]]; then
+      echo "Detected changes in following file: ${FILE}"
+      echo "Exiting with FAILURE code"
+      exit 1
+    fi
+  done
 done
 echo "No changes detected... Exiting with SUCCESS code"
 exit 0

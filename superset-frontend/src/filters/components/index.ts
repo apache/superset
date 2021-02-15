@@ -18,3 +18,4 @@
  */
 export { default as AntdSelectFilterPlugin } from './Select';
 export { default as AntdRangeFilterPlugin } from './Range';
+export { default as TimeFilterPlugin } from './Time';

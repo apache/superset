@@ -22,7 +22,6 @@ from io import BytesIO
 from typing import List, Optional
 from unittest.mock import patch
 from zipfile import is_zipfile, ZipFile
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import pytest
 import prison
@@ -30,7 +29,7 @@ import yaml
 from sqlalchemy.sql import func
 
 from freezegun import freeze_time
-from sqlalchemy import and_, or_
+from sqlalchemy import and_
 from superset import db, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
@@ -49,6 +48,7 @@ from tests.fixtures.importexport import (
     dataset_metadata_config,
 )
 from tests.utils.get_dashboards import get_dashboards_ids
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 DASHBOARDS_FIXTURE_COUNT = 10
@@ -223,6 +223,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         assert "can_write" in data["permissions"]
         assert len(data["permissions"]) == 2
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_not_found(self):
         """
         Dashboard API: Test get dashboard not found
@@ -1342,3 +1343,37 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         assert response == {
             "message": {"metadata.yaml": {"type": ["Must be equal to Dashboard."]}}
         }
+
+    def test_get_all_related_roles(self):
+        """
+        API: Test get filter related roles
+        """
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/related/roles"
+
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        roles = db.session.query(security_manager.role_model).all()
+        expected_roles = [str(role) for role in roles]
+        assert response["count"] == len(roles)
+
+        response_roles = [result["text"] for result in response["result"]]
+        for expected_role in expected_roles:
+            assert expected_role in response_roles
+
+    def test_get_filter_related_roles(self):
+        """
+        API: Test get filter related roles
+        """
+        self.login(username="admin")
+        argument = {"filter": "alpha"}
+        uri = f"api/v1/dashboard/related/roles?q={prison.dumps(argument)}"
+
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["count"] == 1
+
+        response_roles = [result["text"] for result in response["result"]]
+        assert "Alpha" in response_roles

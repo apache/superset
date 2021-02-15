@@ -26,7 +26,8 @@ import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import EmbedCodeButton from 'src/explore/components/EmbedCodeButton';
 import * as exploreUtils from 'src/explore/exploreUtils';
-import * as common from 'src/utils/common';
+import * as urlUtils from 'src/utils/urlUtils';
+import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 
 const ENDPOINT = 'glob:*/r/shortner/';
 
@@ -53,7 +54,7 @@ describe('EmbedCodeButton', () => {
 
   it('should create a short, standalone, explore url', () => {
     const spy1 = sinon.spy(exploreUtils, 'getExploreLongUrl');
-    const spy2 = sinon.spy(common, 'getShortUrl');
+    const spy2 = sinon.spy(urlUtils, 'getShortUrl');
 
     const wrapper = mount(
       <ThemeProvider theme={supersetTheme}>
@@ -92,15 +93,17 @@ describe('EmbedCodeButton', () => {
       shortUrlId: 100,
     });
     const embedHTML =
-      '<iframe\n' +
-      '  width="2000"\n' +
-      '  height="1000"\n' +
-      '  seamless\n' +
-      '  frameBorder="0"\n' +
-      '  scrolling="no"\n' +
-      '  src="http://localhostendpoint_url?r=100&standalone=true&height=1000"\n' +
-      '>\n' +
-      '</iframe>';
+      `${
+        '<iframe\n' +
+        '  width="2000"\n' +
+        '  height="1000"\n' +
+        '  seamless\n' +
+        '  frameBorder="0"\n' +
+        '  scrolling="no"\n' +
+        '  src="http://localhostendpoint_url?r=100&standalone='
+      }${DashboardStandaloneMode.HIDE_NAV}&height=1000"\n` +
+      `>\n` +
+      `</iframe>`;
     expect(wrapper.instance().generateEmbedHTML()).toBe(embedHTML);
     stub.restore();
   });

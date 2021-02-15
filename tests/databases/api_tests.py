@@ -21,8 +21,6 @@ import json
 from io import BytesIO
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
-from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import prison
 import pytest
@@ -36,8 +34,10 @@ from superset.models.core import Database
 from superset.models.reports import ReportSchedule, ReportScheduleType
 from superset.utils.core import get_example_database, get_main_database
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.certificates import ssl_certificate
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 from tests.fixtures.importexport import (
     database_config,
     dataset_config,
@@ -93,6 +93,28 @@ class TestDatabaseApi(SupersetTestCase):
             db.session.delete(report_schedule)
             db.session.delete(database)
             db.session.commit()
+
+    @pytest.fixture()
+    def create_database_with_dataset(self):
+        with self.create_app().app_context():
+            example_db = get_example_database()
+            self._database = self.insert_database(
+                "database_with_dataset",
+                example_db.sqlalchemy_uri_decrypted,
+                expose_in_sqllab=True,
+            )
+            table = SqlaTable(
+                schema="main", table_name="ab_permission", database=self._database
+            )
+            db.session.add(table)
+            db.session.commit()
+            yield self._database
+
+            # rollback changes
+            db.session.delete(table)
+            db.session.delete(self._database)
+            db.session.commit()
+            self._database = None
 
     def create_database_import(self):
         buf = BytesIO()
@@ -528,15 +550,13 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.delete_assert_metric(uri, "delete")
         self.assertEqual(rv.status_code, 404)
 
+    @pytest.mark.usefixtures("create_database_with_dataset")
     def test_delete_database_with_datasets(self):
         """
         Database API: Test delete fails because it has depending datasets
         """
-        database_id = (
-            db.session.query(Database).filter_by(database_name="examples").one()
-        ).id
         self.login(username="admin")
-        uri = f"api/v1/database/{database_id}"
+        uri = f"api/v1/database/{self._database.id}"
         rv = self.delete_assert_metric(uri, "delete")
         self.assertEqual(rv.status_code, 422)
 
