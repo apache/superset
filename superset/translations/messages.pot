@@ -7793,5 +7793,3 @@ msgstr ""
 #: superset-frontend/src/SqlLab/components/SqlEditor.jsx:506
 msgid "Autocomplete"
 msgstr ""
-
-
