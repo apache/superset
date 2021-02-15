@@ -14,12 +14,11 @@ Users can configure automated alerts and reports to send dashboards or charts to
 - Alerts are sent when a SQL condition is reached
 - Reports are sent on a schedule
 
-### Turning on Alerts and reports
 Alerts and reports are disabled by default. To turn them on, you need to do some setup, described here.
 
-#### Requirements summary:
+### Requirements summary:
 
-##### Commons
+#### Commons
 - In your `superset_config.py`:
 	- `"ALERT_REPORTS"` feature flag must be turned to True.
     - `CELERYBEAT_SCHEDULE` in CeleryConfig must contains schedule for `reports.scheduler`.
@@ -27,19 +26,19 @@ Alerts and reports are disabled by default. To turn them on, you need to do some
 	   - emails: `SMTP_*` settings
 	   - slack messages: `SLACK_API_TOKEN`
 - In your `Dockerfile`:
-    - You must install a headless browser, for taking screenshots of the charts and dahboards (only firefox and chrome are currently supported).
+    - You must install a headless browser, for taking screenshots of the charts and dashboards (only firefox and chrome are currently supported).
 
-##### Docker-compose specific
+#### Docker-compose specific
 - `docker-compose.yaml`
     - redis message broker
     - replacing SQLlite DB with Postgres DB
     - celery worker
     - celery beat
 
-##### Kubernetes specific
+#### Kubernetes specific
 - you must have a celery beat pod
 
-##### Slack integration
+#### Slack integration
 To send alerts and reports to Slack channels, you need to create a new Slack Application on your workspace.
 
 1. Connect to your Slack workspace, then head to https://api.slack.com/apps.
@@ -55,7 +54,7 @@ To send alerts and reports to Slack channels, you need to create a new Slack App
 
 Note: when you configure an alert or a report, the Slack channel list take channel names without the leading '#' eg. use `alerts` instead of `#alerts`.
 
-#### Summary of steps to turn on alerts and reporting:
+### Summary of steps to turn on alerts and reporting:
 Using the templates below,
 1. Create a new directory and create the Dockerfile
 2. Build the extended image using the Dockerfile
