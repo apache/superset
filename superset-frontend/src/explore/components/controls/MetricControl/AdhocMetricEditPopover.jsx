@@ -24,7 +24,7 @@ import Tabs from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
 import { Select } from 'src/common/components/Select';
 import { styled, t } from '@superset-ui/core';
-import { ColumnOption } from '@superset-ui/chart-controls';
+import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
 
 import FormLabel from 'src/components/FormLabel';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
@@ -251,6 +251,10 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     }, 0);
   }
 
+  renderSavedMetricOption(metric) {
+    return <MetricOption metric={metric} showType />;
+  }
+
   renderColumnOption(option) {
     const column = { ...option };
     if (column.metric_name && !column.verbose_name) {
@@ -370,7 +374,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                       }
                       key={savedMetric.id}
                     >
-                      {this.renderColumnOption(savedMetric)}
+                      {this.renderSavedMetricOption(savedMetric)}
                     </Select.Option>
                   ))}
               </Select>
