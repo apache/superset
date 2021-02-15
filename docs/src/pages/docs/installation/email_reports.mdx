@@ -194,13 +194,13 @@ SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://%s:%s@%s:%s/%s?client_encoding=
                                                           POSTGRES_DATABASE)
 CACHE_CONFIG: CacheConfig = {
     'CACHE_TYPE': 'redis',
-    'CACHE_DEFAULT_TIMEOUT': 24*60*60, # 1 day
+    'CACHE_DEFAULT_TIMEOUT': 24*60*60, # 1 day - if your alerts are running faster than 1 day, the cache should match
     'CACHE_KEY_PREFIX': 'superset_',
     'CACHE_REDIS_URL': 'redis://%s:%s/1' % (REDIS_HOST, REDIS_PORT)
 }
 DATA_CACHE_CONFIG: CacheConfig = {
     'CACHE_TYPE': 'redis',
-    'CACHE_DEFAULT_TIMEOUT': 24*60*60, # 1 day
+    'CACHE_DEFAULT_TIMEOUT': 24*60*60, # 1 day - if your alerts are running faster than 1 day, the cache should match
     'CACHE_KEY_PREFIX': 'data_',
     'CACHE_REDIS_URL': 'redis://%s:%s/1' % (REDIS_HOST, REDIS_PORT)
 }
@@ -254,11 +254,11 @@ class CeleryConfig(object):
 CELERY_CONFIG = CeleryConfig
 
 # SMTP email configuration
-EMAIL_REPORTS_USER="admin"
+EMAIL_REPORTS_USER="admin" # change to a user that has access to the chart / dashboard that you are sending
 EMAIL_PAGE_RENDER_WAIT=300
 EMAIL_NOTIFICATIONS = True
 
-SMTP_HOST = "smtp.sendgrid.net"
+SMTP_HOST = "smtp.sendgrid.net" #change to your host
 SMTP_STARTTLS = True
 SMTP_SSL = False
 SMTP_USER = "your_user"
