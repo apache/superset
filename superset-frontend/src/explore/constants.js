@@ -92,3 +92,14 @@ export const FILTER_CONFIG_ATTRIBUTES = {
 };
 
 export const FILTER_OPTIONS_LIMIT = 1000;
+
+/**
+ * Map control names to their key in extra_filters
+ */
+export const TIME_FILTER_MAP = {
+  time_range: '__time_range',
+  granularity_sqla: '__time_col',
+  time_grain_sqla: '__time_grain',
+  druid_time_origin: '__time_origin',
+  granularity: '__granularity',
+};

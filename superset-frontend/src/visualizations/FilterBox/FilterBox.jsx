@@ -36,18 +36,10 @@ import {
   FILTER_CONFIG_ATTRIBUTES,
   FILTER_OPTIONS_LIMIT,
   TIME_FILTER_LABELS,
+  TIME_FILTER_MAP,
 } from 'src/explore/constants';
 
 import './FilterBox.less';
-
-// maps control names to their key in extra_filters
-export const TIME_FILTER_MAP = {
-  time_range: '__time_range',
-  granularity_sqla: '__time_col',
-  time_grain_sqla: '__time_grain',
-  druid_time_origin: '__time_origin',
-  granularity: '__granularity',
-};
 
 // a shortcut to a map key, used by many components
 export const TIME_RANGE = TIME_FILTER_MAP.time_range;
@@ -336,10 +328,12 @@ class FilterBox extends React.PureComponent {
     // Add created options to filtersChoices, even though it doesn't exist,
     // or these options will exist in query sql but invisible to end user.
     Object.keys(selectedValues)
-      .filter(
-        key => selectedValues.hasOwnProperty(key) && key in filtersChoices,
-      )
+      .filter(key => key in filtersChoices)
       .forEach(key => {
+        // empty values are ignored
+        if (!selectedValues[key]) {
+          return;
+        }
         const choices = filtersChoices[key] || (filtersChoices[key] = []);
         const choiceIds = new Set(choices.map(f => f.id));
         const selectedValuesForKey = Array.isArray(selectedValues[key])
@@ -356,21 +350,21 @@ class FilterBox extends React.PureComponent {
             });
           });
       });
-    const { key, label } = filterConfig;
+    const {
+      key,
+      label,
+      [FILTER_CONFIG_ATTRIBUTES.MULTIPLE]: isMultiple,
+      [FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE]: defaultValue,
+      [FILTER_CONFIG_ATTRIBUTES.CLEARABLE]: isClearable,
+      [FILTER_CONFIG_ATTRIBUTES.SEARCH_ALL_OPTIONS]: searchAllOptions,
+    } = filterConfig;
     const data = filtersChoices[key] || [];
     let value = selectedValues[key] || null;
 
     // Assign default value if required
-    if (
-      value === undefined &&
-      filterConfig[FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE]
-    ) {
-      if (filterConfig[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]) {
-        // Support for semicolon-delimited multiple values
-        value = filterConfig[FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE].split(';');
-      } else {
-        value = filterConfig[FILTER_CONFIG_ATTRIBUTES.DEFAULT_VALUE];
-      }
+    if (value === undefined && defaultValue) {
+      // multiple values are separated by semicolons
+      value = isMultiple ? defaultValue.split(';') : defaultValue;
     }
 
     return (
@@ -380,8 +374,8 @@ class FilterBox extends React.PureComponent {
         defaultOptions={this.transformOptions(data)}
         key={key}
         placeholder={t('Type or Select [%s]', label)}
-        isMulti={filterConfig[FILTER_CONFIG_ATTRIBUTES.MULTIPLE]}
-        isClearable={filterConfig[FILTER_CONFIG_ATTRIBUTES.CLEARABLE]}
+        isMulti={isMultiple}
+        isClearable={isClearable}
         value={value}
         options={this.transformOptions(data)}
         onChange={newValue => {
@@ -396,8 +390,7 @@ class FilterBox extends React.PureComponent {
         onBlur={() => this.onFilterMenuClose(key)}
         onMenuClose={() => this.onFilterMenuClose(key)}
         selectWrap={
-          filterConfig[FILTER_CONFIG_ATTRIBUTES.SEARCH_ALL_OPTIONS] &&
-          data.length >= FILTER_OPTIONS_LIMIT
+          searchAllOptions && data.length >= FILTER_OPTIONS_LIMIT
             ? AsyncCreatableSelect
             : CreatableSelect
         }
