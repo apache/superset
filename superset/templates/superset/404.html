@@ -19,76 +19,24 @@
   
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=q, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
-    <link rel="preconnect" href="https://fonts.gstatic.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
-    
-    <title>404: Not found | Superset</title>
-    <style>
-        html { height: 100%; }
-        body {
-            color: #1985A0;
-            font-family: 'Inter', sans-serif;
-            height: 100%;
-            margin: 0;
-            display: flex;
-            align-items:stretch;
-        }
-        h1 {
-            font-weight: 600;
-            font-size: 88px;
-            margin: 0;
-        }
-        p {
-            font-weight: 500;
-            font-size: 24px;
-            line-height: 40px;
-            width: 490px;
-        }
-        .button {
-            -webkit-appearance: button;
-            -moz-appearance: button;
-            appearance: button;
-            background-color: #1985A0; /* Green */
-            border: none;
-            color: white;
-            padding: 16px 38px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 11px;
-            border-radius: 4px;
-            text-transform: uppercase;
-        }
-        .content {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: space-between;
-            max-width: 1350px;
-            margin: auto;
-            width: 100%;
-            padding: 56px;
-        }
-        img {
-            width: 540px;
-        }
-     </style>      
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=q, initial-scale=1.0">
+        <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
+        {% include 'superset/error_page_styles.html' %}
+        
+        <title>404: Not found | Superset</title> 
+    </head>
 
-<body>
-    <div class="content">
-        <section>
-            <h1>Page not found</h1>
-            <p>Sorry, we cannot find the page you are looking for. You may have mistyped the address or the page may have moved.</p>
-            <a href="/" class="button">Back to home</a>
-        </section>
-        <img src="/static/assets/images/error404.png" alt="404">
-    </div>
-
-</body>
+    <body>
+        <div class="error-page-content">
+            <section>
+                <h1>Page not found</h1>
+                <p>Sorry, we cannot find the page you are looking for. You may have mistyped the address or the page may have moved.</p>
+                <a href="/" class="button">Back to home</a>
+            </section>
+            <img src="/static/assets/images/error404.png" alt="404">
+        </div>
+    </body>
 </html>

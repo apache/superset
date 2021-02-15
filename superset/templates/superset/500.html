@@ -19,76 +19,24 @@
   
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=q, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
-    <title>500: Internal server error | Superset</title>
-    <link rel="preconnect" href="https://fonts.gstatic.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        html { height: 100%; }
-        body {
-            color: #1985A0;
-            font-family: 'Inter', sans-serif;
-            height: 100%;
-            margin: 0;
-            display: flex;
-            align-items:stretch;
-        }
-        h1 {
-            font-weight: 600;
-            font-size: 88px;
-            margin: 0;
-        }
-        p {
-            font-weight: 500;
-            font-size: 24px;
-            line-height: 40px;
-            width: 490px;
-        }
-        .button {
-            -webkit-appearance: button;
-            -moz-appearance: button;
-            appearance: button;
-            background-color: #1985A0; /* Green */
-            border: none;
-            color: white;
-            padding: 16px 38px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 11px;
-            border-radius: 4px;
-            text-transform: uppercase;
-        }
-        .content {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: space-between;
-            max-width: 1350px;
-            margin: auto;
-            width: 100%;
-            padding: 56px;
-        }
-        img {
-            width: 540px;
-        }
-     </style>      
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=q, initial-scale=1.0">
+        <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
+        {% include 'superset/error_page_styles.html' %}
 
-<body>
-    <div class="content">
+        <title>500: Internal server error | Superset</title>    
+    </head>
 
-    <section>
-        <h1>Internal server error</h1>
-        <p>Sorry, something went wrong. We are fixing the mistake now. Try again later or go back to home.</p>
-        <a href="/" class="button">Back to home</a>
-    </section>
-    <img src="/static/assets/images/error500.png" alt="500">
-</div>
-
-</body>
+    <body>
+        <div class="error-page-content">
+            <section>
+                <h1>Internal server error</h1>
+                <p>Sorry, something went wrong. We are fixing the mistake now. Try again later or go back to home.</p>
+                <a href="/" class="button">Back to home</a>
+            </section>
+            <img src="/static/assets/images/error500.png" alt="500">
+        </div>
+    </body>
 </html>
