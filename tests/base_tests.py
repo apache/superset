@@ -29,6 +29,7 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 from sqlalchemy.ext.declarative.api import DeclarativeMeta
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 
 from tests.test_app import app
 from superset.sql_parse import CtasMethod
@@ -123,6 +124,10 @@ class SupersetTestCase(TestCase):
 
     def create_app(self):
         return app
+
+    @staticmethod
+    def get_nonexistent_numeric_id(model):
+        return (db.session.query(func.max(model.id)).scalar() or 0) + 1
 
     @staticmethod
     def get_birth_names_dataset():
