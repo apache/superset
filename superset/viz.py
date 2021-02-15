@@ -1791,6 +1791,8 @@ class SunburstViz(BaseViz):
         secondary_metric = fd.get("secondary_metric")
         if secondary_metric and secondary_metric != fd["metric"]:
             qry["metrics"].append(secondary_metric)
+        if self.form_data.get("sort_by_metric", False):
+            qry["orderby"] = [(qry["metrics"][0], False)]
         return qry
 
 
@@ -1873,6 +1875,8 @@ class DirectedForceViz(BaseViz):
         if len(self.form_data["groupby"]) != 2:
             raise QueryObjectValidationError(_("Pick exactly 2 columns to 'Group By'"))
         qry["metrics"] = [self.form_data["metric"]]
+        if self.form_data.get("sort_by_metric", False):
+            qry["orderby"] = [(qry["metrics"][0], False)]
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -1896,6 +1900,8 @@ class ChordViz(BaseViz):
         fd = self.form_data
         qry["groupby"] = [fd.get("groupby"), fd.get("columns")]
         qry["metrics"] = [fd.get("metric")]
+        if self.form_data.get("sort_by_metric", False):
+            qry["orderby"] = [(qry["metrics"][0], False)]
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -1956,6 +1962,8 @@ class WorldMapViz(BaseViz):
     def query_obj(self) -> QueryObjectDict:
         qry = super().query_obj()
         qry["groupby"] = [self.form_data["entity"]]
+        if self.form_data.get("sort_by_metric", False):
+            qry["orderby"] = [(qry["metrics"][0], False)]
         return qry
 
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -2103,6 +2111,10 @@ class HeatmapViz(BaseViz):
         fd = self.form_data
         d["metrics"] = [fd.get("metric")]
         d["groupby"] = [fd.get("all_columns_x"), fd.get("all_columns_y")]
+
+        if self.form_data.get("sort_by_metric", False):
+            d["orderby"] = [(d["metrics"][0], False)]
+
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
