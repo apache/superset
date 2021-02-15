@@ -340,7 +340,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # tables that users do not have access to.
     "ROW_LEVEL_SECURITY": False,
     # Enables Alerts and reports new implementation
-    "ALERT_REPORTS": True,
+    "ALERT_REPORTS": False,
     # Enable experimental feature to search for other dashboards
     "OMNIBAR": False,
     "DASHBOARD_RBAC": False,
@@ -896,9 +896,9 @@ ENABLE_SCHEDULED_EMAIL_REPORTS = False
 # if it meets the criteria
 ENABLE_ALERTS = False
 
-# Used for Alerts/Reports (Feature flag ALERT_REPORTS) to set the size for the
+# Used for Alerts/Reports (Feature flask ALERT_REPORTS) to set the size for the
 # sliding cron window size, should be synced with the celery beat config minus 1 second
-ALERT_REPORTS_CRON_WINDOW_SIZE = 29
+ALERT_REPORTS_CRON_WINDOW_SIZE = 59
 
 # Slack API token for the superset reports
 SLACK_API_TOKEN = None
@@ -1123,5 +1123,3 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     except Exception:
         logger.exception("Found but failed to import local superset_config")
         raise
-
-SQLALCHEMY_DATABASE_URI = "postgresql://superset:superset@localhost:5432/superset"
