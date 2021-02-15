@@ -57,7 +57,7 @@
   ],
   "engines": {
     "node": ">= 12.18.3 < 13",
-    "npm": ">= 6.14.8 < 7"
+    "npm": "^7.5.4"
   },
   "homepage": "https://superset.apache.org/",
   "dependencies": {
