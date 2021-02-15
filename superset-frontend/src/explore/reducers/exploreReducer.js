@@ -121,35 +121,30 @@ export default function exploreReducer(state = {}, action) {
       });
       const hasErrors = errors && errors.length > 0;
 
-      const controls =
+      const currentControlsState =
         action.controlName === 'viz_type' &&
         action.value !== state.controls.viz_type.value
-          ? {
-              ...getControlsState(
-                state,
-                getFormDataFromControls({
-                  ...state.controls,
-                  viz_type: control,
-                }),
-              ),
-              [action.controlName]: {
-                ...control,
-                validationErrors: errors,
-              },
-            }
-          : {
-              ...state.controls,
-              [action.controlName]: {
-                ...control,
-                validationErrors: errors,
-              },
-            };
+          ? // rebuild the full control state if switching viz type
+            getControlsState(
+              state,
+              getFormDataFromControls({
+                ...state.controls,
+                viz_type: control,
+              }),
+            )
+          : state.controls;
 
       return {
         ...state,
         form_data: new_form_data,
         triggerRender: control.renderTrigger && !hasErrors,
-        controls,
+        controls: {
+          ...currentControlsState,
+          [action.controlName]: {
+            ...control,
+            validationErrors: errors,
+          },
+        },
       };
     },
     [actions.SET_EXPLORE_CONTROLS]() {
