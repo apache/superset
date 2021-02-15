@@ -47,7 +47,7 @@ const propTypes = {
   table_name: PropTypes.string,
   vizType: PropTypes.string.isRequired,
   form_data: PropTypes.object,
-  standalone: PropTypes.bool,
+  standalone: PropTypes.number,
   timeout: PropTypes.number,
   refreshOverlayVisible: PropTypes.bool,
   chart: chartPropShape,
@@ -211,12 +211,8 @@ const ExploreChartPanel = props => {
   }, [calcSectionHeight, chartWidth, props, splitSizes]);
 
   const panelBody = useMemo(
-    () => (
-      <div className="panel-body" ref={chartRef}>
-        {renderChart()}
-      </div>
-    ),
-    [chartRef, renderChart],
+    () => <div className="panel-body">{renderChart()}</div>,
+    [renderChart],
   );
 
   const standaloneChartBody = useMemo(
@@ -256,7 +252,7 @@ const ExploreChartPanel = props => {
   });
 
   return (
-    <Styles className="panel panel-default chart-container">
+    <Styles className="panel panel-default chart-container" ref={chartRef}>
       <div className="panel-heading" ref={headerRef}>
         {header}
       </div>

@@ -42,14 +42,7 @@ const FilterValue: React.FC<FilterProps> = ({
   directPathToChild,
   onFilterSelectionChange,
 }) => {
-  const {
-    id,
-    allowsMultipleValues,
-    inverseSelection,
-    targets,
-    defaultValue,
-    filterType,
-  } = filter;
+  const { id, targets, filterType } = filter;
   const cascadingFilters = useCascadingFilters(id);
   const filterStateNative = useFilterStateNative(id);
   const [loading, setLoading] = useState<boolean>(true);
@@ -66,10 +59,9 @@ const FilterValue: React.FC<FilterProps> = ({
       datasetId,
       cascadingFilters,
       groupby,
-      allowsMultipleValues,
-      defaultValue,
       currentValue,
-      inverseSelection,
+      inputRef,
+      ...filter,
     });
     if (!areObjectsEqual(formData || {}, newFormData)) {
       setFormData(newFormData);
@@ -88,7 +80,7 @@ const FilterValue: React.FC<FilterProps> = ({
           setLoading(false);
         });
     }
-  }, [cascadingFilters, datasetId, groupby, defaultValue, currentValue]);
+  }, [cascadingFilters, datasetId, groupby, filter.defaultValue, currentValue]);
 
   useEffect(() => {
     if (directPathToChild?.[0] === filter.id) {

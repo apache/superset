@@ -1,5 +1,5 @@
-# Python MySQL unit tests
-name: Python MySQL
+# Python unit tests
+name: Python
 
 on:
   push:

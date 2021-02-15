@@ -54,6 +54,7 @@ from superset.dashboards.filters import (
     DashboardFavoriteFilter,
     DashboardFilter,
     DashboardTitleOrSlugFilter,
+    FilterRelatedRoles,
 )
 from superset.dashboards.schemas import (
     DashboardPostSchema,
@@ -192,12 +193,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     order_rel_fields = {
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
+        "roles": ("name", "asc"),
     }
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "roles": RelatedFieldFilter("name", FilterRelatedRoles),
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
-    allowed_rel_fields = {"owners", "created_by"}
+    allowed_rel_fields = {"owners", "roles", "created_by"}
 
     openapi_spec_tag = "Dashboards"
     """ Override the name set for this collection of endpoints """

@@ -16,19 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import serializeActiveFilterValues from './serializeActiveFilterValues';
+import {
+  QueryFormData,
+  DataRecord,
+  SetExtraFormDataHook,
+} from '@superset-ui/core';
+import { AntdPluginFilterStylesProps } from '../types';
 
-export default function getDashboardUrl(
-  pathname,
-  filters = {},
-  hash = '',
-  standalone = false,
-) {
-  // convert flattened { [id_column]: values } object
-  // to nested filter object
-  const obj = serializeActiveFilterValues(filters);
-  const preselectFilters = encodeURIComponent(JSON.stringify(obj));
-  const hashSection = hash ? `#${hash}` : '';
-  const standaloneParam = standalone ? '&standalone=true' : '';
-  return `${pathname}?preselect_filters=${preselectFilters}${standaloneParam}${hashSection}`;
+interface PluginFilterTimeCustomizeProps {
+  defaultValue?: string | null;
+  currentValue?: string | null;
 }
+
+export type AntdPluginFilterSelectQueryFormData = QueryFormData &
+  AntdPluginFilterStylesProps &
+  PluginFilterTimeCustomizeProps;
+
+export type AntdPluginFilterTimeProps = AntdPluginFilterStylesProps & {
+  data: DataRecord[];
+  setExtraFormData: SetExtraFormDataHook;
+  formData: AntdPluginFilterSelectQueryFormData;
+};
+
+export const DEFAULT_FORM_DATA: PluginFilterTimeCustomizeProps = {
+  defaultValue: null,
+  currentValue: null,
+};

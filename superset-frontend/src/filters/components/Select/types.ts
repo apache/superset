@@ -27,7 +27,6 @@ interface AntdPluginFilterSelectCustomizeProps {
   fetchPredicate?: string;
   inverseSelection: boolean;
   multiSelect: boolean;
-  showSearch: boolean;
   inputRef?: RefObject<HTMLInputElement>;
 }
 
@@ -47,6 +46,5 @@ export const DEFAULT_FORM_DATA: AntdPluginFilterSelectCustomizeProps = {
   enableEmptyFilter: false,
   fetchPredicate: '',
   inverseSelection: false,
-  multiSelect: true,
-  showSearch: true,
+  multiSelect: false,
 };

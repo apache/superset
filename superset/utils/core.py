@@ -70,7 +70,7 @@ import sqlalchemy as sa
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.backends.openssl.x509 import _Certificate
-from flask import current_app, flash, g, Markup, render_template
+from flask import current_app, flash, g, Markup, render_template, request
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import Role, User
 from flask_babel import gettext as __
@@ -253,6 +253,14 @@ class ReservedUrlParameters(str, Enum):
 
     STANDALONE = "standalone"
     EDIT_MODE = "edit"
+
+    @staticmethod
+    def is_standalone_mode() -> Optional[bool]:
+        standalone_param = request.args.get(ReservedUrlParameters.STANDALONE.value)
+        standalone: Optional[bool] = (
+            standalone_param and standalone_param != "false" and standalone_param != "0"
+        )
+        return standalone
 
 
 class RowLevelSecurityFilterType(str, Enum):
@@ -1019,8 +1027,41 @@ def to_adhoc(
     return result
 
 
+def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
+    """
+    Merge extra form data (appends and overrides) into the main payload
+    and add applied time extras to the payload.
+    """
+    time_extras = {
+        "time_range": "__time_range",
+        "granularity_sqla": "__time_col",
+        "time_grain_sqla": "__time_grain",
+        "druid_time_origin": "__time_origin",
+        "granularity": "__granularity",
+    }
+    applied_time_extras = form_data.get("applied_time_extras", {})
+    form_data["applied_time_extras"] = applied_time_extras
+    extra_form_data = form_data.pop("extra_form_data", {})
+    append_form_data = extra_form_data.pop("append_form_data", {})
+    append_filters = append_form_data.get("filters", None)
+    override_form_data = extra_form_data.pop("override_form_data", {})
+    for key, value in override_form_data.items():
+        form_data[key] = value
+        # mark as temporal overrides as applied time extras
+        time_extra = time_extras.get(key)
+        if time_extra:
+            applied_time_extras[time_extra] = value
+
+    adhoc_filters = form_data.get("adhoc_filters", [])
+    form_data["adhoc_filters"] = adhoc_filters
+    if append_filters:
+        adhoc_filters.extend(
+            [to_adhoc({"isExtra": True, **fltr}) for fltr in append_filters if fltr]
+        )
+
+
 def merge_extra_filters(  # pylint: disable=too-many-branches
-    form_data: Dict[str, Any]
+    form_data: Dict[str, Any],
 ) -> None:
     # extra_filters are temporary/contextual filters (using the legacy constructs)
     # that are external to the slice definition. We use those for dynamic
@@ -1030,16 +1071,7 @@ def merge_extra_filters(  # pylint: disable=too-many-branches
     form_data["applied_time_extras"] = applied_time_extras
     adhoc_filters = form_data.get("adhoc_filters", [])
     form_data["adhoc_filters"] = adhoc_filters
-    # extra_overrides contains additional props to be added/overridden in the form_data
-    # and will deprecate `extra_filters`. For now only `filters` is supported,
-    # but additional props will be added later (time grains, groupbys etc)
-    extra_form_data = form_data.pop("extra_form_data", {})
-    append_form_data = extra_form_data.pop("append_form_data", {})
-    append_filters = append_form_data.get("filters", None)
-    if append_filters:
-        adhoc_filters.extend(
-            [to_adhoc({"isExtra": True, **fltr}) for fltr in append_filters if fltr]
-        )
+    merge_extra_form_data(form_data)
     if "extra_filters" in form_data:
         # __form and __to are special extra_filters that target time
         # boundaries. The rest of extra_filters are simple

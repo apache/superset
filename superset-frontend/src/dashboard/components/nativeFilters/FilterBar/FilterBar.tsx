@@ -179,14 +179,20 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     filter: Filter,
     filterState: FullFilterState,
   ) => {
-    setFilterData(prevFilterData => ({
-      ...prevFilterData,
-      [filter.id]: filterState,
-    }));
+    let isInitialized = false;
+    setFilterData(prevFilterData => {
+      if (filter.id in prevFilterData) {
+        isInitialized = true;
+      }
+      return {
+        ...prevFilterData,
+        [filter.id]: filterState,
+      };
+    });
 
     const children = cascadeChildren[filter.id] || [];
-    // force instant updating for parent filters
-    if (filter.isInstant || children.length > 0) {
+    // force instant updating on initialization or for parent filters
+    if (!isInitialized || filter.isInstant || children.length > 0) {
       dispatch(updateExtraFormData(filter.id, filterState));
     }
   };
