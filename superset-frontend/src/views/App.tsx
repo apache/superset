@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { lazy, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { hot } from 'react-hot-loader/root';
 import thunk from 'redux-thunk';
 import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
@@ -30,80 +30,13 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import Menu from 'src/components/Menu/Menu';
 import FlashProvider from 'src/components/FlashProvider';
-import Welcome from 'src/views/CRUD/welcome/Welcome';
 import { theme } from 'src/preamble';
 import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import setupPlugins from 'src/setup/setupPlugins';
 import setupApp from 'src/setup/setupApp';
 import messageToastReducer from 'src/messageToasts/reducers';
 import { initEnhancer } from 'src/reduxUtils';
-
-const AnnotationLayersList = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "AnnotationLayersList" */ 'src/views/CRUD/annotationlayers/AnnotationLayersList'
-    ),
-);
-const AlertList = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "AlertList" */ 'src/views/CRUD/alert/AlertList'
-    ),
-);
-const AnnotationList = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "AnnotationList" */ 'src/views/CRUD/annotation/AnnotationList'
-    ),
-);
-const ChartList = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "ChartList" */ 'src/views/CRUD/chart/ChartList'
-    ),
-);
-const CssTemplatesList = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "CssTemplatesList" */ 'src/views/CRUD/csstemplates/CssTemplatesList'
-    ),
-);
-const DashboardList = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "DashboardList" */ 'src/views/CRUD/dashboard/DashboardList'
-    ),
-);
-const DatabaseList = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "DatabaseList" */ 'src/views/CRUD/data/database/DatabaseList'
-    ),
-);
-const DatasetList = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "DatasetList" */ 'src/views/CRUD/data/dataset/DatasetList'
-    ),
-);
-const ExecutionLog = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "ExecutionLog" */ 'src/views/CRUD/alert/ExecutionLog'
-    ),
-);
-const QueryList = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "QueryList" */ 'src/views/CRUD/data/query/QueryList'
-    ),
-);
-const SavedQueryList = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "SavedQueryList" */ 'src/views/CRUD/data/savedquery/SavedQueryList'
-    ),
-);
+import { routes, isFrontendRoute } from 'src/views/routes';
 
 setupApp();
 setupPlugins();
@@ -122,29 +55,7 @@ const store = createStore(
   {},
   compose(applyMiddleware(thunk), initEnhancer(false)),
 );
-const routes = {
-  welcome: '/superset/welcome/',
-  dashboards: '/dashboard/list/',
-  charts: '/chart/list/',
-  datasets: '/tablemodelview/list/',
-  databases: '/databaseview/list/',
-  savedQueries: '/savedqueryview/list/',
-  cssTemplates: '/csstemplatemodelview/list/',
-  annotationLayers: '/annotationlayermodelview/list/',
-  annotations: '/annotationmodelview/:annotationLayerId/annotation/',
-  queries: '/superset/sqllab/history/',
-  alerts: '/alert/list/',
-  reports: '/report/list/',
-  alertLogs: '/alert/:alertId/log/',
-  reportLogs: '/report/:alertId/log/',
-};
-const frontEndRoutes = Object.values(routes).reduce(
-  (acc, curr) => ({
-    ...acc,
-    [curr]: true,
-  }),
-  {},
-);
+
 const App = () => (
   <ReduxProvider store={store}>
     <ThemeProvider theme={theme}>
@@ -155,81 +66,20 @@ const App = () => (
               ReactRouterRoute={Route}
               stringifyOptions={{ encode: false }}
             >
-              <Menu data={menu} frontEndRoutes={frontEndRoutes} />
-              <Suspense fallback={<Loading />}>
-                <Switch>
-                  <Route path={routes.welcome}>
-                    <ErrorBoundary>
-                      <Welcome user={user} />
-                    </ErrorBoundary>
-                  </Route>
-                  <Route path={routes.dashboards}>
-                    <ErrorBoundary>
-                      <DashboardList user={user} />
-                    </ErrorBoundary>
-                  </Route>
-                  <Route path={routes.charts}>
-                    <ErrorBoundary>
-                      <ChartList user={user} />
-                    </ErrorBoundary>
-                  </Route>
-                  <Route path={routes.datasets}>
-                    <ErrorBoundary>
-                      <DatasetList user={user} />
-                    </ErrorBoundary>
-                  </Route>
-                  <Route path={routes.databases}>
-                    <ErrorBoundary>
-                      <DatabaseList user={user} />
-                    </ErrorBoundary>
-                  </Route>
-                  <Route path={routes.savedQueries}>
-                    <ErrorBoundary>
-                      <SavedQueryList user={user} />
-                    </ErrorBoundary>
-                  </Route>
-                  <Route path={routes.cssTemplates}>
-                    <ErrorBoundary>
-                      <CssTemplatesList user={user} />
-                    </ErrorBoundary>
-                  </Route>
-                  <Route path={routes.annotationLayers}>
-                    <ErrorBoundary>
-                      <AnnotationLayersList user={user} />
-                    </ErrorBoundary>
-                  </Route>
-                  <Route path={routes.annotations}>
-                    <ErrorBoundary>
-                      <AnnotationList user={user} />
-                    </ErrorBoundary>
-                  </Route>
-                  <Route path={routes.queries}>
-                    <ErrorBoundary>
-                      <QueryList user={user} />
-                    </ErrorBoundary>
-                  </Route>
-                  <Route path={routes.alerts}>
-                    <ErrorBoundary>
-                      <AlertList user={user} />
-                    </ErrorBoundary>
-                  </Route>
-                  <Route path={routes.reports}>
-                    <ErrorBoundary>
-                      <AlertList user={user} isReportEnabled />
-                    </ErrorBoundary>
-                  </Route>
-                  <Route path={routes.alertLogs}>
-                    <ErrorBoundary>
-                      <ExecutionLog user={user} />
-                    </ErrorBoundary>
-                  </Route>
-                  <Route path={routes.reportLogs}>
-                    <ErrorBoundary>
-                      <ExecutionLog user={user} isReportEnabled />
-                    </ErrorBoundary>
-                  </Route>
-                </Switch>
-              </Suspense>
+              <Menu data={menu} isFrontendRoute={isFrontendRoute} />
+              <Switch>
+                {routes.map(
+                  ({ path, Component, props = {}, Fallback = Loading }) => (
+                    <Route path={path} key={path}>
+                      <Suspense fallback={<Fallback />}>
+                        <ErrorBoundary>
+                          <Component user={user} {...props} />
+                        </ErrorBoundary>
+                      </Suspense>
+                    </Route>
+                  ),
+                )}
+              </Switch>
               <ToastPresenter />
             </QueryParamProvider>
           </DynamicPluginProvider>

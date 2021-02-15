@@ -58,9 +58,7 @@ export interface MenuProps {
     navbar_right: NavBarProps;
     settings: MenuObjectProps[];
   };
-  frontEndRoutes?: {
-    [route: string]: boolean;
-  };
+  isFrontendRoute?: (path?: string) => boolean;
 }
 
 const StyledHeader = styled.header`
@@ -157,7 +155,7 @@ const StyledHeader = styled.header`
 
 export function Menu({
   data: { menu, brand, navbar_right: navbarRight, settings },
-  frontEndRoutes,
+  isFrontendRoute = () => false,
 }: MenuProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -176,7 +174,7 @@ export function Menu({
           {menu.map((item, index) => {
             const props = {
               ...item,
-              isFrontendRoute: !!frontEndRoutes?.[item.url || ''],
+              isFrontendRoute: isFrontendRoute(item.url),
               childs: item.childs?.map(c => {
                 if (typeof c === 'string') {
                   return c;
@@ -184,7 +182,7 @@ export function Menu({
 
                 return {
                   ...c,
-                  isFrontendRoute: !!frontEndRoutes?.[c.url || ''],
+                  isFrontendRoute: isFrontendRoute(c.url),
                 };
               }),
             };
@@ -211,7 +209,7 @@ export function Menu({
                     if (typeof child !== 'string') {
                       return (
                         <DropdownMenu.Item key={`${child.label}`}>
-                          {frontEndRoutes && frontEndRoutes[child.url || ''] ? (
+                          {isFrontendRoute(child.url) ? (
                             <Link to={child.url || ''}>{child.label}</Link>
                           ) : (
                             <a href={child.url}>{child.label}</a>
@@ -299,7 +297,7 @@ export function Menu({
 }
 
 // transform the menu data to reorganize components
-export default function MenuWrapper({ data, frontEndRoutes }: MenuProps) {
+export default function MenuWrapper({ data, ...rest }: MenuProps) {
   const newMenuData = {
     ...data,
   };
@@ -345,5 +343,5 @@ export default function MenuWrapper({ data, frontEndRoutes }: MenuProps) {
   newMenuData.menu = cleanedMenu;
   newMenuData.settings = settings;
 
-  return <Menu data={newMenuData} frontEndRoutes={frontEndRoutes} />;
+  return <Menu data={newMenuData} {...rest} />;
 }
