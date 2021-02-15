@@ -140,6 +140,7 @@ setup(
         "pinot": ["pinotdb>=0.3.3, <0.4"],
         "postgres": ["psycopg2-binary==2.8.5"],
         "presto": ["pyhive[presto]>=0.4.0"],
+        "trino": ["sqlalchemy-trino>=0.2"],
         "prophet": ["fbprophet>=0.6, <0.7"],
         "redshift": ["sqlalchemy-redshift>=0.8.1, < 0.9"],
         "snowflake": ["snowflake-sqlalchemy>=1.2.3, <1.3"],
