@@ -482,7 +482,7 @@ class Header extends React.PureComponent {
             <>
               <span
                 role="button"
-                title="Edit dashboard"
+                title={t('Edit Dashboard')}
                 tabIndex={0}
                 className="action-button"
                 onClick={this.toggleEditMode}

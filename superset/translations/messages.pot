@@ -2707,6 +2707,8 @@ msgid "Add Dashboard"
 msgstr ""
 
 #: superset/views/dashboard/mixin.py:28
+#: superset-frontend/src/dashboard/components/Header.jsx:485
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal/FiltersList.tsx:56
 msgid "Edit Dashboard"
 msgstr ""
 
@@ -7745,26 +7747,46 @@ msgstr ""
 
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:385
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:364
+#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:378
+#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:399
+#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:420
+#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:444
 msgid "All"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:406
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:418
+#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:463
 msgid "Any"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:436
+#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:481
 msgid "Alphabetical"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:442
+#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:487
 msgid "Recently modified"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:448
+#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:493
 msgid "Least recently modified"
 msgstr ""
 
 #: superset-frontend/src/components/ListView/ListView.tsx:393
 msgid "No Data"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/dashboard/DashboardCard.tsx:138
+msgid "published"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/dashboard/DashboardCard.tsx:138
+msgid "draft"
+msgstr ""
+
+#: superset-frontend/src/SqlLab/components/SqlEditor.jsx:506
+msgid "Autocomplete"
 msgstr ""

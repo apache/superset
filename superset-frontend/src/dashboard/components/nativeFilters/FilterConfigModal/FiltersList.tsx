@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { Button } from 'src/common/components';
 import Icon from 'src/components/Icon';
 import { useFilterConfiguration } from '../state';
@@ -53,7 +53,7 @@ const FiltersList = ({ setEditFilter, setDataset }: FiltersListProps) => {
         </Button>
         <span
           role="button"
-          title="Edit dashboard"
+          title={t('Edit Dashboard')}
           tabIndex={0}
           className="action-button"
         >
