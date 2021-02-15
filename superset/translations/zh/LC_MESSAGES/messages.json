@@ -1716,7 +1716,7 @@
       "Edit Dataset ": ["编辑数据集"],
       "Use legacy datasource editor": ["使用旧数据源编辑器"],
       "Time range": ["时间范围"],
-      "Time column": ["时间字段"],
+      "Time column": ["时间列"],
       "Time grain": ["时间粒度（grain）"],
       "Origin": ["起点"],
       "Time granularity": ["时间粒度（granularity）"],

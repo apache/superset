@@ -5516,7 +5516,7 @@ msgstr "时间范围"
 
 #: superset-frontend/src/explore/constants.js:81
 msgid "Time column"
-msgstr "时间字段"
+msgstr "时间列"
 
 #: superset-frontend/src/explore/constants.js:82
 msgid "Time grain"
