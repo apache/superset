@@ -122,7 +122,7 @@ services:
       - superset
       - postgres
       - redis
-    command: "celery worker --app=superset.tasks.celery_app:app --pool=prefork --max-tasks-per-child=128 -O fair"
+    command: "celery worker --app=superset.tasks.celery_app:app --pool=gevent --concurrency=500"
     volumes:
       - ./config/:/app/pythonpath/
   beat:
@@ -152,7 +152,7 @@ services:
       - ./config/:/app/pythonpath/
 volumes:
   db:
-    external: false
+    external: true
   redis:
     external: false
 ```
