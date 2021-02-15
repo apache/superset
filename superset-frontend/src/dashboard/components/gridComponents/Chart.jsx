@@ -68,6 +68,7 @@ const propTypes = {
   supersetCanCSV: PropTypes.bool.isRequired,
   sliceCanEdit: PropTypes.bool.isRequired,
   addDangerToast: PropTypes.func.isRequired,
+  ownCurrentState: PropTypes.object,
 };
 
 const defaultProps = {
@@ -257,6 +258,7 @@ export default class Chart extends React.Component {
       supersetCanCSV,
       sliceCanEdit,
       addDangerToast,
+      ownCurrentState,
       handleToggleFullSize,
       isFullSize,
     } = this.props;
@@ -357,6 +359,7 @@ export default class Chart extends React.Component {
             dashboardId={dashboardId}
             initialValues={initialValues}
             formData={formData}
+            ownCurrentState={ownCurrentState}
             queriesResponse={chart.queriesResponse}
             timeout={timeout}
             triggerQuery={chart.triggerQuery}

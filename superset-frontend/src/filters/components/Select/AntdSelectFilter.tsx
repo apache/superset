@@ -33,7 +33,7 @@ const { Option } = Select;
 export default function AntdPluginFilterSelect(
   props: AntdPluginFilterSelectProps,
 ) {
-  const { data, formData, height, width, setExtraFormData } = props;
+  const { data, formData, height, width, setDataMask } = props;
   const {
     defaultValue,
     enableEmptyFilter,
@@ -66,7 +66,7 @@ export default function AntdPluginFilterSelect(
     const [col] = groupby;
     const emptyFilter =
       enableEmptyFilter && !inverseSelection && resultValue?.length === 0;
-    setExtraFormData({
+    setDataMask({
       // @ts-ignore
       native: {
         extraFormData: getSelectExtraFormData(

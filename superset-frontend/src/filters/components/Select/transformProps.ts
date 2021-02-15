@@ -22,7 +22,7 @@ import { DEFAULT_FORM_DATA } from './types';
 export default function transformProps(chartProps: ChartProps) {
   const { formData, height, hooks, queriesData, width } = chartProps;
   const newFormData = { ...DEFAULT_FORM_DATA, ...formData };
-  const { setExtraFormData = () => {} } = hooks;
+  const { setDataMask = () => {} } = hooks;
 
   const { data } = queriesData[0];
 
@@ -31,6 +31,6 @@ export default function transformProps(chartProps: ChartProps) {
     height,
     data,
     formData: newFormData,
-    setExtraFormData,
+    setDataMask,
   };
 }

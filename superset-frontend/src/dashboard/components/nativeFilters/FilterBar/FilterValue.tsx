@@ -101,7 +101,7 @@ const FilterValue: React.FC<FilterProps> = ({
     return undefined;
   }, [inputRef, directPathToChild, filter.id]);
 
-  const setExtraFormData = (filterState: FullFilterState) =>
+  const setDataMask = (filterState: FullFilterState) =>
     onFilterSelectionChange(filter, filterState);
 
   if (loading) {
@@ -131,7 +131,7 @@ const FilterValue: React.FC<FilterProps> = ({
         queriesData={state}
         chartType={filterType}
         // @ts-ignore (update superset-ui)
-        hooks={{ setExtraFormData }}
+        hooks={{ setDataMask }}
       />
     </FilterItem>
   );

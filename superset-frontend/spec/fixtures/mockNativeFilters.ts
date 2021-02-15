@@ -70,7 +70,7 @@ export const nativeFilters: NativeFiltersState = {
   },
   filtersState: {
     cross: {},
-    privateData: {},
+    own: {},
     native: {
       'NATIVE_FILTER-e7Q8zKixx': {
         id: 'NATIVE_FILTER-e7Q8zKixx',

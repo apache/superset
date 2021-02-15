@@ -62,7 +62,7 @@ describe('getFormDataWithExtraFilters', () => {
       },
       filtersState: {
         cross: {},
-        privateData: {},
+        own: {},
         native: {
           [filterId]: {
             id: filterId,

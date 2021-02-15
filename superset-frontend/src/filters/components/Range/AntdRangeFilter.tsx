@@ -29,7 +29,7 @@ const Styles = styled.div<AntdPluginFilterStylesProps>`
 `;
 
 export default function AntdRangeFilter(props: AntdPluginFilterRangeProps) {
-  const { data, formData, height, width, setExtraFormData, inputRef } = props;
+  const { data, formData, height, width, setDataMask, inputRef } = props;
   const [row] = data;
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
@@ -39,10 +39,13 @@ export default function AntdRangeFilter(props: AntdPluginFilterRangeProps) {
   const handleChange = (value: [number, number]) => {
     const [lower, upper] = value;
 
-    setExtraFormData({
-      extraFormData: getRangeExtraFormData(col, lower, upper),
-      currentState: {
-        value,
+    setDataMask({
+      // @ts-ignore
+      native: {
+        extraFormData: getRangeExtraFormData(col, lower, upper),
+        currentState: {
+          value,
+        },
       },
     });
   };

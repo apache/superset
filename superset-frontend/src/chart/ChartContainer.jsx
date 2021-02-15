@@ -29,7 +29,7 @@ function mapDispatchToProps(dispatch) {
     actions: bindActionCreators(
       {
         ...actions,
-        setExtraFormData: updateExtraFormData,
+        updateExtraFormData,
         logEvent,
       },
       dispatch,

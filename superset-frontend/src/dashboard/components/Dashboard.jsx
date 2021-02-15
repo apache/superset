@@ -42,6 +42,7 @@ import { areObjectsEqual } from '../../reduxUtils';
 import '../stylesheets/index.less';
 import getLocationHash from '../util/getLocationHash';
 import isDashboardEmpty from '../util/isDashboardEmpty';
+import { getAffectedOwnDataCharts } from '../util/charts/getOwnDataCharts';
 
 const propTypes = {
   actions: PropTypes.shape({
@@ -56,6 +57,7 @@ const propTypes = {
   slices: PropTypes.objectOf(slicePropShape).isRequired,
   activeFilters: PropTypes.object.isRequired,
   datasources: PropTypes.object.isRequired,
+  ownDataCharts: PropTypes.object.isRequired,
   layout: PropTypes.object.isRequired,
   impressionId: PropTypes.string.isRequired,
   initMessages: PropTypes.array,
@@ -88,7 +90,8 @@ class Dashboard extends React.PureComponent {
 
   constructor(props) {
     super(props);
-    this.appliedFilters = props.activeFilters || {};
+    this.appliedFilters = props.activeFilters ?? {};
+    this.appliedOwnDataCharts = props.ownDataCharts ?? {};
     this.onVisibilityChange = this.onVisibilityChange.bind(this);
   }
 
@@ -147,9 +150,13 @@ class Dashboard extends React.PureComponent {
   componentDidUpdate() {
     const { hasUnsavedChanges, editMode } = this.props.dashboardState;
 
-    const { appliedFilters } = this;
-    const { activeFilters } = this.props;
-    if (!editMode && !areObjectsEqual(appliedFilters, activeFilters)) {
+    const { appliedFilters, appliedOwnDataCharts } = this;
+    const { activeFilters, ownDataCharts } = this.props;
+    if (
+      !editMode &&
+      (!areObjectsEqual(appliedOwnDataCharts, ownDataCharts) ||
+        !areObjectsEqual(appliedFilters, activeFilters))
+    ) {
       this.applyFilters();
     }
 
@@ -188,14 +195,17 @@ class Dashboard extends React.PureComponent {
 
   applyFilters() {
     const { appliedFilters } = this;
-    const { activeFilters } = this.props;
+    const { activeFilters, ownDataCharts } = this.props;
 
     // refresh charts if a filter was removed, added, or changed
     const currFilterKeys = Object.keys(activeFilters);
     const appliedFilterKeys = Object.keys(appliedFilters);
 
     const allKeys = new Set(currFilterKeys.concat(appliedFilterKeys));
-    const affectedChartIds = [];
+    const affectedChartIds = getAffectedOwnDataCharts(
+      ownDataCharts,
+      this.appliedOwnDataCharts,
+    );
     [...allKeys].forEach(filterKey => {
       if (!currFilterKeys.includes(filterKey)) {
         // filterKey is removed?
@@ -234,6 +244,7 @@ class Dashboard extends React.PureComponent {
     // remove dup in affectedChartIds
     this.refreshCharts([...new Set(affectedChartIds)]);
     this.appliedFilters = activeFilters;
+    this.appliedOwnDataCharts = ownDataCharts;
   }
 
   refreshCharts(ids) {

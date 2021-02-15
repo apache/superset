@@ -82,13 +82,13 @@ export type FilterState = {
 export type FullFilterState = {
   native?: FilterState;
   cross?: FilterState;
-  privateData?: FilterState;
+  own?: FilterState;
 };
 
 export type FiltersState = {
   native: { [filterId: string]: FilterState };
   cross: { [filterId: string]: FilterState };
-  privateData: { [filterId: string]: FilterState };
+  own: { [filterId: string]: FilterState };
 };
 
 export type Filters = {

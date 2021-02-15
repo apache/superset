@@ -66,7 +66,7 @@ export const getFormData = ({
 });
 
 export function mergeExtraFormData(
-  originalExtra: ExtraFormData,
+  originalExtra: ExtraFormData = {},
   newExtra: ExtraFormData,
 ): ExtraFormData {
   const {
@@ -76,6 +76,7 @@ export function mergeExtraFormData(
   const {
     override_form_data: newOverride = {},
     append_form_data: newAppend = {},
+    custom_form_data: newCustom = {},
   } = newExtra;
 
   const appendKeys = new Set([
@@ -93,6 +94,7 @@ export function mergeExtraFormData(
   });
 
   return {
+    custom_form_data: newCustom,
     override_form_data: {
       ...originalOverride,
       ...newOverride,

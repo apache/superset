@@ -42,9 +42,10 @@ const propTypes = {
   refreshOverlayVisible: PropTypes.bool,
   // dashboard callbacks
   addFilter: PropTypes.func,
-  setExtraFormData: PropTypes.func,
+  setDataMask: PropTypes.func,
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
+  ownCurrentState: PropTypes.object,
 };
 
 const BLANK = {};
@@ -74,8 +75,11 @@ class ChartRenderer extends React.Component {
       setControlValue: this.handleSetControlValue,
       onFilterMenuOpen: this.props.onFilterMenuOpen,
       onFilterMenuClose: this.props.onFilterMenuClose,
-      setExtraFormData: extraFormData =>
-        this.props.actions?.setExtraFormData(this.props.chartId, extraFormData),
+      setDataMask: extraFormData =>
+        this.props.actions?.updateExtraFormData(
+          this.props.chartId,
+          extraFormData,
+        ),
     };
   }
 
@@ -181,6 +185,7 @@ class ChartRenderer extends React.Component {
       annotationData,
       datasource,
       initialValues,
+      ownCurrentState,
       formData,
       queriesResponse,
     } = this.props;
@@ -220,6 +225,7 @@ class ChartRenderer extends React.Component {
         datasource={datasource}
         initialValues={initialValues}
         formData={formData}
+        ownCurrentState={ownCurrentState}
         hooks={this.hooks}
         queriesData={queriesResponse}
         onRenderSuccess={this.handleRenderSuccess}

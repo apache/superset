@@ -20,9 +20,13 @@ import { isEqual } from 'lodash';
 import {
   CategoricalColorNamespace,
   DataRecordFilters,
+  JsonObject,
 } from '@superset-ui/core';
 import { ChartQueryPayload, Charts, LayoutItem } from 'src/dashboard/types';
-import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
+import {
+  getExtraFormData,
+  mergeExtraFormData,
+} from 'src/dashboard/components/nativeFilters/utils';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getActiveNativeFilters } from '../activeDashboardNativeFilters';
 import { NativeFiltersState } from '../../reducers/types';
@@ -73,7 +77,7 @@ export default function getFormDataWithExtraFilters({
     return cachedFormdataByChart[sliceId];
   }
 
-  let extraData = {};
+  let extraData: { extra_form_data?: JsonObject } = {};
   const activeNativeFilters = getActiveNativeFilters({ nativeFilters, layout });
   const isAffectedChart = Object.values(activeNativeFilters).some(({ scope }) =>
     scope.includes(chart.id),
@@ -83,6 +87,13 @@ export default function getFormDataWithExtraFilters({
       extra_form_data: getExtraFormData(nativeFilters, charts),
     };
   }
+
+  const { extraFormData: newExtra = {} } =
+    nativeFilters.filtersState?.own?.[chart.id] ?? {};
+  extraData.extra_form_data = mergeExtraFormData(
+    extraData?.extra_form_data,
+    newExtra,
+  );
 
   const formData = {
     ...chart.formData,
