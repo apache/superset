@@ -333,6 +333,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setTabKey(key);
   };
 
+  const appContainer = document.getElementById('app');
+  const bootstrapData = JSON.parse(
+    appContainer?.getAttribute('data-bootstrap') || '',
+  );
+
   return (
     <Modal
       name="database"
@@ -402,7 +407,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="helper">
               {t('Refer to the ')}
               <a
-                href="https://docs.sqlalchemy.org/en/rel_1_2/core/engines.html#"
+                href={bootstrapData.common.conf.SQLALCHEMY_DOCS_URL}
                 target="_blank"
                 rel="noopener noreferrer"
               >
