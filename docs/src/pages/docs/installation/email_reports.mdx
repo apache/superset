@@ -42,6 +42,10 @@ Using the templates below,
 4. Create a new sub directory called `config`
 5. Create the `superset_config.py` file in the `config` sub directory
 6. Run the image using `docker-compose up` in the same directory as the `docker-compose.py` file
+7. In a new terminal window, upgrade the DB by running `docker exec -it superset-1.0.1-extended superset db upgrade`
+8. Then run `docker exec -it superset-1.0.1-extended superset init`
+9. Then setup your admin user if need be, `docker exec -it superset-1.0.1-extended superset fab create-admin`
+10. Finally, restart the running instance - `CTRL-C`, then `docker-compose up`
  
 (note: v 1.0.1 is current at time of writing, you can change the version number to the latest version if a newer version is available)
 ### Dockerfile
@@ -49,7 +53,7 @@ Using the templates below,
 A webdriver (and headless browser) is needed to capture screenshots of the charts and dashboards which are then sent to the recipient. As the base image does not have a webdriver installed by default, we need to extend the base image and install the webdriver (this template uses the Chrome webdriver). We are also adding in connectors for Mysql and Postgres, as well as Redis and Flower (Flower and Mysql are optional depending on your requirements)
 
 You can extend the image by running this Docker build command from the directory that contains the Dockerfile:
-`docker build -t superset-1.0.1-extended -f Dockerfile`
+`docker build -t superset-1.0.1-extended -f Dockerfile .`
 
 Config for `Dockerfile`:
 ```docker
@@ -95,7 +99,7 @@ Config for `docker-compose.yaml`:
 ```docker
 version: '3.6'
 services:
-  redis-superset:
+  redis:
     image: redis:6.0.9-buster
     restart: on-failure
     volumes: 
