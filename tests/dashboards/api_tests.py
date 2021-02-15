@@ -29,7 +29,7 @@ import yaml
 from sqlalchemy.sql import func
 
 from freezegun import freeze_time
-from sqlalchemy import and_, or_
+from sqlalchemy import and_
 from superset import db, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
@@ -1343,3 +1343,37 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         assert response == {
             "message": {"metadata.yaml": {"type": ["Must be equal to Dashboard."]}}
         }
+
+    def test_get_all_related_roles(self):
+        """
+        API: Test get filter related roles
+        """
+        self.login(username="admin")
+        uri = f"api/v1/dashboard/related/roles"
+
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        roles = db.session.query(security_manager.role_model).all()
+        expected_roles = [str(role) for role in roles]
+        assert response["count"] == len(roles)
+
+        response_roles = [result["text"] for result in response["result"]]
+        for expected_role in expected_roles:
+            assert expected_role in response_roles
+
+    def test_get_filter_related_roles(self):
+        """
+        API: Test get filter related roles
+        """
+        self.login(username="admin")
+        argument = {"filter": "alpha"}
+        uri = f"api/v1/dashboard/related/roles?q={prison.dumps(argument)}"
+
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["count"] == 1
+
+        response_roles = [result["text"] for result in response["result"]]
+        assert "Alpha" in response_roles
