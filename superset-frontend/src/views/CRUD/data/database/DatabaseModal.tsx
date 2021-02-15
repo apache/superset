@@ -28,6 +28,7 @@ import Tabs from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
+import { getBootstrapData } from 'src/views/CRUD/data/common';
 import { DatabaseObject } from './types';
 
 interface DatabaseModalProps {
@@ -137,6 +138,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const defaultExtra =
     '{\n  "metadata_params": {},\n  "engine_params": {},' +
     '\n  "metadata_cache_timeout": {},\n  "schemas_allowed_for_csv_upload": [] \n}';
+  const bootstrapData = getBootstrapData();
 
   // Database fetch logic
   const {
@@ -332,11 +334,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const tabChange = (key: string) => {
     setTabKey(key);
   };
-
-  const appContainer = document.getElementById('app');
-  const bootstrapData = JSON.parse(
-    appContainer?.getAttribute('data-bootstrap') || '',
-  );
 
   return (
     <Modal
