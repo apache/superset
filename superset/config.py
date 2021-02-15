@@ -895,9 +895,9 @@ ENABLE_SCHEDULED_EMAIL_REPORTS = False
 # if it meets the criteria
 ENABLE_ALERTS = False
 
-# Used for Alerts/Reports (Feature flask ALERT_REPORTS) to set the size for the
+# Used for Alerts/Reports (Feature flag ALERT_REPORTS) to set the size for the
 # sliding cron window size, should be synced with the celery beat config minus 1 second
-ALERT_REPORTS_CRON_WINDOW_SIZE = 59
+ALERT_REPORTS_CRON_WINDOW_SIZE = 29
 
 # Slack API token for the superset reports
 SLACK_API_TOKEN = None
@@ -1123,5 +1123,4 @@ elif importlib.util.find_spec("superset_config") and not is_test():
         logger.exception("Found but failed to import local superset_config")
         raise
 
-SQLALCHEMY_DATABASE_URI = 'postgresql://superset:superset@localhost:5432/superset'
-
+SQLALCHEMY_DATABASE_URI = "postgresql://superset:superset@localhost:5432/superset"

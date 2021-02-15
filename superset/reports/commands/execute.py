@@ -44,7 +44,10 @@ from superset.reports.commands.exceptions import (
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
 )
-from superset.reports.dao import ReportScheduleDAO
+from superset.reports.dao import (
+    REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+    ReportScheduleDAO,
+)
 from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent, ScreenshotData
 from superset.reports.notifications.exceptions import NotificationError
@@ -147,6 +150,7 @@ class BaseReportState:
     def _get_screenshot(self) -> ScreenshotData:
         """
         Get a chart or dashboard screenshot
+
         :raises: ReportScheduleScreenshotFailedError
         """
         screenshot: Optional[BaseScreenshot] = None
@@ -170,6 +174,7 @@ class BaseReportState:
     def _get_notification_content(self) -> NotificationContent:
         """
         Gets a notification content, this is composed by a title and a screenshot
+
         :raises: ReportScheduleScreenshotFailedError
         """
         screenshot_data = self._get_screenshot()
@@ -235,6 +240,23 @@ class BaseReportState:
             < last_success.end_dttm
         )
 
+    def is_in_error_grace_period(self) -> bool:
+        """
+        Checks if an alert/report on error is on it's notification grace period
+        """
+        last_success = ReportScheduleDAO.find_last_error_email(
+            self._report_schedule, session=self._session
+        )
+        if not last_success:
+            return False
+        return (
+            last_success is not None
+            and self._report_schedule.grace_period
+            and datetime.utcnow()
+            - timedelta(seconds=self._report_schedule.grace_period)
+            < last_success.end_dttm
+        )
+
     def is_on_working_timeout(self) -> bool:
         """
         Checks if an alert is on a working timeout
@@ -273,14 +295,25 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     return
             self.send()
             self.set_state_and_log(ReportState.SUCCESS)
-        except CommandException as ex:
-            self.set_state_and_log(ReportState.ERROR, error_message=str(ex))
-            self.send_error(
-                f"Error occurred for {self._report_schedule.type}:"
-                f" {self._report_schedule.name}",
-                str(ex)
-            )
-            raise ex
+        except CommandException as first_ex:
+            self.set_state_and_log(ReportState.ERROR, error_message=str(first_ex))
+            # TODO (dpgaspar) convert this logic to a new state eg: ERROR_ON_GRACE
+            if not self.is_in_error_grace_period():
+                try:
+                    self.send_error(
+                        f"Error occurred for {self._report_schedule.type}:"
+                        f" {self._report_schedule.name}",
+                        str(first_ex),
+                    )
+                    self.set_state_and_log(
+                        ReportState.ERROR,
+                        error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+                    )
+                except CommandException as second_ex:
+                    self.set_state_and_log(
+                        ReportState.ERROR, error_message=str(second_ex)
+                    )
+            raise first_ex
 
 
 class ReportWorkingState(BaseReportState):

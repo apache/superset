@@ -44,46 +44,51 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_channel(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
 
-    def _get_body(self) -> str:
+    def _error_template(self, name: str, text: str) -> str:
         return __(
             """
             *%(name)s*\n
-            <%(url)s|Explore in Superset>
+            Error: %(text)s
             """,
-            name=self._content.name,
-            url=self._content.screenshot.url,
+            name=name,
+            text=text,
         )
 
+    def _get_body(self) -> str:
+        if self._content.text:
+            return self._error_template(self._content.name, self._content.text)
+        elif self._content.screenshot:
+            return __(
+                """
+                *%(name)s*\n
+                <%(url)s|Explore in Superset>
+                """,
+                name=self._content.name,
+                url=self._content.screenshot.url,
+            )
+        return self._error_template(self._content.name, "Unexpected missing screenshot")
+
     def _get_inline_screenshot(self) -> Optional[Union[str, IOBase, bytes]]:
-        return self._content.screenshot.image
+        if self._content.screenshot:
+            return self._content.screenshot.image
+        return None
 
     @retry(SlackApiError, delay=10, backoff=2, tries=5)
     def send(self) -> None:
         file = self._get_inline_screenshot()
         channel = self._get_channel()
         body = self._get_body()
-
         try:
             client = WebClient(
                 token=app.config["SLACK_API_TOKEN"], proxy=app.config["SLACK_PROXY"]
             )
             # files_upload returns SlackResponse as we run it in sync mode.
             if file:
-                response = cast(
-                    SlackResponse,
-                    client.files_upload(
-                        channels=channel,
-                        file=file,
-                        initial_comment=body,
-                        title="subject",
-                    ),
+                client.files_upload(
+                    channels=channel, file=file, initial_comment=body, title="subject",
                 )
-                assert response["file"], str(response)  # the uploaded file
             else:
-                response = cast(
-                    SlackResponse, client.chat_postMessage(channel=channel, text=body),
-                )
-                assert response["message"]["text"], str(response)
+                client.chat_postMessage(channel=channel, text=body),
             logger.info("Report sent to slack")
         except SlackClientError as ex:
             raise NotificationError(ex)
