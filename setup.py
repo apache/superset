@@ -121,6 +121,7 @@ setup(
         "clickhouse": ["clickhouse-sqlalchemy>= 0.1.4, <0.2"],
         "cockroachdb": ["cockroachdb>=0.3.5, <0.4"],
         "cors": ["flask-cors>=2.0.0"],
+        "crate": ["crate[sqlalchemy]>=0.26.0, <0.27"],
         "db2": ["ibm-db-sa>=0.3.5, <0.4"],
         "dremio": ["sqlalchemy-dremio>=1.1.5, <1.2"],
         "drill": ["sqlalchemy-drill==0.1.dev"],
