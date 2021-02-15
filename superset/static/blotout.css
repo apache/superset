@@ -157,6 +157,11 @@ body > footer {
   background: none;
 }
 
+/* Filter box */
 .slice_container .filter_box > div {
   overflow: initial !important;
+}
+
+.slice_container .filter_box .Select__multi-value__label {
+  white-space: initial !important;
 }
