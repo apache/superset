@@ -53,7 +53,7 @@ const FiltersList = ({ setEditFilter, setDataset }: FiltersListProps) => {
         </Button>
         <span
           role="button"
-          title={t('Edit Dashboard')}
+          title={t('Edit dashboard')}
           tabIndex={0}
           className="action-button"
         >

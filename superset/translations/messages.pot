@@ -2707,9 +2707,12 @@ msgid "Add Dashboard"
 msgstr ""
 
 #: superset/views/dashboard/mixin.py:28
+msgid "Edit Dashboard"
+msgstr ""
+
 #: superset-frontend/src/dashboard/components/Header.jsx:485
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal/FiltersList.tsx:56
-msgid "Edit Dashboard"
+msgid "Edit dashboard"
 msgstr ""
 
 #: superset/views/dashboard/mixin.py:46
@@ -7790,3 +7793,5 @@ msgstr ""
 #: superset-frontend/src/SqlLab/components/SqlEditor.jsx:506
 msgid "Autocomplete"
 msgstr ""
+
+
