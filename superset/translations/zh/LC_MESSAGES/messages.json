@@ -57,7 +57,7 @@
       "Issue 1006 - One or more parameters specified in the query are missing.": [
         "Issue 1006 - 查询中指定的一个或多个参数丢失。"
       ],
-      "Invalid certificate": ["无效证书"],
+      "Invalid certificate": ["无效认证"],
       "Unsafe return type for function %(func)s: %(value_type)s": [
         "函数返回不安全的类型 %(func)s: %(value_type)s"
       ],
@@ -227,7 +227,7 @@
       "Request is not JSON": ["请求不是JSON"],
       "Request is incorrect: %(error)s": ["请求不正确: %(error)s"],
       "`confidence_interval` must be between 0 and 1 (exclusive)": [
-        "`置信区间` 必须介于0和1之间（独占）"
+        "`置信区间` 必须介于0和1之间（开区间）"
       ],
       "lower percentile must be greater than 0 and less than 100. Must be lower than upper percentile.": [
         "下百分位数必须大于0且小于100。而且必须低于上百分位"
@@ -261,7 +261,7 @@
       "Owners are invalid": ["所有者无效"],
       "Dataset does not exist": ["数据集不存在"],
       "`operation` property of post processing object undefined": [
-        "处理对象的 `操作` 属性未定义"
+        "后处理必须指定操作类型（`operation`）"
       ],
       "Unsupported post processing operation: %(operation)s": [
         "不支持的处理操作：%(operation)s"
@@ -359,7 +359,7 @@
         "jinja表达式中的 RLS filters 出错：%(msg)s"
       ],
       "Datetime column not provided as part table configuration and is required by this type of chart": [
-        "缺少时间字段"
+        "没有提供该表配置的日期时间列，它是此类型图表所必需的"
       ],
       "Empty query?": ["查询为空？"],
       "Metric '%(metric)s' does not exist": ["指标 '%(metric)s' 不存在"],
@@ -655,7 +655,7 @@
       ],
       "Unable to find such a holiday: [{}]": ["找不到这样的假期：[{}]"],
       "Referenced columns not available in DataFrame.": [
-        "引用的列在DataFrame中不可用。"
+        "引用的列在数据帧（DataFrame）中不可用。"
       ],
       "Column referenced by aggregate is undefined: %(column)s": [
         "聚合引用的列未定义：%(column)s"
@@ -690,8 +690,12 @@
       "Confidence interval must be between 0 and 1 (exclusive)": [
         "置信区间必须介于0和1（不包含1）之间"
       ],
-      "DataFrame must include temporal column": ["数据集必须包含时间列"],
-      "DataFrame include at least one series": ["数据帧至少包括一个序列"],
+      "DataFrame must include temporal column": [
+        "数据帧（DataFrame）必须包含时间列"
+      ],
+      "DataFrame include at least one series": [
+        "数据帧（DataFrame）至少包括一个序列"
+      ],
       "percentiles must be a list or tuple with two numeric values, of which the first is lower than the second value": [
         "百分位数必须是具有两个数值的列表或元组，其中第一个数值要小于第二个数值"
       ],
@@ -767,7 +771,7 @@
       "Error occurred when opening the chart: %(error)s": [
         "打开图表时出错： %(error)s"
       ],
-      "You don't have the rights to ": ["你没有授权 "],
+      "You don't have the rights to ": ["您没有授权 "],
       "alter this ": ["修改这个 "],
       "chart": ["图表"],
       "create a ": ["创建一个 "],
@@ -1202,7 +1206,7 @@
       "Stop running (Ctrl + x)": ["停止运行 (Ctrl + x)"],
       "Run query (Ctrl + Return)": ["执行运行 (Ctrl + Return)"],
       "Save & Explore": ["保存和浏览"],
-      "Overwrite & Explore": ["覆盖和浏览"],
+      "Overwrite & Explore": ["覆写和浏览"],
       "Save or Overwrite Dataset": ["保存或覆盖数据集"],
       "Save this query as a virtual dataset to continue exploring": [
         "将此查询另存为虚拟数据集以继续探索"
@@ -1361,7 +1365,7 @@
       "Loaded from cache": ["从缓存中加载"],
       "Click to force-refresh": ["点击强制刷新"],
       "cached": ["已缓存"],
-      "Certified by %s": ["认证 %s"],
+      "Certified by %s": ["认证人 %s"],
       "Copy to clipboard": ["复制到剪贴板"],
       "Copied!": ["复制成功！"],
       "Sorry, your browser does not support copying. Use Ctrl / Cmd + C!": [
@@ -1381,7 +1385,7 @@
       "DELETE": ["删除"],
       "Click to edit": ["点击编辑"],
       "You don't have the rights to alter this title.": [
-        "你没有权利修改这个标题。"
+        "您没有权利修改这个标题。"
       ],
       "Unexpected error": ["意外错误。"],
       "Click to favorite/unfavorite": ["点击 收藏/取消收藏"],
@@ -1599,8 +1603,8 @@
       "(Removed)": ["(已删除)"],
       "Undo?": ["撤消？"],
       "Scoping": ["范围"],
-      "Apply to all panels": ["适用于所有面板"],
-      "Apply to specific panels": ["适用于特定面板"],
+      "Apply to all panels": ["应用于所有面板"],
+      "Apply to specific panels": ["应用于特定面板"],
       "Only selected panels will be affected by this filter": [
         "只有选定的面板将受此过滤条件的影响"
       ],
@@ -1634,7 +1638,7 @@
         "来确保字符的表达顺序与时间顺序一致的标准。如果时间戳格式不符合 ISO 8601 标准，则需要定义表达式和类型，以便将字符串转换为日期或时间戳。注意：当前不支持时区。如果时间以epoch格式存储，请输入 `epoch_s` or `epoch_ms` 。如果没有指定任何模式，我们可以通过额外的参数在每个数据库/列名级别上使用可选的默认值。"
       ],
       "Is dimension": ["维度"],
-      "Is filterable": ["过滤条件"],
+      "Is filterable": ["可被过滤"],
       "Modified columns: %s": ["修改的列：%s"],
       "Removed columns: %s": ["删除的列：%s"],
       "New columns added: %s": ["新增的列：%s"],
@@ -2318,7 +2322,7 @@
       "An error occurred while fetching dataset related data: %s": [
         "获取数据集相关数据时出错：%s"
       ],
-      "Physical dataset": ["物理数据集"],
+      "Physical dataset": ["物化数据集"],
       "Virtual dataset": ["虚拟数据集"],
       "An error occurred while fetching dataset owner values: %s": [
         "获取数据集所有者值时出错：%s"
@@ -2416,7 +2420,7 @@
       "Recents": ["最近"],
       "Select start and end date": ["选择开始和结束时间"],
       "Type or Select [%s]": ["键入或选择 [%s]"],
-      "Filter box": ["过滤选择器"],
+      "Filter box": ["过滤器"],
       "Filters configuration": ["过滤配置"],
       "Filter configuration for the filter box": ["过滤条件的过滤配置"],
       "Date filter": ["日期过滤器"],
@@ -2586,7 +2590,7 @@
       "failed": ["失败"],
       "cannot be empty": ["不能为空"],
       "Options": ["设置"],
-      "Time Column": ["时间字段"],
+      "Time Column": ["时间列"],
       "Time Range": ["时间范围"],
       "Color Scheme": ["配色方案"],
       "Datasource & Chart Type": ["数据源 & 图表类型"],
@@ -2614,7 +2618,7 @@
         "单击表单元格时是否对看板应用过滤条件"
       ],
       "Adaptative formating": ["自动匹配格式化"],
-      "Aggregate": ["合计"],
+      "Aggregate": ["聚合"],
       "Raw Records": ["原始记录"],
       "Query Mode": ["查询模式"],
       "Columns to display": ["要显示的字段"],
@@ -3074,7 +3078,7 @@
       ],
       "Start Longitude & Latitude": ["开始经纬度"],
       "End Longitude & Latitude": ["经纬度结束"],
-      "Point to your spatial columns": ["指向你的空间列"],
+      "Point to your spatial columns": ["指向您的空间列"],
       "Arc": ["弧"],
       "Target Color": ["目标颜色"],
       "Color of the target location": ["目标位置的颜色"],
@@ -3110,6 +3114,7 @@
       "weeks": ["周"],
       "months": ["月"],
       "years": ["年"],
+      "Ok": ["确认"],
       "No Results": ["无结果"],
       "No results were returned for this query. If you expected results to be returned, ensure any filters are configured properly and the datasource contains data for the selected time range.": [
         "此查询没有返回任何结果。如果希望返回结果，请确保所有过滤选择的配置正确，并且数据源包含所选时间范围的数据。"

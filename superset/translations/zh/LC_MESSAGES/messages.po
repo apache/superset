@@ -194,7 +194,7 @@ msgstr "Issue 1006 - 查询中指定的一个或多个参数丢失。"
 
 #: superset/databases/schemas.py:168 superset/exceptions.py:125
 msgid "Invalid certificate"
-msgstr "无效证书"
+msgstr "无效认证"
 
 #: superset/jinja_context.py:222
 #, python-format
@@ -682,7 +682,7 @@ msgstr "请求不正确: %(error)s"
 
 #: superset/charts/schemas.py:487
 msgid "`confidence_interval` must be between 0 and 1 (exclusive)"
-msgstr "`置信区间` 必须介于0和1之间（独占）"
+msgstr "`置信区间` 必须介于0和1之间（开区间）"
 
 #: superset/charts/schemas.py:553
 msgid ""
@@ -778,7 +778,7 @@ msgstr "数据集不存在"
 
 #: superset/common/query_object.py:301
 msgid "`operation` property of post processing object undefined"
-msgstr "处理对象的 `操作` 属性未定义"
+msgstr "后处理必须指定操作类型（`operation`）"
 
 #: superset/common/query_object.py:305
 #, python-format
@@ -1144,7 +1144,7 @@ msgstr "jinja表达式中的 RLS filters 出错：%(msg)s"
 msgid ""
 "Datetime column not provided as part table configuration and is required by "
 "this type of chart"
-msgstr "缺少时间字段"
+msgstr "没有提供该表配置的日期时间列，它是此类型图表所必需的"
 
 #: superset/connectors/sqla/models.py:941
 msgid "Empty query?"
@@ -2108,7 +2108,7 @@ msgstr "找不到这样的假期：[{}]"
 
 #: superset/utils/pandas_postprocessing.py:136
 msgid "Referenced columns not available in DataFrame."
-msgstr "引用的列在DataFrame中不可用。"
+msgstr "引用的列在数据帧（DataFrame）中不可用。"
 
 #: superset/utils/pandas_postprocessing.py:161
 #, python-format
@@ -2187,11 +2187,11 @@ msgstr "置信区间必须介于0和1（不包含1）之间"
 
 #: superset/utils/pandas_postprocessing.py:682
 msgid "DataFrame must include temporal column"
-msgstr "数据集必须包含时间列"
+msgstr "数据帧（DataFrame）必须包含时间列"
 
 #: superset/utils/pandas_postprocessing.py:684
 msgid "DataFrame include at least one series"
-msgstr "数据帧至少包括一个序列"
+msgstr "数据帧（DataFrame）至少包括一个序列"
 
 #: superset/utils/pandas_postprocessing.py:773
 msgid ""
@@ -2439,7 +2439,7 @@ msgstr "打开图表时出错： %(error)s"
 #: superset/views/core.py:764 superset/views/core.py:770
 #: superset/views/core.py:917 superset/views/core.py:935
 msgid "You don't have the rights to "
-msgstr "你没有授权 "
+msgstr "您没有授权 "
 
 #: superset/views/core.py:764 superset/views/core.py:918
 msgid "alter this "
@@ -3724,7 +3724,7 @@ msgstr "保存和浏览"
 
 #: superset-frontend/src/SqlLab/components/SaveDatasetModal.tsx:123
 msgid "Overwrite & Explore"
-msgstr "覆盖和浏览"
+msgstr "覆写和浏览"
 
 #: superset-frontend/src/SqlLab/components/SaveDatasetModal.tsx:97
 msgid "Save or Overwrite Dataset"
@@ -4342,7 +4342,7 @@ msgstr "已缓存"
 #: superset-frontend/src/components/CertifiedIconWithTooltip.tsx:40
 #, python-format
 msgid "Certified by %s"
-msgstr "认证 %s"
+msgstr "认证人 %s"
 
 #: superset-frontend/src/components/CopyToClipboard.jsx:42
 #: superset-frontend/src/components/URLShortLinkButton.jsx:65
@@ -4416,7 +4416,7 @@ msgstr "点击编辑"
 
 #: superset-frontend/src/components/EditableTitle.tsx:183
 msgid "You don't have the rights to alter this title."
-msgstr "你没有权利修改这个标题。"
+msgstr "您没有权利修改这个标题。"
 
 #: superset-frontend/src/components/ErrorBoundary.jsx:51
 #: superset-frontend/src/components/ErrorMessage/ErrorMessageWithStackTrace.tsx:26
@@ -5166,11 +5166,11 @@ msgstr "范围"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterScope.tsx:83
 msgid "Apply to all panels"
-msgstr "适用于所有面板"
+msgstr "应用于所有面板"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterScope.tsx:85
 msgid "Apply to specific panels"
-msgstr "适用于特定面板"
+msgstr "应用于特定面板"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterScope.tsx:91
 msgid "Only selected panels will be affected by this filter"
@@ -5284,7 +5284,7 @@ msgstr "维度"
 
 #: superset-frontend/src/datasource/DatasourceEditor.jsx:213
 msgid "Is filterable"
-msgstr "过滤条件"
+msgstr "可被过滤"
 
 #: superset-frontend/src/datasource/DatasourceEditor.jsx:434
 #, python-format
@@ -7522,7 +7522,7 @@ msgstr "获取数据集相关数据时出错：%s"
 
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:204
 msgid "Physical dataset"
-msgstr "物理数据集"
+msgstr "物化数据集"
 
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:214
 msgid "Virtual dataset"
@@ -7820,7 +7820,7 @@ msgstr "键入或选择 [%s]"
 
 #: superset-frontend/src/visualizations/FilterBox/FilterBoxChartPlugin.js:25
 msgid "Filter box"
-msgstr "过滤选择器"
+msgstr "过滤器"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:27
 msgid "Filters configuration"
@@ -8381,7 +8381,7 @@ msgid "Options"
 msgstr "设置"
 
 msgid "Time Column"
-msgstr "时间字段"
+msgstr "时间列"
 
 msgid "Time Range"
 msgstr "时间范围"
@@ -8438,7 +8438,7 @@ msgid "Adaptative formating"
 msgstr "自动匹配格式化"
 
 msgid "Aggregate"
-msgstr "合计"
+msgstr "聚合"
 
 msgid "Raw Records"
 msgstr "原始记录"
@@ -9484,7 +9484,7 @@ msgid "End Longitude & Latitude"
 msgstr "经纬度结束"
 
 msgid "Point to your spatial columns"
-msgstr "指向你的空间列"
+msgstr "指向您的空间列"
 
 msgid "Arc"
 msgstr "弧"
