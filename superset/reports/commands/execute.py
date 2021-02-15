@@ -244,7 +244,7 @@ class BaseReportState:
         """
         Checks if an alert/report on error is on it's notification grace period
         """
-        last_success = ReportScheduleDAO.find_last_error_email(
+        last_success = ReportScheduleDAO.find_last_error_notification(
             self._report_schedule, session=self._session
         )
         if not last_success:

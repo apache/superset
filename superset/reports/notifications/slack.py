@@ -18,13 +18,12 @@
 import json
 import logging
 from io import IOBase
-from typing import cast, Optional, Union
+from typing import Optional, Union
 
 from flask_babel import gettext as __
 from retry.api import retry
 from slack import WebClient
 from slack.errors import SlackApiError, SlackClientError
-from slack.web.slack_response import SlackResponse
 
 from superset import app
 from superset.models.reports import ReportRecipientType
@@ -44,7 +43,8 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_channel(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
 
-    def _error_template(self, name: str, text: str) -> str:
+    @staticmethod
+    def _error_template(name: str, text: str) -> str:
         return __(
             """
             *%(name)s*\n
@@ -57,7 +57,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_body(self) -> str:
         if self._content.text:
             return self._error_template(self._content.name, self._content.text)
-        elif self._content.screenshot:
+        if self._content.screenshot:
             return __(
                 """
                 *%(name)s*\n
@@ -88,7 +88,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
                     channels=channel, file=file, initial_comment=body, title="subject",
                 )
             else:
-                client.chat_postMessage(channel=channel, text=body),
+                client.chat_postMessage(channel=channel, text=body)
             logger.info("Report sent to slack")
         except SlackClientError as ex:
             raise NotificationError(ex)

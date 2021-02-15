@@ -49,7 +49,8 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_smtp_domain() -> str:
         return parseaddr(app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
 
-    def _error_template(self, text: str) -> str:
+    @staticmethod
+    def _error_template(text: str) -> str:
         return __(
             """
             Error: %(text)s
@@ -58,11 +59,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         )
 
     def _get_content(self) -> EmailContent:
-        # Get the domain from the 'From' address ..
-        # and make a message id without the < > in the end
         if self._content.text:
             return EmailContent(body=self._error_template(self._content.text))
-        elif self._content.screenshot:
+        # Get the domain from the 'From' address ..
+        # and make a message id without the < > in the end
+        if self._content.screenshot:
             domain = self._get_smtp_domain()
             msgid = make_msgid(domain)[1:-1]
 

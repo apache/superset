@@ -763,7 +763,7 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
             AsyncExecuteReportScheduleCommand(
                 create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
-
+        db.session.commit()
         notification_targets = get_target_from_report_schedule(
             create_invalid_sql_alert_email_chart
         )

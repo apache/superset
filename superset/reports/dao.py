@@ -227,7 +227,7 @@ class ReportScheduleDAO(BaseDAO):
         )
 
     @staticmethod
-    def find_last_error_email(
+    def find_last_error_notification(
         report_schedule: ReportSchedule, session: Optional[Session] = None,
     ) -> Optional[ReportExecutionLog]:
         """
