@@ -2773,10 +2773,17 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @app.errorhandler(500)
     def show_traceback(self) -> FlaskResponse:  # pylint: disable=no-self-use
+        if not conf.get("SHOW_STACKTRACE"):
+            return render_template('superset/500.html'), 500
+
         return (
             render_template("superset/traceback.html", error_msg=get_error_msg()),
             500,
         )
+
+    @app.errorhandler(404)
+    def not_found(self) -> FlaskResponse:
+        return render_template('superset/404.html'), 404
 
     @event_logger.log_this
     @expose("/welcome/")
