@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getChartIdsInFilterScope } from '../../util/activeDashboardFilters';
-import { TIME_FILTER_MAP } from '../../../visualizations/FilterBox/FilterBox';
-import { NativeFiltersState, NativeFilterState } from '../../reducers/types';
+import { TIME_FILTER_MAP } from 'src/explore/constants';
+import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
+import {
+  NativeFiltersState,
+  NativeFilterState,
+} from 'src/dashboard/reducers/types';
 
 export enum IndicatorStatus {
   Unset = 'UNSET',
