@@ -51,7 +51,7 @@ export const commonMenuData = {
 export const getBootstrapData = () => {
   const appContainer = document.getElementById('app');
   const bootstrapData = JSON.parse(
-    appContainer?.getAttribute('data-bootstrap') || '',
+    appContainer?.getAttribute('data-bootstrap') || '{}',
   );
   return bootstrapData;
 };
