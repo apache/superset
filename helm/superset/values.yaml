@@ -168,7 +168,7 @@ supersetWorker:
 ##
 ## Superset beat configuration (to trigger scheduled jobs like reports)
 supersetBeat:
-  # this is only required if you intend to use reports and alerts (?)
+  # This is only required if you intend to use alerts and reports
   enabled: false
   command:
     - "/bin/sh"
