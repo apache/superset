@@ -105,6 +105,11 @@ describe('AlertReportModal', () => {
     expect(wrapper.find(Modal)).toExist();
   });
 
+  it('render a empty modal', () => {
+    expect(wrapper.find('input[name="name"]').text()).toEqual('');
+    expect(wrapper.find('input[name="description"]').text()).toEqual('');
+  });
+
   it('renders add header for report when no alert is included, and isReport is true', async () => {
     const addWrapper = await mountAndWait();
 
@@ -126,10 +131,22 @@ describe('AlertReportModal', () => {
     ).toEqual('Add Alert');
   });
 
-  it.skip('renders edit header when alert prop is included', () => {
+  it('renders edit modal', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+    };
+
+    const editWrapper = await mountAndWait(props);
     expect(
-      wrapper.find('[data-test="alert-report-modal-title"]').text(),
+      editWrapper.find('[data-test="alert-report-modal-title"]').text(),
     ).toEqual('Edit Report');
+    expect(editWrapper.find('input[name="name"]').props().value).toEqual(
+      'test report',
+    );
+    expect(editWrapper.find('input[name="description"]').props().value).toEqual(
+      'test report description',
+    );
   });
 
   // Fields
