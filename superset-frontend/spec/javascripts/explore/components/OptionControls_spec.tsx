@@ -54,7 +54,7 @@ describe('OptionControls', () => {
     expect(screen.getByText('Test label')).toBeTruthy();
   });
 
-  it('should display a certificate icon if saved metric is certified', () => {
+  it('should display a certification icon if saved metric is certified', () => {
     const { container } = setup({
       savedMetric: {
         metric_name: 'test_metric',
