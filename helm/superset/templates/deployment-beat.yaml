@@ -39,7 +39,7 @@ spec:
         checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
         checksum/extraSecretEnv: {{ .Values.extraSecretEnv | toYaml | sha256sum }}
         checksum/configOverrides: {{ .Values.configOverrides | toYaml | sha256sum }}
-        {{ if .Values.supersetBeat.forceReload }}
+        {{ if .Values.supersetCeleryBeat.forceReload }}
         # Optionally force the thing to reload
         force-reload: {{ randAlphaNum 5 | quote }}
         {{ end }}
