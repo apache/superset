@@ -400,20 +400,22 @@ export function FilterConfigModal({
         const formInputs = values.filters[id];
         // if user didn't open a filter, return the original config
         if (!formInputs) return filterConfigMap[id];
+        let target = {};
+        if (formInputs.dataset && formInputs.column) {
+          target = {
+            datasetId: formInputs.dataset.value,
+            column: {
+              name: formInputs.column,
+            },
+          };
+        }
         return {
           id,
           controlValues: formInputs.controlValues,
           name: formInputs.name,
           filterType: formInputs.filterType,
           // for now there will only ever be one target
-          targets: [
-            {
-              datasetId: formInputs.dataset.value,
-              column: {
-                name: formInputs.column,
-              },
-            },
-          ],
+          targets: [target],
           defaultValue: formInputs.defaultValue || null,
           cascadeParentIds: formInputs.parentFilter
             ? [formInputs.parentFilter.value]

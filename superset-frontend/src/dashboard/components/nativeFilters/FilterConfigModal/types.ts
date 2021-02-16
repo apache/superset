@@ -17,7 +17,7 @@
  * under the License.
  */
 import { QueryObjectFilterClause } from '@superset-ui/core';
-import { Column, FilterType, Scope } from '../types';
+import { Column, Scope } from '../types';
 
 export enum Scoping {
   all,
@@ -30,7 +30,7 @@ export type AntCallback = (value1?: any, value2?: any) => void;
 export interface NativeFiltersFormItem {
   scope: Scope;
   name: string;
-  filterType: FilterType;
+  filterType: string;
   dataset: {
     value: number;
     label: string;
