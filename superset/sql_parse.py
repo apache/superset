@@ -150,6 +150,9 @@ class ParsedQuery:
     def stripped(self) -> str:
         return self.sql.strip(" \t\n;")
 
+    def strip_comments(self) -> str:
+        return sqlparse.format(self.stripped(), strip_comments=True)
+
     def get_statements(self) -> List[str]:
         """Returns a list of SQL statements as strings, stripped"""
         statements = []
