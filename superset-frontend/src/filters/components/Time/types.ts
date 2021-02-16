@@ -21,21 +21,21 @@ import {
   DataRecord,
   SetExtraFormDataHook,
 } from '@superset-ui/core';
-import { AntdPluginFilterStylesProps } from '../types';
+import { PluginFilterStylesProps } from '../types';
 
 interface PluginFilterTimeCustomizeProps {
   defaultValue?: string | null;
   currentValue?: string | null;
 }
 
-export type AntdPluginFilterSelectQueryFormData = QueryFormData &
-  AntdPluginFilterStylesProps &
+export type PluginFilterSelectQueryFormData = QueryFormData &
+  PluginFilterStylesProps &
   PluginFilterTimeCustomizeProps;
 
-export type AntdPluginFilterTimeProps = AntdPluginFilterStylesProps & {
+export type PluginFilterTimeProps = PluginFilterStylesProps & {
   data: DataRecord[];
   setExtraFormData: SetExtraFormDataHook;
-  formData: AntdPluginFilterSelectQueryFormData;
+  formData: PluginFilterSelectQueryFormData;
 };
 
 export const DEFAULT_FORM_DATA: PluginFilterTimeCustomizeProps = {
