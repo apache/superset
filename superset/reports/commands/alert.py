@@ -117,7 +117,10 @@ class AlertCommand(BaseCommand):
         )
         rendered_sql = sql_template.process_template(self._report_schedule.sql)
         try:
-            df = self._report_schedule.database.get_df(rendered_sql)
+            limited_rendered_sql = self._report_schedule.database.apply_limit_to_sql(
+                rendered_sql, 1
+            )
+            df = self._report_schedule.database.get_df(limited_rendered_sql)
         except Exception as ex:
             raise AlertQueryError(message=str(ex))
 
