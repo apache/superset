@@ -47,10 +47,8 @@ function formatCellValue(
       sortAttributeValue = Number.NEGATIVE_INFINITY;
     }
   }
-  // @ts-ignore
-  const attr = ('data-sort', sortAttributeValue);
 
-  return { textContent, attr };
+  return { textContent, sortAttributeValue };
 }
 
 function formatDateCellValue(text: string, verboseMap: any, dateRegex: RegExp, dateFormatter: any) {
