@@ -35,6 +35,8 @@ const bootstrapData = JSON.parse(
   appContainer?.getAttribute('data-bootstrap') || '{}',
 );
 
+console.log(bootstrapData);
+
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -407,7 +409,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="helper">
               {t('Refer to the ')}
               <a
-                href={bootstrapData.common.conf.SQLALCHEMY_DOCS_URL}
+                href={bootstrapData?.common?.conf?.SQLALCHEMY_DOCS_URL || ''}
                 target="_blank"
                 rel="noopener noreferrer"
               >
