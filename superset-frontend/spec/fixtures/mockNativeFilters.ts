@@ -74,6 +74,9 @@ export const nativeFilters: NativeFiltersState = {
   filtersState: {
     'NATIVE_FILTER-e7Q8zKixx': {
       id: 'NATIVE_FILTER-e7Q8zKixx',
+      currentState: {
+        value: ['East Asia & Pacific'],
+      },
       extraFormData: {
         append_form_data: {
           filters: [
@@ -127,6 +130,9 @@ export const singleNativeFiltersState = {
     [NATIVE_FILTER_ID]: {
       id: NATIVE_FILTER_ID,
       extraFormData,
+      currentState: {
+        value: ['No, not an ethnic minority'],
+      },
     },
   },
 };
