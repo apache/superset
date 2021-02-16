@@ -18,3 +18,18 @@
  */
 // eslint-disable-next-line import/prefer-default-export
 export const NULL_STRING = '<NULL>';
+
+export const TIMESERIES_CONSTANTS = {
+  gridOffsetRight: 40,
+  gridOffsetLeft: 20,
+  gridOffsetTop: 20,
+  gridOffsetBottom: 20,
+  gridOffsetBottomZoomable: 80,
+  legendRightTopOffset: 30,
+  legendTopRightOffset: 55,
+  zoomBottom: 30,
+  toolboxTop: 0,
+  toolboxRight: 5,
+  dataZoomStart: 0,
+  dataZoomEnd: 100,
+};
