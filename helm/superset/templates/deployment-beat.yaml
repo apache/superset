@@ -18,9 +18,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ template "superset.fullname" . }}-beat
+  name: {{ template "superset.fullname" . }}-celerybeat
   labels:
-    app: {{ template "superset.name" . }}-beat
+    app: {{ template "superset.name" . }}-celerybeat
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
@@ -29,7 +29,7 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ template "superset.name" . }}-beat
+      app: {{ template "superset.name" . }}-celerybeat
       release: {{ .Release.Name }}
   template:
     metadata:
@@ -44,7 +44,7 @@ spec:
         force-reload: {{ randAlphaNum 5 | quote }}
         {{ end }}
       labels:
-        app: {{ template "superset.name" . }}-beat
+        app: {{ template "superset.name" . }}-celerybeat
         release: {{ .Release.Name }}
     spec:
       securityContext:
