@@ -24,7 +24,7 @@ import thumbnail from './images/thumbnail.png';
 export default class TimeFilterPlugin extends ChartPlugin {
   constructor() {
     const metadata = new ChartMetadata({
-      name: t('Time range filter plugin'),
+      name: t('Time filter'),
       description: 'Custom time filter plugin',
       behaviors: [Behavior.CROSS_FILTER, Behavior.NATIVE_FILTER],
       thumbnail,

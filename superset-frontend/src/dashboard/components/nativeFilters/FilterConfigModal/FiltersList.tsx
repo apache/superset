@@ -46,7 +46,10 @@ const FiltersList = ({ setEditFilter, setDataset }: FiltersListProps) => {
           key={filter.name}
           onClick={() => {
             setEditFilter({ filter, index: i });
-            setDataset(filter.targets[0].datasetId);
+            const datasetId = filter.targets[0]?.datasetId;
+            if (datasetId) {
+              setDataset(datasetId);
+            }
           }}
         >
           {filter.name}

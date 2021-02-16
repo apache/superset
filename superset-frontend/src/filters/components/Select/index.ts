@@ -25,7 +25,7 @@ import thumbnail from './images/thumbnail.png';
 export default class AntdFilterSelectPlugin extends ChartPlugin {
   constructor() {
     const metadata = new ChartMetadata({
-      name: t('Select filter plugin'),
+      name: t('Select filter'),
       description: 'Select filter plugin using AntD',
       behaviors: [Behavior.CROSS_FILTER, Behavior.NATIVE_FILTER],
       thumbnail,

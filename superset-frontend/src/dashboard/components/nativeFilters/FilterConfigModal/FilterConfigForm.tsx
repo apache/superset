@@ -41,15 +41,10 @@ import { CustomControlItem } from '@superset-ui/chart-controls';
 import { ColumnSelect } from './ColumnSelect';
 import { NativeFiltersForm } from './types';
 import FilterScope from './FilterScope';
-import {
-  FilterTypeNames,
-  getControlItems,
-  setFilterFieldValues,
-  useForceUpdate,
-} from './utils';
+import { getControlItems, setFilterFieldValues, useForceUpdate } from './utils';
 import { useBackendFormUpdate } from './state';
 import { getFormData } from '../utils';
-import { Filter, FilterType } from '../types';
+import { Filter } from '../types';
 
 type DatasetSelectValue = {
   value: number;
@@ -123,9 +118,25 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   const controlItems = getControlItems(
     controlPanelRegistry.get(formFilter?.filterType),
   );
-  useBackendFormUpdate(form, filterId, filterToEdit);
 
-  const initDatasetId = filterToEdit?.targets[0].datasetId;
+  const nativeFilterItems = getChartMetadataRegistry().items;
+  const nativeFilterVizTypes = Object.entries(nativeFilterItems)
+    // @ts-ignore
+    .filter(([, { value }]) =>
+      value.behaviors?.includes(Behavior.NATIVE_FILTER),
+    )
+    .map(([key]) => key);
+
+  // @ts-ignore
+  const hasDatasource = !!nativeFilterItems[formFilter?.filterType]?.value
+    ?.datasourceCount;
+
+  const hasFilledDatasource =
+    (formFilter?.dataset && formFilter?.column) || !hasDatasource;
+
+  useBackendFormUpdate(form, filterId, filterToEdit, hasDatasource);
+
+  const initDatasetId = filterToEdit?.targets[0]?.datasetId;
   const initColumn = filterToEdit?.targets[0]?.column?.name;
   const newFormData = getFormData({
     datasetId: formFilter?.dataset?.value,
@@ -167,20 +178,6 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
     label: filter.title,
   }));
 
-  const nativeFilterItems = getChartMetadataRegistry().items;
-  const nativeFilterVizTypes = Object.entries(nativeFilterItems)
-    // @ts-ignore
-    .filter(([, { value }]) =>
-      value.behaviors?.includes(Behavior.NATIVE_FILTER),
-    )
-    .map(([key]) => key);
-
-  const hasDatasource = !!nativeFilterItems[formFilter?.filterType]?.value
-    ?.datasorceCount;
-
-  const hasFilledDatasource =
-    (formFilter?.dataset && formFilter?.column) || !hasDatasource;
-
   return (
     <>
       <Typography.Title level={5}>{t('Settings')}</Typography.Title>
@@ -197,15 +194,16 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         <StyledFormItem
           name={['filters', filterId, 'filterType']}
           rules={[{ required: !removed, message: t('Name is required') }]}
-          initialValue={filterToEdit?.filterType || FilterType.filter_select}
+          initialValue={filterToEdit?.filterType || 'filter_select'}
           label={<StyledLabel>{t('Filter Type')}</StyledLabel>}
         >
           <Select
             options={nativeFilterVizTypes.map(filterType => ({
               value: filterType,
-              label: FilterTypeNames[filterType],
+              // @ts-ignore
+              label: nativeFilterItems[filterType]?.value.name,
             }))}
-            onChange={({ value }: { value: FilterType }) => {
+            onChange={({ value }: { value: string }) => {
               setFilterFieldValues(form, filterId, {
                 filterType: value,
                 defaultValue: null,
@@ -281,12 +279,18 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         data-test="default-input"
         label={<StyledLabel>{t('Default Value')}</StyledLabel>}
       >
-        {hasFilledDatasource && formFilter?.defaultValueQueriesData && (
+        {((hasFilledDatasource && formFilter?.defaultValueQueriesData) ||
+          !hasDatasource) && (
           <SuperChart
             height={25}
             width={250}
             formData={newFormData}
-            queriesData={formFilter?.defaultValueQueriesData}
+            // For charts that don't have datasource we need workaround for empty placeholder
+            queriesData={
+              hasDatasource
+                ? formFilter?.defaultValueQueriesData
+                : [{ data: [null] }]
+            }
             chartType={formFilter?.filterType}
             hooks={{
               setExtraFormData: ({ currentState }) => {

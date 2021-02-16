@@ -22,6 +22,8 @@ import {
   NativeFiltersState,
   NativeFilterState,
 } from 'src/dashboard/reducers/types';
+import { getTreeCheckedItems } from '../nativeFilters/FilterConfigModal/utils';
+import { Layout } from '../../types';
 
 export enum IndicatorStatus {
   Unset = 'UNSET',
@@ -130,7 +132,7 @@ const getRejectedColumns = (chart: any): Set<string> =>
   );
 
 export type Indicator = {
-  column: string;
+  column?: string;
   name: string;
   value: string[];
   status: IndicatorStatus;
@@ -172,6 +174,7 @@ export const selectIndicatorsForChart = (
   return indicators;
 };
 
+// TODO: refactor to take data from currentState
 const selectNativeIndicatorValue = (
   filterState: NativeFilterState,
 ): string[] => {
@@ -193,29 +196,45 @@ export const selectNativeIndicatorsForChart = (
   nativeFilters: NativeFiltersState,
   chartId: number,
   charts: any,
+  dashboardLayout: Layout,
 ): Indicator[] => {
   const chart = charts[chartId];
 
   const appliedColumns = getAppliedColumns(chart);
   const rejectedColumns = getRejectedColumns(chart);
 
-  const getStatus = (column: string, value: string[]): IndicatorStatus => {
-    if (rejectedColumns.has(column)) return IndicatorStatus.Incompatible;
-    if (appliedColumns.has(column) && value.length > 0) {
+  const getStatus = (
+    value: string[],
+    isAffectedByScope: boolean,
+    column?: string,
+  ): IndicatorStatus => {
+    if (!column && isAffectedByScope) {
+      // Filter without datasource
+      return IndicatorStatus.Applied;
+    }
+    if (column && rejectedColumns.has(column))
+      return IndicatorStatus.Incompatible;
+    if (column && appliedColumns.has(column) && value.length > 0) {
       return IndicatorStatus.Applied;
     }
     return IndicatorStatus.Unset;
   };
 
   const indicators = Object.values(nativeFilters.filters).map(nativeFilter => {
-    const column = nativeFilter.targets[0].column.name;
+    const isAffectedByScope = getTreeCheckedItems(
+      nativeFilter.scope,
+      dashboardLayout,
+    ).some(
+      layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
+    );
+    const column = nativeFilter.targets[0]?.column?.name;
     const filterState = nativeFilters.filtersState[nativeFilter.id];
     const value = selectNativeIndicatorValue(filterState);
     return {
       column,
       name: nativeFilter.name,
       path: [nativeFilter.id],
-      status: getStatus(column, value),
+      status: getStatus(value, isAffectedByScope, column),
       value,
     };
   });
