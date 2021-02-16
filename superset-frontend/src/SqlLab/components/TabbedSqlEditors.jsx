@@ -375,7 +375,8 @@ class TabbedSqlEditors extends React.PureComponent {
           <div data-test="dropdown-toggle-button">
             <Dropdown overlay={menu} trigger={['click']} />
           </div>
-          <TabTitle>{qe.title}</TabTitle> <TabStatusIcon tabState={state} />{' '}
+          <TabTitle onClick={() => console.log('test')}>{qe.title}</TabTitle>
+          <TabStatusIcon tabState={state} />{' '}
         </TabTitleWrapper>
       );
       return (
