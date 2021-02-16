@@ -53,5 +53,5 @@ export const getBootstrapData = () => {
   const bootstrapData = JSON.parse(
     appContainer?.getAttribute('data-bootstrap') || '',
   );
-  return bootstrapData
-}
+  return bootstrapData;
+};
