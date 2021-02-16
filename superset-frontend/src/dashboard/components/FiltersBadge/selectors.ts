@@ -18,10 +18,7 @@
  */
 import { TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
-import {
-  NativeFiltersState,
-  NativeFilterState,
-} from 'src/dashboard/reducers/types';
+import { NativeFiltersState } from 'src/dashboard/reducers/types';
 import { getTreeCheckedItems } from '../nativeFilters/FilterConfigModal/utils';
 import { Layout } from '../../types';
 
@@ -174,24 +171,6 @@ export const selectIndicatorsForChart = (
   return indicators;
 };
 
-// TODO: refactor to take data from currentState
-const selectNativeIndicatorValue = (
-  filterState: NativeFilterState,
-): string[] => {
-  const filters = filterState?.extraFormData?.append_form_data?.filters;
-  if (filters?.length) {
-    const filter = filters[0];
-    if ('val' in filter) {
-      const val = filter.val as string | string[];
-      if (Array.isArray(val)) {
-        return val;
-      }
-      return [val];
-    }
-  }
-  return [];
-};
-
 export const selectNativeIndicatorsForChart = (
   nativeFilters: NativeFiltersState,
   chartId: number,
@@ -229,7 +208,10 @@ export const selectNativeIndicatorsForChart = (
     );
     const column = nativeFilter.targets[0]?.column?.name;
     const filterState = nativeFilters.filtersState[nativeFilter.id];
-    const value = selectNativeIndicatorValue(filterState);
+    let value = filterState?.currentState?.value ?? [];
+    if (!Array.isArray(value)) {
+      value = [value];
+    }
     return {
       column,
       name: nativeFilter.name,
