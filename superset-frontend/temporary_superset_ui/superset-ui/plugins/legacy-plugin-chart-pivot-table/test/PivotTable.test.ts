@@ -29,7 +29,7 @@ describe('pivot table plugin format cells', () => {
   const dateFormatter = getTimeFormatterForGranularity('P1D');
 
   it('render number', () => {
-    const { textContent, attr } = formatCellValue(
+    const { textContent, sortAttributeValue } = formatCellValue(
       i,
       cols,
       tdText,
@@ -39,7 +39,7 @@ describe('pivot table plugin format cells', () => {
       dateFormatter,
     );
     expect(textContent).toEqual('2.22M');
-    expect(attr).toEqual(('data-sort', 2222222));
+    expect(sortAttributeValue).toEqual(2222222);
   });
 
   it('render date', () => {
@@ -60,7 +60,7 @@ describe('pivot table plugin format cells', () => {
   it('render string', () => {
     tdText = 'some-text';
 
-    const { textContent, attr } = formatCellValue(
+    const { textContent, sortAttributeValue } = formatCellValue(
       i,
       cols,
       tdText,
@@ -70,13 +70,13 @@ describe('pivot table plugin format cells', () => {
       dateFormatter,
     );
     expect(textContent).toEqual(tdText);
-    expect(attr).toEqual(('data-sort', tdText));
+    expect(sortAttributeValue).toEqual(tdText);
   });
 
   it('render null', () => {
     tdText = 'null';
 
-    const { textContent, attr } = formatCellValue(
+    const { textContent, sortAttributeValue } = formatCellValue(
       i,
       cols,
       tdText,
@@ -86,6 +86,6 @@ describe('pivot table plugin format cells', () => {
       dateFormatter,
     );
     expect(textContent).toEqual('');
-    expect(attr).toEqual(('data-sort', Number.NEGATIVE_INFINITY));
+    expect(sortAttributeValue).toEqual(Number.NEGATIVE_INFINITY);
   });
 });

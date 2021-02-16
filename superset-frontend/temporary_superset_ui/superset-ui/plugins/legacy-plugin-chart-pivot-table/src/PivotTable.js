@@ -48,6 +48,9 @@ const propTypes = {
   verboseMap: PropTypes.objectOf(PropTypes.string),
 };
 
+const hasOnlyTextChild = node =>
+  node.childNodes.length === 1 && node.childNodes[0].nodeType === Node.TEXT_NODE;
+
 function PivotTable(element, props) {
   const {
     columnFormats,
@@ -79,42 +82,31 @@ function PivotTable(element, props) {
   const cols = Array.isArray(columns[0]) ? columns.map(col => col[0]) : columns;
   const dateRegex = /^__timestamp:(-?\d*\.?\d*)$/;
 
-  $container.find('thead tr th').each(function () {
-    const cellValue = formatDateCellValue(
-      $(this)[0].textContent,
-      verboseMap,
-      dateRegex,
-      dateFormatter,
-    );
-    $(this)[0].textContent = cellValue;
-  });
-
-  $container.find('tbody tr th').each(function () {
-    const cellValue = formatDateCellValue(
-      $(this)[0].textContent,
-      verboseMap,
-      dateRegex,
-      dateFormatter,
-    );
-    $(this)[0].textContent = cellValue;
+  $container.find('th').each(function formatTh() {
+    if (hasOnlyTextChild(this)) {
+      const cellValue = formatDateCellValue($(this).text(), verboseMap, dateRegex, dateFormatter);
+      $(this).text(cellValue);
+    }
   });
 
   $container.find('tbody tr').each(function eachRow() {
     $(this)
       .find('td')
       .each(function eachTd(index) {
-        const tdText = $(this)[0].textContent;
-        const { textContent, attr } = formatCellValue(
-          index,
-          cols,
-          tdText,
-          columnFormats,
-          numberFormat,
-          dateRegex,
-          dateFormatter,
-        );
-        $(this)[0].textContent = textContent;
-        $(this).attr = attr;
+        if (hasOnlyTextChild(this)) {
+          const tdText = $(this).text();
+          const { textContent, sortAttributeValue } = formatCellValue(
+            index,
+            cols,
+            tdText,
+            columnFormats,
+            numberFormat,
+            dateRegex,
+            dateFormatter,
+          );
+          $(this).text(textContent);
+          $(this).attr('data-sort', sortAttributeValue);
+        }
       });
   });
 

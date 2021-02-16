@@ -30,8 +30,81 @@ export const basic = () => (
             ['sum__num', 'other'],
             ['sum__num', 'All'],
           ],
-          html:
-            '<table border="1" class="dataframe dataframe table table-striped table-bordered table-condensed table-hover">\n  <thead>\n    <tr>\n      <th></th>\n      <th colspan="2" halign="left">sum__num</th>\n    </tr>\n    <tr>\n      <th>state</th>\n      <th>other</th>\n      <th>All</th>\n    </tr>\n    <tr>\n      <th>name</th>\n      <th></th>\n      <th></th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>Christopher</th>\n      <td>803607</td>\n      <td>803607</td>\n    </tr>\n    <tr>\n      <th>David</th>\n      <td>673992</td>\n      <td>673992</td>\n    </tr>\n    <tr>\n      <th>James</th>\n      <td>749686</td>\n      <td>749686</td>\n    </tr>\n    <tr>\n      <th>Jennifer</th>\n      <td>587540</td>\n      <td>587540</td>\n    </tr>\n    <tr>\n      <th>John</th>\n      <td>638450</td>\n      <td>638450</td>\n    </tr>\n    <tr>\n      <th>Joshua</th>\n      <td>548044</td>\n      <td>548044</td>\n    </tr>\n    <tr>\n      <th>Matthew</th>\n      <td>608212</td>\n      <td>608212</td>\n    </tr>\n    <tr>\n      <th>Michael</th>\n      <td>1047996</td>\n      <td>1047996</td>\n    </tr>\n    <tr>\n      <th>Robert</th>\n      <td>575592</td>\n      <td>575592</td>\n    </tr>\n    <tr>\n      <th>William</th>\n      <td>574464</td>\n      <td>574464</td>\n    </tr>\n    <tr>\n      <th>All</th>\n      <td>6807583</td>\n      <td>6807583</td>\n    </tr>\n  </tbody>\n</table>',
+          html: `<table border="1" class="dataframe dataframe table table-striped table-bordered table-condensed table-hover">
+  <thead>
+    <tr>
+      <th></th>
+      <th colspan="2" halign="left">sum__num</th>
+    </tr>
+    <tr>
+      <th>state</th>
+      <th>other</th>
+      <th>All</th>
+    </tr>
+    <tr>
+      <th>name</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th><a href="https://superset.apache.org">Apache Superset</a></th>
+      <td>803607</td>
+      <td>803607</td>
+    </tr>
+    <tr>
+      <th>David <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mMUXn76JAAEqgJQrlGqUwAAAABJRU5ErkJggg==" width="20" height="20" alt="pixel" /></th>
+      <td>673992</td>
+      <td>673992</td>
+    </tr>
+    <tr>
+      <th><a href="https://superset.apache.org" target="_blank"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mMUXn76JAAEqgJQrlGqUwAAAABJRU5ErkJggg==" width="20" height="20" alt="pixel" />Apache Superset</a></th>
+      <td>749686</td>
+      <td>749686</td>
+    </tr>
+    <tr>
+      <th>Jennifer</th>
+      <td>587540</td>
+      <td>587540</td>
+    </tr>
+    <tr>
+      <th>John</th>
+      <td>638450</td>
+      <td>638450</td>
+    </tr>
+    <tr>
+      <th>Joshua</th>
+      <td>548044</td>
+      <td>548044</td>
+    </tr>
+    <tr>
+      <th>Matthew</th>
+      <td>608212</td>
+      <td>608212</td>
+    </tr>
+    <tr>
+      <th>Michael</th>
+      <td>1047996</td>
+      <td>1047996</td>
+    </tr>
+    <tr>
+      <th>Robert</th>
+      <td>575592</td>
+      <td>575592</td>
+    </tr>
+    <tr>
+      <th>William</th>
+      <td>574464</td>
+      <td>574464</td>
+    </tr>
+    <tr>
+      <th>All</th>
+      <td>6807583</td>
+      <td>6807583</td>
+    </tr>
+  </tbody>
+</table>`,
         },
       },
     ]}
