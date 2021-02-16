@@ -48,7 +48,7 @@ export const pmc = [
     image: 'https://github.com/dpgaspar.png',
   },
   {
-    name: 'Erik Ritker',
+    name: 'Erik Ritter',
     github: 'https://github.com/etr2460',
     image: 'https://github.com/etr2460.png',
   },
