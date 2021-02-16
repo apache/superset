@@ -16,11 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  QueryFormData,
-  DataRecord,
-  SetExtraFormDataHook,
-} from '@superset-ui/core';
+import { QueryFormData, DataRecord, SetDataMaskHook } from '@superset-ui/core';
 import { AntdPluginFilterStylesProps } from '../types';
 
 interface PluginFilterTimeCustomizeProps {
@@ -34,7 +30,7 @@ export type AntdPluginFilterSelectQueryFormData = QueryFormData &
 
 export type AntdPluginFilterTimeProps = AntdPluginFilterStylesProps & {
   data: DataRecord[];
-  setExtraFormData: SetExtraFormDataHook;
+  setDataMask: SetDataMaskHook;
   formData: AntdPluginFilterSelectQueryFormData;
 };
 

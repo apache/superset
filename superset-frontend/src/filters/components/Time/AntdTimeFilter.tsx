@@ -31,20 +31,22 @@ const Styles = styled.div<AntdPluginFilterStylesProps>`
 `;
 
 export default function AntdTimeFilter(props: AntdPluginFilterTimeProps) {
-  const { formData, setExtraFormData, width } = props;
+  const { formData, setDataMask, width } = props;
   const { defaultValue, currentValue } = formData;
 
   const [value, setValue] = useState<string>(defaultValue ?? DEFAULT_VALUE);
 
   const handleTimeRangeChange = (timeRange: string): void => {
-    setExtraFormData({
+    setDataMask({
       // @ts-ignore
-      extraFormData: {
-        override_form_data: {
-          time_range: timeRange,
+      native: {
+        extraFormData: {
+          override_form_data: {
+            time_range: timeRange,
+          },
         },
+        currentState: { value: timeRange },
       },
-      currentState: { value: timeRange },
     });
     setValue(timeRange);
   };
