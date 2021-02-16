@@ -135,10 +135,21 @@ describe('formatSeriesName', () => {
   });
 
   describe('getLegendProps', () => {
-    it('should return the correct props for scroll type with top orientation', () => {
-      expect(getLegendProps(LegendType.Scroll, LegendOrientation.Top, true)).toEqual({
+    it('should return the correct props for scroll type with top orientation without zoom', () => {
+      expect(getLegendProps(LegendType.Scroll, LegendOrientation.Top, true, false)).toEqual({
         show: true,
         top: 0,
+        right: 0,
+        orient: 'horizontal',
+        type: 'scroll',
+      });
+    });
+
+    it('should return the correct props for scroll type with top orientation with zoom', () => {
+      expect(getLegendProps(LegendType.Scroll, LegendOrientation.Top, true, true)).toEqual({
+        show: true,
+        top: 0,
+        right: 55,
         orient: 'horizontal',
         type: 'scroll',
       });
@@ -153,10 +164,21 @@ describe('formatSeriesName', () => {
       });
     });
 
-    it('should return the correct props for plain type with right orientation', () => {
-      expect(getLegendProps(LegendType.Plain, LegendOrientation.Right, false)).toEqual({
+    it('should return the correct props for plain type with right orientation without zoom', () => {
+      expect(getLegendProps(LegendType.Plain, LegendOrientation.Right, false, false)).toEqual({
         show: false,
         right: 0,
+        top: 0,
+        orient: 'vertical',
+        type: 'plain',
+      });
+    });
+
+    it('should return the correct props for plain type with right orientation with zoom', () => {
+      expect(getLegendProps(LegendType.Plain, LegendOrientation.Right, false, true)).toEqual({
+        show: false,
+        right: 0,
+        top: 30,
         orient: 'vertical',
         type: 'plain',
       });

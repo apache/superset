@@ -25,7 +25,7 @@ import {
   TimeseriesDataRecord,
 } from '@superset-ui/core';
 import { LegendComponentOption, SeriesOption } from 'echarts';
-import { NULL_STRING } from '../constants';
+import { NULL_STRING, TIMESERIES_CONSTANTS } from '../constants';
 import { LegendOrientation, LegendType } from '../types';
 import { defaultLegendPadding } from '../defaults';
 
@@ -93,6 +93,7 @@ export function getLegendProps(
   type: LegendType,
   orientation: LegendOrientation,
   show: boolean,
+  zoomable = false,
 ): LegendComponentOption | LegendComponentOption[] {
   const legend: LegendComponentOption | LegendComponentOption[] = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(orientation)
@@ -107,6 +108,7 @@ export function getLegendProps(
       break;
     case LegendOrientation.Right:
       legend.right = 0;
+      legend.top = zoomable ? TIMESERIES_CONSTANTS.legendRightTopOffset : 0;
       break;
     case LegendOrientation.Bottom:
       legend.bottom = 0;
@@ -114,6 +116,7 @@ export function getLegendProps(
     case LegendOrientation.Top:
     default:
       legend.top = 0;
+      legend.right = zoomable ? TIMESERIES_CONSTANTS.legendTopRightOffset : 0;
       break;
   }
   return legend;
