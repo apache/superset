@@ -421,12 +421,14 @@ function AlertList({
             label: t('Alerts'),
             url: '/alert/list/',
             usesRouter: true,
+            'data-test': 'alert-list',
           },
           {
             name: 'Reports',
             label: t('Reports'),
             url: '/report/list/',
             usesRouter: true,
+            'data-test': 'report-list',
           },
         ]}
         buttons={subMenuButtons}
