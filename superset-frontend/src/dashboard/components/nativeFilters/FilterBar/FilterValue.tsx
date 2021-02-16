@@ -57,7 +57,7 @@ const FilterValue: React.FC<FilterProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const [target] = targets;
   const {
-    datasetId = 18,
+    datasetId,
     column = {},
   }: Partial<{ datasetId: number; column: { name?: string } }> = target;
   const { name: groupby } = column;
