@@ -6,7 +6,7 @@ index: 12
 version: 1
 ---
 
-## Runnin on Kubernetes
+## Running on Kubernetes
 
 Running on Kubernetes is supported with the provided [Helm](helm.sh/) chart included in the Github repository under [helm/superset](https://github.com/apache/superset/tree/master/helm/superset).
 
@@ -61,6 +61,12 @@ The chart will publish appropriate services to expose the Superset UI internally
 
 * Configure the Service as a `LoadBalancer` or `NodePort`
 * Set up an `Ingress` for it - the chart includes a definition, but will need to be tuned to your needs (hostname, tls, annotations etc...)
+* Run `kubectl port-forward superset-xxxx-yyyy :8088` to directly tunnel one pod's port into your localhost
+
+Depending how you configured external access, the URL will vary. Once you've identified the appropriate URL you can log in with:
+
+* user: `admin`
+* password: `admin`
 
 ### Important settings
 
@@ -110,6 +116,10 @@ configOverrides:
 
 Those will be evaluated as Helm templates and therefore will be able to reference other `values.yaml` variables e.g. `{{ .Values.ingress.hosts[0] }}` will resolve to your ingress external domain.
 
+The entire `superset_config.py` will be installed as a secret, so it is safe to pass sensitive parameters directly... however it might be more readable to use secret env variables for that.
+
+Full python files can be provided by running `helm upgrade --install --values my-values.yaml --set-file configOverrides.oauth=set_oauth.py`
+
 #### Environment Variables
 
 Those can be passed as key/values either with `extraEnv` or `extraSecretEnv` if they're sensitive. They can then be referenced from `superset_config.py` using e.g. `os.environ.get("VAR")`.
@@ -137,7 +147,7 @@ configOverrides:
 
 #### System packages
 
-If new system packages are required, they can be installed before application startup by overriding the container's `command`, e.g. to install Chrome and `chromedriver` in the Celery worker pods:
+If new system packages are required, they can be installed before application startup by overriding the container's `command`, e.g.:
 
 ```yaml
 supersetWorker:
@@ -153,6 +163,27 @@ supersetWorker:
       # Run celery worker
       . {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app=superset.tasks.celery_app:app worker
 ```
+
+#### Data sources
+
+Data source definitions can be automatically declared by providing key/value yaml definitions in `extraConfigs`:
+
+```yaml
+extraConfigs:
+  datasources-init.yaml: |
+    databases:
+    - allow_csv_upload: true
+      allow_ctas: true
+      allow_cvas: true
+      database_name: example-db
+      extra: "{\r\n    \"metadata_params\": {},\r\n    \"engine_params\": {},\r\n    \"\
+        metadata_cache_timeout\": {},\r\n    \"schemas_allowed_for_csv_upload\": []\r\n\
+        }"
+      sqlalchemy_uri: example://example-db.local
+      tables: []
+```
+
+Those will also be mounted as secrets and can include sensitive parameters.
 
 ### Configuration Examples
 
