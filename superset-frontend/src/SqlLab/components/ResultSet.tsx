@@ -107,7 +107,7 @@ export default class ResultSet extends React.PureComponent<
   static defaultProps = {
     cache: false,
     csv: true,
-    xlsx: true;
+    xlsx: true,
     database: {},
     search: true,
     showSql: false,

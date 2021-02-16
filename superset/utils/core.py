@@ -1477,3 +1477,11 @@ def get_time_filter_status(  # pylint: disable=too-many-branches
 def format_list(items: Sequence[str], sep: str = ", ", quote: str = '"') -> str:
     quote_escaped = "\\" + quote
     return sep.join(f"{quote}{x.replace(quote, quote_escaped)}{quote}" for x in items)
+
+
+def df_clear_timezone(df: pd.DataFrame) -> pd.DataFrame:
+    for field_name, field_type in dict(df.dtypes).items():
+        if field_type.name.startswith('datetime64[ns, '):
+            df[field_name] = df[field_name].dt.tz_localize(None)
+
+    return df

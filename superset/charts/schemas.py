@@ -1018,7 +1018,7 @@ class ChartDataQueryContextSchema(Schema):
     )
     result_format = fields.String(
         description="Format of result payload",
-        validate=validate.OneOf(choices=("json", "csv")),
+        validate=validate.OneOf(choices=("json", "csv", "xlsx")),
     )
 
     # pylint: disable=no-self-use,unused-argument

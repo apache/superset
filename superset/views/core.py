@@ -2685,6 +2685,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             # TODO(bkyryliuk): add compression=gzip for big files.
 
         xlsx = BytesIO()
+        # Remove TZ from datetime64[ns, *] fields b4 writing to XLSX
+        utils.df_clear_timezone(df)
+
         writer = pd.ExcelWriter(xlsx, engine='xlsxwriter')
         df.to_excel(writer, index=False)
         writer.close()
