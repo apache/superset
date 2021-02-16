@@ -28,6 +28,7 @@ import {
   TimeFormats,
   GenericDataType,
   getMetricLabel,
+  QueryMode,
 } from '@superset-ui/core';
 
 import isEqualColumns from './utils/isEqualColumns';
@@ -136,6 +137,8 @@ const processColumns = memoizeOne(function processColumns(props: TableChartProps
         key,
         label,
         dataType,
+        isMetric,
+        isPercentMetric,
         formatter,
       };
     });
@@ -183,6 +186,7 @@ export default function transformProps(chartProps: TableChartProps): TableChartT
     page_length: pageSize,
     table_filter: tableFilter,
     order_desc: sortDesc = false,
+    query_mode: queryMode,
   } = formData;
 
   const [metrics, percentMetrics, columns] = processColumns(chartProps);
@@ -191,6 +195,7 @@ export default function transformProps(chartProps: TableChartProps): TableChartT
   return {
     height,
     width,
+    isRawRecords: queryMode === QueryMode.raw,
     data,
     columns,
     metrics,

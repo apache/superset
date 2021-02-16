@@ -146,6 +146,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     height,
     width,
     data,
+    isRawRecords,
     columns: columnsMeta,
     alignPositiveNegative = false,
     colorPositiveNegative = false,
@@ -205,14 +206,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const getColumnConfigs = useCallback(
     (column: DataColumnMeta, i: number): ColumnWithLooseAccessor<D> => {
-      const { key, label, dataType } = column;
+      const { key, label, dataType, isMetric } = column;
       let className = '';
       if (dataType === GenericDataType.NUMERIC) {
         className += ' dt-metric';
       } else if (emitFilter) {
         className += ' dt-is-filter';
       }
-      const valueRange = showCellBars && getValueRange(key);
+      const valueRange = showCellBars && (isMetric || isRawRecords) && getValueRange(key);
       return {
         id: String(i), // to allow duplicate column keys
         // must use custom accessor to allow `.` in column names
