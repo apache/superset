@@ -54,6 +54,10 @@ jobs:
       id: get-sha
       run: echo "::set-output name=sha::$(cat ./SHA)"
 
+    - name: Get PR
+      id: get-pr
+      run: echo "::set-output name=num::$(cat ./PR-NUM)"
+
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -70,9 +74,10 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: superset-ci
-        IMAGE_TAG: ${{ steps.get-sha.outputs.sha }}
+        SHA: ${{ steps.get-sha.outputs.sha }}
+        IMAGE_TAG: pr-${{ steps.get-pr.outputs.num }}
         SUPERSET_LOAD_EXAMPLES: yes
       run: |
-        docker load < $IMAGE_TAG.tar.gz
+        docker load < $SHA.tar.gz
         docker tag $IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
