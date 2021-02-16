@@ -38,10 +38,12 @@ spec:
         checksum/superset_bootstrap.sh: {{ include "superset-bootstrap" . | sha256sum }}
         checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
         checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
+        checksum/extraSecretEnv: {{ .Values.extraSecretEnv | toYaml | sha256sum }}
+        checksum/configOverrides: {{ .Values.configOverrides | toYaml | sha256sum }}
         {{- if .Values.supersetNode.forceReload }}
-        # Optionally force the thing to reload unconditionally
+        # Optionally force the thing to reload
         force-reload: {{ randAlphaNum 5 | quote }}
-       {{- end }}
+        {{- end }}
       labels:
         app: {{ template "superset.name" . }}
         release: {{ .Release.Name }}
