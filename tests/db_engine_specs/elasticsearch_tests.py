@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from unittest.mock import MagicMock
+
 from sqlalchemy import column
 
 from superset.db_engine_specs.elasticsearch import (
@@ -57,10 +59,8 @@ class TestElasticSearchDbEngineSpec(TestDbEngineSpec):
 
     def test_opendistro_strip_comments(self):
         """
-        DB Eng Specs (opendistro): Test execute sql
+        DB Eng Specs (opendistro): Test execute sql strip comments
         """
-        from unittest.mock import MagicMock
-
         mock_cursor = MagicMock()
         mock_cursor.execute.return_value = []
 
