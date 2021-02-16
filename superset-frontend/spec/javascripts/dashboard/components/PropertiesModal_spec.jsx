@@ -38,6 +38,7 @@ const dashboardResult = {
       slug: '/new',
       json_metadata: '{"something":"foo"}',
       owners: [],
+      roles: [],
     },
   },
 };
@@ -54,6 +55,7 @@ fetchMock.get('glob:*/api/v1/dashboard/*', {
     slug: '/new',
     json_metadata: '{"something":"foo"}',
     owners: [],
+    roles: [],
   },
 });
 
@@ -207,6 +209,7 @@ describe('PropertiesModal', () => {
             slug: '/new',
             json_metadata: '{"something":"foo"}',
             owners: [{ id: 1, first_name: 'Al', last_name: 'Pacino' }],
+            roles: [],
           },
         },
       });
