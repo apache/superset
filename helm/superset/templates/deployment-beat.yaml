@@ -1,3 +1,4 @@
+{{- if .Values.supersetCeleryBeat.enabled -}}
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -17,17 +18,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ template "superset.fullname" . }}-worker
+  name: {{ template "superset.fullname" . }}-celerybeat
   labels:
-    app: {{ template "superset.name" . }}-worker
+    app: {{ template "superset.name" . }}-celerybeat
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  # This must be a singleton
+  replicas: 1
   selector:
     matchLabels:
-      app: {{ template "superset.name" . }}-worker
+      app: {{ template "superset.name" . }}-celerybeat
       release: {{ .Release.Name }}
   template:
     metadata:
@@ -37,25 +39,25 @@ spec:
         checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
         checksum/extraSecretEnv: {{ .Values.extraSecretEnv | toYaml | sha256sum }}
         checksum/configOverrides: {{ .Values.configOverrides | toYaml | sha256sum }}
-        {{ if .Values.supersetWorker.forceReload }}
+        {{ if .Values.supersetCeleryBeat.forceReload }}
         # Optionally force the thing to reload
         force-reload: {{ randAlphaNum 5 | quote }}
         {{ end }}
       labels:
-        app: {{ template "superset.name" . }}-worker
+        app: {{ template "superset.name" . }}-celerybeat
         release: {{ .Release.Name }}
     spec:
       securityContext:
         runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
-      {{- if .Values.supersetWorker.initContainers }}
+      {{- if .Values.supersetCeleryBeat.initContainers }}
       initContainers:
-      {{-  tpl (toYaml .Values.supersetWorker.initContainers) . | nindent 6 }}
+      {{-  tpl (toYaml .Values.supersetCeleryBeat.initContainers) . | nindent 6 }}
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: {{  tpl (toJson .Values.supersetWorker.command) . }}
+          command: {{  tpl (toJson .Values.supersetCeleryBeat.command) . }}
           env:
             - name: "SUPERSET_PORT"
               value: {{ .Values.service.port | quote}}
@@ -90,3 +92,4 @@ spec:
         - name: superset-config
           secret:
             secretName: {{ tpl .Values.configFromSecret . }}
+{{- end -}}
