@@ -19,6 +19,7 @@
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
+import { supersetTheme } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
 import Button from 'src/components/Button';
 import Popover from '.';
@@ -39,7 +40,7 @@ test('should render some content when visible', () => {
 });
 
 test('it should not render a title or content when not visible', () => {
-  render(<Popover title="Popover title" content="Content sample" />);
+  render(<Popover content="Content sample" title="Popover title" />);
   const content = screen.queryByText('Content sample');
   const title = screen.queryByText('Popover title');
   expect(content).not.toBeInTheDocument();
@@ -48,7 +49,7 @@ test('it should not render a title or content when not visible', () => {
 
 test('renders with icon child', async () => {
   render(
-    <Popover content="Content sample" title="Simple tooltip">
+    <Popover content="Content sample" title="Popover title">
       <Icon name="alert" role="img">
         Click me
       </Icon>
@@ -62,7 +63,7 @@ test('fires an event when visibility is changed', async () => {
   render(
     <Popover
       content="Content sample"
-      title="Simple tooltip"
+      title="Popover title"
       onVisibleChange={onVisibleChange}
     >
       <Button>Hover me</Button>
@@ -70,4 +71,12 @@ test('fires an event when visibility is changed', async () => {
   );
   userEvent.hover(screen.getByRole('button'));
   await waitFor(() => expect(onVisibleChange).toHaveBeenCalledTimes(1));
+});
+
+test('renders with theme', () => {
+  render(<Popover content="Content sample" title="Popover title" visible />);
+  const title = screen.getByText('Popover title');
+  expect(title).toHaveStyle({
+    fontSize: supersetTheme.gridUnit * 3.5,
+  });
 });
