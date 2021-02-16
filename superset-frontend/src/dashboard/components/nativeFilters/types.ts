@@ -45,7 +45,7 @@ export interface Filter {
   id: string; // randomly generated at filter creation
   name: string;
   scope: Scope;
-  filterType: FilterType;
+  filterType: string;
   // for now there will only ever be one target
   // when multiple targets are supported, change this to Target[]
   targets: [Partial<Target>];
