@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { Suspense } from 'react';
 import { hot } from 'react-hot-loader/root';
 import thunk from 'redux-thunk';
 import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
@@ -27,27 +27,16 @@ import { initFeatureFlags } from 'src/featureFlags';
 import { ThemeProvider } from '@superset-ui/core';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import ErrorBoundary from 'src/components/ErrorBoundary';
+import Loading from 'src/components/Loading';
 import Menu from 'src/components/Menu/Menu';
 import FlashProvider from 'src/components/FlashProvider';
-import AlertList from 'src/views/CRUD/alert/AlertList';
-import ExecutionLog from 'src/views/CRUD/alert/ExecutionLog';
-import AnnotationLayersList from 'src/views/CRUD/annotationlayers/AnnotationLayersList';
-import AnnotationList from 'src/views/CRUD/annotation/AnnotationList';
-import ChartList from 'src/views/CRUD/chart/ChartList';
-import CssTemplatesList from 'src/views/CRUD/csstemplates/CssTemplatesList';
-import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
-import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
-import DatasetList from 'src/views/CRUD/data/dataset/DatasetList';
-import QueryList from 'src/views/CRUD/data/query/QueryList';
-import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
-
-import messageToastReducer from '../messageToasts/reducers';
-import { initEnhancer } from '../reduxUtils';
-import setupApp from '../setup/setupApp';
-import setupPlugins from '../setup/setupPlugins';
-import Welcome from './CRUD/welcome/Welcome';
-import ToastPresenter from '../messageToasts/containers/ToastPresenter';
-import { theme } from '../preamble';
+import { theme } from 'src/preamble';
+import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
+import setupPlugins from 'src/setup/setupPlugins';
+import setupApp from 'src/setup/setupApp';
+import messageToastReducer from 'src/messageToasts/reducers';
+import { initEnhancer } from 'src/reduxUtils';
+import { routes, isFrontendRoute } from 'src/views/routes';
 
 setupApp();
 setupPlugins();
@@ -77,78 +66,19 @@ const App = () => (
               ReactRouterRoute={Route}
               stringifyOptions={{ encode: false }}
             >
-              <Menu data={menu} />
+              <Menu data={menu} isFrontendRoute={isFrontendRoute} />
               <Switch>
-                <Route path="/superset/welcome/">
-                  <ErrorBoundary>
-                    <Welcome user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/dashboard/list/">
-                  <ErrorBoundary>
-                    <DashboardList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/chart/list/">
-                  <ErrorBoundary>
-                    <ChartList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/tablemodelview/list/">
-                  <ErrorBoundary>
-                    <DatasetList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/databaseview/list/">
-                  <ErrorBoundary>
-                    <DatabaseList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/savedqueryview/list/">
-                  <ErrorBoundary>
-                    <SavedQueryList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/csstemplatemodelview/list/">
-                  <ErrorBoundary>
-                    <CssTemplatesList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/annotationlayermodelview/list/">
-                  <ErrorBoundary>
-                    <AnnotationLayersList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/annotationmodelview/:annotationLayerId/annotation/">
-                  <ErrorBoundary>
-                    <AnnotationList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/superset/sqllab/history/">
-                  <ErrorBoundary>
-                    <QueryList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/alert/list/">
-                  <ErrorBoundary>
-                    <AlertList user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/report/list/">
-                  <ErrorBoundary>
-                    <AlertList user={user} isReportEnabled />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/alert/:alertId/log">
-                  <ErrorBoundary>
-                    <ExecutionLog user={user} />
-                  </ErrorBoundary>
-                </Route>
-                <Route path="/report/:alertId/log">
-                  <ErrorBoundary>
-                    <ExecutionLog user={user} isReportEnabled />
-                  </ErrorBoundary>
-                </Route>
+                {routes.map(
+                  ({ path, Component, props = {}, Fallback = Loading }) => (
+                    <Route path={path} key={path}>
+                      <Suspense fallback={<Fallback />}>
+                        <ErrorBoundary>
+                          <Component user={user} {...props} />
+                        </ErrorBoundary>
+                      </Suspense>
+                    </Route>
+                  ),
+                )}
               </Switch>
               <ToastPresenter />
             </QueryParamProvider>
