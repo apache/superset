@@ -159,9 +159,23 @@ export default class ResultSet extends React.PureComponent<
     this.handleExploreBtnClick = this.handleExploreBtnClick.bind(this);
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     // only do this the first time the component is rendered/mounted
     this.reRunQueryIfSessionTimeoutErrorOnMount();
+
+    const response = await makeApi({
+      method: 'GET',
+      endpoint: '/api/v1/dataset',
+    })(``);
+
+    const userDatasetsOwned = response.result.map(
+      (r: { table_name: string; id: number }) => ({
+        value: r.table_name,
+        datasetId: r.id,
+      }),
+    );
+
+    this.setState({ userDatasetOptions: userDatasetsOwned });
   }
 
   UNSAFE_componentWillReceiveProps(nextProps: ResultSetProps) {
