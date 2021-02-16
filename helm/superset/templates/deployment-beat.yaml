@@ -49,7 +49,7 @@ spec:
     spec:
       securityContext:
         runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
-      {{- if .Values.supersetBeat.initContainers }}
+      {{- if .Values.supersetCeleryBeat.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.supersetCeleryBeat.initContainers) . | nindent 6 }}
       {{- end }}
