@@ -22,13 +22,20 @@ import thunk from 'redux-thunk';
 import rootReducer from 'src/dashboard/reducers/index';
 
 import mockState from './mockState';
-import { dashboardLayoutWithTabs } from './mockDashboardLayout';
+import {
+  dashboardLayoutWithTabs,
+  dashboardLayoutWithChartsInTabsAndRoot,
+} from './mockDashboardLayout';
 import { sliceId } from './mockChartQueries';
 import { dashboardFilters } from './mockDashboardFilters';
 import { nativeFilters } from './mockNativeFilters';
 
-export const getMockStore = () =>
-  createStore(rootReducer, mockState, compose(applyMiddleware(thunk)));
+export const getMockStore = overrideState =>
+  createStore(
+    rootReducer,
+    { ...mockState, ...overrideState },
+    compose(applyMiddleware(thunk)),
+  );
 
 export const mockStore = getMockStore();
 
@@ -43,7 +50,19 @@ export const getMockStoreWithTabs = () =>
     compose(applyMiddleware(thunk)),
   );
 
+export const getMockStoreWithChartsInTabsAndRoot = () =>
+  createStore(
+    rootReducer,
+    {
+      ...mockState,
+      dashboardLayout: dashboardLayoutWithChartsInTabsAndRoot,
+      dashboardFilters: {},
+    },
+    compose(applyMiddleware(thunk)),
+  );
+
 export const mockStoreWithTabs = getMockStoreWithTabs();
+export const mockStoreWithChartsInTabsAndRoot = getMockStoreWithChartsInTabsAndRoot();
 
 export const sliceIdWithAppliedFilter = sliceId + 1;
 export const sliceIdWithRejectedFilter = sliceId + 2;

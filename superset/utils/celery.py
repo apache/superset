@@ -17,8 +17,9 @@
 import logging
 from typing import Iterator
 
-import sqlalchemy as sa
 from contextlib2 import contextmanager
+from sqlalchemy import create_engine
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
 
@@ -38,7 +39,7 @@ def session_scope(nullpool: bool) -> Iterator[Session]:
             in a future version of Superset."
         )
     if nullpool:
-        engine = sa.create_engine(database_uri, poolclass=NullPool)
+        engine = create_engine(database_uri, poolclass=NullPool)
         session_class = sessionmaker()
         session_class.configure(bind=engine)
         session = session_class()
@@ -49,7 +50,7 @@ def session_scope(nullpool: bool) -> Iterator[Session]:
     try:
         yield session
         session.commit()
-    except Exception as ex:
+    except SQLAlchemyError as ex:
         session.rollback()
         logger.exception(ex)
         raise

@@ -48,6 +48,7 @@ export default function getInitialState({
     autorun: false,
     templateParams: null,
     dbId: defaultDbId,
+    functionNames: [],
     queryLimit: common.conf.DEFAULT_SQLLAB_LIMIT,
     validationResult: {
       id: null,
@@ -80,6 +81,7 @@ export default function getInitialState({
         autorun: activeTab.autorun,
         templateParams: activeTab.template_params,
         dbId: activeTab.database_id,
+        functionNames: [],
         schema: activeTab.schema,
         queryLimit: activeTab.query_limit,
         validationResult: {

@@ -41,6 +41,7 @@ export default {
             },
           },
         ],
+        ['row_limit'],
         [
           {
             name: 'url',

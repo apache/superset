@@ -17,7 +17,6 @@
  * under the License.
  */
 import '@cypress/code-coverage/support';
-import readResponseBlob from '../utils/readResponseBlob';
 
 const BASE_EXPLORE_URL = '/superset/explore/?form_data=';
 
@@ -55,19 +54,8 @@ Cypress.Commands.add('visitChartById', chartId =>
 Cypress.Commands.add('visitChartByParams', params => {
   const queryString =
     typeof params === 'string' ? params : JSON.stringify(params);
-  return cy.visit(`${BASE_EXPLORE_URL}${queryString}`);
-});
-
-Cypress.Commands.add('verifyResponseCodes', (xhr: XMLHttpRequest, callback) => {
-  // After a wait response check for valid response
-  expect(xhr.status).to.eq(200);
-  readResponseBlob(xhr.response.body).then(res => {
-    expect(res).to.not.be.instanceOf(Error);
-    if (callback) {
-      callback(res);
-    }
-  });
-  return cy;
+  const url = `${BASE_EXPLORE_URL}${queryString}`;
+  return cy.visit(url);
 });
 
 Cypress.Commands.add('verifySliceContainer', chartSelector => {
@@ -98,20 +86,18 @@ Cypress.Commands.add(
     chartSelector: JQuery.Selector;
     querySubstring?: string | RegExp;
   }) => {
-    cy.wait(waitAlias).then(xhr => {
+    cy.wait(waitAlias).then(({ response }) => {
       cy.verifySliceContainer(chartSelector);
-      cy.verifyResponseCodes(xhr, responseBody => {
-        if (querySubstring) {
-          const query = responseBody
-            ? (responseBody as { query: string }).query
-            : '';
-          if (querySubstring instanceof RegExp) {
-            expect(query).to.match(querySubstring);
-          } else {
-            expect(query).to.contain(querySubstring);
-          }
+      const responseBody = response?.body;
+      if (querySubstring) {
+        const query: string =
+          responseBody.query || responseBody.result[0].query || '';
+        if (querySubstring instanceof RegExp) {
+          expect(query).to.match(querySubstring);
+        } else {
+          expect(query).to.contain(querySubstring);
         }
-      });
+      }
     });
     return cy;
   },

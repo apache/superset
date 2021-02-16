@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { Radio, AutoComplete, Input } from 'src/common/components';
+import { Radio } from 'src/common/components/Radio';
+import { AutoComplete, Input } from 'src/common/components';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 
 describe('SaveDatasetModal', () => {

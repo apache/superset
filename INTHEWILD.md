@@ -36,6 +36,7 @@ Join our growing community!
 ### Financial Services
 - [Aktia Bank plc](https://www.aktia.com) [@villebro]
 - [American Express](https://www.americanexpress.com) [@TheLastSultan]
+- [Cape Crypto](https://capecrypto.com)
 - [Capital Service S.A.](http://capitalservice.pl) [@pkonarzewski]
 - [Clark.de](http://clark.de/)
 - [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
@@ -63,6 +64,7 @@ Join our growing community!
 - [Zalora](https://www.zalora.com) [@ksaagariconic]
 
 ### Enterprise Technology
+- [A3Data](https://a3data.com.br) [@neylsoncrepalde]
 - [Apollo GraphQL](https://www.apollographql.com/) [@evans]
 - [Astronomer](https://www.astronomer.io) [@ryw]
 - [Avesta Technologies](https://avestatechnologies.com/) [@TheRum]

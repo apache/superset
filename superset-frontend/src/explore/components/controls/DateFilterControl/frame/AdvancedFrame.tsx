@@ -20,7 +20,9 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import { SEPARATOR } from 'src/explore/dateFilterUtils';
 import { Input } from 'src/common/components';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { FrameComponentProps } from '../types';
+import DateFunctionTooltip from './DateFunctionTooltip';
 
 export function AdvancedFrame(props: FrameComponentProps) {
   const advancedRange = getAdvancedRange(props.value || '');
@@ -52,14 +54,31 @@ export function AdvancedFrame(props: FrameComponentProps) {
 
   return (
     <>
-      <div className="section-title">{t('Configure advanced time range')}</div>
-      <div className="control-label">{t('START')}</div>
+      <div className="section-title">
+        {t('Configure Advanced Time Range ')}
+        <DateFunctionTooltip placement="rightBottom">
+          <i className="fa fa-info-circle text-muted" />
+        </DateFunctionTooltip>
+      </div>
+      <div className="control-label">
+        {t('START (INCLUSIVE)')}{' '}
+        <InfoTooltipWithTrigger
+          tooltip={t('Start date included in time range')}
+          placement="right"
+        />
+      </div>
       <Input
         key="since"
         value={since}
         onChange={e => onChange('since', e.target.value)}
       />
-      <div className="control-label">{t('END')}</div>
+      <div className="control-label">
+        {t('END (EXCLUSIVE)')}{' '}
+        <InfoTooltipWithTrigger
+          tooltip={t('End date excluded from time range')}
+          placement="right"
+        />
+      </div>
       <Input
         key="until"
         value={until}

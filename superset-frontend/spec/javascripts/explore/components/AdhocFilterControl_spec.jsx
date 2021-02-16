@@ -55,7 +55,7 @@ const columns = [
 
 const formData = {
   metric: undefined,
-  metrics: [sumValueAdhocMetric, savedMetric.saved_metric_name],
+  metrics: [sumValueAdhocMetric, savedMetric.metric_name],
 };
 
 function setup(overrides) {
@@ -71,7 +71,7 @@ function setup(overrides) {
     ...overrides,
   };
   const wrapper = shallow(<AdhocFilterControl {...props} />);
-  const component = wrapper.dive().dive().shallow();
+  const component = wrapper.dive().shallow();
   return { wrapper, component, onChange };
 }
 

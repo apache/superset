@@ -35,14 +35,6 @@ declare namespace Cypress {
     visitChartById(id: number): cy;
 
     /**
-     * Verify a waitXHR response and parse response JSON.
-     */
-    verifyResponseCodes(
-      xhr: WaitXHR,
-      callback?: (result: JSONValue) => void,
-    ): cy;
-
-    /**
      * Verify slice container renders.
      */
     verifySliceContainer(chartSelector: JQuery.Selector): cy;

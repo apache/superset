@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const STATE_BSSTYLE_MAP = {
+export const STATE_TYPE_MAP = {
   offline: 'danger',
   failed: 'danger',
   pending: 'info',

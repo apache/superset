@@ -21,7 +21,6 @@ import { DASHBOARD_LIST } from './dashboard_list.helper';
 describe('dashboard filters card view', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.visit(DASHBOARD_LIST);
     cy.get('[data-test="card-view"]').click();
   });
@@ -74,7 +73,6 @@ describe('dashboard filters card view', () => {
 describe('dashboard filters list view', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.visit(DASHBOARD_LIST);
     cy.get('[data-test="list-view"]').click();
   });

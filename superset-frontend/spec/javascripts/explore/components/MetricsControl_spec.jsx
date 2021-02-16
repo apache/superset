@@ -55,7 +55,7 @@ function setup(overrides) {
     ...overrides,
   };
   const wrapper = shallow(<MetricsControl {...props} />);
-  const component = wrapper.dive().dive().shallow();
+  const component = wrapper.dive().shallow();
   return { wrapper, component, onChange };
 }
 
@@ -131,7 +131,6 @@ describe('MetricsControl', () => {
             label: 'SUM(value)',
             optionName: 'blahblahblah',
           },
-          'avg__value',
         ],
       });
 
@@ -149,7 +148,6 @@ describe('MetricsControl', () => {
           sqlExpression: null,
           isNew: false,
         },
-        'avg__value',
       ]);
     });
   });
@@ -157,7 +155,10 @@ describe('MetricsControl', () => {
   describe('onChange', () => {
     it('handles creating a new metric', () => {
       const { component, onChange } = setup();
-      component.instance().onNewMetric({ metric_name: 'sum__value' });
+      component.instance().onNewMetric({
+        metric_name: 'sum__value',
+        expression: 'SUM(energy_usage.value)',
+      });
       expect(onChange.lastCall.args).toEqual([['sum__value']]);
     });
   });

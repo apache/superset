@@ -23,7 +23,11 @@ import { User } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Loading from 'src/components/Loading';
-import { getRecentAcitivtyObjs, mq } from '../utils';
+import {
+  createErrorHandler,
+  getRecentAcitivtyObjs,
+  mq,
+} from 'src/views/CRUD/utils';
 
 import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
@@ -62,9 +66,9 @@ const WelcomeContainer = styled.div`
       }
     }
     .nav.navbar-nav {
-      & > li:nth-child(1),
-      & > li:nth-child(2),
-      & > li:nth-child(3) {
+      & > li:nth-of-type(1),
+      & > li:nth-of-type(2),
+      & > li:nth-of-type(3) {
         margin-top: ${({ theme }) => theme.gridUnit * 2}px;
       }
     }
@@ -111,12 +115,14 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         setActivityData(data);
         setLoading(false);
       })
-      .catch(e => {
-        setLoading(false);
-        addDangerToast(
-          `There was an issue fetching your recent acitivity: ${e}`,
-        );
-      });
+      .catch(
+        createErrorHandler((errMsg: unknown) => {
+          setLoading(false);
+          addDangerToast(
+            t('There was an issue fetching your recent activity: %s', errMsg),
+          );
+        }),
+      );
   }, []);
 
   return (

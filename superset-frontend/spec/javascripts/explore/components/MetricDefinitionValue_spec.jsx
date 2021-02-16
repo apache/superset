@@ -33,7 +33,11 @@ const sumValueAdhocMetric = new AdhocMetric({
 describe('MetricDefinitionValue', () => {
   it('renders a MetricOption given a saved metric', () => {
     const wrapper = shallow(
-      <MetricDefinitionValue option={{ metric_name: 'a_saved_metric' }} />,
+      <MetricDefinitionValue
+        onMetricEdit={() => {}}
+        option={{ metric_name: 'a_saved_metric', expression: 'COUNT(*)' }}
+        index={1}
+      />,
     );
     expect(wrapper.find('AdhocMetricOption')).toExist();
   });
@@ -43,6 +47,7 @@ describe('MetricDefinitionValue', () => {
       <MetricDefinitionValue
         onMetricEdit={() => {}}
         option={sumValueAdhocMetric}
+        index={1}
       />,
     );
     expect(wrapper.find(AdhocMetricOption)).toExist();

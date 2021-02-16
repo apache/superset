@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import columnType from 'src/explore/propTypes/columnType';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
-import { DraggableOptionControlLabel } from 'src/explore/components/OptionControls';
+import { OptionControlLabel } from 'src/explore/components/OptionControls';
 import { OPTION_TYPES } from 'src/explore/components/optionTypes';
 import AdhocFilterPopoverTrigger from './AdhocFilterPopoverTrigger';
 import AdhocFilter from './AdhocFilter';
@@ -61,7 +61,7 @@ const AdhocFilterOption = ({
     onFilterEdit={onFilterEdit}
     partitionColumn={partitionColumn}
   >
-    <DraggableOptionControlLabel
+    <OptionControlLabel
       label={adhocFilter.getDefaultLabel()}
       onRemove={onRemoveFilter}
       onMoveLabel={onMoveLabel}

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2021-01-19 07:47-0300\n"
+"POT-Creation-Date: 2021-01-22 15:56-0300\n"
 "PO-Revision-Date: 2018-03-09 22:26+0200\n"
 "Last-Translator: Vladimir Gladkov <oxydash@github.com>\n"
 "Language-Team: Russian <>\n"
@@ -32,7 +32,6 @@ msgstr ""
 msgid "Home"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:339
 #: superset/app.py:230 superset/views/annotations.py:119
 msgid "Annotation Layers"
 msgstr "Слои аннотаций"
@@ -48,8 +47,8 @@ msgstr "Управление"
 msgid "Databases"
 msgstr "Базы данных"
 
-#: superset-frontend/src/explore/components/ControlPanelsContainer.jsx:245
-#: superset-frontend/src/explore/components/DataTablesPane.tsx:250
+#: superset-frontend/src/explore/components/ControlPanelsContainer.jsx:247
+#: superset-frontend/src/explore/components/DataTablesPane.tsx:251
 #: superset/app.py:242 superset/app.py:251 superset/app.py:375
 #: superset/app.py:390 superset/app.py:478 superset/app.py:487
 #: superset/app.py:500 superset/app.py:509
@@ -81,7 +80,6 @@ msgstr "Отчёты"
 msgid "Plugins"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:240
 #: superset/app.py:283 superset/views/css_templates.py:38
 msgid "CSS Templates"
 msgstr "Шаблоны CSS"
@@ -107,13 +105,10 @@ msgstr "Редактор SQL"
 msgid "SQL Lab"
 msgstr "Лаборатория"
 
-#: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:87
-#: superset-frontend/src/views/CRUD/welcome/Welcome.tsx:145 superset/app.py:352
+#: superset/app.py:352
 msgid "Saved Queries"
 msgstr "Сохраненные запросы"
 
-#: superset-frontend/src/SqlLab/components/SouthPane.jsx:180
-#: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:100
 #: superset/app.py:359
 msgid "Query History"
 msgstr "История запросов"
@@ -142,7 +137,7 @@ msgstr ""
 msgid "Alerts"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/alert/AlertList.tsx:411 superset/app.py:448
+#: superset/app.py:448
 msgid "Alerts & Reports"
 msgstr ""
 
@@ -421,19 +416,19 @@ msgstr "Срезы в полях [Столбцы данных] и [Ряды да
 msgid "Pick at least one field for [Series]"
 msgstr "Выберите хотя бы одно значение для поля [Столбцы данных]"
 
-#: superset/viz.py:1701 superset/viz_sip38.py:1659
+#: superset/viz.py:1702 superset/viz_sip38.py:1659
 msgid "Sunburst"
 msgstr ""
 
-#: superset/viz.py:1747 superset/viz_sip38.py:1703
+#: superset/viz.py:1748 superset/viz_sip38.py:1703
 msgid "Sankey"
 msgstr ""
 
-#: superset/viz.py:1755
+#: superset/viz.py:1756
 msgid "Pick exactly 2 columns as [Source / Target]"
 msgstr "Выберите ровно два среза в поле [Источник / Назначение]"
 
-#: superset/viz.py:1799 superset/viz_sip38.py:1736
+#: superset/viz.py:1800 superset/viz_sip38.py:1736
 msgid ""
 "There's a loop in your Sankey, please provide a tree. Here's a faulty link: "
 "{}"
@@ -441,136 +436,136 @@ msgstr ""
 "В полях [Источника] и [Назначения] есть одинаковый срез данных - {}. Срезы "
 "не должны пересекаться!"
 
-#: superset/viz.py:1812 superset/viz.py:1835 superset/viz_sip38.py:1749
+#: superset/viz.py:1813 superset/viz.py:1836 superset/viz_sip38.py:1749
 #: superset/viz_sip38.py:1770
 msgid "Directed Force Layout"
 msgstr ""
 
-#: superset/viz.py:1819 superset/viz_sip38.py:1756
+#: superset/viz.py:1820 superset/viz_sip38.py:1756
 msgid "Pick exactly 2 columns to 'Group By'"
 msgstr "Выберите ровно два столбца в поле [Группировка]"
 
-#: superset/viz.py:1868 superset/viz_sip38.py:1802
+#: superset/viz.py:1869 superset/viz_sip38.py:1802
 msgid "Country Map"
 msgstr "Карта Стран"
 
-#: superset/viz.py:1897 superset/viz_sip38.py:1823
+#: superset/viz.py:1898 superset/viz_sip38.py:1823
 msgid "World Map"
 msgstr "Карта Мира"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar.tsx:438
-#: superset-frontend/src/explore/controls.jsx:467 superset/viz.py:1955
+#: superset-frontend/src/explore/controls.jsx:467 superset/viz.py:1956
 #: superset/viz_sip38.py:1873
 msgid "Filters"
 msgstr "Фильтры"
 
-#: superset/viz.py:1973 superset/viz_sip38.py:1891
+#: superset/viz.py:1974 superset/viz_sip38.py:1891
 msgid "Invalid filter configuration, please select a column"
 msgstr ""
 
-#: superset/viz.py:2017 superset/viz_sip38.py:1952
+#: superset/viz.py:2018 superset/viz_sip38.py:1952
 msgid "Parallel Coordinates"
 msgstr ""
 
-#: superset/viz.py:2039 superset/viz_sip38.py:1968
+#: superset/viz.py:2040 superset/viz_sip38.py:1968
 msgid "Heatmap"
 msgstr ""
 
-#: superset/viz.py:2095 superset/viz_sip38.py:2017
+#: superset/viz.py:2096 superset/viz_sip38.py:2017
 msgid "Horizon Charts"
 msgstr ""
 
-#: superset/viz.py:2107 superset/viz_sip38.py:2029
+#: superset/viz.py:2108 superset/viz_sip38.py:2029
 msgid "Mapbox"
 msgstr ""
 
-#: superset/viz.py:2119 superset/viz_sip38.py:2041
+#: superset/viz.py:2120 superset/viz_sip38.py:2041
 msgid "[Longitude] and [Latitude] must be set"
 msgstr ""
 "Столбцы [Долгота] и [Широта] должны присутствовать в поле [Группировка]"
 
-#: superset/viz.py:2126 superset/viz_sip38.py:2048
+#: superset/viz.py:2127 superset/viz_sip38.py:2048
 msgid "Must have a [Group By] column to have 'count' as the [Label]"
 msgstr ""
 
-#: superset/viz.py:2146 superset/viz_sip38.py:2068
+#: superset/viz.py:2147 superset/viz_sip38.py:2068
 msgid "Choice of [Label] must be present in [Group By]"
 msgstr ""
 
-#: superset/viz.py:2154 superset/viz_sip38.py:2075
+#: superset/viz.py:2155 superset/viz_sip38.py:2075
 msgid "Choice of [Point Radius] must be present in [Group By]"
 msgstr "Срез [Радиуса точки] должен присутствовать в поле [Группировка]"
 
-#: superset/viz.py:2162 superset/viz_sip38.py:2082
+#: superset/viz.py:2163 superset/viz_sip38.py:2082
 msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
 msgstr ""
 "Столбцы [Долгота] и [Широта] должны присутствовать в поле [Группировка]"
 
-#: superset/viz.py:2242 superset/viz_sip38.py:2162
+#: superset/viz.py:2243 superset/viz_sip38.py:2162
 msgid "Deck.gl - Multiple Layers"
 msgstr ""
 
-#: superset/viz.py:2282 superset/viz.py:2314 superset/viz_sip38.py:2218
+#: superset/viz.py:2283 superset/viz.py:2315 superset/viz_sip38.py:2218
 msgid "Bad spatial key"
 msgstr ""
 
-#: superset/viz.py:2300 superset/viz_sip38.py:2204
+#: superset/viz.py:2301 superset/viz_sip38.py:2204
 #, python-format
 msgid "Invalid spatial point encountered: %s"
 msgstr ""
 
-#: superset/viz.py:2336 superset/viz_sip38.py:2240
+#: superset/viz.py:2337 superset/viz_sip38.py:2240
 msgid ""
 "Encountered invalid NULL spatial "
 "entry,                                        please consider filtering "
 "those out"
 msgstr ""
 
-#: superset/viz.py:2426 superset/viz_sip38.py:2311
+#: superset/viz.py:2427 superset/viz_sip38.py:2311
 msgid "Deck.gl - Scatter plot"
 msgstr ""
 
-#: superset/viz.py:2475 superset/viz_sip38.py:2358
+#: superset/viz.py:2476 superset/viz_sip38.py:2358
 msgid "Deck.gl - Screen Grid"
 msgstr ""
 
-#: superset/viz.py:2501 superset/viz_sip38.py:2384
+#: superset/viz.py:2502 superset/viz_sip38.py:2384
 msgid "Deck.gl - 3D Grid"
 msgstr ""
 
-#: superset/viz.py:2531 superset/viz_sip38.py:2411
+#: superset/viz.py:2532 superset/viz_sip38.py:2411
 msgid "Deck.gl - Paths"
 msgstr ""
 
-#: superset/viz.py:2579 superset/viz_sip38.py:2456
+#: superset/viz.py:2580 superset/viz_sip38.py:2456
 msgid "Deck.gl - Polygon"
 msgstr ""
 
-#: superset/viz.py:2608 superset/viz_sip38.py:2485
+#: superset/viz.py:2609 superset/viz_sip38.py:2485
 msgid "Deck.gl - 3D HEX"
 msgstr ""
 
-#: superset/viz.py:2627 superset/viz_sip38.py:2501
+#: superset/viz.py:2628 superset/viz_sip38.py:2501
 msgid "Deck.gl - GeoJSON"
 msgstr ""
 
-#: superset/viz.py:2646 superset/viz_sip38.py:2513
+#: superset/viz.py:2647 superset/viz_sip38.py:2513
 msgid "Deck.gl - Arc"
 msgstr ""
 
-#: superset/viz.py:2681 superset/viz_sip38.py:2548
+#: superset/viz.py:2682 superset/viz_sip38.py:2548
 msgid "Event flow"
 msgstr ""
 
-#: superset/viz.py:2713 superset/viz_sip38.py:2580
+#: superset/viz.py:2714 superset/viz_sip38.py:2580
 msgid "Time Series - Paired t-test"
 msgstr ""
 
-#: superset/viz.py:2768 superset/viz_sip38.py:2635
+#: superset/viz.py:2769 superset/viz_sip38.py:2635
 msgid "Time Series - Nightingale Rose Chart"
 msgstr ""
 
-#: superset/viz.py:2803 superset/viz_sip38.py:2670
+#: superset/viz.py:2804 superset/viz_sip38.py:2670
 msgid "Partition Diagram"
 msgstr ""
 
@@ -685,7 +680,11 @@ msgid "Deleted %(num)d chart"
 msgid_plural "Deleted %(num)d charts"
 msgstr[0] ""
 
-#: superset/charts/api.py:566 superset/charts/api.py:638
+#: superset/charts/api.py:563
+msgid "Request is not JSON"
+msgstr ""
+
+#: superset/charts/api.py:571 superset/charts/api.py:643
 #, python-format
 msgid "Request is incorrect: %(error)s"
 msgstr ""
@@ -783,7 +782,7 @@ msgid "Owners are invalid"
 msgstr ""
 
 #: superset/commands/exceptions.py:92
-msgid "Datasource does not exist"
+msgid "Dataset does not exist"
 msgstr "Источник данных %(name)s уже существует"
 
 #: superset/common/query_object.py:301
@@ -811,7 +810,7 @@ msgstr ""
 msgid "Unsupported extraction function: "
 msgstr "Функция агрегации"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:988
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:994
 #: superset-frontend/src/explore/components/DatasourcePanel.tsx:231
 #: superset-frontend/src/explore/controls.jsx:251
 #: superset/connectors/druid/views.py:56 superset/connectors/sqla/views.py:63
@@ -831,7 +830,7 @@ msgid "Edit Druid Column"
 msgstr "Редактировать колонку Druid"
 
 #: superset-frontend/src/dashboard/components/gridComponents/new/NewColumn.jsx:31
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:204
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:209
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:137
 #: superset-frontend/src/explore/components/controls/SpatialControl.jsx:193
 #: superset/connectors/druid/views.py:77 superset/connectors/sqla/views.py:134
@@ -845,7 +844,7 @@ msgstr "Колонка"
 msgid "Type"
 msgstr "Тип"
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:163
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:148
 #: superset/connectors/druid/views.py:79 superset/views/access_requests.py:43
 #: superset/views/chart/mixin.py:80
 msgid "Datasource"
@@ -865,7 +864,7 @@ msgid ""
 msgstr ""
 "Необходимо отметить, если столбец должен быть доступен в разделе «Фильтры»."
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:977
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:983
 #: superset-frontend/src/explore/components/DatasourcePanel.tsx:218
 #: superset-frontend/src/explore/controls.jsx:153
 #: superset/connectors/druid/views.py:143 superset/connectors/sqla/views.py:193
@@ -884,7 +883,7 @@ msgstr "Добавить Druid Метрику"
 msgid "Edit Druid Metric"
 msgstr "Редактировать Druid Метрику"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:831
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:836
 #: superset-frontend/src/explore/controls.jsx:172
 #: superset-frontend/src/explore/controls.jsx:173
 #: superset/connectors/druid/views.py:171 superset/connectors/sqla/views.py:236
@@ -893,11 +892,11 @@ msgstr "Показатель"
 
 #: superset-frontend/src/SqlLab/components/SaveQuery.tsx:128
 #: superset-frontend/src/SqlLab/components/ScheduleQueryButton.jsx:161
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:151
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:155
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:513
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:845
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:849
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:156
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:160
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:518
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:850
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:854
 #: superset-frontend/src/explore/components/PropertiesModal.tsx:214
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1094
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1100
@@ -917,7 +916,7 @@ msgstr "Описание"
 msgid "Verbose Name"
 msgstr "Полное имя"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:735
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:740
 #: superset/connectors/druid/views.py:175 superset/views/log/__init__.py:33
 msgid "JSON"
 msgstr "JSON"
@@ -926,8 +925,6 @@ msgstr "JSON"
 msgid "Druid Datasource"
 msgstr "Druid - Источники Данных"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:861
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:869
 #: superset/connectors/druid/views.py:177 superset/connectors/sqla/views.py:244
 msgid "Warning Message"
 msgstr "Предупреждающее сообщение"
@@ -968,8 +965,6 @@ msgstr "Брокер-Порт"
 msgid "Broker Endpoint"
 msgstr "Брокер-Конечная Точка"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:597
-#: superset-frontend/src/explore/components/PropertiesModal.tsx:238
 #: superset/connectors/druid/views.py:221
 #: superset/connectors/druid/views.py:331 superset/connectors/sqla/views.py:459
 #: superset/views/chart/mixin.py:77
@@ -1072,7 +1067,7 @@ msgid "Cluster"
 msgstr "Кластер"
 
 #: superset-frontend/src/dashboard/components/PropertiesModal.jsx:358
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:567
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:572
 #: superset-frontend/src/explore/components/PropertiesModal.tsx:260
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:261
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1078
@@ -1230,11 +1225,11 @@ msgstr "Таблица"
 msgid "Expression"
 msgstr "Выражение SQL"
 
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:212
 #: superset/connectors/sqla/views.py:141
 msgid "Is temporal"
 msgstr "Содержит дату /время"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:170
 #: superset/connectors/sqla/views.py:142
 msgid "Datetime Format"
 msgstr "Формат Datetime"
@@ -1255,18 +1250,15 @@ msgstr "Добавить показатель"
 msgid "Edit Metric"
 msgstr "Редактировать показатель"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:130
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:833
 #: superset/connectors/sqla/views.py:240
 msgid "SQL Expression"
 msgstr "Выражение SQL"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:855
 #: superset/connectors/sqla/views.py:242
 msgid "D3 Format"
 msgstr "Формат D3"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:549
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:554
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:599
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:637
 #: superset/connectors/sqla/views.py:243 superset/connectors/sqla/views.py:467
@@ -1398,7 +1390,7 @@ msgstr ""
 msgid "Whether the table was generated by the 'Visualize' flow in SQL Lab"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:612
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:617
 #: superset/connectors/sqla/views.py:431
 msgid ""
 "A set of parameters that become available in the query using Jinja "
@@ -1461,7 +1453,8 @@ msgstr "Основной столбец с датой"
 msgid "SQL Lab View"
 msgstr "Лаборатория"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:611
+#: superset-frontend/src/SqlLab/components/TemplateParamsEditor.jsx:125
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:616
 #: superset/connectors/sqla/views.py:466
 msgid "Template parameters"
 msgstr "Параметры шаблона"
@@ -1605,7 +1598,7 @@ msgstr ""
 msgid "A database with the same name already exists"
 msgstr "Источник данных %(name)s уже существует"
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:184
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:169
 #: superset/databases/commands/exceptions.py:49
 msgid "Field is required"
 msgstr ""
@@ -1905,7 +1898,7 @@ msgstr ""
 msgid "An error occurred while pruning logs "
 msgstr "Произошла ошибка при построении графика: %s"
 
-#: superset/reports/notifications/email.py:59 superset/tasks/schedules.py:182
+#: superset/reports/notifications/email.py:59 superset/tasks/schedules.py:185
 #, python-format
 msgid ""
 "\n"
@@ -1914,8 +1907,8 @@ msgid ""
 "            "
 msgstr ""
 
-#: superset/reports/notifications/email.py:70 superset/tasks/schedules.py:291
-#: superset/tasks/schedules.py:460
+#: superset/reports/notifications/email.py:70 superset/tasks/schedules.py:294
+#: superset/tasks/schedules.py:463
 #, python-format
 msgid "%(prefix)s %(title)s"
 msgstr ""
@@ -1930,7 +1923,7 @@ msgid ""
 "            "
 msgstr ""
 
-#: superset/tasks/schedules.py:157
+#: superset/tasks/schedules.py:160
 #, python-format
 msgid ""
 "\n"
@@ -1940,17 +1933,17 @@ msgid ""
 "        "
 msgstr ""
 
-#: superset/tasks/schedules.py:169 superset/tasks/schedules.py:360
+#: superset/tasks/schedules.py:172 superset/tasks/schedules.py:363
 #, python-format
 msgid "<b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>"
 msgstr ""
 
-#: superset/tasks/schedules.py:359
+#: superset/tasks/schedules.py:362
 #, python-format
 msgid "%(name)s.csv"
 msgstr ""
 
-#: superset/tasks/schedules.py:367
+#: superset/tasks/schedules.py:370
 #, python-format
 msgid ""
 "\n"
@@ -1960,7 +1953,7 @@ msgid ""
 "        "
 msgstr ""
 
-#: superset/tasks/schedules.py:654
+#: superset/tasks/schedules.py:656
 #, python-format
 msgid "[Alert] %(label)s"
 msgstr "Подписи маркеров"
@@ -1969,7 +1962,6 @@ msgstr "Подписи маркеров"
 msgid "New"
 msgstr ""
 
-#: superset-frontend/src/components/Menu/NewMenu.tsx:26
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1144
 #: superset/templates/appbuilder/navbar_right.html:38
 msgid "SQL Query"
@@ -2080,13 +2072,13 @@ msgid "Request Permissions"
 msgstr "Запросить права доступа"
 
 #: superset-frontend/src/SqlLab/components/SaveQuery.tsx:176
-#: superset-frontend/src/common/components/Modal/Modal.tsx:144
+#: superset-frontend/src/common/components/Modal/Modal.tsx:145
 #: superset-frontend/src/dashboard/components/PropertiesModal.jsx:305
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:142
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:437
-#: superset-frontend/src/datasource/DatasourceModal.tsx:211
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:472
+#: superset-frontend/src/datasource/DatasourceModal.tsx:202
 #: superset-frontend/src/explore/components/PropertiesModal.tsx:175
-#: superset-frontend/src/explore/components/SaveModal.tsx:169
+#: superset-frontend/src/explore/components/SaveModal.tsx:174
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:749
 #: superset/templates/superset/request_access.html:34
 msgid "Cancel"
@@ -2096,7 +2088,6 @@ msgstr "Отменить"
 msgid "Use the edit buttom to change this field"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:399
 #: superset/templates/superset/models/database/macros.html:22
 msgid "Test Connection"
 msgstr "Тестовое соединение"
@@ -2224,9 +2215,6 @@ msgstr "URL базы данных"
 msgid "Roles to grant"
 msgstr "Роли для предоставления"
 
-#: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:206
-#: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:184
-#: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:285
 #: superset/views/access_requests.py:45 superset/views/schedules.py:224
 #: superset/views/schedules.py:287
 msgid "Created On"
@@ -2240,7 +2228,6 @@ msgstr "Список показателей"
 msgid "Show Observation"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/alert/ExecutionLog.tsx:127
 #: superset/views/alerts.py:67
 msgid "Error Message"
 msgstr "Предупреждающее сообщение"
@@ -2285,13 +2272,10 @@ msgstr "Аннотации"
 msgid "Show Annotation"
 msgstr "Аннотации"
 
-#: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:265
 #: superset/views/annotations.py:62
 msgid "Add Annotation"
 msgstr "Добавить слой аннотации"
 
-#: superset-frontend/src/views/CRUD/annotation/AnnotationList.tsx:180
-#: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:265
 #: superset/views/annotations.py:63
 msgid "Edit Annotation"
 msgstr "Аннотации"
@@ -2301,10 +2285,10 @@ msgid "Layer"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/ScheduleQueryButton.jsx:148
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:141
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:145
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:832
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:840
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:146
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:150
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:837
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:845
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:157
 #: superset-frontend/src/views/CRUD/annotation/AnnotationList.tsx:149
 #: superset/views/annotations.py:79 superset/views/sql_lab.py:70
@@ -2321,7 +2305,6 @@ msgstr "Время начала"
 msgid "End"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/PropertiesModal.jsx:400
 #: superset/views/annotations.py:83 superset/views/dashboard/mixin.py:82
 msgid "JSON Metadata"
 msgstr "Параметры JSON"
@@ -2330,14 +2313,10 @@ msgstr "Параметры JSON"
 msgid "Show Annotation Layer"
 msgstr "Слои аннотаций"
 
-#: superset-frontend/src/explore/components/controls/AnnotationLayerControl.jsx:191
-#: superset-frontend/src/explore/components/controls/AnnotationLayerControl.jsx:203
-#: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayerModal.tsx:219
 #: superset/views/annotations.py:121
 msgid "Add Annotation Layer"
 msgstr "Добавить слой аннотации"
 
-#: superset-frontend/src/explore/components/controls/AnnotationLayerControl.jsx:166
 #: superset/views/annotations.py:122
 msgid "Edit Annotation Layer"
 msgstr "Добавить слой аннотации"
@@ -2356,7 +2335,7 @@ msgstr "Название"
 
 #: superset/views/base.py:207
 #, python-format
-msgid "Datasource %(name)s already exists"
+msgid "Dataset %(name)s already exists"
 msgstr "Источник данных %(name)s уже существует"
 
 #: superset/views/base.py:227
@@ -2587,7 +2566,6 @@ msgstr ""
 msgid "Show CSS Template"
 msgstr "Шаблоны CSS"
 
-#: superset-frontend/src/views/CRUD/csstemplates/CssTemplateModal.tsx:237
 #: superset/views/css_templates.py:40
 msgid "Add CSS Template"
 msgstr "Шаблоны CSS"
@@ -2709,11 +2687,11 @@ msgstr "Открыть"
 msgid "Changed on"
 msgstr "Изменено"
 
-#: superset/views/utils.py:485
+#: superset/views/utils.py:492
 msgid "Could not determine datasource type"
 msgstr ""
 
-#: superset/views/utils.py:501
+#: superset/views/utils.py:508
 msgid "Could not find viz object"
 msgstr ""
 
@@ -2744,10 +2722,6 @@ msgid ""
 "defaults to the datasource/table timeout if undefined."
 msgstr "Продолжительность (в секундах) таймаута кэширования для этого графика."
 
-#: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:181
-#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:257
-#: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:158
-#: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:279
 #: superset/views/chart/mixin.py:82
 msgid "Last Modified"
 msgstr "Изменено"
@@ -2756,7 +2730,6 @@ msgstr "Изменено"
 msgid "Parameters"
 msgstr "Параметры"
 
-#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:220
 #: superset/views/chart/mixin.py:88
 msgid "Visualization Type"
 msgstr "Тип диаграммы"
@@ -3056,12 +3029,10 @@ msgstr ""
 msgid "Show Database"
 msgstr "Показать Базу Данных"
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:349
 #: superset/views/database/mixins.py:34
 msgid "Add Database"
 msgstr "Добавить Базу Данных"
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:349
 #: superset/views/database/mixins.py:35
 msgid "Edit Database"
 msgstr "Редактировать Базу Данных"
@@ -3161,8 +3132,6 @@ msgstr "Разрешить CREATE TABLE AS"
 msgid "Allow DML"
 msgstr "Allow DML"
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:533
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:539
 #: superset/views/database/mixins.py:189
 msgid "CTAS Schema"
 msgstr "Схема по умолчанию"
@@ -3172,19 +3141,16 @@ msgstr "Схема по умолчанию"
 msgid "SQLAlchemy URI"
 msgstr "SQLAlchemy URI"
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:417
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:423
 #: superset/views/database/mixins.py:194
 msgid "Chart Cache Timeout"
 msgstr "Тайм-аут Кэша"
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:553
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:558
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:642
 #: superset/views/database/mixins.py:196
 msgid "Secure Extra"
 msgstr "Безопасность"
 
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:582
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:587
 #: superset/views/database/mixins.py:197
 msgid "Root certificate"
 msgstr ""
@@ -3201,7 +3167,6 @@ msgstr "Ассоциировать пользователя"
 msgid "Allow Csv Upload"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:521
 #: superset/views/database/mixins.py:202
 msgid "Allow Multi Schema Metadata Fetch"
 msgstr ""
@@ -3319,186 +3284,186 @@ msgstr "Действия"
 msgid "dttm"
 msgstr "Время"
 
-#: superset-frontend/src/CRUD/CollectionTable.tsx:294
-msgid "Add Item"
+#: superset-frontend/src/CRUD/CollectionTable.tsx:317
+msgid "Add item"
 msgstr "Добавить фильтр"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:103
 msgid "The query couldn't be loaded"
 msgstr "Запрос невозможно загрузить"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:155
-msgid "Your query was saved"
-msgstr "Ваш запрос был сохранен"
-
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:158
-msgid "Your query could not be saved"
-msgstr "Ваш запрос не может быть сохранен"
-
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:173
-msgid "Your query was updated"
-msgstr "Ваш запрос был сохранен"
-
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:175
-msgid "Your query could not be updated"
-msgstr "Ваш запрос не может быть сохранен"
-
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:190
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:156
 msgid ""
 "Your query has been scheduled. To see details of your query, navigate to "
-"Saved Queries"
+"Saved queries"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:197
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:163
 msgid "Your query could not be scheduled"
 msgstr "Ваш запрос не может быть сохранен"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:225
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:332
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:191
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:298
 msgid "Failed at retrieving results"
 msgstr "Невозможно выполнить запрос"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:263
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:289
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:229
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:255
 msgid ""
 "An error occurred while storing the latest query id in the backend. Please "
 "contact your administrator if this problem persists."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:376
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:409
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:342
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:375
 msgid "Unknown error"
 msgstr "Неизвестная ошибка"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:427
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:393
 msgid "Query was stopped."
 msgstr "Запрос прерван."
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:456
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:422
 msgid ""
 "Unable to migrate table schema state to backend. Superset will retry later. "
 "Please contact your administrator if this problem persists."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:474
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:440
 msgid ""
 "Unable to migrate query state to backend. Superset will retry later. Please "
 "contact your administrator if this problem persists."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:520
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:486
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry later. "
 "Please contact your administrator if this problem persists."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:553
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:519
 msgid ""
 "Unable to add a new tab to the backend. Please contact your administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:570
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:536
 #: superset-frontend/src/SqlLab/reducers/sqlLab.js:74
 #, python-format
 msgid "Copy of %s"
 msgstr "Копирование %s"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:597
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:563
 msgid ""
 "An error occurred while setting the active tab. Please contact your "
 "administrator."
 msgstr "Произошла ошибка при создании источника данных"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:683
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:649
 msgid "An error occurred while fetching tab state"
 msgstr "Произошла ошибка при получении метаданных из таблицы"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:711
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:677
 msgid ""
 "An error occurred while removing tab. Please contact your administrator."
 msgstr "Произошла ошибка при создании источника данных"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:735
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:701
 msgid ""
 "An error occurred while removing query. Please contact your administrator."
 msgstr "Произошла ошибка при создании источника данных"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:758
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:724
 msgid ""
 "An error occurred while setting the tab database ID. Please contact your "
 "administrator."
 msgstr "Произошла ошибка при создании источника данных"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:783
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:749
 msgid ""
 "An error occurred while setting the tab schema. Please contact your "
 "administrator."
 msgstr "Произошла ошибка при создании источника данных"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:816
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:782
 msgid ""
 "An error occurred while setting the tab autorun. Please contact your "
 "administrator."
 msgstr "Произошла ошибка при создании источника данных"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:841
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:895
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:807
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:899
 msgid ""
 "An error occurred while setting the tab title. Please contact your "
 "administrator."
 msgstr "Произошла ошибка при создании источника данных"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:864
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:829
+msgid "Your query was saved"
+msgstr "Ваш запрос был сохранен"
+
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:833
+msgid "Your query could not be saved"
+msgstr "Ваш запрос не может быть сохранен"
+
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:845
+msgid "Your query was updated"
+msgstr "Ваш запрос был сохранен"
+
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:849
+msgid "Your query could not be updated"
+msgstr "Ваш запрос не может быть сохранен"
+
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:868
 msgid ""
 "An error occurred while storing your query in the backend. To avoid losing "
 "your changes, please save your query using the \"Save Query\" button."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:924
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:928
 msgid ""
 "An error occurred while setting the tab template parameters. Please contact "
 "your administrator."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:985
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1010
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:989
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1014
 msgid "An error occurred while fetching table metadata"
 msgstr "Произошла ошибка при получении метаданных из таблицы"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1051
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1055
 msgid ""
 "An error occurred while fetching table metadata. Please contact your "
 "administrator."
 msgstr "Произошла ошибка при получении метаданных из таблицы"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1099
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1103
 msgid ""
 "An error occurred while expanding the table schema. Please contact your "
 "administrator."
 msgstr "Произошла ошибка при создании источника данных"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1123
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1127
 msgid ""
 "An error occurred while collapsing the table schema. Please contact your "
 "administrator."
 msgstr "Произошла ошибка при создании источника данных"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1146
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1150
 msgid ""
 "An error occurred while removing the table schema. Please contact your "
 "administrator."
 msgstr "Произошла ошибка при создании источника данных"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1179
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1183
 msgid "Shared query"
 msgstr "общий запрос"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1241
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1245
 msgid "The datasource couldn't be loaded"
 msgstr "Запрос невозможно загрузить"
 
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1271
-#: superset-frontend/src/SqlLab/actions/sqlLab.js:1293
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1275
+#: superset-frontend/src/SqlLab/actions/sqlLab.js:1297
 msgid "An error occurred while creating the data source"
 msgstr "Произошла ошибка при создании источника данных"
 
@@ -3515,15 +3480,15 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/EstimateQueryCostButton.jsx:85
-msgid "Estimate Selected Query Cost"
+msgid "Estimate selected query cost"
 msgstr "Выполнить выбранный запрос"
 
 #: superset-frontend/src/SqlLab/components/EstimateQueryCostButton.jsx:86
-msgid "Estimate Cost"
-msgstr ""
+msgid "Estimate cost"
+msgstr "Выполнить выбранный запрос"
 
 #: superset-frontend/src/SqlLab/components/EstimateQueryCostButton.jsx:90
-msgid "Cost Estimate"
+msgid "Cost estimate"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/ExploreCtasResultsButton.jsx:73
@@ -3597,7 +3562,7 @@ msgid "Source SQL"
 msgstr "Источник SQL"
 
 #: superset-frontend/src/SqlLab/components/HighlightedSql.jsx:108
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:714
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:719
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:301
 msgid "SQL"
 msgstr "SQL"
@@ -3654,7 +3619,8 @@ msgid "Edit"
 msgstr "Редактировать"
 
 #: superset-frontend/src/SqlLab/components/QueryTable.jsx:147
-msgid "view results"
+#: superset-frontend/src/explore/components/DataTablesPane.tsx:258
+msgid "View results"
 msgstr "посмотреть результаты"
 
 #: superset-frontend/src/SqlLab/components/QueryTable.jsx:150
@@ -3686,11 +3652,11 @@ msgid "Clipboard"
 msgstr "Скопировать в буфер обмена"
 
 #: superset-frontend/src/SqlLab/components/ResultSet.tsx:469
-msgid "Filter Results"
+msgid "Filter results"
 msgstr "Результаты поиска"
 
 #: superset-frontend/src/SqlLab/components/ResultSet.tsx:501
-msgid "Database Error"
+msgid "Database error"
 msgstr "Database Expression"
 
 #: superset-frontend/src/SqlLab/components/ResultSet.tsx:525
@@ -3710,11 +3676,11 @@ msgid "Fetch data preview"
 msgstr "Получить данные для просмотра"
 
 #: superset-frontend/src/SqlLab/components/ResultSet.tsx:605
-msgid "Refetch Results"
+msgid "Refetch results"
 msgstr "Результаты поиска"
 
 #: superset-frontend/src/SqlLab/components/ResultSet.tsx:626
-msgid "Track Job"
+msgid "Track job"
 msgstr "Отслеживать работу"
 
 #: superset-frontend/src/SqlLab/components/RunQueryActionButton.tsx:46
@@ -3723,7 +3689,7 @@ msgid "Stop"
 msgstr "Стоп"
 
 #: superset-frontend/src/SqlLab/components/RunQueryActionButton.tsx:51
-msgid "Run Selection"
+msgid "Run selection"
 msgstr "Выполнить выбранный запрос"
 
 #: superset-frontend/src/SqlLab/components/RunQueryActionButton.tsx:53
@@ -3760,13 +3726,13 @@ msgstr "Не определено"
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:139
 #: superset-frontend/src/dashboard/components/SaveModal.tsx:223
 #: superset-frontend/src/dashboard/components/filterscope/FilterScopeSelector.jsx:539
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:440
-#: superset-frontend/src/datasource/DatasourceModal.tsx:204
-#: superset-frontend/src/explore/components/AdhocFilterEditPopover.jsx:210
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:430
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:475
+#: superset-frontend/src/datasource/DatasourceModal.tsx:211
 #: superset-frontend/src/explore/components/PropertiesModal.tsx:187
 #: superset-frontend/src/explore/components/QueryAndSaveBtns.jsx:108
-#: superset-frontend/src/explore/components/SaveModal.tsx:192
+#: superset-frontend/src/explore/components/SaveModal.tsx:197
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopover.jsx:210
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:447
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1042
 #: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:255
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayerModal.tsx:207
@@ -3782,11 +3748,11 @@ msgid "Save as"
 msgstr "Сохранить как"
 
 #: superset-frontend/src/SqlLab/components/SaveQuery.tsx:172
-msgid "Save Query"
+msgid "Save query"
 msgstr "Сохранить запрос"
 
 #: superset-frontend/src/SqlLab/components/SaveQuery.tsx:184
-msgid "Save As New"
+msgid "Save as new"
 msgstr "Сохранить диаграмму"
 
 #: superset-frontend/src/SqlLab/components/SaveQuery.tsx:193
@@ -3802,7 +3768,7 @@ msgid "Write a description for your query"
 msgstr "Заполните описание к вашему запросу"
 
 #: superset-frontend/src/SqlLab/components/ScheduleQueryButton.jsx:201
-msgid "Schedule Query"
+msgid "Schedule query"
 msgstr "Сохранить запрос"
 
 #: superset-frontend/src/SqlLab/components/ScheduleQueryButton.jsx:211
@@ -3847,8 +3813,14 @@ msgstr "Предпросмотр %s"
 msgid "Results"
 msgstr "Результаты"
 
+#: superset-frontend/src/SqlLab/components/SouthPane.jsx:180
+#: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:100
+msgid "Query history"
+msgstr "История запросов"
+
 #: superset-frontend/src/SqlLab/components/SqlEditor.jsx:285
 #: superset-frontend/src/SqlLab/components/SqlEditor.jsx:295
+#: superset-frontend/src/components/RefreshChartOverlay.tsx:48
 msgid "Run query"
 msgstr "Выполнить запрос"
 
@@ -3858,7 +3830,7 @@ msgstr "Закрыть вкладку"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor.jsx:309
 #: superset-frontend/src/SqlLab/reducers/getInitialState.js:44
-msgid "Untitled Query"
+msgid "Untitled query"
 msgstr "Запрос без имени"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor.jsx:317
@@ -3894,7 +3866,7 @@ msgid "Estimate the cost before running a query"
 msgstr ""
 
 #: superset-frontend/src/SqlLab/components/SqlEditorLeftBar.jsx:159
-msgid "Reset State"
+msgid "Reset state"
 msgstr "Сбросить текущее состояние"
 
 #: superset-frontend/src/SqlLab/components/TabbedSqlEditors.jsx:237
@@ -3986,10 +3958,6 @@ msgstr ""
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor.jsx:87
 msgid ") by using"
 msgstr ""
-
-#: superset-frontend/src/SqlLab/components/TemplateParamsEditor.jsx:125
-msgid "Template Parameters"
-msgstr "Параметры шаблона"
 
 #: superset-frontend/src/SqlLab/components/TemplateParamsEditor.jsx:127
 msgid "Edit template parameters"
@@ -4291,7 +4259,7 @@ msgstr ""
 msgid "DEC"
 msgstr ""
 
-#: superset-frontend/src/common/components/Modal/Modal.tsx:127
+#: superset-frontend/src/common/components/Modal/Modal.tsx:128
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:771
 msgid "OK"
 msgstr ""
@@ -4419,6 +4387,7 @@ msgid "You don't have the rights to alter this title."
 msgstr "Недостаточно прав для изменения заголовка."
 
 #: superset-frontend/src/components/ErrorBoundary.jsx:51
+#: superset-frontend/src/components/ErrorMessage/ErrorMessageWithStackTrace.tsx:26
 msgid "Unexpected error"
 msgstr ""
 
@@ -4429,10 +4398,6 @@ msgstr "Отметить как избранное"
 #: superset-frontend/src/components/OmniContainer.jsx:44
 msgid "An error occurred while fetching dashboards"
 msgstr "Произошла ошибка при создании источника данных"
-
-#: superset-frontend/src/components/RefreshChartOverlay.tsx:48
-msgid "Run Query"
-msgstr "Выполнить запрос"
 
 #: superset-frontend/src/components/TableSelector.tsx:170
 msgid "Error while fetching table list"
@@ -4466,7 +4431,8 @@ msgid "%s%s"
 msgstr ""
 
 #: superset-frontend/src/components/URLShortLinkModal.tsx:83
-msgid "Share Dashboard"
+#: superset-frontend/src/dashboard/components/HeaderActionsDropdown.jsx:249
+msgid "Share dashboard"
 msgstr "Сохранить отчёт"
 
 #: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:46
@@ -4492,26 +4458,22 @@ msgstr "Ошибка"
 
 #: superset-frontend/src/components/ErrorMessage/ErrorAlert.tsx:123
 #: superset-frontend/src/components/ErrorMessage/ErrorAlert.tsx:139
-msgid "See More"
+msgid "See more"
 msgstr ""
 
 #: superset-frontend/src/components/ErrorMessage/ErrorAlert.tsx:152
-msgid "See Less"
+msgid "See less"
 msgstr ""
 
 #: superset-frontend/src/components/ErrorMessage/ErrorAlert.tsx:181
-msgid "Copy Message"
-msgstr ""
+msgid "Copy message"
+msgstr "Предупреждающее сообщение"
 
 #: superset-frontend/src/components/ErrorMessage/ErrorAlert.tsx:189
 #: superset-frontend/src/dashboard/components/filterscope/FilterScopeSelector.jsx:535
-#: superset-frontend/src/explore/components/AdhocFilterEditPopover.jsx:197
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:418
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopover.jsx:197
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:435
 msgid "Close"
-msgstr ""
-
-#: superset-frontend/src/components/ErrorMessage/ErrorMessageWithStackTrace.tsx:26
-msgid "Unexpected Error"
 msgstr ""
 
 #: superset-frontend/src/components/ErrorMessage/ParameterErrorMessage.tsx:60
@@ -4528,7 +4490,7 @@ msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgstr ""
 
 #: superset-frontend/src/components/ErrorMessage/ParameterErrorMessage.tsx:114
-msgid "Parameter Error"
+msgid "Parameter error"
 msgstr "Параметры"
 
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:47
@@ -4546,11 +4508,11 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:98
-msgid "Timeout Error"
+msgid "Timeout error"
 msgstr ""
 
 #: superset-frontend/src/components/FilterableTable/FilterableTable.tsx:317
-msgid "Cell Content"
+msgid "Cell content"
 msgstr "Созданный контент"
 
 #: superset-frontend/src/components/ImportModal/index.tsx:182
@@ -4585,24 +4547,29 @@ msgid "%s Selected"
 msgstr "Выполнить выбранный запрос"
 
 #: superset-frontend/src/components/ListView/ListView.tsx:348
-msgid "Deselect All"
-msgstr ""
+msgid "Deselect all"
+msgstr "Выберите базу данных"
 
 #: superset-frontend/src/components/ListView/ListView.tsx:414
-#: superset-frontend/src/components/TableView/TableView.tsx:173
+#: superset-frontend/src/components/TableView/TableView.tsx:183
 #, python-format
 msgid "%s-%s of %s"
 msgstr ""
 
 #: superset-frontend/src/components/Menu/Menu.tsx:180
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:149
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:1037
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:134
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:1050
 msgid "Settings"
 msgstr "Настройки Geojson "
 
 #: superset-frontend/src/components/Menu/Menu.tsx:228
 msgid "About"
 msgstr ""
+
+#: superset-frontend/src/components/Menu/NewMenu.tsx:26
+#: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:114
+msgid "SQL query"
+msgstr "Сохранить запрос"
 
 #: superset-frontend/src/dashboard/actions/dashboardLayout.js:180
 msgid ""
@@ -4671,7 +4638,8 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/ColorSchemeControlWrapper.jsx:56
 #: superset-frontend/src/explore/controlPanels/sections.jsx:78
-msgid "Color Scheme"
+#: superset-frontend/src/explore/controls.jsx:482
+msgid "Color scheme"
 msgstr "Цветовая схема"
 
 #: superset-frontend/src/dashboard/components/CssEditor.jsx:67
@@ -4683,7 +4651,7 @@ msgid "Load a CSS template"
 msgstr "Загрузить шаблон стилей (CSS)"
 
 #: superset-frontend/src/dashboard/components/CssEditor.jsx:88
-msgid "Live CSS Editor"
+msgid "Live CSS editor"
 msgstr "Редактор CSS"
 
 #: superset-frontend/src/dashboard/components/Dashboard.jsx:84
@@ -4702,7 +4670,7 @@ msgid "Your dashboard is too large. Please reduce the size before save it."
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/Header.jsx:459
-msgid "Discard Changes"
+msgid "Discard changes"
 msgstr "Изменения не сохранены"
 
 #: superset-frontend/src/dashboard/components/HeaderActionsDropdown.jsx:123
@@ -4710,16 +4678,12 @@ msgid "An error occurred while fetching available CSS templates"
 msgstr "Произошла ошибка при получении метаданных из таблицы"
 
 #: superset-frontend/src/dashboard/components/HeaderActionsDropdown.jsx:204
-msgid "Superset Dashboard"
+msgid "Superset dashboard"
 msgstr "Сохранить отчёт"
 
 #: superset-frontend/src/dashboard/components/HeaderActionsDropdown.jsx:206
 msgid "Check out this dashboard: "
 msgstr "Отладка отчёта: %s"
-
-#: superset-frontend/src/dashboard/components/HeaderActionsDropdown.jsx:249
-msgid "Share dashboard"
-msgstr "Сохранить отчёт"
 
 #: superset-frontend/src/dashboard/components/HeaderActionsDropdown.jsx:257
 msgid "Refresh dashboard"
@@ -4748,7 +4712,7 @@ msgid "Download as image"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/HeaderActionsDropdown.jsx:305
-msgid "Toggle FullScreen"
+msgid "Toggle fullscreen"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/MissingChart.jsx:31
@@ -4763,8 +4727,8 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/PropertiesModal.jsx:69
 #: superset-frontend/src/dashboard/components/nativeFilters/ColumnSelect.tsx:82
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:113
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:448
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:105
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:453
 #: superset-frontend/src/datasource/DatasourceModal.tsx:123
 #: superset-frontend/src/explore/components/PropertiesModal.tsx:66
 msgid "An error has occurred"
@@ -4772,7 +4736,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/PropertiesModal.jsx:77
 #: superset-frontend/src/dashboard/components/nativeFilters/ColumnSelect.tsx:84
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:115
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:107
 msgid "You do not have permission to edit this dashboard"
 msgstr "У вас нет доступа к этому источнику данных"
 
@@ -4792,7 +4756,7 @@ msgid "Apply"
 msgstr "Применить"
 
 #: superset-frontend/src/dashboard/components/PropertiesModal.jsx:295
-msgid "Dashboard Properties"
+msgid "Dashboard properties"
 msgstr "Редактировать свойства отчёта"
 
 #: superset-frontend/src/dashboard/components/PropertiesModal.jsx:324
@@ -4800,11 +4764,11 @@ msgstr "Редактировать свойства отчёта"
 #: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:270
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayerModal.tsx:224
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplateModal.tsx:242
-msgid "Basic Information"
-msgstr ""
+msgid "Basic information"
+msgstr "Дополнительные метаданные"
 
 #: superset-frontend/src/dashboard/components/PropertiesModal.jsx:341
-msgid "URL Slug"
+msgid "URL slug"
 msgstr "Читаемый URL"
 
 #: superset-frontend/src/dashboard/components/PropertiesModal.jsx:351
@@ -4827,9 +4791,14 @@ msgid "Colors"
 msgstr "Цвет"
 
 #: superset-frontend/src/dashboard/components/PropertiesModal.jsx:394
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:591
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:596
 msgid "Advanced"
 msgstr "Дополнительно"
+
+#: superset-frontend/src/dashboard/components/PropertiesModal.jsx:400
+#: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:319
+msgid "JSON metadata"
+msgstr "Параметры JSON"
 
 #: superset-frontend/src/dashboard/components/PublishedStatus.jsx:33
 msgid ""
@@ -4895,7 +4864,7 @@ msgid "24 hours"
 msgstr "час"
 
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:115
-msgid "Refresh Interval"
+msgid "Refresh interval"
 msgstr "Интервал обновления"
 
 #: superset-frontend/src/dashboard/components/RefreshIntervalModal.tsx:118
@@ -4915,7 +4884,7 @@ msgid "You must pick a name for the new dashboard"
 msgstr "Вы должны выбрать имя для нового отчёта"
 
 #: superset-frontend/src/dashboard/components/SaveModal.tsx:181
-msgid "Save Dashboard"
+msgid "Save dashboard"
 msgstr "Сохранить отчёт"
 
 #: superset-frontend/src/dashboard/components/SaveModal.tsx:190
@@ -4958,11 +4927,11 @@ msgid "Fetched %s"
 msgstr ""
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls.jsx:202
-msgid "Minimize Chart"
+msgid "Minimize chart"
 msgstr "Круговая диаграмма"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls.jsx:202
-msgid "Maximize Chart"
+msgid "Maximize chart"
 msgstr "Круговая диаграмма"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls.jsx:215
@@ -4974,8 +4943,8 @@ msgid "Toggle chart description"
 msgstr "Переключить описание графика"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls.jsx:231
-msgid "View Chart in Explore"
-msgstr ""
+msgid "View chart in Explore"
+msgstr "Перезаписать диаграмму %s"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls.jsx:243
 #: superset-frontend/src/dashboard/components/SliceHeaderControls.jsx:244
@@ -5043,7 +5012,7 @@ msgid ""
 "This markdown component has an error. Please revert your recent changes."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/gridComponents/Tabs.jsx:169
+#: superset-frontend/src/dashboard/components/gridComponents/Tabs.jsx:153
 msgid "Delete dashboard tab?"
 msgstr "Сохранить отчёт"
 
@@ -5067,102 +5036,116 @@ msgstr ""
 msgid "Preview"
 msgstr "Предпросмотр %s"
 
+#: superset-frontend/src/dashboard/components/nativeFilters/CancelConfirmationAlert.tsx:92
+msgid "Yes, cancel"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/CancelConfirmationAlert.tsx:100
+msgid "Keep editing"
+msgstr ""
+
 #: superset-frontend/src/dashboard/components/nativeFilters/CascadePopover.tsx:121
-msgid "Select Parent Filters"
+msgid "Select parent filters"
 msgstr "Выберите дату окончания"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar.tsx:455
-msgid "Reset All"
+msgid "Reset all"
 msgstr "Сбросить текущее состояние"
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:132
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:117
 msgid "You have removed this filter."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:135
-msgid "Restore Filter"
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:120
+msgid "Restore filter"
 msgstr "Фильтр результатов"
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:153
-msgid "Filter Name"
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:138
+msgid "Filter name"
 msgstr "Значение фильтра"
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:155
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:140
 msgid "Name is required"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:164
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:149
 msgid "Datasource is required"
 msgstr "Источники данных"
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:183
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:168
 msgid "Field"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:196
-msgid "Default Value"
-msgstr "Широта по умолчанию"
-
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:203
-msgid "Parent Filter"
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:180
+msgid "Parent filter"
 msgstr "Временной фильтр"
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:209
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:186
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:87
 msgid "None"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:221
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:198
 msgid "Apply changes instantly"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:229
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:206
+#: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:215
 msgid "Allow multiple selections"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:237
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:214
 msgid "Inverse selection"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:245
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:222
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:251
 msgid "Required"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:247
-msgid "Scoping"
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:464
+msgid "Are you sure you want to cancel?"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:257
-msgid "Apply to all panels"
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:465
+msgid "will not be saved."
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:259
-msgid "Apply to specific panels"
-msgstr ""
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:483
+msgid "Filter configuration and scoping"
+msgstr "Фильтруемые срезы"
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:267
-msgid "Only selected panels will be affected by this filter"
-msgstr ""
-
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigForm.tsx:268
-msgid "All panels with this column will be affected by this filter"
-msgstr ""
-
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:429
-msgid "Filter Configuration and Scoping"
-msgstr ""
-
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:468
-msgid "Add Filter"
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:516
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterControl.jsx:361
+msgid "Add filter"
 msgstr "Добавить фильтр"
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:480
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:528
 msgid "(Removed)"
 msgstr ""
 
-#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:489
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterConfigModal.tsx:537
 msgid "Undo?"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterScope.tsx:68
+msgid "Scoping"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterScope.tsx:83
+msgid "Apply to all panels"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterScope.tsx:85
+msgid "Apply to specific panels"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterScope.tsx:91
+msgid "Only selected panels will be affected by this filter"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterScope.tsx:92
+msgid "All panels with this column will be affected by this filter"
 msgstr ""
 
 #: superset-frontend/src/dashboard/util/getFilterFieldNodesTree.js:44
@@ -5193,47 +5176,56 @@ msgstr ""
 
 #: superset-frontend/src/datasource/ChangeDatasourceModal.tsx:223
 #: superset-frontend/src/explore/components/controls/DatasourceControl.jsx:162
-msgid "Change Dataset"
-msgstr ""
+msgid "Change dataset"
+msgstr "Выберите источник данных"
 
-#: superset-frontend/src/datasource/ChangeDatasourceModal.tsx:248
+#: superset-frontend/src/datasource/ChangeDatasourceModal.tsx:250
 msgid "Warning!"
 msgstr "Предупреждающее сообщение"
 
-#: superset-frontend/src/datasource/ChangeDatasourceModal.tsx:258
+#: superset-frontend/src/datasource/ChangeDatasourceModal.tsx:260
 msgid "Search / Filter"
 msgstr "Поиск / Фильтр"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:87
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:91
 msgid "Physical (table or view)"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:88
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:92
 msgid "Virtual (SQL)"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:162
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:205
-msgid "Data Type"
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:135
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:838
+msgid "SQL expression"
+msgstr "Выражение SQL"
+
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:167
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:210
+msgid "Data type"
 msgstr "Таблица Данных"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:174
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:175
+msgid "Datetime format"
+msgstr "Формат Datetime"
+
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:179
 msgid "The pattern of timestamp format. For strings use "
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:176
-msgid "python datetime string pattern"
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:181
+msgid "Python datetime string pattern"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:178
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:183
 msgid " expression which needs to adhere to the "
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:180
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:185
 msgid "ISO 8601"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:182
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:187
 msgid ""
 " standard to ensure that the lexicographical ordering\n"
 "                      coincides with the chronological ordering. If the\n"
@@ -5251,77 +5243,73 @@ msgid ""
 "                      database/column name level via the extra parameter."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:206
-msgid "Is Dimension"
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:211
+msgid "Is dimension"
 msgstr "Измерение"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:207
-msgid "Is Temporal"
-msgstr "Содержит дату /время"
-
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:208
-msgid "Is Filterable"
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:213
+msgid "Is filterable"
 msgstr "Фильтрующийся"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:429
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:434
 #, python-format
 msgid "Modified columns: %s"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:434
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:439
 #, python-format
 msgid "Removed columns: %s"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:439
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:444
 #, python-format
 msgid "New columns added: %s"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:442
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:447
 msgid "Metadata has been synced"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:477
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:482
 #, python-format
 msgid "Column name [%s] is duplicated"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:483
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:488
 #, python-format
 msgid "Metric name [%s] is duplicated"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:492
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:497
 #, python-format
 msgid "Calculated column [%s] requires an expression"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:507
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:512
 msgid "Basic"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:520
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:525
 msgid "Default URL"
 msgstr "URL базы данных"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:521
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:526
 msgid "Default URL to redirect to when accessing from the dataset list page"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:528
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:533
 msgid "Autocomplete filters"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:529
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:534
 msgid "Whether to populate autocomplete filters options"
 msgstr "Включить фильтр на определенный интервал/диапазон времени"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:535
-msgid "Autocomplete Query Predicate"
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:540
+msgid "Autocomplete query predicate"
 msgstr "Извлечь Значения Предиката"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:536
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:541
 msgid ""
 "When using \"Autocomplete filters\", this can be used to improve performance "
 "of the query fetching the values. Use this option to apply a predicate "
@@ -5330,114 +5318,128 @@ msgid ""
 "filter on a partitioned or indexed time-related field."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:550
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:555
 msgid ""
 "Extra data to specify table metadata. Currently supports certification data "
 "of the format: `{ \"certification\": { \"certified_by\": \"Data Platform Team"
 "\", \"details\": \"This table is the source of truth.\" } }`."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:568
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:573
 msgid "Owners of the dataset"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:598
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:602
+#: superset-frontend/src/explore/components/PropertiesModal.tsx:238
+msgid "Cache timeout"
+msgstr "Тайм-аут Кэша"
+
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:603
 msgid "The duration of time in seconds before the cache is invalidated"
 msgstr "Количество секунд до истечения срока действия кэша"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:605
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:610
 msgid "Hours offset"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:627
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:632
 msgid "Spatial"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:679
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:684
 msgid "virtual"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:700
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:707
-msgid "dataset name"
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:705
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:712
+msgid "Dataset name"
 msgstr "название источника данных"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:715
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:720
 msgid ""
 "When specifying SQL, the datasource acts as a view. Superset will use this "
 "statement as a subquery while grouping and filtering on the generated parent "
 "queries."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:738
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:743
 msgid "The JSON metric or post aggregation definition."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:753
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:758
 msgid "Physical"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:783
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:788
 msgid ""
 "The pointer to a physical table (or view). Keep in mind that the chart is "
 "associated to this Superset logical table, and this logical table points the "
 "physical table referenced here."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:802
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:807
 msgid "Click the lock to make changes."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:805
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:810
 msgid "Click the lock to prevent further changes."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:863
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:860
+msgid "D3 format"
+msgstr "Формат D3"
+
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:866
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:874
+msgid "Warning message"
+msgstr "Предупреждающее сообщение"
+
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:868
 msgid "Warning message to display in the metric selector"
 msgstr ""
 "Отображение интерактивного слайдера для выбора на графике определенного "
 "временного диапазона."
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:874
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:882
-msgid "Certified By"
-msgstr ""
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:879
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:887
+msgid "Certified by"
+msgstr "Изменено"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:876
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:881
 msgid "Person or group that has certified this metric"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:887
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:893
-msgid "Certification Details"
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:892
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:898
+msgid "Certification details"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:889
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:894
 msgid "Details of the certification"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:957
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:963
 msgid "Be careful."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:958
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:964
 msgid ""
 "Changing these settings will affect all charts using this dataset, including "
 "charts owned by other people."
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:970
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:976
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1121
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:267
 msgid "Source"
 msgstr "Источник"
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:1005
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:1009
 msgid "Sync columns from source"
 msgstr ""
 
-#: superset-frontend/src/datasource/DatasourceEditor.jsx:1014
-msgid "Calculated Columns"
+#: superset-frontend/src/datasource/DatasourceEditor.jsx:1027
+msgid "Calculated columns"
 msgstr "Дубликаты"
 
 #: superset-frontend/src/datasource/DatasourceModal.tsx:114
@@ -5467,10 +5469,11 @@ msgid "Edit Dataset "
 msgstr "Редактировать Базу Данных"
 
 #: superset-frontend/src/datasource/DatasourceModal.tsx:193
-msgid "Use Legacy Datasource Editor"
+msgid "Use legacy datasource editor"
 msgstr ""
 
 #: superset-frontend/src/explore/constants.js:80
+#: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:389
 msgid "Time range"
 msgstr "Период времени"
 
@@ -5507,7 +5510,7 @@ msgstr "Выберите один или несколько срезов в по
 msgid "One or many metrics to display"
 msgstr "Выберите один или несколько показателей для отображения"
 
-#: superset-frontend/src/explore/components/ExploreViewContainer.jsx:416
+#: superset-frontend/src/explore/components/ExploreViewContainer.jsx:419
 #: superset-frontend/src/explore/controls.jsx:195
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:233
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:436
@@ -5516,6 +5519,7 @@ msgid "Dataset"
 msgstr "БД"
 
 #: superset-frontend/src/explore/controls.jsx:206
+#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:220
 msgid "Visualization type"
 msgstr "Тип диаграммы"
 
@@ -5679,10 +5683,6 @@ msgid ""
 "is forced to `.1%`"
 msgstr ""
 
-#: superset-frontend/src/explore/controls.jsx:482
-msgid "Color scheme"
-msgstr "Цветовая схема"
-
 #: superset-frontend/src/explore/controls.jsx:486
 msgid "The color scheme for rendering chart"
 msgstr "Цветовая схема, применяемая для раскрашивания диаграммы"
@@ -5690,100 +5690,6 @@ msgstr "Цветовая схема, применяемая для раскра�
 #: superset-frontend/src/explore/controls.jsx:492
 msgid "Color map"
 msgstr "Цвет"
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopover.jsx:159
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:329
-msgid "Simple"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopover.jsx:176
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:382
-msgid "Custom SQL"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:267
-#: superset-frontend/src/explore/components/controls/SelectControl.jsx:237
-#, python-format
-msgid "%s option(s)"
-msgstr "%s параметр(ы)"
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:282
-msgid "No such column found. To filter on a metric, try the Custom SQL tab."
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:291
-#, python-format
-msgid "%s column(s) and metric(s)"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:301
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:265
-#, python-format
-msgid "%s column(s)"
-msgstr "Список столбцов"
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:302
-msgid "To filter on a metric, use Custom SQL tab."
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:307
-#, python-format
-msgid "%s operators(s)"
-msgstr "%s параметр(ы)"
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:326
-msgid "type a value here"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:385
-msgid "Filter value (case sensitive)"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSqlTabContent.jsx:92
-msgid "choose WHERE or HAVING..."
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSqlTabContent.jsx:127
-msgid "filters by columns"
-msgstr "Фильтруемые срезы"
-
-#: superset-frontend/src/explore/components/AdhocFilterEditPopoverSqlTabContent.jsx:129
-msgid "filters by metrics"
-msgstr "Список показателей"
-
-#: superset-frontend/src/explore/components/AdhocFilterPopoverTrigger.tsx:94
-msgid ""
-"\n"
-"                This filter was inherited from the dashboard's context.\n"
-"                It won't be saved when saving the chart.\n"
-"              "
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:276
-#, python-format
-msgid "%s aggregates(s)"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:285
-#, python-format
-msgid "%s saved metric(s)"
-msgstr ""
-
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:332
-msgid "column"
-msgstr "Колонка"
-
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:348
-msgid "aggregate"
-msgstr "Сумма"
-
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:359
-msgid "Saved"
-msgstr "Сохранить"
-
-#: superset-frontend/src/explore/components/AdhocMetricEditPopover.jsx:362
-msgid "Saved metric"
-msgstr "Выбрать показатель"
 
 #: superset-frontend/src/explore/components/ControlHeader.jsx:56
 #: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:310
@@ -5799,7 +5705,7 @@ msgstr ""
 msgid "Changing this control takes effect instantly"
 msgstr "Изменение этого элемента применяется сразу"
 
-#: superset-frontend/src/explore/components/ControlPanelsContainer.jsx:249
+#: superset-frontend/src/explore/components/ControlPanelsContainer.jsx:251
 msgid "Customize"
 msgstr ""
 
@@ -5807,20 +5713,16 @@ msgstr ""
 msgid "rows retrieved"
 msgstr ""
 
-#: superset-frontend/src/explore/components/DataTablesPane.tsx:130
+#: superset-frontend/src/explore/components/DataTablesPane.tsx:131
 #: superset-frontend/src/explore/components/DisplayQueryButton.jsx:98
 msgid "Sorry, An error occurred"
 msgstr ""
 
-#: superset-frontend/src/explore/components/DataTablesPane.tsx:216
+#: superset-frontend/src/explore/components/DataTablesPane.tsx:217
 msgid "No data"
 msgstr "Метаданные"
 
-#: superset-frontend/src/explore/components/DataTablesPane.tsx:257
-msgid "View results"
-msgstr "посмотреть результаты"
-
-#: superset-frontend/src/explore/components/DataTablesPane.tsx:260
+#: superset-frontend/src/explore/components/DataTablesPane.tsx:261
 msgid "View samples"
 msgstr ""
 
@@ -5876,12 +5778,12 @@ msgstr "%s - без названия"
 msgid "Edit chart properties"
 msgstr "Редактирование свойств"
 
-#: superset-frontend/src/explore/components/ExploreViewContainer.jsx:342
+#: superset-frontend/src/explore/components/ExploreViewContainer.jsx:345
 msgid "Control labeled "
 msgstr ""
 
-#: superset-frontend/src/explore/components/ExploreViewContainer.jsx:446
-msgid "Open Datasource Tab"
+#: superset-frontend/src/explore/components/ExploreViewContainer.jsx:449
+msgid "Open Datasource tab"
 msgstr "Название таблицы"
 
 #: superset-frontend/src/explore/components/PropertiesModal.tsx:68
@@ -5925,37 +5827,33 @@ msgstr ""
 msgid "Please enter a chart name"
 msgstr "Введите имя отчёта"
 
-#: superset-frontend/src/explore/components/SaveModal.tsx:165
-msgid "Save Chart"
+#: superset-frontend/src/explore/components/SaveModal.tsx:170
+msgid "Save chart"
 msgstr "Круговая диаграмма"
 
-#: superset-frontend/src/explore/components/SaveModal.tsx:180
+#: superset-frontend/src/explore/components/SaveModal.tsx:185
 msgid "Save & go to dashboard"
 msgstr "Сохранить и перейти к отчёту"
 
-#: superset-frontend/src/explore/components/SaveModal.tsx:191
+#: superset-frontend/src/explore/components/SaveModal.tsx:196
 msgid "Save as new chart"
 msgstr "Сохранить отчёт"
 
-#: superset-frontend/src/explore/components/SaveModal.tsx:220
+#: superset-frontend/src/explore/components/SaveModal.tsx:225
 msgid "Save (Overwrite)"
 msgstr "Сохраненные запросы"
 
-#: superset-frontend/src/explore/components/SaveModal.tsx:230
+#: superset-frontend/src/explore/components/SaveModal.tsx:235
 msgid "Save as ..."
 msgstr "Сохранить как"
 
-#: superset-frontend/src/explore/components/SaveModal.tsx:235
+#: superset-frontend/src/explore/components/SaveModal.tsx:240
 msgid "Chart name"
 msgstr "Тип графика"
 
-#: superset-frontend/src/explore/components/SaveModal.tsx:247
+#: superset-frontend/src/explore/components/SaveModal.tsx:252
 msgid "Add to dashboard"
 msgstr "Добавить в новый отчёт"
-
-#: superset-frontend/src/explore/components/controls/AdhocFilterControl.jsx:361
-msgid "Add filter"
-msgstr "Добавить фильтр"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:601
 msgid "Display configuration"
@@ -5978,11 +5876,11 @@ msgid "Color"
 msgstr "Цвет"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:651
-msgid "Line Width"
+msgid "Line width"
 msgstr "Толщина линии"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:701
-msgid "Layer Configuration"
+msgid "Layer configuration"
 msgstr "Показать конфигурацию источника данных"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:702
@@ -5995,20 +5893,30 @@ msgid "Mandatory"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:714
-msgid "Hide Layer"
-msgstr ""
+msgid "Hide layer"
+msgstr "Скрыть панель инструментов"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:720
-msgid "Choose the Annotation Layer Type"
+msgid "Choose the annotation layer type"
 msgstr "Добавить слой аннотации"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:721
-msgid "Annotation Layer Type"
+msgid "Annotation layer type"
 msgstr "Слои аннотаций"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayer.jsx:753
 msgid "Remove"
 msgstr ""
+
+#: superset-frontend/src/explore/components/controls/AnnotationLayerControl.jsx:166
+msgid "Edit annotation layer"
+msgstr "Добавить слой аннотации"
+
+#: superset-frontend/src/explore/components/controls/AnnotationLayerControl.jsx:191
+#: superset-frontend/src/explore/components/controls/AnnotationLayerControl.jsx:203
+#: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayerModal.tsx:219
+msgid "Add annotation layer"
+msgstr "Добавить слой аннотации"
 
 #: superset-frontend/src/explore/components/controls/BoundsControl.jsx:73
 msgid "`Min` value should be numeric or empty"
@@ -6027,7 +5935,7 @@ msgid "Max"
 msgstr "Максимум"
 
 #: superset-frontend/src/explore/components/controls/DatasourceControl.jsx:159
-msgid "Edit Dataset"
+msgid "Edit dataset"
 msgstr "Редактировать Базу Данных"
 
 #: superset-frontend/src/explore/components/controls/DatasourceControl.jsx:163
@@ -6055,7 +5963,7 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:184
-msgid "Sort Metric"
+msgid "Sort metric"
 msgstr "Показать показатель"
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:185
@@ -6063,16 +5971,12 @@ msgid "Metric to sort the results by"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:204
-msgid "Sort Ascending"
+msgid "Sort ascending"
 msgstr "Сортировать"
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:205
 msgid "Check for sorting ascending"
 msgstr "Сортировка по убыванию или по возрастанию"
-
-#: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:215
-msgid "Allow Multiple Selections"
-msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:217
 msgid ""
@@ -6080,7 +5984,7 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:231
-msgid "Search All Filter Options"
+msgid "Search all filter options"
 msgstr "Поиск / Фильтр"
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:232
@@ -6096,12 +6000,8 @@ msgid "User must select a value for this filter"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl.jsx:281
-msgid "Filter Configuration"
+msgid "Filter configuration"
 msgstr "Фильтруемые срезы"
-
-#: superset-frontend/src/explore/components/controls/MetricsControl.jsx:383
-msgid "Add metric"
-msgstr "Добавить показатель"
 
 #: superset-frontend/src/explore/components/controls/SelectAsyncControl.jsx:45
 msgid "Error while fetching data"
@@ -6111,6 +6011,12 @@ msgstr "Возникла ошибка при получение данных"
 #: superset-frontend/src/visualizations/FilterBox/FilterBox.jsx:404
 msgid "No results found"
 msgstr "Записи не найдены"
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:267
+#: superset-frontend/src/explore/components/controls/SelectControl.jsx:237
+#, python-format
+msgid "%s option(s)"
+msgstr "%s параметр(ы)"
 
 #: superset-frontend/src/explore/components/controls/SpatialControl.jsx:82
 msgid "Invalid lat/long configuration."
@@ -6150,7 +6056,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/TimeSeriesColumnControl.jsx:48
 #: superset-frontend/src/explore/controlPanels/TimeTable.js:38
-msgid "Time Series Columns"
+msgid "Time series columns"
 msgstr "Столбцы Временных Рядов"
 
 #: superset-frontend/src/explore/components/controls/VizTypeControl.jsx:105
@@ -6191,7 +6097,7 @@ msgid "Edit time range"
 msgstr "Изменить параметры шаблона"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/frame/AdvancedFrame.tsx:51
-msgid "Configure Advanced Time Range"
+msgid "Configure advanced time range"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/frame/AdvancedFrame.tsx:52
@@ -6213,8 +6119,8 @@ msgid "Configure Time Range: Last..."
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/frame/CustomFrame.tsx:121
-msgid "Configure Custom Time Range"
-msgstr ""
+msgid "Configure custom time range"
+msgstr "Изменить параметры шаблона"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/frame/CustomFrame.tsx:151
 #: superset-frontend/src/explore/components/controls/DateFilterControl/frame/CustomFrame.tsx:202
@@ -6222,7 +6128,7 @@ msgid "Relative quantity"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/frame/CustomFrame.tsx:229
-msgid "ANCHOR TO"
+msgid "Anchor to"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/frame/CustomFrame.tsx:238
@@ -6233,13 +6139,109 @@ msgstr ""
 msgid "Date/Time"
 msgstr "Формат даты"
 
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopover.jsx:159
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:367
+msgid "Simple"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopover.jsx:176
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:399
+msgid "Custom SQL"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:282
+msgid "No such column found. To filter on a metric, try the Custom SQL tab."
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:291
+#, python-format
+msgid "%s column(s) and metric(s)"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:301
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:286
+#, python-format
+msgid "%s column(s)"
+msgstr "Список столбцов"
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:302
+msgid "To filter on a metric, use Custom SQL tab."
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:307
+#, python-format
+msgid "%s operator(s)"
+msgstr "%s параметр(ы)"
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:326
+msgid "Type a value here"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent.jsx:385
+msgid "Filter value (case sensitive)"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent.jsx:92
+msgid "choose WHERE or HAVING..."
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent.jsx:127
+msgid "Filters by columns"
+msgstr "Фильтруемые срезы"
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent.jsx:129
+msgid "Filters by metrics"
+msgstr "Список показателей"
+
+#: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger.tsx:94
+msgid ""
+"\n"
+"                This filter was inherited from the dashboard's context.\n"
+"                It won't be saved when saving the chart.\n"
+"              "
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:297
+#, python-format
+msgid "%s aggregates(s)"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:306
+#, python-format
+msgid "%s saved metric(s)"
+msgstr ""
+
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:346
+msgid "Saved"
+msgstr "Сохранить"
+
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:349
+msgid "Saved metric"
+msgstr "Выбрать показатель"
+
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:370
+msgid "column"
+msgstr "Колонка"
+
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover.jsx:386
+msgid "aggregate"
+msgstr "Сумма"
+
+#: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle.jsx:73
+msgid "My metric"
+msgstr "Показатель"
+
+#: superset-frontend/src/explore/components/controls/MetricControl/MetricsControl.jsx:402
+msgid "Add metric"
+msgstr "Добавить показатель"
+
 #: superset-frontend/src/explore/controlPanels/Separator.js:25
 #: superset-frontend/src/explore/controlPanels/Separator.js:46
 msgid "Code"
 msgstr "Редактор"
 
 #: superset-frontend/src/explore/controlPanels/Separator.js:32
-msgid "Markup Type"
+msgid "Markup type"
 msgstr "Тип Разметки"
 
 #: superset-frontend/src/explore/controlPanels/Separator.js:37
@@ -6281,7 +6283,7 @@ msgstr ""
 "В этом разделе можно установить параметры диаграммы, связанные с временем"
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:31
-msgid "Chart Type"
+msgid "Chart type"
 msgstr "Тип графика"
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:41
@@ -6301,7 +6303,7 @@ msgid "The number of seconds before expiring the cache"
 msgstr "Количество секунд до истечения срока действия кэша"
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:59
-msgid "URL Parameters"
+msgid "URL parameters"
 msgstr "Параметры"
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:61
@@ -6317,11 +6319,11 @@ msgid "Time range endpoints (SIP-15)"
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:90
-msgid "Annotations and Layers"
+msgid "Annotations and layers"
 msgstr "Аннотация"
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:124
-msgid "Sort Descending"
+msgid "Sort descending"
 msgstr "Сортировать"
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:126
@@ -6339,7 +6341,7 @@ msgstr ""
 "проценты."
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:143
-msgid "Advanced Analytics"
+msgid "Advanced analytics"
 msgstr "Расширенный анализ"
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:145
@@ -6351,11 +6353,11 @@ msgstr ""
 "аналитическую пост-обработку результатов запроса"
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:151
-msgid "Rolling Window"
+msgid "Rolling window"
 msgstr "Rolling"
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:157
-msgid "Rolling Function"
+msgid "Rolling function"
 msgstr "Rolling"
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:166
@@ -6379,7 +6381,7 @@ msgstr ""
 "которому применяется функция агрегации."
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:188
-msgid "Min Periods"
+msgid "Min periods"
 msgstr "HIde Periods"
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:190
@@ -6395,11 +6397,11 @@ msgstr ""
 "происходящее в течение первых 6 периодов."
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:200
-msgid "Time Comparison"
+msgid "Time comparison"
 msgstr "Столбец с датой"
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:208
-msgid "Time Shift"
+msgid "Time shift"
 msgstr "Временной сдвиг"
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:219
@@ -6421,7 +6423,7 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:247
-msgid "Python Functions"
+msgid "Python functions"
 msgstr "Функция агрегации"
 
 #: superset-frontend/src/explore/controlPanels/sections.jsx:256
@@ -6449,11 +6451,11 @@ msgid "Favorites"
 msgstr "Избранное"
 
 #: superset-frontend/src/profile/components/App.tsx:62
-msgid "Created Content"
+msgid "Created content"
 msgstr "Созданный контент"
 
 #: superset-frontend/src/profile/components/App.tsx:76
-msgid "Recent Activity"
+msgid "Recent activity"
 msgstr "Последние действия"
 
 #: superset-frontend/src/profile/components/App.tsx:90
@@ -6554,16 +6556,16 @@ msgid "There was an issue deleting the selected %s: %s"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:213
-msgid "Last Run"
+msgid "Last run"
 msgstr "Последнее изменение"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:245
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1331
-msgid "Notification Method"
-msgstr ""
+msgid "Notification method"
+msgstr "Добавить слой аннотации"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:292
-msgid "Execution Log"
+msgid "Execution log"
 msgstr "Журнал Действий"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:320
@@ -6587,7 +6589,7 @@ msgstr "Действия"
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:472
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:468
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:133
-msgid "Bulk Select"
+msgid "Bulk select"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:361
@@ -6605,7 +6607,7 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:251
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:380
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:264
-msgid "Created By"
+msgid "Created by"
 msgstr "Дата создания"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:377
@@ -6639,6 +6641,10 @@ msgstr ""
 msgid "${AlertState.grace}"
 msgstr ""
 
+#: superset-frontend/src/views/CRUD/alert/AlertList.tsx:411
+msgid "Alerts & reports"
+msgstr "Область просмотра"
+
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:421
 msgid "Reports"
 msgstr "Область просмотра"
@@ -6656,8 +6662,12 @@ msgstr "Удалить"
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:460
 #: superset-frontend/src/views/CRUD/annotation/AnnotationList.tsx:305
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:361
+#: superset-frontend/src/views/CRUD/chart/ChartCard.tsx:72
+#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:297
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:550
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:325
+#: superset-frontend/src/views/CRUD/dashboard/DashboardCard.tsx:94
+#: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:283
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:501
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:581
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:435
@@ -6686,15 +6696,15 @@ msgid ">= (Larger or equal)"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:72
-msgid "== (Is Equal)"
+msgid "== (Is equal)"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:76
-msgid "!= (Is Not Equal)"
+msgid "!= (Is not equal)"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:80
-msgid "Not Null"
+msgid "Not null"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:91
@@ -6740,16 +6750,16 @@ msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1063
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1071
-msgid "Report Name"
+msgid "Report name"
 msgstr "Имя Шаблона"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1063
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1071
-msgid "Alert Name"
+msgid "Alert name"
 msgstr "Имя Таблицы"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1117
-msgid "Alert Condition"
+msgid "Alert condition"
 msgstr "Тестовое соединение"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1161
@@ -6763,23 +6773,23 @@ msgid "Value"
 msgstr "Подписи"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1213
-msgid "Report Schedule"
-msgstr ""
+msgid "Report schedule"
+msgstr "Область просмотра"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1214
-msgid "Alert Condition Schedule"
-msgstr ""
+msgid "Alert condition schedule"
+msgstr "Тестовое соединение"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1224
-msgid "Schedule Settings"
+msgid "Schedule settings"
 msgstr "Настройки Geojson "
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1228
-msgid "Log Retention"
+msgid "Log retention"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1252
-msgid "Working Timeout"
+msgid "Working timeout"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1260
@@ -6788,11 +6798,11 @@ msgid "Time in seconds"
 msgstr "10 секунд"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1267
-msgid "Grace Period"
+msgid "Grace period"
 msgstr "Период"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1282
-msgid "Message Content"
+msgid "Message content"
 msgstr "Созданный контент"
 
 #: superset-frontend/src/views/CRUD/alert/ExecutionLog.tsx:63
@@ -6809,48 +6819,52 @@ msgid "Scheduled at"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/ExecutionLog.tsx:108
-msgid "Start At"
+msgid "Start at"
 msgstr "Время начала"
 
 #: superset-frontend/src/views/CRUD/alert/ExecutionLog.tsx:118
 msgid "Duration"
 msgstr "Описание"
 
+#: superset-frontend/src/views/CRUD/alert/ExecutionLog.tsx:127
+msgid "Error message"
+msgstr "Предупреждающее сообщение"
+
 #: superset-frontend/src/views/CRUD/alert/ExecutionLog.tsx:139
 msgid "${alertResource?.type}"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertReportCronScheduler.tsx:77
-msgid "CRON Expression"
+msgid "CRON expression"
 msgstr "Выражение SQL"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:62
-msgid "Report Sent"
-msgstr ""
+msgid "Report sent"
+msgstr "Область просмотра"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:63
-msgid "Alert Triggered, Notification Sent"
-msgstr ""
+msgid "Alert triggered, notification sent"
+msgstr "Добавить слой аннотации"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:69
-msgid "Report Sending"
+msgid "Report sending"
 msgstr "Сортировать"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:70
-msgid "Alert Running"
-msgstr ""
+msgid "Alert running"
+msgstr "Тестовое соединение"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:76
-msgid "Report Failed"
-msgstr ""
+msgid "Report failed"
+msgstr "Имя Шаблона"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:77
-msgid "Alert Failed"
-msgstr ""
+msgid "Alert failed"
+msgstr "Имя Таблицы"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:82
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:92
-msgid "Nothing Triggered"
+msgid "Nothing triggered"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:87
@@ -6875,8 +6889,13 @@ msgstr "Аннотации"
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr ""
 
+#: superset-frontend/src/views/CRUD/annotation/AnnotationList.tsx:180
+#: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:265
+msgid "Edit annotation"
+msgstr "Аннотации"
+
 #: superset-frontend/src/views/CRUD/annotation/AnnotationList.tsx:187
-msgid "Delete Annotation"
+msgid "Delete annotation"
 msgstr "Аннотации"
 
 #: superset-frontend/src/views/CRUD/annotation/AnnotationList.tsx:208
@@ -6905,8 +6924,12 @@ msgstr "Аннотации"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr ""
 
+#: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:265
+msgid "Add annotation"
+msgstr "Добавить слой аннотации"
+
 #: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:274
-msgid "annotation name"
+msgid "Annotation name"
 msgstr "Слои аннотаций"
 
 #: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:286
@@ -6914,7 +6937,7 @@ msgid "date"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:307
-msgid "Additional Information"
+msgid "Additional information"
 msgstr "Дополнительные метаданные"
 
 #: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:314
@@ -6922,30 +6945,40 @@ msgstr "Дополнительные метаданные"
 msgid "Description (this can be seen in the list)"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:319
-msgid "json metadata"
-msgstr "Обновить метаданные столбцов"
-
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayerModal.tsx:107
 msgid "annotation_layer"
 msgstr "Слои аннотаций"
 
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayerModal.tsx:218
-msgid "Edit Annotation Layer Properties"
+msgid "Edit annotation layer properties"
 msgstr "Слои аннотаций"
 
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayerModal.tsx:228
-msgid "annotation layer name"
+msgid "Annotation layer name"
 msgstr "Слои аннотаций"
 
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:67
-msgid "annotation layers"
+#: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:339
+msgid "Annotation layers"
 msgstr "Слои аннотаций"
 
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:112
 #, python-format
 msgid "There was an issue deleting the selected layers: %s"
 msgstr ""
+
+#: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:181
+#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:257
+#: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:158
+#: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:279
+msgid "Last modified"
+msgstr "Изменено"
+
+#: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:206
+#: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:184
+#: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:285
+msgid "Created on"
+msgstr "Дата создания"
 
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:231
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:210
@@ -6959,7 +6992,7 @@ msgstr "Загрузить шаблон"
 
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:266
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:323
-msgid "Annotation Layer"
+msgid "Annotation layer"
 msgstr "Слои аннотаций"
 
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:296
@@ -6983,13 +7016,6 @@ msgstr "Удалить все?"
 
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:362
 msgid "Are you sure you want to delete the selected layers?"
-msgstr ""
-
-#: superset-frontend/src/views/CRUD/chart/ChartCard.tsx:72
-#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:297
-#: superset-frontend/src/views/CRUD/dashboard/DashboardCard.tsx:94
-#: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:283
-msgid "Please Confirm"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/chart/ChartCard.tsx:75
@@ -7028,7 +7054,7 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:247
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:220
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:292
-msgid "Modified By"
+msgid "Modified by"
 msgstr "Изменено"
 
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:370
@@ -7048,7 +7074,7 @@ msgid "An error occurred while fetching chart created by values: %s"
 msgstr "Произошла ошибка при создании источника данных"
 
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:412
-msgid "Viz Type"
+msgid "Viz type"
 msgstr "Тип"
 
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:444
@@ -7083,11 +7109,15 @@ msgid "css_template"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplateModal.tsx:236
-msgid "Edit CSS Template Properties"
+msgid "Edit CSS template properties"
 msgstr "Редактирование свойств"
 
+#: superset-frontend/src/views/CRUD/csstemplates/CssTemplateModal.tsx:237
+msgid "Add CSS template"
+msgstr "Шаблоны CSS"
+
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplateModal.tsx:246
-msgid "css template name"
+msgid "CSS template name"
 msgstr "Имя Шаблона"
 
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplateModal.tsx:258
@@ -7095,7 +7125,8 @@ msgid "css"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:66
-msgid "css templates"
+#: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:240
+msgid "CSS templates"
 msgstr "Шаблоны CSS"
 
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:115
@@ -7109,7 +7140,7 @@ msgid "Last modified by %s"
 msgstr "Изменено"
 
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:249
-msgid "Css Template"
+msgid "CSS template"
 msgstr "Шаблоны CSS"
 
 #: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:313
@@ -7208,7 +7239,7 @@ msgstr "Произошла ошибка при получении метадан
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:210
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:372
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:443
-msgid "Asynchronous Query Execution"
+msgid "Asynchronous query execution"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:213
@@ -7217,7 +7248,7 @@ msgid "AQE"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:228
-msgid "Allow Data Manipulation Language"
+msgid "Allow data manipulation language"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:231
@@ -7225,8 +7256,8 @@ msgid "DML"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:243
-msgid "CSV Upload"
-msgstr ""
+msgid "CSV upload"
+msgstr "Загрузить CSV"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:303
 msgid "Delete database"
@@ -7260,12 +7291,20 @@ msgstr ""
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "К сожалению, произошла ошибка при загрузке виджета:"
 
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:349
+msgid "Edit database"
+msgstr "Редактировать Базу Данных"
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:349
+msgid "Add database"
+msgstr "Добавить Базу Данных"
+
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:361
 msgid "Connection"
 msgstr "Тестовое соединение"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:369
-msgid "Database Name"
+msgid "Database name"
 msgstr "Название таблицы"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:377
@@ -7275,6 +7314,10 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:393
 msgid "dialect+driver://username:password@host:port/database"
 msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:399
+msgid "Test connection"
+msgstr "Тестовое соединение"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:403
 msgid "Refer to the "
@@ -7292,6 +7335,11 @@ msgstr ""
 msgid "Performance"
 msgstr ""
 
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:417
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:423
+msgid "Chart cache timeout"
+msgstr "Тайм-аут Кэша"
+
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:445
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
@@ -7301,7 +7349,7 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:455
-msgid "SQL Lab Settings"
+msgid "SQL Lab settings"
 msgstr "Лаборатория"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:507
@@ -7310,6 +7358,15 @@ msgstr ""
 "Позволяет пользователям запускать инструкции (UPDATE, DELETE, CREATE, …) без "
 "SELECT в редакторе SQL"
 
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:521
+msgid "Allow multi schema metadata fetch"
+msgstr ""
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:533
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:539
+msgid "CTAS schema"
+msgstr "Схема по умолчанию"
+
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:544
 msgid ""
 "When allowing CREATE TABLE AS option in SQL Lab, this option forces the "
@@ -7317,6 +7374,12 @@ msgid ""
 msgstr ""
 "При разрешении опции CREATE TABLE AS в редакторе SQL эта опция создаст "
 "таблицу в выбранной схеме"
+
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:553
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:558
+#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:642
+msgid "Secure extra"
+msgstr "Безопасность"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:568
 msgid "JSON string containing additional connection configuration."
@@ -7327,11 +7390,6 @@ msgid ""
 "This is used to provide connection information for systems like Hive, "
 "Presto, and BigQuery, which do not conform to the username:password syntax "
 "normally used by SQLAlchemy."
-msgstr ""
-
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:582
-#: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:587
-msgid "Root Certificate"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:592
@@ -7359,7 +7417,7 @@ msgstr ""
 "пользователя можно через свойство hive.server2.proxy.user."
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:628
-msgid "Allow Data Upload"
+msgid "Allow data upload"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal.tsx:630
@@ -7413,7 +7471,7 @@ msgid "Error while saving dataset: %s"
 msgstr "Ошибка при получении списка баз данных"
 
 #: superset-frontend/src/views/CRUD/data/dataset/AddDatasetModal.tsx:117
-msgid "Add Dataset"
+msgid "Add dataset"
 msgstr "Добавить Базу Данных"
 
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:53
@@ -7441,11 +7499,11 @@ msgid "An error occurred while fetching dataset related data: %s"
 msgstr "Произошла ошибка при получении метаданных из таблицы"
 
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:204
-msgid "Physical Dataset"
-msgstr ""
+msgid "Physical dataset"
+msgstr "Выберите источник данных"
 
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:214
-msgid "Virtual Dataset"
+msgid "Virtual dataset"
 msgstr "Редактировать Базу Данных"
 
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:399
@@ -7536,7 +7594,7 @@ msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:225
 #: superset-frontend/src/views/CRUD/data/query/QueryPreviewModal.tsx:147
-msgid "Tab Name"
+msgid "Tab name"
 msgstr "Имя Таблицы"
 
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:257
@@ -7558,18 +7616,15 @@ msgstr "Открыть в SQL редакторе"
 msgid "An error occurred while fetching database values: %s"
 msgstr "Произошла ошибка при создании источника данных"
 
-#: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:389
-msgid "Time Range"
-msgstr "Период времени"
-
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:395
 msgid "Search by query text"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/query/QueryPreviewModal.tsx:119
+#: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:315
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryPreviewModal.tsx:98
-msgid "Query Preview"
-msgstr "Запросы"
+msgid "Query preview"
+msgstr "Предпросмотр данных"
 
 #: superset-frontend/src/views/CRUD/data/query/QueryPreviewModal.tsx:127
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryPreviewModal.tsx:106
@@ -7594,6 +7649,11 @@ msgstr "Скопировать запрос"
 msgid "Executed query"
 msgstr "Выполнить выбранный запрос"
 
+#: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:87
+#: superset-frontend/src/views/CRUD/welcome/Welcome.tsx:145
+msgid "Saved queries"
+msgstr "Сохраненные запросы"
+
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:116
 #, python-format
 msgid "There was an issue previewing the selected query %s"
@@ -7607,10 +7667,6 @@ msgstr "Копирование завершено"
 #, python-format
 msgid "There was an issue deleting the selected queries: %s"
 msgstr ""
-
-#: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:315
-msgid "Query preview"
-msgstr "Предпросмотр данных"
 
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:323
 msgid "Edit query"
@@ -7639,7 +7695,7 @@ msgid "Are you sure you want to delete the selected queries?"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryPreviewModal.tsx:126
-msgid "Query Name"
+msgid "Query name"
 msgstr "Страна"
 
 #: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:110
@@ -7680,10 +7736,6 @@ msgstr ""
 msgid "Recently edited charts, dashboards, and saved queries will appear here"
 msgstr ""
 
-#: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:114
-msgid "SQL QUERY"
-msgstr ""
-
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:115
 msgid ""
 "${tableName\n"
@@ -7698,8 +7750,8 @@ msgid "You don't have any favorites yet!"
 msgstr "У вас нет прав на "
 
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:147
-msgid "SQL LAB QUERIES"
-msgstr ""
+msgid "SQL Lab queries"
+msgstr "Лаборатория"
 
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:148
 msgid "${tableName}"
@@ -7732,11 +7784,11 @@ msgid "Type or Select [%s]"
 msgstr "Выбрать [%s]"
 
 #: superset-frontend/src/visualizations/FilterBox/FilterBoxChartPlugin.js:25
-msgid "Filter Box"
+msgid "Filter box"
 msgstr "Фильтр"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:27
-msgid "Filters Configuration"
+msgid "Filters configuration"
 msgstr "Изменение настроек таблицы"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:36
@@ -7744,7 +7796,7 @@ msgid "Filter configuration for the filter box"
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:49
-msgid "Date Filter"
+msgid "Date filter"
 msgstr "Временной фильтр"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:51
@@ -7752,7 +7804,7 @@ msgid "Whether to include a time filter"
 msgstr "Включить фильтр на определенный интервал/диапазон времени"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:58
-msgid "Instant Filtering"
+msgid "Instant filtering"
 msgstr "Мгновенная Фильтрация"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:61
@@ -7762,39 +7814,39 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:72
-msgid "Show SQL Granularity Dropdown"
+msgid "Show SQL granularity dropdown"
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:74
-msgid "Check to include SQL Granularity dropdown"
+msgid "Check to include SQL granularity dropdown"
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:81
-msgid "Show SQL Time Column"
-msgstr ""
+msgid "Show SQL time column"
+msgstr "Показать колонку Druid"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:83
-msgid "Check to include Time Column dropdown"
-msgstr ""
+msgid "Check to include time column dropdown"
+msgstr "Включить фильтр на определенный интервал/диапазон времени"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:92
-msgid "Show Druid Granularity Dropdown"
+msgid "Show Druid granularity dropdown"
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:94
-msgid "Check to include Druid Granularity dropdown"
+msgid "Check to include Druid granularity dropdown"
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:101
-msgid "Show Druid Time Origin"
-msgstr ""
+msgid "Show Druid time origin"
+msgstr "Показать Druid Метрики"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:103
-msgid "Check to include Time Origin dropdown"
-msgstr ""
+msgid "Check to include time origin dropdown"
+msgstr "Включить фильтр на определенный интервал/диапазон времени"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:113
-msgid "Limit Selector Values"
+msgid "Limit selector values"
 msgstr ""
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:114

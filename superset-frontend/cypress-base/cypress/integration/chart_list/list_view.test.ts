@@ -21,7 +21,6 @@ import { CHART_LIST } from './chart_list.helper';
 describe('chart list view', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.visit(CHART_LIST);
     cy.get('[data-test="list-view"]').click();
   });
@@ -47,5 +46,16 @@ describe('chart list view', () => {
       .find('[data-test="table-row-cell"]')
       .find('[data-test="cell-text"]')
       .contains('Location of Current Developers');
+  });
+
+  it('should bulk delete correctly', () => {
+    cy.get('[data-test="listview-table"]').should('be.visible');
+    cy.get('[data-test="bulk-select"]').eq(0).click();
+    cy.get('[data-test="checkbox-off"]').eq(1).click();
+    cy.get('[data-test="checkbox-off"]').eq(2).click();
+    cy.get('[data-test="bulk-select-action"]').eq(0).click();
+    cy.get('[data-test="delete-modal-input"]').eq(0).type('DELETE');
+    cy.get('[data-test="modal-confirm-button"]').eq(0).click();
+    cy.get('[data-test="checkbox-on"]').should('not.exist');
   });
 });

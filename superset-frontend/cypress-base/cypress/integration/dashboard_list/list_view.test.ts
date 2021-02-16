@@ -21,7 +21,6 @@ import { DASHBOARD_LIST } from './dashboard_list.helper';
 describe('dashboard list view', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
     cy.visit(DASHBOARD_LIST);
     cy.get('[data-test="list-view"]').click();
   });
@@ -47,5 +46,16 @@ describe('dashboard list view', () => {
       .find('[data-test="table-row-cell"]')
       .find('[data-test="cell-text"]')
       .contains("World Bank's Data");
+  });
+
+  it('should bulk delete correctly', () => {
+    cy.get('[data-test="listview-table"]').should('be.visible');
+    cy.get('[data-test="bulk-select"]').eq(0).click();
+    cy.get('[data-test="checkbox-off"]').eq(1).click();
+    cy.get('[data-test="checkbox-off"]').eq(2).click();
+    cy.get('[data-test="bulk-select-action"]').eq(0).click();
+    cy.get('[data-test="delete-modal-input"]').eq(0).type('DELETE');
+    cy.get('[data-test="modal-confirm-button"]').eq(0).click();
+    cy.get('[data-test="checkbox-on"]').should('not.exist');
   });
 });

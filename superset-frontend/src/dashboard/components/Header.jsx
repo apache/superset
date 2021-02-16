@@ -21,7 +21,7 @@ import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { styled, CategoricalColorNamespace, t } from '@superset-ui/core';
-import { ButtonGroup } from 'react-bootstrap';
+import ButtonGroup from 'src/components/ButtonGroup';
 
 import {
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,

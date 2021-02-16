@@ -106,6 +106,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "owners.username",
         "owners.first_name",
         "owners.last_name",
+        "roles.id",
+        "roles.name",
         "changed_by_name",
         "changed_by_url",
         "changed_by.username",
@@ -142,6 +144,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "owners.username",
         "owners.first_name",
         "owners.last_name",
+        "roles.id",
+        "roles.name",
     ]
     list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
     order_columns = [
@@ -156,6 +160,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "dashboard_title",
         "slug",
         "owners",
+        "roles",
         "position_json",
         "css",
         "json_metadata",
@@ -168,6 +173,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "dashboard_title",
         "id",
         "owners",
+        "roles",
         "published",
         "slug",
         "changed_by",

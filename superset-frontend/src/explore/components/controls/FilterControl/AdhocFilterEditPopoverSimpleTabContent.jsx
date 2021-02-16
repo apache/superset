@@ -304,7 +304,11 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     }
 
     const operatorSelectProps = {
-      placeholder: t('%s operators(s)', OPERATORS_OPTIONS.length),
+      placeholder: t(
+        '%s operator(s)',
+        OPERATORS_OPTIONS.filter(op => this.isOperatorRelevant(op, subject))
+          .length,
+      ),
       // like AGGREGTES_OPTIONS, operator options are string
       value: operator,
       onChange: this.onOperatorChange,
@@ -319,7 +323,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       allowClear: true,
       showSearch: true,
       mode: MULTI_OPERATORS.has(operator) && 'tags',
-      tokenSeparators: [',', ' ', ';'],
+      tokenSeparators: [',', '\n', '\t', ';'],
       loading: this.state.loading,
       value: comparator,
       onChange: this.onComparatorChange,
@@ -337,6 +341,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
             {...this.selectProps}
             {...subjectSelectProps}
             name="filter-column"
+            getPopupContainer={triggerNode => triggerNode.parentNode}
           >
             {columns.map(column => (
               <Select.Option
@@ -355,6 +360,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
           <Select
             {...this.selectProps}
             {...operatorSelectProps}
+            getPopupContainer={triggerNode => triggerNode.parentNode}
             name="filter-operator"
           >
             {OPERATORS_OPTIONS.filter(op =>
@@ -369,7 +375,11 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
         <FormGroup data-test="adhoc-filter-simple-value">
           {MULTI_OPERATORS.has(operator) ||
           this.state.suggestions.length > 0 ? (
-            <SelectWithLabel name="filter-value" {...comparatorSelectProps}>
+            <SelectWithLabel
+              name="filter-value"
+              {...comparatorSelectProps}
+              getPopupContainer={triggerNode => triggerNode.parentNode}
+            >
               {this.state.suggestions.map(suggestion => (
                 <Select.Option value={suggestion} key={suggestion}>
                   {suggestion}

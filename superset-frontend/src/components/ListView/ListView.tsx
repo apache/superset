@@ -390,7 +390,7 @@ function ListView<T extends object = any>({
             <EmptyWrapper className={viewMode}>
               <Empty
                 image={<EmptyImage />}
-                description={emptyState.message || 'No data'}
+                description={emptyState.message || t('No Data')}
               >
                 {emptyState.slot || null}
               </Empty>

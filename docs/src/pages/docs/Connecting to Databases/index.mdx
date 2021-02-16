@@ -1,5 +1,5 @@
 ---
-name: Install Database Drivers
+name: Installing Database Drivers
 menu: Connecting to Databases
 route: /docs/databases/installing-database-drivers
 index: 0
@@ -8,15 +8,13 @@ version: 1
 
 ## Install Database Drivers
 
-Superset requires a Python database driver to be installed for each additional type of database you
-want to connect to.
+Superset requires a Python DB-API database driver and a SQLAlchemy dialect to be installed for each datastore you want to connect to.
 
-Superset interacts with the underlying databases using the provided SQL interface (often times
-through a SQLAlchemy library).
+You can read more [here](/docs/databases/dockeradddrivers) about how to install new database drivers into your Superset configuration.
 
-### Supported Databases and Dependecies
+### Supported Databases and Dependencies
 
-Superset does not ship bundled with connectivity to databases, except for Sqlite, which is part of the Python standard library. You’ll need to install the required packages for the database you want to use as your metadata database as well as the packages needed to connect to the databases you want to access through Superset.
+Superset does not ship bundled with connectivity to databases, except for SQLite, which is part of the Python standard library. You’ll need to install the required packages for the database you want to use as your metadata database as well as the packages needed to connect to the databases you want to access through Superset.
 
 A list of some of the recommended packages.
 
@@ -31,8 +29,8 @@ A list of some of the recommended packages.
 |[Apache Kylin](/docs/databases/kylin)|```pip install kylinpy```|```kylin://<username>:<password>@<hostname>:<port>/<project>?<param1>=<value1>&<param2>=<value2>```|
 |[Apache Pinot](/docs/databases/pinot)|```pip install pinotdb```|```pinot+http://CONTROLLER:5436/ query?server=http://CONTROLLER:5983/```|
 |[Apache Solr](/docs/databases/solr)|```pip install sqlalchemy-solr```|```solr://{username}:{password}@{hostname}:{port}/{server_path}/{collection}```
-|[Apache Spark SQL](/docs/databases/spark)|```pip install pyhive```|```hive://hive@{hostname}:{port}/{database}```
-|[Azure MS SQL](/docs/databases/sqlserver)||```mssql+pymssql://UserName@presetSQL:TestPassword@presetSQL.database.windows.net:1433/TestSchema```
+|[Apache Spark SQL](/docs/databases/spark-sql)|```pip install pyhive```|```hive://hive@{hostname}:{port}/{database}```
+|[Azure MS SQL](/docs/databases/sql-server)|```pip install pymssql``` |```mssql+pymssql://UserName@presetSQL:TestPassword@presetSQL.database.windows.net:1433/TestSchema```
 |[Big Query](/docs/databases/bigquery)|```pip install pybigquery```|```bigquery://{project_id}```|
 |[ClickHouse](/docs/databases/clickhouse)|```pip install sqlalchemy-clickhouse```|```clickhouse://{username}:{password}@{hostname}:{port}/{database}```|
 |[CockroachDB](/docs/databases/cockroachdb)|```pip install cockroachdb```|```cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable```|
@@ -40,6 +38,7 @@ A list of some of the recommended packages.
 |[Elasticsearch](/docs/databases/elasticsearch)|```pip install elasticsearch-dbapi```|```elasticsearch+http://{user}:{password}@{host}:9200/```|
 |[Exasol](/docs/databases/exasol)|```pip install sqlalchemy-exasol```|```exa+pyodbc://{username}:{password}@{hostname}:{port}/my_schema?CONNECTIONLCALL=en_US.UTF-8&driver=EXAODBC```|
 |[Google Sheets](/docs/databases/google-sheets)|```pip install gsheetsdb```|```gsheets://```|
+|[Hologres](/docs/databases/hologres)|```pip install psycopg2```|```postgresql+psycopg2://<UserName>:<DBPassword>@<Database Host>/<Database Name>```|
 |[IBM Db2](/docs/databases/ibm-db2)|```pip install ibm_db_sa```|```db2+ibm_db://```|
 |[MySQL](/docs/databases/mysql)|```pip install mysqlclient```|```mysql://<UserName>:<DBPassword>@<Database Host>/<Database Name>```|
 |[Oracle](/docs/databases/oracle)|```pip install cx_Oracle```|```oracle://```|
@@ -48,24 +47,21 @@ A list of some of the recommended packages.
 |[SAP Hana](/docs/databases/hana)|```pip install hdbcli sqlalchemy-hana or pip install apache-superset[hana]```|```hana://{username}:{password}@{host}:{port}```|
 |[Snowflake](/docs/databases/snowflake)|```pip install snowflake-sqlalchemy```|```snowflake://{user}:{password}@{account}.{region}/{database}?role={role}&warehouse={warehouse}```|
 |SQLite||```sqlite://```|
-|[SQL Server](/docs/databases/sqlserver)|```pip install pymssql```|```mssql://```|
+|[SQL Server](/docs/databases/sql-server)|```pip install pymssql```|```mssql://```|
 |[Teradata](/docs/databases/teradata)|```pip install sqlalchemy-teradata```|```teradata://{user}:{password}@{host}```|
 |[Vertica](/docs/databases/vertica)|```pip install sqlalchemy-vertica-python```|```vertica+vertica_python://<UserName>:<DBPassword>@<Database Host>/<Database Name>```|
 
 ***
 
-Note that many other databases are supported, the main criteria being the existence of a functional SqlAlchemy dialect and Python driver. Googling the keyword sqlalchemy in addition of a keyword that describes the database you want to connect to should get you to the right place.
+Note that many other databases are supported, the main criteria being the existence of a functional
+SQLAlchemy dialect and Python driver. Searching for the keyword "sqlalchemy + (database name)"
+should help get you to the right place.
 
 If your database or data engine isn't on the list but a SQL interface
 exists, please file an issue on the
-[Superset GitHub repo](https://github.com/apache/superset/issues), so we can work on
+[Superset GitHub repo](https://github.com/apache/superset/issues), so we can work on documenting and
 supporting it.
 
 [StackOverflow](https://stackoverflow.com/questions/tagged/apache-superset+superset) and the
-[Superset community Slack](https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LWJmOTcxYjlhZTRhYmEyYTMzOWYxOWEwMjcwZDZiNWRiNDY2NDUwNzcwMDFhNzE1ZmMxZTZlZWY0ZTQ2MzMyNTU)
+[Superset community Slack](https://join.slack.com/t/apache-superset/shared_invite/zt-l5f5e0av-fyYu8tlfdqbMdz_sPLwUqQ)
 are great places to get help with connecting to databases in Superset.
-
-In the end, you should be looking for a Python package compatible with your database. One part that
-makes database driver installation tricky is the fact that local binaries are sometimes required in
-order for them to bind properly, which means that various apt packages might need to be installed
-before pip can get things set up.

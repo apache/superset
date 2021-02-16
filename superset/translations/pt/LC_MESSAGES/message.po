@@ -783,7 +783,7 @@ msgid "Owners are invalid"
 msgstr ""
 
 #: superset/commands/exceptions.py:92
-msgid "Datasource does not exist"
+msgid "Dataset does not exist"
 msgstr "Origem de dados %(name)s já existe"
 
 #: superset/common/query_object.py:297
@@ -2363,7 +2363,7 @@ msgstr "Nome"
 
 #: superset/views/base.py:207
 #, python-format
-msgid "Datasource %(name)s already exists"
+msgid "Dataset %(name)s already exists"
 msgstr "Origem de dados %(name)s já existe"
 
 #: superset/views/base.py:227
@@ -5723,7 +5723,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:307
 #, python-format
-msgid "%s operators(s)"
+msgid "%s operator(s)"
 msgstr "Selecione operador"
 
 #: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:326
