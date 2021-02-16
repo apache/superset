@@ -51,7 +51,7 @@ spec:
         runAsUser: 0 # Needed in order to allow pip install to work in bootstrap
       {{- if .Values.supersetBeat.initContainers }}
       initContainers:
-      {{-  tpl (toYaml .Values.supersetBeat.initContainers) . | nindent 6 }}
+      {{-  tpl (toYaml .Values.supersetCeleryBeat.initContainers) . | nindent 6 }}
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
