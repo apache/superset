@@ -38,7 +38,7 @@ fi
 
 if [[ "${1}" == "worker" ]]; then
   echo "Starting Celery worker..."
-  celery worker --app=superset.tasks.celery_app:app --pool=prefork -O fair -c 2 -l DEBUG
+  celery worker --app=superset.tasks.celery_app:app --pool=prefork -O fair -c ${CELERY_WORKERS} -l DEBUG
 elif [[ "${1}" == "beat" ]]; then
   echo "Starting Celery beat..."
   celery beat --app=superset.tasks.celery_app:app -l DEBUG

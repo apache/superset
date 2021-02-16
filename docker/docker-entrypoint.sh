@@ -30,8 +30,8 @@ else
         --error-logfile '-' \
         --workers ${GUNIOCORN_WORKERS} \
         --worker-class gthread \
-        --threads 20 \
-        --timeout 60 \
+        --threads ${GUNIOCORN_THREADS} \
+        --timeout ${GUNIOCORN_TIMEOUT} \
         --limit-request-line 0 \
         --limit-request-field_size 0 \
         "${FLASK_APP}"
