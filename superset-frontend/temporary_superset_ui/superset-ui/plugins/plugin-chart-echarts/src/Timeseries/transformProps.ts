@@ -34,7 +34,7 @@ import {
 } from '@superset-ui/core';
 import { EChartsOption, SeriesOption } from 'echarts';
 import { DEFAULT_FORM_DATA, EchartsTimeseriesFormData } from './types';
-import { EchartsProps, ForecastSeriesEnum, ProphetValue } from '../types';
+import { EchartsProps, ForecastSeriesEnum, ProphetValue, LegendOrientation } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import { extractTimeseriesSeries, getChartPadding, getLegendProps } from '../utils/series';
 import { extractAnnotationLabels } from '../utils/annotation';
@@ -52,6 +52,7 @@ import {
   transformSeries,
   transformTimeseriesAnnotation,
 } from './transformers';
+import { TIMESERIES_CONSTANTS } from '../constants';
 
 export default function transformProps(chartProps: ChartProps): EchartsProps {
   const { width, height, formData, queriesData } = chartProps;
@@ -143,10 +144,15 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     grid: {
       ...defaultGrid,
       ...getChartPadding(showLegend, legendOrientation, legendMargin, {
-        top: 20,
-        bottom: zoomable ? 80 : 20,
-        left: 20,
-        right: 20,
+        top: TIMESERIES_CONSTANTS.gridOffsetTop,
+        bottom: zoomable
+          ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable
+          : TIMESERIES_CONSTANTS.gridOffsetBottom,
+        left: TIMESERIES_CONSTANTS.gridOffsetLeft,
+        right:
+          showLegend && legendOrientation === LegendOrientation.Right
+            ? 0
+            : TIMESERIES_CONSTANTS.gridOffsetRight,
       }),
     },
     xAxis: {
@@ -194,7 +200,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
       },
     },
     legend: {
-      ...getLegendProps(legendType, legendOrientation, showLegend),
+      ...getLegendProps(legendType, legendOrientation, showLegend, zoomable),
       // @ts-ignore
       data: rawSeries
         .filter(
@@ -208,6 +214,8 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     series,
     toolbox: {
       show: zoomable,
+      top: TIMESERIES_CONSTANTS.toolboxTop,
+      right: TIMESERIES_CONSTANTS.toolboxRight,
       feature: {
         dataZoom: {
           yAxisIndex: false,
@@ -222,9 +230,9 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
       ? [
           {
             type: 'slider',
-            start: 0,
-            end: 100,
-            bottom: 20,
+            start: TIMESERIES_CONSTANTS.dataZoomStart,
+            end: TIMESERIES_CONSTANTS.dataZoomEnd,
+            bottom: TIMESERIES_CONSTANTS.zoomBottom,
           },
         ]
       : [],
