@@ -33,7 +33,7 @@ export default class TimeFilterPlugin extends ChartPlugin {
 
     super({
       controlPanel,
-      loadChart: () => import('./AntdTimeFilter'),
+      loadChart: () => import('./TimeFilterPlugin'),
       metadata,
       transformProps,
     });

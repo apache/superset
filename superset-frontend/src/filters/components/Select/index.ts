@@ -22,7 +22,7 @@ import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 
-export default class AntdFilterSelectPlugin extends ChartPlugin {
+export default class FilterSelectPlugin extends ChartPlugin {
   constructor() {
     const metadata = new ChartMetadata({
       name: t('Select filter'),
@@ -34,7 +34,7 @@ export default class AntdFilterSelectPlugin extends ChartPlugin {
     super({
       buildQuery,
       controlPanel,
-      loadChart: () => import('./AntdSelectFilter'),
+      loadChart: () => import('./SelectFilterPlugin'),
       metadata,
       transformProps,
     });
