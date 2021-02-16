@@ -251,10 +251,6 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
     }, 0);
   }
 
-  renderSavedMetricOption(metric) {
-    return <MetricOption metric={metric} showType />;
-  }
-
   renderColumnOption(option) {
     const column = { ...option };
     if (column.metric_name && !column.verbose_name) {
@@ -374,7 +370,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                       }
                       key={savedMetric.id}
                     >
-                      {this.renderSavedMetricOption(savedMetric)}
+                      <MetricOption metric={savedMetric} showType />
                     </Select.Option>
                   ))}
               </Select>
