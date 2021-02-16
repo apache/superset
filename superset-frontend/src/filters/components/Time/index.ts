@@ -28,6 +28,7 @@ export default class TimeFilterPlugin extends ChartPlugin {
       description: 'Custom time filter plugin',
       behaviors: [Behavior.CROSS_FILTER, Behavior.NATIVE_FILTER],
       thumbnail,
+      datasourceCount: 0,
     });
 
     super({

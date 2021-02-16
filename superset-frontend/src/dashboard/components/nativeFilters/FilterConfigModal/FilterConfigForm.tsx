@@ -21,6 +21,8 @@ import {
   SuperChart,
   t,
   getChartControlPanelRegistry,
+  getChartMetadataRegistry,
+  Behavior,
 } from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
 import React, { useCallback } from 'react';
@@ -165,6 +167,20 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
     label: filter.title,
   }));
 
+  const nativeFilterItems = getChartMetadataRegistry().items;
+  const nativeFilterVizTypes = Object.entries(nativeFilterItems)
+    // @ts-ignore
+    .filter(([, { value }]) =>
+      value.behaviors?.includes(Behavior.NATIVE_FILTER),
+    )
+    .map(([key]) => key);
+
+  const hasDatasource = !!nativeFilterItems[formFilter?.filterType]?.value
+    ?.datasorceCount;
+
+  const hasFilledDatasource =
+    (formFilter?.dataset && formFilter?.column) || !hasDatasource;
+
   return (
     <>
       <Typography.Title level={5}>{t('Settings')}</Typography.Title>
@@ -179,69 +195,75 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
           <Input />
         </StyledFormItem>
         <StyledFormItem
-          name={['filters', filterId, 'dataset']}
-          initialValue={{ value: initDatasetId }}
-          label={<StyledLabel>{t('Datasource')}</StyledLabel>}
-          rules={[{ required: !removed, message: t('Datasource is required') }]}
-          data-test="datasource-input"
+          name={['filters', filterId, 'filterType']}
+          rules={[{ required: !removed, message: t('Name is required') }]}
+          initialValue={filterToEdit?.filterType || FilterType.filter_select}
+          label={<StyledLabel>{t('Filter Type')}</StyledLabel>}
         >
-          <SupersetResourceSelect
-            initialId={initDatasetId}
-            resource="dataset"
-            searchColumn="table_name"
-            transformItem={datasetToSelectOption}
-            isMulti={false}
-            onError={onDatasetSelectError}
-            onChange={e => {
-              // We need reset column when dataset changed
-              const datasetId = formFilter?.dataset?.value;
-              if (datasetId && e?.value !== datasetId) {
-                setFilterFieldValues(form, filterId, {
-                  column: null,
-                });
-              }
+          <Select
+            options={nativeFilterVizTypes.map(filterType => ({
+              value: filterType,
+              label: FilterTypeNames[filterType],
+            }))}
+            onChange={({ value }: { value: FilterType }) => {
+              setFilterFieldValues(form, filterId, {
+                filterType: value,
+                defaultValue: null,
+              });
               forceUpdate();
             }}
           />
         </StyledFormItem>
       </StyledContainer>
-      <StyledFormItem
-        // don't show the column select unless we have a dataset
-        // style={{ display: datasetId == null ? undefined : 'none' }}
-        name={['filters', filterId, 'column']}
-        initialValue={initColumn}
-        label={<StyledLabel>{t('Field')}</StyledLabel>}
-        rules={[{ required: !removed, message: t('Field is required') }]}
-        data-test="field-input"
-      >
-        <ColumnSelect
-          form={form}
-          filterId={filterId}
-          datasetId={formFilter?.dataset?.value}
-          onChange={forceUpdate}
-        />
-      </StyledFormItem>
-      <StyledFormItem
-        name={['filters', filterId, 'filterType']}
-        rules={[{ required: !removed, message: t('Name is required') }]}
-        initialValue={filterToEdit?.filterType || FilterType.filter_select}
-        label={<StyledLabel>{t('Filter Type')}</StyledLabel>}
-      >
-        <Select
-          options={Object.values(FilterType).map(filterType => ({
-            value: filterType,
-            label: FilterTypeNames[filterType],
-          }))}
-          onChange={({ value }: { value: FilterType }) => {
-            setFilterFieldValues(form, filterId, {
-              filterType: value,
-              defaultValue: null,
-            });
-            forceUpdate();
-          }}
-        />
-      </StyledFormItem>
-      {formFilter?.dataset && formFilter?.column && (
+      {hasDatasource && (
+        <>
+          <StyledFormItem
+            name={['filters', filterId, 'dataset']}
+            initialValue={{ value: initDatasetId }}
+            label={<StyledLabel>{t('Datasource')}</StyledLabel>}
+            rules={[
+              { required: !removed, message: t('Datasource is required') },
+            ]}
+            data-test="datasource-input"
+          >
+            <SupersetResourceSelect
+              initialId={initDatasetId}
+              resource="dataset"
+              searchColumn="table_name"
+              transformItem={datasetToSelectOption}
+              isMulti={false}
+              onError={onDatasetSelectError}
+              onChange={e => {
+                // We need reset column when dataset changed
+                const datasetId = formFilter?.dataset?.value;
+                if (datasetId && e?.value !== datasetId) {
+                  setFilterFieldValues(form, filterId, {
+                    column: null,
+                  });
+                }
+                forceUpdate();
+              }}
+            />
+          </StyledFormItem>
+          <StyledFormItem
+            // don't show the column select unless we have a dataset
+            // style={{ display: datasetId == null ? undefined : 'none' }}
+            name={['filters', filterId, 'column']}
+            initialValue={initColumn}
+            label={<StyledLabel>{t('Field')}</StyledLabel>}
+            rules={[{ required: !removed, message: t('Field is required') }]}
+            data-test="field-input"
+          >
+            <ColumnSelect
+              form={form}
+              filterId={filterId}
+              datasetId={formFilter?.dataset?.value}
+              onChange={forceUpdate}
+            />
+          </StyledFormItem>
+        </>
+      )}
+      {hasFilledDatasource && (
         <CleanFormItem
           name={['filters', filterId, 'defaultValueFormData']}
           hidden
@@ -259,25 +281,23 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         data-test="default-input"
         label={<StyledLabel>{t('Default Value')}</StyledLabel>}
       >
-        {formFilter?.dataset &&
-          formFilter?.column &&
-          formFilter?.defaultValueQueriesData && (
-            <SuperChart
-              height={25}
-              width={250}
-              formData={newFormData}
-              queriesData={formFilter?.defaultValueQueriesData}
-              chartType={formFilter?.filterType}
-              hooks={{
-                setExtraFormData: ({ currentState }) => {
-                  setFilterFieldValues(form, filterId, {
-                    defaultValue: currentState?.value,
-                  });
-                  forceUpdate();
-                },
-              }}
-            />
-          )}
+        {hasFilledDatasource && formFilter?.defaultValueQueriesData && (
+          <SuperChart
+            height={25}
+            width={250}
+            formData={newFormData}
+            queriesData={formFilter?.defaultValueQueriesData}
+            chartType={formFilter?.filterType}
+            hooks={{
+              setExtraFormData: ({ currentState }) => {
+                setFilterFieldValues(form, filterId, {
+                  defaultValue: currentState?.value,
+                });
+                forceUpdate();
+              },
+            }}
+          />
+        )}
       </StyledFormItem>
       <StyledFormItem
         name={['filters', filterId, 'parentFilter']}
