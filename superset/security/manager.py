@@ -27,6 +27,7 @@ from flask_appbuilder.security.sqla.models import (
     assoc_permissionview_role,
     assoc_user_role,
     PermissionView,
+    Role,
     User,
 )
 from flask_appbuilder.security.views import (
@@ -58,6 +59,7 @@ if TYPE_CHECKING:
     from superset.models.sql_lab import Query
     from superset.sql_parse import Table
     from superset.viz import BaseViz
+
 
 logger = logging.getLogger(__name__)
 
@@ -179,7 +181,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "metric_access",
     }
 
-    ACCESSIBLE_PERMS = {"can_userinfo"}
+    ACCESSIBLE_PERMS = {"can_userinfo", "resetmypassword"}
 
     data_access_permissions = (
         "database_access",
@@ -656,6 +658,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         role_from_permissions.append(pvm)
         return role_from_permissions
 
+    def find_roles_by_id(self, role_ids: List[int]) -> List[Role]:
+        """
+        Find a List of models by a list of ids, if defined applies `base_filter`
+        """
+        query = self.get_session.query(Role).filter(Role.id.in_(role_ids))
+        return query.all()
+
     def copy_role(
         self, role_from_name: str, role_to_name: str, merge: bool = True
     ) -> None:
@@ -710,7 +719,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.get_session.merge(role)
         self.get_session.commit()
 
-    def _is_admin_only(self, pvm: Model) -> bool:
+    def _is_admin_only(self, pvm: PermissionView) -> bool:
         """
         Return True if the FAB permission/view is accessible to only Admin users,
         False otherwise.
@@ -731,7 +740,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or pvm.permission.name in self.ADMIN_ONLY_PERMISSIONS
         )
 
-    def _is_alpha_only(self, pvm: PermissionModelView) -> bool:
+    def _is_alpha_only(self, pvm: PermissionView) -> bool:
         """
         Return True if the FAB permission/view is accessible to only Alpha users,
         False otherwise.
@@ -750,7 +759,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or pvm.permission.name in self.ALPHA_ONLY_PERMISSIONS
         )
 
-    def _is_accessible_to_all(self, pvm: PermissionModelView) -> bool:
+    def _is_accessible_to_all(self, pvm: PermissionView) -> bool:
         """
         Return True if the FAB permission/view is accessible to all, False
         otherwise.
@@ -761,7 +770,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return pvm.permission.name in self.ACCESSIBLE_PERMS
 
-    def _is_admin_pvm(self, pvm: PermissionModelView) -> bool:
+    def _is_admin_pvm(self, pvm: PermissionView) -> bool:
         """
         Return True if the FAB permission/view is Admin user related, False
         otherwise.
@@ -772,7 +781,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return not self._is_user_defined_permission(pvm)
 
-    def _is_alpha_pvm(self, pvm: PermissionModelView) -> bool:
+    def _is_alpha_pvm(self, pvm: PermissionView) -> bool:
         """
         Return True if the FAB permission/view is Alpha user related, False
         otherwise.
@@ -785,7 +794,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             self._is_user_defined_permission(pvm) or self._is_admin_only(pvm)
         ) or self._is_accessible_to_all(pvm)
 
-    def _is_gamma_pvm(self, pvm: PermissionModelView) -> bool:
+    def _is_gamma_pvm(self, pvm: PermissionView) -> bool:
         """
         Return True if the FAB permission/view is Gamma user related, False
         otherwise.
@@ -800,7 +809,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             or self._is_alpha_only(pvm)
         ) or self._is_accessible_to_all(pvm)
 
-    def _is_sql_lab_pvm(self, pvm: PermissionModelView) -> bool:
+    def _is_sql_lab_pvm(self, pvm: PermissionView) -> bool:
         """
         Return True if the FAB permission/view is SQL Lab related, False
         otherwise.
@@ -828,7 +837,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
     def _is_granter_pvm(  # pylint: disable=no-self-use
-        self, pvm: PermissionModelView
+        self, pvm: PermissionView
     ) -> bool:
         """
         Return True if the user can grant the FAB permission/view, False

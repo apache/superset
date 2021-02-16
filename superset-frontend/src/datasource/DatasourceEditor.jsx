@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Alert, Col, Radio, Well } from 'react-bootstrap';
+import { Alert, Col, Well } from 'react-bootstrap';
+import { Radio } from 'src/common/components/Radio';
 import Badge from 'src/common/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
@@ -56,6 +57,14 @@ const DatasourceContainer = styled.div`
 
   .change-warning .bold {
     font-weight: ${({ theme }) => theme.typography.weights.bold};
+  }
+
+  .form-group.has-feedback > .help-block {
+    margin-top: 8px;
+  }
+
+  .form-group.form-group-md {
+    margin-bottom: 8px;
   }
 `;
 
@@ -609,6 +618,9 @@ class DatasourceEditor extends React.PureComponent {
           fieldKey="offset"
           label={t('Hours offset')}
           control={<TextControl controlId="offset" />}
+          description={t(
+            'The number of hours, negative or positive, to shift the time column. This can be used to move UTC time to local time.',
+          )}
         />
         {this.state.isSqla && (
           <Field
@@ -1000,7 +1012,7 @@ class DatasourceEditor extends React.PureComponent {
               <ColumnButtonWrapper>
                 <span className="m-t-10 m-r-10">
                   <Button
-                    buttonSize="sm"
+                    buttonSize="small"
                     buttonStyle="primary"
                     onClick={this.syncMetadata}
                     className="sync-from-source"

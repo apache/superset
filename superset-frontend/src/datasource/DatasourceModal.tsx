@@ -181,7 +181,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         <>
           {isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS) && (
             <Button
-              buttonSize="sm"
+              buttonSize="small"
               buttonStyle="default"
               data-test="datasource-modal-legacy-edit"
               className="m-r-5"
@@ -195,14 +195,14 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           )}
           <Button
             data-test="datasource-modal-cancel"
-            buttonSize="sm"
+            buttonSize="small"
             className="m-r-5"
             onClick={onHide}
           >
             {t('Cancel')}
           </Button>
           <Button
-            buttonSize="sm"
+            buttonSize="small"
             buttonStyle="primary"
             data-test="datasource-modal-save"
             onClick={onClickSave}

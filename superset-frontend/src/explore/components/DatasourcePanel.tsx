@@ -104,6 +104,7 @@ export default function DataSourcePanel({
   actions,
 }: Props) {
   const { columns, metrics } = datasource;
+  const [inputValue, setInputValue] = useState('');
   const [lists, setList] = useState({
     columns,
     metrics,
@@ -117,30 +118,42 @@ export default function DataSourcePanel({
     setList({
       columns: matchSorter(columns, value, {
         keys: [
-          'verbose_name',
-          'column_name',
           {
-            key: 'description',
+            key: 'verbose_name',
             threshold: rankings.CONTAINS,
           },
           {
-            key: 'expression',
+            key: 'column_name',
             threshold: rankings.CONTAINS,
+          },
+          {
+            key: item =>
+              [item.description, item.expression].map(
+                x => x?.replace(/[_\n\s]+/g, ' ') || '',
+              ),
+            threshold: rankings.CONTAINS,
+            maxRanking: rankings.CONTAINS,
           },
         ],
         keepDiacritics: true,
       }),
       metrics: matchSorter(metrics, value, {
         keys: [
-          'verbose_name',
-          'metric_name',
           {
-            key: 'description',
+            key: 'verbose_name',
             threshold: rankings.CONTAINS,
           },
           {
-            key: 'expression',
+            key: 'metric_name',
             threshold: rankings.CONTAINS,
+          },
+          {
+            key: item =>
+              [item.description, item.expression].map(
+                x => x?.replace(/[_\n\s]+/g, ' ') || '',
+              ),
+            threshold: rankings.CONTAINS,
+            maxRanking: rankings.CONTAINS,
           },
         ],
         keepDiacritics: true,
@@ -156,6 +169,7 @@ export default function DataSourcePanel({
       columns,
       metrics,
     });
+    setInputValue('');
   }, [columns, datasource, metrics]);
 
   const metricSlice = lists.metrics.slice(0, 50);
@@ -166,8 +180,10 @@ export default function DataSourcePanel({
       <input
         type="text"
         onChange={evt => {
+          setInputValue(evt.target.value);
           search(evt.target.value);
         }}
+        value={inputValue}
         className="form-control input-md"
         placeholder={t('Search Metrics & Columns')}
       />

@@ -174,76 +174,69 @@ export function Menu({
         </Nav>
         <Nav className="navbar-right">
           {!navbarRight.user_is_anonymous && <NewMenu />}
-          {settings && settings.length > 0 && (
-            <NavDropdown
-              id="settings-dropdown"
-              title={t('Settings')}
-              onMouseEnter={() => setDropdownOpen(true)}
-              onMouseLeave={() => setDropdownOpen(false)}
-              onToggle={value => setDropdownOpen(value)}
-              open={dropdownOpen}
-            >
-              <DropdownMenu>
-                {settings.map((section, index) => [
-                  <DropdownMenu.ItemGroup
-                    key={`${section.label}`}
-                    title={section.label}
-                  >
-                    {section.childs?.map(child => {
-                      if (typeof child !== 'string') {
-                        return (
-                          <DropdownMenu.Item key={`${child.label}`}>
-                            <a href={child.url}>{child.label}</a>
-                          </DropdownMenu.Item>
-                        );
-                      }
-                      return null;
-                    })}
-                  </DropdownMenu.ItemGroup>,
-                  index < settings.length - 1 && <DropdownMenu.Divider />,
-                ])}
+          <NavDropdown
+            id="settings-dropdown"
+            title={t('Settings')}
+            onMouseEnter={() => setDropdownOpen(true)}
+            onMouseLeave={() => setDropdownOpen(false)}
+            onToggle={value => setDropdownOpen(value)}
+            open={dropdownOpen}
+          >
+            <DropdownMenu>
+              {settings.map((section, index) => [
+                <DropdownMenu.ItemGroup
+                  key={`${section.label}`}
+                  title={section.label}
+                >
+                  {section.childs?.map(child => {
+                    if (typeof child !== 'string') {
+                      return (
+                        <DropdownMenu.Item key={`${child.label}`}>
+                          <a href={child.url}>{child.label}</a>
+                        </DropdownMenu.Item>
+                      );
+                    }
+                    return null;
+                  })}
+                </DropdownMenu.ItemGroup>,
+                index < settings.length - 1 && <DropdownMenu.Divider />,
+              ])}
 
-                {!navbarRight.user_is_anonymous && [
-                  <DropdownMenu.Divider key="user-divider" />,
-                  <DropdownMenu.ItemGroup key="user-section" title={t('User')}>
-                    {navbarRight.user_profile_url && (
-                      <DropdownMenu.Item key="profile">
-                        <a href={navbarRight.user_profile_url}>
-                          {t('Profile')}
-                        </a>
-                      </DropdownMenu.Item>
+              {!navbarRight.user_is_anonymous && [
+                <DropdownMenu.Divider key="user-divider" />,
+                <DropdownMenu.ItemGroup key="user-section" title={t('User')}>
+                  {navbarRight.user_profile_url && (
+                    <DropdownMenu.Item key="profile">
+                      <a href={navbarRight.user_profile_url}>{t('Profile')}</a>
+                    </DropdownMenu.Item>
+                  )}
+                  <DropdownMenu.Item key="info">
+                    <a href={navbarRight.user_info_url}>{t('Info')}</a>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item key="logout">
+                    <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
+                  </DropdownMenu.Item>
+                </DropdownMenu.ItemGroup>,
+              ]}
+              {(navbarRight.version_string || navbarRight.version_sha) && [
+                <DropdownMenu.Divider key="version-info-divider" />,
+                <DropdownMenu.ItemGroup key="about-section" title={t('About')}>
+                  <div className="about-section">
+                    {navbarRight.version_string && (
+                      <li className="version-info">
+                        <span>Version: {navbarRight.version_string}</span>
+                      </li>
                     )}
-                    <DropdownMenu.Item key="info">
-                      <a href={navbarRight.user_info_url}>{t('Info')}</a>
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item key="logout">
-                      <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
-                    </DropdownMenu.Item>
-                  </DropdownMenu.ItemGroup>,
-                ]}
-                {(navbarRight.version_string || navbarRight.version_sha) && [
-                  <DropdownMenu.Divider key="version-info-divider" />,
-                  <DropdownMenu.ItemGroup
-                    key="about-section"
-                    title={t('About')}
-                  >
-                    <div className="about-section">
-                      {navbarRight.version_string && (
-                        <li className="version-info">
-                          <span>Version: {navbarRight.version_string}</span>
-                        </li>
-                      )}
-                      {navbarRight.version_sha && (
-                        <li className="version-info">
-                          <span>SHA: {navbarRight.version_sha}</span>
-                        </li>
-                      )}
-                    </div>
-                  </DropdownMenu.ItemGroup>,
-                ]}
-              </DropdownMenu>
-            </NavDropdown>
-          )}
+                    {navbarRight.version_sha && (
+                      <li className="version-info">
+                        <span>SHA: {navbarRight.version_sha}</span>
+                      </li>
+                    )}
+                  </div>
+                </DropdownMenu.ItemGroup>,
+              ]}
+            </DropdownMenu>
+          </NavDropdown>
           {navbarRight.documentation_url && (
             <NavItem
               href={navbarRight.documentation_url}

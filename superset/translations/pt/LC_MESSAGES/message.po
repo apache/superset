@@ -5723,7 +5723,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:307
 #, python-format
-msgid "%s operators(s)"
+msgid "%s operator(s)"
 msgstr "Selecione operador"
 
 #: superset-frontend/src/explore/components/AdhocFilterEditPopoverSimpleTabContent.jsx:326

@@ -134,7 +134,7 @@ export default class AddSliceContainer extends React.PureComponent<
                 name="select-vis-type"
                 onChange={this.changeVisType}
                 value={this.state.visType}
-                labelBsStyle="primary"
+                labelType="primary"
               />
             </div>
             <br />

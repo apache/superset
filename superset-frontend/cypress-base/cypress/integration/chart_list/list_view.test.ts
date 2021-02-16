@@ -47,4 +47,15 @@ describe('chart list view', () => {
       .find('[data-test="cell-text"]')
       .contains('Location of Current Developers');
   });
+
+  it('should bulk delete correctly', () => {
+    cy.get('[data-test="listview-table"]').should('be.visible');
+    cy.get('[data-test="bulk-select"]').eq(0).click();
+    cy.get('[data-test="checkbox-off"]').eq(1).click();
+    cy.get('[data-test="checkbox-off"]').eq(2).click();
+    cy.get('[data-test="bulk-select-action"]').eq(0).click();
+    cy.get('[data-test="delete-modal-input"]').eq(0).type('DELETE');
+    cy.get('[data-test="modal-confirm-button"]').eq(0).click();
+    cy.get('[data-test="checkbox-on"]').should('not.exist');
+  });
 });

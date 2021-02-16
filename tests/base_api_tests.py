@@ -184,48 +184,86 @@ class ApiOwnersTestCaseMixin:
 
     def test_get_related_owners(self):
         """
-            API: Test get related owners
+        API: Test get related owners
         """
         self.login(username="admin")
         uri = f"api/v1/{self.resource_name}/related/owners"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         users = db.session.query(security_manager.user_model).all()
         expected_users = [str(user) for user in users]
-        self.assertEqual(response["count"], len(users))
+        assert response["count"] == len(users)
         # This needs to be implemented like this, because ordering varies between
         # postgres and mysql
         response_users = [result["text"] for result in response["result"]]
         for expected_user in expected_users:
-            self.assertIn(expected_user, response_users)
+            assert expected_user in response_users
 
     def test_get_filter_related_owners(self):
         """
-            API: Test get filter related owners
+        API: Test get filter related owners
         """
         self.login(username="admin")
         argument = {"filter": "gamma"}
         uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
 
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(3, response["count"])
+        assert 3 == response["count"]
         sorted_results = sorted(response["result"], key=lambda value: value["text"])
         expected_results = [
             {"text": "gamma user", "value": 2},
             {"text": "gamma2 user", "value": 3},
             {"text": "gamma_sqllab user", "value": 4},
         ]
-        self.assertEqual(expected_results, sorted_results)
+        assert expected_results == sorted_results
+
+    def test_get_ids_related_owners(self):
+        """
+        API: Test get filter related owners
+        """
+        self.login(username="admin")
+        argument = {"filter": "gamma_sqllab", "include_ids": [2]}
+        uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
+
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert 2 == response["count"]
+        sorted_results = sorted(response["result"], key=lambda value: value["text"])
+        expected_results = [
+            {"text": "gamma user", "value": 2},
+            {"text": "gamma_sqllab user", "value": 4},
+        ]
+        assert expected_results == sorted_results
+
+    def test_get_repeated_ids_related_owners(self):
+        """
+        API: Test get filter related owners
+        """
+        self.login(username="admin")
+        argument = {"filter": "gamma_sqllab", "include_ids": [2, 4]}
+        uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
+
+        rv = self.client.get(uri)
+        response = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert 2 == response["count"]
+        sorted_results = sorted(response["result"], key=lambda value: value["text"])
+        expected_results = [
+            {"text": "gamma user", "value": 2},
+            {"text": "gamma_sqllab user", "value": 4},
+        ]
+        assert expected_results == sorted_results
 
     def test_get_related_fail(self):
         """
-            API: Test get related fail
+        API: Test get related fail
         """
         self.login(username="admin")
         uri = f"api/v1/{self.resource_name}/related/owner"
 
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404

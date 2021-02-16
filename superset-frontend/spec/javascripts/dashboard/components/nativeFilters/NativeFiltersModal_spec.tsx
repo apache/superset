@@ -22,7 +22,7 @@ import { act } from 'react-dom/test-utils';
 import { ReactWrapper } from 'enzyme';
 import { Provider } from 'react-redux';
 import Alert from 'react-bootstrap/lib/Alert';
-import { FilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterConfigModal';
+import { FilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterConfigModal/FilterConfigModal';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { mockStore } from 'spec/fixtures/mockStore';
 
@@ -40,10 +40,25 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
+jest.mock('@superset-ui/core', () => ({
+  // @ts-ignore
+  ...jest.requireActual('@superset-ui/core'),
+  getChartMetadataRegistry: () => ({
+    items: {
+      filter_select: {
+        value: {
+          datasourceCount: 1,
+          behaviors: ['NATIVE_FILTER'],
+        },
+      },
+    },
+  }),
+}));
+
 describe('FiltersConfigModal', () => {
   const mockedProps = {
     isOpen: true,
-    initialFilterId: 'DefaultFilterId',
+    initialFilterId: 'DefaultsID',
     createNewOnOpen: true,
     onCancel: jest.fn(),
     save: jest.fn(),

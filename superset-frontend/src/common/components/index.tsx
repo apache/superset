@@ -52,13 +52,14 @@ export {
   Select,
   Skeleton,
   Switch,
+  Tag,
   Tabs,
   Tooltip,
   Input as AntdInput,
 } from 'antd';
 export { TreeProps } from 'antd/lib/tree';
 export { FormInstance } from 'antd/lib/form';
-
+export { RadioChangeEvent } from 'antd/lib/radio';
 export { default as Collapse } from './Collapse';
 export { default as Badge } from './Badge';
 export { default as Progress } from './ProgressBar';

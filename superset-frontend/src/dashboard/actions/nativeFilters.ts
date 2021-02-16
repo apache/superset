@@ -22,9 +22,10 @@ import { Dispatch } from 'redux';
 import {
   Filter,
   FilterConfiguration,
-  SelectedValues,
 } from 'src/dashboard/components/nativeFilters/types';
 import { dashboardInfoChanged } from './dashboardInfo';
+import { CurrentFilterState } from '../reducers/types';
+import { SelectedValues } from '../components/nativeFilters/FilterConfigModal/types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
 export interface SetFilterConfigBegin {
@@ -99,6 +100,7 @@ export interface SetExtraFormData {
   type: typeof SET_EXTRA_FORM_DATA;
   filterId: string;
   extraFormData: ExtraFormData;
+  currentState: CurrentFilterState;
 }
 
 export function setFilterState(
@@ -117,15 +119,18 @@ export function setFilterState(
  * Sets the selected option(s) for a given filter
  * @param filterId the id of the native filter
  * @param extraFormData the selection translated into extra form data
+ * @param currentState
  */
 export function setExtraFormData(
   filterId: string,
   extraFormData: ExtraFormData,
+  currentState: CurrentFilterState,
 ): SetExtraFormData {
   return {
     type: SET_EXTRA_FORM_DATA,
     filterId,
     extraFormData,
+    currentState,
   };
 }
 

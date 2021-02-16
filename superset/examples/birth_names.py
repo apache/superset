@@ -271,8 +271,8 @@ def create_slices(
                 groupby=["name"],
                 adhoc_filters=[gen_filter("gender", "girl")],
                 row_limit=50,
-                timeseries_limit_metric="sum__num",
-                metrics=metrics,
+                timeseries_limit_metric=metric,
+                metrics=[metric],
             ),
         ),
         Slice(
@@ -300,7 +300,8 @@ def create_slices(
                 groupby=["name"],
                 adhoc_filters=[gen_filter("gender", "boy")],
                 row_limit=50,
-                metrics=metrics,
+                timeseries_limit_metric=metric,
+                metrics=[metric],
             ),
         ),
         Slice(

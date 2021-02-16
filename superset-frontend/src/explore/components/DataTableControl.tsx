@@ -45,7 +45,7 @@ export const CopyButton = styled(Button)`
 `;
 
 const CopyNode = (
-  <CopyButton buttonSize="xs">
+  <CopyButton buttonSize="xsmall">
     <i className="fa fa-clipboard" />
   </CopyButton>
 );

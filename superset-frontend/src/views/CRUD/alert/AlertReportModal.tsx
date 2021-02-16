@@ -177,8 +177,19 @@ const StyledSectionContainer = styled.div`
 `;
 
 const StyledSectionTitle = styled.div`
+  display: flex;
+  align-items: center;
   margin: ${({ theme }) => theme.gridUnit * 2}px auto
     ${({ theme }) => theme.gridUnit * 4}px auto;
+
+  h4 {
+    margin: 0;
+  }
+
+  .required {
+    margin-left: ${({ theme }) => theme.gridUnit}px;
+    color: ${({ theme }) => theme.colors.error.base};
+  }
 `;
 
 const StyledSwitchContainer = styled.div`
@@ -212,6 +223,10 @@ export const StyledInputContainer = styled.div`
   .input-container {
     display: flex;
     align-items: center;
+
+    > div {
+      width: 100%;
+    }
 
     label {
       display: flex;
@@ -992,27 +1007,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   }, [resource]);
 
   // Validation
-  useEffect(
-    () => {
-      validate();
-    },
-    currentAlert
-      ? [
-          currentAlert.name,
-          currentAlert.owners,
-          currentAlert.database,
-          currentAlert.sql,
-          currentAlert.validator_config_json,
-          currentAlert.crontab,
-          currentAlert.working_timeout,
-          currentAlert.dashboard,
-          currentAlert.chart,
-          contentType,
-          notificationSettings,
-          conditionNotNull,
-        ]
-      : [],
-  );
+  const currentAlertSafe = currentAlert || {};
+  useEffect(() => {
+    validate();
+  }, [
+    currentAlertSafe.name,
+    currentAlertSafe.owners,
+    currentAlertSafe.database,
+    currentAlertSafe.sql,
+    currentAlertSafe.validator_config_json,
+    currentAlertSafe.crontab,
+    currentAlertSafe.working_timeout,
+    currentAlertSafe.dashboard,
+    currentAlertSafe.chart,
+    contentType,
+    notificationSettings,
+    conditionNotNull,
+  ]);
 
   // Show/hide
   if (isHidden && show) {
@@ -1213,6 +1224,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   ? t('Report schedule')
                   : t('Alert condition schedule')}
               </h4>
+              <span className="required">*</span>
             </StyledSectionTitle>
             <AlertReportCronScheduler
               value={
@@ -1263,23 +1275,26 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <span className="input-label">seconds</span>
               </div>
             </StyledInputContainer>
-            <StyledInputContainer>
-              <div className="control-label">{t('Grace period')}</div>
-              <div className="input-container">
-                <input
-                  type="number"
-                  name="grace_period"
-                  value={currentAlert ? currentAlert.grace_period : ''}
-                  placeholder={t('Time in seconds')}
-                  onChange={onTextChange}
-                />
-                <span className="input-label">seconds</span>
-              </div>
-            </StyledInputContainer>
+            {!isReport && (
+              <StyledInputContainer>
+                <div className="control-label">{t('Grace period')}</div>
+                <div className="input-container">
+                  <input
+                    type="number"
+                    name="grace_period"
+                    value={currentAlert ? currentAlert.grace_period : ''}
+                    placeholder={t('Time in seconds')}
+                    onChange={onTextChange}
+                  />
+                  <span className="input-label">seconds</span>
+                </div>
+              </StyledInputContainer>
+            )}
           </div>
           <div className="column message">
             <StyledSectionTitle>
               <h4>{t('Message content')}</h4>
+              <span className="required">*</span>
             </StyledSectionTitle>
             <div className="inline-container add-margin">
               <Radio.Group onChange={onContentTypeChange} value={contentType}>
@@ -1329,6 +1344,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             />
             <StyledSectionTitle>
               <h4>{t('Notification method')}</h4>
+              <span className="required">*</span>
             </StyledSectionTitle>
             <NotificationMethod
               setting={notificationSettings[0]}

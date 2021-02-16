@@ -16,5 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as AntdSelectFilterPlugin } from './Select';
-export { default as AntdRangeFilterPlugin } from './Range';
+export { default as SelectFilterPlugin } from './Select';
+export { default as RangeFilterPlugin } from './Range';
+export { default as TimeFilterPlugin } from './Time';

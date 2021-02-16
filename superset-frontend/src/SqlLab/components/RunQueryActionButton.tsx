@@ -69,6 +69,8 @@ const onClick = (
 const StyledButton = styled.span`
   button {
     line-height: 13px;
+    // this is to over ride a previous transition built into the component
+    transition: background-color 0ms;
     &:last-of-type {
       margin-right: ${({ theme }) => theme.gridUnit * 2}px;
     }
@@ -91,17 +93,20 @@ const RunQueryActionButton = ({
     ? (DropdownButton as React.FC)
     : Button;
 
+  const isDisabled = !sql.trim();
+
   return (
     <StyledButton>
       <ButtonComponent
         onClick={() =>
           onClick(shouldShowStopBtn, allowAsync, runQuery, stopQuery)
         }
-        disabled={!sql.trim()}
+        disabled={isDisabled}
         tooltip={
-          shouldShowStopBtn
-            ? t('Stop running (Ctrl + x)')
-            : t('Run query (Ctrl + Return)')
+          (!isDisabled &&
+            (shouldShowStopBtn
+              ? t('Stop running (Ctrl + x)')
+              : t('Run query (Ctrl + Return)'))) as string
         }
         cta
         {...(overlayCreateAsMenu
@@ -109,7 +114,11 @@ const RunQueryActionButton = ({
               overlay: overlayCreateAsMenu,
               icon: (
                 <Icon
-                  color={supersetTheme.colors.grayscale.light5}
+                  color={
+                    isDisabled
+                      ? supersetTheme.colors.grayscale.base
+                      : supersetTheme.colors.grayscale.light5
+                  }
                   name="caret-down"
                 />
               ),

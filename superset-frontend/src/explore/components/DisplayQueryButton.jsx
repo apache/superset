@@ -140,7 +140,7 @@ export const DisplayQueryButton = props => {
             text={query}
             shouldShowText={false}
             copyNode={
-              <CopyButtonViewQuery buttonSize="xs">
+              <CopyButtonViewQuery buttonSize="xsmall">
                 <i className="fa fa-clipboard" />
               </CopyButtonViewQuery>
             }

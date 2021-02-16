@@ -51,11 +51,12 @@ function setup(overrides) {
   const onClose = sinon.spy();
   const props = {
     adhocMetric: sumValueAdhocMetric,
-    savedMetric: {},
+    savedMetric: { metric_name: 'foo', expression: 'COUNT(*)' },
     savedMetrics: [],
     onChange,
     onClose,
     onResize: () => {},
+    getCurrentLabel: () => {},
     columns,
     ...overrides,
   };

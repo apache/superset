@@ -1,25 +1,40 @@
 name: Cancel Duplicates
 on:
   workflow_run:
-    workflows: ["CI"]
-    types: ["requested"]
+    workflows:
+      - "Miscellaneous"
+    types:
+      - requested
 
 jobs:
-  cancel-duplicate-workflow-runs:
-    name: "Cancel duplicate workflow runs"
-    runs-on: ubuntu-latest
+  cancel-duplicate-runs:
+    name: Cancel duplicate workflow runs
+    runs-on: ubuntu-20.04
     steps:
+      - name: Check number of queued tasks
+        id: check_queued
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
+        run: |
+          get_count() {
+            echo $(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+                    "https://api.github.com/repos/$GITHUB_REPO/actions/runs?status=$1" | \
+                    jq ".total_count")
+          }
+          count=$(( `get_count queued` + `get_count in_progress` ))
+          echo "Found $count unfinished jobs."
+          echo "::set-output name=count::$count"
+
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        if: steps.check_queued.outputs.count >= 20
         uses: actions/checkout@v2
-        with:
-          persist-credentials: false
-          submodules: recursive
-      - uses: ./.github/actions/cancel-workflow-runs/
-        name: "Cancel duplicate workflow runs"
-        with:
-          cancelMode: duplicates
-          cancelFutureDuplicates: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          sourceRunId: ${{ github.event.workflow_run.id }}
-          notifyPRCancel: true
-          skipEventTypes: '["push", "pull_request", "pull_request_target"]'
+
+      - name: Cancel duplicate workflow runs
+        if: steps.check_queued.outputs.count >= 20
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          pip install click requests typing_extensions python-dateutil
+          python ./scripts/cancel_github_workflows.py

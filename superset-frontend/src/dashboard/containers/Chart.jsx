@@ -43,6 +43,7 @@ function mapStateToProps(
     charts: chartQueries,
     dashboardInfo,
     dashboardState,
+    dashboardLayout,
     datasources,
     sliceEntities,
     nativeFilters,
@@ -57,7 +58,9 @@ function mapStateToProps(
 
   // note: this method caches filters if possible to prevent render cascades
   const formData = getFormDataWithExtraFilters({
+    layout: dashboardLayout.present,
     chart,
+    charts: chartQueries,
     filters: getAppliedFilterValues(id),
     colorScheme,
     colorNamespace,
