@@ -19,18 +19,18 @@
 import { styled } from '@superset-ui/core';
 import React, { useState, useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl/DateFilterControl';
-import { AntdPluginFilterStylesProps } from '../types';
-import { AntdPluginFilterTimeProps } from './types';
+import { PluginFilterStylesProps } from '../types';
+import { PluginFilterTimeProps } from './types';
 
 const DEFAULT_VALUE = 'Last week';
 
-const Styles = styled.div<AntdPluginFilterStylesProps>`
+const Styles = styled.div<PluginFilterStylesProps>`
   height: ${({ height }) => height}px;
   width: ${({ width }) => width}px;
   overflow-x: scroll;
 `;
 
-export default function AntdTimeFilter(props: AntdPluginFilterTimeProps) {
+export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   const { formData, setExtraFormData, width } = props;
   const { defaultValue, currentValue } = formData;
 
