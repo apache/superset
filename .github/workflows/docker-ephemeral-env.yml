@@ -17,7 +17,6 @@ jobs:
     steps:
     - name: Debug
       run: |
-        echo "${{ toJSON(github) }}"
         echo "${{ toJSON(github.event.workflow_run) }}"
 
     - name: 'Download artifact'
@@ -30,12 +29,14 @@ jobs:
               run_id: ${{ github.event.workflow_run.id }},
           });
 
-          core.info('artifacts')
-          core.info(artifacts)
+          core.info('*** artifacts')
+          core.info(JSON.stringify(artifacts))
 
           const matchArtifact = artifacts.data.artifacts.filter((artifact) => {
             return artifact.name == "build"
           })[0];
+          if(!matchArtifact) core.setFailed("Build artifacts not found")
+
           const download = await github.actions.downloadArtifact({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -54,6 +55,10 @@ jobs:
       id: get-sha
       run: echo "::set-output name=sha::$(cat ./SHA)"
 
+    - name: Get PR
+      id: get-pr
+      run: echo "::set-output name=num::$(cat ./PR-NUM)"
+
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -70,9 +75,10 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: superset-ci
-        IMAGE_TAG: ${{ steps.get-sha.outputs.sha }}
+        SHA: ${{ steps.get-sha.outputs.sha }}
+        IMAGE_TAG: pr-${{ steps.get-pr.outputs.num }}
         SUPERSET_LOAD_EXAMPLES: yes
       run: |
-        docker load < $IMAGE_TAG.tar.gz
+        docker load < $SHA.tar.gz
         docker tag $IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
