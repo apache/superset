@@ -97,6 +97,9 @@ image:
 service:
   type: ClusterIP
   port: 8088
+  annotations: {}
+    # cloud.google.com/load-balancer-type: "Internal"
+  loadBalancerIP: null
 
 ingress:
   enabled: false
