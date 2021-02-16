@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+
 import { flatMapDeep } from 'lodash';
 import { Charts, Layout, LayoutItem } from 'src/dashboard/types';
 import {
@@ -29,7 +29,7 @@ import React from 'react';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { CustomControlItem } from '@superset-ui/chart-controls';
 import { TreeItem } from './types';
-import { FilterType, Scope } from '../types';
+import { Scope } from '../types';
 
 export const useForceUpdate = () => {
   const [, updateState] = React.useState({});
@@ -153,12 +153,6 @@ export const findFilterScope = (
     rootPath: [...new Set(rootPath)],
     excluded,
   };
-};
-
-export const FilterTypeNames = {
-  [FilterType.filter_select]: t('Select'),
-  [FilterType.filter_range]: t('Range'),
-  [FilterType.filter_time]: t('Time'),
 };
 
 export const setFilterFieldValues = (

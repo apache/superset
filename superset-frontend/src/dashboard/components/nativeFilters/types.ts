@@ -27,12 +27,6 @@ export interface Scope {
   excluded: number[];
 }
 
-export enum FilterType {
-  filter_select = 'filter_select',
-  filter_range = 'filter_range',
-  filter_time = 'filter_time',
-}
-
 /** The target of a filter is the datasource/column being filtered */
 export interface Target {
   datasetId: number;
@@ -51,10 +45,10 @@ export interface Filter {
   id: string; // randomly generated at filter creation
   name: string;
   scope: Scope;
-  filterType: FilterType;
+  filterType: string;
   // for now there will only ever be one target
   // when multiple targets are supported, change this to Target[]
-  targets: [Target];
+  targets: [Partial<Target>];
   controlValues: {
     [key: string]: any;
   };
