@@ -9,9 +9,7 @@ on:
 jobs:
   docker_ephemeral_env:
     name: Push ephemeral env Docker image to ECR
-    if: >
-      ${{ github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.conclusion == 'success' }}
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
 
     steps:
@@ -35,7 +33,7 @@ jobs:
           const matchArtifact = artifacts.data.artifacts.filter((artifact) => {
             return artifact.name == "build"
           })[0];
-          if(!matchArtifact) core.setFailed("Build artifacts not found")
+          if(!matchArtifact) return core.setFailed("Build artifacts not found")
 
           const download = await github.actions.downloadArtifact({
               owner: context.repo.owner,
@@ -80,5 +78,5 @@ jobs:
         SUPERSET_LOAD_EXAMPLES: yes
       run: |
         docker load < $SHA.tar.gz
-        docker tag $IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker tag $SHA $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
