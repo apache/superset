@@ -33,7 +33,7 @@ from sqlalchemy import Column, literal_column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
-from sqlalchemy.engine.url import URL
+from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
@@ -135,6 +135,28 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
     def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
         version = extra.get("version")
         return version is not None and StrictVersion(version) >= StrictVersion("0.319")
+
+    @classmethod
+    def get_connect_args_for_impersonation(
+        cls, uri: str, impersonate_user: bool, username: Optional[str]
+    ) -> Dict[str, str]:
+        """
+        Return a configuration dictionary that can be merged with other configs
+        that can set the correct properties for impersonating users
+        :param uri: URI string
+        :param impersonate_user: Flag indicating if impersonation is enabled
+        :param username: Effective username
+        :return: Configs required for impersonation
+        """
+        configuration = {}
+        url = make_url(uri)
+        backend_name = url.get_backend_name()
+
+        # Must be Presto connection, enable impersonation, and set optional param
+        # auth=LDAP|KERBEROS
+        if backend_name == "presto" and impersonate_user and username is not None:
+            configuration["principal_username"] = username
+        return configuration
 
     @classmethod
     def get_table_names(
