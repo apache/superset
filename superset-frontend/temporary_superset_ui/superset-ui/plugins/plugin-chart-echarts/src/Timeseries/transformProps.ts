@@ -175,7 +175,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
         const value: number = !richTooltip ? params.value : params[0].value[0];
         const prophetValue = !richTooltip ? [params] : params;
 
-        const rows: Array<string> = [`${smartDateFormatter(value)}`];
+        const rows: Array<string> = [`${xAxisFormatter(value)}`];
         const prophetValues: Record<string, ProphetValue> = extractProphetValuesFromTooltipParams(
           prophetValue,
         );
