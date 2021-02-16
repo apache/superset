@@ -27,6 +27,7 @@ import math
 import re
 from collections import defaultdict, OrderedDict
 from datetime import date, datetime, timedelta
+from io import BytesIO
 from itertools import product
 from typing import (
     Any,
@@ -69,11 +70,12 @@ from superset.typing import QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
+    df_clear_timezone,
     DTTM_ALIAS,
     JS_MAX_INTEGER,
     merge_extra_filters,
     QueryMode,
-    to_adhoc,
+    to_adhoc
 )
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
 from superset.utils.dates import datetime_to_epoch
@@ -636,6 +638,22 @@ class BaseViz:
         df = self.get_df_payload()["df"]  # leverage caching logic
         include_index = not isinstance(df.index, pd.RangeIndex)
         return df.to_csv(index=include_index, **config["CSV_EXPORT"])
+
+    def get_xlsx(self) -> Optional[bytes]:
+        df = self.get_df_payload()["df"]  # leverage caching logic
+        # Remove TZ from datetime64[ns, *] fields b4 writing to XLSX
+        df_clear_timezone(df)
+
+        include_index = not isinstance(df.index, pd.RangeIndex)
+        output = BytesIO()
+        writer = pd.ExcelWriter(
+            output, engine='xlsxwriter'
+            # options={'remove_timezone': True}  # This option seems broken
+        )
+        df.to_excel(writer, index=include_index)
+        writer.close()
+        output.seek(0)
+        return output.read()
 
     def get_data(self, df: pd.DataFrame) -> VizData:
         return df.to_dict(orient="records")

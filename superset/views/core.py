@@ -19,6 +19,8 @@ import logging
 import re
 from contextlib import closing
 from datetime import datetime, timedelta
+from io import BytesIO
+import mimetypes
 from typing import Any, Callable, cast, Dict, List, Optional, Union
 from urllib import parse
 
@@ -112,6 +114,7 @@ from superset.views.base import (
     common_bootstrap_payload,
     create_table_permissions,
     CsvResponse,
+    XLSXResponse,
     data_payload_response,
     generate_download_headers,
     get_error_msg,
@@ -443,6 +446,22 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 mimetype="application/csv",
             )
 
+        if response_type == utils.ChartDataResultFormat.XLSX:
+            filename = f'{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+            stream = viz_obj.get_xlsx()
+            mimetype = mimetypes.guess_type(filename)[0]
+            headers = {
+                "Content-Disposition": f'attachment; filename="{filename}"; '
+                                       f"filename*=UTF-8''{filename}",
+                'Content-Type': mimetype,
+            }
+            return XLSXResponse(
+                stream,
+                status=200,
+                headers=headers,
+                mimetype=mimetype,
+            )
+
         if response_type == utils.ChartDataResultType.QUERY:
             return self.get_query_string_response(viz_obj)
 
@@ -582,7 +601,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 break
 
         form_data = get_form_data()[0]
-
         try:
             datasource_id, datasource_type = get_datasource_info(
                 datasource_id, datasource_type, form_data
@@ -2627,6 +2645,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             # TODO(bkyryliuk): add compression=gzip for big files.
             csv = df.to_csv(index=False, **config["CSV_EXPORT"])
         response = Response(csv, mimetype="text/csv")
+
         quoted_csv_name = parse.quote(query.name)
         response.headers["Content-Disposition"] = (
             f'attachment; filename="{quoted_csv_name}.csv"; '
@@ -2642,7 +2661,81 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "exported_format": "csv",
         }
         event_rep = repr(event_info)
-        logger.info("CSV exported: %s", event_rep, extra={"superset_event": event_info})
+        logger.info(
+            "CSV exported: %s", event_rep, extra={"superset_event": event_info}
+        )
+        return response
+
+    @has_access
+    @event_logger.log_this
+    @expose("/xlsx/<client_id>")
+    def xlsx(self, client_id: str) -> FlaskResponse:  # pylint: disable=no-self-use
+        """Download the query results as xlsx."""
+        logger.info("Exporting XLSX file [%s]", client_id)
+        query = db.session.query(Query).filter_by(client_id=client_id).one()
+
+        try:
+            query.raise_for_access()
+        except SupersetSecurityException as ex:
+            flash(ex.error.message)
+            return redirect("/")
+
+        blob = None
+        if results_backend and query.results_key:
+            logger.info("Fetching XLSX from results backend [%s]", query.results_key)
+            blob = results_backend.get(query.results_key)
+        if blob:
+            logger.info("Decompressing")
+            payload = utils.zlib_decompress(
+                blob, decode=not results_backend_use_msgpack
+            )
+            obj = _deserialize_results_payload(
+                payload, query, cast(bool, results_backend_use_msgpack)
+            )
+            columns = [c["name"] for c in obj["columns"]]
+            df = pd.DataFrame.from_records(obj["data"], columns=columns)
+            logger.info("Using pandas to convert to XLSX")
+        else:
+            logger.info("Running a query to turn into XLSX")
+            sql = query.select_sql or query.executed_sql
+            df = query.database.get_df(sql, query.schema)
+            # TODO(bkyryliuk): add compression=gzip for big files.
+
+        xlsx = BytesIO()
+        # Remove TZ from datetime64[ns, *] fields b4 writing to XLSX
+        utils.df_clear_timezone(df)
+
+        writer = pd.ExcelWriter(xlsx, engine='xlsxwriter')
+        df.to_excel(writer, index=False)
+        writer.close()
+        xlsx.seek(0)
+
+        quoted_xlsx_name = parse.quote(query.name)
+        filename = f"{quoted_xlsx_name}.xlsx"
+        mimetype = mimetypes.guess_type(filename)[0]
+        response = Response(
+            xlsx.read(), mimetype=mimetype
+        )
+        response.headers.update(
+            {
+                "Content-Disposition": f'attachment; filename="{filename}"; '
+                                       f"filename*=UTF-8''{filename}",
+                "Content-type": mimetype,
+            }
+        )
+        event_info = {
+            "event_type": "data_export",
+            "client_id": client_id,
+            "row_count": len(df.index),
+            "database": query.database.name,
+            "schema": query.schema,
+            "sql": query.sql,
+            "exported_format": "xlsx",
+        }
+        event_rep = repr(event_info)
+        logger.info(
+            "XLSX exported: %s", event_rep, extra={"superset_event": event_info}
+        )
         return response
 
     @api

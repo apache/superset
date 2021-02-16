@@ -1032,8 +1032,14 @@ class ChartDataQueryContextSchema(Schema):
         "Default: `false`",
     )
 
-    result_type = EnumField(ChartDataResultType, by_value=True)
-    result_format = EnumField(ChartDataResultFormat, by_value=True)
+    result_type = fields.String(
+        description="Type of results to return",
+        validate=validate.OneOf(choices=("full", "query", "results", "samples")),
+    )
+    result_format = fields.String(
+        description="Format of result payload",
+        validate=validate.OneOf(choices=("json", "csv", "xlsx")),
+    )
 
     # pylint: disable=no-self-use,unused-argument
     @post_load

@@ -152,6 +152,7 @@ class ChartDataResultFormat(str, Enum):
     """
 
     CSV = "csv"
+    XLSX = "xlsx"
     JSON = "json"
 
 
@@ -1514,6 +1515,15 @@ def format_list(items: Sequence[str], sep: str = ", ", quote: str = '"') -> str:
     return sep.join(f"{quote}{x.replace(quote, quote_escaped)}{quote}" for x in items)
 
 
+def df_clear_timezone(df: pd.DataFrame) -> pd.DataFrame:
+    for field_name, field_type in dict(df.dtypes).items():
+        if field_type.name.startswith('datetime64[ns, '):
+            df[field_name] = df[field_name].dt.tz_localize(None)
+
+    return df
+
+  
 def find_duplicates(items: Iterable[InputType]) -> List[InputType]:
     """Find duplicate items in an iterable."""
     return [item for item, count in collections.Counter(items).items() if count > 1]
+

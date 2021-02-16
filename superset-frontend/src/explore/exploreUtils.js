@@ -73,7 +73,7 @@ export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
 export function getURIDirectory(endpointType = 'base') {
   // Building the directory part of the URI
   if (
-    ['full', 'json', 'csv', 'query', 'results', 'samples'].includes(
+    ['full', 'json', 'csv', 'xlsx', 'query', 'results', 'samples'].includes(
       endpointType,
     )
   ) {
@@ -172,6 +172,9 @@ export function getExploreUrl({
   if (endpointType === 'csv') {
     search.csv = 'true';
   }
+  if (endpointType === 'xlsx') {
+    search.xlsx = 'true';
+  }
   if (endpointType === 'standalone') {
     search.standalone = 'true';
   }
@@ -223,7 +226,7 @@ export const buildV1ChartDataPayload = ({
 };
 
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
-  resultFormat === 'csv' ? resultFormat : resultType;
+  resultFormat === 'csv' || resultFormat === 'xlsx' ? resultFormat : resultType;
 
 export function postForm(url, payload, target = '_blank') {
   if (!url) {
@@ -244,7 +247,7 @@ export function postForm(url, payload, target = '_blank') {
   data.name = 'form_data';
   data.value = safeStringify(payload);
   hiddenForm.appendChild(data);
-
+  
   document.body.appendChild(hiddenForm);
   hiddenForm.submit();
   document.body.removeChild(hiddenForm);

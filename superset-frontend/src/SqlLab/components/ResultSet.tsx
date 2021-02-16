@@ -68,6 +68,7 @@ interface ResultSetProps {
   actions: Record<string, any>;
   cache?: boolean;
   csv?: boolean;
+  xlsx?: boolean;
   database?: Record<string, any>;
   displayLimit: number;
   height: number;
@@ -107,6 +108,7 @@ export default class ResultSet extends React.PureComponent<
   static defaultProps = {
     cache: false,
     csv: true,
+    xlsx: true,
     database: {},
     search: true,
     showSql: false,
@@ -387,7 +389,7 @@ export default class ResultSet extends React.PureComponent<
   }
 
   renderControls() {
-    if (this.props.search || this.props.visualize || this.props.csv) {
+    if (this.props.search || this.props.visualize || this.props.csv || this.props.xlsx) {
       let { data } = this.props.query.results;
       if (this.props.cache && this.props.query.cached) {
         ({ data } = this.state);
@@ -448,6 +450,14 @@ export default class ResultSet extends React.PureComponent<
                 href={`/superset/csv/${this.props.query.id}`}
               >
                 <i className="fa fa-file-text-o" /> {t('.CSV')}
+              </Button>
+            )}
+            {this.props.xlsx && (
+              <Button
+                buttonSize="small"
+                href={`/superset/xlsx/${this.props.query.id}`}
+              >
+                <i className="fa fa-file-text-o" /> {t('.XLSX')}
               </Button>
             )}
 

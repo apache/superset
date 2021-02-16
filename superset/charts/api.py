@@ -18,6 +18,7 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
+import mimetypes
 from typing import Any, Dict
 from zipfile import ZipFile
 
@@ -27,6 +28,7 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as _, ngettext
 from marshmallow import ValidationError
+import pandas as pd
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
@@ -73,6 +75,7 @@ from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.core import (
     ChartDataResultFormat,
     ChartDataResultType,
+    df_clear_timezone,
     json_int_dttm_ser,
 )
 from superset.utils.screenshots import ChartScreenshot
@@ -82,7 +85,9 @@ from superset.views.base_api import (
     RelatedFieldFilter,
     statsd_metrics,
 )
-from superset.views.core import CsvResponse, generate_download_headers
+from superset.views.core import (
+    CsvResponse, XLSXResponse, generate_download_headers
+)
 from superset.views.filters import FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
@@ -491,6 +496,31 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 mimetype="application/csv",
             )
 
+        if result_format == ChartDataResultFormat.XLSX:
+            filename = f'{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+            data = result["queries"][0]["data"]
+            df = pd.DataFrame(data)
+            xlsx = BytesIO()
+            # Remove TZ from datetime64[ns, *] fields b4 writing to XLSX
+            df_clear_timezone(df)
+
+            writer = pd.ExcelWriter(xlsx, engine='xlsxwriter')
+            df.to_excel(writer, index=False)
+            writer.close()
+            xlsx.seek(0)
+            mimetype = mimetypes.guess_type(filename)[0]
+            headers = {
+                "Content-Disposition": f'attachment; filename="{filename}"; '
+                                       f"filename*=UTF-8''{filename}",
+                'Content-Type': mimetype,
+            }
+            return XLSXResponse(
+                xlsx.read(),
+                status=200,
+                headers=headers,
+                mimetype=mimetype,
+            )
+
         if result_format == ChartDataResultFormat.JSON:
             response_data = simplejson.dumps(
                 {"result": result["queries"]},
@@ -553,7 +583,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if request.is_json:
             json_body = request.json
         elif request.form.get("form_data"):
-            # CSV export submits regular form data
+            # CSV/XLSX export submits regular form data
             try:
                 json_body = json.loads(request.form["form_data"])
             except (TypeError, json.JSONDecodeError):
