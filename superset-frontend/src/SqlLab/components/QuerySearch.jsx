@@ -125,6 +125,7 @@ function QuerySearch({ actions, displayLimit }) {
   // functionally this is closest to componentDidMount, though Abramov recommends that it is better if you have a more robust dependency array, though I am afraid that will go into a useCallback loop like before. Though, I could remove some of the refreshQueries in the other methods, and instead have the dependency array focus on when values are changed? That would maybe not play nicely with onChange though.
   useEffect(() => {
     refreshQueries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onUserClicked = userId => {
@@ -134,7 +135,7 @@ function QuerySearch({ actions, displayLimit }) {
   // add these to dependency array instead of having their own functions.
 
   const onDbClicked = dbId => {
-    // By my reading of this, it is setting state, and then running the refreshQueries function. Is that correct?
+    // By my reading of this, it is setting state, and then running the refreshQueries function. Is that correct? I ended up keeping these two, because I couldn't think of a good way of enabling these in useEffect without also having it refreshQueries when you change the DB or example in the DB (which was not part of original functionality)
     setDatabaseId(dbId);
     refreshQueries();
   };
