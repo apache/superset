@@ -167,7 +167,7 @@ supersetWorker:
 
 ##
 ## Superset beat configuration (to trigger scheduled jobs like reports)
-supersetBeat:
+supersetCeleryBeat:
   # This is only required if you intend to use alerts and reports
   enabled: false
   command:
