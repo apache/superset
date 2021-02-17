@@ -2873,7 +2873,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose("/sqllab", methods=["GET", "POST"])
+    @expose("/sqllab/", methods=["GET", "POST"])
     def sqllab(self) -> FlaskResponse:
         """SQL Editor"""
         payload = {
