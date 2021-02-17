@@ -17,7 +17,12 @@
  * under the License.
  */
 import React, { useRef } from 'react';
-import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
+import {
+  useDrag,
+  useDrop,
+  DropTargetMonitor,
+  DragSourceMonitor,
+} from 'react-dnd';
 import { DragContainer } from 'src/explore/components/OptionControls';
 import Option from './Option';
 import {
@@ -27,17 +32,16 @@ import {
 } from '../types';
 
 export default function OptionWrapper(props: OptionWrapperProps) {
-  const { groupByValues, column, onChangeGroupByValues } = props;
+  const { index, onShiftOptions } = props;
   const ref = useRef<HTMLDivElement>(null);
 
   const item: GroupByItemInterface = {
-    dragIndex: groupByValues.indexOf(column.column_name),
-    dropIndex: -1,
+    dragIndex: index,
     type: GroupByItemType,
   };
   const [, drag] = useDrag({
     item,
-    collect: monitor => ({
+    collect: (monitor: DragSourceMonitor) => ({
       isDragging: monitor.isDragging(),
     }),
   });
@@ -45,21 +49,12 @@ export default function OptionWrapper(props: OptionWrapperProps) {
   const [, drop] = useDrop({
     accept: GroupByItemType,
 
-    drop: (item: GroupByItemInterface) => {
-      if (item.dragIndex > -1 && item.dropIndex > -1) {
-        const newValues = [...props.groupByValues];
-        newValues[item.dragIndex] = groupByValues[item.dropIndex];
-        newValues[item.dropIndex] = groupByValues[item.dragIndex];
-        onChangeGroupByValues(newValues);
-      }
-    },
-
-    hover(item: GroupByItemInterface, monitor: DropTargetMonitor) {
+    hover: (item: GroupByItemInterface, monitor: DropTargetMonitor) => {
       if (!ref.current) {
         return;
       }
       const { dragIndex } = item;
-      const hoverIndex = groupByValues.indexOf(column.column_name);
+      const hoverIndex = index;
 
       // Don't replace items with themselves
       if (dragIndex === hoverIndex) {
@@ -87,10 +82,11 @@ export default function OptionWrapper(props: OptionWrapperProps) {
       if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
         return;
       }
+
       // Time to actually perform the action
+      onShiftOptions(dragIndex, hoverIndex);
       // eslint-disable-next-line no-param-reassign
-      item.dragIndex = dragIndex;
-      item.dropIndex = hoverIndex;
+      item.dragIndex = hoverIndex;
     },
   });
 

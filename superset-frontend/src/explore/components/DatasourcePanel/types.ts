@@ -22,7 +22,7 @@ export enum DatasourcePanelDndType {
   COLUMN = 'column',
 }
 
-export interface DatasourcePanelDndItemProps {
+export interface DatasourcePanelDndItem {
   metricOrColumnName: string;
   type:
     | typeof DatasourcePanelDndType.METRIC

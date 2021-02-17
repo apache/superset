@@ -29,10 +29,11 @@ import {
 } from 'src/explore/components/OptionControls';
 import {
   DatasourcePanelDndType,
-  DatasourcePanelDndItemProps,
+  DatasourcePanelDndItem,
 } from 'src/explore/components/DatasourcePanel/types';
 import Icon from 'src/components/Icon';
 import OptionWrapper from './components/OptionWrapper';
+import { getOptionsFromGroupByValues } from './utils';
 
 interface DropGroupByControlProps extends BaseControlConfig {
   name: string;
@@ -43,42 +44,42 @@ interface DropGroupByControlProps extends BaseControlConfig {
 }
 
 function DropGroupByControl(props: DropGroupByControlProps) {
-  const [groupByValues, setGroupByValues] = useState<string[]>(
-    props.value ?? [],
+  const { value: groupByValues, options } = props;
+  const [groupByOptions, setGroupByOptions] = useState<ColumnMeta[]>(
+    getOptionsFromGroupByValues(options, groupByValues),
   );
+
   const [, datasourcePanelDrop] = useDrop({
     accept: DatasourcePanelDndType.COLUMN,
-    drop: (item: DatasourcePanelDndItemProps) => {
-      if (!groupByValues.includes(item.metricOrColumnName)) {
-        const newValue = groupByValues.concat([item.metricOrColumnName]);
-        setGroupByValues(newValue);
-        props.onChange(newValue);
-      }
+
+    drop: (item: DatasourcePanelDndItem) => {
+      const newGroupByValues = groupByValues.concat([item.metricOrColumnName]);
+      setGroupByOptions(getOptionsFromGroupByValues(options, newGroupByValues));
+      props.onChange(newGroupByValues);
     },
+
+    canDrop: (item: DatasourcePanelDndItem) =>
+      !groupByValues.includes(item.metricOrColumnName),
+
     collect: monitor => ({
       isOver: monitor.isOver(),
       canDrop: monitor.canDrop(),
     }),
   });
 
-  const dbColumnsInCurrentControl: ColumnMeta[] = [];
-  groupByValues.forEach(value => {
-    if (value in props.options) {
-      dbColumnsInCurrentControl.push(props.options[value]);
-    }
-  });
-
   function onClickClose(columnName: string) {
     const newGroupByValues = groupByValues.filter(
       value => value !== columnName,
     );
-    setGroupByValues(newGroupByValues);
+    setGroupByOptions(getOptionsFromGroupByValues(options, newGroupByValues));
     props.onChange(newGroupByValues);
   }
 
-  function onChangeGroupByValues(values: string[]) {
-    setGroupByValues(values);
-    props.onChange(values);
+  function onShiftOptions(dragIndex: number, dropIndex: number) {
+    const val = [...groupByValues];
+    [val[dropIndex], val[dragIndex]] = [val[dragIndex], val[dropIndex]];
+    setGroupByOptions(getOptionsFromGroupByValues(options, val));
+    props.onChange(val);
   }
 
   const PlaceHolderRenderer = () => (
@@ -90,13 +91,13 @@ function DropGroupByControl(props: DropGroupByControlProps) {
 
   const OptionsRenderer = () => (
     <>
-      {dbColumnsInCurrentControl.map(column => (
+      {groupByOptions.map(column => (
         <OptionWrapper
           key={column.column_name}
           column={column}
+          index={groupByOptions.indexOf(column)}
           clickClose={onClickClose}
-          groupByValues={groupByValues}
-          onChangeGroupByValues={onChangeGroupByValues}
+          onShiftOptions={onShiftOptions}
         />
       ))}
     </>
@@ -109,7 +110,7 @@ function DropGroupByControl(props: DropGroupByControlProps) {
           <ControlHeader {...props} />
         </HeaderContainer>
         <LabelsContainer>
-          {isEmpty(dbColumnsInCurrentControl) ? (
+          {isEmpty(groupByOptions) ? (
             <PlaceHolderRenderer />
           ) : (
             <OptionsRenderer />

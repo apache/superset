@@ -16,27 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
-import { useDrag } from 'react-dnd';
-import { DatasourcePanelDndItem } from './types';
+import { ColumnMeta } from '@superset-ui/chart-controls';
 
-interface DatasourcePanelDragWrapperProps extends DatasourcePanelDndItem {
-  children?: ReactNode;
-}
-
-export default function DatasourcePanelDragWrapper(
-  props: DatasourcePanelDragWrapperProps,
-) {
-  const [, drag] = useDrag({
-    item: {
-      metricOrColumnName: props.metricOrColumnName,
-      type: props.type,
-    },
-  });
-
-  return (
-    <>
-      <div ref={drag}>{props.children}</div>
-    </>
-  );
+export function getOptionsFromGroupByValues(
+  options: { string: ColumnMeta },
+  groupByValues: string[],
+): ColumnMeta[] {
+  return groupByValues
+    .map(value => {
+      if (value in options) {
+        return options[value];
+      }
+      return null;
+    })
+    .filter(Boolean);
 }
