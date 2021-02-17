@@ -17,7 +17,7 @@
 import json
 from datetime import datetime, timedelta
 from typing import List, Optional
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from contextlib2 import contextmanager
@@ -256,16 +256,7 @@ def create_alert_slack_chart_grace():
 
 
 @pytest.yield_fixture(
-    params=[
-        "alert1",
-        "alert2",
-        "alert3",
-        "alert4",
-        "alert5",
-        "alert6",
-        "alert7",
-        "alert8",
-    ]
+    params=["alert1", "alert2", "alert3", "alert4", "alert5", "alert6", "alert7",]
 )
 def create_alert_email_chart(request):
     param_config = {
@@ -303,11 +294,6 @@ def create_alert_email_chart(request):
             "sql": "SELECT {{ 5 + 5 }} as metric",
             "validator_type": ReportScheduleValidatorType.OPERATOR,
             "validator_config_json": '{"op": "!=", "threshold": 11}',
-        },
-        "alert8": {
-            "sql": "SELECT first from test_table",
-            "validator_type": ReportScheduleValidatorType.OPERATOR,
-            "validator_config_json": '{"op": "<", "threshold": 10}',
         },
     }
     with app.app_context():
@@ -393,11 +379,16 @@ def create_no_alert_email_chart(request):
             cleanup_report_schedule(report_schedule)
 
 
-@pytest.yield_fixture(params=["alert1"])
+@pytest.yield_fixture(params=["alert1", "alert2"])
 def create_mul_alert_email_chart(request):
     param_config = {
         "alert1": {
             "sql": "SELECT first, second from test_table",
+            "validator_type": ReportScheduleValidatorType.OPERATOR,
+            "validator_config_json": '{"op": "<", "threshold": 10}',
+        },
+        "alert2": {
+            "sql": "SELECT first from test_table",
             "validator_type": ReportScheduleValidatorType.OPERATOR,
             "validator_config_json": '{"op": "<", "threshold": 10}',
         },
@@ -643,6 +634,21 @@ def test_report_schedule_success_grace_end(create_alert_slack_chart_grace):
 
     db.session.commit()
     assert create_alert_slack_chart_grace.last_state == ReportState.NOOP
+
+
+@pytest.mark.usefixtures("create_alert_email_chart")
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.compute_and_cache")
+def test_alert_limit_is_applied(screenshot_mock, email_mock, create_alert_email_chart):
+    """
+    ExecuteReport Command: Test that all alerts apply a SQL limit to stmts
+    """
+    execute_mock = create_alert_email_chart.database.db_engine_spec.execute = Mock()
+
+    AsyncExecuteReportScheduleCommand(
+        create_alert_email_chart.id, datetime.utcnow()
+    ).run()
+    assert "LIMIT 2" in execute_mock.call_args[0][1]
 
 
 @pytest.mark.usefixtures("create_report_email_dashboard")
