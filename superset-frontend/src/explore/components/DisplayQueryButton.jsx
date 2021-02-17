@@ -110,12 +110,11 @@ export const DisplayQueryButton = props => {
         break;
       case MENU_KEYS.DOWNLOAD_AS_IMAGE:
         downloadAsImage(
-          '.chart-container',
+          '.panel-body > .chart-container',
           // eslint-disable-next-line camelcase
           slice?.slice_name ?? t('New chart'),
-          {
-            height: parseInt(chartHeight, 10),
-          },
+          {},
+          true,
         )(domEvent);
         break;
       default:
