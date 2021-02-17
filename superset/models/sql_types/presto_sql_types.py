@@ -127,4 +127,3 @@ class Date(TypeDecorator):
         as Presto does not support automatic casting.
         """
         return "DATE '%s'" % value
-
