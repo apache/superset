@@ -21,8 +21,10 @@ import { ColumnMeta } from '@superset-ui/chart-controls'
 
 export interface OptionWrapperProps {
   column: ColumnMeta;
-  withCaret?: boolean;
+  groupByValues: string[];
   clickClose: (columnName: string) => void;
+  onChangeGroupByValues: (values: string[]) => void;
+  withCaret?: boolean;
 }
 
 export interface OptionProps extends OptionWrapperProps {
@@ -32,6 +34,7 @@ export interface OptionProps extends OptionWrapperProps {
 export const GroupByItemType = 'groupByItem';
 
 export interface GroupByItemInterface {
-  column: ColumnMeta;
   type: typeof GroupByItemType;
+  dragIndex: number;
+  dropIndex: number;
 }

@@ -18,65 +18,77 @@
  */
 import React, { useRef } from 'react';
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
-import DropItemOption from './Option';
+import Option from './Option';
 import { DragContainer } from 'src/explore/components/OptionControls';
 import { OptionWrapperProps, GroupByItemInterface, GroupByItemType } from "../types";
 
 export default function OptionWrapper(props: OptionWrapperProps) {
+  const { groupByValues, column, onChangeGroupByValues } = props;
   const ref = useRef<HTMLDivElement>(null);
+
+  const item: GroupByItemInterface = {
+    dragIndex: groupByValues.indexOf(column.column_name),
+    dropIndex: -1,
+    type: GroupByItemType
+  }
   const [, drag] = useDrag({
-    item: { column: props.column, type: GroupByItemType },
+    item,
+    collect: monitor => ({
+      isDragging: monitor.isDragging(),
+    }),
   })
+
   const [, drop] = useDrop({
     accept: GroupByItemType,
 
     drop: (item: GroupByItemInterface) => {
+      let newValues = [...props.groupByValues];
+      newValues[item.dragIndex] = groupByValues[item.dropIndex];
+      newValues[item.dropIndex] = groupByValues[item.dragIndex];
+      onChangeGroupByValues(newValues);
     },
 
     hover(item: GroupByItemInterface, monitor: DropTargetMonitor) {
-      // if (!ref.current) {
-      //   return;
-      // }
-      // const dragIndex = item.index;
-      // const hoverIndex = index;
-      // // Don't replace items with themselves
-      // if (dragIndex === hoverIndex) {
-      //   return;
-      // }
-      // // Determine rectangle on screen
-      // const hoverBoundingRect = ref.current?.getBoundingClientRect();
-      // // Get vertical middle
-      // const hoverMiddleY =
-      //   (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-      // // Determine mouse position
-      // const clientOffset = monitor.getClientOffset();
-      // // Get pixels to the top
-      // const hoverClientY = clientOffset?.y
-      //   ? clientOffset?.y - hoverBoundingRect.top
-      //   : 0;
-      // // Only perform the move when the mouse has crossed half of the items height
-      // // When dragging downwards, only move when the cursor is below 50%
-      // // When dragging upwards, only move when the cursor is above 50%
-      // // Dragging downwards
-      // if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
-      //   return;
-      // }
-      // // Dragging upwards
-      // if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
-      //   return;
-      // }
-      // // Time to actually perform the action
-      // // onMoveLabel?.(dragIndex, hoverIndex);
-      // // Note: we're mutating the monitor item here!
-      // // Generally it's better to avoid mutations,
-      // // but it's good here for the sake of performance
-      // // to avoid expensive index searches.
-      // // eslint-disable-next-line no-param-reassign
-      // item.index = hoverIndex;
+      if (!ref.current) {
+        return;
+      }
+      const dragIndex = item.dragIndex;
+      const hoverIndex = groupByValues.indexOf(column.column_name);
+
+      // Don't replace items with themselves
+      if (dragIndex === hoverIndex) {
+        return;
+      }
+      // Determine rectangle on screen
+      const hoverBoundingRect = ref.current?.getBoundingClientRect();
+      // Get vertical middle
+      const hoverMiddleY =
+        (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+      // Determine mouse position
+      const clientOffset = monitor.getClientOffset();
+      // Get pixels to the top
+      const hoverClientY = clientOffset?.y
+        ? clientOffset?.y - hoverBoundingRect.top
+        : 0;
+      // Only perform the move when the mouse has crossed half of the items height
+      // When dragging downwards, only move when the cursor is below 50%
+      // When dragging upwards, only move when the cursor is above 50%
+      // Dragging downwards
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+        return;
+      }
+      // Dragging upwards
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
+        return;
+      }
+      // Time to actually perform the action
+      // eslint-disable-next-line no-param-reassign
+      item.dragIndex = dragIndex;
+      item.dropIndex = hoverIndex;
     },
   })
 
   drag(drop(ref));
 
-  return <DragContainer ref={ref}><DropItemOption {...props} /></DragContainer>
+  return <DragContainer ref={ref}><Option {...props} /></DragContainer>
 }

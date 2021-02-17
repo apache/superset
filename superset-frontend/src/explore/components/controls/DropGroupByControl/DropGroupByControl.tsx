@@ -29,7 +29,7 @@ import {
 } from 'src/explore/components/OptionControls';
 import {
   DatasourcePanelDndType,
-  DatasourcePanelDndItemInterface,
+  DatasourcePanelDndItemProps,
 } from 'src/explore/components/DatasourcePanel/types';
 import Icon from 'src/components/Icon';
 import OptionWrapper from './components/OptionWrapper';
@@ -46,7 +46,7 @@ function DropGroupByControl(props: DropGroupByControlProps) {
   const [groupByValues, setGroupByValues] = useState<string[]>(props.value ?? [])
   const [, datasourcePanelDrop] = useDrop({
     accept: DatasourcePanelDndType.COLUMN,
-    drop: (item: DatasourcePanelDndItemInterface) => {
+    drop: (item: DatasourcePanelDndItemProps) => {
       if (!groupByValues.includes(item.metricOrColumnName)) {
         const newValue = groupByValues.concat([item.metricOrColumnName]);
         setGroupByValues(newValue);
@@ -66,10 +66,15 @@ function DropGroupByControl(props: DropGroupByControlProps) {
     }
   });
 
-  const onClickClose = (columnName: string) => {
+  function onClickClose(columnName: string) {
     const newGroupByValues = groupByValues.filter((value) => value !== columnName)
     setGroupByValues(newGroupByValues);
     props.onChange(newGroupByValues);
+  }
+
+  function onChangeGroupByValues(values: string[]){
+    setGroupByValues(values);
+    props.onChange(values);
   }
 
   const PlaceHolderRenderer = () =>
@@ -89,6 +94,8 @@ function DropGroupByControl(props: DropGroupByControlProps) {
             key={column.column_name}
             column={column}
             clickClose={onClickClose}
+            groupByValues={groupByValues}
+            onChangeGroupByValues={onChangeGroupByValues}
           />)}
       </>
     )

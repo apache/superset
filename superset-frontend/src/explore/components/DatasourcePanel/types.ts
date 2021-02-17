@@ -17,11 +17,12 @@
  * under the License.
  */
 export enum DatasourcePanelDndType {
-  METRIC = 'metric',
+  // todo: The new `metric` conflicts with the existing metric type
+  METRIC = 'datasource-panel-metric',
   COLUMN = 'column',
 }
 
-export interface DatasourcePanelDndItemInterface {
+export interface DatasourcePanelDndItemProps {
   metricOrColumnName: string;
   type:
     | typeof DatasourcePanelDndType.METRIC

@@ -18,13 +18,13 @@
  */
 import React, { ReactNode } from 'react';
 import { useDrag } from 'react-dnd';
-import { DatasourcePanelDndItemInterface } from './types';
+import { DatasourcePanelDndItemProps } from './types';
 
-interface DragItemControlProps extends DatasourcePanelDndItemInterface {
+interface DatasourcePanelDragWrapperProps extends DatasourcePanelDndItemProps {
   children?: ReactNode;
 }
 
-export default function DatasourcePanelDragWrapper(props: DragItemControlProps) {
+export default function DatasourcePanelDragWrapper(props: DatasourcePanelDragWrapperProps) {
   const [, drag] = useDrag({
     item: {
       metricOrColumnName: props.metricOrColumnName,
