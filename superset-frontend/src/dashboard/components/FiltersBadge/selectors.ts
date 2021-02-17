@@ -187,7 +187,10 @@ export const selectNativeIndicatorsForChart = (
     isAffectedByScope: boolean,
     column?: string,
   ): IndicatorStatus => {
-    if (!column && isAffectedByScope) {
+    if (!isAffectedByScope) {
+      return IndicatorStatus.Unset;
+    }
+    if (!column) {
       // Filter without datasource
       return IndicatorStatus.Applied;
     }
