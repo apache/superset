@@ -30,13 +30,14 @@ import { Filter } from './types';
 import { NativeFiltersState } from '../../reducers/types';
 
 export const getFormData = ({
-  datasetId = 18,
+  datasetId,
   cascadingFilters = {},
   groupby,
   currentValue,
   inputRef,
   defaultValue,
   controlValues,
+  filterType,
 }: Partial<Filter> & {
   datasetId?: number;
   inputRef?: RefObject<HTMLInputElement>;
@@ -63,7 +64,7 @@ export const getFormData = ({
     time_range: 'No filter',
     time_range_endpoints: ['inclusive', 'exclusive'],
     url_params: {},
-    viz_type: 'filter_select',
+    viz_type: filterType,
     inputRef,
     ...controlValues,
     ...otherProps,

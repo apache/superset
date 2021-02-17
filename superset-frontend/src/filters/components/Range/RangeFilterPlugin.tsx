@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
-import React from 'react';
+import { styled, t } from '@superset-ui/core';
+import React, { useEffect, useState } from 'react';
 import { Slider } from 'src/common/components';
 import { PluginFilterRangeProps } from './types';
 import { PluginFilterStylesProps } from '../types';
@@ -33,12 +33,15 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [row] = data;
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
-  const { groupby } = formData;
-  const [col] = groupby || [];
+  const { groupby, currentValue, defaultValue } = formData;
+  const [col = ''] = groupby || [];
+  const [value, setValue] = useState<[number, number]>(
+    defaultValue ?? [min, max],
+  );
 
-  const handleChange = (value: [number, number]) => {
+  const handleAfterChange = (value: [number, number]) => {
     const [lower, upper] = value;
-
+    setValue(value);
     setExtraFormData({
       extraFormData: getRangeExtraFormData(col, lower, upper),
       currentState: {
@@ -47,16 +50,35 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     });
   };
 
+  const handleChange = (value: [number, number]) => {
+    setValue(value);
+  };
+
+  useEffect(() => {
+    handleChange(currentValue ?? [min, max]);
+  }, [JSON.stringify(currentValue)]);
+
+  useEffect(() => {
+    handleChange(defaultValue ?? [min, max]);
+    // I think after Config Modal update some filter it re-creates default value for all other filters
+    // so we can process it like this `JSON.stringify` or start to use `Immer`
+  }, [JSON.stringify(defaultValue)]);
+
   return (
     <Styles height={height} width={width}>
-      <Slider
-        range
-        min={min}
-        max={max}
-        defaultValue={[min, max]}
-        onChange={handleChange}
-        ref={inputRef}
-      />
+      {Number.isNaN(Number(min)) || Number.isNaN(Number(max)) ? (
+        <h4>{t('Chosen non-numeric column')}</h4>
+      ) : (
+        <Slider
+          range
+          min={min}
+          max={max}
+          value={value}
+          onAfterChange={handleAfterChange}
+          onChange={handleChange}
+          ref={inputRef}
+        />
+      )}
     </Styles>
   );
 }
