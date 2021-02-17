@@ -37,7 +37,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [col = ''] = groupby || [];
   const [value, setValue] = useState<[number, number]>(defaultValue ?? [0, 0]);
 
-  const handleChange = (value: [number, number]) => {
+  const handleAfterChange = (value: [number, number]) => {
     const [lower, upper] = value;
     setValue(value);
     setExtraFormData({
@@ -46,6 +46,10 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         value,
       },
     });
+  };
+
+  const handleChange = (value: [number, number]) => {
+    setValue(value);
   };
 
   useEffect(() => {
@@ -68,6 +72,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
           min={min}
           max={max}
           value={value}
+          onAfterChange={handleAfterChange}
           onChange={handleChange}
           ref={inputRef}
         />
