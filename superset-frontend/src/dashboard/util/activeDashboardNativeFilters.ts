@@ -20,6 +20,7 @@ import { CHART_TYPE } from './componentTypes';
 import { Scope } from '../components/nativeFilters/types';
 import { ActiveFilters, LayoutItem } from '../types';
 import { NativeFiltersState } from '../reducers/types';
+import { DASHBOARD_ROOT_ID } from './constants';
 
 // Looking for affected chart scopes and values
 export const findAffectedCharts = ({
@@ -82,10 +83,11 @@ export const getActiveNativeFilters = ({
   }
   Object.values(nativeFilters.filtersState).forEach(
     ({ id: filterId, extraFormData }) => {
-      const scope = nativeFilters?.filters?.[filterId]?.scope;
-      if (!scope) {
-        return;
-      }
+      // TODO: for a case of a cross filters (should be updated will be added scope there)
+      const scope = nativeFilters?.filters?.[filterId]?.scope ?? {
+        rootPath: [DASHBOARD_ROOT_ID],
+        excluded: [],
+      };
       // Iterate over all roots to find all affected charts
       scope.rootPath.forEach(layoutItemId => {
         layout[layoutItemId].children.forEach((child: string) => {
