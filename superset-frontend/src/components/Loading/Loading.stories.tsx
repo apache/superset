@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import Loading from './index';
+import Loading, { Props, PositionOption } from './index';
 
 export default {
   title: 'Loading',
@@ -25,7 +25,7 @@ export default {
   includeStories: ['LoadingGallery', 'InteractiveLoading'],
 };
 
-export const POSITIONS = ['floating', 'inline', 'some-custom-class'];
+export const POSITIONS: PositionOption[] = ['normal', 'floating', 'inline'];
 
 export const LoadingGallery = () => (
   <>
@@ -60,9 +60,7 @@ LoadingGallery.story = {
   },
 };
 
-export const InteractiveLoading = (args: { position?: string }) => (
-  <Loading {...args} />
-);
+export const InteractiveLoading = (args: Props) => <Loading {...args} />;
 
 InteractiveLoading.story = {
   parameters: {
@@ -74,11 +72,12 @@ InteractiveLoading.story = {
 
 InteractiveLoading.args = {
   image: '/images/loading.gif',
+  className: '',
 };
 
 InteractiveLoading.argTypes = {
   position: {
     name: 'position',
-    control: { type: 'text' },
+    control: { type: 'select', options: POSITIONS },
   },
 };

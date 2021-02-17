@@ -18,9 +18,12 @@
  */
 import React from 'react';
 import { styled } from '@superset-ui/core';
+import cls from 'classnames';
 
-interface Props {
-  position?: string;
+export type PositionOption = 'normal' | 'inline' | 'floating';
+export interface Props {
+  position?: PositionOption;
+  className?: string;
   image?: string;
 }
 
@@ -45,13 +48,16 @@ const LoaderImg = styled.img`
 export default function Loading({
   position = 'floating',
   image = '/static/assets/images/loading.gif',
+  className,
 }: Props) {
   return (
     <LoaderImg
-      className={`loading ${position}`}
+      className={cls('loading', position, className)}
       alt="Loading..."
       src={image}
-      data-test-id="loading"
+      role="status"
+      aria-live="polite"
+      aria-label="Loading"
     />
   );
 }
