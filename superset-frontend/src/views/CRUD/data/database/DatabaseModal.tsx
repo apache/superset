@@ -145,10 +145,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useState<DatabaseObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
-  const conf = useSelector((state: RootState) => {
-    console.log(state);
-    return state.common.conf;
-  });
+  const conf = useSelector((state: RootState) => state.common.conf);
 
   const isEditMode = database !== null;
   const defaultExtra =
