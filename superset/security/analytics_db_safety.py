@@ -15,8 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 from sqlalchemy.engine.url import URL
+from sqlalchemy.exc import NoSuchModuleError
 
 from superset.exceptions import SupersetException
+
+# list of unsafe SQLAlchemy dialects
+BLOCKLIST = {
+    # sqlite creates a local DB, which allows mapping server's filesystem
+    "sqlite",
+    # shillelagh allow opening local files (eg, csv:///etc/passwd)
+    "shillelagh",
+}
 
 
 class DBSecurityException(SupersetException):
@@ -26,8 +35,12 @@ class DBSecurityException(SupersetException):
 
 
 def check_sqlalchemy_uri(uri: URL) -> None:
-    if uri.startswith("sqlite"):
-        # sqlite creates a local DB, which allows mapping server's filesystem
+    if uri.drivername in BLOCKLIST:
+        try:
+            dialect = uri.get_dialect().__name__
+        except NoSuchModuleError:
+            dialect = uri.drivername
+
         raise DBSecurityException(
-            "SQLite database cannot be used as a data source for security reasons."
+            f"{dialect} cannot be used as a data source for security reasons."
         )
