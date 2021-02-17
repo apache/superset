@@ -116,9 +116,10 @@ export function isCrossFilter(vizType: string) {
 export function getExtraFormData(
   nativeFilters: NativeFiltersState,
   charts: Charts,
+  filterIdsAppliedOnChart: string[],
 ): ExtraFormData {
   let extraFormData: ExtraFormData = {};
-  Object.keys(nativeFilters.filters).forEach(key => {
+  filterIdsAppliedOnChart.forEach(key => {
     const filterState = nativeFilters.filtersState[key] || {};
     const { extraFormData: newExtra = {} } = filterState;
     extraFormData = mergeExtraFormData(extraFormData, newExtra);
