@@ -934,7 +934,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return:
         """
         if not cls.allows_sql_comments:
-            query = sql_parse.ParsedQuery(query).strip_comments()
+            query = sql_parse.strip_comments_from_sql(query)
 
         if cls.arraysize:
             cursor.arraysize = cls.arraysize

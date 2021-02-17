@@ -58,6 +58,19 @@ def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
     return None
 
 
+def strip_comments_from_sql(statement: str) -> str:
+    """
+    Strips comments from a SQL statement, does a simple test first
+    to avoid always instantiating the expensive ParsedQuery constructor
+
+    This is useful for engines that don't support comments
+
+    :param statement: A string with the SQL statement
+    :return: SQL statement without comments
+    """
+    return ParsedQuery(statement).strip_comments() if "--" in statement else statement
+
+
 @dataclass(eq=True, frozen=True)
 class Table:  # pylint: disable=too-few-public-methods
     """
