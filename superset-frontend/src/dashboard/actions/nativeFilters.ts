@@ -103,9 +103,9 @@ export interface SetExtraFormData {
   currentState: CurrentFilterState;
 }
 
-export const SAVE_FILTERS_SET = 'SAVE_FILTERS_SET';
-export interface SaveFiltersSet {
-  type: typeof SAVE_FILTERS_SET;
+export const SAVE_FILTER_SETS = 'SAVE_FILTER_SETS';
+export interface SaveFilterSets {
+  type: typeof SAVE_FILTER_SETS;
   name: string;
   filtersState: NativeFilterState;
   filtersSetId: string;
@@ -148,13 +148,13 @@ export function setExtraFormData(
   };
 }
 
-export function saveFiltersSet(
+export function saveFilterSets(
   name: string,
   filtersSetId: string,
   filtersState: NativeFilterState,
-): SaveFiltersSet {
+): SaveFilterSets {
   return {
-    type: SAVE_FILTERS_SET,
+    type: SAVE_FILTER_SETS,
     name,
     filtersSetId,
     filtersState,
@@ -176,5 +176,5 @@ export type AnyFilterAction =
   | SetFilterConfigFail
   | SetFiltersState
   | SetExtraFormData
-  | SaveFiltersSet
+  | SaveFilterSets
   | SetFilterState;

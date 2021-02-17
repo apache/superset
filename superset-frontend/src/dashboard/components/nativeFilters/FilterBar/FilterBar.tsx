@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t, ExtraFormData } from '@superset-ui/core';
+import { styled, t, tn, ExtraFormData } from '@superset-ui/core';
 import React, { useState, useEffect, useMemo, ChangeEvent } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import cx from 'classnames';
@@ -26,7 +26,7 @@ import { CurrentFilterState } from 'src/dashboard/reducers/types';
 import { Input, Select } from 'src/common/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
-  saveFiltersSet,
+  saveFilterSets,
   setFiltersState,
 } from 'src/dashboard/actions/nativeFilters';
 import { SelectValue } from 'antd/lib/select';
@@ -258,9 +258,13 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     });
   };
 
-  const handleSaveFiltersSet = () => {
+  const handleSaveFilterSets = () => {
     dispatch(
-      saveFiltersSet(filtersSetName, generateFiltersSetId(), filtersState),
+      saveFilterSets(
+        filtersSetName.trim(),
+        generateFiltersSetId(),
+        filtersState,
+      ),
     );
     setFiltersSetName('');
   };
@@ -275,7 +279,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   };
 
   const takeFiltersSet = (value: SelectValue) => {
-    dispatch(setFiltersState(filterSets[value as string]?.filtersState));
+    dispatch(setFiltersState(filterSets[String(value)]?.filtersState));
   };
 
   return (
@@ -325,7 +329,15 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             <FilterSet>
               <StyledTitle>
                 <div>{t('Choose filters set')}</div>
-                <Select size="small" allowClear onChange={takeFiltersSet}>
+                <Select
+                  size="small"
+                  allowClear
+                  placeholder={tn(
+                    'Available %d sets',
+                    Object.keys(filterSets).length,
+                  )}
+                  onChange={takeFiltersSet}
+                >
                   {Object.values(filterSets).map(({ name, id }) => (
                     <Select.Option value={id}>{name}</Select.Option>
                   ))}
@@ -335,6 +347,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
                 <div>{t('Name')}</div>
                 <Input
                   size="small"
+                  placeholder={t('Enter filter set name')}
                   value={filtersSetName}
                   onChange={({
                     target: { value },
@@ -346,7 +359,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
               <Button
                 buttonStyle="secondary"
                 buttonSize="small"
-                onClick={handleSaveFiltersSet}
+                disabled={filtersSetName.trim() === ''}
+                onClick={handleSaveFilterSets}
                 data-test="filter-save-filters-set-button"
               >
                 {t('Save Filters Set')}

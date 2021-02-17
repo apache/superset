@@ -18,7 +18,7 @@
  */
 import {
   AnyFilterAction,
-  SAVE_FILTERS_SET,
+  SAVE_FILTER_SETS,
   SET_EXTRA_FORM_DATA,
   SET_FILTER_CONFIG_COMPLETE,
   SET_FILTERS_STATE,
@@ -72,7 +72,7 @@ export default function nativeFilterReducer(
           },
         },
       };
-    case SAVE_FILTERS_SET:
+    case SAVE_FILTER_SETS:
       return {
         ...state,
         filterSets: {
