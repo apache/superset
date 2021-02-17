@@ -9,6 +9,8 @@ jobs:
     if: github.event.issue.pull_request
     name: Evaluate ephemeral env comment trigger (/testenv)
     runs-on: ubuntu-latest
+    outputs:
+      slash-command: ${{ steps.eval-body.outputs.result }}
 
     steps:
     - name: Debug
@@ -16,7 +18,7 @@ jobs:
         echo "Comment on PR #${{ github.event.issue.number }} by ${{ github.event.issue.user.login }}, ${{ github.event.comment.author_association }}"
         echo "Comment body: ${{ github.event.comment.body }}"
 
-    - name: Eval comment body
+    - name: Eval comment body for /testenv slash command
       uses: actions/github-script@v3
       id: eval-body
       with:
@@ -25,13 +27,9 @@ jobs:
           const pattern = /^\/testenv/
           return String(pattern.test(context.payload.comment.body))
 
-    - name: Exit on non-matching comment body
-      if: steps.eval-body.outputs.result == 'false'
-      run: exit 1
-
-    # https://docs.github.com/en/graphql/reference/enums#commentauthorassociation
     - name: Limit to committers
       if: >
+        steps.eval-body.outputs.result == 'true' &&
         github.event.comment.author_association != 'MEMBER' &&
         github.event.comment.author_association != 'OWNER'
       uses: actions/github-script@v3
@@ -49,6 +47,7 @@ jobs:
 
   ephemeral_env_creation:
     needs: ephemeral_env_comment
+    if: needs.ephemeral_env_comment.outputs.slash-command == 'true'
     name: Spin up an ephemeral environment
     runs-on: ubuntu-latest
 
