@@ -329,8 +329,6 @@ export default class ResultSet extends React.PureComponent<
         endpoint: '/api/v1/dataset',
       })(`q=${queryParams}`);
 
-      console.log(response)
-
       return response.result.map((r: { table_name: string; id: number }) => ({
         value: r.table_name,
         datasetId: r.id,
@@ -341,43 +339,6 @@ export default class ResultSet extends React.PureComponent<
   };
 
   handleSaveDatasetModalSearch = async (searchText: string) => {
-    // // Making sure that autocomplete input has a value before rendering the dropdown
-    // // Transforming the userDatasetsOwned data for SaveModalComponent)
-    // const appContainer = document.getElementById('app');
-    // const bootstrapData = JSON.parse(
-    //   appContainer?.getAttribute('data-bootstrap') || '{}',
-    // );
-
-    // if (bootstrapData.user && bootstrapData.user.userId) {
-    //   const queryParams = rison.encode({
-    //     filters: [
-    //       {
-    //         col: 'table_name',
-    //         opr: 'ct',
-    //         value: searchText,
-    //       },
-    //       {
-    //         col: 'owners',
-    //         opr: 'rel_m_m',
-    //         value: bootstrapData.user.userId,
-    //       },
-    //     ],
-    //     order_column: 'changed_on_delta_humanized',
-    //     order_direction: 'desc',
-    //   });
-
-    //   const response = await makeApi({
-    //     method: 'GET',
-    //     endpoint: '/api/v1/dataset',
-    //   })(`q=${queryParams}`);
-
-    //   const userDatasetsOwned = response.result.map(
-    //     (r: { table_name: string; id: number }) => ({
-    //       value: r.table_name,
-    //       datasetId: r.id,
-    //     }),
-    //   );
-
     const userDatasetsOwned = await this.getUserDatasets(searchText);
     this.setState({ userDatasetOptions: userDatasetsOwned });
   };
