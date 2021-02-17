@@ -744,3 +744,7 @@ class TestSupersetSqlParse(unittest.TestCase):
             strip_comments_from_sql("SELECT col1, col2 FROM table1\n-- comment")
             == "SELECT col1, col2 FROM table1\n"
         )
+        assert (
+            strip_comments_from_sql("SELECT '--abc' as abc, col2 FROM table1\n")
+            == "SELECT '--abc' as abc, col2 FROM table1"
+        )
