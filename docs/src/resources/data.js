@@ -48,7 +48,7 @@ export const pmc = [
     image: 'https://github.com/dpgaspar.png',
   },
   {
-    name: 'Erik Ritker',
+    name: 'Erik Ritter',
     github: 'https://github.com/etr2460',
     image: 'https://github.com/etr2460.png',
   },
@@ -219,5 +219,10 @@ export const Databases = [
     title: 'Vertica',
     href: 'https://www.vertica.com/',
     imgName: 'vertica.png',
+  },
+  {
+    title: 'Hologres',
+    href: 'https://www.alibabacloud.com/product/hologres',
+    imgName: 'hologres.png',
   },
 ];

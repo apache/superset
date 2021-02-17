@@ -46,10 +46,16 @@ body {
   height: 100%;
 }
 
+.ant-tabs-content-holder {
+  /* This is needed for Safari */
+  height: 100%;
+}
+
 .ant-tabs-content {
   height: 100%;
   position: relative;
   background-color: @lightest;
+  overflow: auto;
 
   > .ant-tabs-tabpane {
     position: absolute;
@@ -132,33 +138,6 @@ div.Workspace {
   padding-top: 10px;
 }
 
-.sql-toolbar {
-  padding: 10px 10px 5px 10px;
-  background-color: @lightest;
-  display: flex;
-  justify-content: space-between;
-  border: 1px solid @gray-light;
-  border-top: 0;
-
-  form {
-    margin-block-end: 0;
-  }
-
-  .leftItems form,
-  .rightItems {
-    & > span {
-      margin-right: 5px;
-      margin-bottom: 5px;
-      display: inline-block;
-
-      &:last-child {
-        margin-right: 0;
-        font-feature-settings: 'kern' 1, 'tnum' 1;
-      }
-    }
-  }
-}
-
 .no-shadow {
   box-shadow: none;
   background-color: transparent;
@@ -233,10 +212,6 @@ div.Workspace {
   }
 
   .ace_content {
-    height: 100%;
-  }
-
-  .SouthPane {
     height: 100%;
   }
 }
@@ -318,7 +293,7 @@ div.Workspace {
   .queryPane {
     flex: 1 1 auto;
     padding-left: 10px;
-    overflow: auto;
+    overflow: visible;
   }
 
   .schemaPane-enter-done,
@@ -405,15 +380,13 @@ div.tablePopover {
   padding-top: 16px;
 }
 
-.filterable-table-container {
-  margin-top: 48px;
-}
-
 .ace_editor.ace_editor {
   //double class is better than !important
   border: 1px solid @gray-light;
   font-feature-settings: @font-feature-settings;
-  font-family: @font-family-monospace;
+  // Fira Code causes problem with Ace under Firefox
+  font-family: 'Menlo', 'Lucida Console', 'Courier New', 'Ubuntu Mono',
+    'Consolas', 'source-code-pro', monospace;
 
   &.ace_autocomplete {
     // Use !important because Ace Editor applies extra CSS at the last second
@@ -493,20 +466,6 @@ a.Link {
   margin: 3px 5px;
 }
 
-.SouthPane {
-  width: 100%;
-
-  .SouthPaneTabs {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .ant-tabs-tabpane {
-    overflow-y: auto; // scroll the query history pane
-  }
-}
-
 .nav-tabs .ddbtn-tab {
   padding: 0;
   border: none;
@@ -535,14 +494,6 @@ a.Link {
   .Select {
     margin-right: 3px;
   }
-}
-
-.SouthPane .tab-content .alert {
-  margin-top: 10px;
-}
-
-.SouthPane .tab-content button.fetch {
-  margin-top: 10px;
 }
 
 .cost-estimate {

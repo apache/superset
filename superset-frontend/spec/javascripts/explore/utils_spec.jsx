@@ -23,13 +23,14 @@ import {
   buildV1ChartDataPayload,
   getExploreUrl,
   getExploreLongUrl,
-  getDataTablePageSize,
   shouldUseLegacyApi,
+  getSimpleSQLExpression,
 } from 'src/explore/exploreUtils';
 import {
   buildTimeRangeString,
   formatTimeRange,
 } from 'src/explore/dateFilterUtils';
+import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
 import { getChartMetadataRegistry } from '@superset-ui/core';
 
@@ -99,7 +100,9 @@ describe('exploreUtils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore/').search({ standalone: 'true' }),
+        URI('/superset/explore/').search({
+          standalone: DashboardStandaloneMode.HIDE_NAV,
+        }),
       );
     });
     it('preserves main URLs params', () => {
@@ -199,19 +202,15 @@ describe('exploreUtils', () => {
         URI('/superset/explore/').search({ form_data: sFormData }),
       );
     });
-  });
 
-  describe('getDataTablePageSize', () => {
-    it('divides samples data into pages dynamically', () => {
-      let pageSize;
-      pageSize = getDataTablePageSize(500);
-      expect(pageSize).toEqual(20);
-      pageSize = getDataTablePageSize(0);
-      expect(pageSize).toEqual(50);
-      pageSize = getDataTablePageSize(1);
-      expect(pageSize).toEqual(10000);
-      pageSize = getDataTablePageSize(1000000);
-      expect(pageSize).toEqual(5);
+    it('generates url with standalone', () => {
+      compareURI(
+        URI(getExploreLongUrl(formData, 'standalone')),
+        URI('/superset/explore/').search({
+          form_data: sFormData,
+          standalone: DashboardStandaloneMode.HIDE_NAV,
+        }),
+      );
     });
   });
 
@@ -295,6 +294,43 @@ describe('exploreUtils', () => {
       ).toBe('2010-07-30T01:00:00 < col ≤ ∞');
       expect(formatTimeRange(' : 2020-07-30T00:00:00')).toBe(
         '-∞ < col < 2020-07-30',
+      );
+    });
+  });
+
+  describe('getSimpleSQLExpression', () => {
+    it('returns empty string when subject is undefined', () => {
+      expect(getSimpleSQLExpression(undefined, '=', 10)).toBe('');
+      expect(getSimpleSQLExpression()).toBe('');
+    });
+    it("returns subject when it's provided and operator is undefined", () => {
+      expect(getSimpleSQLExpression('col', undefined, 10)).toBe('col');
+      expect(getSimpleSQLExpression('col')).toBe('col');
+    });
+    it("returns subject and operator when they're provided and comparator is undefined", () => {
+      expect(getSimpleSQLExpression('col', '=')).toBe('col =');
+      expect(getSimpleSQLExpression('col', 'IN')).toBe('col IN');
+      expect(getSimpleSQLExpression('col', 'IN', [])).toBe('col IN');
+    });
+    it('returns full expression when subject, operator and comparator are provided', () => {
+      expect(getSimpleSQLExpression('col', '=', 'comp')).toBe("col = 'comp'");
+      expect(getSimpleSQLExpression('col', '=', "it's an apostrophe")).toBe(
+        "col = 'it''s an apostrophe'",
+      );
+      expect(getSimpleSQLExpression('col', '=', 0)).toBe('col = 0');
+      expect(getSimpleSQLExpression('col', '=', '0')).toBe('col = 0');
+      expect(getSimpleSQLExpression('col', 'IN', 'foo')).toBe("col IN ('foo')");
+      expect(getSimpleSQLExpression('col', 'NOT IN', ['foo'])).toBe(
+        "col NOT IN ('foo')",
+      );
+      expect(getSimpleSQLExpression('col', 'IN', ['foo', 'bar'])).toBe(
+        "col IN ('foo', 'bar')",
+      );
+      expect(getSimpleSQLExpression('col', 'IN', ['0', '1', '2'])).toBe(
+        'col IN (0, 1, 2)',
+      );
+      expect(getSimpleSQLExpression('col', 'NOT IN', [0, 1, 2])).toBe(
+        'col NOT IN (0, 1, 2)',
       );
     });
   });

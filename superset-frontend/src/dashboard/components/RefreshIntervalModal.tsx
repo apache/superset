@@ -38,6 +38,12 @@ export const options = [
   [86400, t('24 hours')],
 ].map(o => ({ value: o[0], label: o[1] }));
 
+const StyledModalTrigger = styled(ModalTrigger)`
+  .ant-modal-body {
+    overflow: visible;
+  }
+`;
+
 const RefreshWarningContainer = styled.div`
   margin-top: ${({ theme }) => theme.gridUnit * 6}px;
 `;
@@ -103,10 +109,10 @@ class RefreshIntervalModal extends React.PureComponent<
       !!refreshFrequency && !!refreshWarning && refreshFrequency < refreshLimit;
 
     return (
-      <ModalTrigger
+      <StyledModalTrigger
         ref={this.modalRef}
         triggerNode={this.props.triggerNode}
-        modalTitle={t('Refresh Interval')}
+        modalTitle={t('Refresh interval')}
         modalBody={
           <div>
             <FormLabel>{t('Refresh frequency')}</FormLabel>
@@ -114,6 +120,7 @@ class RefreshIntervalModal extends React.PureComponent<
               options={options}
               value={{ value: refreshFrequency }}
               onChange={this.handleFrequencyChange}
+              forceOverflow
             />
             {showRefreshWarning && (
               <RefreshWarningContainer>
@@ -128,10 +135,14 @@ class RefreshIntervalModal extends React.PureComponent<
         }
         modalFooter={
           <>
-            <Button buttonStyle="primary" buttonSize="sm" onClick={this.onSave}>
+            <Button
+              buttonStyle="primary"
+              buttonSize="small"
+              onClick={this.onSave}
+            >
               {editMode ? t('Save') : t('Save for this session')}
             </Button>
-            <Button onClick={this.onCancel} buttonSize="sm">
+            <Button onClick={this.onCancel} buttonSize="small">
               {t('Cancel')}
             </Button>
           </>

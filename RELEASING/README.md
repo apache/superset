@@ -28,6 +28,10 @@ synchronous communications, we recommend using the `#apache-releases` channel
 on the Superset Slack. People crafting releases and those interested in
 partaking in the process should join the channel.
 
+## Release notes for recent releases
+- [1.0.0](release-notes-1-0/README.md)
+- [0.38](release-notes-0-38/README.md)
+
 ## Release setup (First Time Only)
 
 First you need to setup a few things. This is a one-off and doesn't
@@ -56,8 +60,8 @@ need to be done at every release.
 
 ## Setting up the release environment (do every time)
 
-As the vote process takes a minimum of 72h (community vote) + 72h (IPMC) vote,
-often stretching over several weeks calendar time if votes don't pass, chances are
+As the vote process takes a minimum of 72h, sometimes stretching over several weeks
+of calendar time if votes don't pass, chances are
 the same terminal session won't be used for crafting the release candidate and the
 final release. Therefore, it's a good idea to do the following every time you
 work on a new phase of the release process to make sure you aren't releasing
@@ -67,33 +71,33 @@ and execute the `set_release_env.sh` script with the relevant parameters:
 
 Usage (BASH):
 ```bash
-    . set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
+. set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
 ```
 
 Usage (ZSH):
 ```bash
-    source set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
+source set_release_env.sh <SUPERSET_RC_VERSION> <PGP_KEY_FULLNAME>
 ```
 
 Example:
 ```bash
-    source set_release_env.sh 0.38.0rc1 myid@apache.org
+source set_release_env.sh 0.38.0rc1 myid@apache.org
 ```
 
 The script will output the exported variables. Here's example for 0.38.0rc1:
 
 ```
-    Set Release env variables
-    SUPERSET_VERSION=0.38.0
-    SUPERSET_RC=1
-    SUPERSET_GITHUB_BRANCH=0.38
-    SUPERSET_PGP_FULLNAME=myid@apache.org
-    SUPERSET_VERSION_RC=0.38.0rc1
-    SUPERSET_RELEASE=apache-superset-0.38.0
-    SUPERSET_RELEASE_RC=apache-superset-0.38.0rc1
-    SUPERSET_RELEASE_TARBALL=apache-superset-0.38.0-source.tar.gz
-    SUPERSET_RELEASE_RC_TARBALL=apache-superset-0.38.0rc1-source.tar.gz
-    SUPERSET_TMP_ASF_SITE_PATH=/tmp/incubator-superset-site-0.38.0
+Set Release env variables
+SUPERSET_VERSION=0.38.0
+SUPERSET_RC=1
+SUPERSET_GITHUB_BRANCH=0.38
+SUPERSET_PGP_FULLNAME=myid@apache.org
+SUPERSET_VERSION_RC=0.38.0rc1
+SUPERSET_RELEASE=apache-superset-0.38.0
+SUPERSET_RELEASE_RC=apache-superset-0.38.0rc1
+SUPERSET_RELEASE_TARBALL=apache-superset-0.38.0-source.tar.gz
+SUPERSET_RELEASE_RC_TARBALL=apache-superset-0.38.0rc1-source.tar.gz
+SUPERSET_TMP_ASF_SITE_PATH=/tmp/superset-site-0.38.0
 ```
 
 ## Crafting a source release
@@ -114,6 +118,8 @@ git push upstream $SUPERSET_GITHUB_BRANCH
 Next, update the `CHANGELOG.md` with all the changes that are included in the release.
 Make sure the branch has been pushed to `upstream` to ensure the changelog generator
 can pick up changes since the previous release.
+Change log script requires a github token and will try to use your env var GITHUB_TOKEN.
+you can also pass the token using the parameter `--access_token`.
 
 Example:
 ```bash
@@ -130,18 +136,18 @@ section for the new release.
 Finally bump the version number on `superset-frontend/package.json` (replace with whichever version is being released excluding the RC version):
 
 ```json
-    "version": "0.38.0"
+"version": "0.38.0"
 ```
 
 Commit the change with the version number, then git tag the version with the release candidate and push to the branch:
 
 ```
-    # add changed files and commit
-    git add ...
-    git commit ...
-    # push new tag
-    git tag ${SUPERSET_VERSION_RC}
-    git push upstream ${SUPERSET_VERSION_RC}
+# add changed files and commit
+git add ...
+git commit ...
+# push new tag
+git tag ${SUPERSET_VERSION_RC}
+git push upstream ${SUPERSET_VERSION_RC}
 ```
 
 ## Preparing the release candidate
@@ -152,9 +158,9 @@ release on Superset's repo (MAJOR.MINOR branch), the following script will clone
 the tag and create a signed source tarball from it:
 
 ```bash
-    # make_tarball will use the previously set environment variables
-    # you can override by passing arguments: make_tarball.sh <SUPERSET_VERSION> <SUPERSET_VERSION_RC> "<PGP_KEY_FULLNAME>"
-    ./make_tarball.sh
+# make_tarball will use the previously set environment variables
+# you can override by passing arguments: make_tarball.sh <SUPERSET_VERSION> <SUPERSET_VERSION_RC> "<PGP_KEY_FULLNAME>"
+./make_tarball.sh
 ```
 
 Note that `make_tarball.sh`:
@@ -168,10 +174,10 @@ This can be overriden by setting `SUPERSET_SVN_DEV_PATH` environment var to a di
 
 To build and run the **local copy** of the recently created tarball:
 ```bash
-    # Build and run a release candidate tarball
-    ./test_run_tarball.sh local
-    # you should be able to access localhost:5001 on your browser
-    # login using admin/admin
+# Build and run a release candidate tarball
+./test_run_tarball.sh local
+# you should be able to access localhost:5001 on your browser
+# login using admin/admin
 ```
 
 ### Shipping to SVN
@@ -179,19 +185,19 @@ To build and run the **local copy** of the recently created tarball:
 Now let's ship this RC into svn's dev folder
 
 ```bash
-    cd ~/svn/superset_dev/
-    svn add ${SUPERSET_VERSION_RC}
-    svn commit -m "Release ${SUPERSET_VERSION_RC}"
+cd ~/svn/superset_dev/
+svn add ${SUPERSET_VERSION_RC}
+svn commit -m "Release ${SUPERSET_VERSION_RC}"
 ```
 
 ### Build and test from SVN source tarball
 
 To build and run the recently created tarball **from SVN**:
 ```bash
-    # Build and run a release candidate tarball
-    ./test_run_tarball.sh
-    # you should be able to access localhost:5001 on your browser
-    # login using admin/admin
+# Build and run a release candidate tarball
+./test_run_tarball.sh
+# you should be able to access localhost:5001 on your browser
+# login using admin/admin
 ```
 
 ### Voting
@@ -202,17 +208,17 @@ https://lists.apache.org/thread.html/e60f080ebdda26896214f7d3d5be1ccadfab95d48fb
 To easily send a voting request to Superset community, still on the `superset/RELEASING` directory:
 
 ```bash
-    # Note: use Superset's virtualenv
-    (venv)$ python send_email.py vote_pmc
+# Note: use Superset's virtualenv
+(venv)$ python send_email.py vote_pmc
 ```
 
 The script will interactively ask for extra information so it can authenticate on the Apache Email Relay.
 The release version and release candidate number are fetched from the previously set environment variables.
 
-```bash
-    Sender email (ex: user@apache.org): your_apache_email@apache.org
-    Apache username: your_apache_user
-    Apache password: your_apache_password
+```
+Sender email (ex: user@apache.org): your_apache_email@apache.org
+Apache username: your_apache_user
+Apache password: your_apache_password
 ```
 
 Once 3+ binding votes (by PMC members) have been cast and at
@@ -222,21 +228,21 @@ https://lists.apache.org/thread.html/50a6b134d66b86b237d5d7bc89df1b567246d125a71
 To easily send the result email, still on the `superset/RELEASING` directory:
 
 ```bash
-    # Note: use Superset's virtualenv
-    (venv)$ python send_email.py result_pmc
+# Note: use Superset's virtualenv
+python send_email.py result_pmc
 ```
 
 The script will interactively ask for extra information needed to fill out the email template. Based on the
 voting description, it will generate a passing, non passing or non conclusive email.
 here's an example:
 
-```bash
-    Sender email (ex: user@apache.org): your_apache_email@apache.org
-    Apache username: your_apache_user
-    Apache password: your_apache_password
-    A List of people with +1 binding vote (ex: Max,Grace,Krist): Daniel,Alan,Max,Grace
-    A List of people with +1 non binding vote (ex: Ville): Ville
-    A List of people with -1 vote (ex: John):
+```
+Sender email (ex: user@apache.org): your_apache_email@apache.org
+Apache username: your_apache_user
+Apache password: your_apache_password
+A List of people with +1 binding vote (ex: Max,Grace,Krist): Daniel,Alan,Max,Grace
+A List of people with +1 non binding vote (ex: Ville): Ville
+A List of people with -1 vote (ex: John):
 ```
 
 Following the result thread, yet another [VOTE] thread should be
@@ -247,25 +253,24 @@ https://www.apache.org/info/verification.html
 
 ## Publishing a successful release
 
-Upon a successful vote (community AND IPMC), you'll have to copy the folder
-into the non-"dev/" folder.
+Upon a successful vote, you'll have to copy the folder into the non-"dev/" folder.
 ```bash
-    cp -r ~/svn/superset_dev/${SUPERSET_VERSION_RC}/ ~/svn/superset/${SUPERSET_VERSION}/
-    cd ~/svn/superset/
-    # Rename the RC (0.34.1rc1) to the actual version being released (0.34.1)
-    for f in ${SUPERSET_VERSION}/*; do mv "$f" "${f/${SUPERSET_VERSION_RC}/${SUPERSET_VERSION}}"; done
-    svn add ${SUPERSET_VERSION}
-    svn commit -m "Release ${SUPERSET_VERSION}"
+cp -r ~/svn/superset_dev/${SUPERSET_VERSION_RC}/ ~/svn/superset/${SUPERSET_VERSION}/
+cd ~/svn/superset/
+# Rename the RC (0.34.1rc1) to the actual version being released (0.34.1)
+for f in ${SUPERSET_VERSION}/*; do mv "$f" "${f/${SUPERSET_VERSION_RC}/${SUPERSET_VERSION}}"; done
+svn add ${SUPERSET_VERSION}
+svn commit -m "Release ${SUPERSET_VERSION}"
 ```
 
 Then tag the final release:
 ```bash
-    # Go to the root directory of the repo, e.g. `~/src/incubator-superset`
-    cd ~/src/incubator-superset/
-    # make sure you're on the correct branch (e.g. 0.34)
-    git branch
-    # Create the release tag
-    git tag -f ${SUPERSET_VERSION}
+# Go to the root directory of the repo, e.g. `~/src/superset`
+cd ~/src/superset/
+# make sure you're on the correct branch (e.g. 0.34)
+git branch
+# Create the release tag
+git tag -f ${SUPERSET_VERSION}
 ```
 
 ### Update CHANGELOG and UPDATING on superset
@@ -287,14 +292,14 @@ while requesting access to push packages.
 Once it's all done, an [ANNOUNCE] thread announcing the release to the dev@ mailing list is the final step.
 
 ```bash
-    # Note use Superset's virtualenv
-    (venv)$ python send_email.py announce
+# Note use Superset's virtualenv
+python send_email.py announce
 ```
 
 ### Github Release
 
 Finally, so the Github UI reflects the latest release, you should create a release from the
-tag corresponding with the new version. Go to https://github.com/apache/incubator-superset/tags,
+tag corresponding with the new version. Go to https://github.com/apache/superset/tags,
 click the 3-dot icon and select `Create Release`, paste the content of the ANNOUNCE thread in the
 release notes, and publish the new release.
 

@@ -97,4 +97,13 @@ RESULTS_BACKEND = RedisCache(
       port=env('REDIS_PORT'),
       key_prefix='superset_results'
 )
+
+{{ if .Values.configOverrides }}
+# Overrides
+{{- range $key, $value := .Values.configOverrides }}
+# {{ $key }}
+{{ $value }}
+{{- end }}
+{{- end }}
+
 {{- end }}

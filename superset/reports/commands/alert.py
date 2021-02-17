@@ -36,6 +36,9 @@ from superset.reports.commands.exceptions import (
 logger = logging.getLogger(__name__)
 
 
+ALERT_SQL_LIMIT = 2
+# All sql statements have an applied LIMIT,
+# to avoid heavy loads done by a user mistake
 OPERATOR_FUNCTIONS = {">=": ge, ">": gt, "<=": le, "<": lt, "==": eq, "!=": ne}
 
 
@@ -47,15 +50,16 @@ class AlertCommand(BaseCommand):
     def run(self) -> bool:
         self.validate()
 
-        if self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL:
+        if self._is_validator_not_null:
             self._report_schedule.last_value_row_json = str(self._result)
-            return self._result not in (0, None, np.nan)
+            return self._result is not None
         self._report_schedule.last_value = self._result
         try:
             operator = json.loads(self._report_schedule.validator_config_json)["op"]
             threshold = json.loads(self._report_schedule.validator_config_json)[
                 "threshold"
             ]
+
             return OPERATOR_FUNCTIONS[operator](self._result, threshold)
         except (KeyError, json.JSONDecodeError):
             raise AlertValidatorConfigError()
@@ -95,6 +99,18 @@ class AlertCommand(BaseCommand):
         except (AssertionError, TypeError, ValueError):
             raise AlertQueryInvalidTypeError()
 
+    @property
+    def _is_validator_not_null(self) -> bool:
+        return (
+            self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL
+        )
+
+    @property
+    def _is_validator_operator(self) -> bool:
+        return (
+            self._report_schedule.validator_type == ReportScheduleValidatorType.OPERATOR
+        )
+
     def validate(self) -> None:
         """
         Validate the query result as a Pandas DataFrame
@@ -104,14 +120,21 @@ class AlertCommand(BaseCommand):
         )
         rendered_sql = sql_template.process_template(self._report_schedule.sql)
         try:
-            df = self._report_schedule.database.get_df(rendered_sql)
+            limited_rendered_sql = self._report_schedule.database.apply_limit_to_sql(
+                rendered_sql, ALERT_SQL_LIMIT
+            )
+            df = self._report_schedule.database.get_df(limited_rendered_sql)
         except Exception as ex:
             raise AlertQueryError(message=str(ex))
 
-        if df.empty:
+        if df.empty and self._is_validator_not_null:
+            self._result = None
+            return
+        if df.empty and self._is_validator_operator:
+            self._result = 0.0
             return
         rows = df.to_records()
-        if self._report_schedule.validator_type == ReportScheduleValidatorType.NOT_NULL:
+        if self._is_validator_not_null:
             self._validate_not_null(rows)
             return
         self._validate_operator(rows)

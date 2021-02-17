@@ -16,8 +16,9 @@
 # under the License.
 # pylint: disable=no-self-use, invalid-name
 
+import itertools
 import json
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
@@ -28,7 +29,11 @@ from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
-from superset.dashboards.commands.export import ExportDashboardsCommand
+from superset.dashboards.commands.export import (
+    append_charts,
+    ExportDashboardsCommand,
+    get_default_position,
+)
 from superset.dashboards.commands.importers import v0, v1
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -43,16 +48,20 @@ from tests.fixtures.importexport import (
     dataset_config,
     dataset_metadata_config,
 )
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 
 class TestExportDashboardsCommand(SupersetTestCase):
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.security.manager.g")
     @patch("superset.views.base.g")
     def test_export_dashboard_command(self, mock_g1, mock_g2):
         mock_g1.user = security_manager.find_user("admin")
         mock_g2.user = security_manager.find_user("admin")
 
-        example_dashboard = db.session.query(Dashboard).filter_by(id=1).one()
+        example_dashboard = (
+            db.session.query(Dashboard).filter_by(slug="world_health").one()
+        )
         command = ExportDashboardsCommand([example_dashboard.id])
         contents = dict(command.run())
 
@@ -78,82 +87,152 @@ class TestExportDashboardsCommand(SupersetTestCase):
         assert metadata == {
             "dashboard_title": "World Bank's Data",
             "description": None,
-            "css": "",
+            "css": None,
             "slug": "world_health",
             "uuid": str(example_dashboard.uuid),
             "position": {
-                "DASHBOARD_CHART_TYPE-0": {
+                "CHART-36bfc934": {
                     "children": [],
-                    "id": "DASHBOARD_CHART_TYPE-0",
-                    "meta": {"height": 50, "width": 4},
+                    "id": "CHART-36bfc934",
+                    "meta": {"height": 25, "sliceName": "Region Filter", "width": 2},
                     "type": "CHART",
                 },
-                "DASHBOARD_CHART_TYPE-1": {
+                "CHART-37982887": {
                     "children": [],
-                    "id": "DASHBOARD_CHART_TYPE-1",
-                    "meta": {"height": 50, "width": 4},
+                    "id": "CHART-37982887",
+                    "meta": {
+                        "height": 25,
+                        "sliceName": "World's Population",
+                        "width": 2,
+                    },
                     "type": "CHART",
                 },
-                "DASHBOARD_CHART_TYPE-2": {
+                "CHART-17e0f8d8": {
                     "children": [],
-                    "id": "DASHBOARD_CHART_TYPE-2",
-                    "meta": {"height": 50, "width": 4},
+                    "id": "CHART-17e0f8d8",
+                    "meta": {
+                        "height": 92,
+                        "sliceName": "Most Populated Countries",
+                        "width": 3,
+                    },
                     "type": "CHART",
                 },
-                "DASHBOARD_CHART_TYPE-3": {
+                "CHART-2ee52f30": {
                     "children": [],
-                    "id": "DASHBOARD_CHART_TYPE-3",
-                    "meta": {"height": 50, "width": 4},
+                    "id": "CHART-2ee52f30",
+                    "meta": {"height": 38, "sliceName": "Growth Rate", "width": 6},
                     "type": "CHART",
                 },
-                "DASHBOARD_CHART_TYPE-4": {
+                "CHART-2d5b6871": {
                     "children": [],
-                    "id": "DASHBOARD_CHART_TYPE-4",
-                    "meta": {"height": 50, "width": 4},
+                    "id": "CHART-2d5b6871",
+                    "meta": {"height": 52, "sliceName": "% Rural", "width": 7},
                     "type": "CHART",
                 },
-                "DASHBOARD_CHART_TYPE-5": {
+                "CHART-0fd0d252": {
                     "children": [],
-                    "id": "DASHBOARD_CHART_TYPE-5",
-                    "meta": {"height": 50, "width": 4},
+                    "id": "CHART-0fd0d252",
+                    "meta": {
+                        "height": 50,
+                        "sliceName": "Life Expectancy VS Rural %",
+                        "width": 8,
+                    },
                     "type": "CHART",
                 },
-                "DASHBOARD_CHART_TYPE-6": {
+                "CHART-97f4cb48": {
                     "children": [],
-                    "id": "DASHBOARD_CHART_TYPE-6",
-                    "meta": {"height": 50, "width": 4},
+                    "id": "CHART-97f4cb48",
+                    "meta": {"height": 38, "sliceName": "Rural Breakdown", "width": 3},
                     "type": "CHART",
                 },
-                "DASHBOARD_CHART_TYPE-7": {
+                "CHART-b5e05d6f": {
                     "children": [],
-                    "id": "DASHBOARD_CHART_TYPE-7",
-                    "meta": {"height": 50, "width": 4},
+                    "id": "CHART-b5e05d6f",
+                    "meta": {
+                        "height": 50,
+                        "sliceName": "World's Pop Growth",
+                        "width": 4,
+                    },
                     "type": "CHART",
                 },
-                "DASHBOARD_CHART_TYPE-8": {
+                "CHART-e76e9f5f": {
                     "children": [],
-                    "id": "DASHBOARD_CHART_TYPE-8",
-                    "meta": {"height": 50, "width": 4},
+                    "id": "CHART-e76e9f5f",
+                    "meta": {"height": 50, "sliceName": "Box plot", "width": 4},
                     "type": "CHART",
                 },
-                "DASHBOARD_CHART_TYPE-9": {
+                "CHART-a4808bba": {
                     "children": [],
-                    "id": "DASHBOARD_CHART_TYPE-9",
-                    "meta": {"height": 50, "width": 4},
+                    "id": "CHART-a4808bba",
+                    "meta": {"height": 50, "sliceName": "Treemap", "width": 8},
                     "type": "CHART",
+                },
+                "CHART-3nc0d8sk": {
+                    "children": [],
+                    "id": "CHART-3nc0d8sk",
+                    "meta": {"height": 50, "sliceName": "Treemap", "width": 8},
+                    "type": "CHART",
+                },
+                "COLUMN-071bbbad": {
+                    "children": ["ROW-1e064e3c", "ROW-afdefba9"],
+                    "id": "COLUMN-071bbbad",
+                    "meta": {"background": "BACKGROUND_TRANSPARENT", "width": 9},
+                    "type": "COLUMN",
+                },
+                "COLUMN-fe3914b8": {
+                    "children": ["CHART-36bfc934", "CHART-37982887"],
+                    "id": "COLUMN-fe3914b8",
+                    "meta": {"background": "BACKGROUND_TRANSPARENT", "width": 2},
+                    "type": "COLUMN",
+                },
+                "GRID_ID": {
+                    "children": ["ROW-46632bc2", "ROW-3fa26c5d", "ROW-812b3f13"],
+                    "id": "GRID_ID",
+                    "type": "GRID",
+                },
+                "HEADER_ID": {
+                    "id": "HEADER_ID",
+                    "meta": {"text": "World's Bank Data"},
+                    "type": "HEADER",
+                },
+                "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+                "ROW-1e064e3c": {
+                    "children": ["COLUMN-fe3914b8", "CHART-2d5b6871"],
+                    "id": "ROW-1e064e3c",
+                    "meta": {"background": "BACKGROUND_TRANSPARENT"},
+                    "type": "ROW",
+                },
+                "ROW-3fa26c5d": {
+                    "children": ["CHART-b5e05d6f", "CHART-0fd0d252"],
+                    "id": "ROW-3fa26c5d",
+                    "meta": {"background": "BACKGROUND_TRANSPARENT"},
+                    "type": "ROW",
+                },
+                "ROW-46632bc2": {
+                    "children": ["COLUMN-071bbbad", "CHART-17e0f8d8"],
+                    "id": "ROW-46632bc2",
+                    "meta": {"background": "BACKGROUND_TRANSPARENT"},
+                    "type": "ROW",
+                },
+                "ROW-812b3f13": {
+                    "children": ["CHART-a4808bba", "CHART-e76e9f5f"],
+                    "id": "ROW-812b3f13",
+                    "meta": {"background": "BACKGROUND_TRANSPARENT"},
+                    "type": "ROW",
+                },
+                "ROW-afdefba9": {
+                    "children": ["CHART-2ee52f30", "CHART-97f4cb48"],
+                    "id": "ROW-afdefba9",
+                    "meta": {"background": "BACKGROUND_TRANSPARENT"},
+                    "type": "ROW",
                 },
                 "DASHBOARD_VERSION_KEY": "v2",
             },
-            "metadata": {
-                "timed_refresh_immune_slices": [],
-                "expanded_slices": {},
-                "refresh_frequency": 0,
-                "default_filters": "{}",
-                "color_scheme": None,
-            },
+            "metadata": {"mock_key": "mock_value"},
             "version": "1.0.0",
         }
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.security.manager.g")
     @patch("superset.views.base.g")
     def test_export_dashboard_command_no_access(self, mock_g1, mock_g2):
@@ -161,12 +240,15 @@ class TestExportDashboardsCommand(SupersetTestCase):
         mock_g1.user = security_manager.find_user("gamma")
         mock_g2.user = security_manager.find_user("gamma")
 
-        example_dashboard = db.session.query(Dashboard).filter_by(id=1).one()
+        example_dashboard = (
+            db.session.query(Dashboard).filter_by(slug="world_health").one()
+        )
         command = ExportDashboardsCommand([example_dashboard.id])
         contents = command.run()
         with self.assertRaises(DashboardNotFoundError):
             next(contents)
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.security.manager.g")
     @patch("superset.views.base.g")
     def test_export_dashboard_command_invalid_dataset(self, mock_g1, mock_g2):
@@ -178,6 +260,7 @@ class TestExportDashboardsCommand(SupersetTestCase):
         with self.assertRaises(DashboardNotFoundError):
             next(contents)
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.security.manager.g")
     @patch("superset.views.base.g")
     def test_export_dashboard_command_key_order(self, mock_g1, mock_g2):
@@ -185,7 +268,9 @@ class TestExportDashboardsCommand(SupersetTestCase):
         mock_g1.user = security_manager.find_user("admin")
         mock_g2.user = security_manager.find_user("admin")
 
-        example_dashboard = db.session.query(Dashboard).filter_by(id=1).one()
+        example_dashboard = (
+            db.session.query(Dashboard).filter_by(slug="world_health").one()
+        )
         command = ExportDashboardsCommand([example_dashboard.id])
         contents = dict(command.run())
 
@@ -200,6 +285,142 @@ class TestExportDashboardsCommand(SupersetTestCase):
             "metadata",
             "version",
         ]
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.dashboards.commands.export.suffix")
+    def test_append_charts(self, mock_suffix):
+        """Test that oprhaned charts are added to the dashbaord position"""
+        # return deterministic IDs
+        mock_suffix.side_effect = (str(i) for i in itertools.count(1))
+
+        position = get_default_position("example")
+        chart_1 = db.session.query(Slice).filter_by(slice_name="Region Filter").one()
+        new_position = append_charts(position, {chart_1})
+        assert new_position == {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+            "GRID_ID": {
+                "children": ["ROW-N-2"],
+                "id": "GRID_ID",
+                "parents": ["ROOT_ID"],
+                "type": "GRID",
+            },
+            "HEADER_ID": {
+                "id": "HEADER_ID",
+                "meta": {"text": "example"},
+                "type": "HEADER",
+            },
+            "ROW-N-2": {
+                "children": ["CHART-1"],
+                "id": "ROW-N-2",
+                "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"},
+                "type": "ROW",
+                "parents": ["ROOT_ID", "GRID_ID"],
+            },
+            "CHART-1": {
+                "children": [],
+                "id": "CHART-1",
+                "meta": {
+                    "chartId": chart_1.id,
+                    "height": 50,
+                    "sliceName": "Region Filter",
+                    "uuid": str(chart_1.uuid),
+                    "width": 4,
+                },
+                "type": "CHART",
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-N-2"],
+            },
+        }
+
+        chart_2 = (
+            db.session.query(Slice).filter_by(slice_name="World's Population").one()
+        )
+        new_position = append_charts(new_position, {chart_2})
+        assert new_position == {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+            "GRID_ID": {
+                "children": ["ROW-N-2", "ROW-N-4"],
+                "id": "GRID_ID",
+                "parents": ["ROOT_ID"],
+                "type": "GRID",
+            },
+            "HEADER_ID": {
+                "id": "HEADER_ID",
+                "meta": {"text": "example"},
+                "type": "HEADER",
+            },
+            "ROW-N-2": {
+                "children": ["CHART-1"],
+                "id": "ROW-N-2",
+                "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"},
+                "type": "ROW",
+                "parents": ["ROOT_ID", "GRID_ID"],
+            },
+            "ROW-N-4": {
+                "children": ["CHART-3"],
+                "id": "ROW-N-4",
+                "meta": {"0": "ROOT_ID", "background": "BACKGROUND_TRANSPARENT"},
+                "type": "ROW",
+                "parents": ["ROOT_ID", "GRID_ID"],
+            },
+            "CHART-1": {
+                "children": [],
+                "id": "CHART-1",
+                "meta": {
+                    "chartId": chart_1.id,
+                    "height": 50,
+                    "sliceName": "Region Filter",
+                    "uuid": str(chart_1.uuid),
+                    "width": 4,
+                },
+                "type": "CHART",
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-N-2"],
+            },
+            "CHART-3": {
+                "children": [],
+                "id": "CHART-3",
+                "meta": {
+                    "chartId": chart_2.id,
+                    "height": 50,
+                    "sliceName": "World's Population",
+                    "uuid": str(chart_2.uuid),
+                    "width": 4,
+                },
+                "type": "CHART",
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-N-4"],
+            },
+        }
+
+        position = {"DASHBOARD_VERSION_KEY": "v2"}
+        new_position = append_charts(position, [chart_1, chart_2])
+        assert new_position == {
+            "CHART-5": {
+                "children": [],
+                "id": "CHART-5",
+                "meta": {
+                    "chartId": chart_1.id,
+                    "height": 50,
+                    "sliceName": "Region Filter",
+                    "uuid": str(chart_1.uuid),
+                    "width": 4,
+                },
+                "type": "CHART",
+            },
+            "CHART-6": {
+                "children": [],
+                "id": "CHART-6",
+                "meta": {
+                    "chartId": chart_2.id,
+                    "height": 50,
+                    "sliceName": "World's Population",
+                    "uuid": str(chart_2.uuid),
+                    "width": 4,
+                },
+                "type": "CHART",
+            },
+            "DASHBOARD_VERSION_KEY": "v2",
+        }
 
 
 class TestImportDashboardsCommand(SupersetTestCase):

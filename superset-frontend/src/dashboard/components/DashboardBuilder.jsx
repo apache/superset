@@ -37,19 +37,21 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 
-import getDragDropManager from 'src/dashboard/util/getDragDropManager';
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { URL_PARAMS } from 'src/constants';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
+  DashboardStandaloneMode,
 } from '../util/constants';
-import FilterBar from './nativeFilters/FilterBar';
+import FilterBar from './nativeFilters/FilterBar/FilterBar';
 import { StickyVerticalBar } from './StickyVerticalBar';
+import { getUrlParam } from '../../utils/urlUtils';
 
 const TABS_HEIGHT = 47;
 const HEADER_HEIGHT = 67;
@@ -94,7 +96,12 @@ const StyledDashboardContent = styled.div`
     flex-grow: 1;
     position: relative;
     margin: ${({ theme }) => theme.gridUnit * 6}px
-      ${({ theme }) => theme.gridUnit * 9}px;
+      ${({ theme }) => theme.gridUnit * 8}px
+      ${({ theme }) => theme.gridUnit * 6}px
+      ${({ theme, dashboardFiltersOpen }) => {
+        if (dashboardFiltersOpen) return theme.gridUnit * 8;
+        return 0;
+      }}px;
   }
 
   .dashboard-component-chart-holder {
@@ -156,12 +163,6 @@ class DashboardBuilder extends React.Component {
     );
   }
 
-  getChildContext() {
-    return {
-      dragDropManager: this.context.dragDropManager || getDragDropManager(),
-    };
-  }
-
   UNSAFE_componentWillReceiveProps(nextProps) {
     const nextFocusComponent = getLeafComponentIdFromPath(
       nextProps.directPathToChild,
@@ -217,6 +218,7 @@ class DashboardBuilder extends React.Component {
       showBuilderPane,
       setColorSchemeAndUnsavedChanges,
       colorScheme,
+      directPathToChild,
     } = this.props;
     const { tabIndex } = this.state;
     const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
@@ -226,7 +228,13 @@ class DashboardBuilder extends React.Component {
 
     const childIds = topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID];
 
-    const barTopOffset = HEADER_HEIGHT + (topLevelTabs ? TABS_HEIGHT : 0);
+    const hideDashboardHeader =
+      getUrlParam(URL_PARAMS.standalone, 'number') ===
+      DashboardStandaloneMode.HIDE_NAV_AND_TITLE;
+
+    const barTopOffset =
+      (hideDashboardHeader ? 0 : HEADER_HEIGHT) +
+      (topLevelTabs ? TABS_HEIGHT : 0);
 
     return (
       <StickyContainer
@@ -244,11 +252,14 @@ class DashboardBuilder extends React.Component {
               editMode={editMode}
               // you cannot drop on/displace tabs if they already exist
               disableDragdrop={!!topLevelTabs}
-              style={{ zIndex: 100, ...style }}
+              style={{
+                zIndex: 100,
+                ...style,
+              }}
             >
               {({ dropIndicatorProps }) => (
                 <div>
-                  <DashboardHeader />
+                  {!hideDashboardHeader && <DashboardHeader />}
                   {dropIndicatorProps && <div {...dropIndicatorProps} />}
                   {topLevelTabs && (
                     <WithPopoverMenu
@@ -278,9 +289,11 @@ class DashboardBuilder extends React.Component {
             </DragDroppable>
           )}
         </Sticky>
-
-        <StyledDashboardContent className="dashboard-content">
-          {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && (
+        <StyledDashboardContent
+          className="dashboard-content"
+          dashboardFiltersOpen={this.state.dashboardFiltersOpen}
+        >
+          {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS) && !editMode && (
             <StickyVerticalBar
               filtersOpen={this.state.dashboardFiltersOpen}
               topOffset={barTopOffset}
@@ -289,6 +302,7 @@ class DashboardBuilder extends React.Component {
                 <FilterBar
                   filtersOpen={this.state.dashboardFiltersOpen}
                   toggleFiltersBar={this.toggleDashboardFiltersOpen}
+                  directPathToChild={directPathToChild}
                 />
               </ErrorBoundary>
             </StickyVerticalBar>

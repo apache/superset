@@ -37,17 +37,17 @@ npm run start
 
 To publish, the static site that Gatsby generates needs to be pushed
 to the `asf-site` branch on the
-[apache/incubator-superset-site](https://github.com/apache/incubator-superset-site/)
+[apache/superset-site](https://github.com/apache/superset-site/)
 repository. No need to PR here, simply `git push`.
 
 ```bash
 # Get in the docs/ folder in the main repo
-cd ~/repos/incubator-superset/docs
+cd ~/repos/superset/docs
 # have Gatsby build the static website, this puts in under `docs/public`
 npm run build
 
 # go to the docs repo
-cd ~/repos/incubator-superset-site
+cd ~/repos/superset-site
 # checkout the proper branch
 git checkout asf-site
 
@@ -56,7 +56,7 @@ git checkout asf-site
 rm -rf *
 
 # copy the static site here
-cp -r ~/repos/incubator-superset/docs/public/ ./
+cp -r ~/repos/superset/docs/public/ ./
 
 # git push
 git add .

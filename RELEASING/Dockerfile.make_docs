@@ -17,7 +17,7 @@
 FROM python:3.7-buster
 ARG VERSION
 
-RUN git clone --depth 1 --branch ${VERSION} https://github.com/apache/incubator-superset.git /superset
+RUN git clone --depth 1 --branch ${VERSION} https://github.com/apache/superset.git /superset
 WORKDIR /superset
 # install doc dependencies
 RUN pip install -r requirements/base.txt

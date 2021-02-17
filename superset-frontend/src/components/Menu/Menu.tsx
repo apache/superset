@@ -21,6 +21,7 @@ import { t, styled } from '@superset-ui/core';
 import { Nav, Navbar, NavItem } from 'react-bootstrap';
 import NavDropdown from 'src/components/NavDropdown';
 import { Menu as DropdownMenu } from 'src/common/components';
+import { Link } from 'react-router-dom';
 import MenuObject, {
   MenuObjectProps,
   MenuObjectChildProps,
@@ -57,6 +58,7 @@ export interface MenuProps {
     navbar_right: NavBarProps;
     settings: MenuObjectProps[];
   };
+  isFrontendRoute?: (path?: string) => boolean;
 }
 
 const StyledHeader = styled.header`
@@ -99,7 +101,7 @@ const StyledHeader = styled.header`
     padding-left: 12px;
   }
 
-  .navbar-inverse .navbar-nav > li > a {
+  .navbar-inverse .navbar-nav li a {
     color: ${({ theme }) => theme.colors.grayscale.dark1};
     border-bottom: none;
     transition: background-color ${({ theme }) => theme.transitionTiming}s;
@@ -153,6 +155,7 @@ const StyledHeader = styled.header`
 
 export function Menu({
   data: { menu, brand, navbar_right: navbarRight, settings },
+  isFrontendRoute = () => false,
 }: MenuProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -168,81 +171,93 @@ export function Menu({
           <Navbar.Toggle />
         </Navbar.Header>
         <Nav data-test="navbar-top">
-          {menu.map((item, index) => (
-            <MenuObject {...item} key={item.label} index={index + 1} />
-          ))}
+          {menu.map((item, index) => {
+            const props = {
+              ...item,
+              isFrontendRoute: isFrontendRoute(item.url),
+              childs: item.childs?.map(c => {
+                if (typeof c === 'string') {
+                  return c;
+                }
+
+                return {
+                  ...c,
+                  isFrontendRoute: isFrontendRoute(c.url),
+                };
+              }),
+            };
+            return <MenuObject {...props} key={item.label} index={index + 1} />;
+          })}
         </Nav>
         <Nav className="navbar-right">
           {!navbarRight.user_is_anonymous && <NewMenu />}
-          {settings && settings.length > 0 && (
-            <NavDropdown
-              id="settings-dropdown"
-              title={t('Settings')}
-              onMouseEnter={() => setDropdownOpen(true)}
-              onMouseLeave={() => setDropdownOpen(false)}
-              open={dropdownOpen}
-            >
-              <DropdownMenu>
-                {settings.map((section, index) => [
-                  <DropdownMenu.ItemGroup
-                    key={`${section.label}`}
-                    title={section.label}
-                  >
-                    {section.childs?.map(child => {
-                      if (typeof child !== 'string') {
-                        return (
-                          <DropdownMenu.Item key={`${child.label}`}>
+          <NavDropdown
+            id="settings-dropdown"
+            title={t('Settings')}
+            onMouseEnter={() => setDropdownOpen(true)}
+            onMouseLeave={() => setDropdownOpen(false)}
+            onToggle={value => setDropdownOpen(value)}
+            open={dropdownOpen}
+          >
+            <DropdownMenu>
+              {settings.map((section, index) => [
+                <DropdownMenu.ItemGroup
+                  key={`${section.label}`}
+                  title={section.label}
+                >
+                  {section.childs?.map(child => {
+                    if (typeof child !== 'string') {
+                      return (
+                        <DropdownMenu.Item key={`${child.label}`}>
+                          {isFrontendRoute(child.url) ? (
+                            <Link to={child.url || ''}>{child.label}</Link>
+                          ) : (
                             <a href={child.url}>{child.label}</a>
-                          </DropdownMenu.Item>
-                        );
-                      }
-                      return null;
-                    })}
-                  </DropdownMenu.ItemGroup>,
-                  index < settings.length - 1 && <DropdownMenu.Divider />,
-                ])}
+                          )}
+                        </DropdownMenu.Item>
+                      );
+                    }
+                    return null;
+                  })}
+                </DropdownMenu.ItemGroup>,
+                index < settings.length - 1 && <DropdownMenu.Divider />,
+              ])}
 
-                {!navbarRight.user_is_anonymous && [
-                  <DropdownMenu.Divider key="user-divider" />,
-                  <DropdownMenu.ItemGroup key="user-section" title={t('User')}>
-                    {navbarRight.user_profile_url && (
-                      <DropdownMenu.Item key="profile">
-                        <a href={navbarRight.user_profile_url}>
-                          {t('Profile')}
-                        </a>
-                      </DropdownMenu.Item>
+              {!navbarRight.user_is_anonymous && [
+                <DropdownMenu.Divider key="user-divider" />,
+                <DropdownMenu.ItemGroup key="user-section" title={t('User')}>
+                  {navbarRight.user_profile_url && (
+                    <DropdownMenu.Item key="profile">
+                      <a href={navbarRight.user_profile_url}>{t('Profile')}</a>
+                    </DropdownMenu.Item>
+                  )}
+                  <DropdownMenu.Item key="info">
+                    <a href={navbarRight.user_info_url}>{t('Info')}</a>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item key="logout">
+                    <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
+                  </DropdownMenu.Item>
+                </DropdownMenu.ItemGroup>,
+              ]}
+              {(navbarRight.version_string || navbarRight.version_sha) && [
+                <DropdownMenu.Divider key="version-info-divider" />,
+                <DropdownMenu.ItemGroup key="about-section" title={t('About')}>
+                  <div className="about-section">
+                    {navbarRight.version_string && (
+                      <li className="version-info">
+                        <span>Version: {navbarRight.version_string}</span>
+                      </li>
                     )}
-                    <DropdownMenu.Item key="info">
-                      <a href={navbarRight.user_info_url}>{t('Info')}</a>
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item key="logout">
-                      <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
-                    </DropdownMenu.Item>
-                  </DropdownMenu.ItemGroup>,
-                ]}
-                {(navbarRight.version_string || navbarRight.version_sha) && [
-                  <DropdownMenu.Divider key="version-info-divider" />,
-                  <DropdownMenu.ItemGroup
-                    key="about-section"
-                    title={t('About')}
-                  >
-                    <div className="about-section">
-                      {navbarRight.version_string && (
-                        <li className="version-info">
-                          <span>Version: {navbarRight.version_string}</span>
-                        </li>
-                      )}
-                      {navbarRight.version_sha && (
-                        <li className="version-info">
-                          <span>SHA: {navbarRight.version_sha}</span>
-                        </li>
-                      )}
-                    </div>
-                  </DropdownMenu.ItemGroup>,
-                ]}
-              </DropdownMenu>
-            </NavDropdown>
-          )}
+                    {navbarRight.version_sha && (
+                      <li className="version-info">
+                        <span>SHA: {navbarRight.version_sha}</span>
+                      </li>
+                    )}
+                  </div>
+                </DropdownMenu.ItemGroup>,
+              ]}
+            </DropdownMenu>
+          </NavDropdown>
           {navbarRight.documentation_url && (
             <NavItem
               href={navbarRight.documentation_url}
@@ -282,7 +297,7 @@ export function Menu({
 }
 
 // transform the menu data to reorganize components
-export default function MenuWrapper({ data }: MenuProps) {
+export default function MenuWrapper({ data, ...rest }: MenuProps) {
   const newMenuData = {
     ...data,
   };
@@ -328,5 +343,5 @@ export default function MenuWrapper({ data }: MenuProps) {
   newMenuData.menu = cleanedMenu;
   newMenuData.settings = settings;
 
-  return <Menu data={newMenuData} />;
+  return <Menu data={newMenuData} {...rest} />;
 }

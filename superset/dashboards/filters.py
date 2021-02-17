@@ -14,21 +14,24 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
 
+# pylint: disable=too-few-public-methods
+from typing import Any, Optional
+
+from flask_appbuilder.security.sqla.models import Role
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm.query import Query
 
-from superset import db, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.views.base import BaseFilter, get_user_roles
+from superset.views.base import BaseFilter, get_user_roles, is_user_admin
 from superset.views.base_api import BaseFavoriteFilter
 
 
-class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+class DashboardTitleOrSlugFilter(BaseFilter):
     name = _("Title or Slug")
     arg_name = "title_or_slug"
 
@@ -44,9 +47,7 @@ class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-
         )
 
 
-class DashboardFavoriteFilter(
-    BaseFavoriteFilter
-):  # pylint: disable=too-few-public-methods
+class DashboardFavoriteFilter(BaseFavoriteFilter):
     """
     Custom filter for the GET list that filters all dashboards that a user has favored
     """
@@ -56,7 +57,7 @@ class DashboardFavoriteFilter(
     model = Dashboard
 
 
-class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+class DashboardFilter(BaseFilter):
     """
     List dashboards with the following criteria:
         1. Those which the user owns
@@ -69,18 +70,24 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """
 
     def apply(self, query: Query, value: Any) -> Query:
-        user_roles = [role.name.lower() for role in list(get_user_roles())]
-        if "admin" in user_roles:
+        if is_user_admin():
             return query
 
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
-        published_dash_query = (
+
+        is_rbac_disabled_filter = []
+        dashboard_has_roles = Dashboard.roles.any()
+        if is_feature_enabled("DASHBOARD_RBAC"):
+            is_rbac_disabled_filter.append(~dashboard_has_roles)
+
+        datasource_perm_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.slices)
             .filter(
                 and_(
-                    Dashboard.published == True,  # pylint: disable=singleton-comparison
+                    Dashboard.published.is_(True),
+                    *is_rbac_disabled_filter,
                     or_(
                         Slice.perm.in_(datasource_perms),
                         Slice.schema_perm.in_(schema_perms),
@@ -105,12 +112,49 @@ class DashboardFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             )
         )
 
+        dashboard_rbac_or_filters = []
+        if is_feature_enabled("DASHBOARD_RBAC"):
+            roles_based_query = (
+                db.session.query(Dashboard.id)
+                .join(Dashboard.roles)
+                .filter(
+                    and_(
+                        Dashboard.published.is_(True),
+                        dashboard_has_roles,
+                        Role.id.in_([x.id for x in get_user_roles()]),
+                    ),
+                )
+            )
+
+            dashboard_rbac_or_filters.append(Dashboard.id.in_(roles_based_query))
+
         query = query.filter(
             or_(
                 Dashboard.id.in_(owner_ids_query),
-                Dashboard.id.in_(published_dash_query),
+                Dashboard.id.in_(datasource_perm_query),
                 Dashboard.id.in_(users_favorite_dash_query),
+                *dashboard_rbac_or_filters,
             )
         )
 
+        return query
+
+
+class FilterRelatedRoles(BaseFilter):
+    """
+    A filter to allow searching for related roles of a resource.
+
+    Use in the api by adding something like:
+    related_field_filters = {
+      "roles": RelatedFieldFilter("name", FilterRelatedRoles),
+    }
+    """
+
+    name = _("Role")
+    arg_name = "roles"
+
+    def apply(self, query: Query, value: Optional[Any]) -> Query:
+        role_model = security_manager.role_model
+        if value:
+            return query.filter(role_model.name.ilike(f"%{value}%"),)
         return query

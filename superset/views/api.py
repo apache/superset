@@ -29,7 +29,7 @@ from superset.legacy import update_time_range
 from superset.models.slice import Slice
 from superset.typing import FlaskResponse
 from superset.utils import core as utils
-from superset.utils.core import get_since_until
+from superset.utils.date_parser import get_since_until
 from superset.views.base import api, BaseSupersetView, handle_api_exception
 
 get_time_range_schema = {"type": "string"}

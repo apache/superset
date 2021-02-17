@@ -23,8 +23,9 @@ import componentTypes from 'src/dashboard/util/componentTypes';
 export type ChartReducerInitialState = typeof chart;
 
 // chart query built from initialState
-// Ref: https://github.com/apache/incubator-superset/blob/dcac860f3e5528ecbc39e58f045c7388adb5c3d0/superset-frontend/src/dashboard/reducers/getInitialState.js#L120
+// Ref: https://github.com/apache/superset/blob/dcac860f3e5528ecbc39e58f045c7388adb5c3d0/superset-frontend/src/dashboard/reducers/getInitialState.js#L120
 export interface ChartQueryPayload extends Partial<ChartReducerInitialState> {
+  id: number;
   formData: ChartProps['formData'];
   form_data?: ChartProps['rawFormData'];
   [key: string]: unknown;
@@ -68,4 +69,13 @@ export type LayoutItem = {
     uuid: string;
     width: number;
   };
+};
+
+type ActiveFilter = {
+  scope: number[];
+  values: any[];
+};
+
+export type ActiveFilters = {
+  [key: string]: ActiveFilter;
 };

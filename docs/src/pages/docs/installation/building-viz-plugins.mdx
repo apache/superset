@@ -30,16 +30,16 @@ npm install -g yo @superset-ui/generator-superset
 ### Install Superset
 
 There are
-[complete instructions](https://github.com/apache/incubator-superset#installation-and-configuration)
-available on the [Superset Github repository](https://github.com/apache/incubator-superset). In a
+[complete instructions](https://github.com/apache/superset#installation-and-configuration)
+available on the [Superset Github repository](https://github.com/apache/superset). In a
 nutshell, the easiest way is to:
 
 1. Have a Mac or linux-based machine
 2. Install [Docker](https://docs.docker.com/get-docker/)
-3. Clone [the repository](https://github.com/apache/incubator-superset) to your computer
-4. Use your terminal to `cd` into the `incubator-superset` directory
+3. Clone [the repository](https://github.com/apache/superset) to your computer
+4. Use your terminal to `cd` into the `superset` directory
 5. Run `docker-compose up`
-6. Open _another_ terminal, and `cd` into `incubator-superset/superset-frontend`
+6. Open _another_ terminal, and `cd` into `superset/superset-frontend`
 7. Run `npm install` to load up all the npm packages.
 8. Run `npm run dev-server` to spin up the Webpack hot-reloading server
 9. Wait for it to build, and then open your browser to `http://localhost:9000` and log in with
@@ -48,7 +48,7 @@ nutshell, the easiest way is to:
 ### Install Superset-UI
 
 1. Clone [the `superset-ui` repository](https://github.com/apache-superset/superset-ui) to your
-   computer. It can sit in the same parent directory as your `incubator-superset` repo
+   computer. It can sit in the same parent directory as your `superset` repo
 2. Use your terminal to `cd` into `superset-ui`
 3. Run `yarn install` and wait for all the packages to get installed
 
@@ -98,14 +98,14 @@ Now, we want to see this thing actually RUN! To do that, we'll add your package 
 embrace the magic power of `npm link` to see it in-situ, without needing to **build** the plugin, or
 open any PRs on Github.
 
-1. Add your package to the `package.json` file in `incubator-superset/superset-frontend`.
+1. Add your package to the `package.json` file in `superset/superset-frontend`.
 
    <img src="/images/plugin-8-package-json.png" />{' '}
 
 Note: Do _not_ run `npm install`... explanation below.
 
 2. Add your plugin to the `MainPreset.js` file (located in
-   `incubator-superset/superset-frontend/src/visualizations/presets/MainPreset.js`) in two places,
+   `superset/superset-frontend/src/visualizations/presets/MainPreset.js`) in two places,
    alongside the other plugins.
 
    <img src="/images/plugin-9-mainpreset-import.png" />{' '}
@@ -113,7 +113,7 @@ Note: Do _not_ run `npm install`... explanation below.
    {' '}
    <img src="/images/plugin-9-mainpreset-register.png" />
 
-3. Open a terminal window to `incubator-superset/superset-frontend`. If you did the Install Superset
+3. Open a terminal window to `superset/superset-frontend`. If you did the Install Superset
    steps above, you may still have webpack running there, and you can just stop it with `ctrol-c`.
    If not, just open a new window and or `cd` to that directory path.
 
@@ -187,7 +187,7 @@ to your plugin, so they don't "leak" to other areas of Superset.
 In the Hello World plugin, we've included a few example Theme variables (`colors`, `gridUnit`s, and
 typographic weights/sizes). We'll be continuing to add more variables to this theme file as we
 continue to push Superset (and the viz plugins) toward the standards of the Superset redesign (see
-[SIP-34](https://github.com/apache/incubator-superset/issues/8976))
+[SIP-34](https://github.com/apache/superset/issues/8976))
 
 ### Give it a thumbnail
 

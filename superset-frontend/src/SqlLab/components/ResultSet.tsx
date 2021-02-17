@@ -17,17 +17,20 @@
  * under the License.
  */
 import React, { CSSProperties } from 'react';
-import { Alert, ButtonGroup } from 'react-bootstrap';
+import { Alert } from 'react-bootstrap';
+import ButtonGroup from 'src/components/ButtonGroup';
 import ProgressBar from 'src/common/components/ProgressBar';
 import moment from 'moment';
 import { RadioChangeEvent } from 'antd/lib/radio';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
-import { styled, t } from '@superset-ui/core';
+import rison from 'rison';
+import { styled, t, makeApi } from '@superset-ui/core';
+import { debounce } from 'lodash';
 
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
-import { getByUser, put as updateDatset } from 'src/api/dataset';
+import { put as updateDatset } from 'src/api/dataset';
 import Loading from '../../components/Loading';
 import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';
@@ -56,11 +59,6 @@ const EXPLORE_CHART_DEFAULT = {
 
 const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
 
-interface DatasetOption {
-  datasetId: number;
-  datasetName: string;
-}
-
 interface DatasetOptionAutocomplete {
   value: string;
   datasetId: number;
@@ -85,7 +83,6 @@ interface ResultSetState {
   data: Record<string, any>[];
   showSaveDatasetModal: boolean;
   newSaveDatasetName: string;
-  userDatasetsOwned: DatasetOption[];
   saveDatasetRadioBtnState: number;
   shouldOverwriteDataSet: boolean;
   datasetToOverwrite: Record<string, any>;
@@ -124,7 +121,6 @@ export default class ResultSet extends React.PureComponent<
       data: [],
       showSaveDatasetModal: false,
       newSaveDatasetName: this.getDefaultDatasetName(),
-      userDatasetsOwned: [],
       saveDatasetRadioBtnState: DatasetRadioState.SAVE_NEW,
       shouldOverwriteDataSet: false,
       datasetToOverwrite: {},
@@ -150,8 +146,9 @@ export default class ResultSet extends React.PureComponent<
     this.handleOverwriteDatasetOption = this.handleOverwriteDatasetOption.bind(
       this,
     );
-    this.handleSaveDatasetModalSearch = this.handleSaveDatasetModalSearch.bind(
-      this,
+    this.handleSaveDatasetModalSearch = debounce(
+      this.handleSaveDatasetModalSearch.bind(this),
+      1000,
     );
     this.handleFilterAutocompleteOption = this.handleFilterAutocompleteOption.bind(
       this,
@@ -162,24 +159,9 @@ export default class ResultSet extends React.PureComponent<
     this.handleExploreBtnClick = this.handleExploreBtnClick.bind(this);
   }
 
-  async componentDidMount() {
+  componentDidMount() {
     // only do this the first time the component is rendered/mounted
     this.reRunQueryIfSessionTimeoutErrorOnMount();
-
-    const appContainer = document.getElementById('app');
-    const bootstrapData = JSON.parse(
-      appContainer?.getAttribute('data-bootstrap') || '{}',
-    );
-
-    const datasets = await getByUser(bootstrapData.user.userId);
-    const userDatasetsOwned = datasets.map(
-      (r: { table_name: string; id: number }) => ({
-        datasetName: r.table_name,
-        datasetId: r.id,
-      }),
-    );
-
-    this.setState({ userDatasetsOwned });
   }
 
   UNSAFE_componentWillReceiveProps(nextProps: ResultSetProps) {
@@ -203,9 +185,8 @@ export default class ResultSet extends React.PureComponent<
     }
   }
 
-  getDefaultDatasetName = () => {
-    return `${this.props.query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
-  };
+  getDefaultDatasetName = () =>
+    `${this.props.query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
 
   handleOnChangeAutoComplete = () => {
     this.setState({ datasetToOverwrite: {} });
@@ -306,7 +287,7 @@ export default class ResultSet extends React.PureComponent<
   };
 
   handleOverwriteCancel = () => {
-    this.setState({ shouldOverwriteDataSet: false });
+    this.setState({ shouldOverwriteDataSet: false, datasetToOverwrite: {} });
   };
 
   handleExploreBtnClick = () => {
@@ -315,26 +296,52 @@ export default class ResultSet extends React.PureComponent<
     });
   };
 
-  handleSaveDatasetModalSearch = (searchText: string) => {
+  handleSaveDatasetModalSearch = async (searchText: string) => {
     // Making sure that autocomplete input has a value before rendering the dropdown
     // Transforming the userDatasetsOwned data for SaveModalComponent)
-    const { userDatasetsOwned } = this.state;
-    const userDatasets = !searchText
-      ? []
-      : userDatasetsOwned.map(d => ({
-          value: d.datasetName,
-          datasetId: d.datasetId,
-        }));
+    const appContainer = document.getElementById('app');
+    const bootstrapData = JSON.parse(
+      appContainer?.getAttribute('data-bootstrap') || '{}',
+    );
 
-    this.setState({ userDatasetOptions: userDatasets });
+    if (bootstrapData.user && bootstrapData.user.userId) {
+      const queryParams = rison.encode({
+        filters: [
+          {
+            col: 'table_name',
+            opr: 'ct',
+            value: searchText,
+          },
+          {
+            col: 'owners',
+            opr: 'rel_m_m',
+            value: bootstrapData.user.userId,
+          },
+        ],
+        order_column: 'changed_on_delta_humanized',
+        order_direction: 'desc',
+      });
+
+      const response = await makeApi({
+        method: 'GET',
+        endpoint: '/api/v1/dataset',
+      })(`q=${queryParams}`);
+
+      const userDatasetsOwned = response.result.map(
+        (r: { table_name: string; id: number }) => ({
+          value: r.table_name,
+          datasetId: r.id,
+        }),
+      );
+
+      this.setState({ userDatasetOptions: userDatasetsOwned });
+    }
   };
 
   handleFilterAutocompleteOption = (
     inputValue: string,
     option: { value: string; datasetId: number },
-  ) => {
-    return option.value.toLowerCase().includes(inputValue.toLowerCase());
-  };
+  ) => option.value.toLowerCase().includes(inputValue.toLowerCase());
 
   clearQueryResults(query: Query) {
     this.props.actions.clearQueryResults(query);
@@ -460,7 +467,7 @@ export default class ResultSet extends React.PureComponent<
               onChange={this.changeSearch}
               value={this.state.searchText}
               className="form-control input-sm"
-              placeholder={t('Filter Results')}
+              placeholder={t('Filter results')}
             />
           )}
         </div>
@@ -492,7 +499,7 @@ export default class ResultSet extends React.PureComponent<
       return (
         <div className="result-set-error-message">
           <ErrorMessageWithStackTrace
-            title={t('Database Error')}
+            title={t('Database error')}
             error={query?.errors?.[0]}
             subtitle={<MonospaceDiv>{query.errorMessage}</MonospaceDiv>}
             copyText={query.errorMessage || undefined}
@@ -574,7 +581,7 @@ export default class ResultSet extends React.PureComponent<
       if (query.isDataPreview) {
         return (
           <Button
-            buttonSize="sm"
+            buttonSize="small"
             className="fetch"
             buttonStyle="primary"
             onClick={() =>
@@ -591,12 +598,12 @@ export default class ResultSet extends React.PureComponent<
       if (query.resultsKey) {
         return (
           <Button
-            buttonSize="sm"
+            buttonSize="small"
             className="fetch"
             buttonStyle="primary"
             onClick={() => this.fetchResults(query)}
           >
-            {t('Refetch Results')}
+            {t('Refetch results')}
           </Button>
         );
       }
@@ -617,7 +624,7 @@ export default class ResultSet extends React.PureComponent<
           buttonSize="small"
           onClick={() => query.trackingUrl && window.open(query.trackingUrl)}
         >
-          {t('Track Job')}
+          {t('Track job')}
         </Button>
       );
     }

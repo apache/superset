@@ -21,7 +21,7 @@ import { shallow } from 'enzyme';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
-import { Radio } from 'react-bootstrap';
+import { Radio } from 'src/common/components/Radio';
 
 import Icon from 'src/components/Icon';
 import Tabs from 'src/common/components/Tabs';
@@ -64,8 +64,8 @@ describe('DatasourceEditor', () => {
     expect(wrapper.find(Tabs)).toExist();
   });
 
-  it('makes an async request', () => {
-    return new Promise(done => {
+  it('makes an async request', () =>
+    new Promise(done => {
       wrapper.setState({ activeTabKey: 2 });
       const syncButton = wrapper.find('.sync-from-source');
       expect(syncButton).toHaveLength(1);
@@ -76,8 +76,7 @@ describe('DatasourceEditor', () => {
         fetchMock.reset();
         done();
       }, 0);
-    });
-  });
+    }));
 
   it('to add, remove and modify columns accordingly', () => {
     const columns = [

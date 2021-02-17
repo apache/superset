@@ -181,9 +181,13 @@ class SliceHeaderControls extends React.PureComponent {
     );
     const updatedWhen = updatedDttm ? moment.utc(updatedDttm).fromNow() : '';
     const getCachedTitle = itemCached => {
-      return itemCached
-        ? t('Cached %s', cachedWhen)
-        : updatedWhen && t('Fetched %s', updatedWhen);
+      if (itemCached) {
+        return t('Cached %s', cachedWhen);
+      }
+      if (updatedWhen) {
+        return t('Fetched %s', updatedWhen);
+      }
+      return '';
     };
     const refreshTooltipData = isCached.map(getCachedTitle) || '';
     // If all queries have same cache time we can unit them to one
@@ -195,7 +199,7 @@ class SliceHeaderControls extends React.PureComponent {
           : item}
       </div>
     ));
-    const resizeLabel = isFullSize ? t('Minimize Chart') : t('Maximize Chart');
+    const resizeLabel = isFullSize ? t('Minimize chart') : t('Maximize chart');
     const menu = (
       <Menu
         onClick={this.handleMenuClick}
@@ -224,7 +228,7 @@ class SliceHeaderControls extends React.PureComponent {
 
         {this.props.supersetCanExplore && (
           <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
-            {t('View Chart in Explore')}
+            {t('View chart in Explore')}
           </Menu.Item>
         )}
 

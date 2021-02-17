@@ -86,7 +86,7 @@ describe('sqlLabReducer', () => {
       newState = sqlLabReducer(newState, action);
       expect(newState.queryEditors[1].schema).toBe(schema);
     });
-    it('should not fail while setting autorun ', () => {
+    it('should not fail while setting autorun', () => {
       const action = {
         type: actions.QUERY_EDITOR_SET_AUTORUN,
         queryEditor: qe,

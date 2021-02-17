@@ -23,7 +23,7 @@ params:
   datasource: 42__table
   granularity_sqla: time_start
   groupby:
-  - Developer Type
+  - developer_type
   metrics:
   - count
   order_by_cols: []

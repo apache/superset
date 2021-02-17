@@ -16,14 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { ParentSize } from '@vx/responsive';
 import { styled, useTheme } from '@superset-ui/core';
-import debounce from 'lodash/debounce';
+import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/chart/ChartContainer';
+import {
+  getFromLocalStorage,
+  setInLocalStorage,
+} from 'src/utils/localStorageHelpers';
 import ConnectedExploreChartHeader from './ExploreChartHeader';
 import { DataTablesPane } from './DataTablesPane';
 
@@ -44,7 +47,7 @@ const propTypes = {
   table_name: PropTypes.string,
   vizType: PropTypes.string.isRequired,
   form_data: PropTypes.object,
-  standalone: PropTypes.bool,
+  standalone: PropTypes.number,
   timeout: PropTypes.number,
   refreshOverlayVisible: PropTypes.bool,
   chart: chartPropShape,
@@ -55,18 +58,24 @@ const propTypes = {
 const GUTTER_SIZE_FACTOR = 1.25;
 
 const CHART_PANEL_PADDING = 30;
+const HEADER_PADDING = 15;
+
+const STORAGE_KEYS = {
+  sizes: 'chart_split_sizes',
+};
 
 const INITIAL_SIZES = [90, 10];
 const MIN_SIZES = [300, 50];
 const DEFAULT_SOUTH_PANE_HEIGHT_PERCENT = 40;
 
 const Styles = styled.div`
-  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   align-content: stretch;
-  overflow: hidden;
+  overflow: auto;
+  box-shadow: none;
+  height: 100%;
 
   & > div:last-of-type {
     flex-basis: 100%;
@@ -105,52 +114,57 @@ const ExploreChartPanel = props => {
   const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
 
-  const panelHeadingRef = useRef(null);
-  const [headerHeight, setHeaderHeight] = useState(props.standalone ? 0 : 50);
-  const [splitSizes, setSplitSizes] = useState(INITIAL_SIZES);
-
-  const calcSectionHeight = percent => {
-    const containerHeight = parseInt(props.height, 10) - headerHeight - 30;
-    return (
-      (containerHeight * percent) / 100 - (gutterHeight / 2 + gutterMargin)
-    );
-  };
-
-  const [chartSectionHeight, setChartSectionHeight] = useState(
-    calcSectionHeight(INITIAL_SIZES[0]) - CHART_PANEL_PADDING,
+  const { height: hHeight, ref: headerRef } = useResizeDetector({
+    refreshMode: 'debounce',
+    refreshRate: 300,
+  });
+  const { width: chartPanelWidth, ref: chartPanelRef } = useResizeDetector({
+    refreshMode: 'debounce',
+    refreshRate: 300,
+  });
+  const [splitSizes, setSplitSizes] = useState(
+    getFromLocalStorage(STORAGE_KEYS.sizes, INITIAL_SIZES),
   );
+
+  const calcSectionHeight = useCallback(
+    percent => {
+      let headerHeight;
+      if (props.standalone) {
+        headerHeight = 0;
+      } else if (hHeight) {
+        headerHeight = hHeight + HEADER_PADDING;
+      } else {
+        headerHeight = 50;
+      }
+      const containerHeight = parseInt(props.height, 10) - headerHeight;
+      return (
+        (containerHeight * percent) / 100 - (gutterHeight / 2 + gutterMargin)
+      );
+    },
+    [gutterHeight, gutterMargin, props.height, props.standalone, hHeight],
+  );
+
   const [tableSectionHeight, setTableSectionHeight] = useState(
     calcSectionHeight(INITIAL_SIZES[1]),
   );
-  const [displaySouthPaneBackground, setDisplaySouthPaneBackground] = useState(
-    false,
+
+  const recalcPanelSizes = useCallback(
+    ([, southPercent]) => {
+      setTableSectionHeight(calcSectionHeight(southPercent));
+    },
+    [calcSectionHeight],
   );
 
   useEffect(() => {
-    const calcHeaderSize = debounce(() => {
-      setHeaderHeight(
-        props.standalone ? 0 : panelHeadingRef?.current?.offsetHeight,
-      );
-    }, 100);
-    calcHeaderSize();
-    document.addEventListener('resize', calcHeaderSize);
-    return () => document.removeEventListener('resize', calcHeaderSize);
-  }, [props.standalone]);
+    recalcPanelSizes(splitSizes);
+  }, [recalcPanelSizes, splitSizes]);
 
-  const recalcPanelSizes = ([northPercent, southPercent]) => {
-    setChartSectionHeight(
-      calcSectionHeight(northPercent) - CHART_PANEL_PADDING,
-    );
-    setTableSectionHeight(calcSectionHeight(southPercent));
-  };
-
-  const onDragStart = () => {
-    setDisplaySouthPaneBackground(true);
-  };
+  useEffect(() => {
+    setInLocalStorage(STORAGE_KEYS.sizes, splitSizes);
+  }, [splitSizes]);
 
   const onDragEnd = sizes => {
-    recalcPanelSizes(sizes);
-    setDisplaySouthPaneBackground(false);
+    setSplitSizes(sizes);
   };
 
   const onCollapseChange = openPanelName => {
@@ -164,42 +178,52 @@ const ExploreChartPanel = props => {
       ];
     }
     setSplitSizes(splitSizes);
-    recalcPanelSizes(splitSizes);
   };
 
-  const renderChart = () => {
+  const renderChart = useCallback(() => {
     const { chart } = props;
-
+    const newHeight = calcSectionHeight(splitSizes[0]) - CHART_PANEL_PADDING;
+    const chartWidth = chartPanelWidth - CHART_PANEL_PADDING;
     return (
-      <ParentSize>
-        {({ width }) =>
-          width > 0 && (
-            <ChartContainer
-              width={Math.floor(width)}
-              height={chartSectionHeight}
-              annotationData={chart.annotationData}
-              chartAlert={chart.chartAlert}
-              chartStackTrace={chart.chartStackTrace}
-              chartId={chart.id}
-              chartStatus={chart.chartStatus}
-              triggerRender={props.triggerRender}
-              datasource={props.datasource}
-              errorMessage={props.errorMessage}
-              formData={props.form_data}
-              onQuery={props.onQuery}
-              owners={props?.slice?.owners}
-              queriesResponse={chart.queriesResponse}
-              refreshOverlayVisible={props.refreshOverlayVisible}
-              setControlValue={props.actions.setControlValue}
-              timeout={props.timeout}
-              triggerQuery={chart.triggerQuery}
-              vizType={props.vizType}
-            />
-          )
-        }
-      </ParentSize>
+      chartWidth > 0 && (
+        <ChartContainer
+          width={Math.floor(chartWidth)}
+          height={newHeight}
+          annotationData={chart.annotationData}
+          chartAlert={chart.chartAlert}
+          chartStackTrace={chart.chartStackTrace}
+          chartId={chart.id}
+          chartStatus={chart.chartStatus}
+          triggerRender={props.triggerRender}
+          datasource={props.datasource}
+          errorMessage={props.errorMessage}
+          formData={props.form_data}
+          onQuery={props.onQuery}
+          owners={props?.slice?.owners}
+          queriesResponse={chart.queriesResponse}
+          refreshOverlayVisible={props.refreshOverlayVisible}
+          setControlValue={props.actions.setControlValue}
+          timeout={props.timeout}
+          triggerQuery={chart.triggerQuery}
+          vizType={props.vizType}
+        />
+      )
     );
-  };
+  }, [calcSectionHeight, chartPanelWidth, props, splitSizes]);
+
+  const panelBody = useMemo(
+    () => (
+      <div className="panel-body" ref={chartPanelRef}>
+        {renderChart()}
+      </div>
+    ),
+    [chartPanelRef, renderChart],
+  );
+
+  const standaloneChartBody = useMemo(
+    () => <div ref={chartPanelRef}>{renderChart()}</div>,
+    [chartPanelRef, renderChart],
+  );
 
   if (props.standalone) {
     // dom manipulation hack to get rid of the boostrap theme's body background
@@ -208,7 +232,7 @@ const ExploreChartPanel = props => {
     if (!bodyClasses.includes(standaloneClass)) {
       document.body.className += ` ${standaloneClass}`;
     }
-    return renderChart();
+    return standaloneChartBody;
   }
 
   const header = (
@@ -228,17 +252,13 @@ const ExploreChartPanel = props => {
     />
   );
 
-  const elementStyle = (dimension, elementSize, gutterSize) => {
-    return {
-      [dimension]: `calc(${elementSize}% - ${gutterSize + gutterMargin}px)`,
-    };
-  };
-
-  const panelBody = <div className="panel-body">{renderChart()}</div>;
+  const elementStyle = (dimension, elementSize, gutterSize) => ({
+    [dimension]: `calc(${elementSize}% - ${gutterSize + gutterMargin}px)`,
+  });
 
   return (
-    <Styles className="panel panel-default chart-container">
-      <div className="panel-heading" ref={panelHeadingRef}>
+    <Styles className="panel panel-default chart-container" ref={chartPanelRef}>
+      <div className="panel-heading" ref={headerRef}>
         {header}
       </div>
       {props.vizType === 'filter_box' ? (
@@ -249,7 +269,6 @@ const ExploreChartPanel = props => {
           minSize={MIN_SIZES}
           direction="vertical"
           gutterSize={gutterHeight}
-          onDragStart={onDragStart}
           onDragEnd={onDragEnd}
           elementStyle={elementStyle}
         >
@@ -258,7 +277,7 @@ const ExploreChartPanel = props => {
             queryFormData={props.chart.latestQueryFormData}
             tableSectionHeight={tableSectionHeight}
             onCollapseChange={onCollapseChange}
-            displayBackground={displaySouthPaneBackground}
+            chartStatus={props.chart.chartStatus}
           />
         </Split>
       )}

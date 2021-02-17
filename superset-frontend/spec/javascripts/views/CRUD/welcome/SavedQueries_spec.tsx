@@ -32,7 +32,7 @@ const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const queriesEndpoint = 'glob:*/api/v1/saved_query/?*';
-const savedQueriesInfo = 'glob:*/api/v1/saved_query/_info';
+const savedQueriesInfo = 'glob:*/api/v1/saved_query/_info*';
 
 const mockqueries = [...new Array(3)].map((_, i) => ({
   created_by: {
@@ -103,7 +103,7 @@ describe('SavedQueries', () => {
     expect(wrapper.find('ListViewCard')).toExist();
   });
 
-  it('it renders a submenu with clickable tables and buttons', async () => {
+  it('renders a submenu with clickable tables and buttons', async () => {
     expect(wrapper.find(SubMenu)).toExist();
     expect(wrapper.find('li')).toHaveLength(1);
     expect(wrapper.find('button')).toHaveLength(2);

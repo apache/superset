@@ -21,16 +21,16 @@ params:
   color_scheme: supersetColors
   datasource: 23__table
   donut: true
-  granularity_sqla: OrderDate
+  granularity_sqla: order_date
   groupby:
-  - ProductLine
+  - product_line
   innerRadius: 41
   label_line: true
   labels_outside: true
   metric:
     aggregate: SUM
     column:
-      column_name: Sales
+      column_name: sales
       description: null
       expression: null
       filterable: true
@@ -49,7 +49,7 @@ params:
     sqlExpression: null
   number_format: SMART_NUMBER
   outerRadius: 65
-  pie_label_type: key
+  label_type: key
   queryFields:
     groupby: groupby
     metric: metrics

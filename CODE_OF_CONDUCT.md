@@ -106,12 +106,12 @@ This statement thanks the following, on which it draws for content and inspirati
 
 # Slack Community Guidelines
 
-If you decide to join the [Community Slack](https://join.slack.com/t/apache-superset/shared_invite/enQtNDMxMDY5NjM4MDU0LWJmOTcxYjlhZTRhYmEyYTMzOWYxOWEwMjcwZDZiNWRiNDY2NDUwNzcwMDFhNzE1ZmMxZTZlZWY0ZTQ2MzMyNTU), please adhere to the following rules:
+If you decide to join the [Community Slack](https://join.slack.com/t/apache-superset/shared_invite/zt-l5f5e0av-fyYu8tlfdqbMdz_sPLwUqQ), please adhere to the following rules:
 
 **1. Treat everyone in the community with respect.**
 
 - We strive to make this community a warm place for people from all industries, use cases, geographies, and backgrounds. Harassment of any kind is not acceptable and won’t be tolerated.
-- Please follow the guidelines as outlined in the Superset Community [code of conduct here](https://github.com/apache/incubator-superset/blob/master/CODE_OF_CONDUCT.md).
+- Please follow the guidelines as outlined in the Superset Community [code of conduct here](https://github.com/apache/superset/blob/master/CODE_OF_CONDUCT.md).
 
 **2. Use the right channel.**
 
@@ -119,7 +119,7 @@ If you decide to join the [Community Slack](https://join.slack.com/t/apache-supe
 
 **3. Ask thoughtful questions.**
 
-- We’re all here to help each other out. The best way to get help is by investing effort into your questions. First check and see if your question is answered in [the Superset documentation](https://superset.incubator.apache.org/faq.html) or on [Stack Overflow](https://stackoverflow.com/search?q=apache+superset). You can also check [Github issues](https://github.com/apache/incubator-superset/issues) to see if your question or feature request has been submitted before. Then, use Slack search to see if your question has already been asked and answered in the past. If you still feel the need to ask a question, make sure you include:
+- We’re all here to help each other out. The best way to get help is by investing effort into your questions. First check and see if your question is answered in [the Superset documentation](https://superset.apache.org/faq.html) or on [Stack Overflow](https://stackoverflow.com/search?q=apache+superset). You can also check [Github issues](https://github.com/apache/superset/issues) to see if your question or feature request has been submitted before. Then, use Slack search to see if your question has already been asked and answered in the past. If you still feel the need to ask a question, make sure you include:
 
 - The steps you’ve already taken
 - Relevant details presented cleanly (text stacktraces, formatted markdown, or screenshots. Please don’t paste large blocks of code unformatted or post photos of your screen from your phone)

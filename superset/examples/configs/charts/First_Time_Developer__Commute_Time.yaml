@@ -35,7 +35,7 @@ params:
     isNew: false
     operator: '!='
     sqlExpression: null
-    subject: First Time Developer
+    subject: first_time_developer
   - clause: WHERE
     comparator: 'NULL'
     expressionType: SIMPLE
@@ -49,7 +49,7 @@ params:
   datasource: 42__table
   granularity_sqla: time_start
   groupby:
-  - First Time Developer
+  - first_time_developer
   - communite_time
   label_colors: {}
   metric: count

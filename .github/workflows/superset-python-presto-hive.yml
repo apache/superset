@@ -1,11 +1,17 @@
 # Python Presto/Hive unit tests
 name: Python Presto/Hive
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - "dependabot/npm_and_yarn/**"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
   test-postgres-presto:
-    runs-on: ubuntu-18.04
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         # run unit tests in multiple version just for fun
@@ -40,17 +46,26 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
         with:
-          access_token: ${{ github.token }}
-      - uses: actions/checkout@v2
+          persist-credentials: false
+          submodules: recursive
+      - name: Check if python changes are present
+        id: check
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        continue-on-error: true
+        run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
+        if: steps.check.outcome == 'failure'
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             apt-get-install
@@ -58,16 +73,20 @@ jobs:
             pip install -r requirements/testing.txt
             setup-postgres
       - name: Run celery
+        if: steps.check.outcome == 'failure'
         run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
       - name: Python unit tests (PostgreSQL)
+        if: steps.check.outcome == 'failure'
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
+        if: steps.check.outcome == 'failure'
         run: |
           bash <(curl -s https://codecov.io/bash) -cF python
 
   test-postgres-hive:
-    runs-on: ubuntu-18.04
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         # run unit tests in multiple version just for fun
@@ -94,23 +113,35 @@ jobs:
         ports:
           - 16379:6379
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
         with:
-          access_token: ${{ github.token }}
-      - uses: actions/checkout@v2
+          persist-credentials: false
+          submodules: recursive
+      - name: Check if python changes are present
+        id: check
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        continue-on-error: true
+        run: ./scripts/ci_check_no_file_changes.sh python
       - name: Create csv upload directory
+        if: steps.check.outcome == 'failure'
         run: sudo mkdir -p /tmp/.superset/uploads
       - name: Give write access to the csv upload directory
+        if: steps.check.outcome == 'failure'
         run: sudo chown -R $USER:$USER /tmp/.superset
       - name: Start hadoop and hive
+        if: steps.check.outcome == 'failure'
         run: docker-compose -f scripts/databases/hive/docker-compose.yml up -d
       - name: Setup Python
+        if: steps.check.outcome == 'failure'
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        if: steps.check.outcome == 'failure'
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             apt-get-install
@@ -118,10 +149,13 @@ jobs:
             pip install -r requirements/testing.txt
             setup-postgres
       - name: Run celery
+        if: steps.check.outcome == 'failure'
         run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
       - name: Python unit tests (PostgreSQL)
+        if: steps.check.outcome == 'failure'
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
+        if: steps.check.outcome == 'failure'
         run: |
           bash <(curl -s https://codecov.io/bash) -cF python

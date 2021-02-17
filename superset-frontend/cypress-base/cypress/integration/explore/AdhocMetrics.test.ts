@@ -19,15 +19,14 @@
 describe('AdhocMetrics', () => {
   beforeEach(() => {
     cy.login();
-    cy.server();
-    cy.route('GET', '/superset/explore_json/**').as('getJson');
-    cy.route('POST', '/superset/explore_json/**').as('postJson');
+    cy.intercept('GET', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('postJson');
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
   });
 
   it('Clear metric and set simple adhoc metric', () => {
-    const metric = 'sum(sum_girls)';
+    const metric = 'sum(num_girls)';
     const metricName = 'Sum Girls';
     cy.get('[data-test=metrics]')
       .find('[data-test="remove-control-button"]')
@@ -37,10 +36,13 @@ describe('AdhocMetrics', () => {
       .find('[data-test="add-metric-button"]')
       .click();
 
+    // Title edit for saved metrics is disabled - switch to Simple
+    cy.get('[id="adhoc-metric-edit-tabs-tab-SIMPLE"]').click();
+
     cy.get('[data-test="AdhocMetricEditTitle#trigger"]').click();
     cy.get('[data-test="AdhocMetricEditTitle#input"]').type(metricName);
 
-    cy.get('[name="select-column"]').click().type('sum_girls{enter}');
+    cy.get('[name="select-column"]').click().type('num_girls{enter}');
     cy.get('[name="select-aggregate"]').click().type('sum{enter}');
 
     cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
@@ -94,7 +96,7 @@ describe('AdhocMetrics', () => {
   xit('Switch from custom sql tabs to simple', () => {
     cy.get('[data-test=metrics]').within(() => {
       cy.get('.Select__dropdown-indicator').click();
-      cy.get('input[type=text]').type('sum_girls{enter}');
+      cy.get('input[type=text]').type('num_girls{enter}');
     });
     cy.get('[data-test=metrics]')
       .find('[data-test="metric-option"]')
@@ -102,7 +104,7 @@ describe('AdhocMetrics', () => {
 
     cy.get('#metrics-edit-popover').within(() => {
       cy.get('#adhoc-metric-edit-tabs-tab-SQL').click();
-      cy.get('.ace_identifier').contains('sum_girls');
+      cy.get('.ace_identifier').contains('num_girls');
       cy.get('.ace_content').click();
       cy.get('.ace_text-input').type('{selectall}{backspace}SUM(num)');
       cy.get('#adhoc-metric-edit-tabs-tab-SIMPLE').click();

@@ -23,7 +23,7 @@ import NavDropdown from 'src/components/NavDropdown';
 
 const dropdownItems = [
   {
-    label: t('SQL Query'),
+    label: t('SQL query'),
     url: '/superset/sqllab',
     icon: 'fa-fw fa-search',
   },
@@ -48,16 +48,22 @@ export default function NewMenu() {
   return (
     <NavDropdown
       id="new-dropdown"
+      data-test="new-dropdown"
       title={<StyledI className="fa fa-plus" />}
       onMouseEnter={() => setDropdownOpen(true)}
       onMouseLeave={() => setDropdownOpen(false)}
+      onToggle={value => setDropdownOpen(value)}
       open={dropdownOpen}
     >
       <Menu>
         {dropdownItems.map((menu, i) => (
           <Menu.Item key={i}>
             <a href={menu.url}>
-              <i className={`fa ${menu.icon}`} /> {menu.label}
+              <i
+                data-test={`menu-item-${menu.label}`}
+                className={`fa ${menu.icon}`}
+              />{' '}
+              {menu.label}
             </a>
           </Menu.Item>
         ))}

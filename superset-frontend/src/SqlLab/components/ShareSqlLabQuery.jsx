@@ -18,15 +18,17 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import Popover from 'src/common/components/Popover';
-import { t } from '@superset-ui/core';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
+import { Tooltip } from 'src/common/components/Tooltip';
+import { t, styled, supersetTheme } from '@superset-ui/core';
+import cx from 'classnames';
 
 import Button from 'src/components/Button';
-import CopyToClipboard from '../../components/CopyToClipboard';
-import { storeQuery } from '../../utils/common';
-import { getClientErrorObject } from '../../utils/getClientErrorObject';
-import withToasts from '../../messageToasts/enhancers/withToasts';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
+import Icon from 'src/components/Icon';
+import CopyToClipboard from 'src/components/CopyToClipboard';
+import { storeQuery } from 'src/utils/common';
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 
 const propTypes = {
   queryEditor: PropTypes.shape({
@@ -40,78 +42,104 @@ const propTypes = {
   addDangerToast: PropTypes.func.isRequired,
 };
 
-class ShareSqlLabQuery extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      shortUrl: t('Loading ...'),
-    };
-    this.getCopyUrl = this.getCopyUrl.bind(this);
-  }
-
-  getCopyUrl() {
-    if (isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE)) {
-      return this.getCopyUrlForKvStore();
+const Styles = styled.div`
+  .btn-disabled {
+    &,
+    &:hover {
+      cursor: default;
+      background-color: ${supersetTheme.colors.grayscale.light2};
+      color: ${supersetTheme.colors.grayscale.base};
     }
+  }
+  svg {
+    vertical-align: -${supersetTheme.gridUnit * 1.25}px;
+  }
+`;
 
-    return this.getCopyUrlForSavedQuery();
+class ShareSqlLabQuery extends React.Component {
+  getCopyUrl(callback) {
+    if (isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE)) {
+      return this.getCopyUrlForKvStore(callback);
+    }
+    return this.getCopyUrlForSavedQuery(callback);
   }
 
-  getCopyUrlForKvStore() {
+  getCopyUrlForKvStore(callback) {
     const { dbId, title, schema, autorun, sql } = this.props.queryEditor;
     const sharedQuery = { dbId, title, schema, autorun, sql };
 
     return storeQuery(sharedQuery)
       .then(shortUrl => {
-        this.setState({ shortUrl });
+        callback(shortUrl);
       })
       .catch(response => {
-        getClientErrorObject(response).then(({ error }) => {
-          this.props.addDangerToast(error);
-          this.setState({ shortUrl: t('Error') });
+        getClientErrorObject(response).then(() => {
+          this.props.addDangerToast(t('There was an error with your request'));
         });
       });
   }
 
-  getCopyUrlForSavedQuery() {
+  getCopyUrlForSavedQuery(callback) {
     let savedQueryToastContent;
 
     if (this.props.queryEditor.remoteId) {
       savedQueryToastContent = `${
         window.location.origin + window.location.pathname
       }?savedQueryId=${this.props.queryEditor.remoteId}`;
-      this.setState({ shortUrl: savedQueryToastContent });
+      callback(savedQueryToastContent);
     } else {
       savedQueryToastContent = t('Please save the query to enable sharing');
-      this.setState({ shortUrl: savedQueryToastContent });
+      callback(savedQueryToastContent);
     }
   }
 
-  renderPopover() {
+  buildButton() {
+    const canShare =
+      this.props.queryEditor.remoteId ||
+      isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE);
     return (
-      <div id="sqllab-shareurl-popover">
-        <CopyToClipboard
-          text={this.state.shortUrl || t('Loading ...')}
-          copyNode={
-            <i className="fa fa-clipboard" title={t('Copy to clipboard')} />
-          }
-        />
-      </div>
+      <Styles>
+        <Button buttonSize="small" className={cx(!canShare && 'btn-disabled')}>
+          <Icon
+            name="link"
+            color={
+              canShare
+                ? supersetTheme.colors.primary.base
+                : supersetTheme.colors.grayscale.base
+            }
+            width={20}
+            height={20}
+          />{' '}
+          {t('Copy link')}
+        </Button>
+      </Styles>
     );
   }
 
   render() {
+    const canShare =
+      this.props.queryEditor.remoteId ||
+      isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE);
     return (
-      <Popover
-        trigger="click"
+      <Tooltip
+        id="copy_link"
         placement="top"
-        onClick={this.getCopyUrl}
-        content={this.renderPopover()}
+        title={
+          canShare
+            ? t('Copy query link to your clipboard')
+            : t('Save the query to copy the link')
+        }
       >
-        <Button buttonSize="small">
-          <i className="fa fa-share" /> {t('Share')}
-        </Button>
-      </Popover>
+        {canShare ? (
+          <CopyToClipboard
+            getText={callback => this.getCopyUrl(callback)}
+            wrapped={false}
+            copyNode={this.buildButton()}
+          />
+        ) : (
+          this.buildButton()
+        )}
+      </Tooltip>
     );
   }
 }

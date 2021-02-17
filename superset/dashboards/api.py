@@ -30,8 +30,9 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
 from superset import is_feature_enabled, thumbnail_cache
+from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.exceptions import CommandInvalidError
-from superset.commands.importers.v1.utils import remove_root
+from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.commands.bulk_delete import BulkDeleteDashboardCommand
 from superset.dashboards.commands.create import CreateDashboardCommand
@@ -54,6 +55,7 @@ from superset.dashboards.filters import (
     DashboardFavoriteFilter,
     DashboardFilter,
     DashboardTitleOrSlugFilter,
+    FilterRelatedRoles,
 )
 from superset.dashboards.schemas import (
     DashboardPostSchema,
@@ -89,6 +91,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
         "favorite_status",
+        "get_charts",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -106,6 +109,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "owners.username",
         "owners.first_name",
         "owners.last_name",
+        "roles.id",
+        "roles.name",
         "changed_by_name",
         "changed_by_url",
         "changed_by.username",
@@ -142,6 +147,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "owners.username",
         "owners.first_name",
         "owners.last_name",
+        "roles.id",
+        "roles.name",
     ]
     list_select_columns = list_columns + ["changed_on", "changed_by_fk"]
     order_columns = [
@@ -156,6 +163,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "dashboard_title",
         "slug",
         "owners",
+        "roles",
         "position_json",
         "css",
         "json_metadata",
@@ -168,6 +176,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "dashboard_title",
         "id",
         "owners",
+        "roles",
         "published",
         "slug",
         "changed_by",
@@ -180,22 +189,25 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     add_model_schema = DashboardPostSchema()
     edit_model_schema = DashboardPutSchema()
+    chart_entity_response_schema = ChartEntityResponseSchema()
 
     base_filters = [["slice", DashboardFilter, lambda: []]]
 
     order_rel_fields = {
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
+        "roles": ("name", "asc"),
     }
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "roles": RelatedFieldFilter("name", FilterRelatedRoles),
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
-    allowed_rel_fields = {"owners", "created_by"}
+    allowed_rel_fields = {"owners", "roles", "created_by"}
 
     openapi_spec_tag = "Dashboards"
     """ Override the name set for this collection of endpoints """
-    openapi_spec_component_schemas = (GetFavStarIdsSchema,)
+    openapi_spec_component_schemas = (ChartEntityResponseSchema, GetFavStarIdsSchema)
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
         "get_export_ids_schema": get_export_ids_schema,
@@ -210,11 +222,61 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             self.include_route_methods = self.include_route_methods | {"thumbnail"}
         super().__init__()
 
+    @expose("/<pk>/charts", methods=["GET"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_charts",
+        log_to_statsd=False,
+    )
+    def get_charts(self, pk: int) -> Response:
+        """Gets the chart definitions for a given dashboard
+        ---
+        get:
+          description: >-
+            Get the chart definitions for a given dashboard
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Dashboard chart definitions
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ChartEntityResponseSchema'
+            302:
+              description: Redirects to the current digest
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        try:
+            charts = DashboardDAO.get_charts_for_dashboard(pk)
+            result = [self.chart_entity_response_schema.dump(chart) for chart in charts]
+            return self.response(200, result=result)
+        except DashboardNotFoundError:
+            return self.response_404()
+
     @expose("/", methods=["POST"])
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
+        log_to_statsd=False,
+    )
     def post(self) -> Response:
         """Creates a new Dashboard
         ---
@@ -273,7 +335,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
+        log_to_statsd=False,
+    )
     def put(self, pk: int) -> Response:
         """Changes a Dashboard
         ---
@@ -344,7 +409,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
+        log_to_statsd=False,
+    )
     def delete(self, pk: int) -> Response:
         """Deletes a Dashboard
         ---
@@ -395,7 +463,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_delete_ids_schema)
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
+        log_to_statsd=False,
+    )
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Delete bulk Dashboards
         ---
@@ -453,7 +524,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_export_ids_schema)
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
+        log_to_statsd=False,
+    )
     def export(self, **kwargs: Any) -> Response:
         """Export dashboards
         ---
@@ -529,7 +603,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @rison(thumbnail_query_schema)
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.thumbnail",
+        log_to_statsd=False,
+    )
     def thumbnail(
         self, pk: int, digest: str, **kwargs: Dict[str, bool]
     ) -> WerkzeugResponse:
@@ -617,7 +694,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_fav_star_ids_schema)
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".favorite_status",
+        log_to_statsd=False,
+    )
     def favorite_status(self, **kwargs: Any) -> Response:
         """Favorite Stars for Dashboards
         ---
@@ -662,6 +743,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
+        log_to_statsd=False,
+    )
     def import_(self) -> Response:
         """Import dashboard(s) with associated charts/datasets/databases
         ---
@@ -703,10 +788,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         if not upload:
             return self.response_400()
         with ZipFile(upload) as bundle:
-            contents = {
-                remove_root(file_name): bundle.read(file_name).decode()
-                for file_name in bundle.namelist()
-            }
+            contents = get_contents_from_bundle(bundle)
 
         passwords = (
             json.loads(request.form["passwords"])

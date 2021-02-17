@@ -16,6 +16,7 @@
 import logging
 from pathlib import Path
 from typing import Any, Dict
+from zipfile import ZipFile
 
 import yaml
 from marshmallow import fields, Schema, validate
@@ -73,3 +74,25 @@ def load_metadata(contents: Dict[str, str]) -> Dict[str, str]:
         raise exc
 
     return metadata
+
+
+def is_valid_config(file_name: str) -> bool:
+    path = Path(file_name)
+
+    # ignore system files that might've been added to the bundle
+    if path.name.startswith(".") or path.name.startswith("_"):
+        return False
+
+    # ensure extension is YAML
+    if path.suffix.lower() not in {".yaml", ".yml"}:
+        return False
+
+    return True
+
+
+def get_contents_from_bundle(bundle: ZipFile) -> Dict[str, str]:
+    return {
+        remove_root(file_name): bundle.read(file_name).decode()
+        for file_name in bundle.namelist()
+        if is_valid_config(file_name)
+    }

@@ -23,9 +23,11 @@ import { shallow } from 'enzyme';
 import { FormGroup } from 'react-bootstrap';
 import Button from 'src/components/Button';
 
-import AdhocMetric, { EXPRESSION_TYPES } from 'src/explore/AdhocMetric';
-import AdhocMetricEditPopover from 'src/explore/components/AdhocMetricEditPopover';
 import { AGGREGATES } from 'src/explore/constants';
+import AdhocMetricEditPopover from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopover';
+import AdhocMetric, {
+  EXPRESSION_TYPES,
+} from 'src/explore/components/controls/MetricControl/AdhocMetric';
 
 const columns = [
   { type: 'VARCHAR(255)', column_name: 'source', id: 1 },
@@ -49,11 +51,12 @@ function setup(overrides) {
   const onClose = sinon.spy();
   const props = {
     adhocMetric: sumValueAdhocMetric,
-    savedMetric: {},
+    savedMetric: { metric_name: 'foo', expression: 'COUNT(*)' },
     savedMetrics: [],
     onChange,
     onClose,
     onResize: () => {},
+    getCurrentLabel: () => {},
     columns,
     ...overrides,
   };

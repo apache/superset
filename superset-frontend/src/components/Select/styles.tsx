@@ -91,21 +91,19 @@ export type PartialThemeConfig = RecursivePartial<ThemeConfig>;
 
 export const defaultTheme: (
   theme: SupersetTheme,
-) => PartialThemeConfig = theme => {
-  return {
-    borderRadius: theme.borderRadius,
-    zIndex: 11,
-    colors: colors(theme),
-    spacing: {
-      baseUnit: 3,
-      menuGutter: 0,
-      controlHeight: 28,
-      lineHeight: 19,
-      fontSize: 14,
-      minWidth: '7.5em', // just enough to display 'No options'
-    },
-  };
-};
+) => PartialThemeConfig = theme => ({
+  borderRadius: theme.borderRadius,
+  zIndex: 11,
+  colors: colors(theme),
+  spacing: {
+    baseUnit: 3,
+    menuGutter: 0,
+    controlHeight: 34,
+    lineHeight: 19,
+    fontSize: 14,
+    minWidth: '7.5em', // just enough to display 'No options'
+  },
+});
 
 // let styles accept serialized CSS, too
 type CSSStyles = CSSProperties | SerializedStyles;
@@ -162,11 +160,9 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
     { isFocused, menuIsOpen, theme: { borderRadius, colors } },
   ) => {
     const isPseudoFocused = isFocused && !menuIsOpen;
-    let borderColor = '#ccc';
-    if (isPseudoFocused) {
-      borderColor = '#000';
-    } else if (menuIsOpen) {
-      borderColor = `${colors.grayBorderDark} ${colors.grayBorder} ${colors.grayBorderLight}`;
+    let borderColor = colors.grayBorder;
+    if (isPseudoFocused || menuIsOpen) {
+      borderColor = colors.grayBorderDark;
     }
     return [
       provider,
@@ -183,25 +179,34 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
           box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
         }
         flex-wrap: nowrap;
+        padding-left: 1px;
       `,
     ];
   },
-  menu: (provider, { theme: { borderRadius, zIndex, colors } }) => [
+  menu: (provider, { theme: { zIndex } }) => [
     provider,
     css`
+      padding-bottom: 2em;
+      z-index: ${zIndex}; /* override at least multi-page pagination */
+      width: auto;
+      min-width: 100%;
+      max-width: 80vw;
+      background: none;
+      box-shadow: none;
+      border: 0;
+    `,
+  ],
+  menuList: (provider, { theme: { borderRadius, colors } }) => [
+    provider,
+    css`
+      background: ${colors.lightest};
       border-radius: 0 0 ${borderRadius}px ${borderRadius}px;
-      border: 1px solid #ccc;
+      border: 1px solid ${colors.grayBorderDark};
       box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
       margin-top: -1px;
       border-top-color: ${colors.grayBorderLight};
       min-width: 100%;
       width: auto;
-      z-index: ${zIndex}; /* override at least multi-page pagination */
-    `,
-  ],
-  menuList: (provider, { theme: { borderRadius } }) => [
-    provider,
-    css`
       border-radius: 0 0 ${borderRadius}px ${borderRadius}px;
       padding-top: 0;
       padding-bottom: 0;
@@ -279,6 +284,10 @@ export const DEFAULT_STYLES: PartialStylesConfig = {
         : 'padding: 0; flex: 1 1 auto;'};
     `,
   ],
+  menuPortal: base => ({
+    ...base,
+    zIndex: 1030, // must be same or higher of antd popover
+  }),
 };
 
 const INPUT_TAG_BASE_STYLES = {
@@ -300,7 +309,7 @@ export type SelectComponentsType = Omit<
 export type InputProps = ReactSelectInputProps & {
   placeholder?: ReactNode;
   selectProps: SelectProps;
-  autocomplete?: string;
+  autoComplete?: string;
   onPaste?: SupersetStyledSelectProps<OptionType>['onPaste'];
   inputStyle?: object;
 };
@@ -310,9 +319,31 @@ const {
   DropdownIndicator,
   Option,
   Input,
+  SelectContainer,
 } = defaultComponents as Required<DeepNonNullable<SelectComponentsType>>;
 
 export const DEFAULT_COMPONENTS: SelectComponentsType = {
+  SelectContainer: ({ children, ...props }) => {
+    const {
+      selectProps: { assistiveText },
+    } = props;
+    return (
+      <div>
+        <SelectContainer {...props}>{children}</SelectContainer>
+        {assistiveText && (
+          <span
+            css={(theme: SupersetTheme) => ({
+              marginLeft: 3,
+              fontSize: theme.typography.sizes.s,
+              color: theme.colors.grayscale.light1,
+            })}
+          >
+            {assistiveText}
+          </span>
+        )}
+      </div>
+    );
+  },
   Option: ({ children, innerProps, data, ...props }) => (
     <ClassNames>
       {({ css }) => (
@@ -342,22 +373,13 @@ export const DEFAULT_COMPONENTS: SelectComponentsType = {
     </DropdownIndicator>
   ),
   Input: (props: InputProps) => {
-    const {
-      selectProps: { isMulti, value, placeholder },
-      getStyles,
-    } = props;
-    const isMultiWithValue = isMulti && Array.isArray(value) && !!value.length;
+    const { getStyles } = props;
     return (
       <Input
         {...props}
-        placeholder={isMultiWithValue ? placeholder : undefined}
         css={getStyles('input', props)}
-        autocomplete="chrome-off"
-        inputStyle={
-          isMultiWithValue
-            ? { ...INPUT_TAG_BASE_STYLES, width: '100%' }
-            : INPUT_TAG_BASE_STYLES
-        }
+        autoComplete="chrome-off"
+        inputStyle={INPUT_TAG_BASE_STYLES}
       />
     );
   },

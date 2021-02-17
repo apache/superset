@@ -77,9 +77,11 @@ class AsyncEventsRestApi(BaseApi):
                                   type: integer
                                 status:
                                   type: string
-                                msg:
-                                  type: string
-                                cache_key:
+                                errors:
+                                  type: array
+                                  items:
+                                    type: object
+                                result_url:
                                   type: string
             401:
               $ref: '#/components/responses/401'

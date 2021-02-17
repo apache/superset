@@ -81,8 +81,9 @@ const defaultProps = {
 };
 
 const Styles = styled.div`
+  min-height: ${p => p.height}px;
   position: relative;
-  height: 100%;
+
   .chart-tooltip {
     opacity: 0.75;
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
@@ -197,12 +198,17 @@ class Chart extends React.PureComponent {
         </Alert>
       );
     }
+
     return (
       <ErrorBoundary
         onError={this.handleRenderContainerFailure}
         showMessage={false}
       >
-        <Styles className="chart-container" data-test="chart-container">
+        <Styles
+          className="chart-container"
+          data-test="chart-container"
+          height={height}
+        >
           <div
             className={`slice_container ${isFaded ? ' faded' : ''}`}
             data-test="slice-container"

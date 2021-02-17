@@ -179,12 +179,15 @@ class TestQueryApi(SupersetTestCase):
         """
         admin = self.get_user("admin")
         client_id = self.get_random_string()
-        self.insert_query(get_example_database().id, admin.id, client_id)
+        query = self.insert_query(get_example_database().id, admin.id, client_id)
         max_id = db.session.query(func.max(Query.id)).scalar()
         self.login(username="admin")
         uri = f"api/v1/query/{max_id + 1}"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
+
+        db.session.delete(query)
+        db.session.commit()
 
     def test_get_query_no_data_access(self):
         """

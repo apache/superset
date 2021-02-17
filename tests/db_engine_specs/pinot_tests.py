@@ -23,11 +23,19 @@ from tests.db_engine_specs.base_tests import TestDbEngineSpec
 class TestPinotDbEngineSpec(TestDbEngineSpec):
     """ Tests pertaining to our Pinot database support """
 
+    def test_pinot_time_expression_sec_one_1d_grain(self):
+        col = column("tstamp")
+        expr = PinotEngineSpec.get_timestamp_expr(col, "epoch_s", "P1D")
+        result = str(expr.compile())
+        self.assertEqual(
+            result,
+            "DATETIMECONVERT(tstamp, '1:SECONDS:EPOCH', '1:SECONDS:EPOCH', '1:DAYS')",
+        )  # noqa
+
     def test_pinot_time_expression_sec_one_1m_grain(self):
         col = column("tstamp")
         expr = PinotEngineSpec.get_timestamp_expr(col, "epoch_s", "P1M")
         result = str(expr.compile())
         self.assertEqual(
-            result,
-            "DATETIMECONVERT(tstamp, '1:SECONDS:EPOCH', '1:SECONDS:EPOCH', '1:MONTHS')",
+            result, "DATETRUNC('month', tstamp, 'SECONDS')",
         )  # noqa

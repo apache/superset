@@ -80,6 +80,10 @@ export default class SqlEditorLeftBar extends React.PureComponent {
 
   onDbChange(db) {
     this.props.actions.queryEditorSetDb(this.props.queryEditor, db.id);
+    this.props.actions.queryEditorSetFunctionNames(
+      this.props.queryEditor,
+      db.id,
+    );
   }
 
   onTableChange(tableName, schemaName) {
@@ -156,7 +160,7 @@ export default class SqlEditorLeftBar extends React.PureComponent {
             buttonStyle="danger"
             onClick={this.resetState}
           >
-            <i className="fa fa-bomb" /> {t('Reset State')}
+            <i className="fa fa-bomb" /> {t('Reset state')}
           </Button>
         )}
       </div>

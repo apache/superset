@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ButtonGroup, Collapse, Well } from 'react-bootstrap';
+import { Collapse, Well } from 'react-bootstrap';
+import ButtonGroup from 'src/components/ButtonGroup';
 import shortid from 'shortid';
 import { t, styled } from '@superset-ui/core';
 

@@ -173,7 +173,7 @@ const babelLoader = {
       [
         '@emotion/babel-preset-css-prop',
         {
-          autoLabel: true,
+          autoLabel: 'dev-only',
           labelFormat: '[local]',
         },
       ],
@@ -274,8 +274,12 @@ const config = {
     modules: [APP_DIR, 'node_modules'],
     alias: {
       'react-dom': '@hot-loader/react-dom',
-      // force using absolute import path of the @superset-ui/core and @superset-ui/chart-controls
-      // so that we can `npm link` viz plugins without linking these two base packages
+      // Force using absolute import path of some packages in the root node_modules,
+      // as they can be dependencies of other packages via `npm link`.
+      // Both `@emotion/core` and `@superset-ui/core` remember some globals within
+      // module after imported, which will not be available everywhere if two
+      // different copies of the same module are imported in different places.
+      '@emotion/core': path.resolve(APP_DIR, './node_modules/@emotion/core'),
       '@superset-ui/core': path.resolve(
         APP_DIR,
         './node_modules/@superset-ui/core',
@@ -441,9 +445,7 @@ if (isDevMode) {
     // and proxy everything else to Superset backend
     proxy: [
       // functions are called for every request
-      () => {
-        return proxyConfig;
-      },
+      () => proxyConfig,
     ],
     contentBase: path.join(process.cwd(), '../static/assets'),
   };
@@ -459,6 +461,7 @@ if (isDevMode) {
       // only allow exact match so imports like `@superset-ui/plugin-name/lib`
       // and `@superset-ui/plugin-name/esm` can still work.
       config.resolve.alias[`${pkg}$`] = `${pkg}/src`;
+      delete config.resolve.alias[pkg];
       hasSymlink = true;
     }
   });

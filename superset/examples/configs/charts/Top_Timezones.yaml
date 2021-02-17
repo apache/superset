@@ -1,0 +1,53 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Top Timezones
+viz_type: table
+params:
+  adhoc_filters: []
+  align_pn: false
+  all_columns: []
+  color_pn: true
+  datasource: 31__table
+  granularity_sqla: updated
+  groupby:
+  - tz
+  include_search: false
+  metrics:
+  - count
+  order_by_cols: []
+  order_desc: true
+  page_length: 0
+  percent_metrics: []
+  queryFields:
+    groupby: groupby
+    metrics: metrics
+  query_mode: aggregate
+  row_limit: 10
+  show_cell_bars: true
+  slice_id: 1908
+  table_timestamp_format: smart_date
+  time_grain_sqla: P1D
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  url_params: {}
+  viz_type: table
+cache_timeout: null
+uuid: 62b7242e-decc-2d1b-7f80-c62776939d1e
+version: 1.0.0
+dataset_uuid: 7195db6b-2d17-7619-b7c7-26b15378df8c

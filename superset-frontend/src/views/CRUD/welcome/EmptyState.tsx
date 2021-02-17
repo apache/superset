@@ -20,8 +20,6 @@ import React from 'react';
 import Button from 'src/components/Button';
 import { Empty } from 'src/common/components';
 import { t, styled } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
-import { IconContainer } from '../utils';
 
 interface EmptyStateProps {
   tableName: string;
@@ -59,14 +57,14 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
     SAVED_QUERIES: 'empty-queries.svg',
   };
   const mine = (
-    <div>{`No ${
+    <span>{`No ${
       tableName === 'SAVED_QUERIES'
         ? t('saved queries')
         : t(`${tableName.toLowerCase()}`)
-    } yet`}</div>
+    } yet`}</span>
   );
   const recent = (
-    <div className="no-recents">
+    <span className="no-recents">
       {(() => {
         if (tab === 'Viewed') {
           return t(
@@ -90,7 +88,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
         }
         return null;
       })()}
-    </div>
+    </span>
   );
   // Mine and Recent Activity(all tabs) tab empty state
   if (tab === 'Mine' || tableName === 'RECENTS') {
@@ -108,16 +106,14 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
                   window.location = mineRedirects[tableName];
                 }}
               >
-                <IconContainer>
-                  <Icon name="plus-small" />{' '}
-                  {tableName === 'SAVED_QUERIES'
-                    ? t('SQL QUERY')
-                    : t(`${tableName
-                        .split('')
-                        .slice(0, tableName.length - 1)
-                        .join('')}
+                <i className="fa fa-plus" />
+                {tableName === 'SAVED_QUERIES'
+                  ? t('SQL query')
+                  : t(`${tableName
+                      .split('')
+                      .slice(0, tableName.length - 1)
+                      .join('')}
                     `)}
-                </IconContainer>
               </Button>
             </ButtonContainer>
           )}
@@ -131,9 +127,9 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
       <Empty
         image="/static/assets/images/star-circle.svg"
         description={
-          <div className="no-favorites">
+          <span className="no-favorites">
             {t("You don't have any favorites yet!")}
-          </div>
+          </span>
         }
       >
         <Button
@@ -142,9 +138,9 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
             window.location = favRedirects[tableName];
           }}
         >
-          SEE ALL{' '}
+          See all{' '}
           {tableName === 'SAVED_QUERIES'
-            ? t('SQL LAB QUERIES')
+            ? t('SQL Lab queries')
             : t(`${tableName}`)}
         </Button>
       </Empty>

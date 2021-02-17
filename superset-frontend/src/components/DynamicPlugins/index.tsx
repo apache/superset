@@ -87,7 +87,7 @@ function pluginContextReducer(
       });
       return {
         ...state,
-        loading: true,
+        loading: action.keys.length > 0,
         plugins,
       };
     }
@@ -163,7 +163,7 @@ export const DynamicPluginProvider: React.FC = ({ children }) => {
         }),
       );
     } catch (error) {
-      logging.error('failed to load dynamic plugins', error.stack || error);
+      logging.error('Failed to load dynamic plugins', error.stack || error);
     }
   }
 

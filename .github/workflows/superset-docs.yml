@@ -10,15 +10,13 @@ on:
 
 jobs:
   docs:
-    name: build
-    runs-on: ubuntu-18.04
+    name: docs
+    runs-on: ubuntu-20.04
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
-        with:
-          access_token: ${{ github.token }}
-      - name: Checkout code
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2
+        with:
+          persist-credentials: false
       - name: npm install
         working-directory: ./docs
         run: |

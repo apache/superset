@@ -19,16 +19,16 @@ viz_type: table
 params:
   adhoc_filters: []
   all_columns:
-  - Rank
-  - Name
-  - Global_Sales
-  - Platform
-  - Genre
-  - Publisher
-  - Year
+  - rank
+  - name
+  - global_sales
+  - platform
+  - genre
+  - publisher
+  - year
   color_pn: false
   datasource: 21__table
-  granularity_sqla: Year
+  granularity_sqla: year
   groupby: []
   metrics:
   - count

@@ -19,14 +19,14 @@
 import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { Provider } from 'react-redux';
-import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterConfigurationLink';
+import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
 import { mockStore } from 'spec/fixtures/mockStore';
 
 describe('FilterConfigurationButton', () => {
   const mockedProps = {
     createNewOnOpen: false,
   };
-  it('it is valid', () => {
+  it('is valid', () => {
     expect(
       React.isValidElement(<FilterConfigurationLink {...mockedProps} />),
     ).toBe(true);

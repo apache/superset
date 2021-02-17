@@ -18,20 +18,20 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { styled } from '@superset-ui/core';
-import Label from 'src/components/Label';
+import Label, { Type } from 'src/components/Label';
 
 import { now, fDuration } from 'src/modules/dates';
 
-interface TimerProps {
+export interface TimerProps {
   endTime?: number;
   isRunning: boolean;
   startTime?: number;
-  status?: string;
+  status?: Type;
 }
 
 const TimerLabel = styled(Label)`
-  width: 96px;
-  text-align: center;
+  text-align: left;
+  width: 91px;
 `;
 
 export default function Timer({
@@ -68,7 +68,7 @@ export default function Timer({
   }, [endTime, isRunning, startTime]);
 
   return (
-    <TimerLabel bsStyle={status} role="timer">
+    <TimerLabel type={status} role="timer">
       {clockStr}
     </TimerLabel>
   );

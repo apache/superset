@@ -45,20 +45,18 @@ export interface IndicatorProps {
 const Indicator = ({
   indicator: { column, name, value = [], path },
   onClick,
-}: IndicatorProps) => {
-  return (
-    <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
-      <Title bold>
-        <ItemIcon>
-          <SearchOutlined />
-        </ItemIcon>
-        {name.toUpperCase()}
-        {value.length ? ': ' : ''}
-      </Title>
-      <FilterValue>{value.length ? value.join(', ') : ''}</FilterValue>
-    </Item>
-  );
-};
+}: IndicatorProps) => (
+  <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
+    <Title bold>
+      <ItemIcon>
+        <SearchOutlined />
+      </ItemIcon>
+      {name.toUpperCase()}
+      {value.length ? ': ' : ''}
+    </Title>
+    <FilterValue>{value.length ? value.join(', ') : ''}</FilterValue>
+  </Item>
+);
 
 export interface DetailsPanelProps {
   appliedIndicators: Indicator[];
@@ -104,6 +102,9 @@ const DetailsPanelPopover = ({
       setActivePanels(panels);
     }
   }
+
+  const indicatorKey = (indicator: Indicator): string =>
+    `${indicator.column} - ${indicator.name}`;
 
   const content = (
     <Panel>
@@ -175,7 +176,7 @@ const DetailsPanelPopover = ({
               <Indent>
                 {appliedIndicators.map(indicator => (
                   <Indicator
-                    key={indicator.column}
+                    key={indicatorKey(indicator)}
                     indicator={indicator}
                     onClick={onHighlightFilterSource}
                   />
@@ -199,7 +200,7 @@ const DetailsPanelPopover = ({
               <Indent>
                 {incompatibleIndicators.map(indicator => (
                   <Indicator
-                    key={indicator.column}
+                    key={indicatorKey(indicator)}
                     indicator={indicator}
                     onClick={onHighlightFilterSource}
                   />
@@ -221,7 +222,7 @@ const DetailsPanelPopover = ({
               <Indent>
                 {unsetIndicators.map(indicator => (
                   <Indicator
-                    key={indicator.column}
+                    key={indicatorKey(indicator)}
                     indicator={indicator}
                     onClick={onHighlightFilterSource}
                   />

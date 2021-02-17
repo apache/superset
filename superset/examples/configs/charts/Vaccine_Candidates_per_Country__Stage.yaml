@@ -1,0 +1,43 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+slice_name: Vaccine Candidates per Country & Stage
+viz_type: sunburst
+params:
+  adhoc_filters: []
+  color_scheme: supersetColors
+  datasource: 69__table
+  groupby:
+  - product_category
+  - clinical_stage
+  linear_color_scheme: schemeYlOrBr
+  metric: count
+  queryFields:
+    groupby: groupby
+    metric: metrics
+    secondary_metric: metrics
+  row_limit: 10000
+  slice_id: 3964
+  time_range: No filter
+  time_range_endpoints:
+  - inclusive
+  - exclusive
+  url_params: {}
+  viz_type: sunburst
+cache_timeout: null
+uuid: f69c556f-15fe-4a82-a8bb-69d5b6954123
+version: 1.0.0
+dataset_uuid: 974b7a1c-22ea-49cb-9214-97b7dbd511e0

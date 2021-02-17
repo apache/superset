@@ -6,7 +6,7 @@ labels: "#SIP"
 ---
 
 *Please make sure you are familiar with the SIP process documented*
-(here)[https://github.com/apache/incubator-superset/issues/5602]
+(here)[https://github.com/apache/superset/issues/5602]
 
 ## [SIP] Proposal for XXX
 

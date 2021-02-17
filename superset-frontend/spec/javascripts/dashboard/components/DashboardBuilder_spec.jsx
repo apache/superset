@@ -20,11 +20,13 @@ import { Provider } from 'react-redux';
 import React from 'react';
 import { shallow, mount } from 'enzyme';
 import sinon from 'sinon';
-
+import fetchMock from 'fetch-mock';
 import { ParentSize } from '@vx/responsive';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Sticky, StickyContainer } from 'react-sticky';
 import { TabContainer, TabContent, TabPane } from 'react-bootstrap';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardBuilder from 'src/dashboard/components/DashboardBuilder';
@@ -39,10 +41,11 @@ import {
 } from 'spec/fixtures/mockDashboardLayout';
 
 import { mockStore, mockStoreWithTabs } from 'spec/fixtures/mockStore';
-import WithDragDropContext from 'spec/helpers/WithDragDropContext';
 
 const dashboardLayout = undoableDashboardLayout.present;
 const layoutWithTabs = undoableDashboardLayoutWithTabs.present;
+
+fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 
 describe('DashboardBuilder', () => {
   let favStarStub;
@@ -67,6 +70,7 @@ describe('DashboardBuilder', () => {
     colorScheme: undefined,
     handleComponentDrop() {},
     setDirectPathToChild: sinon.spy(),
+    setMountedTab() {},
   };
 
   function setup(overrideProps, useProvider = false, store = mockStore) {
@@ -74,7 +78,7 @@ describe('DashboardBuilder', () => {
     return useProvider
       ? mount(
           <Provider store={store}>
-            <WithDragDropContext>{builder}</WithDragDropContext>
+            <DndProvider backend={HTML5Backend}>{builder}</DndProvider>
           </Provider>,
           {
             wrappingComponent: ThemeProvider,

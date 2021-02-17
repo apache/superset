@@ -181,7 +181,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         <>
           {isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS) && (
             <Button
-              buttonSize="sm"
+              buttonSize="small"
               buttonStyle="default"
               data-test="datasource-modal-legacy-edit"
               className="m-r-5"
@@ -190,25 +190,25 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
                   currentDatasource.edit_url || currentDatasource.url;
               }}
             >
-              {t('Use Legacy Datasource Editor')}
+              {t('Use legacy datasource editor')}
             </Button>
           )}
           <Button
-            buttonSize="sm"
-            buttonStyle="primary"
+            data-test="datasource-modal-cancel"
+            buttonSize="small"
             className="m-r-5"
+            onClick={onHide}
+          >
+            {t('Cancel')}
+          </Button>
+          <Button
+            buttonSize="small"
+            buttonStyle="primary"
             data-test="datasource-modal-save"
             onClick={onClickSave}
             disabled={isSaving || errors.length > 0}
           >
             {t('Save')}
-          </Button>
-          <Button
-            data-test="datasource-modal-cancel"
-            buttonSize="sm"
-            onClick={onHide}
-          >
-            {t('Cancel')}
           </Button>
         </>
       }

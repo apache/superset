@@ -10,13 +10,13 @@
   "author": "Apcahe",
   "license": "Apache-2.0",
   "dependencies": {
-    "@cypress/code-coverage": "^3.8.3",
+    "@cypress/code-coverage": "^3.9.2",
     "rison": "^0.1.1",
     "shortid": "^2.2.15"
   },
   "devDependencies": {
-    "cypress": "^5.5.0",
-    "eslint-plugin-cypress": "^2.11.1"
+    "cypress": "^6.3.0",
+    "eslint-plugin-cypress": "^2.11.2"
   },
   "nyc": {
     "reporter": [

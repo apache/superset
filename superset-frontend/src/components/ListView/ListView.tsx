@@ -174,34 +174,32 @@ const ViewModeToggle = ({
 }: {
   mode: 'table' | 'card';
   setMode: (mode: 'table' | 'card') => void;
-}) => {
-  return (
-    <ViewModeContainer>
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={e => {
-          e.currentTarget.blur();
-          setMode('card');
-        }}
-        className={cx('toggle-button', { active: mode === 'card' })}
-      >
-        <Icon name="card-view" />
-      </div>
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={e => {
-          e.currentTarget.blur();
-          setMode('table');
-        }}
-        className={cx('toggle-button', { active: mode === 'table' })}
-      >
-        <Icon name="list-view" />
-      </div>
-    </ViewModeContainer>
-  );
-};
+}) => (
+  <ViewModeContainer>
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={e => {
+        e.currentTarget.blur();
+        setMode('card');
+      }}
+      className={cx('toggle-button', { active: mode === 'card' })}
+    >
+      <Icon name="card-view" />
+    </div>
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={e => {
+        e.currentTarget.blur();
+        setMode('table');
+      }}
+      className={cx('toggle-button', { active: mode === 'table' })}
+    >
+      <Icon name="list-view" />
+    </div>
+  </ViewModeContainer>
+);
 
 export interface ListViewProps<T extends object = any> {
   columns: any[];
@@ -347,7 +345,7 @@ function ListView<T extends object = any>({
                     className="deselect-all"
                     onClick={() => toggleAllRowsSelected(false)}
                   >
-                    {t('Deselect All')}
+                    {t('Deselect all')}
                   </span>
                   <div className="divider" />
                   {bulkActions.map(action => (
@@ -392,7 +390,7 @@ function ListView<T extends object = any>({
             <EmptyWrapper className={viewMode}>
               <Empty
                 image={<EmptyImage />}
-                description={emptyState.message || 'No Data'}
+                description={emptyState.message || t('No Data')}
               >
                 {emptyState.slot || null}
               </Empty>

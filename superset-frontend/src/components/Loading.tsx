@@ -24,7 +24,7 @@ interface Props {
 }
 
 const LoaderImg = styled.img`
-  z-index: 1000;
+  z-index: 99;
   width: 50px;
   position: relative;
   margin: 10px;

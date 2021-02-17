@@ -20,7 +20,7 @@ import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { styledShallow as shallow } from 'spec/helpers/theming';
-import SouthPaneContainer, { SouthPane } from 'src/SqlLab/components/SouthPane';
+import SouthPaneContainer from 'src/SqlLab/components/SouthPane';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState } from './fixtures';
@@ -79,12 +79,6 @@ describe('SouthPane', () => {
     shallow(<SouthPaneContainer store={store} {...mockedProps} />).dive();
 
   let wrapper;
-
-  beforeAll(() => {
-    jest
-      .spyOn(SouthPane.prototype, 'getSouthPaneHeight')
-      .mockImplementation(() => 500);
-  });
 
   it('should render offline when the state is offline', () => {
     wrapper = getWrapper();

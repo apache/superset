@@ -20,9 +20,9 @@ params:
   adhoc_filters: []
   color_scheme: supersetColors
   datasource: 1559__table
-  granularity_sqla: Year
+  granularity_sqla: year
   groupby:
-  - Genre
+  - genre
   label_colors:
     '0': '#1FA8C9'
     '1': '#454E7C'
@@ -89,7 +89,7 @@ params:
   - exclusive
   treemap_ratio: 1.618033988749895
   url_params:
-    preselect_filters: '{"1389": {"Platform": ["PS", "PS2", "PS3", "PS4"], "Genre":
+    preselect_filters: '{"1389": {"platform": ["PS", "PS2", "PS3", "PS4"], "genre":
       null, "__time_range": "No filter"}}'
   viz_type: treemap
 cache_timeout: null

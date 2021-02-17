@@ -181,3 +181,7 @@ class ReportScheduleUnexpectedError(CommandException):
 
 class ReportScheduleForbiddenError(ForbiddenError):
     message = _("Changing this report is forbidden")
+
+
+class ReportSchedulePruneLogError(CommandException):
+    message = _("An error occurred while pruning logs ")

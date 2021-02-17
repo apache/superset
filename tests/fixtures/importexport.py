@@ -30,8 +30,8 @@ dataset_ui_export: List[Dict[str, Any]] = [
             {"column_name": "state", "type": "VARCHAR(10)"},
             {"column_name": "gender", "type": "VARCHAR(16)"},
             {"column_name": "name", "type": "VARCHAR(255)"},
-            {"column_name": "sum_boys", "type": "BIGINT"},
-            {"column_name": "sum_girls", "type": "BIGINT"},
+            {"column_name": "num_boys", "type": "BIGINT"},
+            {"column_name": "num_girls", "type": "BIGINT"},
             {"column_name": "num", "type": "BIGINT"},
         ],
         "filter_select_enabled": True,
@@ -201,7 +201,7 @@ dashboard_export: Dict[str, Any] = {
                         "__TableColumn__": {
                             "changed_by_fk": None,
                             "changed_on": {"__datetime__": "2020-10-07T15:50:00"},
-                            "column_name": "sum_boys",
+                            "column_name": "num_boys",
                             "created_by_fk": None,
                             "created_on": {"__datetime__": "2020-10-07T15:50:00"},
                             "description": None,
@@ -222,7 +222,7 @@ dashboard_export: Dict[str, Any] = {
                         "__TableColumn__": {
                             "changed_by_fk": None,
                             "changed_on": {"__datetime__": "2020-10-07T15:50:00"},
-                            "column_name": "sum_girls",
+                            "column_name": "num_girls",
                             "created_by_fk": None,
                             "created_on": {"__datetime__": "2020-10-07T15:50:00"},
                             "description": None,

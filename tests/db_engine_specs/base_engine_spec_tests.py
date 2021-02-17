@@ -170,6 +170,8 @@ class TestDbEngineSpecs(TestDbEngineSpec):
             time_grain_addon = time_grains[-1]
             self.assertEqual("PTXM", time_grain_addon.duration)
             self.assertEqual("x seconds", time_grain_addon.label)
+            app.config["TIME_GRAIN_ADDONS"] = {}
+            app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {}
 
     def test_engine_time_grain_validity(self):
         time_grains = set(builtin_time_grains.keys())

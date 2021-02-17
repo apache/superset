@@ -204,28 +204,26 @@ export default class Tab extends React.PureComponent {
         onDrop={this.handleDrop}
         editMode={editMode}
       >
-        {({ dropIndicatorProps, dragSourceRef }) => {
-          return (
-            <div className="dragdroppable-tab" ref={dragSourceRef}>
-              <EditableTitle
-                title={component.meta.text}
-                canEdit={editMode && isFocused}
-                onSaveTitle={this.handleChangeText}
-                showTooltip={false}
+        {({ dropIndicatorProps, dragSourceRef }) => (
+          <div className="dragdroppable-tab" ref={dragSourceRef}>
+            <EditableTitle
+              title={component.meta.text}
+              canEdit={editMode && isFocused}
+              onSaveTitle={this.handleChangeText}
+              showTooltip={false}
+            />
+            {!editMode && (
+              <AnchorLink
+                anchorLinkId={component.id}
+                filters={filters}
+                showShortLinkButton
+                placement={index >= 5 ? 'left' : 'right'}
               />
-              {!editMode && (
-                <AnchorLink
-                  anchorLinkId={component.id}
-                  filters={filters}
-                  showShortLinkButton
-                  placement={index >= 5 ? 'left' : 'right'}
-                />
-              )}
+            )}
 
-              {dropIndicatorProps && <div {...dropIndicatorProps} />}
-            </div>
-          );
-        }}
+            {dropIndicatorProps && <div {...dropIndicatorProps} />}
+          </div>
+        )}
       </DragDroppable>
     );
   }

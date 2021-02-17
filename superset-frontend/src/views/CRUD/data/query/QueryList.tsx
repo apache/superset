@@ -80,7 +80,9 @@ const StyledPopoverItem = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
 `;
 
-const StatusIcon = styled(Icon)<{ status: string }>`
+const StatusIcon = styled(Icon, {
+  shouldForwardProp: prop => prop !== 'status',
+})<{ status: string }>`
   color: ${({ status, theme }) => {
     if (status === 'success') return theme.colors.success.base;
     if (status === 'failed') return theme.colors.error.base;
@@ -97,14 +99,15 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
     fetchData,
   } = useListViewResource<QueryObject>(
     'query',
-    t('Query History'),
+    t('Query history'),
     addDangerToast,
     false,
   );
 
-  const [queryCurrentlyPreviewing, setQueryCurrentlyPreviewing] = useState<
-    QueryObject
-  >();
+  const [
+    queryCurrentlyPreviewing,
+    setQueryCurrentlyPreviewing,
+  ] = useState<QueryObject>();
 
   const handleQueryPreview = useCallback(
     (id: number) => {
@@ -125,7 +128,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
   );
 
   const menuData: SubMenuProps = {
-    activeChild: 'Query History',
+    activeChild: 'Query history',
     ...commonMenuData,
   };
 
@@ -221,7 +224,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
       },
       {
         accessor: QueryObjectColumns.tab_name,
-        Header: t('Tab Name'),
+        Header: t('Tab name'),
         size: 'xl',
       },
       {
@@ -298,20 +301,18 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.sql,
         Header: t('SQL'),
-        Cell: ({ row: { original, id } }: any) => {
-          return (
-            <div
-              tabIndex={0}
-              role="button"
-              data-test={`open-sql-preview-${id}`}
-              onClick={() => setQueryCurrentlyPreviewing(original)}
-            >
-              <StyledSyntaxHighlighter language="sql" style={github}>
-                {shortenSQL(original.sql, SQL_PREVIEW_MAX_LINES)}
-              </StyledSyntaxHighlighter>
-            </div>
-          );
-        },
+        Cell: ({ row: { original, id } }: any) => (
+          <div
+            tabIndex={0}
+            role="button"
+            data-test={`open-sql-preview-${id}`}
+            onClick={() => setQueryCurrentlyPreviewing(original)}
+          >
+            <StyledSyntaxHighlighter language="sql" style={github}>
+              {shortenSQL(original.sql, SQL_PREVIEW_MAX_LINES)}
+            </StyledSyntaxHighlighter>
+          </div>
+        ),
       },
       {
         Header: t('Actions'),
@@ -321,15 +322,13 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           row: {
             original: { id },
           },
-        }: any) => {
-          return (
-            <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
-              <a href={`/superset/sqllab?queryId=${id}`}>
-                <Icon name="full" />
-              </a>
-            </Tooltip>
-          );
-        },
+        }: any) => (
+          <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
+            <a href={`/superset/sqllab?queryId=${id}`}>
+              <Icon name="full" />
+            </a>
+          </Tooltip>
+        ),
       },
     ],
     [],
@@ -389,7 +388,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
         paginate: true,
       },
       {
-        Header: t('Time Range'),
+        Header: t('Time range'),
         id: 'start_time',
         input: 'datetime_range',
         operator: FilterOperators.between,

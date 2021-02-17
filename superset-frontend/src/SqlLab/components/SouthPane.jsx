@@ -23,7 +23,8 @@ import { Alert } from 'react-bootstrap';
 import Tabs from 'src/common/components/Tabs';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { t } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
+
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import Label from 'src/components/Label';
@@ -32,11 +33,11 @@ import QueryHistory from './QueryHistory';
 import ResultSet from './ResultSet';
 import {
   STATUS_OPTIONS,
-  STATE_BSSTYLE_MAP,
+  STATE_TYPE_MAP,
   LOCALSTORAGE_MAX_QUERY_AGE_MS,
 } from '../constants';
 
-const TAB_HEIGHT = 44;
+const TAB_HEIGHT = 64;
 
 /*
     editorQueries are queries executed by users passed from SqlEditor component
@@ -59,27 +60,34 @@ const defaultProps = {
   offline: false,
 };
 
+const StyledPane = styled.div`
+  width: 100%;
+
+  .ant-tabs .ant-tabs-content-holder {
+    overflow: visible;
+  }
+
+  .SouthPaneTabs {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .tab-content {
+    .alert {
+      margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+    }
+
+    button.fetch {
+      margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+    }
+  }
+`;
+
 export class SouthPane extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = {
-      height: props.height,
-    };
     this.southPaneRef = React.createRef();
-    this.getSouthPaneHeight = this.getSouthPaneHeight.bind(this);
     this.switchTab = this.switchTab.bind(this);
-  }
-
-  UNSAFE_componentWillReceiveProps() {
-    // south pane expands the entire height of the tab content on mount
-    this.setState({ height: this.getSouthPaneHeight() });
-  }
-
-  // One layer of abstraction for easy spying in unit tests
-  getSouthPaneHeight() {
-    return this.southPaneRef.current
-      ? this.southPaneRef.current.clientHeight
-      : 0;
   }
 
   switchTab(id) {
@@ -89,15 +97,12 @@ export class SouthPane extends React.PureComponent {
   render() {
     if (this.props.offline) {
       return (
-        <Label
-          className="m-r-3"
-          bsStyle={STATE_BSSTYLE_MAP[STATUS_OPTIONS.offline]}
-        >
+        <Label className="m-r-3" type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
           {STATUS_OPTIONS.offline}
         </Label>
       );
     }
-    const innerTabContentHeight = this.state.height - TAB_HEIGHT;
+    const innerTabContentHeight = this.props.height - TAB_HEIGHT;
     let latestQuery;
     const { props } = this;
     if (props.editorQueries.length > 0) {
@@ -158,7 +163,7 @@ export class SouthPane extends React.PureComponent {
     ));
 
     return (
-      <div className="SouthPane" ref={this.southPaneRef}>
+      <StyledPane className="SouthPane" ref={this.southPaneRef}>
         <Tabs
           activeKey={this.props.activeSouthPaneTab}
           className="SouthPaneTabs"
@@ -169,7 +174,7 @@ export class SouthPane extends React.PureComponent {
           <Tabs.TabPane tab={t('Results')} key="Results">
             {results}
           </Tabs.TabPane>
-          <Tabs.TabPane tab={t('Query History')} key="History">
+          <Tabs.TabPane tab={t('Query history')} key="History">
             <QueryHistory
               queries={props.editorQueries}
               actions={props.actions}
@@ -178,7 +183,7 @@ export class SouthPane extends React.PureComponent {
           </Tabs.TabPane>
           {dataPreviewTabs}
         </Tabs>
-      </div>
+      </StyledPane>
     );
   }
 }

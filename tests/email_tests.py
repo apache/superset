@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 class TestEmailSmtp(SupersetTestCase):
     def setUp(self):
-        app.config["smtp_ssl"] = False
+        app.config["SMTP_SSL"] = False
 
     @mock.patch("superset.utils.core.send_mime_email")
     def test_send_smtp(self, mock_send_mime):
@@ -150,6 +150,8 @@ class TestEmailSmtp(SupersetTestCase):
     @mock.patch("smtplib.SMTP_SSL")
     @mock.patch("smtplib.SMTP")
     def test_send_mime_noauth(self, mock_smtp, mock_smtp_ssl):
+        smtp_user = app.config["SMTP_USER"]
+        smtp_password = app.config["SMTP_PASSWORD"]
         app.config["SMTP_USER"] = None
         app.config["SMTP_PASSWORD"] = None
         mock_smtp.return_value = mock.Mock()
@@ -158,6 +160,8 @@ class TestEmailSmtp(SupersetTestCase):
         assert not mock_smtp_ssl.called
         mock_smtp.assert_called_with(app.config["SMTP_HOST"], app.config["SMTP_PORT"])
         assert not mock_smtp.login.called
+        app.config["SMTP_USER"] = smtp_user
+        app.config["SMTP_PASSWORD"] = smtp_password
 
     @mock.patch("smtplib.SMTP_SSL")
     @mock.patch("smtplib.SMTP")

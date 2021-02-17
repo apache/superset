@@ -328,6 +328,10 @@ export function useSingleViewResource<D extends object = any>(
     },
     [handleErrorMsg, resourceName, resourceLabel],
   );
+  const clearError = () =>
+    updateState({
+      error: null,
+    });
 
   return {
     state,
@@ -338,6 +342,7 @@ export function useSingleViewResource<D extends object = any>(
     fetchResource,
     createResource,
     updateResource,
+    clearError,
   };
 }
 

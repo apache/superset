@@ -26,20 +26,20 @@ params:
     isNew: false
     operator: <=
     sqlExpression: null
-    subject: Rank
+    subject: rank
   color_scheme: supersetColors
   datasource: 21__table
   donut: true
-  granularity_sqla: Year
+  granularity_sqla: year
   groupby:
-  - Publisher
+  - publisher
   innerRadius: 45
   label_line: true
   labels_outside: true
   metric:
     aggregate: SUM
     column:
-      column_name: Global_Sales
+      column_name: global_sales
       description: null
       expression: null
       filterable: true
@@ -58,7 +58,7 @@ params:
     sqlExpression: null
   number_format: SMART_NUMBER
   outerRadius: 67
-  pie_label_type: key
+  label_type: key
   queryFields:
     groupby: groupby
     metric: metrics

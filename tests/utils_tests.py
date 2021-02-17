@@ -23,9 +23,13 @@ import hashlib
 import json
 import os
 import re
+from typing import Any, Tuple, List
 from unittest.mock import Mock, patch
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
-import numpy
+import numpy as np
+import pandas as pd
+import pytest
 from flask import Flask, g
 import marshmallow
 from sqlalchemy.exc import ArgumentError
@@ -41,29 +45,30 @@ from superset.utils.core import (
     cast_to_num,
     convert_legacy_filters_into_adhoc,
     create_ssl_cert_file,
+    DTTM_ALIAS,
     format_timedelta,
+    GenericDataType,
     get_form_data_token,
     get_iterable,
     get_email_address_list,
     get_or_create_db,
-    get_since_until,
     get_stacktrace,
     json_int_dttm_ser,
     json_iso_dttm_ser,
     JSONEncodedDict,
     memoized,
     merge_extra_filters,
+    merge_extra_form_data,
     merge_request_params,
+    normalize_dttm_col,
     parse_ssl_cert,
-    parse_human_timedelta,
     parse_js_uri_path_item,
-    parse_past_timedelta,
+    extract_dataframe_dtypes,
     split,
     TimeRangeEndpoint,
     validate_json,
     zlib_compress,
     zlib_decompress,
-    datetime_eval,
 )
 from superset.utils import schema
 from superset.views.utils import (
@@ -72,33 +77,9 @@ from superset.views.utils import (
     get_time_range_endpoints,
 )
 from tests.base_tests import SupersetTestCase
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 from .fixtures.certificates import ssl_certificate
-
-
-def mock_parse_human_datetime(s):
-    if s == "now":
-        return datetime(2016, 11, 7, 9, 30, 10)
-    elif s == "today":
-        return datetime(2016, 11, 7)
-    elif s == "yesterday":
-        return datetime(2016, 11, 6)
-    elif s == "tomorrow":
-        return datetime(2016, 11, 8)
-    elif s == "Last year":
-        return datetime(2015, 11, 7)
-    elif s == "Last week":
-        return datetime(2015, 10, 31)
-    elif s == "Last 5 months":
-        return datetime(2016, 6, 7)
-    elif s == "Next 5 months":
-        return datetime(2017, 4, 7)
-    elif s in ["5 days", "5 days ago"]:
-        return datetime(2016, 11, 2)
-    elif s == "2018-01-01T00:00:00":
-        return datetime(2018, 1, 1)
-    elif s == "2018-12-31T23:59:59":
-        return datetime(2018, 12, 31, 23, 59, 59)
 
 
 def mock_to_adhoc(filt, expressionType="SIMPLE", clause="where"):
@@ -139,43 +120,13 @@ class TestUtils(SupersetTestCase):
             json_iso_dttm_ser("this is not a date")
 
     def test_base_json_conv(self):
-        assert isinstance(base_json_conv(numpy.bool_(1)), bool) is True
-        assert isinstance(base_json_conv(numpy.int64(1)), int) is True
-        assert isinstance(base_json_conv(numpy.array([1, 2, 3])), list) is True
+        assert isinstance(base_json_conv(np.bool_(1)), bool) is True
+        assert isinstance(base_json_conv(np.int64(1)), int) is True
+        assert isinstance(base_json_conv(np.array([1, 2, 3])), list) is True
         assert isinstance(base_json_conv(set([1])), list) is True
         assert isinstance(base_json_conv(Decimal("1.0")), float) is True
         assert isinstance(base_json_conv(uuid.uuid4()), str) is True
         assert isinstance(base_json_conv(timedelta(0)), str) is True
-
-    @patch("superset.utils.core.datetime")
-    def test_parse_human_timedelta(self, mock_datetime):
-        mock_datetime.now.return_value = datetime(2019, 4, 1)
-        mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
-        self.assertEqual(parse_human_timedelta("now"), timedelta(0))
-        self.assertEqual(parse_human_timedelta("1 year"), timedelta(366))
-        self.assertEqual(parse_human_timedelta("-1 year"), timedelta(-365))
-        self.assertEqual(parse_human_timedelta(None), timedelta(0))
-        self.assertEqual(
-            parse_human_timedelta("1 month", datetime(2019, 4, 1)), timedelta(30),
-        )
-        self.assertEqual(
-            parse_human_timedelta("1 month", datetime(2019, 5, 1)), timedelta(31),
-        )
-        self.assertEqual(
-            parse_human_timedelta("1 month", datetime(2019, 2, 1)), timedelta(28),
-        )
-        self.assertEqual(
-            parse_human_timedelta("-1 month", datetime(2019, 2, 1)), timedelta(-31),
-        )
-
-    @patch("superset.utils.core.datetime")
-    def test_parse_past_timedelta(self, mock_datetime):
-        mock_datetime.now.return_value = datetime(2019, 4, 1)
-        mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
-        self.assertEqual(parse_past_timedelta("1 year"), timedelta(365))
-        self.assertEqual(parse_past_timedelta("-1 year"), timedelta(365))
-        self.assertEqual(parse_past_timedelta("52 weeks"), timedelta(364))
-        self.assertEqual(parse_past_timedelta("1 month"), timedelta(31))
 
     def test_zlib_compression(self):
         json_str = '{"test": 1}'
@@ -699,174 +650,6 @@ class TestUtils(SupersetTestCase):
         self.assertEqual(instance.watcher, 4)
         self.assertEqual(result1, result8)
 
-    @patch("superset.utils.core.parse_human_datetime", mock_parse_human_datetime)
-    def test_get_since_until(self):
-        result = get_since_until()
-        expected = None, datetime(2016, 11, 7)
-        self.assertEqual(result, expected)
-
-        result = get_since_until(" : now")
-        expected = None, datetime(2016, 11, 7, 9, 30, 10)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("yesterday : tomorrow")
-        expected = datetime(2016, 11, 6), datetime(2016, 11, 8)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("2018-01-01T00:00:00 : 2018-12-31T23:59:59")
-        expected = datetime(2018, 1, 1), datetime(2018, 12, 31, 23, 59, 59)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("Last year")
-        expected = datetime(2015, 11, 7), datetime(2016, 11, 7)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("Last quarter")
-        expected = datetime(2016, 8, 7), datetime(2016, 11, 7)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("Last 5 months")
-        expected = datetime(2016, 6, 7), datetime(2016, 11, 7)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("Next 5 months")
-        expected = datetime(2016, 11, 7), datetime(2017, 4, 7)
-        self.assertEqual(result, expected)
-
-        result = get_since_until(since="5 days")
-        expected = datetime(2016, 11, 2), datetime(2016, 11, 7)
-        self.assertEqual(result, expected)
-
-        result = get_since_until(since="5 days ago", until="tomorrow")
-        expected = datetime(2016, 11, 2), datetime(2016, 11, 8)
-        self.assertEqual(result, expected)
-
-        result = get_since_until(time_range="yesterday : tomorrow", time_shift="1 day")
-        expected = datetime(2016, 11, 5), datetime(2016, 11, 7)
-        self.assertEqual(result, expected)
-
-        result = get_since_until(time_range="5 days : now")
-        expected = datetime(2016, 11, 2), datetime(2016, 11, 7, 9, 30, 10)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("Last week", relative_end="now")
-        expected = datetime(2016, 10, 31), datetime(2016, 11, 7, 9, 30, 10)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("Last week", relative_start="now")
-        expected = datetime(2016, 10, 31, 9, 30, 10), datetime(2016, 11, 7)
-        self.assertEqual(result, expected)
-
-        result = get_since_until("Last week", relative_start="now", relative_end="now")
-        expected = datetime(2016, 10, 31, 9, 30, 10), datetime(2016, 11, 7, 9, 30, 10)
-        self.assertEqual(result, expected)
-
-        with self.assertRaises(ValueError):
-            get_since_until(time_range="tomorrow : yesterday")
-
-    @patch("superset.utils.core.parse_human_datetime", mock_parse_human_datetime)
-    def test_datetime_eval(self):
-        result = datetime_eval("datetime('now')")
-        expected = datetime(2016, 11, 7, 9, 30, 10)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("datetime('today'  )")
-        expected = datetime(2016, 11, 7)
-        self.assertEqual(result, expected)
-
-        # Parse compact arguments spelling
-        result = datetime_eval("dateadd(datetime('today'),1,year,)")
-        expected = datetime(2017, 11, 7)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("dateadd(datetime('today'), -2, year)")
-        expected = datetime(2014, 11, 7)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("dateadd(datetime('today'), 2, quarter)")
-        expected = datetime(2017, 5, 7)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("dateadd(datetime('today'), 3, month)")
-        expected = datetime(2017, 2, 7)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("dateadd(datetime('today'), -3, week)")
-        expected = datetime(2016, 10, 17)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("dateadd(datetime('today'), 3, day)")
-        expected = datetime(2016, 11, 10)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("dateadd(datetime('now'), 3, hour)")
-        expected = datetime(2016, 11, 7, 12, 30, 10)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("dateadd(datetime('now'), 40, minute)")
-        expected = datetime(2016, 11, 7, 10, 10, 10)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("dateadd(datetime('now'), -11, second)")
-        expected = datetime(2016, 11, 7, 9, 29, 59)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("datetrunc(datetime('now'), year)")
-        expected = datetime(2016, 1, 1, 0, 0, 0)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("datetrunc(datetime('now'), month)")
-        expected = datetime(2016, 11, 1, 0, 0, 0)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("datetrunc(datetime('now'), day)")
-        expected = datetime(2016, 11, 7, 0, 0, 0)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("datetrunc(datetime('now'), week)")
-        expected = datetime(2016, 11, 7, 0, 0, 0)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("datetrunc(datetime('now'), hour)")
-        expected = datetime(2016, 11, 7, 9, 0, 0)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("datetrunc(datetime('now'), minute)")
-        expected = datetime(2016, 11, 7, 9, 30, 0)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("datetrunc(datetime('now'), second)")
-        expected = datetime(2016, 11, 7, 9, 30, 10)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("lastday(datetime('now'), year)")
-        expected = datetime(2016, 12, 31, 0, 0, 0)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("lastday(datetime('today'), month)")
-        expected = datetime(2016, 11, 30, 0, 0, 0)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("holiday('Christmas')")
-        expected = datetime(2016, 12, 25, 0, 0, 0)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval("holiday('Labor day', datetime('2018-01-01T00:00:00'))")
-        expected = datetime(2018, 9, 3, 0, 0, 0)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval(
-            "holiday('Boxing day', datetime('2018-01-01T00:00:00'), 'UK')"
-        )
-        expected = datetime(2018, 12, 26, 0, 0, 0)
-        self.assertEqual(result, expected)
-
-        result = datetime_eval(
-            "lastday(dateadd(datetime('2018-01-01T00:00:00'), 1, month), month)"
-        )
-        expected = datetime(2018, 2, 28, 0, 0, 0)
-        self.assertEqual(result, expected)
-
     @patch("superset.utils.core.to_adhoc", mock_to_adhoc)
     def test_convert_legacy_filters_into_adhoc_where(self):
         form_data = {"where": "a = 1"}
@@ -1078,6 +861,7 @@ class TestUtils(SupersetTestCase):
         self.assertListEqual(get_iterable([123]), [123])
         self.assertListEqual(get_iterable("foo"), ["foo"])
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_build_extra_filters(self):
         world_health = db.session.query(Dashboard).filter_by(slug="world_health").one()
         layout = json.loads(world_health.position_json)
@@ -1121,6 +905,35 @@ class TestUtils(SupersetTestCase):
             layout, filter_scopes, default_filters, box_plot.id
         ) == [{"col": "region", "op": "==", "val": "North America"}]
 
+    def test_merge_extra_filters_with_no_extras(self):
+        form_data = {
+            "time_range": "Last 10 days",
+        }
+        merge_extra_form_data(form_data)
+        self.assertEqual(
+            form_data,
+            {
+                "time_range": "Last 10 days",
+                "applied_time_extras": {},
+                "adhoc_filters": [],
+            },
+        )
+
+    def test_merge_extra_filters_with_extras(self):
+        form_data = {
+            "time_range": "Last 10 days",
+            "extra_form_data": {
+                "append_form_data": {
+                    "filters": [{"col": "foo", "op": "IN", "val": "bar"}]
+                },
+                "override_form_data": {"time_range": "Last 100 years",},
+            },
+        }
+        merge_extra_form_data(form_data)
+        assert form_data["applied_time_extras"] == {"__time_range": "Last 100 years"}
+        assert form_data["time_range"] == "Last 100 years"
+        assert len(form_data["adhoc_filters"]) == 1
+
     def test_ssl_certificate_parse(self):
         parsed_certificate = parse_ssl_cert(ssl_certificate)
         self.assertEqual(parsed_certificate.serial_number, 12355228710836649848)
@@ -1148,7 +961,7 @@ class TestUtils(SupersetTestCase):
 
             self.assertEqual(
                 form_data,
-                {"time_range_endpoints": get_time_range_endpoints(form_data={}),},
+                {"time_range_endpoints": get_time_range_endpoints(form_data={})},
             )
 
             self.assertEqual(slc, None)
@@ -1217,6 +1030,21 @@ class TestUtils(SupersetTestCase):
 
             self.assertEqual(slc, None)
 
+    def test_get_form_data_corrupted_json(self) -> None:
+        with app.test_request_context(
+            data={"form_data": "{x: '2324'}"},
+            query_string={"form_data": '{"baz": "bar"'},
+        ):
+            form_data, slc = get_form_data()
+
+            self.assertEqual(
+                form_data,
+                {"time_range_endpoints": get_time_range_endpoints(form_data={})},
+            )
+
+            self.assertEqual(slc, None)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_log_this(self) -> None:
         # TODO: Add additional scenarios.
         self.login(username="admin")
@@ -1274,3 +1102,61 @@ class TestUtils(SupersetTestCase):
         assert get_form_data_token({"token": "token_abcdefg1"}) == "token_abcdefg1"
         generated_token = get_form_data_token({})
         assert re.match(r"^token_[a-z0-9]{8}$", generated_token) is not None
+
+    def test_extract_dataframe_dtypes(self):
+        cols: Tuple[Tuple[str, GenericDataType, List[Any]], ...] = (
+            ("dt", GenericDataType.TEMPORAL, [date(2021, 2, 4), date(2021, 2, 4)]),
+            (
+                "dttm",
+                GenericDataType.TEMPORAL,
+                [datetime(2021, 2, 4, 1, 1, 1), datetime(2021, 2, 4, 1, 1, 1)],
+            ),
+            ("str", GenericDataType.STRING, ["foo", "foo"]),
+            ("int", GenericDataType.NUMERIC, [1, 1]),
+            ("float", GenericDataType.NUMERIC, [0.5, 0.5]),
+            ("mixed-int-float", GenericDataType.NUMERIC, [0.5, 1.0]),
+            ("bool", GenericDataType.BOOLEAN, [True, False]),
+            ("mixed-str-int", GenericDataType.STRING, ["abc", 1.0]),
+            ("obj", GenericDataType.STRING, [{"a": 1}, {"a": 1}]),
+            ("dt_null", GenericDataType.TEMPORAL, [None, date(2021, 2, 4)]),
+            (
+                "dttm_null",
+                GenericDataType.TEMPORAL,
+                [None, datetime(2021, 2, 4, 1, 1, 1)],
+            ),
+            ("str_null", GenericDataType.STRING, [None, "foo"]),
+            ("int_null", GenericDataType.NUMERIC, [None, 1]),
+            ("float_null", GenericDataType.NUMERIC, [None, 0.5]),
+            ("bool_null", GenericDataType.BOOLEAN, [None, False]),
+            ("obj_null", GenericDataType.STRING, [None, {"a": 1}]),
+        )
+
+        df = pd.DataFrame(data={col[0]: col[2] for col in cols})
+        assert extract_dataframe_dtypes(df) == [col[1] for col in cols]
+
+    def test_normalize_dttm_col(self):
+        ts = pd.Timestamp(2021, 2, 15, 19, 0, 0, 0)
+        df = pd.DataFrame([{"__timestamp": ts, "a": 1}])
+
+        # test regular (non-numeric) format
+        assert normalize_dttm_col(df, None, 0, None)[DTTM_ALIAS][0] == ts
+        assert normalize_dttm_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts
+        assert normalize_dttm_col(df, "epoch_s", 0, None)[DTTM_ALIAS][0] == ts
+
+        # test offset
+        assert normalize_dttm_col(df, None, 1, None)[DTTM_ALIAS][0] == pd.Timestamp(
+            2021, 2, 15, 20, 0, 0, 0
+        )
+
+        # test offset and timedelta
+        assert normalize_dttm_col(df, None, 1, timedelta(minutes=30))[DTTM_ALIAS][
+            0
+        ] == pd.Timestamp(2021, 2, 15, 20, 30, 0, 0)
+
+        # test numeric epoch_s format
+        df = pd.DataFrame([{"__timestamp": ts.timestamp(), "a": 1}])
+        assert normalize_dttm_col(df, "epoch_s", 0, None)[DTTM_ALIAS][0] == ts
+
+        # test numeric epoch_ms format
+        df = pd.DataFrame([{"__timestamp": ts.timestamp() * 1000, "a": 1}])
+        assert normalize_dttm_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts

@@ -17,9 +17,6 @@
  * under the License.
  */
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
-import readResponseBlob from '../../../utils/readResponseBlob';
-
-// Big Number Total
 
 describe('Visualization > Big Number Total', () => {
   const BIG_NUMBER_DEFAULTS = {
@@ -29,8 +26,7 @@ describe('Visualization > Big Number Total', () => {
 
   beforeEach(() => {
     cy.login();
-    cy.server();
-    cy.route('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
   it('Test big number chart with adhoc metric', () => {
@@ -74,11 +70,9 @@ describe('Visualization > Big Number Total', () => {
     };
 
     cy.visitChartByParams(JSON.stringify(formData));
-    cy.wait(['@getJson']).then(async xhr => {
-      cy.verifyResponseCodes(xhr);
+    cy.wait(['@getJson']).then(async ({ response }) => {
       cy.verifySliceContainer();
-
-      const responseBody = await readResponseBlob(xhr.response.body);
+      const responseBody = response?.body;
       expect(responseBody.query).not.contains(formData.groupby[0]);
     });
   });

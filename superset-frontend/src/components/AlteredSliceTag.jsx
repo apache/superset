@@ -19,12 +19,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { isEqual, isEmpty } from 'lodash';
-import ListView from 'src/components/ListView';
-import getControlsForVizType from 'src/utils/getControlsForVizType';
 import { t } from '@superset-ui/core';
+import getControlsForVizType from 'src/utils/getControlsForVizType';
+import { safeStringify } from 'src/utils/safeStringify';
 import TooltipWrapper from './TooltipWrapper';
 import ModalTrigger from './ModalTrigger';
-import { safeStringify } from '../utils/safeStringify';
+import TableView from './TableView';
 
 const propTypes = {
   origFormData: PropTypes.object.isRequired,
@@ -101,30 +101,6 @@ export default class AlteredSliceTag extends React.Component {
     return diffs;
   }
 
-  sortData = ({ sortBy }) => {
-    if (this.state.rows.length > 0 && sortBy.length > 0) {
-      const { id, desc } = sortBy[0];
-      this.setState(({ rows }) => ({
-        rows: this.sortDataByColumn(rows, id, desc),
-      }));
-    }
-  };
-
-  sortDataByColumn(data, sortById, desc) {
-    return data.sort((row1, row2) => {
-      const rows = desc ? [row2, row1] : [row1, row2];
-      const firstVal = rows[0][sortById];
-      const secondVal = rows[1][sortById];
-      if (typeof firstVal === 'string' && typeof secondVal === 'string') {
-        return secondVal.localeCompare(firstVal);
-      }
-      if (typeof firstVal === 'undefined' || firstVal === null) {
-        return 1;
-      }
-      return -1;
-    });
-  }
-
   isEqualish(val1, val2) {
     return isEqual(alterForComparison(val1), alterForComparison(val2));
   }
@@ -187,14 +163,11 @@ export default class AlteredSliceTag extends React.Component {
     ];
 
     return (
-      <ListView
+      <TableView
         columns={columns}
         data={this.state.rows}
-        count={this.state.rows.length}
         pageSize={50}
-        fetchData={this.sortData}
-        loading={false}
-        className="table"
+        className="table-condensed"
       />
     );
   }

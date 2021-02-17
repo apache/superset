@@ -1,19 +1,24 @@
 name: Translations
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - "dependabot/npm_and_yarn/**"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
 
 jobs:
   frontend-check:
-    runs-on: ubuntu-18.04
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
-        with:
-          access_token: ${{ github.token }}
-      - name: Checkout code
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
       - name: Install dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: npm-install
       - name: lint
@@ -22,23 +27,23 @@ jobs:
           npm run check-translation
 
   babel-extract:
-    runs-on: ubuntu-18.04
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         python-version: [3.7]
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
-        with:
-          access_token: ${{ github.token }}
-      - name: Checkout code
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        uses: apache-superset/cached-dependencies@b90713b
+        uses: ./.github/actions/cached-dependencies
         with:
           run: |
             apt-get-install

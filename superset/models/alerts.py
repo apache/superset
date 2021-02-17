@@ -158,7 +158,7 @@ class AlertLog(Model):
 
 # TODO: Currently SQLObservation table will constantly grow with no limit,
 # add some retention restriction or more to a more scalable db e.g.
-# https://github.com/apache/incubator-superset/blob/master/superset/utils/log.py#L32
+# https://github.com/apache/superset/blob/master/superset/utils/log.py#L32
 class SQLObservation(Model):  # pylint: disable=too-few-public-methods
     """Keeps track of the collected observations for alerts."""
 

@@ -104,10 +104,10 @@ class ReportScheduleDAO(BaseDAO):
                 db.session.delete(report_schedule)
             if commit:
                 db.session.commit()
-        except SQLAlchemyError:
+        except SQLAlchemyError as ex:
             if commit:
                 db.session.rollback()
-            raise DAODeleteFailedError()
+            raise DAODeleteFailedError(str(ex))
 
     @staticmethod
     def validate_update_uniqueness(
@@ -156,9 +156,9 @@ class ReportScheduleDAO(BaseDAO):
             if commit:
                 db.session.commit()
             return model
-        except SQLAlchemyError:
+        except SQLAlchemyError as ex:
             db.session.rollback()
-            raise DAOCreateFailedError
+            raise DAOCreateFailedError(str(ex))
 
     @classmethod
     def update(
@@ -190,9 +190,9 @@ class ReportScheduleDAO(BaseDAO):
             if commit:
                 db.session.commit()
             return model
-        except SQLAlchemyError:
+        except SQLAlchemyError as ex:
             db.session.rollback()
-            raise DAOCreateFailedError
+            raise DAOCreateFailedError(str(ex))
 
     @staticmethod
     def find_active(session: Optional[Session] = None) -> List[ReportSchedule]:
@@ -229,16 +229,21 @@ class ReportScheduleDAO(BaseDAO):
         from_date: datetime,
         session: Optional[Session] = None,
         commit: bool = True,
-    ) -> None:
+    ) -> Optional[int]:
         session = session or db.session
         try:
-            session.query(ReportExecutionLog).filter(
-                ReportExecutionLog.report_schedule == model,
-                ReportExecutionLog.end_dttm < from_date,
-            ).delete(synchronize_session="fetch")
+            row_count = (
+                session.query(ReportExecutionLog)
+                .filter(
+                    ReportExecutionLog.report_schedule == model,
+                    ReportExecutionLog.end_dttm < from_date,
+                )
+                .delete(synchronize_session="fetch")
+            )
             if commit:
                 session.commit()
+            return row_count
         except SQLAlchemyError as ex:
             if commit:
                 session.rollback()
-            raise ex
+            raise DAODeleteFailedError(str(ex))

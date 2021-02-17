@@ -47,6 +47,7 @@ from superset import (
     security_manager,
 )
 from superset.connectors.sqla import models
+from superset.datasets.commands.exceptions import get_dataset_exist_error_msg
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
@@ -203,10 +204,6 @@ def handle_api_exception(
     return functools.update_wrapper(wraps, f)
 
 
-def get_datasource_exist_error_msg(full_name: str) -> str:
-    return __("Datasource %(name)s already exists", name=full_name)
-
-
 def validate_sqlatable(table: models.SqlaTable) -> None:
     """Checks the table existence in the database."""
     with db.session.no_autoflush:
@@ -216,7 +213,7 @@ def validate_sqlatable(table: models.SqlaTable) -> None:
             models.SqlaTable.database_id == table.database.id,
         )
         if db.session.query(table_query.exists()).scalar():
-            raise Exception(get_datasource_exist_error_msg(table.full_name))
+            raise Exception(get_dataset_exist_error_msg(table.full_name))
 
     # Fail before adding if the table can't be found
     try:
@@ -244,6 +241,11 @@ def get_user_roles() -> List[Role]:
         public_role = conf.get("AUTH_ROLE_PUBLIC")
         return [security_manager.find_role(public_role)] if public_role else []
     return g.user.roles
+
+
+def is_user_admin() -> bool:
+    user_roles = [role.name.lower() for role in list(get_user_roles())]
+    return "admin" in user_roles
 
 
 class BaseSupersetView(BaseView):
@@ -318,6 +320,9 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         "locale": locale,
         "language_pack": get_language_pack(locale),
         "feature_flags": get_feature_flags(),
+        "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
+        "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
+        "theme_overrides": conf["THEME_OVERRIDES"],
         "menu_data": menu_data(),
     }
 
@@ -498,8 +503,7 @@ def check_ownership(obj: Any, raise_if_false: bool = True) -> bool:
         if raise_if_false:
             raise security_exception
         return False
-    roles = [r.name for r in get_user_roles()]
-    if "Admin" in roles:
+    if is_user_admin():
         return True
     scoped_session = db.create_scoped_session()
     orig_obj = scoped_session.query(obj.__class__).filter_by(id=obj.id).first()

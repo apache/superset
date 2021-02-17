@@ -20,9 +20,9 @@ params:
   adhoc_filters: []
   color_scheme: supersetColors
   datasource: 21__table
-  granularity_sqla: Year
+  granularity_sqla: year
   groupby:
-  - Platform
+  - platform
   label_colors:
     '2600': '#D1C6BC'
     3DO: '#A38F79'

@@ -25,9 +25,8 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/views/CRUD/dashboard/DashboardCard';
 import SubMenu from 'src/components/Menu/SubMenu';
-import Icon from 'src/components/Icon';
 import EmptyState from './EmptyState';
-import { createErrorHandler, CardContainer, IconContainer } from '../utils';
+import { createErrorHandler, CardContainer } from '../utils';
 
 const PAGE_SIZE = 3;
 
@@ -66,8 +65,8 @@ function DashboardTable({
   const [editModal, setEditModal] = useState<Dashboard>();
   const [dashboardFilter, setDashboardFilter] = useState('Mine');
 
-  const handleDashboardEdit = (edits: Dashboard) => {
-    return SupersetClient.get({
+  const handleDashboardEdit = (edits: Dashboard) =>
+    SupersetClient.get({
       endpoint: `/api/v1/dashboard/${edits.id}`,
     }).then(
       ({ json = {} }) => {
@@ -86,7 +85,6 @@ function DashboardTable({
         ),
       ),
     );
-  };
 
   const getFilters = (filterName: string) => {
     const filters = [];
@@ -114,8 +112,8 @@ function DashboardTable({
     });
   }
 
-  const getData = (filter: string) => {
-    return fetchData({
+  const getData = (filter: string) =>
+    fetchData({
       pageIndex: 0,
       pageSize: PAGE_SIZE,
       sortBy: [
@@ -126,7 +124,6 @@ function DashboardTable({
       ],
       filters: getFilters(filter),
     });
-  };
 
   return (
     <>
@@ -151,13 +148,13 @@ function DashboardTable({
         buttons={[
           {
             name: (
-              <IconContainer>
-                <Icon name="plus-small" /> Dashboard{' '}
-              </IconContainer>
+              <div>
+                <i className="fa fa-plus" /> Dashboard{' '}
+              </div>
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              history.push('/dashboard/new');
+              window.location.assign('/dashboard/new');
             },
           },
           {

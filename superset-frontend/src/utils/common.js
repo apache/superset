@@ -21,7 +21,6 @@ import {
   getTimeFormatter,
   TimeFormats,
 } from '@superset-ui/core';
-import { getClientErrorObject } from './getClientErrorObject';
 
 // ATTENTION: If you change any constants, make sure to also change constants.py
 
@@ -53,33 +52,6 @@ export function storeQuery(query) {
     const url = `${baseUrl}?id=${response.json.id}`;
     return url;
   });
-}
-
-export function getParamsFromUrl() {
-  const hash = window.location.search;
-  const params = hash.split('?')[1].split('&');
-  const newParams = {};
-  params.forEach(p => {
-    const value = p.split('=')[1].replace(/\+/g, ' ');
-    const key = p.split('=')[0];
-    newParams[key] = value;
-  });
-  return newParams;
-}
-
-export function getShortUrl(longUrl) {
-  return SupersetClient.post({
-    endpoint: '/r/shortner/',
-    postPayload: { data: `/${longUrl}` }, // note: url should contain 2x '/' to redirect properly
-    parseMethod: 'text',
-    stringify: false, // the url saves with an extra set of string quotes without this
-  })
-    .then(({ text }) => text)
-    .catch(response =>
-      getClientErrorObject(response).then(({ error, statusText }) =>
-        Promise.reject(error || statusText),
-      ),
-    );
 }
 
 export function optionLabel(opt) {
@@ -137,3 +109,17 @@ export function applyFormattingToTabularData(data) {
 }
 
 export const noOp = () => undefined;
+
+// Detects the user's OS through the browser
+export const detectOS = () => {
+  const { appVersion } = navigator;
+
+  // Leveraging this condition because of stackOverflow
+  // https://stackoverflow.com/questions/11219582/how-to-detect-my-browser-version-and-operating-system-using-javascript
+  if (appVersion.includes('Win')) return 'Windows';
+  if (appVersion.includes('Mac')) return 'MacOS';
+  if (appVersion.includes('X11')) return 'UNIX';
+  if (appVersion.includes('Linux')) return 'Linux';
+
+  return 'Unknown OS';
+};

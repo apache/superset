@@ -26,12 +26,12 @@ import { pmc } from '../resources/data';
 
 const links = [
   [
-    'https://apache-superset.slack.com/join/shared_invite/zt-g8lpruog-HeqpgYrwdfrD5OYhlU7hPQ#/',
+    'https://join.slack.com/t/apache-superset/shared_invite/zt-l5f5e0av-fyYu8tlfdqbMdz_sPLwUqQ',
     'Slack',
     'interact with other Superset users and community members',
   ],
   [
-    'https://github.com/apache/incubator-superset',
+    'https://github.com/apache/superset',
     'GitHub',
     'create tickets to report issues, report bugs, and suggest new features',
   ],
@@ -51,7 +51,7 @@ const links = [
     'join our monthly virtual meetups and register for any upcoming events',
   ],
   [
-    'https://github.com/apache/incubator-superset/blob/master/INTHEWILD.md',
+    'https://github.com/apache/superset/blob/master/INTHEWILD.md',
     'Organizations',
     'a list of some of the organizations using Superset in production',
   ],

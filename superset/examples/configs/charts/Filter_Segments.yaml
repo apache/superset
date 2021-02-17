@@ -23,32 +23,37 @@ params:
   filter_configs:
   - asc: true
     clearable: true
-    column: Ethnic Minority
+    column: ethnic_minority
     key: -xNBqpfQo
+    label: Ethnic Minority
     multiple: true
     searchAllOptions: false
   - asc: true
     clearable: true
     column: gender
     key: 19VeBGTKf
+    label: Gender
     multiple: true
     searchAllOptions: false
   - asc: true
     clearable: true
-    column: Developer Type
+    column: developer_type
     key: OWTb4s69T
+    label: Developer Type
     multiple: true
     searchAllOptions: false
   - asc: true
     clearable: true
     column: lang_at_home
     key: Fn-YClyhb
+    label: Language at Home
     multiple: true
     searchAllOptions: false
   - asc: true
     clearable: true
     column: country_live
     key: 2fNskRCLJ
+    label: Country live
     multiple: true
     searchAllOptions: false
   granularity_sqla: time_start

@@ -21,12 +21,12 @@ export type SelectOptionType = {
   label: string;
 };
 
-export type TimeRangeFrameType =
+export type FrameType =
   | 'Common'
   | 'Calendar'
   | 'Custom'
   | 'Advanced'
-  | 'No Filter';
+  | 'No filter';
 
 export type DateTimeGrainType =
   | 'second'
@@ -35,6 +35,7 @@ export type DateTimeGrainType =
   | 'day'
   | 'week'
   | 'month'
+  | 'quarter'
   | 'year';
 
 export type CustomRangeKey =
@@ -49,14 +50,16 @@ export type CustomRangeKey =
   | 'anchorMode'
   | 'anchorValue';
 
+export type DateTimeModeType = 'specific' | 'relative' | 'now' | 'today';
+
 export type CustomRangeType = {
-  sinceMode: string;
+  sinceMode: DateTimeModeType;
   sinceDatetime: string;
-  sinceGrain: string;
+  sinceGrain: DateTimeGrainType;
   sinceGrainValue: number;
-  untilMode: string;
+  untilMode: DateTimeModeType;
   untilDatetime: string;
-  untilGrain: string;
+  untilGrain: DateTimeGrainType;
   untilGrainValue: number;
   anchorMode: 'now' | 'specific';
   anchorValue: string;
@@ -74,13 +77,15 @@ export type CommonRangeType =
   | 'Last quarter'
   | 'Last year';
 
-export const PreviousCalendarWeek =
-  'DATETRUNC(DATEADD(DATETIME("TODAY"), -1, WEEK), WEEK) : LASTDAY(DATEADD(DATETIME("TODAY"), -1, WEEK), WEEK)';
-export const PreviousCalendarMonth =
-  'DATETRUNC(DATEADD(DATETIME("TODAY"), -1, MONTH), MONTH) : LASTDAY(DATEADD(DATETIME("TODAY"), -1, MONTH), MONTH)';
-export const PreviousCalendarYear =
-  'DATETRUNC(DATEADD(DATETIME("TODAY"), -1, YEAR), YEAR) : LASTDAY(DATEADD(DATETIME("TODAY"), -1, YEAR), YEAR)';
+export const PreviousCalendarWeek = 'previous calendar week';
+export const PreviousCalendarMonth = 'previous calendar month';
+export const PreviousCalendarYear = 'previous calendar year';
 export type CalendarRangeType =
   | typeof PreviousCalendarWeek
   | typeof PreviousCalendarMonth
   | typeof PreviousCalendarYear;
+
+export type FrameComponentProps = {
+  onChange: (timeRange: string) => void;
+  value: string;
+};

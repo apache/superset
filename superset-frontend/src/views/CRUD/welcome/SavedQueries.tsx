@@ -29,12 +29,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import Icon from 'src/components/Icon';
 import SubMenu from 'src/components/Menu/SubMenu';
 import EmptyState from './EmptyState';
-import {
-  IconContainer,
-  CardContainer,
-  createErrorHandler,
-  shortenSQL,
-} from '../utils';
+import { CardContainer, createErrorHandler, shortenSQL } from '../utils';
 
 SyntaxHighlighter.registerLanguage('sql', sql);
 
@@ -187,8 +182,8 @@ const SavedQueries = ({
     return filters;
   };
 
-  const getData = (filter: string) => {
-    return fetchData({
+  const getData = (filter: string) =>
+    fetchData({
       pageIndex: 0,
       pageSize: PAGE_SIZE,
       sortBy: [
@@ -199,7 +194,6 @@ const SavedQueries = ({
       ],
       filters: getFilters(filter),
     });
-  };
 
   const renderMenu = (query: Query) => (
     <Menu>
@@ -273,9 +267,10 @@ const SavedQueries = ({
         buttons={[
           {
             name: (
-              <IconContainer>
-                <Icon name="plus-small" /> SQL Query{' '}
-              </IconContainer>
+              <div>
+                <i className="fa fa-plus" />
+                SQL Query{' '}
+              </div>
             ),
             buttonStyle: 'tertiary',
             onClick: () => {

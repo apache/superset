@@ -63,9 +63,9 @@ from superset.charts.schemas import (
     thumbnail_query_schema,
 )
 from superset.commands.exceptions import CommandInvalidError
-from superset.commands.importers.v1.utils import remove_root
+from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
@@ -225,7 +225,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
+        log_to_statsd=False,
+    )
     def post(self) -> Response:
         """Creates a new Chart
         ---
@@ -282,7 +285,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
+        log_to_statsd=False,
+    )
     def put(self, pk: int) -> Response:
         """Changes a Chart
         ---
@@ -356,7 +362,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
+        log_to_statsd=False,
+    )
     def delete(self, pk: int) -> Response:
         """Deletes a Chart
         ---
@@ -407,7 +416,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_delete_ids_schema)
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
+        log_to_statsd=False,
+    )
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Delete bulk Charts
         ---
@@ -495,7 +507,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
+        log_to_statsd=False,
+    )
     def data(self) -> Response:
         """
         Takes a query context constructed in the client and returns payload
@@ -534,21 +549,30 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        json_body = None
         if request.is_json:
             json_body = request.json
         elif request.form.get("form_data"):
             # CSV export submits regular form data
-            json_body = json.loads(request.form["form_data"])
-        else:
-            return self.response_400(message="Request is not JSON")
+            try:
+                json_body = json.loads(request.form["form_data"])
+            except (TypeError, json.JSONDecodeError):
+                pass
+
+        if json_body is None:
+            return self.response_400(message=_("Request is not JSON"))
 
         try:
             command = ChartDataCommand()
             query_context = command.set_query_context(json_body)
             command.validate()
+        except QueryObjectValidationError as error:
+            return self.response_400(message=error.message)
         except ValidationError as error:
             return self.response_400(
-                message=_("Request is incorrect: %(error)s", error=error.messages)
+                message=_(
+                    "Request is incorrect: %(error)s", error=error.normalized_messages()
+                )
             )
         except SupersetSecurityException:
             return self.response_401()
@@ -571,10 +595,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
         return self.get_data_response(command)
 
     @expose("/data/<cache_key>", methods=["GET"])
-    @event_logger.log_this
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".data_from_cache",
+        log_to_statsd=False,
+    )
     def data_from_cache(self, cache_key: str) -> Response:
         """
         Takes a query context cache key and returns payload
@@ -629,7 +657,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @rison(screenshot_query_schema)
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".cache_screenshot",
+        log_to_statsd=False,
+    )
     def cache_screenshot(self, pk: int, **kwargs: Dict[str, bool]) -> WerkzeugResponse:
         """
         ---
@@ -701,7 +733,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.screenshot",
+        log_to_statsd=False,
+    )
     def screenshot(self, pk: int, digest: str) -> WerkzeugResponse:
         """Get Chart screenshot
         ---
@@ -755,7 +790,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @rison(thumbnail_query_schema)
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.thumbnail",
+        log_to_statsd=False,
+    )
     def thumbnail(
         self, pk: int, digest: str, **kwargs: Dict[str, bool]
     ) -> WerkzeugResponse:
@@ -829,7 +867,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_export_ids_schema)
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
+        log_to_statsd=False,
+    )
     def export(self, **kwargs: Any) -> Response:
         """Export charts
         ---
@@ -885,9 +926,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @expose("/favorite_status/", methods=["GET"])
     @protect()
     @safe
-    @statsd_metrics
     @rison(get_fav_star_ids_schema)
-    @event_logger.log_this_with_context(log_to_statsd=False)
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".favorite_status",
+        log_to_statsd=False,
+    )
     def favorite_status(self, **kwargs: Any) -> Response:
         """Favorite stars for Charts
         ---
@@ -932,6 +977,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
+        log_to_statsd=False,
+    )
     def import_(self) -> Response:
         """Import chart(s) with associated datasets and databases
         ---
@@ -973,10 +1022,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if not upload:
             return self.response_400()
         with ZipFile(upload) as bundle:
-            contents = {
-                remove_root(file_name): bundle.read(file_name).decode()
-                for file_name in bundle.namelist()
-            }
+            contents = get_contents_from_bundle(bundle)
 
         passwords = (
             json.loads(request.form["passwords"])

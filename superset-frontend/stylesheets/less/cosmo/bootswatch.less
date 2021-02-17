@@ -148,6 +148,10 @@ table,
 
 // Forms ======================================================================
 
+.form-control {
+  box-shadow: none;
+}
+
 .has-warning {
   .help-block,
   .control-label,
@@ -368,10 +372,36 @@ label {
       color: @text-color;
     }
   }
+
+  .accordion-toggle {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: none;
+    }
+
+    .caret {
+      display: flex;
+      width: auto;
+      height: auto;
+      margin-left: 5px;
+
+      &:hover {
+        color: @gray;
+      }
+    }
+  }
 }
 
 .panel-title-large {
   font-size: 24px;
+}
+
+.list-group-item {
+  padding-top: 5px;
+  padding-bottom: 5px;
 }
 
 a.list-group-item {

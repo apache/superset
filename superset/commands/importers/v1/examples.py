@@ -55,10 +55,28 @@ class ImportExamplesCommand(ImportModelsCommand):
     }
     import_error = CommandException
 
-    # pylint: disable=too-many-locals
+    def __init__(self, contents: Dict[str, str], *args: Any, **kwargs: Any):
+        super().__init__(contents, *args, **kwargs)
+        self.force_data = kwargs.get("force_data", False)
+
+    def run(self) -> None:
+        self.validate()
+
+        # rollback to prevent partial imports
+        try:
+            self._import(db.session, self._configs, self.overwrite, self.force_data)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise self.import_error()
+
+    # pylint: disable=too-many-locals, arguments-differ
     @staticmethod
     def _import(
-        session: Session, configs: Dict[str, Any], overwrite: bool = False
+        session: Session,
+        configs: Dict[str, Any],
+        overwrite: bool = False,
+        force_data: bool = False,
     ) -> None:
         # import databases
         database_ids: Dict[str, int] = {}
@@ -78,7 +96,9 @@ class ImportExamplesCommand(ImportModelsCommand):
         for file_name, config in configs.items():
             if file_name.startswith("datasets/"):
                 config["database_id"] = examples_id
-                dataset = import_dataset(session, config, overwrite=overwrite)
+                dataset = import_dataset(
+                    session, config, overwrite=overwrite, force_data=force_data
+                )
                 dataset_info[str(dataset.uuid)] = {
                     "datasource_id": dataset.id,
                     "datasource_type": "view" if dataset.is_sqllab_view else "table",

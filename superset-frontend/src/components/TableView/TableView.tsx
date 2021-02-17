@@ -41,13 +41,27 @@ export interface TableViewProps {
   emptyWrapperType?: EmptyWrapperType;
   noDataText?: string;
   className?: string;
+  isPaginationSticky?: boolean;
+  showRowCount?: boolean;
+  scrollTable?: boolean;
 }
 
 const EmptyWrapper = styled.div`
   margin: ${({ theme }) => theme.gridUnit * 40}px 0;
 `;
 
-const TableViewStyles = styled.div`
+const TableViewStyles = styled.div<{
+  isPaginationSticky?: boolean;
+  scrollTable?: boolean;
+}>`
+  ${({ scrollTable, theme }) =>
+    scrollTable &&
+    `
+    height: 300px;
+    margin-bottom: ${theme.gridUnit * 4}px;
+    overflow: auto;
+  `}
+
   .table-cell.table-cell {
     vertical-align: top;
   }
@@ -56,6 +70,16 @@ const TableViewStyles = styled.div`
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: center;
+    background-color: ${({ theme }) => theme.colors.grayscale.light5};
+
+    ${({ theme, isPaginationSticky }) =>
+      isPaginationSticky &&
+      `
+        position: sticky;
+        bottom: ${theme.gridUnit * 4}px;
+        left: 0;
+    `};
   }
 
   .row-count-container {
@@ -74,6 +98,7 @@ const TableView = ({
   withPagination = true,
   emptyWrapperType = EmptyWrapperType.Default,
   noDataText,
+  showRowCount = true,
   ...props
 }: TableViewProps) => {
   const initialState = {
@@ -150,19 +175,21 @@ const TableView = ({
             onChange={(p: number) => gotoPage(p - 1)}
             hideFirstAndLastPageLinks
           />
-          <div className="row-count-container">
-            {!loading &&
-              t(
-                '%s-%s of %s',
-                pageSize * pageIndex + (page.length && 1),
-                pageSize * pageIndex + page.length,
-                data.length,
-              )}
-          </div>
+          {showRowCount && (
+            <div className="row-count-container">
+              {!loading &&
+                t(
+                  '%s-%s of %s',
+                  pageSize * pageIndex + (page.length && 1),
+                  pageSize * pageIndex + page.length,
+                  data.length,
+                )}
+            </div>
+          )}
         </div>
       )}
     </TableViewStyles>
   );
 };
 
-export default TableView;
+export default React.memo(TableView);

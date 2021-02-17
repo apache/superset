@@ -43,6 +43,7 @@ from tests.fixtures.importexport import (
     dataset_metadata_config,
     dataset_ui_export,
 )
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 
 class TestExportDatasetsCommand(SupersetTestCase):
@@ -212,6 +213,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
 
 
 class TestImportDatasetsCommand(SupersetTestCase):
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_import_v0_dataset_cli_export(self):
         num_datasets = db.session.query(SqlaTable).count()
 
@@ -234,20 +236,24 @@ class TestImportDatasetsCommand(SupersetTestCase):
         assert len(dataset.metrics) == 2
         assert dataset.main_dttm_col == "ds"
         assert dataset.filter_select_enabled
-        assert [col.column_name for col in dataset.columns] == [
+        dataset.columns.sort(key=lambda obj: obj.column_name)
+        expected_columns = [
             "num_california",
             "ds",
             "state",
             "gender",
             "name",
-            "sum_boys",
-            "sum_girls",
+            "num_boys",
+            "num_girls",
             "num",
         ]
+        expected_columns.sort()
+        assert [col.column_name for col in dataset.columns] == expected_columns
 
         db.session.delete(dataset)
         db.session.commit()
 
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_import_v0_dataset_ui_export(self):
         num_datasets = db.session.query(SqlaTable).count()
 
@@ -276,8 +282,8 @@ class TestImportDatasetsCommand(SupersetTestCase):
             "state",
             "gender",
             "name",
-            "sum_boys",
-            "sum_girls",
+            "num_boys",
+            "num_girls",
             "num",
         }
 

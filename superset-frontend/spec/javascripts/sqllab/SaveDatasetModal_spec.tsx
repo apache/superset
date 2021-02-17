@@ -18,7 +18,8 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { Radio, AutoComplete, Input } from 'src/common/components';
+import { Radio } from 'src/common/components/Radio';
+import { AutoComplete, Input } from 'src/common/components';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 
 describe('SaveDatasetModal', () => {
@@ -27,7 +28,6 @@ describe('SaveDatasetModal', () => {
     onOk: () => {},
     onHide: () => {},
     handleDatasetNameChange: () => {},
-    userDatasetsOwned: [],
     handleSaveDatasetRadioBtnState: () => {},
     saveDatasetRadioBtnState: 1,
     handleOverwriteCancel: () => {},
@@ -37,19 +37,22 @@ describe('SaveDatasetModal', () => {
     shouldOverwriteDataset: false,
     userDatasetOptions: [],
     disableSaveAndExploreBtn: false,
-    handleSaveDatasetModalSearch: () => {},
+    handleSaveDatasetModalSearch: () => Promise,
     filterAutocompleteOption: () => false,
     onChangeAutoComplete: () => {},
   };
   it('renders a radio group btn', () => {
+    // @ts-ignore
     const wrapper = shallow(<SaveDatasetModal {...mockedProps} />);
     expect(wrapper.find(Radio.Group)).toExist();
   });
   it('renders a autocomplete', () => {
+    // @ts-ignore
     const wrapper = shallow(<SaveDatasetModal {...mockedProps} />);
     expect(wrapper.find(AutoComplete)).toExist();
   });
-  it('renders an input form ', () => {
+  it('renders an input form', () => {
+    // @ts-ignore
     const wrapper = shallow(<SaveDatasetModal {...mockedProps} />);
     expect(wrapper.find(Input)).toExist();
   });

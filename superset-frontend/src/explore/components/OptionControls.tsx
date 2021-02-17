@@ -16,18 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { findDOMNode } from 'react-dom';
-// Current version of react-dnd (2.5.4) doesn't work well with typescript
-// TODO: remove ts-ignore after we upgrade react-dnd
-// @ts-ignore
-import { DragSource, DropTarget } from 'react-dnd';
-import { styled, useTheme } from '@superset-ui/core';
-import { ColumnOption } from '@superset-ui/chart-controls';
-import Icon from '../../components/Icon';
-import { savedMetricType } from '../types';
-
-const TYPE = 'label-dnd';
+import React, { useRef } from 'react';
+import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
+import { styled, t, useTheme } from '@superset-ui/core';
+import {
+  MetricOption,
+  InfoTooltipWithTrigger,
+} from '@superset-ui/chart-controls';
+import { Tooltip } from 'src/common/components/Tooltip';
+import Icon from 'src/components/Icon';
+import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 
 const DragContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit}px;
@@ -50,7 +48,7 @@ const OptionControlContainer = styled.div<{
 `;
 
 const Label = styled.div`
-  display: inline-block;
+  display: flex;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -59,6 +57,9 @@ const Label = styled.div`
   padding-left: ${({ theme }) => theme.gridUnit}px;
   svg {
     margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
+  .option-label {
+    display: inline;
   }
 `;
 
@@ -75,6 +76,10 @@ const CloseContainer = styled.div`
   cursor: pointer;
 `;
 
+const StyledInfoTooltipWithTrigger = styled(InfoTooltipWithTrigger)`
+  margin: 0 ${({ theme }) => theme.gridUnit}px;
+`;
+
 export const HeaderContainer = styled.div`
   display: flex;
   align-items: center;
@@ -84,7 +89,7 @@ export const HeaderContainer = styled.div`
 export const LabelsContainer = styled.div`
   padding: ${({ theme }) => theme.gridUnit}px;
   border: solid 1px ${({ theme }) => theme.colors.grayscale.light2};
-  border-radius: 3px;
+  border-radius: ${({ theme }) => theme.gridUnit}px;
 `;
 
 export const AddControlLabel = styled.div`
@@ -96,7 +101,7 @@ export const AddControlLabel = styled.div`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.light1};
   border: dashed 1px ${({ theme }) => theme.colors.grayscale.light2};
-  border-radius: 3px;
+  border-radius: ${({ theme }) => theme.gridUnit}px;
   cursor: pointer;
 
   :hover {
@@ -125,103 +130,97 @@ export const AddIconButton = styled.button`
   }
 `;
 
-const labelSource = {
-  beginDrag({ index, type }: { index: number; type: string }) {
-    return {
-      index,
-      type,
-    };
-  },
-};
-
-const labelTarget = {
-  hover(props: Record<string, any>, monitor: any, component: any) {
-    const { index: dragIndex, type: dragType } = monitor.getItem();
-    const { index: hoverIndex, type: hoverType } = props;
-
-    // Don't replace items with themselves
-    // Don't allow to drag items between filters and metrics boxes
-    if (dragIndex === hoverIndex || dragType !== hoverType) {
-      return;
-    }
-
-    // Determine rectangle on screen
-    // TODO: refactor with references when we upgrade react-dnd
-    // For now we disable warnings about findDOMNode, but we should refactor after we upgrade react-dnd
-    // Current version (2.5.4) doesn't work well with refs
-    // @ts-ignore
-    // eslint-disable-next-line react/no-find-dom-node
-    const hoverBoundingRect = findDOMNode(component)?.getBoundingClientRect();
-
-    // Get vertical middle
-    const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-
-    // Determine mouse position
-    const clientOffset = monitor.getClientOffset();
-
-    // Get pixels to the top
-    const hoverClientY = clientOffset.y - hoverBoundingRect.top;
-
-    // Only perform the move when the mouse has crossed half of the items height
-    // When dragging downwards, only move when the cursor is below 50%
-    // When dragging upwards, only move when the cursor is above 50%
-
-    // Dragging downwards
-    if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
-      return;
-    }
-
-    // Dragging upwards
-    if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
-      return;
-    }
-
-    // Time to actually perform the action
-    props.onMoveLabel?.(dragIndex, hoverIndex);
-
-    // Note: we're mutating the monitor item here!
-    // Generally it's better to avoid mutations,
-    // but it's good here for the sake of performance
-    // to avoid expensive index searches.
-    // eslint-disable-next-line no-param-reassign
-    monitor.getItem().index = hoverIndex;
-  },
-  drop(props: Record<string, any>) {
-    return props.onDropLabel?.();
-  },
-};
+interface DragItem {
+  index: number;
+  type: string;
+}
 
 export const OptionControlLabel = ({
   label,
   savedMetric,
   onRemove,
+  onMoveLabel,
+  onDropLabel,
   isAdhoc,
   isFunction,
-  isDraggable,
-  connectDragSource,
-  connectDropTarget,
+  type,
+  index,
+  isExtra,
   ...props
 }: {
   label: string | React.ReactNode;
   savedMetric?: savedMetricType;
   onRemove: () => void;
+  onMoveLabel: (dragIndex: number, hoverIndex: number) => void;
+  onDropLabel: () => void;
   isAdhoc?: boolean;
   isFunction?: boolean;
   isDraggable?: boolean;
-  connectDragSource?: any;
-  connectDropTarget?: any;
+  type: string;
+  index: number;
+  isExtra?: boolean;
 }) => {
   const theme = useTheme();
+  const ref = useRef<HTMLDivElement>(null);
+  const [, drop] = useDrop({
+    accept: type,
+    drop() {
+      onDropLabel?.();
+    },
+    hover(item: DragItem, monitor: DropTargetMonitor) {
+      if (!ref.current) {
+        return;
+      }
+      const dragIndex = item.index;
+      const hoverIndex = index;
+      // Don't replace items with themselves
+      if (dragIndex === hoverIndex) {
+        return;
+      }
+      // Determine rectangle on screen
+      const hoverBoundingRect = ref.current?.getBoundingClientRect();
+      // Get vertical middle
+      const hoverMiddleY =
+        (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+      // Determine mouse position
+      const clientOffset = monitor.getClientOffset();
+      // Get pixels to the top
+      const hoverClientY = clientOffset?.y
+        ? clientOffset?.y - hoverBoundingRect.top
+        : 0;
+      // Only perform the move when the mouse has crossed half of the items height
+      // When dragging downwards, only move when the cursor is below 50%
+      // When dragging upwards, only move when the cursor is above 50%
+      // Dragging downwards
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+        return;
+      }
+      // Dragging upwards
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
+        return;
+      }
+      // Time to actually perform the action
+      onMoveLabel?.(dragIndex, hoverIndex);
+      // Note: we're mutating the monitor item here!
+      // Generally it's better to avoid mutations,
+      // but it's good here for the sake of performance
+      // to avoid expensive index searches.
+      // eslint-disable-next-line no-param-reassign
+      item.index = hoverIndex;
+    },
+  });
+  const [, drag] = useDrag({
+    item: { type, index },
+    collect: monitor => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
   const getLabelContent = () => {
     if (savedMetric?.metric_name) {
-      // add column_name to fix typescript error
-      const column = { ...savedMetric, column_name: '' };
-      if (!column.verbose_name) {
-        column.verbose_name = column.metric_name;
-      }
-      return <ColumnOption column={column} />;
+      return <MetricOption metric={savedMetric} />;
     }
-    return label;
+    return <Tooltip title={label}>{label}</Tooltip>;
   };
 
   const getOptionControlContent = () => (
@@ -241,6 +240,17 @@ export const OptionControlLabel = ({
         {isFunction && <Icon name="function" viewBox="0 0 16 11" />}
         {getLabelContent()}
       </Label>
+      {isExtra && (
+        <StyledInfoTooltipWithTrigger
+          icon="exclamation-triangle"
+          placement="top"
+          bsStyle="warning"
+          tooltip={t(`
+                This filter was inherited from the dashboard's context.
+                It won't be saved when saving the chart.
+              `)}
+        />
+      )}
       {isAdhoc && (
         <CaretContainer>
           <Icon name="caret-right" color={theme.colors.grayscale.light1} />
@@ -249,28 +259,6 @@ export const OptionControlLabel = ({
     </OptionControlContainer>
   );
 
-  return (
-    <DragContainer>
-      {isDraggable
-        ? connectDragSource(
-            connectDropTarget(<div>{getOptionControlContent()}</div>),
-          )
-        : getOptionControlContent()}
-    </DragContainer>
-  );
+  drag(drop(ref));
+  return <DragContainer ref={ref}>{getOptionControlContent()}</DragContainer>;
 };
-
-export const DraggableOptionControlLabel = DropTarget(
-  TYPE,
-  labelTarget,
-  (connect: any) => ({
-    connectDropTarget: connect.dropTarget(),
-  }),
-)(
-  DragSource(TYPE, labelSource, (connect: any) => ({
-    connectDragSource: connect.dragSource(),
-    isDraggable: true,
-  }))(OptionControlLabel),
-);
-
-DraggableOptionControlLabel.displayName = 'DraggableOptionControlLabel';

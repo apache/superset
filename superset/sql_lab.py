@@ -29,14 +29,16 @@ from celery.exceptions import SoftTimeLimitExceeded
 from celery.task.base import Task
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import Session
+from werkzeug.local import LocalProxy
 
 from superset import app, results_backend, results_backend_use_msgpack, security_manager
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.extensions import celery_app
+from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.sql_parse import ParsedQuery
+from superset.sql_parse import CtasMethod, ParsedQuery
 from superset.utils.celery import session_scope
 from superset.utils.core import (
     json_iso_dttm_ser,
@@ -47,13 +49,25 @@ from superset.utils.core import (
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
 
+
+# pylint: disable=unused-argument, redefined-outer-name
+def dummy_sql_query_mutator(
+    sql: str,
+    user_name: Optional[str],
+    security_manager: LocalProxy,
+    database: Database,
+) -> str:
+    """A no-op version of SQL_QUERY_MUTATOR"""
+    return sql
+
+
 config = app.config
 stats_logger = config["STATS_LOGGER"]
 SQLLAB_TIMEOUT = config["SQLLAB_ASYNC_TIME_LIMIT_SEC"]
 SQLLAB_HARD_TIMEOUT = SQLLAB_TIMEOUT + 60
 SQL_MAX_ROW = config["SQL_MAX_ROW"]
 SQLLAB_CTAS_NO_LIMIT = config["SQLLAB_CTAS_NO_LIMIT"]
-SQL_QUERY_MUTATOR = config["SQL_QUERY_MUTATOR"]
+SQL_QUERY_MUTATOR = config.get("SQL_QUERY_MUTATOR") or dummy_sql_query_mutator
 log_query = config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
 
@@ -160,6 +174,7 @@ def execute_sql_statement(
     session: Session,
     cursor: Any,
     log_params: Optional[Dict[str, Any]],
+    apply_ctas: bool = False,
 ) -> SupersetResultSet:
     """Executes a single SQL statement"""
     database = query.database
@@ -171,14 +186,7 @@ def execute_sql_statement(
         raise SqlLabSecurityException(
             _("Only `SELECT` statements are allowed against this database")
         )
-    if query.select_as_cta:
-        if not parsed_query.is_select():
-            raise SqlLabException(
-                _(
-                    "Only `SELECT` statements can be used with the CREATE TABLE "
-                    "feature."
-                )
-            )
+    if apply_ctas:
         if not query.tmp_table_name:
             start_dttm = datetime.fromtimestamp(query.start_time)
             query.tmp_table_name = "tmp_{}_table_{}".format(
@@ -201,8 +209,7 @@ def execute_sql_statement(
             sql = database.apply_limit_to_sql(sql, query.limit)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
-    if SQL_QUERY_MUTATOR:
-        sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
+    sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
 
     try:
         if log_query:
@@ -322,8 +329,8 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
         raise SqlLabException("Results backend isn't configured.")
 
     # Breaking down into multiple statements
+    parsed_query = ParsedQuery(rendered_query, strip_comments=True)
     if not db_engine_spec.run_multiple_statements_as_one:
-        parsed_query = ParsedQuery(rendered_query)
         statements = parsed_query.get_statements()
         logger.info(
             "Query %s: Executing %i statement(s)", str(query_id), len(statements)
@@ -337,6 +344,32 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     query.start_running_time = now_as_float()
     session.commit()
 
+    # Should we create a table or view from the select?
+    if (
+        query.select_as_cta
+        and query.ctas_method == CtasMethod.TABLE
+        and not parsed_query.is_valid_ctas()
+    ):
+        raise SqlLabException(
+            _(
+                "CTAS (create table as select) can only be run with a query where "
+                "the last statement is a SELECT. Please make sure your query has "
+                "a SELECT as its last statement. Then, try running your query again."
+            )
+        )
+    if (
+        query.select_as_cta
+        and query.ctas_method == CtasMethod.VIEW
+        and not parsed_query.is_valid_cvas()
+    ):
+        raise SqlLabException(
+            _(
+                "CVAS (create view as select) can only be run with a query with "
+                "a single SELECT statement. Please make sure your query has only "
+                "a SELECT statement. Then, try running your query again."
+            )
+        )
+
     engine = database.get_sqla_engine(
         schema=query.schema,
         nullpool=True,
@@ -346,29 +379,42 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
     # Sharing a single connection and cursor across the
     # execution of all statements (if many)
     with closing(engine.raw_connection()) as conn:
-        with closing(conn.cursor()) as cursor:
-            statement_count = len(statements)
-            for i, statement in enumerate(statements):
-                # Check if stopped
-                query = get_query(query_id, session)
-                if query.status == QueryStatus.STOPPED:
-                    return None
+        # closing the connection closes the cursor as well
+        cursor = conn.cursor()
+        statement_count = len(statements)
+        for i, statement in enumerate(statements):
+            # Check if stopped
+            query = get_query(query_id, session)
+            if query.status == QueryStatus.STOPPED:
+                return None
 
-                # Run statement
-                msg = f"Running statement {i+1} out of {statement_count}"
-                logger.info("Query %s: %s", str(query_id), msg)
-                query.set_extra_json_key("progress", msg)
-                session.commit()
-                try:
-                    result_set = execute_sql_statement(
-                        statement, query, user_name, session, cursor, log_params
-                    )
-                except Exception as ex:  # pylint: disable=broad-except
-                    msg = str(ex)
-                    if statement_count > 1:
-                        msg = f"[Statement {i+1} out of {statement_count}] " + msg
-                    payload = handle_query_error(msg, query, session, payload)
-                    return payload
+            # For CTAS we create the table only on the last statement
+            apply_ctas = query.select_as_cta and (
+                query.ctas_method == CtasMethod.VIEW
+                or (query.ctas_method == CtasMethod.TABLE and i == len(statements) - 1)
+            )
+
+            # Run statement
+            msg = f"Running statement {i+1} out of {statement_count}"
+            logger.info("Query %s: %s", str(query_id), msg)
+            query.set_extra_json_key("progress", msg)
+            session.commit()
+            try:
+                result_set = execute_sql_statement(
+                    statement,
+                    query,
+                    user_name,
+                    session,
+                    cursor,
+                    log_params,
+                    apply_ctas,
+                )
+            except Exception as ex:  # pylint: disable=broad-except
+                msg = str(ex)
+                if statement_count > 1:
+                    msg = f"[Statement {i+1} out of {statement_count}] " + msg
+                payload = handle_query_error(msg, query, session, payload)
+                return payload
 
         # Commit the connection so CTA queries will create the table.
         conn.commit()

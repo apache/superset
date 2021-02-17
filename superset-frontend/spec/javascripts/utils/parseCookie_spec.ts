@@ -21,9 +21,7 @@ import parseCookie from 'src/utils/parseCookie';
 describe('parseCookie', () => {
   let cookieVal = '';
   Object.defineProperty(document, 'cookie', {
-    get: jest.fn().mockImplementation(() => {
-      return cookieVal;
-    }),
+    get: jest.fn().mockImplementation(() => cookieVal),
   });
   it('parses cookie strings', () => {
     cookieVal = 'val1=foo; val2=bar';
