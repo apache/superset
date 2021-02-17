@@ -47,6 +47,7 @@ const propTypes = {
   componentId: PropTypes.string.isRequired,
   dashboardId: PropTypes.number.isRequired,
   filters: PropTypes.object.isRequired,
+  addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   handleToggleFullSize: PropTypes.func.isRequired,
   chartStatus: PropTypes.string.isRequired,
@@ -98,6 +99,7 @@ class SliceHeader extends React.PureComponent {
       annotationError,
       componentId,
       dashboardId,
+      addSuccessToast,
       addDangerToast,
       handleToggleFullSize,
       isFullSize,
@@ -157,6 +159,7 @@ class SliceHeader extends React.PureComponent {
                 sliceCanEdit={sliceCanEdit}
                 componentId={componentId}
                 dashboardId={dashboardId}
+                addSuccessToast={addSuccessToast}
                 addDangerToast={addDangerToast}
                 handleToggleFullSize={handleToggleFullSize}
                 isFullSize={isFullSize}
