@@ -18,9 +18,13 @@
  */
 import React, { useRef } from 'react';
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
-import Option from './Option';
 import { DragContainer } from 'src/explore/components/OptionControls';
-import { OptionWrapperProps, GroupByItemInterface, GroupByItemType } from "../types";
+import Option from './Option';
+import {
+  OptionWrapperProps,
+  GroupByItemInterface,
+  GroupByItemType,
+} from '../types';
 
 export default function OptionWrapper(props: OptionWrapperProps) {
   const { groupByValues, column, onChangeGroupByValues } = props;
@@ -29,30 +33,32 @@ export default function OptionWrapper(props: OptionWrapperProps) {
   const item: GroupByItemInterface = {
     dragIndex: groupByValues.indexOf(column.column_name),
     dropIndex: -1,
-    type: GroupByItemType
-  }
+    type: GroupByItemType,
+  };
   const [, drag] = useDrag({
     item,
     collect: monitor => ({
       isDragging: monitor.isDragging(),
     }),
-  })
+  });
 
   const [, drop] = useDrop({
     accept: GroupByItemType,
 
     drop: (item: GroupByItemInterface) => {
-      let newValues = [...props.groupByValues];
-      newValues[item.dragIndex] = groupByValues[item.dropIndex];
-      newValues[item.dropIndex] = groupByValues[item.dragIndex];
-      onChangeGroupByValues(newValues);
+      if (item.dragIndex > -1 && item.dropIndex > -1) {
+        const newValues = [...props.groupByValues];
+        newValues[item.dragIndex] = groupByValues[item.dropIndex];
+        newValues[item.dropIndex] = groupByValues[item.dragIndex];
+        onChangeGroupByValues(newValues);
+      }
     },
 
     hover(item: GroupByItemInterface, monitor: DropTargetMonitor) {
       if (!ref.current) {
         return;
       }
-      const dragIndex = item.dragIndex;
+      const { dragIndex } = item;
       const hoverIndex = groupByValues.indexOf(column.column_name);
 
       // Don't replace items with themselves
@@ -86,9 +92,13 @@ export default function OptionWrapper(props: OptionWrapperProps) {
       item.dragIndex = dragIndex;
       item.dropIndex = hoverIndex;
     },
-  })
+  });
 
   drag(drop(ref));
 
-  return <DragContainer ref={ref}><Option {...props} /></DragContainer>
+  return (
+    <DragContainer ref={ref}>
+      <Option {...props} />
+    </DragContainer>
+  );
 }

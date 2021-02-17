@@ -24,19 +24,19 @@ interface DatasourcePanelDragWrapperProps extends DatasourcePanelDndItemProps {
   children?: ReactNode;
 }
 
-export default function DatasourcePanelDragWrapper(props: DatasourcePanelDragWrapperProps) {
+export default function DatasourcePanelDragWrapper(
+  props: DatasourcePanelDragWrapperProps,
+) {
   const [, drag] = useDrag({
     item: {
       metricOrColumnName: props.metricOrColumnName,
       type: props.type,
     },
-  })
+  });
 
   return (
     <>
-      <div ref={drag}>
-        { props.children }
-      </div>
+      <div ref={drag}>{props.children}</div>
     </>
-  )
+  );
 }

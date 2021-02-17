@@ -43,7 +43,9 @@ interface DropGroupByControlProps extends BaseControlConfig {
 }
 
 function DropGroupByControl(props: DropGroupByControlProps) {
-  const [groupByValues, setGroupByValues] = useState<string[]>(props.value ?? [])
+  const [groupByValues, setGroupByValues] = useState<string[]>(
+    props.value ?? [],
+  );
   const [, datasourcePanelDrop] = useDrop({
     accept: DatasourcePanelDndType.COLUMN,
     drop: (item: DatasourcePanelDndItemProps) => {
@@ -53,53 +55,52 @@ function DropGroupByControl(props: DropGroupByControlProps) {
         props.onChange(newValue);
       }
     },
-    collect: (monitor) => ({
+    collect: monitor => ({
       isOver: monitor.isOver(),
       canDrop: monitor.canDrop(),
     }),
-  })
+  });
 
   const dbColumnsInCurrentControl: ColumnMeta[] = [];
-  groupByValues.forEach((value) => {
+  groupByValues.forEach(value => {
     if (value in props.options) {
       dbColumnsInCurrentControl.push(props.options[value]);
     }
   });
 
   function onClickClose(columnName: string) {
-    const newGroupByValues = groupByValues.filter((value) => value !== columnName)
+    const newGroupByValues = groupByValues.filter(
+      value => value !== columnName,
+    );
     setGroupByValues(newGroupByValues);
     props.onChange(newGroupByValues);
   }
 
-  function onChangeGroupByValues(values: string[]){
+  function onChangeGroupByValues(values: string[]) {
     setGroupByValues(values);
     props.onChange(values);
   }
 
-  const PlaceHolderRenderer = () =>
+  const PlaceHolderRenderer = () => (
     <AddControlLabel cancelHover>
-      <Icon
-        name="plus-small"
-        color={props.theme.colors.grayscale.light1}
-      />
+      <Icon name="plus-small" color={props.theme.colors.grayscale.light1} />
       {t('Drop Columns')}
     </AddControlLabel>
+  );
 
-  const OptionsRenderer = () => {
-    return (
-      <>
-        {dbColumnsInCurrentControl.map((column) =>
-          <OptionWrapper
-            key={column.column_name}
-            column={column}
-            clickClose={onClickClose}
-            groupByValues={groupByValues}
-            onChangeGroupByValues={onChangeGroupByValues}
-          />)}
-      </>
-    )
-  }
+  const OptionsRenderer = () => (
+    <>
+      {dbColumnsInCurrentControl.map(column => (
+        <OptionWrapper
+          key={column.column_name}
+          column={column}
+          clickClose={onClickClose}
+          groupByValues={groupByValues}
+          onChangeGroupByValues={onChangeGroupByValues}
+        />
+      ))}
+    </>
+  );
 
   return (
     <>
@@ -108,7 +109,11 @@ function DropGroupByControl(props: DropGroupByControlProps) {
           <ControlHeader {...props} />
         </HeaderContainer>
         <LabelsContainer>
-          { isEmpty(dbColumnsInCurrentControl) ? <PlaceHolderRenderer /> : <OptionsRenderer /> }
+          {isEmpty(dbColumnsInCurrentControl) ? (
+            <PlaceHolderRenderer />
+          ) : (
+            <OptionsRenderer />
+          )}
         </LabelsContainer>
       </div>
     </>

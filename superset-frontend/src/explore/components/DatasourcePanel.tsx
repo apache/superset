@@ -30,8 +30,8 @@ import { matchSorter, rankings } from 'match-sorter';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { ExploreActions } from '../actions/exploreActions';
 import Control from './Control';
-import DatasourcePanelDragWrapper from "./DatasourcePanel/DatasourcePanelDragWrapper";
-import { DatasourcePanelDndType } from "./DatasourcePanel/types";
+import DatasourcePanelDragWrapper from './DatasourcePanel/DatasourcePanelDragWrapper';
+import { DatasourcePanelDndType } from './DatasourcePanel/types';
 
 interface DatasourceControl extends ControlConfig {
   datasource?: DatasourceMeta;

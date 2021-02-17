@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetTheme } from '@superset-ui/core';
-import { ColumnMeta } from '@superset-ui/chart-controls'
+import { ColumnMeta } from '@superset-ui/chart-controls';
 
 export interface OptionWrapperProps {
   column: ColumnMeta;

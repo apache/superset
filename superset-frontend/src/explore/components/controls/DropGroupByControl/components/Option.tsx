@@ -26,7 +26,7 @@ import {
   OptionControlContainer,
   Label,
 } from 'src/explore/components/OptionControls';
-import { OptionProps } from '../types'
+import { OptionProps } from '../types';
 
 function Option(props: OptionProps) {
   return (
@@ -39,14 +39,14 @@ function Option(props: OptionProps) {
         <Icon name="x-small" color={props.theme.colors.grayscale.light1} />
       </CloseContainer>
       <Label data-test="control-label">
-        <ColumnOption
-          column={props.column}
-          showType
-        />
+        <ColumnOption column={props.column} showType />
       </Label>
       {props.withCaret && (
         <CaretContainer>
-          <Icon name="caret-right" color={props.theme.colors.grayscale.light1} />
+          <Icon
+            name="caret-right"
+            color={props.theme.colors.grayscale.light1}
+          />
         </CaretContainer>
       )}
     </OptionControlContainer>

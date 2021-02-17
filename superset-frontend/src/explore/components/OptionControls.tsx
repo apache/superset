@@ -104,14 +104,16 @@ export const AddControlLabel = styled.div<{
   color: ${({ theme }) => theme.colors.grayscale.light1};
   border: dashed 1px ${({ theme }) => theme.colors.grayscale.light2};
   border-radius: ${({ theme }) => theme.gridUnit}px;
-  cursor: ${({ cancelHover }) => cancelHover ? 'inherit' : 'pointer'};
+  cursor: ${({ cancelHover }) => (cancelHover ? 'inherit' : 'pointer')};
 
   :hover {
-    background-color: ${({ cancelHover, theme }) => cancelHover ? 'inherit' : theme.colors.grayscale.light4};
+    background-color: ${({ cancelHover, theme }) =>
+      cancelHover ? 'inherit' : theme.colors.grayscale.light4};
   }
 
   :active {
-    background-color: ${({ cancelHover, theme }) => cancelHover ? 'inherit' : theme.colors.grayscale.light3};
+    background-color: ${({ cancelHover, theme }) =>
+      cancelHover ? 'inherit' : theme.colors.grayscale.light3};
   }
 `;
 
