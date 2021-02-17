@@ -23,8 +23,9 @@ from superset.exceptions import SupersetException
 BLOCKLIST = {
     # sqlite creates a local DB, which allows mapping server's filesystem
     "sqlite",
-    # shillelagh allow opening local files (eg, csv:///etc/passwd)
+    # shillelagh allows opening local files (eg, 'SELECT * FROM "csv:///etc/passwd"')
     "shillelagh",
+    "shillelagh+apsw",
 }
 
 
