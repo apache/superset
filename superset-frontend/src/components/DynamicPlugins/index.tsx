@@ -87,7 +87,7 @@ function pluginContextReducer(
       });
       return {
         ...state,
-        loading: true,
+        loading: action.keys.length > 0,
         plugins,
       };
     }

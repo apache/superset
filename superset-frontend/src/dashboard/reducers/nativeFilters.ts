@@ -26,7 +26,6 @@ import {
 } from 'src/dashboard/actions/nativeFilters';
 import {
   FilterSets,
-  FiltersSet,
   NativeFiltersState,
   NativeFilterState,
 } from './types';
