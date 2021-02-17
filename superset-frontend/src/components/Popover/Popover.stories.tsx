@@ -30,7 +30,14 @@ export const InteractivePopover = (
   args: JSX.IntrinsicAttributes & PopoverProps & React.RefAttributes<unknown>,
 ) => (
   <Popover {...args}>
-    <Button>I am a button</Button>
+    <Button
+      style={{
+        display: 'block',
+        margin: '80px auto',
+      }}
+    >
+      I am a button
+    </Button>
   </Popover>
 );
 
