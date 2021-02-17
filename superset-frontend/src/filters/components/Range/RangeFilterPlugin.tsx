@@ -35,7 +35,9 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const { min, max }: { min: number; max: number } = row;
   const { groupby, currentValue, defaultValue } = formData;
   const [col = ''] = groupby || [];
-  const [value, setValue] = useState<[number, number]>(defaultValue ?? [0, 0]);
+  const [value, setValue] = useState<[number, number]>(
+    defaultValue ?? [min, max],
+  );
 
   const handleAfterChange = (value: [number, number]) => {
     const [lower, upper] = value;
@@ -53,11 +55,11 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   };
 
   useEffect(() => {
-    handleChange(currentValue ?? [0, 0]);
+    handleChange(currentValue ?? [min, max]);
   }, [JSON.stringify(currentValue)]);
 
   useEffect(() => {
-    handleChange(defaultValue ?? [0, 0]);
+    handleChange(defaultValue ?? [min, max]);
     // I think after Config Modal update some filter it re-creates default value for all other filters
     // so we can process it like this `JSON.stringify` or start to use `Immer`
   }, [JSON.stringify(defaultValue)]);
