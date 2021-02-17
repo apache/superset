@@ -35,7 +35,11 @@ export function getInitialFilterState(id: string): FilterState {
 
 export function getInitialState(
   filterConfig: FilterConfiguration,
-  prevFiltersState: FiltersState = { native: {}, cross: {}, own: {} },
+  prevFiltersState: FiltersState = {
+    nativeFilters: {},
+    crossFilters: {},
+    ownFilters: {},
+  },
 ): NativeFiltersState {
   const filters = {};
   const filtersState = { ...prevFiltersState };
@@ -43,8 +47,8 @@ export function getInitialState(
   filterConfig.forEach(filter => {
     const { id } = filter;
     filters[id] = filter;
-    filtersState.native[id] =
-      prevFiltersState?.native[id] ?? getInitialFilterState(id);
+    filtersState.nativeFilters[id] =
+      prevFiltersState?.nativeFilters[id] ?? getInitialFilterState(id);
   });
   return state;
 }
@@ -68,7 +72,7 @@ const getUnitState = (
 export default function nativeFilterReducer(
   state: NativeFiltersState = {
     filters: {},
-    filtersState: { native: {}, cross: {}, own: {} },
+    filtersState: { nativeFilters: {}, crossFilters: {}, ownFilters: {} },
   },
   action: AnyFilterAction,
 ) {
@@ -79,9 +83,9 @@ export default function nativeFilterReducer(
         filters,
         filtersState: {
           ...filtersState,
-          native: getUnitState('native', action, filtersState),
-          cross: getUnitState('cross', action, filtersState),
-          own: getUnitState('own', action, filtersState),
+          nativeFilters: getUnitState('nativeFilters', action, filtersState),
+          crossFilters: getUnitState('crossFilters', action, filtersState),
+          ownFilters: getUnitState('ownFilters', action, filtersState),
         },
       };
 

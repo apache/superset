@@ -160,7 +160,7 @@ const getFilterIds = (config: FilterConfiguration) =>
   config.map(filter => filter.id);
 
 /**
- * This is the modal to configure all the dashboard-native filters.
+ * This is the modal to configure all the dashboard-nativeFilters filters.
  * Manages modal-level state, such as what filters are in the list,
  * and which filter is currently being edited.
  *
@@ -487,7 +487,7 @@ export function FilterConfigModal({
       <Button
         key="cancel"
         buttonStyle="secondary"
-        data-test="native-filter-modal-cancel-button"
+        data-test="nativeFilters-filter-modal-cancel-button"
         onClick={handleCancel}
       >
         {t('Cancel')}
@@ -496,7 +496,7 @@ export function FilterConfigModal({
         key="submit"
         buttonStyle="primary"
         onClick={onOk}
-        data-test="native-filter-modal-save-button"
+        data-test="nativeFilters-filter-modal-save-button"
       >
         {t('Save')}
       </Button>,

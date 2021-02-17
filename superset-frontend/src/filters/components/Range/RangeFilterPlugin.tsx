@@ -41,7 +41,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
     setDataMask({
       // @ts-ignore
-      native: {
+      nativeFilters: {
         extraFormData: getRangeExtraFormData(col, lower, upper),
         currentState: {
           value,

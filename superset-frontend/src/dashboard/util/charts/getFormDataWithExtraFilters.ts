@@ -89,7 +89,7 @@ export default function getFormDataWithExtraFilters({
   }
 
   const { extraFormData: newExtra = {} } =
-    nativeFilters.filtersState?.own?.[chart.id] ?? {};
+    nativeFilters.filtersState?.ownFilters?.[chart.id] ?? {};
   extraData.extra_form_data = mergeExtraFormData(
     extraData?.extra_form_data,
     newExtra,

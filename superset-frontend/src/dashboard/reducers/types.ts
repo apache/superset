@@ -80,15 +80,15 @@ export type FilterState = {
 };
 
 export type FullFilterState = {
-  native?: FilterState;
-  cross?: FilterState;
-  own?: FilterState;
+  nativeFilters?: FilterState;
+  crossFilters?: FilterState;
+  ownFilters?: FilterState;
 };
 
 export type FiltersState = {
-  native: { [filterId: string]: FilterState };
-  cross: { [filterId: string]: FilterState };
-  own: { [filterId: string]: FilterState };
+  nativeFilters: { [filterId: string]: FilterState };
+  crossFilters: { [filterId: string]: FilterState };
+  ownFilters: { [filterId: string]: FilterState };
 };
 
 export type Filters = {

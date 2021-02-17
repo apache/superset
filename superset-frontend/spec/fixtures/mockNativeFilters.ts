@@ -72,14 +72,15 @@ export const nativeFilters: NativeFiltersState = {
     },
   },
   filtersState: {
-    cross: {},
-    own: {},
-    native: {
+    crossFilters: {},
+    ownFilters: {},
+    nativeFilters: {
       'NATIVE_FILTER-e7Q8zKixx': {
         id: 'NATIVE_FILTER-e7Q8zKixx',
         currentState: {
-        value: ['East Asia & Pacific'],
-      },extraFormData: {
+          value: ['East Asia & Pacific'],
+        },
+        extraFormData: {
           append_form_data: {
             filters: [
               {

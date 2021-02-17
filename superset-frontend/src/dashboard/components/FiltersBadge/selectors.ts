@@ -207,7 +207,8 @@ export const selectNativeIndicatorsForChart = (
       layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
     );
     const column = nativeFilter.targets[0]?.column?.name;
-    const filterState = nativeFilters.filtersState.native?.[nativeFilter.id];
+    const filterState =
+      nativeFilters.filtersState.nativeFilters?.[nativeFilter.id];
     let value = filterState?.currentState?.value ?? [];
     if (!Array.isArray(value)) {
       value = [value];

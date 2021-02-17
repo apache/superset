@@ -29,16 +29,16 @@ export function useFilters() {
 export function useCascadingFilters(id: string) {
   const {
     filters,
-    filtersState: { native },
+    filtersState: { nativeFilters },
   } = useSelector<any, NativeFiltersState>(state => state.nativeFilters);
   const filter = filters[id];
   const cascadeParentIds: string[] = filter?.cascadeParentIds ?? [];
   let cascadedFilters = {};
   cascadeParentIds.forEach(parentId => {
-    const parentState = native[parentId] || {};
+    const parentState = nativeFilters[parentId] || {};
     const { extraFormData: parentExtra = {} } = parentState;
     cascadedFilters = {
-      native: mergeExtraFormData(cascadedFilters, parentExtra),
+      nativeFilters: mergeExtraFormData(cascadedFilters, parentExtra),
     };
   });
   return cascadedFilters;
@@ -47,6 +47,7 @@ export function useCascadingFilters(id: string) {
 export function useFilterStateNative(id: string) {
   return useSelector<any, FilterState>(
     state =>
-      state.nativeFilters.filtersState.native[id] ?? getInitialFilterState(id),
+      state.nativeFilters.filtersState.nativeFilters[id] ??
+      getInitialFilterState(id),
   );
 }

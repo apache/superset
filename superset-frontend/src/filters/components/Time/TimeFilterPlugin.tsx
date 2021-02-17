@@ -39,7 +39,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   const handleTimeRangeChange = (timeRange: string): void => {
     setDataMask({
       // @ts-ignore
-      native: {
+      nativeFilters: {
         extraFormData: {
           override_form_data: {
             time_range: timeRange,

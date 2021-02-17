@@ -35,7 +35,7 @@ import { getFormData } from '../utils';
 
 export function useFiltersState() {
   return useSelector<any, FilterState>(
-    state => state.nativeFilters.filtersState.native,
+    state => state.nativeFilters.filtersState.nativeFilters,
   );
 }
 

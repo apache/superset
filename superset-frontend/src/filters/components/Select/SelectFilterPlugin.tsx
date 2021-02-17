@@ -63,7 +63,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       enableEmptyFilter && !inverseSelection && resultValue?.length === 0;
     setDataMask({
       // @ts-ignore
-      native: {
+      nativeFilters: {
         extraFormData: getSelectExtraFormData(
           col,
           resultValue,

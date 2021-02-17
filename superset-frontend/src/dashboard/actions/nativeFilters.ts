@@ -99,9 +99,9 @@ export const UPDATE_EXTRA_FORM_DATA = 'UPDATE_EXTRA_FORM_DATA';
 export interface UpdateExtraFormData {
   type: typeof UPDATE_EXTRA_FORM_DATA;
   filterId: string;
-  native?: Omit<FilterState, 'id'>;
-  cross?: Omit<FilterState, 'id'>;
-  own?: Omit<FilterState, 'id'>;
+  nativeFilters?: Omit<FilterState, 'id'>;
+  crossFilters?: Omit<FilterState, 'id'>;
+  ownFilters?: Omit<FilterState, 'id'>;
 }
 
 export function setFilterState(
@@ -118,15 +118,15 @@ export function setFilterState(
 }
 /**
  * Sets the selected option(s) for a given filter
- * @param filterId the id of the native filter
+ * @param filterId the id of the nativeFilters filter
  * @param filterState
  */
 export function updateExtraFormData(
   filterId: string,
   filterState: {
-    native?: Omit<FilterState, 'id'>;
-    cross?: Omit<FilterState, 'id'>;
-    own?: Omit<FilterState, 'id'>;
+    nativeFilters?: Omit<FilterState, 'id'>;
+    crossFilters?: Omit<FilterState, 'id'>;
+    ownFilters?: Omit<FilterState, 'id'>;
   },
 ): UpdateExtraFormData {
   return {

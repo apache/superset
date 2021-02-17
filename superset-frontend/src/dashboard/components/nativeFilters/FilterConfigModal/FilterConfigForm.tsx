@@ -294,9 +294,9 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
             chartType={formFilter?.filterType}
             hooks={{
               // @ts-ignore
-                setDataMask: ({ native }) => {
+              setDataMask: ({ nativeFilters }) => {
                 setFilterFieldValues(form, filterId, {
-                  defaultValue: native?.currentState?.value,
+                  defaultValue: nativeFilters?.currentState?.value,
                 });
                 forceUpdate();
               },
