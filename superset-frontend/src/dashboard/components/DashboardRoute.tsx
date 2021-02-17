@@ -19,6 +19,7 @@
 import React, { useEffect, useState, FC } from 'react';
 import { connect } from 'react-redux';
 import { AnyAction, bindActionCreators, Dispatch } from 'redux';
+import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import setBootstrapData from 'src/dashboard/actions/bootstrapData';
 import Loading from 'src/components/Loading';
 import getInitialState from '../reducers/getInitialState';
@@ -27,17 +28,28 @@ interface DashboardRouteProps {
   actions: {
     setBootstrapData: (arg0: object) => void;
   };
+  dashboardId: string;
 }
-const DashboardRoute: FC<DashboardRouteProps> = ({ children, actions }) => {
+const DashboardRoute: FC<DashboardRouteProps> = ({
+  children,
+  actions,
+  dashboardId,
+}) => {
   const appContainer = document.getElementById('app');
   const bootstrapData = appContainer?.getAttribute('data-bootstrap');
   const bootstrapDataJson = JSON.parse(bootstrapData || '');
   const [loaded, setLoaded] = useState(false);
-  const initState = getInitialState(bootstrapDataJson);
+
   useEffect(() => {
-    actions.setBootstrapData(initState);
-    // setLoaded
-    setLoaded(true);
+    SupersetClient.get({ endpoint: `/api/v1/dashboard/${dashboardId}/charts` })
+      .then(r => {
+        const initState = getInitialState(bootstrapDataJson, r.json.result);
+        actions.setBootstrapData(initState);
+        setLoaded(true);
+      })
+      .catch(err => {
+        console.log('err', err);
+      });
   }, []);
   if (!loaded) return <Loading />;
   return <>{children} </>;

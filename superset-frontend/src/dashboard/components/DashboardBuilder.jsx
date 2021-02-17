@@ -138,8 +138,6 @@ class DashboardBuilder extends React.Component {
   static getRootLevelTabsComponent(dashboardLayout) {
     const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
     const rootChildId = dashboardRoot?.children[0];
-    console.log('rootChildId', rootChildId);
-    console.log('this.props', this.props);
     if (!rootChildId) return {};
     return rootChildId === DASHBOARD_GRID_ID
       ? dashboardLayout[DASHBOARD_ROOT_ID]
@@ -225,8 +223,6 @@ class DashboardBuilder extends React.Component {
     } = this.props;
     const { tabIndex } = this.state;
     const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
-    console.log('dashboardLayout', dashboardLayout)
-    console.log('dashboardRoot', dashboardRoot);
     const rootChildId = dashboardRoot?.children[0];
     const topLevelTabs =
       rootChildId !== DASHBOARD_GRID_ID && dashboardLayout[rootChildId];

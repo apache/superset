@@ -48,10 +48,14 @@ import getLocationHash from '../util/getLocationHash';
 import newComponentFactory from '../util/newComponentFactory';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 
-export default function getInitialState(bootstrapData) {
+export default function getInitialState(bootstrapData, chartdata) {
   const { user_id, datasources, common, editMode, urlParams } = bootstrapData;
   const dashboard = { ...bootstrapData.dashboard_data };
   let preselectFilters = {};
+  chartdata.forEach(chart => {
+    // eslint-disable-next-line no-param-reassign
+    chart.slice_id = chart.form_data.slice_id;
+  });
   try {
     // allow request parameter overwrite dashboard metadata
     preselectFilters = JSON.parse(
@@ -105,7 +109,7 @@ export default function getInitialState(bootstrapData) {
   const dashboardFilters = {};
   const slices = {};
   const sliceIds = new Set();
-  dashboard.slices.forEach(slice => {
+  chartdata.forEach(slice => {
     const key = slice.slice_id;
     const form_data = {
       ...slice.form_data,
