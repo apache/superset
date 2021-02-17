@@ -20,7 +20,7 @@ import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import { Provider } from 'react-redux';
+import { Provider, useSelector } from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 import DatabaseList from 'src/views/CRUD/data/database/DatabaseList';
@@ -35,6 +35,11 @@ import { act } from 'react-dom/test-utils';
 // store needed for withToasts(DatabaseList)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
+
+jest.mock('react-redux', () => ({
+  ...jest.requireActual('react-redux'),
+  useSelector: jest.fn(),
+}));
 
 const databasesInfoEndpoint = 'glob:*/api/v1/database/_info*';
 const databasesEndpoint = 'glob:*/api/v1/database/?*';
@@ -81,12 +86,18 @@ fetchMock.get(databaseRelatedEndpoint, {
   },
 });
 
+const mockAppState = { commmon: { conf: { SQLALCHEMY_DOCS_URL: 'test' } } };
+
 describe('DatabaseList', () => {
   const wrapper = mount(
     <Provider store={store}>
       <DatabaseList user={mockUser} />
     </Provider>,
   );
+  beforeEach(() => {
+    useSelector.mockImplementation(callback => callback(mockAppState));
+  });
+
   beforeAll(async () => {
     await waitForComponentToPaint(wrapper);
   });

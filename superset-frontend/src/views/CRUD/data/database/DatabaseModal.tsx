@@ -149,7 +149,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     '{\n  "metadata_params": {},\n  "engine_params": {},' +
     '\n  "metadata_cache_timeout": {},\n  "schemas_allowed_for_csv_upload": [] \n}';
 
-  const conf = useSelector((state: RootState) => state.common.conf);
+  const conf = useSelector((state: RootState) => {
+    console.log(state);
+    return state.common.conf;
+  });
 
   // Database fetch logic
   const {
@@ -415,7 +418,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="helper">
               {t('Refer to the ')}
               <a
-                href={conf.SQLALCHEMY_DOCS_URL}
+                href={conf?.SQLALCHEMY_DOCS_URL}
                 target="_blank"
                 rel="noopener noreferrer"
               >
