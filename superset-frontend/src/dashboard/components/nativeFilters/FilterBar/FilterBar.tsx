@@ -27,6 +27,7 @@ import { Input, Select } from 'src/common/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   saveFilterSets,
+  setFilterSetsConfiguration,
   setFiltersState,
 } from 'src/dashboard/actions/nativeFilters';
 import { SelectValue } from 'antd/lib/select';
@@ -37,7 +38,7 @@ import {
   useFiltersState,
   useSetExtraFormData,
 } from './state';
-import { useFilterConfiguration } from '../state';
+import { useFilterConfiguration, useFilterSetsConfiguration } from '../state';
 import { Filter } from '../types';
 import {
   buildCascadeFiltersTree,
@@ -193,6 +194,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const filtersState = useFiltersState();
   const filterSets = useFilterSets();
   const filterConfigs = useFilterConfiguration();
+  const filterSetsConfigs = useFilterSetsConfiguration();
   const filters = useFilters();
   const [filtersSetName, setFiltersSetName] = useState('');
   const canEdit = useSelector<any, boolean>(
@@ -260,10 +262,14 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const handleSaveFilterSets = () => {
     dispatch(
-      saveFilterSets(
-        filtersSetName.trim(),
-        generateFiltersSetId(),
-        filtersState,
+      setFilterSetsConfiguration(
+        filterSetsConfigs.concat([
+          {
+            name: filtersSetName.trim(),
+            id: generateFiltersSetId(),
+            filtersState,
+          },
+        ]),
       ),
     );
     setFiltersSetName('');

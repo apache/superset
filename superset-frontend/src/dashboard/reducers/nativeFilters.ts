@@ -21,9 +21,15 @@ import {
   SAVE_FILTER_SETS,
   SET_EXTRA_FORM_DATA,
   SET_FILTER_CONFIG_COMPLETE,
+  SET_FILTER_SETS_CONFIG_COMPLETE,
   SET_FILTERS_STATE,
 } from 'src/dashboard/actions/nativeFilters';
-import { NativeFiltersState, NativeFilterState } from './types';
+import {
+  FilterSets,
+  FiltersSet,
+  NativeFiltersState,
+  NativeFilterState,
+} from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
 
 export function getInitialFilterState(id: string): NativeFilterState {
@@ -33,22 +39,32 @@ export function getInitialFilterState(id: string): NativeFilterState {
   };
 }
 
-export function getInitialState(
-  filterConfig: FilterConfiguration,
-  prevState: NativeFiltersState,
-): NativeFiltersState {
-  const filters = {};
-  const filtersState = {};
+export function getInitialState({
+  filterSetsConfig,
+  filterConfig,
+  state: prevState,
+}: {
+  filterSetsConfig?: FiltersSet[];
+  filterConfig?: FilterConfiguration;
+  state?: NativeFiltersState;
+}): NativeFiltersState {
+  const filters = prevState?.filters ?? {};
+  const filtersState = prevState?.filtersState ?? {};
+  const filterSets: FilterSets = prevState?.filterSets ?? {};
   const state = {
     filters,
     filtersState,
-    filterSets: prevState?.filterSets ?? {},
+    filterSets,
   };
-  filterConfig.forEach(filter => {
+  filterConfig?.forEach(filter => {
     const { id } = filter;
     filters[id] = filter;
     filtersState[id] =
       prevState?.filtersState?.[id] || getInitialFilterState(id);
+  });
+  filterSetsConfig?.forEach(filtersSet => {
+    const { id } = filtersSet;
+    filterSets[id] = filtersSet;
   });
   return state;
 }
@@ -94,7 +110,13 @@ export default function nativeFilterReducer(
       };
 
     case SET_FILTER_CONFIG_COMPLETE:
-      return getInitialState(action.filterConfig, state);
+      return getInitialState({ filterConfig: action.filterConfig, state });
+
+    case SET_FILTER_SETS_CONFIG_COMPLETE:
+      return getInitialState({
+        filterSetsConfig: action.filterSetsConfig,
+        state,
+      });
 
     // TODO handle SET_FILTER_CONFIG_FAIL action
     default:
