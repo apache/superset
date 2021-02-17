@@ -22,6 +22,7 @@ from sqlalchemy.types import TypeDecorator
 from sqlalchemy.sql.sqltypes import Integer, TIMESTAMP, DATE
 from sqlalchemy.sql.type_api import TypeEngine
 from sqlalchemy.sql.visitors import Visitable
+from sqlalchemy.engine.interfaces import Dialect
 
 # _compiler_dispatch is defined to help with type compilation
 
@@ -103,7 +104,7 @@ class TimeStamp(TypeDecorator):
     impl = TIMESTAMP
 
     @classmethod
-    def process_bind_param(cls, value, dialect) -> str:
+    def process_bind_param(cls, value: str, dialect: Dialect) -> str:
         """
         Used for in-line rendering of TIMESTAMP data type
         as Presto does not support automatic casting.
@@ -118,7 +119,7 @@ class Date(TypeDecorator):
     impl = DATE
 
     @classmethod
-    def process_bind_param(cls, value, dialect) -> str:
+    def process_bind_param(cls, value: str, dialect: Dialect) -> str:
         """
         Used for in-line rendering of DATE data type
         as Presto does not support automatic casting.
