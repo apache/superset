@@ -131,4 +131,6 @@ SMTP_PASSWORD = "1"
 SMTP_MAIL_FROM = "saurabhnigam@roboticwares.com"
 EMAIL_REPORTS_USER = 'admin'
 WEBDRIVER_BASEURL = "http://{{ template "superset.fullname" . }}:{{ .Values.service.port }}/"
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = "None"
 {{- end }}
