@@ -60,8 +60,8 @@ import {
   EchartsTimeseriesChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
-  AntdSelectFilterPlugin,
-  AntdRangeFilterPlugin,
+  SelectFilterPlugin,
+  RangeFilterPlugin,
   TimeFilterPlugin,
 } from 'src/filters/components/';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
@@ -112,8 +112,8 @@ export default class MainPreset extends Preset {
         new EchartsTimeseriesChartPlugin().configure({
           key: 'echarts_timeseries',
         }),
-        new AntdSelectFilterPlugin().configure({ key: 'filter_select' }),
-        new AntdRangeFilterPlugin().configure({ key: 'filter_range' }),
+        new SelectFilterPlugin().configure({ key: 'filter_select' }),
+        new RangeFilterPlugin().configure({ key: 'filter_range' }),
         new TimeFilterPlugin().configure({ key: 'filter_time' }),
       ],
     });

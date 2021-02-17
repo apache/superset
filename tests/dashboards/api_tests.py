@@ -23,6 +23,8 @@ from typing import List, Optional
 from unittest.mock import patch
 from zipfile import is_zipfile, ZipFile
 
+from tests.insert_chart_mixin import InsertChartMixin
+
 import pytest
 import prison
 import yaml
@@ -54,9 +56,10 @@ from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_s
 DASHBOARDS_FIXTURE_COUNT = 10
 
 
-class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
+class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
     resource_name = "dashboard"
 
+    dashboards: List[Dashboard] = []
     dashboard_data = {
         "dashboard_title": "title1_changed",
         "slug": "slug1_changed",
@@ -109,21 +112,35 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         with self.create_app().app_context():
             dashboards = []
             admin = self.get_user("admin")
-            for cx in range(DASHBOARDS_FIXTURE_COUNT - 1):
-                dashboards.append(
-                    self.insert_dashboard(f"title{cx}", f"slug{cx}", [admin.id])
+            charts = []
+            half_dash_count = round(DASHBOARDS_FIXTURE_COUNT / 2)
+            for cx in range(DASHBOARDS_FIXTURE_COUNT):
+                dashboard = self.insert_dashboard(
+                    f"title{cx}",
+                    f"slug{cx}",
+                    [admin.id],
+                    slices=charts if cx < half_dash_count else [],
                 )
+                if cx < half_dash_count:
+                    chart = self.insert_chart(f"slice{cx}", [admin.id], 1, params="{}")
+                    charts.append(chart)
+                    dashboard.slices = [chart]
+                    db.session.add(dashboard)
+                dashboards.append(dashboard)
             fav_dashboards = []
-            for cx in range(round(DASHBOARDS_FIXTURE_COUNT / 2)):
+            for cx in range(half_dash_count):
                 fav_star = FavStar(
                     user_id=admin.id, class_name="Dashboard", obj_id=dashboards[cx].id
                 )
                 db.session.add(fav_star)
                 db.session.commit()
                 fav_dashboards.append(fav_star)
+            self.dashboards = dashboards
             yield dashboards
 
             # rollback changes
+            for chart in charts:
+                db.session.delete(chart)
             for dashboard in dashboards:
                 db.session.delete(dashboard)
             for fav_dashboard in fav_dashboards:
@@ -151,6 +168,45 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             db.session.delete(report_schedule)
             db.session.delete(dashboard)
             db.session.commit()
+
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_get_dashboard_charts(self):
+        """
+        Dashboard API: Test getting charts belonging to a dashboard
+        """
+        dashboard = self.dashboards[0]
+        uri = f"api/v1/dashboard/{dashboard.id}/charts"
+        response = self.get_assert_metric(uri, "get_charts")
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data.decode("utf-8"))
+        self.assertEqual(len(data["result"]), 1)
+        self.assertEqual(
+            data["result"][0]["slice_name"], dashboard.slices[0].slice_name
+        )
+
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_get_dashboard_charts_not_found(self):
+        """
+        Dashboard API: Test getting charts belonging to a dashboard that does not exist
+        """
+        self.login(username="admin")
+        bad_id = self.get_nonexistent_numeric_id(Dashboard)
+        uri = f"api/v1/dashboard/{bad_id}/charts"
+        response = self.get_assert_metric(uri, "get_charts")
+        self.assertEqual(response.status_code, 404)
+
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_get_dashboard_charts_empty(self):
+        """
+        Dashboard API: Test getting charts belonging to a dashboard without any charts
+        """
+        self.login(username="admin")
+        # the fixture setup assigns no charts to the second half of dashboards
+        uri = f"api/v1/dashboard/{self.dashboards[-1].id}/charts"
+        response = self.get_assert_metric(uri, "get_charts")
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data.decode("utf-8"))
+        self.assertEqual(data["result"], [])
 
     def test_get_dashboard(self):
         """
@@ -228,9 +284,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         """
         Dashboard API: Test get dashboard not found
         """
-        max_id = db.session.query(func.max(Dashboard.id)).scalar()
+        bad_id = self.get_nonexistent_numeric_id(Dashboard)
         self.login(username="admin")
-        uri = f"api/v1/dashboard/{max_id + 1}"
+        uri = f"api/v1/dashboard/{bad_id}"
         rv = self.get_assert_metric(uri, "get")
         self.assertEqual(rv.status_code, 404)
 
@@ -575,7 +631,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         self.assertEqual(rv.status_code, 404)
 
     @pytest.mark.usefixtures("create_dashboard_with_report", "create_dashboards")
-    def test_bulk_delete_dashboard_with_report(self):
+    def test_delete_bulk_dashboard_with_report(self):
         """
         Dashboard API: Test bulk delete with associated report
         """
@@ -1308,7 +1364,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     def test_import_dashboard_invalid(self):
         """
-        Dataset API: Test import invalid dashboard
+        Dashboard API: Test import invalid dashboard
         """
         self.login(username="admin")
         uri = "api/v1/dashboard/import/"

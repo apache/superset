@@ -17,21 +17,21 @@
  * under the License.
  */
 import { QueryFormData, DataRecord, SetDataMaskHook } from '@superset-ui/core';
-import { AntdPluginFilterStylesProps } from '../types';
+import { PluginFilterStylesProps } from '../types';
 
 interface PluginFilterTimeCustomizeProps {
   defaultValue?: string | null;
   currentValue?: string | null;
 }
 
-export type AntdPluginFilterSelectQueryFormData = QueryFormData &
-  AntdPluginFilterStylesProps &
+export type PluginFilterSelectQueryFormData = QueryFormData &
+  PluginFilterStylesProps &
   PluginFilterTimeCustomizeProps;
 
-export type AntdPluginFilterTimeProps = AntdPluginFilterStylesProps & {
+export type PluginFilterTimeProps = PluginFilterStylesProps & {
   data: DataRecord[];
   setDataMask: SetDataMaskHook;
-  formData: AntdPluginFilterSelectQueryFormData;
+  formData: PluginFilterSelectQueryFormData;
 };
 
 export const DEFAULT_FORM_DATA: PluginFilterTimeCustomizeProps = {

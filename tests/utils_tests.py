@@ -45,6 +45,7 @@ from superset.utils.core import (
     cast_to_num,
     convert_legacy_filters_into_adhoc,
     create_ssl_cert_file,
+    DTTM_ALIAS,
     format_timedelta,
     GenericDataType,
     get_form_data_token,
@@ -59,6 +60,7 @@ from superset.utils.core import (
     merge_extra_filters,
     merge_extra_form_data,
     merge_request_params,
+    normalize_dttm_col,
     parse_ssl_cert,
     parse_js_uri_path_item,
     extract_dataframe_dtypes,
@@ -1131,3 +1133,30 @@ class TestUtils(SupersetTestCase):
 
         df = pd.DataFrame(data={col[0]: col[2] for col in cols})
         assert extract_dataframe_dtypes(df) == [col[1] for col in cols]
+
+    def test_normalize_dttm_col(self):
+        ts = pd.Timestamp(2021, 2, 15, 19, 0, 0, 0)
+        df = pd.DataFrame([{"__timestamp": ts, "a": 1}])
+
+        # test regular (non-numeric) format
+        assert normalize_dttm_col(df, None, 0, None)[DTTM_ALIAS][0] == ts
+        assert normalize_dttm_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts
+        assert normalize_dttm_col(df, "epoch_s", 0, None)[DTTM_ALIAS][0] == ts
+
+        # test offset
+        assert normalize_dttm_col(df, None, 1, None)[DTTM_ALIAS][0] == pd.Timestamp(
+            2021, 2, 15, 20, 0, 0, 0
+        )
+
+        # test offset and timedelta
+        assert normalize_dttm_col(df, None, 1, timedelta(minutes=30))[DTTM_ALIAS][
+            0
+        ] == pd.Timestamp(2021, 2, 15, 20, 30, 0, 0)
+
+        # test numeric epoch_s format
+        df = pd.DataFrame([{"__timestamp": ts.timestamp(), "a": 1}])
+        assert normalize_dttm_col(df, "epoch_s", 0, None)[DTTM_ALIAS][0] == ts
+
+        # test numeric epoch_ms format
+        df = pd.DataFrame([{"__timestamp": ts.timestamp() * 1000, "a": 1}])
+        assert normalize_dttm_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts

@@ -18,9 +18,9 @@
  */
 import { QueryFormData, DataRecord, SetDataMaskHook } from '@superset-ui/core';
 import { RefObject } from 'react';
-import { AntdPluginFilterStylesProps } from '../types';
+import { PluginFilterStylesProps } from '../types';
 
-interface AntdPluginFilterSelectCustomizeProps {
+interface PluginFilterSelectCustomizeProps {
   defaultValue?: (string | number)[] | null;
   currentValue?: (string | number)[] | null;
   enableEmptyFilter: boolean;
@@ -30,17 +30,17 @@ interface AntdPluginFilterSelectCustomizeProps {
   inputRef?: RefObject<HTMLInputElement>;
 }
 
-export type AntdPluginFilterSelectQueryFormData = QueryFormData &
-  AntdPluginFilterStylesProps &
-  AntdPluginFilterSelectCustomizeProps;
+export type PluginFilterSelectQueryFormData = QueryFormData &
+  PluginFilterStylesProps &
+  PluginFilterSelectCustomizeProps;
 
-export type AntdPluginFilterSelectProps = AntdPluginFilterStylesProps & {
+export type PluginFilterSelectProps = PluginFilterStylesProps & {
   data: DataRecord[];
   setDataMask: SetDataMaskHook;
-  formData: AntdPluginFilterSelectQueryFormData;
+  formData: PluginFilterSelectQueryFormData;
 };
 
-export const DEFAULT_FORM_DATA: AntdPluginFilterSelectCustomizeProps = {
+export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
   defaultValue: null,
   currentValue: null,
   enableEmptyFilter: false,
