@@ -21,6 +21,7 @@ import { t } from '@superset-ui/core';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import { now } from '../modules/dates';
 import * as actions from './chartAction';
+import { SET_BOOTSTRAP_DATA } from '../dashboard/actions/bootstrapData';
 
 export const chart = {
   id: 0,
@@ -191,7 +192,9 @@ export default function chartReducer(charts = {}, action) {
     delete charts[key];
     return charts;
   }
-
+  if (action.type === SET_BOOTSTRAP_DATA) {
+    return { ...action.data.charts };
+  }
   if (action.type in actionHandlers) {
     return {
       ...charts,

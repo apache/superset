@@ -48,10 +48,10 @@ import { SET_BOOTSTRAP_DATA } from '../actions/bootstrapData';
 const actionHandlers = {
   [SET_BOOTSTRAP_DATA](state, action) {
     return {
-      ...state,
-      ...action.initState.dashbaordLayout,
+      ...action.data.dashboardLayout.present,
     };
   },
+
   [UPDATE_COMPONENTS](state, action) {
     const {
       payload: { nextComponents },

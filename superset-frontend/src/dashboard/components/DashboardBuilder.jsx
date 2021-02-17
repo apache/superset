@@ -225,6 +225,7 @@ class DashboardBuilder extends React.Component {
     } = this.props;
     const { tabIndex } = this.state;
     const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
+    console.log('dashboardLayout', dashboardLayout)
     console.log('dashboardRoot', dashboardRoot);
     const rootChildId = dashboardRoot?.children[0];
     const topLevelTabs =

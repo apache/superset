@@ -17,7 +17,7 @@
  * under the License.
  */
 import { hot } from 'react-hot-loader/root';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Provider } from 'react-redux';
 import { ThemeProvider } from '@superset-ui/core';
 import { DndProvider } from 'react-dnd';
@@ -25,6 +25,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import setupApp from '../setup/setupApp';
 import setupPlugins from '../setup/setupPlugins';
+import DashboardRoute from './components/DashboardRoute';
 import DashboardContainer from './containers/Dashboard';
 import { theme } from '../preamble';
 
@@ -36,7 +37,9 @@ const App = ({ store }) => (
     <DndProvider backend={HTML5Backend}>
       <ThemeProvider theme={theme}>
         <DynamicPluginProvider>
-          <DashboardContainer />
+          <DashboardRoute store={store}>
+            <DashboardContainer />
+          </DashboardRoute>
         </DynamicPluginProvider>
       </ThemeProvider>
     </DndProvider>

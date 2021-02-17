@@ -54,9 +54,6 @@ const CHANGE_FILTER_VALUE_ACTIONS = [ADD_FILTER, REMOVE_FILTER, CHANGE_FILTER];
 
 export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
   const actionHandlers = {
-    [SET_BOOTSTRAP_DATA]() {
-      return { dashboardFilters: action.initState.dashboardFilters };
-    },
     [ADD_FILTER]() {
       const { chartId, component, form_data } = action;
       const { columns, labels } = getFilterConfigsFromFormdata(form_data);
@@ -165,6 +162,10 @@ export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
 
     return updatedFilters;
   }
+  if (action.type === SET_BOOTSTRAP_DATA) {
+    return action.data.dashboardFilters;
+  }
+
   if (action.type in actionHandlers) {
     const updatedFilters = {
       ...dashboardFilters,
@@ -172,7 +173,6 @@ export default function dashboardFiltersReducer(dashboardFilters = {}, action) {
         dashboardFilters[action.chartId],
       ),
     };
-
     if (CHANGE_FILTER_VALUE_ACTIONS.includes(action.type)) {
       buildActiveFilters({ dashboardFilters: updatedFilters });
     }

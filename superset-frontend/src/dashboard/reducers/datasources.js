@@ -22,7 +22,7 @@ import { SET_BOOTSTRAP_DATA } from '../actions/bootstrapData';
 export default function datasourceReducer(datasources = {}, action) {
   const actionHandlers = {
     [SET_BOOTSTRAP_DATA]() {
-      return action.initState.datasource;
+      return action.data.datasources;
     },
     [SET_DATASOURCE]() {
       return action.datasource;
@@ -30,13 +30,16 @@ export default function datasourceReducer(datasources = {}, action) {
   };
 
   if (action.type in actionHandlers) {
-    return {
-      ...datasources,
-      [action.key]: actionHandlers[action.type](
-        datasources[action.key],
-        action,
-      ),
-    };
+    if (action.key) {
+      return {
+        ...datasources,
+        [action.key]: actionHandlers[action.type](
+          datasources[action.key],
+          action,
+        ),
+      };
+    }
+    return actionHandlers[action.type]();
   }
   return datasources;
 }

@@ -22,18 +22,15 @@ import thunk from 'redux-thunk';
 import { createStore, applyMiddleware, compose } from 'redux';
 import { initFeatureFlags } from 'src/featureFlags';
 import { initEnhancer } from '../reduxUtils';
-import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
 import initAsyncEvents from '../middleware/asyncEvent';
 import logger from '../middleware/loggerMiddleware';
 import * as actions from '../chart/chartAction';
-
 import App from './App';
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
 initFeatureFlags(bootstrapData.common.feature_flags);
-const initState = getInitialState(bootstrapData);
 
 const asyncEventMiddleware = initAsyncEvents({
   config: bootstrapData.common.conf,
@@ -45,30 +42,12 @@ const asyncEventMiddleware = initAsyncEvents({
     actions.chartUpdateFailed(response, componentId),
 });
 
-const asyncFunctionMiddleware = store => next => action => {
-  if (typeof action === 'function') {
-    return action(store.dispatch, store.getState);
-  }
-  return next(action);
-};
-
 const store = createStore(
   rootReducer,
-  // initState,
   compose(
-    applyMiddleware(
-      thunk,
-      logger,
-      asyncEventMiddleware,
-      asyncFunctionMiddleware,
-    ),
+    applyMiddleware(thunk, logger, asyncEventMiddleware),
     initEnhancer(false),
   ),
 );
-store.dispatch((dispatch, getState) => {
-  // make API call
-  console.log('----- i hit in store.dispatch --------')
-  dispatch({ type: 'SET_BOOTSTRAP_DATA', initState });
-});
 
 ReactDOM.render(<App store={store} />, document.getElementById('app'));

@@ -21,7 +21,6 @@ import { DASHBOARD_INFO_UPDATED } from '../actions/dashboardInfo';
 import { SET_BOOTSTRAP_DATA } from '../actions/bootstrapData';
 
 export default function dashboardStateReducer(state = {}, action) {
-  console.log('action', action.data);
   switch (action.type) {
     case DASHBOARD_INFO_UPDATED:
       return {
@@ -33,7 +32,7 @@ export default function dashboardStateReducer(state = {}, action) {
     case SET_BOOTSTRAP_DATA:
       return {
         ...state,
-        ...action.initState.dashboardInfo,
+        ...action.data.dashboardInfo,
         // set async api call data
       };
     default:

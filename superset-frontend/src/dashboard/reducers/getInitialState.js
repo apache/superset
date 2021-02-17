@@ -50,7 +50,6 @@ import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 
 export default function getInitialState(bootstrapData) {
   const { user_id, datasources, common, editMode, urlParams } = bootstrapData;
-
   const dashboard = { ...bootstrapData.dashboard_data };
   let preselectFilters = {};
   try {
@@ -263,7 +262,6 @@ export default function getInitialState(bootstrapData) {
     dashboard.metadata.filter_configuration || [],
   );
 
-  // console.log('nativeFilter', nativeFilters)
   return {
     datasources,
     sliceEntities: { ...initSliceEntities, slices, isLoading: false },

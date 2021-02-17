@@ -151,7 +151,7 @@ export const selectIndicatorsForChart = (
   // so grab the columns from the applied/rejected filters
   const appliedColumns = getAppliedColumns(chart);
   const rejectedColumns = getRejectedColumns(chart);
-
+  console.log('filter', filters)
   const indicators = Object.values(filters)
     .filter(filter => filter.chartId !== chartId)
     .reduce(

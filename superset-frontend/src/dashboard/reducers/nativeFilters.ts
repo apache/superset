@@ -55,8 +55,8 @@ export default function nativeFilterReducer(
   switch (action.type) {
     case SET_BOOTSTRAP_DATA:
       return {
-        filters: action.initState.nativeFilters.filters,
-        filtersState: action.initState.nativeFilters.filtersState,
+        filters: action.data.nativeFilters.filters,
+        filtersState: action.data.nativeFilters.filtersState,
       };
     case SET_EXTRA_FORM_DATA:
       return {

@@ -23,6 +23,7 @@ import {
   Filter,
   FilterConfiguration,
 } from 'src/dashboard/components/nativeFilters/types';
+import { SET_BOOTSTRAP_DATA } from './bootstrapData';
 import { dashboardInfoChanged } from './dashboardInfo';
 import { CurrentFilterState } from '../reducers/types';
 import { SelectedValues } from '../components/nativeFilters/FilterConfigModal/types';
@@ -95,6 +96,18 @@ export const setFilterConfiguration = (
   }
 };
 
+type Data = {
+  nativeFilters: {
+    filters: Filter;
+    filtersState: object;
+  };
+};
+
+export interface SetBooststapData {
+  type: typeof SET_BOOTSTRAP_DATA;
+  data: Data;
+}
+
 export const SET_EXTRA_FORM_DATA = 'SET_EXTRA_FORM_DATA';
 export interface SetExtraFormData {
   type: typeof SET_EXTRA_FORM_DATA;
@@ -139,4 +152,5 @@ export type AnyFilterAction =
   | SetFilterConfigComplete
   | SetFilterConfigFail
   | SetExtraFormData
-  | SetFilterState;
+  | SetFilterState
+  | SetBooststapData;

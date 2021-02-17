@@ -18,7 +18,7 @@
  */
 export const SET_BOOTSTRAP_DATA = 'SET_BOOTSTRAP_DATA';
 
-export function setBoostrapData(data) {
+export default function setBootstrapData(data) {
   return {
     type: SET_BOOTSTRAP_DATA,
     data,

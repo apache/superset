@@ -41,7 +41,7 @@ import { SET_BOOTSTRAP_DATA } from '../actions/bootstrapData';
 export default function dashboardStateReducer(state = {}, action) {
   const actionHandlers = {
     [SET_BOOTSTRAP_DATA]() {
-      return { ...state, ...action.initState.dashboardState };
+      return { ...state, ...action.data.dashboardState };
     },
     [UPDATE_CSS]() {
       return { ...state, css: action.css };

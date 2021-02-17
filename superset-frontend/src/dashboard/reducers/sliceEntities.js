@@ -39,7 +39,7 @@ export default function sliceEntitiesReducer(
   const actionHandlers = {
     [SET_BOOTSTRAP_DATA]() {
       return {
-        ...action.initState.sliceEntities,
+        ...action.data.sliceEntities,
       };
     },
     [FETCH_ALL_SLICES_STARTED]() {
