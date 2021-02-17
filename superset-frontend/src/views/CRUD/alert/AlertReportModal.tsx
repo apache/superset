@@ -837,10 +837,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const value = +target.value;
 
     // Need to make sure grace period is not lower than TIMEOUT_MIN
-    updateAlertState(
-      target.name,
-      value ? Math.max(value, TIMEOUT_MIN) : value,
-    );
+    updateAlertState(target.name, value ? Math.max(value, TIMEOUT_MIN) : value);
   };
 
   const onSQLChange = (value: string) => {
