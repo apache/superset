@@ -803,8 +803,7 @@ class TimeTableViz(BaseViz):
         return dict(
             records=pt.to_dict(orient="index"),
             columns=list(pt.columns),
-            # "groupby" may not exist in fd or it may exist and be None
-            is_group_by=len(fd.get("groupby") or []) > 0,
+            is_group_by=True if fd.get("groupby") else False,
         )
 
 
