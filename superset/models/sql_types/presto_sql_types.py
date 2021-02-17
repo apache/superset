@@ -96,6 +96,7 @@ class Row(TypeEngine):
     def _compiler_dispatch(cls, _visitor: Visitable, **_kw: Any) -> str:
         return "ROW"
 
+
 class TimeStamp(TypeDecorator):
     """
     A type to extend functionality of timestamp data type.
@@ -111,6 +112,7 @@ class TimeStamp(TypeDecorator):
         """
         return "TIMESTAMP '%s'" % value
 
+
 class Date(TypeDecorator):
     """
     A type to extend functionality of date data type.
@@ -125,4 +127,3 @@ class Date(TypeDecorator):
         as Presto does not support automatic casting.
         """
         return "DATE '%s'" % value
-        

@@ -44,12 +44,12 @@ from superset.exceptions import SupersetTemplateException
 from superset.models.sql_lab import Query
 from superset.models.sql_types.presto_sql_types import (
     Array,
+    Date,
     Interval,
     Map,
     Row,
-    TinyInteger,
     TimeStamp,
-    Date
+    TinyInteger,
 )
 from superset.result_set import destringify
 from superset.sql_parse import ParsedQuery
@@ -914,14 +914,14 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             return None
 
         column_type_by_name = {
-            column.get("name") : column.get('type') for column in columns or []
+            column.get("name"): column.get("type") for column in columns or []
         }
 
         for col_name, value in zip(col_names, values):
             if col_name in column_type_by_name:
-                if column_type_by_name.get(col_name) == 'TIMESTAMP':
+                if column_type_by_name.get(col_name) == "TIMESTAMP":
                     query = query.where(Column(col_name, TimeStamp()) == value)
-                elif column_type_by_name.get(col_name) == 'DATE':
+                elif column_type_by_name.get(col_name) == "DATE":
                     query = query.where(Column(col_name, Date()) == value)
                 else:
                     query = query.where(Column(col_name) == value)
