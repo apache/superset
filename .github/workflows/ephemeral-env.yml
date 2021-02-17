@@ -1,4 +1,4 @@
-name: Ephemeral env spinup
+name: Ephemeral env workflow
 
 on:
   issue_comment:
@@ -24,12 +24,13 @@ jobs:
       with:
         result-encoding: string
         script: |
-          const pattern = /^\/testenv/
-          return String(pattern.test(context.payload.comment.body))
+          const pattern = /^\/testenv (up|down)/
+          const result = pattern.exec(context.payload.comment.body)
+          return result === null ? 'noop' : result[1]
 
     - name: Limit to committers
       if: >
-        steps.eval-body.outputs.result == 'true' &&
+        steps.eval-body.outputs.result != 'noop' &&
         github.event.comment.author_association != 'MEMBER' &&
         github.event.comment.author_association != 'OWNER'
       uses: actions/github-script@v3
@@ -45,9 +46,9 @@ jobs:
           })
           core.setFailed(errMsg)
 
-  ephemeral_env_creation:
+  ephemeral_env_up:
     needs: ephemeral_env_comment
-    if: needs.ephemeral_env_comment.outputs.slash-command == 'true'
+    if: needs.ephemeral_env_comment.outputs.slash-command == 'up'
     name: Spin up an ephemeral environment
     runs-on: ubuntu-latest
 

@@ -13,10 +13,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Debug
-      run: |
-        echo "${{ toJSON(github.event.workflow_run) }}"
-
     - name: 'Download artifact'
       uses: actions/github-script@v3.1.0
       with:
