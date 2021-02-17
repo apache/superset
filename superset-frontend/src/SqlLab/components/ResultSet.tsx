@@ -42,7 +42,6 @@ import { prepareCopyToClipboardTabularData } from '../../utils/common';
 import { exploreChart } from '../../explore/exploreUtils';
 import { CtasEnum } from '../actions/sqlLab';
 import { Query } from '../types';
-import { null } from 'mathjs';
 
 const SEARCH_HEIGHT = 46;
 
