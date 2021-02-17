@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+# pylint: disable=abstract-method
 from typing import Any, Dict, List, Optional, Type
 
 from sqlalchemy.types import TypeDecorator
@@ -101,7 +103,7 @@ class TimeStamp(TypeDecorator):
     impl = TIMESTAMP
 
     @classmethod
-    def process_bind_param(cls, value, dialect):
+    def process_bind_param(cls, value, dialect) -> str:
         """
         Used for in-line rendering of TIMESTAMP data type
         as Presto does not support automatic casting.
@@ -116,7 +118,7 @@ class Date(TypeDecorator):
     impl = DATE
 
     @classmethod
-    def process_bind_param(cls, value, dialect):
+    def process_bind_param(cls, value, dialect) -> str:
         """
         Used for in-line rendering of DATE data type
         as Presto does not support automatic casting.
