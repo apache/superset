@@ -75,9 +75,9 @@ function DropGroupByControl(props: DropGroupByControlProps) {
     props.onChange(newGroupByValues);
   }
 
-  function onShiftOptions(dragIndex: number, dropIndex: number) {
+  function onShiftOptions(dragIndex: number, hoverIndex: number) {
     const val = [...groupByValues];
-    [val[dropIndex], val[dragIndex]] = [val[dragIndex], val[dropIndex]];
+    [val[hoverIndex], val[dragIndex]] = [val[dragIndex], val[hoverIndex]];
     setGroupByOptions(getOptionsFromGroupByValues(options, val));
     props.onChange(val);
   }

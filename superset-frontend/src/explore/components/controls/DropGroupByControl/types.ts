@@ -23,7 +23,7 @@ export interface OptionWrapperProps {
   column: ColumnMeta;
   index: number;
   clickClose: (columnName: string) => void;
-  onShiftOptions: (dragIndex: number, dropIndex: number) => void;
+  onShiftOptions: (dragIndex: number, hoverIndex: number) => void;
   withCaret?: boolean;
 }
 
