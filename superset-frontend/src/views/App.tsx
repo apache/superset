@@ -62,6 +62,7 @@ initFeatureFlags(bootstrap.common.feature_flags);
 const store = createStore(
   combineReducers({
     messageToasts: messageToastReducer,
+    common: () => common,
   }),
   {},
   compose(applyMiddleware(thunk), initEnhancer(false)),

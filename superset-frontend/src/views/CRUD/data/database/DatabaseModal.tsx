@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { styled, t, SupersetClient } from '@superset-ui/core';
 import InfoTooltip from 'src/common/components/InfoTooltip';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -29,13 +30,6 @@ import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 import { DatabaseObject } from './types';
-
-const appContainer = document.getElementById('app');
-const bootstrapData = JSON.parse(
-  appContainer?.getAttribute('data-bootstrap') || '{}',
-);
-
-console.log(bootstrapData);
 
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
@@ -121,6 +115,16 @@ const StyledInputContainer = styled.div`
   }
 `;
 
+// todo: define common type fully in types file
+export interface RootState {
+  common: {
+    conf: {
+      SQLALCHEMY_DOCS_URL: string;
+    };
+  };
+  messageToast: Array<Object>;
+}
+
 const StyledJsonEditor = styled(JsonEditor)`
   flex: 1 1 auto;
   border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
@@ -144,6 +148,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const defaultExtra =
     '{\n  "metadata_params": {},\n  "engine_params": {},' +
     '\n  "metadata_cache_timeout": {},\n  "schemas_allowed_for_csv_upload": [] \n}';
+
+  const conf = useSelector((state: RootState) => state.common.conf);
 
   // Database fetch logic
   const {
@@ -409,7 +415,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="helper">
               {t('Refer to the ')}
               <a
-                href={bootstrapData?.common?.conf?.SQLALCHEMY_DOCS_URL || ''}
+                href={conf.SQLALCHEMY_DOCS_URL}
                 target="_blank"
                 rel="noopener noreferrer"
               >
