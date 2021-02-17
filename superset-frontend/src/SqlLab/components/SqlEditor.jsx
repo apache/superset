@@ -547,7 +547,10 @@ class SqlEditor extends React.PureComponent {
     return (
       <AntdMenu>
         {[...new Set(LIMIT_DROPDOWN)].map(limit => (
-          <AntdMenu.Item onClick={() => this.setQueryLimit(limit)}>
+          <AntdMenu.Item
+            key={`${limit}`}
+            onClick={() => this.setQueryLimit(limit)}
+          >
             {/* // eslint-disable-line no-use-before-define */}
             <a role="button" styling="link">
               {this.convertToNumWithSpaces(limit)}
