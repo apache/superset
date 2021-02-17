@@ -45,6 +45,7 @@ from superset.utils.core import (
     cast_to_num,
     convert_legacy_filters_into_adhoc,
     create_ssl_cert_file,
+    DTTM_ALIAS,
     format_timedelta,
     GenericDataType,
     get_form_data_token,
@@ -57,7 +58,9 @@ from superset.utils.core import (
     JSONEncodedDict,
     memoized,
     merge_extra_filters,
+    merge_extra_form_data,
     merge_request_params,
+    normalize_dttm_col,
     parse_ssl_cert,
     parse_js_uri_path_item,
     extract_dataframe_dtypes,
@@ -902,6 +905,35 @@ class TestUtils(SupersetTestCase):
             layout, filter_scopes, default_filters, box_plot.id
         ) == [{"col": "region", "op": "==", "val": "North America"}]
 
+    def test_merge_extra_filters_with_no_extras(self):
+        form_data = {
+            "time_range": "Last 10 days",
+        }
+        merge_extra_form_data(form_data)
+        self.assertEqual(
+            form_data,
+            {
+                "time_range": "Last 10 days",
+                "applied_time_extras": {},
+                "adhoc_filters": [],
+            },
+        )
+
+    def test_merge_extra_filters_with_extras(self):
+        form_data = {
+            "time_range": "Last 10 days",
+            "extra_form_data": {
+                "append_form_data": {
+                    "filters": [{"col": "foo", "op": "IN", "val": "bar"}]
+                },
+                "override_form_data": {"time_range": "Last 100 years",},
+            },
+        }
+        merge_extra_form_data(form_data)
+        assert form_data["applied_time_extras"] == {"__time_range": "Last 100 years"}
+        assert form_data["time_range"] == "Last 100 years"
+        assert len(form_data["adhoc_filters"]) == 1
+
     def test_ssl_certificate_parse(self):
         parsed_certificate = parse_ssl_cert(ssl_certificate)
         self.assertEqual(parsed_certificate.serial_number, 12355228710836649848)
@@ -1101,3 +1133,30 @@ class TestUtils(SupersetTestCase):
 
         df = pd.DataFrame(data={col[0]: col[2] for col in cols})
         assert extract_dataframe_dtypes(df) == [col[1] for col in cols]
+
+    def test_normalize_dttm_col(self):
+        ts = pd.Timestamp(2021, 2, 15, 19, 0, 0, 0)
+        df = pd.DataFrame([{"__timestamp": ts, "a": 1}])
+
+        # test regular (non-numeric) format
+        assert normalize_dttm_col(df, None, 0, None)[DTTM_ALIAS][0] == ts
+        assert normalize_dttm_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts
+        assert normalize_dttm_col(df, "epoch_s", 0, None)[DTTM_ALIAS][0] == ts
+
+        # test offset
+        assert normalize_dttm_col(df, None, 1, None)[DTTM_ALIAS][0] == pd.Timestamp(
+            2021, 2, 15, 20, 0, 0, 0
+        )
+
+        # test offset and timedelta
+        assert normalize_dttm_col(df, None, 1, timedelta(minutes=30))[DTTM_ALIAS][
+            0
+        ] == pd.Timestamp(2021, 2, 15, 20, 30, 0, 0)
+
+        # test numeric epoch_s format
+        df = pd.DataFrame([{"__timestamp": ts.timestamp(), "a": 1}])
+        assert normalize_dttm_col(df, "epoch_s", 0, None)[DTTM_ALIAS][0] == ts
+
+        # test numeric epoch_ms format
+        df = pd.DataFrame([{"__timestamp": ts.timestamp() * 1000, "a": 1}])
+        assert normalize_dttm_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts

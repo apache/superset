@@ -41,6 +41,13 @@ envFromSecret: '{{ template "superset.fullname" . }}-env'
 ##
 extraEnv: {}
 
+## Extra environment variables to pass as secrets
+##
+extraSecretEnv: {}
+  # MAPBOX_API_KEY: ...
+  # GOOGLE_KEY: ...
+  # GOOGLE_SECRET: ...
+
 extraConfigs: {}
   # datasources-init.yaml: |
   #     databases:
@@ -54,6 +61,30 @@ extraConfigs: {}
   #       sqlalchemy_uri: example://example-db.local
   #       tables: []
 
+# A dictionary of overrides to append at the end of superset_config.py - the name does not matter
+# WARNING: the order is not guaranteed
+configOverrides: {}
+  # enable_oauth: |
+  #   from flask_appbuilder.security.manager import AUTH_DB
+  #   AUTH_TYPE = AUTH_OAUTH
+
+  #   OAUTH_PROVIDERS = [
+  #       {
+  #           "name": "google",
+  #           "icon": "fa-google",
+  #           "token_key": "access_token",
+  #           "remote_app": {
+  #               "client_id": os.environ.get("GOOGLE_KEY"),
+  #               "client_secret": os.environ.get("GOOGLE_SECRET"),
+  #               "api_base_url": "https://www.googleapis.com/oauth2/v2/",
+  #               "client_kwargs": {"scope": "email profile"},
+  #               "request_token_url": None,
+  #               "access_token_url": "https://accounts.google.com/o/oauth2/token",
+  #               "authorize_url": "https://accounts.google.com/o/oauth2/auth",
+  #           },
+  #       }
+  #   ]
+
 configMountPath: "/app/pythonpath"
 
 extraConfigMountPath: "/app/configs"
@@ -66,6 +97,9 @@ image:
 service:
   type: ClusterIP
   port: 8088
+  annotations: {}
+    # cloud.google.com/load-balancer-type: "Internal"
+  loadBalancerIP: null
 
 ingress:
   enabled: false
@@ -124,6 +158,25 @@ supersetWorker:
     - "/bin/sh"
     - "-c"
     - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; celery --app=superset.tasks.celery_app:app worker"
+  forceReload: false # If true, forces deployment to reload on each upgrade
+  initContainers:
+    - name: wait-for-postgres
+      image: busybox:latest
+      imagePullPolicy: IfNotPresent
+      envFrom:
+        - secretRef:
+            name: '{{ tpl .Values.envFromSecret . }}'
+      command: [ "/bin/sh", "-c", "until nc -zv $DB_HOST $DB_PORT -w1; do echo 'waiting for db'; sleep 1; done" ]
+
+##
+## Superset beat configuration (to trigger scheduled jobs like reports)
+supersetCeleryBeat:
+  # This is only required if you intend to use alerts and reports
+  enabled: false
+  command:
+    - "/bin/sh"
+    - "-c"
+    - ". {{ .Values.configMountPath }}/superset_bootstrap.sh; celery beat --app=superset.tasks.celery_app:app --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule"
   forceReload: false # If true, forces deployment to reload on each upgrade
   initContainers:
     - name: wait-for-postgres

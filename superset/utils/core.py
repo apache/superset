@@ -76,6 +76,7 @@ from flask_appbuilder.security.sqla.models import Role, User
 from flask_babel import gettext as __
 from flask_babel.speaklater import LazyString
 from pandas.api.types import infer_dtype
+from pandas.core.dtypes.common import is_numeric_dtype
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
@@ -1027,8 +1028,41 @@ def to_adhoc(
     return result
 
 
+def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
+    """
+    Merge extra form data (appends and overrides) into the main payload
+    and add applied time extras to the payload.
+    """
+    time_extras = {
+        "time_range": "__time_range",
+        "granularity_sqla": "__time_col",
+        "time_grain_sqla": "__time_grain",
+        "druid_time_origin": "__time_origin",
+        "granularity": "__granularity",
+    }
+    applied_time_extras = form_data.get("applied_time_extras", {})
+    form_data["applied_time_extras"] = applied_time_extras
+    extra_form_data = form_data.pop("extra_form_data", {})
+    append_form_data = extra_form_data.pop("append_form_data", {})
+    append_filters = append_form_data.get("filters", None)
+    override_form_data = extra_form_data.pop("override_form_data", {})
+    for key, value in override_form_data.items():
+        form_data[key] = value
+        # mark as temporal overrides as applied time extras
+        time_extra = time_extras.get(key)
+        if time_extra:
+            applied_time_extras[time_extra] = value
+
+    adhoc_filters = form_data.get("adhoc_filters", [])
+    form_data["adhoc_filters"] = adhoc_filters
+    if append_filters:
+        adhoc_filters.extend(
+            [to_adhoc({"isExtra": True, **fltr}) for fltr in append_filters if fltr]
+        )
+
+
 def merge_extra_filters(  # pylint: disable=too-many-branches
-    form_data: Dict[str, Any]
+    form_data: Dict[str, Any],
 ) -> None:
     # extra_filters are temporary/contextual filters (using the legacy constructs)
     # that are external to the slice definition. We use those for dynamic
@@ -1038,16 +1072,7 @@ def merge_extra_filters(  # pylint: disable=too-many-branches
     form_data["applied_time_extras"] = applied_time_extras
     adhoc_filters = form_data.get("adhoc_filters", [])
     form_data["adhoc_filters"] = adhoc_filters
-    # extra_overrides contains additional props to be added/overridden in the form_data
-    # and will deprecate `extra_filters`. For now only `filters` is supported,
-    # but additional props will be added later (time grains, groupbys etc)
-    extra_form_data = form_data.pop("extra_form_data", {})
-    append_form_data = extra_form_data.pop("append_form_data", {})
-    append_filters = append_form_data.get("filters", None)
-    if append_filters:
-        adhoc_filters.extend(
-            [to_adhoc({"isExtra": True, **fltr}) for fltr in append_filters if fltr]
-        )
+    merge_extra_form_data(form_data)
     if "extra_filters" in form_data:
         # __form and __to are special extra_filters that target time
         # boundaries. The rest of extra_filters are simple
@@ -1555,3 +1580,34 @@ def format_list(items: Sequence[str], sep: str = ", ", quote: str = '"') -> str:
 def find_duplicates(items: Iterable[InputType]) -> List[InputType]:
     """Find duplicate items in an iterable."""
     return [item for item, count in collections.Counter(items).items() if count > 1]
+
+
+def normalize_dttm_col(
+    df: pd.DataFrame,
+    timestamp_format: Optional[str],
+    offset: int,
+    time_shift: Optional[timedelta],
+) -> pd.DataFrame:
+    if DTTM_ALIAS not in df.columns:
+        return df
+    df = df.copy()
+    if timestamp_format in ("epoch_s", "epoch_ms"):
+        dttm_col = df[DTTM_ALIAS]
+        if is_numeric_dtype(dttm_col):
+            # Column is formatted as a numeric value
+            unit = timestamp_format.replace("epoch_", "")
+            df[DTTM_ALIAS] = pd.to_datetime(
+                dttm_col, utc=False, unit=unit, origin="unix"
+            )
+        else:
+            # Column has already been formatted as a timestamp.
+            df[DTTM_ALIAS] = dttm_col.apply(pd.Timestamp)
+    else:
+        df[DTTM_ALIAS] = pd.to_datetime(
+            df[DTTM_ALIAS], utc=False, format=timestamp_format
+        )
+    if offset:
+        df[DTTM_ALIAS] += timedelta(hours=offset)
+    if time_shift is not None:
+        df[DTTM_ALIAS] += time_shift
+    return df

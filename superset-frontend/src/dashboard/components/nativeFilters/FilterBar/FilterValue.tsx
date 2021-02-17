@@ -48,37 +48,36 @@ const FilterValue: React.FC<FilterProps> = ({
   directPathToChild,
   onFilterSelectionChange,
 }) => {
-  const {
-    id,
-    allowsMultipleValues,
-    inverseSelection,
-    targets,
-    defaultValue,
-    filterType,
-  } = filter;
+  const { id, targets, filterType } = filter;
   const cascadingFilters = useCascadingFilters(id);
   const filterState = useFilterState(id);
-  const [loading, setLoading] = useState<boolean>(true);
   const [state, setState] = useState([]);
   const [error, setError] = useState<boolean>(false);
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
   const inputRef = useRef<HTMLInputElement>(null);
   const [target] = targets;
-  const { datasetId = 18, column } = target;
+  const {
+    datasetId,
+    column = {},
+  }: Partial<{ datasetId: number; column: { name?: string } }> = target;
   const { name: groupby } = column;
   const currentValue = filterState.currentState?.value;
+  const hasDataSource = !!(datasetId && groupby);
+  const [loading, setLoading] = useState<boolean>(hasDataSource);
   useEffect(() => {
     const newFormData = getFormData({
       datasetId,
       cascadingFilters,
       groupby,
-      allowsMultipleValues,
-      defaultValue,
       currentValue,
-      inverseSelection,
+      inputRef,
+      ...filter,
     });
     if (!areObjectsEqual(formData || {}, newFormData)) {
       setFormData(newFormData);
+      if (!hasDataSource) {
+        return;
+      }
       getChartDataRequest({
         formData: newFormData,
         force: false,
@@ -94,7 +93,7 @@ const FilterValue: React.FC<FilterProps> = ({
           setLoading(false);
         });
     }
-  }, [cascadingFilters, datasetId, groupby, defaultValue, currentValue]);
+  }, [cascadingFilters, datasetId, groupby, filter.defaultValue, currentValue]);
 
   useEffect(() => {
     if (directPathToChild?.[0] === filter.id) {
@@ -139,7 +138,8 @@ const FilterValue: React.FC<FilterProps> = ({
         height={20}
         width={220}
         formData={formData}
-        queriesData={state}
+        // For charts that don't have datasource we need workaround for empty placeholder
+        queriesData={hasDataSource ? state : [{ data: [null] }]}
         chartType={filterType}
         // @ts-ignore (update superset-ui)
         hooks={{ setExtraFormData }}

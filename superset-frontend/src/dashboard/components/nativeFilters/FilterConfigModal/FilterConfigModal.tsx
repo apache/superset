@@ -54,7 +54,7 @@ const StyledForm = styled(Form)`
 const StyledSpan = styled.span`
   cursor: pointer;
   color: ${({ theme }) => theme.colors.primary.dark1};
-  &: hover {
+  &:hover {
     color: ${({ theme }) => theme.colors.primary.dark2};
   }
 `;
@@ -400,28 +400,28 @@ export function FilterConfigModal({
         const formInputs = values.filters[id];
         // if user didn't open a filter, return the original config
         if (!formInputs) return filterConfigMap[id];
+        let target = {};
+        if (formInputs.dataset && formInputs.column) {
+          target = {
+            datasetId: formInputs.dataset.value,
+            column: {
+              name: formInputs.column,
+            },
+          };
+        }
         return {
           id,
+          controlValues: formInputs.controlValues,
           name: formInputs.name,
           filterType: formInputs.filterType,
           // for now there will only ever be one target
-          targets: [
-            {
-              datasetId: formInputs.dataset.value,
-              column: {
-                name: formInputs.column,
-              },
-            },
-          ],
+          targets: [target],
           defaultValue: formInputs.defaultValue || null,
           cascadeParentIds: formInputs.parentFilter
             ? [formInputs.parentFilter.value]
             : [],
           scope: formInputs.scope,
-          inverseSelection: !!formInputs.inverseSelection,
-          isInstant: !!formInputs.isInstant,
-          allowsMultipleValues: !!formInputs.allowsMultipleValues,
-          isRequired: !!formInputs.isRequired,
+          isInstant: formInputs.isInstant,
         };
       });
 
@@ -506,6 +506,7 @@ export function FilterConfigModal({
   return (
     <StyledModal
       visible={isOpen}
+      maskClosable={false}
       title={t('Filter configuration and scoping')}
       width="55%"
       destroyOnClose

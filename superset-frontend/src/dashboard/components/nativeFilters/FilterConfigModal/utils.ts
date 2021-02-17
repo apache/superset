@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+
+import { flatMapDeep } from 'lodash';
 import { Charts, Layout, LayoutItem } from 'src/dashboard/types';
 import {
   CHART_TYPE,
@@ -26,8 +27,9 @@ import {
 import { FormInstance } from 'antd/lib/form';
 import React from 'react';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import { CustomControlItem } from '@superset-ui/chart-controls';
 import { TreeItem } from './types';
-import { FilterType, Scope } from '../types';
+import { Scope } from '../types';
 
 export const useForceUpdate = () => {
   const [, updateState] = React.useState({});
@@ -153,11 +155,6 @@ export const findFilterScope = (
   };
 };
 
-export const FilterTypeNames = {
-  [FilterType.filter_select]: t('Select'),
-  [FilterType.filter_range]: t('Range'),
-};
-
 export const setFilterFieldValues = (
   form: FormInstance,
   filterId: string,
@@ -175,20 +172,16 @@ export const setFilterFieldValues = (
   });
 };
 
+export const getControlItems = (
+  controlConfig: { [key: string]: any } = {},
+): CustomControlItem[] =>
+  (flatMapDeep(controlConfig.controlPanelSections)?.reduce(
+    (acc: any, { controlSetRows = [] }: any) => [
+      ...acc,
+      ...flatMapDeep(controlSetRows),
+    ],
+    [],
+  ) as CustomControlItem[]) ?? [];
+
 export const isScopingAll = (scope: Scope) =>
   !scope || (scope.rootPath[0] === DASHBOARD_ROOT_ID && !scope.excluded.length);
-
-type AppendFormData = {
-  filters: {
-    val?: number | string | null;
-  }[];
-};
-
-export const extractDefaultValue = {
-  [FilterType.filter_select]: (appendFormData: AppendFormData) =>
-    appendFormData.filters?.[0]?.val,
-  [FilterType.filter_range]: (appendFormData: AppendFormData) => ({
-    min: appendFormData.filters?.[0].val,
-    max: appendFormData.filters?.[1].val,
-  }),
-};

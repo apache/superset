@@ -95,10 +95,12 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     this.refreshComparatorSuggestions = this.refreshComparatorSuggestions.bind(
       this,
     );
+    this.clearSuggestionSearch = this.clearSuggestionSearch.bind(this);
 
     this.state = {
       suggestions: [],
       abortActiveRequest: null,
+      currentSuggestionSearch: '',
     };
 
     this.selectProps = {
@@ -272,8 +274,13 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
     return <FilterDefinitionOption option={option} />;
   }
 
+  clearSuggestionSearch() {
+    this.setState({ currentSuggestionSearch: '' });
+  }
+
   render() {
     const { adhocFilter, options, datasource } = this.props;
+    const { currentSuggestionSearch } = this.state;
     let columns = options;
     const { subject, operator, comparator } = adhocFilter;
     const subjectSelectProps = {
@@ -379,12 +386,25 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
               name="filter-value"
               {...comparatorSelectProps}
               getPopupContainer={triggerNode => triggerNode.parentNode}
+              onSearch={val => this.setState({ currentSuggestionSearch: val })}
+              onSelect={this.clearSuggestionSearch}
+              onBlur={this.clearSuggestionSearch}
             >
               {this.state.suggestions.map(suggestion => (
                 <Select.Option value={suggestion} key={suggestion}>
                   {suggestion}
                 </Select.Option>
               ))}
+
+              {/* enable selecting an option not included in suggestions */}
+              {currentSuggestionSearch &&
+                !this.state.suggestions.some(
+                  suggestion => suggestion === currentSuggestionSearch,
+                ) && (
+                  <Select.Option value={currentSuggestionSearch}>
+                    {currentSuggestionSearch}
+                  </Select.Option>
+                )}
             </SelectWithLabel>
           ) : (
             <Input
