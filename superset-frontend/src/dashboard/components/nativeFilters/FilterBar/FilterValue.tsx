@@ -66,12 +66,12 @@ const FilterValue: React.FC<FilterProps> = ({
   const [loading, setLoading] = useState<boolean>(hasDataSource);
   useEffect(() => {
     const newFormData = getFormData({
+      ...filter,
       datasetId,
       cascadingFilters,
       groupby,
       currentValue,
       inputRef,
-      ...filter,
     });
     if (!areObjectsEqual(formData || {}, newFormData)) {
       setFormData(newFormData);
