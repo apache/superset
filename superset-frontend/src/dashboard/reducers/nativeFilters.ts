@@ -17,9 +17,11 @@
  * under the License.
  */
 import {
-  SET_EXTRA_FORM_DATA,
   AnyFilterAction,
+  SAVE_FILTER_SETS,
+  SET_EXTRA_FORM_DATA,
   SET_FILTER_CONFIG_COMPLETE,
+  SET_FILTERS_STATE,
 } from 'src/dashboard/actions/nativeFilters';
 import { NativeFiltersState, NativeFilterState } from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
@@ -33,27 +35,33 @@ export function getInitialFilterState(id: string): NativeFilterState {
 
 export function getInitialState(
   filterConfig: FilterConfiguration,
-  prevFiltersState: { [filterId: string]: NativeFilterState },
+  prevState: NativeFiltersState,
 ): NativeFiltersState {
   const filters = {};
   const filtersState = {};
-  const state = { filters, filtersState };
+  const state = {
+    filters,
+    filtersState,
+    filterSets: prevState?.filterSets ?? {},
+  };
   filterConfig.forEach(filter => {
     const { id } = filter;
     filters[id] = filter;
-    filtersState[id] = prevFiltersState?.[id] || getInitialFilterState(id);
+    filtersState[id] =
+      prevState?.filtersState?.[id] || getInitialFilterState(id);
   });
   return state;
 }
 
 export default function nativeFilterReducer(
-  state: NativeFiltersState = { filters: {}, filtersState: {} },
+  state: NativeFiltersState = { filters: {}, filtersState: {}, filterSets: {} },
   action: AnyFilterAction,
 ) {
-  const { filters, filtersState } = state;
+  const { filters, filtersState, filterSets } = state;
   switch (action.type) {
     case SET_EXTRA_FORM_DATA:
       return {
+        ...state,
         filters,
         filtersState: {
           ...filtersState,
@@ -64,9 +72,29 @@ export default function nativeFilterReducer(
           },
         },
       };
+    case SAVE_FILTER_SETS:
+      return {
+        ...state,
+        filterSets: {
+          ...filterSets,
+          [action.filtersSetId]: {
+            id: action.filtersSetId,
+            name: action.name,
+            filtersState: action.filtersState,
+          },
+        },
+      };
+    case SET_FILTERS_STATE:
+      return {
+        ...state,
+        filtersState: {
+          ...filtersState,
+          ...action.filtersState,
+        },
+      };
 
     case SET_FILTER_CONFIG_COMPLETE:
-      return getInitialState(action.filterConfig, filtersState);
+      return getInitialState(action.filterConfig, state);
 
     // TODO handle SET_FILTER_CONFIG_FAIL action
     default:
