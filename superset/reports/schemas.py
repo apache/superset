@@ -161,8 +161,10 @@ class ReportSchedulePostSchema(Schema):
     validator_config_json = fields.Nested(ValidatorConfigJSONSchema)
     log_retention = fields.Integer(description=log_retention_description, example=90)
     grace_period = fields.Integer(
-        description=grace_period_description, example=60 * 60 * 4, default=60 * 60 * 4,
-        validate=[Range(min=1, error=_("Value must be greater than 0"))]
+        description=grace_period_description,
+        example=60 * 60 * 4,
+        default=60 * 60 * 4,
+        validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
     working_timeout = fields.Integer(
         description=working_timeout_description,
