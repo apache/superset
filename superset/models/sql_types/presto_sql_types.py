@@ -18,11 +18,11 @@
 # pylint: disable=abstract-method
 from typing import Any, Dict, List, Optional, Type
 
-from sqlalchemy.types import TypeDecorator
-from sqlalchemy.sql.sqltypes import Integer, TIMESTAMP, DATE
+from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.sql.sqltypes import DATE, Integer, TIMESTAMP
 from sqlalchemy.sql.type_api import TypeEngine
 from sqlalchemy.sql.visitors import Visitable
-from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.types import TypeDecorator
 
 # _compiler_dispatch is defined to help with type compilation
 
