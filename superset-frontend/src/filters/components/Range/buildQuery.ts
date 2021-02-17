@@ -38,7 +38,7 @@ import {
  */
 export default function buildQuery(formData: QueryFormData) {
   const { groupby } = formData;
-  const [column = null] = groupby || [];
+  const [column = ''] = groupby || [];
   // @ts-ignore (need update interface Column )
   return buildQueryContext(formData, baseQueryObject => [
     {
