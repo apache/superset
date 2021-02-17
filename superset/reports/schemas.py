@@ -16,8 +16,8 @@
 # under the License.
 from typing import Any, Dict, Union
 
-from flask_babel import gettext as _
 from croniter import croniter
+from flask_babel import gettext as _
 from marshmallow import fields, Schema, validate, validates_schema
 from marshmallow.validate import Length, Range, ValidationError
 
