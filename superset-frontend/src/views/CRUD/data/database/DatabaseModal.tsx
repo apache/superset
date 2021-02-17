@@ -51,7 +51,8 @@ interface RootState {
 }
 
 const DEFAULT_TAB_KEY = '1';
-const DEFAULT_SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/rel_1_2/core/engines.html#"
+const DEFAULT_SQLALCHEMY_DOCS_URL =
+  'https://docs.sqlalchemy.org/en/rel_1_2/core/engines.html#';
 
 const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
