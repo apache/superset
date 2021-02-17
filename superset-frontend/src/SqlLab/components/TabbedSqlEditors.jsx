@@ -82,6 +82,7 @@ class TabbedSqlEditors extends React.PureComponent {
       queriesArray: [],
       dataPreviewQueries: [],
       hideLeftBar: false,
+      editQuery: false,
     };
     this.removeQueryEditor = this.removeQueryEditor.bind(this);
     this.renameTab = this.renameTab.bind(this);
@@ -375,7 +376,15 @@ class TabbedSqlEditors extends React.PureComponent {
           <div data-test="dropdown-toggle-button">
             <Dropdown overlay={menu} trigger={['click']} />
           </div>
-          <TabTitle onClick={() => console.log('test')}>{qe.title}</TabTitle>
+          <TabTitle
+            onClick={() => {
+              console.log('im clicking the title', qe.title);
+              this.setState({ editQuery: true });
+            }}
+          >
+            {qe.title}
+          </TabTitle>
+          {this.state.editQuery && <input />}
           <TabStatusIcon tabState={state} />{' '}
         </TabTitleWrapper>
       );
