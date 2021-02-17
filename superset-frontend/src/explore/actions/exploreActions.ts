@@ -61,11 +61,6 @@ export function fetchDatasourcesSucceeded() {
   return { type: FETCH_DATASOURCES_SUCCEEDED };
 }
 
-export const RESET_FIELDS = 'RESET_FIELDS';
-export function resetControls() {
-  return { type: RESET_FIELDS };
-}
-
 export const TOGGLE_FAVE_STAR = 'TOGGLE_FAVE_STAR';
 export function toggleFaveStar(isStarred: boolean) {
   return { type: TOGGLE_FAVE_STAR, isStarred };
@@ -154,7 +149,6 @@ export const exploreActions = {
   setDatasources,
   fetchDatasourcesStarted,
   fetchDatasourcesSucceeded,
-  resetControls,
   toggleFaveStar,
   fetchFaveStar,
   saveFaveStar,

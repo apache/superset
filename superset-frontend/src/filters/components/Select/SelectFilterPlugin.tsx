@@ -19,20 +19,18 @@
 import { styled } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
-import { DEFAULT_FORM_DATA, AntdPluginFilterSelectProps } from './types';
-import { AntdPluginFilterStylesProps } from '../types';
+import { PluginFilterSelectProps } from './types';
+import { PluginFilterStylesProps } from '../types';
 import { getSelectExtraFormData } from '../../utils';
 
-const Styles = styled.div<AntdPluginFilterStylesProps>`
+const Styles = styled.div<PluginFilterStylesProps>`
   height: ${({ height }) => height};
   width: ${({ width }) => width};
 `;
 
 const { Option } = Select;
 
-export default function AntdPluginFilterSelect(
-  props: AntdPluginFilterSelectProps,
-) {
+export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const { data, formData, height, width, setExtraFormData } = props;
   const {
     defaultValue,
@@ -42,10 +40,7 @@ export default function AntdPluginFilterSelect(
     currentValue,
     inverseSelection,
     inputRef,
-  } = {
-    ...DEFAULT_FORM_DATA,
-    ...formData,
-  };
+  } = formData;
 
   const [values, setValues] = useState<(string | number)[]>(defaultValue ?? []);
 

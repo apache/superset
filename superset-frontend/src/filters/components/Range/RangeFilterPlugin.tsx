@@ -19,16 +19,16 @@
 import { styled } from '@superset-ui/core';
 import React from 'react';
 import { Slider } from 'src/common/components';
-import { AntdPluginFilterRangeProps } from './types';
-import { AntdPluginFilterStylesProps } from '../types';
+import { PluginFilterRangeProps } from './types';
+import { PluginFilterStylesProps } from '../types';
 import { getRangeExtraFormData } from '../../utils';
 
-const Styles = styled.div<AntdPluginFilterStylesProps>`
+const Styles = styled.div<PluginFilterStylesProps>`
   height: ${({ height }) => height};
   width: ${({ width }) => width};
 `;
 
-export default function AntdRangeFilter(props: AntdPluginFilterRangeProps) {
+export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const { data, formData, height, width, setExtraFormData, inputRef } = props;
   const [row] = data;
   // @ts-ignore

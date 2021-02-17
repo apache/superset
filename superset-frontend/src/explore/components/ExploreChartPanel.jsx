@@ -118,7 +118,7 @@ const ExploreChartPanel = props => {
     refreshMode: 'debounce',
     refreshRate: 300,
   });
-  const { width: chartWidth, ref: chartRef } = useResizeDetector({
+  const { width: chartPanelWidth, ref: chartPanelRef } = useResizeDetector({
     refreshMode: 'debounce',
     refreshRate: 300,
   });
@@ -183,6 +183,7 @@ const ExploreChartPanel = props => {
   const renderChart = useCallback(() => {
     const { chart } = props;
     const newHeight = calcSectionHeight(splitSizes[0]) - CHART_PANEL_PADDING;
+    const chartWidth = chartPanelWidth - CHART_PANEL_PADDING;
     return (
       chartWidth > 0 && (
         <ChartContainer
@@ -208,20 +209,20 @@ const ExploreChartPanel = props => {
         />
       )
     );
-  }, [calcSectionHeight, chartWidth, props, splitSizes]);
+  }, [calcSectionHeight, chartPanelWidth, props, splitSizes]);
 
   const panelBody = useMemo(
     () => (
-      <div className="panel-body" ref={chartRef}>
+      <div className="panel-body" ref={chartPanelRef}>
         {renderChart()}
       </div>
     ),
-    [chartRef, renderChart],
+    [chartPanelRef, renderChart],
   );
 
   const standaloneChartBody = useMemo(
-    () => <div ref={chartRef}>{renderChart()}</div>,
-    [chartRef, renderChart],
+    () => <div ref={chartPanelRef}>{renderChart()}</div>,
+    [chartPanelRef, renderChart],
   );
 
   if (props.standalone) {
@@ -256,7 +257,7 @@ const ExploreChartPanel = props => {
   });
 
   return (
-    <Styles className="panel panel-default chart-container">
+    <Styles className="panel panel-default chart-container" ref={chartPanelRef}>
       <div className="panel-heading" ref={headerRef}>
         {header}
       </div>

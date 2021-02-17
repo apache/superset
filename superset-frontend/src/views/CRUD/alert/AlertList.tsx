@@ -435,6 +435,7 @@ function AlertList({
         layer={currentAlert}
         onHide={() => {
           setAlertModalOpen(false);
+          setCurrentAlert(null);
           refreshData();
         }}
         show={alertModalOpen}

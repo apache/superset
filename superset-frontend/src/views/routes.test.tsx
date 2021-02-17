@@ -16,12 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const TIME_CHOICES = [
-  '1 hour ago',
-  '12 hours ago',
-  '1 day ago',
-  '7 days ago',
-  '28 days ago',
-  '90 days ago',
-  '1 year ago',
-];
+
+import { isFrontendRoute, routes } from './routes';
+
+describe('isFrontendRoute', () => {
+  it('returns true if a route matches', () => {
+    routes.forEach(r => {
+      expect(isFrontendRoute(r.path)).toBe(true);
+    });
+  });
+
+  it('returns false if a route does not match', () => {
+    expect(isFrontendRoute('/non-existent/path/')).toBe(false);
+  });
+});
