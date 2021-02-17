@@ -16,31 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import configureStore from 'redux-mock-store';
-import { shallow } from 'enzyme';
+import { useState, useEffect } from 'react';
+import { getShortUrl as getShortUrlUtil } from 'src/utils/urlUtils';
 
-import URLShortLinkModal from 'src/components/URLShortLinkModal';
-import ModalTrigger from 'src/components/ModalTrigger';
+export function useUrlShortener(url: string): Function {
+  const [update, setUpdate] = useState(false);
+  const [shortUrl, setShortUrl] = useState('');
 
-describe('URLShortLinkModal', () => {
-  const defaultProps = {
-    url: 'mockURL',
-    emailSubject: 'Mock Subject',
-    emailContent: 'mock content',
-    triggerNode: <div />,
-  };
-
-  function setup() {
-    const mockStore = configureStore([]);
-    const store = mockStore({});
-    return shallow(
-      <URLShortLinkModal store={store} {...defaultProps} />,
-    ).dive();
+  async function getShortUrl() {
+    if (update) {
+      const newShortUrl = await getShortUrlUtil(url);
+      setShortUrl(newShortUrl);
+      setUpdate(false);
+      return newShortUrl;
+    }
+    return shortUrl;
   }
 
-  it('renders ModalTrigger', () => {
-    const wrapper = setup();
-    expect(wrapper.find(ModalTrigger)).toExist();
-  });
-});
+  useEffect(() => setUpdate(true), [url]);
+
+  return getShortUrl;
+}
