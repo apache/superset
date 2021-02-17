@@ -41,26 +41,34 @@ export const getFormData = ({
   datasetId?: number;
   inputRef?: RefObject<HTMLInputElement>;
   cascadingFilters?: object;
-  groupby: string;
-}): Partial<QueryFormData> => ({
-  adhoc_filters: [],
-  datasource: `${datasetId}__table`,
-  extra_filters: [],
-  extra_form_data: cascadingFilters,
-  granularity_sqla: 'ds',
-  groupby: [groupby],
-  metrics: ['count'],
-  row_limit: 10000,
-  showSearch: true,
-  currentValue,
-  defaultValue,
-  time_range: 'No filter',
-  time_range_endpoints: ['inclusive', 'exclusive'],
-  url_params: {},
-  viz_type: 'filter_select',
-  inputRef,
-  ...controlValues,
-});
+  groupby?: string;
+}): Partial<QueryFormData> => {
+  let otherProps: { datasource?: string; groupby?: string[] } = {};
+  if (datasetId && groupby) {
+    otherProps = {
+      datasource: `${datasetId}__table`,
+      groupby: [groupby],
+    };
+  }
+  return {
+    adhoc_filters: [],
+    extra_filters: [],
+    extra_form_data: cascadingFilters,
+    granularity_sqla: 'ds',
+    metrics: ['count'],
+    row_limit: 10000,
+    showSearch: true,
+    currentValue,
+    defaultValue,
+    time_range: 'No filter',
+    time_range_endpoints: ['inclusive', 'exclusive'],
+    url_params: {},
+    viz_type: 'filter_select',
+    inputRef,
+    ...controlValues,
+    ...otherProps,
+  };
+};
 
 export function mergeExtraFormData(
   originalExtra: ExtraFormData,

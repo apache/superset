@@ -40,10 +40,25 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
+jest.mock('@superset-ui/core', () => ({
+  // @ts-ignore
+  ...jest.requireActual('@superset-ui/core'),
+  getChartMetadataRegistry: () => ({
+    items: {
+      filter_select: {
+        value: {
+          datasourceCount: 1,
+          behaviors: ['NATIVE_FILTER'],
+        },
+      },
+    },
+  }),
+}));
+
 describe('FiltersConfigModal', () => {
   const mockedProps = {
     isOpen: true,
-    initialFilterId: 'DefaultFilterId',
+    initialFilterId: 'DefaultsID',
     createNewOnOpen: true,
     onCancel: jest.fn(),
     save: jest.fn(),

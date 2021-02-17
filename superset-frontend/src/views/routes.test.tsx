@@ -16,27 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
-import buildQuery from './buildQuery';
-import controlPanel from './controlPanel';
-import transformProps from './transformProps';
-import thumbnail from './images/thumbnail.png';
 
-export default class FilterSelectPlugin extends ChartPlugin {
-  constructor() {
-    const metadata = new ChartMetadata({
-      name: t('Select filter'),
-      description: 'Select filter plugin using AntD',
-      behaviors: [Behavior.CROSS_FILTER, Behavior.NATIVE_FILTER],
-      thumbnail,
-    });
+import { isFrontendRoute, routes } from './routes';
 
-    super({
-      buildQuery,
-      controlPanel,
-      loadChart: () => import('./SelectFilterPlugin'),
-      metadata,
-      transformProps,
+describe('isFrontendRoute', () => {
+  it('returns true if a route matches', () => {
+    routes.forEach(r => {
+      expect(isFrontendRoute(r.path)).toBe(true);
     });
-  }
-}
+  });
+
+  it('returns false if a route does not match', () => {
+    expect(isFrontendRoute('/non-existent/path/')).toBe(false);
+  });
+});

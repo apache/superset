@@ -20,7 +20,7 @@ import React, { useRef } from 'react';
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
 import { styled, t, useTheme } from '@superset-ui/core';
 import {
-  ColumnOption,
+  MetricOption,
   InfoTooltipWithTrigger,
 } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/common/components/Tooltip';
@@ -48,7 +48,7 @@ const OptionControlContainer = styled.div<{
 `;
 
 const Label = styled.div`
-  display: inline-block;
+  display: flex;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -218,12 +218,7 @@ export const OptionControlLabel = ({
 
   const getLabelContent = () => {
     if (savedMetric?.metric_name) {
-      // add column_name to fix typescript error
-      const column = { ...savedMetric, column_name: '' };
-      if (!column.verbose_name) {
-        column.verbose_name = column.metric_name;
-      }
-      return <ColumnOption column={column} />;
+      return <MetricOption metric={savedMetric} />;
     }
     return <Tooltip title={label}>{label}</Tooltip>;
   };
