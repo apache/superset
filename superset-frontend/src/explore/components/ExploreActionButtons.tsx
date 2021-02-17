@@ -41,7 +41,6 @@ type ActionButtonProps = {
 type ExploreActionButtonsProps = {
   actions: { redirectSQLLab: Function; openPropertiesModal: Function };
   canDownload: boolean;
-  chartHeight: number;
   chartStatus: string;
   latestQueryFormData: {};
   queriesResponse: {};
@@ -85,7 +84,6 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
   const {
     actions,
     canDownload,
-    chartHeight,
     chartStatus,
     latestQueryFormData,
     queriesResponse,
@@ -189,7 +187,6 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
         </>
       )}
       <ConnectedDisplayQueryButton
-        chartHeight={chartHeight}
         queryResponse={queriesResponse?.[0]}
         latestQueryFormData={latestQueryFormData}
         chartStatus={chartStatus}
