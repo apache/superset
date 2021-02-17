@@ -643,12 +643,13 @@ def test_alert_limit_is_applied(screenshot_mock, email_mock, create_alert_email_
     """
     ExecuteReport Command: Test that all alerts apply a SQL limit to stmts
     """
-    execute_mock = create_alert_email_chart.database.db_engine_spec.execute = Mock()
-
-    AsyncExecuteReportScheduleCommand(
-        create_alert_email_chart.id, datetime.utcnow()
-    ).run()
-    assert "LIMIT 2" in execute_mock.call_args[0][1]
+    with patch.object(
+        create_alert_email_chart.database.db_engine_spec, "execute", return_value=None
+    ) as execute_mock:
+        AsyncExecuteReportScheduleCommand(
+            create_alert_email_chart.id, datetime.utcnow()
+        ).run()
+        assert "LIMIT 2" in execute_mock.call_args[0][1]
 
 
 @pytest.mark.usefixtures("create_report_email_dashboard")
