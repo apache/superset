@@ -31,7 +31,9 @@ jobs:
 
     # https://docs.github.com/en/graphql/reference/enums#commentauthorassociation
     - name: Limit to committers
-      if: contains(fromJSON("['MEMBER','OWNER']"), github.event.comment.author_association) != true
+      if: >
+        github.event.comment.author_association != 'MEMBER' &&
+        github.event.comment.author_association != 'OWNER'
       uses: actions/github-script@v3
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
