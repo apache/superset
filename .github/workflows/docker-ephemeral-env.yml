@@ -79,4 +79,5 @@ jobs:
       run: |
         docker load < $SHA.tar.gz
         docker tag $SHA $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker tag $SHA $ECR_REGISTRY/$ECR_REPOSITORY:$SHA
+        docker push -a $ECR_REGISTRY/$ECR_REPOSITORY
