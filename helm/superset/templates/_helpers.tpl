@@ -133,4 +133,5 @@ EMAIL_REPORTS_USER = 'admin'
 WEBDRIVER_BASEURL = "http://{{ template "superset.fullname" . }}:{{ .Values.service.port }}/"
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = "None"
+MOBI_SECRET_KEY=testkey
 {{- end }}
