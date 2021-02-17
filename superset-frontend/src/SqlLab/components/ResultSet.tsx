@@ -163,7 +163,7 @@ export default class ResultSet extends React.PureComponent<
   async componentDidMount() {
     // only do this the first time the component is rendered/mounted
     this.reRunQueryIfSessionTimeoutErrorOnMount();
-    const userDatasetsOwned = await this.getUserDatasets('');
+    const userDatasetsOwned = await this.getUserDatasets();
     this.setState({ userDatasetOptions: userDatasetsOwned });
   }
 
@@ -299,7 +299,7 @@ export default class ResultSet extends React.PureComponent<
     });
   };
 
-  getUserDatasets = async (searchText: string) => {
+  getUserDatasets = async (searchText: string = '') => {
     // Making sure that autocomplete input has a value before rendering the dropdown
     // Transforming the userDatasetsOwned data for SaveModalComponent)
     const appContainer = document.getElementById('app');
