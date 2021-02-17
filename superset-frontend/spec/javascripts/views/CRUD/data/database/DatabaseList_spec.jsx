@@ -109,10 +109,21 @@ describe('DatabaseList', () => {
 
   it('fetches Databases', () => {
     const callsD = fetchMock.calls(/database\/\?q/);
-    expect(callsD).toHaveLength(1);
+    expect(callsD).toHaveLength(2);
     expect(callsD[0][0]).toMatchInlineSnapshot(
       `"http://localhost/api/v1/database/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
+  });
+});
+
+describe('DatabaseList async', () => {
+  const wrapper = mount(
+    <Provider store={store}>
+      <DatabaseList user={mockUser} />
+    </Provider>,
+  );
+  beforeAll(async () => {
+    await waitForComponentToPaint(wrapper);
   });
 
   it('deletes', async () => {
