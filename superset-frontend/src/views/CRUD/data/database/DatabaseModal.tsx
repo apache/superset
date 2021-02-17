@@ -51,9 +51,6 @@ interface RootState {
 }
 
 const DEFAULT_TAB_KEY = '1';
-const DEFAULT_SQLALCHEMY_DOCS_URL =
-  'https://docs.sqlalchemy.org/en/rel_1_2/core/engines.html#';
-
 const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
@@ -416,7 +413,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="helper">
               {t('Refer to the ')}
               <a
-                href={conf?.SQLALCHEMY_DOCS_URL ?? DEFAULT_SQLALCHEMY_DOCS_URL}
+                href={conf?.SQLALCHEMY_DOCS_URL ?? ''}
                 target="_blank"
                 rel="noopener noreferrer"
               >
