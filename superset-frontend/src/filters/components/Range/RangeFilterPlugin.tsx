@@ -55,11 +55,11 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   };
 
   useEffect(() => {
-    handleChange(currentValue ?? [min, max]);
+    handleAfterChange(currentValue ?? [min, max]);
   }, [JSON.stringify(currentValue)]);
 
   useEffect(() => {
-    handleChange(defaultValue ?? [min, max]);
+    handleAfterChange(defaultValue ?? [min, max]);
     // I think after Config Modal update some filter it re-creates default value for all other filters
     // so we can process it like this `JSON.stringify` or start to use `Immer`
   }, [JSON.stringify(defaultValue)]);

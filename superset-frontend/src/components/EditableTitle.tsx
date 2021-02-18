@@ -23,6 +23,7 @@ import { Tooltip } from 'src/common/components/Tooltip';
 
 interface EditableTitleProps {
   canEdit?: boolean;
+  editing?: boolean;
   emptyText?: string;
   extraClasses?: Array<string> | string;
   multiLine?: boolean;
@@ -30,21 +31,25 @@ interface EditableTitleProps {
   onSaveTitle: (arg0: string) => {};
   showTooltip?: boolean;
   style?: object;
-  title: string;
+  title?: string;
+  defaultTitle?: string;
+  placeholder?: string;
 }
 
 export default function EditableTitle({
   canEdit = false,
-  emptyText,
+  editing = false,
   extraClasses,
   multiLine = false,
   noPermitTooltip,
   onSaveTitle,
   showTooltip = true,
   style,
-  title,
+  title = '',
+  defaultTitle = '',
+  placeholder = '',
 }: EditableTitleProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(editing);
   const [currentTitle, setCurrentTitle] = useState(title);
   const [lastTitle, setLastTitle] = useState(title);
   const [
@@ -61,6 +66,12 @@ export default function EditableTitle({
       setCurrentTitle(title);
     }
   }, [title]);
+
+  useEffect(() => {
+    if (isEditing) {
+      contentRef.current.focus();
+    }
+  }, [isEditing]);
 
   function handleClick() {
     if (!canEdit || isEditing) {
@@ -110,6 +121,10 @@ export default function EditableTitle({
     if (event.key === ' ') {
       event.stopPropagation();
     }
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleBlur();
+    }
   }
 
   function handleChange(ev: any) {
@@ -127,10 +142,9 @@ export default function EditableTitle({
   }
 
   let value: string | undefined;
-  if (currentTitle) {
-    value = currentTitle;
-  } else if (!isEditing) {
-    value = emptyText;
+  value = currentTitle;
+  if (!isEditing && !currentTitle) {
+    value = defaultTitle || title;
   }
 
   // Construct an inline style based on previously-saved height of the rendered label. Only
@@ -147,7 +161,6 @@ export default function EditableTitle({
       <textarea
         data-test="editable-title-input"
         ref={contentRef}
-        required
         value={value}
         className={!title ? 'text-muted' : undefined}
         onKeyDown={handleKeyDown}
@@ -155,13 +168,13 @@ export default function EditableTitle({
         onBlur={handleBlur}
         onClick={handleClick}
         onKeyPress={handleKeyPress}
+        placeholder={placeholder}
         style={editStyle}
       />
     ) : (
       <input
         data-test="editable-title-input"
         ref={contentRef}
-        required
         type={isEditing ? 'text' : 'button'}
         value={value}
         className={!title ? 'text-muted' : undefined}
@@ -170,6 +183,7 @@ export default function EditableTitle({
         onBlur={handleBlur}
         onClick={handleClick}
         onKeyPress={handleKeyPress}
+        placeholder={placeholder}
       />
     );
   if (showTooltip && !isEditing) {

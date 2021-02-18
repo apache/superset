@@ -31,8 +31,8 @@ from superset.databases.commands.exceptions import (
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.dao import DatabaseDAO
+from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
-from superset.security.analytics_db_safety import DBSecurityException
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             )
         except DBAPIError:
             raise DatabaseTestConnectionFailedError()
-        except DBSecurityException as ex:
+        except SupersetSecurityException as ex:
             raise DatabaseSecurityUnsafeError(message=str(ex))
         except Exception:
             raise DatabaseTestConnectionUnexpectedError()

@@ -21,9 +21,14 @@ import thunk from 'redux-thunk';
 import messageToastReducer from 'src/messageToasts/reducers';
 import { initEnhancer } from 'src/reduxUtils';
 
+const container = document.getElementById('app');
+const bootstrap = JSON.parse(container?.getAttribute('data-bootstrap') ?? '{}');
+const common = { ...bootstrap.common };
+
 export const store = createStore(
   combineReducers({
     messageToasts: messageToastReducer,
+    common: () => common,
   }),
   {},
   compose(applyMiddleware(thunk), initEnhancer(false)),
