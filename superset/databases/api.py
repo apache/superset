@@ -238,6 +238,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except DatabaseInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatabaseConnectionFailedError as ex:
+            logger.exception("Database connection failed")
             return self.response_422(message=str(ex))
         except DatabaseCreateFailedError as ex:
             logger.error(
@@ -607,6 +608,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             TestConnectionDatabaseCommand(g.user, item).run()
             return self.response(200, message="OK")
         except DatabaseTestConnectionFailedError as ex:
+            logger.exception("Database test connection failed")
             return self.response_422(message=str(ex))
 
     @expose("/<int:pk>/related_objects/", methods=["GET"])
