@@ -545,7 +545,7 @@ class TestCore(SupersetTestCase):
         self.assertEqual(400, response.status_code)
         response_body = json.loads(response.data.decode("utf-8"))
         expected_body = {
-            "error": "SQLite database cannot be used as a data source for security reasons."
+            "error": "SQLiteDialect_pysqlite cannot be used as a data source for security reasons."
         }
         self.assertEqual(expected_body, response_body)
 
