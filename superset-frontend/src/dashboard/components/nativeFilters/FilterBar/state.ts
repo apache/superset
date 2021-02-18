@@ -25,12 +25,24 @@ import {
   CurrentFilterState,
   NativeFilterState,
   NativeFiltersState,
+  FilterSets,
 } from 'src/dashboard/reducers/types';
 import { mergeExtraFormData } from '../utils';
+import { Filter } from '../types';
 
 export function useFilters() {
+  return useSelector<any, Filter>(state => state.nativeFilters.filters);
+}
+
+export function useFiltersState() {
   return useSelector<any, NativeFilterState>(
-    state => state.nativeFilters.filters,
+    state => state.nativeFilters.filtersState,
+  );
+}
+
+export function useFilterSets() {
+  return useSelector<any, FilterSets>(
+    state => state.nativeFilters.filterSets ?? {},
   );
 }
 

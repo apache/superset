@@ -31,7 +31,7 @@ import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { CurrentFilterState } from 'src/dashboard/reducers/types';
 import { FilterProps } from './types';
 import { getFormData } from '../utils';
-import { useCascadingFilters, useFilterState } from './state';
+import { useCascadingFilters } from './state';
 
 const StyledLoadingBox = styled.div`
   position: relative;
@@ -50,7 +50,6 @@ const FilterValue: React.FC<FilterProps> = ({
 }) => {
   const { id, targets, filterType } = filter;
   const cascadingFilters = useCascadingFilters(id);
-  const filterState = useFilterState(id);
   const [state, setState] = useState([]);
   const [error, setError] = useState<boolean>(false);
   const [formData, setFormData] = useState<Partial<QueryFormData>>({});
@@ -61,17 +60,15 @@ const FilterValue: React.FC<FilterProps> = ({
     column = {},
   }: Partial<{ datasetId: number; column: { name?: string } }> = target;
   const { name: groupby } = column;
-  const currentValue = filterState.currentState?.value;
   const hasDataSource = !!(datasetId && groupby);
   const [loading, setLoading] = useState<boolean>(hasDataSource);
   useEffect(() => {
     const newFormData = getFormData({
+      ...filter,
       datasetId,
       cascadingFilters,
       groupby,
-      currentValue,
       inputRef,
-      ...filter,
     });
     if (!areObjectsEqual(formData || {}, newFormData)) {
       setFormData(newFormData);
@@ -93,7 +90,13 @@ const FilterValue: React.FC<FilterProps> = ({
           setLoading(false);
         });
     }
-  }, [cascadingFilters, datasetId, groupby, filter.defaultValue, currentValue]);
+  }, [
+    cascadingFilters,
+    datasetId,
+    groupby,
+    JSON.stringify(filter),
+    hasDataSource,
+  ]);
 
   useEffect(() => {
     if (directPathToChild?.[0] === filter.id) {

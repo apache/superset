@@ -16,11 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import React from 'react';
 import { styled } from '@superset-ui/core';
+import cls from 'classnames';
 
-interface Props {
-  position?: string;
+export type PositionOption = 'normal' | 'inline' | 'floating';
+export interface Props {
+  position?: PositionOption;
+  className?: string;
+  image?: string;
 }
 
 const LoaderImg = styled.img`
@@ -41,12 +46,19 @@ const LoaderImg = styled.img`
     transform: translate(-50%, -50%);
   }
 `;
-export default function Loading({ position = 'floating' }: Props) {
+export default function Loading({
+  position = 'floating',
+  image = '/static/assets/images/loading.gif',
+  className,
+}: Props) {
   return (
     <LoaderImg
-      className={`loading ${position}`}
+      className={cls('loading', position, className)}
       alt="Loading..."
-      src="/static/assets/images/loading.gif"
+      src={image}
+      role="status"
+      aria-live="polite"
+      aria-label="Loading"
     />
   );
 }

@@ -52,6 +52,8 @@ export const getFormData = ({
     };
   }
   return {
+    ...controlValues,
+    ...otherProps,
     adhoc_filters: [],
     extra_filters: [],
     extra_form_data: cascadingFilters,
@@ -66,8 +68,6 @@ export const getFormData = ({
     url_params: {},
     viz_type: filterType,
     inputRef,
-    ...controlValues,
-    ...otherProps,
   };
 };
 

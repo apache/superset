@@ -83,15 +83,23 @@ fetchMock.put(alertsEndpoint, { ...mockalerts[0], active: false });
 fetchMock.delete(alertEndpoint, {});
 fetchMock.delete(alertsEndpoint, {});
 
-describe('AlertList', () => {
-  const wrapper = mount(
+async function mountAndWait(props = {}) {
+  const mounted = mount(
     <Provider store={store}>
-      <AlertList store={store} user={mockUser} />
+      <AlertList store={store} user={mockUser} {...props} />
     </Provider>,
   );
 
+  await waitForComponentToPaint(mounted);
+
+  return mounted;
+}
+
+describe('AlertList', () => {
+  let wrapper;
+
   beforeAll(async () => {
-    await waitForComponentToPaint(wrapper);
+    wrapper = await mountAndWait();
   });
 
   it('renders', async () => {
@@ -146,5 +154,31 @@ describe('AlertList', () => {
     expect(wrapper.find(IndeterminateCheckbox)).toHaveLength(
       mockalerts.length + 1, // 1 for each row and 1 for select all
     );
+  });
+
+  it('hides bulk actions when switch between alert and report list', async () => {
+    expect(wrapper.find(IndeterminateCheckbox)).toHaveLength(
+      mockalerts.length + 1,
+    );
+    expect(wrapper.find('[data-test="alert-list"]').hasClass('active')).toBe(
+      true,
+    );
+    expect(wrapper.find('[data-test="report-list"]').hasClass('active')).toBe(
+      false,
+    );
+
+    const reportWrapper = await mountAndWait({ isReportEnabled: true });
+
+    expect(fetchMock.calls(/report\/\?q/)[2][0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/report/?q=(filters:!((col:type,opr:eq,value:Report)),order_column:name,order_direction:desc,page:0,page_size:25)"`,
+    );
+
+    expect(
+      reportWrapper.find('[data-test="report-list"]').hasClass('active'),
+    ).toBe(true);
+    expect(
+      reportWrapper.find('[data-test="alert-list"]').hasClass('active'),
+    ).toBe(false);
+    expect(reportWrapper.find(IndeterminateCheckbox)).toHaveLength(0);
   });
 });

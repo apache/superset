@@ -19,6 +19,7 @@
 import { NativeFiltersState } from 'src/dashboard/reducers/types';
 
 export const nativeFilters: NativeFiltersState = {
+  filterSets: {},
   filters: {
     'NATIVE_FILTER-e7Q8zKixx': {
       id: 'NATIVE_FILTER-e7Q8zKixx',
@@ -92,6 +93,7 @@ export const nativeFilters: NativeFiltersState = {
     'NATIVE_FILTER-x9QPw0so1': {
       id: 'NATIVE_FILTER-x9QPw0so1',
       extraFormData: {},
+      currentState: {},
     },
   },
 };
