@@ -173,7 +173,6 @@ const innerResult = <T>(responseBody: { result: T }) => responseBody.result;
  * @param endpoint The url where the resource is located.
  */
 export function useApiV1Resource<RESULT>(endpoint: string): Resource<RESULT> {
-  // get the api "result" field within the resource result
   return useResourceTransform(
     useApiResourceFullBody<{ result: RESULT }>(endpoint),
     innerResult,
