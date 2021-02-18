@@ -17,7 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import withToasts from 'src/messageToasts/enhancers/withToasts';
+import { useToasts } from 'src/messageToasts/enhancers/withToasts';
+import { useComponentDidMount } from 'src/utils/useComponentDidMount';
 
 type Message = Array<string>;
 
@@ -25,7 +26,7 @@ interface CommonObject {
   flash_messages: Array<Message>;
 }
 interface Props {
-  children: Node;
+  children: JSX.Element;
   common: CommonObject;
 }
 
@@ -37,21 +38,20 @@ const flashObj = {
   success: 'addSuccessToast',
 };
 
-class FlashProvider extends React.PureComponent<Props> {
-  componentDidMount() {
-    const flashMessages = this.props.common.flash_messages;
+const FlashProvider: React.FC<Props> = ({ children, ...props }) => {
+  const toasts = useToasts();
+  useComponentDidMount(() => {
+    const flashMessages = props.common.flash_messages;
     flashMessages.forEach(message => {
       const [type, text] = message;
       const flash = flashObj[type];
-      if (this.props[flash]) {
-        this.props[flash](text);
+      const toast = toasts[flash];
+      if (toast) {
+        toast(text);
       }
     });
-  }
+  });
+  return children;
+};
 
-  render() {
-    return this.props.children;
-  }
-}
-
-export default withToasts(FlashProvider);
+export default FlashProvider;
