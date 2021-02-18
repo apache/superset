@@ -38,7 +38,7 @@ describe('Test explore links', () => {
     cy.visitChartByName('Growth Rate');
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
-    cy.get('button#query').click();
+    cy.get('div#query').click();
     cy.get('span').contains('View query').parent().click();
     cy.wait('@chartData').then(() => {
       cy.get('code');
