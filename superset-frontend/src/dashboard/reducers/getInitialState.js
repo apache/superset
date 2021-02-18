@@ -258,9 +258,10 @@ export default function getInitialState(bootstrapData) {
     directPathToChild.push(directLinkComponentId);
   }
 
-  const nativeFilters = getInitialNativeFilterState(
-    dashboard.metadata.filter_configuration || [],
-  );
+  const nativeFilters = getInitialNativeFilterState({
+    filterConfig: dashboard.metadata.filter_configuration || [],
+    filterSetsConfig: dashboard.metadata.filter_sets_configuration || [],
+  });
 
   return {
     datasources,

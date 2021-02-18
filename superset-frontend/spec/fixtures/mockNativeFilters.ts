@@ -93,6 +93,7 @@ export const nativeFilters: NativeFiltersState = {
     'NATIVE_FILTER-x9QPw0so1': {
       id: 'NATIVE_FILTER-x9QPw0so1',
       extraFormData: {},
+      currentState: {},
     },
   },
 };
