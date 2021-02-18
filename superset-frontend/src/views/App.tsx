@@ -18,8 +18,6 @@
  */
 import React, { Suspense } from 'react';
 import { hot } from 'react-hot-loader/root';
-import thunk from 'redux-thunk';
-import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { Provider as ReduxProvider } from 'react-redux';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
