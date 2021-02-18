@@ -45,6 +45,7 @@ interface RootState {
   common: {
     conf: {
       SQLALCHEMY_DOCS_URL: string;
+      SQLALCHEMY_DISPLAY_TEXT: string;
     };
   };
   messageToast: Array<Object>;
@@ -143,7 +144,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const conf = useSelector((state: RootState) => state.common.conf);
-  const documentationLink = conf?.SQLALCHEMY_DOCS_URL ?? '';
 
   const isEditMode = database !== null;
   const defaultExtra =
@@ -414,13 +414,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="helper">
               {t('Refer to the ')}
               <a
-                href={documentationLink}
+                href={conf?.SQLALCHEMY_DOCS_URL ?? ''}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {documentationLink.includes('sqlalchemy')
-                  ? t('SQLAlchemy docs')
-                  : t('Connection Strings documentation')}
+                {t(conf?.SQLALCHEMY_DISPLAY_TEXT ?? '')}
               </a>
               {t(' for more information on how to structure your URI.')}
             </div>
