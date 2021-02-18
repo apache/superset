@@ -924,7 +924,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return {}
 
     @classmethod
-    def get_connect_args_for_impersonation(
+    def connect_arg_for_impersonation(
         cls, uri: str, impersonate_user: bool, username: Optional[str]
     ) -> Dict[str, str]:
         """

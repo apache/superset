@@ -27,7 +27,7 @@ from typing import Any, cast, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 from urllib import parse
 
 import pandas as pd
-import simplejson as json
+import simplejson as jsoget_connect_argsn
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import Column, literal_column, types
 from sqlalchemy.engine.base import Engine
@@ -137,7 +137,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         return version is not None and StrictVersion(version) >= StrictVersion("0.319")
 
     @classmethod
-    def get_connect_args_for_impersonation(
+    def connect_arg_for_impersonation(
         cls, uri: str, impersonate_user: bool, username: Optional[str]
     ) -> Dict[str, str]:
         """
