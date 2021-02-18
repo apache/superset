@@ -418,7 +418,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {t(conf?.SQLALCHEMY_DISPLAY_TEXT ?? '')}
+                {conf?.SQLALCHEMY_DISPLAY_TEXT ?? ''}
               </a>
               {t(' for more information on how to structure your URI.')}
             </div>
