@@ -18,11 +18,42 @@
  */
 import { useSelector } from 'react-redux';
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
-import { FilterState, NativeFiltersState } from 'src/dashboard/reducers/types';
+import {
+  CurrentFilterState,
+  NativeFilterState,
+  NativeFiltersState,
+  FilterSets,
+  FilterState,
+} from 'src/dashboard/reducers/types';
 import { mergeExtraFormData } from '../utils';
 import { Filter } from '../types';
 
 export function useFilters() {
+  return useSelector<any, Filter>(state => state.nativeFilters.filters);
+}
+
+export function useFiltersState() {
+  return useSelector<any, NativeFilterState>(
+    state => state.nativeFilters.filtersState,
+  );
+}
+
+export function useFilterSets() {
+  return useSelector<any, FilterSets>(
+    state => state.nativeFilters.filterSets ?? {},
+  );
+}
+
+export function useSetExtraFormData() {
+  const dispatch = useDispatch();
+  return useCallback(
+    (
+      id: string,
+      extraFormData: ExtraFormData,
+      currentState: CurrentFilterState,
+    ) => dispatch(setExtraFormData(id, extraFormData, currentState)),
+    [dispatch],
+  );
   return useSelector<any, Filter>(state => state.nativeFilters.filters);
 }
 

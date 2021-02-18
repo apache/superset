@@ -20,8 +20,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { isFunction } from 'lodash';
 import { Select } from 'src/components/Select';
+import { Tooltip } from 'src/common/components/Tooltip';
 import ControlHeader from '../ControlHeader';
-import TooltipWrapper from '../../../components/TooltipWrapper';
+
 import './ColorSchemeControl.less';
 
 const propTypes = {
@@ -72,10 +73,7 @@ export default class ColorSchemeControl extends React.PureComponent {
     }
 
     return (
-      <TooltipWrapper
-        label={`${currentScheme.id}-tooltip`}
-        tooltip={currentScheme.label}
-      >
+      <Tooltip id={`${currentScheme.id}-tooltip`} title={currentScheme.label}>
         <ul className="color-scheme-container" data-test={currentScheme.id}>
           {colors.map((color, i) => (
             <li
@@ -89,7 +87,7 @@ export default class ColorSchemeControl extends React.PureComponent {
             </li>
           ))}
         </ul>
-      </TooltipWrapper>
+      </Tooltip>
     );
   }
 

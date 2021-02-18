@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
-import TooltipWrapper from 'src/components/TooltipWrapper';
+import { Tooltip } from 'src/common/components/Tooltip';
 import Label from 'src/components/Label';
 
 const propTypes = {
@@ -59,10 +59,10 @@ export default class PublishedStatus extends React.Component {
       // if they can edit the dash, make the badge a button
       if (this.props.canEdit && this.props.canSave) {
         return (
-          <TooltipWrapper
-            label="Unpublished Dashboard"
+          <Tooltip
+            id="unpublished-dashboard-tooltip"
             placement="bottom"
-            tooltip={draftButtonTooltip}
+            title={draftButtonTooltip}
           >
             <Label
               onClick={() => {
@@ -71,27 +71,27 @@ export default class PublishedStatus extends React.Component {
             >
               {t('Draft')}
             </Label>
-          </TooltipWrapper>
+          </Tooltip>
         );
       }
       return (
-        <TooltipWrapper
-          label="Unpublished Dashboard"
+        <Tooltip
+          id="unpublished-dashboard-tooltip"
           placement="bottom"
-          tooltip={draftDivTooltip}
+          title={draftDivTooltip}
         >
           <Label>{t('Draft')}</Label>
-        </TooltipWrapper>
+        </Tooltip>
       );
     }
 
     // Show the published badge for the owner of the dashboard to toggle
     if (this.props.canEdit && this.props.canSave) {
       return (
-        <TooltipWrapper
-          label="Published Dashboard"
+        <Tooltip
+          id="published-dashboard-tooltip"
           placement="bottom"
-          tooltip={publishedTooltip}
+          title={publishedTooltip}
         >
           <Label
             onClick={() => {
@@ -100,7 +100,7 @@ export default class PublishedStatus extends React.Component {
           >
             {t('Published')}
           </Label>
-        </TooltipWrapper>
+        </Tooltip>
       );
     }
 

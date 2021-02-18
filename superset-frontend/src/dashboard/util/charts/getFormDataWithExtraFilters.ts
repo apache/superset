@@ -79,12 +79,16 @@ export default function getFormDataWithExtraFilters({
 
   let extraData: { extra_form_data?: JsonObject } = {};
   const activeNativeFilters = getActiveNativeFilters({ nativeFilters, layout });
-  const isAffectedChart = Object.values(activeNativeFilters).some(({ scope }) =>
-    scope.includes(chart.id),
-  );
-  if (isAffectedChart) {
+  const filterIdsAppliedOnChart = Object.entries(activeNativeFilters)
+    .filter(([, { scope }]) => scope.includes(chart.id))
+    .map(([filterId]) => filterId);
+  if (filterIdsAppliedOnChart.length) {
     extraData = {
-      extra_form_data: getExtraFormData(nativeFilters, charts),
+      extra_form_data: getExtraFormData(
+        nativeFilters,
+        charts,
+        filterIdsAppliedOnChart,
+      ),
     };
   }
 

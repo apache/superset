@@ -67,6 +67,7 @@ const propTypes = {
   supersetCanExplore: PropTypes.bool.isRequired,
   supersetCanCSV: PropTypes.bool.isRequired,
   sliceCanEdit: PropTypes.bool.isRequired,
+  addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   ownCurrentState: PropTypes.object,
 };
@@ -257,6 +258,7 @@ export default class Chart extends React.Component {
       supersetCanExplore,
       supersetCanCSV,
       sliceCanEdit,
+      addSuccessToast,
       addDangerToast,
       ownCurrentState,
       handleToggleFullSize,
@@ -308,6 +310,7 @@ export default class Chart extends React.Component {
           componentId={componentId}
           dashboardId={dashboardId}
           filters={filters}
+          addSuccessToast={addSuccessToast}
           addDangerToast={addDangerToast}
           handleToggleFullSize={handleToggleFullSize}
           isFullSize={isFullSize}

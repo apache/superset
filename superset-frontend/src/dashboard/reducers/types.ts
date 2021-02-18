@@ -79,6 +79,16 @@ export type FilterState = {
   currentState?: CurrentFilterState;
 };
 
+export type FiltersSet = {
+  id: string;
+  name: string;
+  filtersState: NativeFilterState;
+};
+
+export type FilterSets = {
+  [filtersSetId: string]: FiltersSet;
+};
+
 export type FullFilterState = {
   nativeFilters?: FilterState;
   crossFilters?: FilterState;
@@ -88,6 +98,7 @@ export type FullFilterState = {
 export type FiltersState = {
   nativeFilters: { [filterId: string]: FilterState };
   crossFilters: { [filterId: string]: FilterState };
+  filterSets: FilterSets;
   ownFilters: { [filterId: string]: FilterState };
 };
 

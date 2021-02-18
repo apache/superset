@@ -16,18 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t } from '@superset-ui/core';
-import React, { useState, useEffect, useMemo } from 'react';
+import { styled, t, tn, ExtraFormData } from '@superset-ui/core';
+import React, { useState, useEffect, useMemo, ChangeEvent } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import cx from 'classnames';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
 import { FullFilterState } from 'src/dashboard/reducers/types';
+import { Input, Select } from 'src/common/components';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import {
+  saveFilterSets,
+  setFiltersState,
+} from 'src/dashboard/actions/nativeFilters';
+import { SelectValue } from 'antd/lib/select';
 import FilterConfigurationLink from './FilterConfigurationLink';
-import { useFilters } from './state';
+import {
+  useFilters,
+  useFilterSets,
+  useFiltersState,
+  useSetExtraFormData,
+} from './state';
 import { useFilterConfiguration } from '../state';
 import { Filter } from '../types';
-import { buildCascadeFiltersTree, mapParentFiltersToChildren } from './utils';
+import {
+  buildCascadeFiltersTree,
+  generateFiltersSetId,
+  mapParentFiltersToChildren,
+} from './utils';
 import CascadePopover from './CascadePopover';
 import { updateExtraFormData } from '../../../actions/nativeFilters';
 
@@ -66,6 +82,17 @@ const Bar = styled.div`
   }
 `;
 
+const StyledTitle = styled.h4`
+  width: 100%;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  margin: 0;
+  overflow-wrap: break-word;
+  & > .ant-select {
+    width: 100%;
+  }
+`;
+
 const CollapsedBar = styled.div`
   position: absolute;
   top: 0;
@@ -101,6 +128,15 @@ const CollapsedBar = styled.div`
 const StyledCollapseIcon = styled(Icon)`
   color: ${({ theme }) => theme.colors.primary.base};
   margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+`;
+
+const FilterSet = styled.div`
+  display: grid;
+  align-items: center;
+  justify-content: center;
+  grid-template-columns: 1fr;
+  grid-gap: 10px;
+  padding-top: 10px;
 `;
 
 const TitleArea = styled.h4`
@@ -147,10 +183,18 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   toggleFiltersBar,
   directPathToChild,
 }) => {
-  const [filterData, setFilterData] = useState<FullFilterState>({});
+  const [filterData, setFilterData] = useState<{
+    [id: string]: {
+      extraFormData: ExtraFormData;
+      currentState: FullFilterState;
+    };
+  }>({});
+  const dispatch = useDispatch();
+  const filtersState = useFiltersState();
+  const filterSets = useFilterSets();
   const filterConfigs = useFilterConfiguration();
   const filters = useFilters();
-  const dispatch = useDispatch();
+  const [filtersSetName, setFiltersSetName] = useState('');
   const canEdit = useSelector<any, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -206,6 +250,17 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     });
   };
 
+  const handleSaveFilterSets = () => {
+    dispatch(
+      saveFilterSets(
+        filtersSetName.trim(),
+        generateFiltersSetId(),
+        filtersState,
+      ),
+    );
+    setFiltersSetName('');
+  };
+
   const handleResetAll = () => {
     filterConfigs.forEach(filter => {
       dispatch(
@@ -215,6 +270,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         }),
       );
     });
+  };
+
+  const takeFiltersSet = (value: SelectValue) => {
+    dispatch(setFiltersState(filterSets[String(value)]?.filtersState));
   };
 
   return (
@@ -259,6 +318,50 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             {t('Apply')}
           </Button>
         </ActionButtons>
+        {isFeatureEnabled(FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET) && (
+          <ActionButtons>
+            <FilterSet>
+              <StyledTitle>
+                <div>{t('Choose filters set')}</div>
+                <Select
+                  size="small"
+                  allowClear
+                  placeholder={tn(
+                    'Available %d sets',
+                    Object.keys(filterSets).length,
+                  )}
+                  onChange={takeFiltersSet}
+                >
+                  {Object.values(filterSets).map(({ name, id }) => (
+                    <Select.Option value={id}>{name}</Select.Option>
+                  ))}
+                </Select>
+              </StyledTitle>
+              <StyledTitle>
+                <div>{t('Name')}</div>
+                <Input
+                  size="small"
+                  placeholder={t('Enter filter set name')}
+                  value={filtersSetName}
+                  onChange={({
+                    target: { value },
+                  }: ChangeEvent<HTMLInputElement>) => {
+                    setFiltersSetName(value);
+                  }}
+                />
+              </StyledTitle>
+              <Button
+                buttonStyle="secondary"
+                buttonSize="small"
+                disabled={filtersSetName.trim() === ''}
+                onClick={handleSaveFilterSets}
+                data-test="filter-save-filters-set-button"
+              >
+                {t('Save Filters Set')}
+              </Button>
+            </FilterSet>
+          </ActionButtons>
+        )}
         <FilterControls>
           {cascadeFilters.map(filter => (
             <CascadePopover

@@ -148,9 +148,10 @@ function DashboardTable({
         buttons={[
           {
             name: (
-              <div>
-                <i className="fa fa-plus" /> Dashboard{' '}
-              </div>
+              <>
+                <i className="fa fa-plus" />
+                Dashboard
+              </>
             ),
             buttonStyle: 'tertiary',
             onClick: () => {

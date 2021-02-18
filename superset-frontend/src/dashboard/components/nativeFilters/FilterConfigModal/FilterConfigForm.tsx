@@ -248,7 +248,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
             // style={{ display: datasetId == null ? undefined : 'none' }}
             name={['filters', filterId, 'column']}
             initialValue={initColumn}
-            label={<StyledLabel>{t('Field')}</StyledLabel>}
+            label={<StyledLabel>{t('Column')}</StyledLabel>}
             rules={[{ required: !removed, message: t('Field is required') }]}
             data-test="field-input"
           >
