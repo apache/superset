@@ -18,6 +18,7 @@
  */
 
 import React from 'react';
+import rison from 'rison';
 import {
   useApiV1Resource,
   useResourceTransform,
@@ -36,9 +37,14 @@ function extractOwnerNames({ owners }: Chart) {
   return owners.map(owner => `${owner.first_name} ${owner.last_name}`);
 }
 
+const namesQuery = rison.encode({
+  columns: ['owners.first_name', 'owners.last_name', 'owners.id'],
+  keys: ['none'],
+});
+
 function useChartOwnerNames(chartId: string) {
   const { result } = useResourceTransform(
-    useApiV1Resource<Chart>(`/api/v1/chart/${chartId}`),
+    useApiV1Resource<Chart>(`/api/v1/chart/${chartId}?q=${namesQuery}`),
     extractOwnerNames,
   );
   return result;
