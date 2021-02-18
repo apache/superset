@@ -160,7 +160,7 @@ export function useResourceTransform<IN, OUT>(
   }, [resource, transformFn]);
 }
 
-// returns the result from fetching an api resource
+// returns the "result" field from a fetched API v1 endpoint
 const innerResult = <T>(responseBody: { result: T }) => responseBody.result;
 
 /**
