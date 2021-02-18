@@ -31,7 +31,15 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Owner from 'src/types/Owner';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
-import { AlertObject, Operator, Recipient, MetaObject } from './types';
+import {
+  AlertObject,
+  ChartObject,
+  DashboardObject,
+  DatabaseObject,
+  MetaObject,
+  Operator,
+  Recipient,
+} from './types';
 
 const SELECT_PAGE_SIZE = 2000; // temporary fix for paginated query
 
@@ -982,16 +990,21 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       setCurrentAlert({
         ...resource,
         chart: resource.chart
-          ? getChartData(resource.chart) || { value: resource.chart.id }
+          ? getChartData(resource.chart) || {
+              value: (resource.chart as ChartObject).id,
+              label: (resource.chart as ChartObject).slice_name,
+            }
           : undefined,
         dashboard: resource.dashboard
           ? getDashboardData(resource.dashboard) || {
-              value: resource.dashboard.id,
+              value: (resource.dashboard as DashboardObject).id,
+              label: (resource.dashboard as DashboardObject).dashboard_title,
             }
           : undefined,
         database: resource.database
           ? getSourceData(resource.database) || {
-              value: resource.database.id,
+              value: (resource.database as DatabaseObject).id,
+              label: (resource.database as DatabaseObject).database_name,
             }
           : undefined,
         owners: (resource.owners || []).map(owner => ({
