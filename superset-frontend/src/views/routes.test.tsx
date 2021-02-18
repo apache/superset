@@ -16,31 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import configureStore from 'redux-mock-store';
-import { shallow } from 'enzyme';
 
-import URLShortLinkModal from 'src/components/URLShortLinkModal';
-import ModalTrigger from 'src/components/ModalTrigger';
+import { isFrontendRoute, routes } from './routes';
 
-describe('URLShortLinkModal', () => {
-  const defaultProps = {
-    url: 'mockURL',
-    emailSubject: 'Mock Subject',
-    emailContent: 'mock content',
-    triggerNode: <div />,
-  };
+describe('isFrontendRoute', () => {
+  it('returns true if a route matches', () => {
+    routes.forEach(r => {
+      expect(isFrontendRoute(r.path)).toBe(true);
+    });
+  });
 
-  function setup() {
-    const mockStore = configureStore([]);
-    const store = mockStore({});
-    return shallow(
-      <URLShortLinkModal store={store} {...defaultProps} />,
-    ).dive();
-  }
-
-  it('renders ModalTrigger', () => {
-    const wrapper = setup();
-    expect(wrapper.find(ModalTrigger)).toExist();
+  it('returns false if a route does not match', () => {
+    expect(isFrontendRoute('/non-existent/path/')).toBe(false);
   });
 });

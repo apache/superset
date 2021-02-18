@@ -17,11 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { shallow, mount } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
+import { shallow } from 'enzyme';
 import { Nav } from 'react-bootstrap';
 import { Menu as DropdownMenu } from 'src/common/components';
 import NavDropdown from 'src/components/NavDropdown';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { Link } from 'react-router-dom';
 
 import { Menu } from 'src/components/Menu/Menu';
 import MenuObject from 'src/components/Menu/MenuObject';
@@ -44,7 +45,7 @@ const defaultProps = {
             name: 'Datasets',
             icon: 'fa-table',
             label: 'Datasets',
-            url: '/tablemodelview/list/?_flt_1_is_sqllab_view=y',
+            url: '/tablemodelview/list/',
           },
           '-',
           {
@@ -172,10 +173,7 @@ describe('Menu', () => {
       ...overrideProps,
     };
 
-    const versionedWrapper = mount(<Menu {...props} />, {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: { theme: supersetTheme },
-    });
+    const versionedWrapper = mount(<Menu {...props} />);
 
     expect(versionedWrapper.find('.version-info span')).toHaveLength(2);
   });
@@ -186,5 +184,29 @@ describe('Menu', () => {
 
   it('renders MenuItems in NavDropdown (settings)', () => {
     expect(wrapper.find(NavDropdown).find(DropdownMenu.Item)).toHaveLength(3);
+  });
+
+  it('renders a react-router Link if isFrontendRoute', () => {
+    const props = {
+      ...defaultProps,
+      isFrontendRoute: jest.fn(() => true),
+    };
+
+    const wrapper2 = mount(<Menu {...props} />);
+
+    expect(props.isFrontendRoute).toHaveBeenCalled();
+    expect(wrapper2.find(Link)).toExist();
+  });
+
+  it('does not render a react-router Link if not isFrontendRoute', () => {
+    const props = {
+      ...defaultProps,
+      isFrontendRoute: jest.fn(() => false),
+    };
+
+    const wrapper2 = mount(<Menu {...props} />);
+
+    expect(props.isFrontendRoute).toHaveBeenCalled();
+    expect(wrapper2.find(Link).exists()).toBe(false);
   });
 });

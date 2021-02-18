@@ -22,7 +22,7 @@ import { getChartControlPanelRegistry } from '@superset-ui/core';
 
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import ModalTrigger from 'src/components/ModalTrigger';
-import TooltipWrapper from 'src/components/TooltipWrapper';
+import { Tooltip } from 'src/common/components/Tooltip';
 import TableCollection from 'src/components/dataViewCommon/TableCollection';
 import TableView from 'src/components/TableView';
 
@@ -97,11 +97,11 @@ describe('AlteredSliceTag', () => {
   });
 
   describe('renderTriggerNode', () => {
-    it('renders a TooltipWrapper', () => {
+    it('renders a Tooltip', () => {
       const triggerNode = mount(
         <div>{wrapper.instance().renderTriggerNode()}</div>,
       );
-      expect(triggerNode.find(TooltipWrapper)).toHaveLength(1);
+      expect(triggerNode.find(Tooltip)).toHaveLength(1);
     });
   });
 
