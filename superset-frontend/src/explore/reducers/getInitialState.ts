@@ -25,8 +25,26 @@ import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
 } from '../controlUtils';
+import { Datasource, DatasourceType, JsonObject, QueryFormData } from '@superset-ui/core';
+import { Slice } from 'src/types/Chart';
+import { CommonBootstrapData } from 'src/types/bootstrapTypes';
 
-export default function getInitialState(bootstrapData) {
+export interface ExlorePageBootstrapData extends JsonObject {
+  can_add: boolean;
+  can_download: boolean;
+  can_overwrite: boolean;
+  datasource: Datasource;
+  form_data: QueryFormData;
+  datasource_id: number;
+  datasource_type: DatasourceType;
+  slice: Slice | null;
+  standalone: boolean;
+  user_id: number;
+  forced_height: string | null;
+  common: CommonBootstrapData;
+}
+
+export default function getInitialState(bootstrapData: ExlorePageBootstrapData) {
   const { form_data: rawFormData } = bootstrapData;
   const { slice } = bootstrapData;
   const sliceName = slice ? slice.slice_name : null;
@@ -41,6 +59,7 @@ export default function getInitialState(bootstrapData) {
     filterColumnOpts: [],
     isDatasourceMetaLoading: false,
     isStarred: false,
+    controls: {},
   };
   const controls = getControlsState(bootstrappedState, rawFormData);
   bootstrappedState.controls = controls;
@@ -88,3 +107,5 @@ export default function getInitialState(bootstrapData) {
     ),
   };
 }
+
+export type InitialExploreState = ReturnType<typeof getInitialState>;

@@ -85,12 +85,6 @@ export default function exploreReducer(state = {}, action) {
         datasources: action.datasources,
       };
     },
-    [actions.REMOVE_CONTROL_PANEL_ALERT]() {
-      return {
-        ...state,
-        controlPanelAlert: null,
-      };
-    },
     [actions.SET_FIELD_VALUE]() {
       const new_form_data = state.form_data;
       const { controlName, value, validationErrors } = action;

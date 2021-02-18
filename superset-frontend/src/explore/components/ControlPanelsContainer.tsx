@@ -18,30 +18,49 @@
  */
 /* eslint camelcase: 0 */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { t, styled, getChartControlPanelRegistry } from '@superset-ui/core';
+import {
+  t,
+  styled,
+  getChartControlPanelRegistry,
+  QueryFormData,
+  DatasourceType,
+} from '@superset-ui/core';
 
 import Tabs from 'src/common/components/Tabs';
 import Alert from 'src/components/Alert';
 import Collapse from 'src/common/components/Collapse';
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import {
+  ControlPanelSectionConfig,
+  ControlState,
+  CustomControlItem,
+  ExpandedControlItem,
+  InfoTooltipWithTrigger,
+} from '@superset-ui/chart-controls';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { sectionsToRender } from '../controlUtils';
-import { exploreActions } from '../actions/exploreActions';
+import { ExploreActions, exploreActions } from '../actions/exploreActions';
+import { InitialExploreState } from '../reducers/getInitialState';
 
-const propTypes = {
-  actions: PropTypes.object.isRequired,
-  alert: PropTypes.string,
-  datasource_type: PropTypes.string.isRequired,
-  exploreState: PropTypes.object.isRequired,
-  controls: PropTypes.object.isRequired,
-  form_data: PropTypes.object.isRequired,
-  isDatasourceMetaLoading: PropTypes.bool.isRequired,
+type ControlPanelsContainerProps = {
+  actions: ExploreActions;
+  alert: string;
+  datasource_type: DatasourceType;
+  exploreState: Record<string, any>;
+  controls: Record<string, ControlState>;
+  form_data: QueryFormData;
+  isDatasourceMetaLoading: boolean;
+};
+
+type ExpandedControlPanelSectionConfig = Omit<
+  ControlPanelSectionConfig,
+  'controlSetRows'
+> & {
+  controlSetRows: ExpandedControlItem[][];
 };
 
 const Styles = styled.div`
@@ -80,19 +99,18 @@ const ControlPanelsTabs = styled(Tabs)`
     height: 100%;
   }
 `;
-class ControlPanelsContainer extends React.Component {
+
+class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps> {
   // trigger updates to the component when async plugins load
   static contextType = PluginContext;
 
-  constructor(props) {
+  constructor(props: ControlPanelsContainerProps) {
     super(props);
-
-    this.removeAlert = this.removeAlert.bind(this);
     this.renderControl = this.renderControl.bind(this);
     this.renderControlPanelSection = this.renderControlPanelSection.bind(this);
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: ControlPanelsContainerProps) {
     const {
       actions: { setControlValue },
     } = this.props;
@@ -107,32 +125,29 @@ class ControlPanelsContainer extends React.Component {
       ];
       Object.entries(this.props.controls).forEach(([controlName, control]) => {
         const { type, default: defaultValue } = control;
-        if (defaultValues.includes(type)) {
+        if (typeof type === 'string' && defaultValues.includes(type)) {
           setControlValue(controlName, defaultValue);
         }
       });
     }
   }
 
-  sectionsToRender() {
+  sectionsToRender(): ExpandedControlPanelSectionConfig[] {
     return sectionsToRender(
       this.props.form_data.viz_type,
       this.props.datasource_type,
     );
   }
 
-  sectionsToExpand(sections) {
+  sectionsToExpand(sections: ControlPanelSectionConfig[]) {
     return sections.reduce(
-      (acc, cur) => (cur.expanded ? [...acc, cur.label] : acc),
-      [],
+      (acc, section) =>
+        section.expanded ? [...acc, String(section.label)] : acc,
+      [] as string[],
     );
   }
 
-  removeAlert() {
-    this.props.actions.removeControlPanelAlert();
-  }
-
-  renderControl({ name, config }) {
+  renderControl({ name, config }: CustomControlItem) {
     const { actions, controls, form_data: formData } = this.props;
     const { visibility } = config;
 
@@ -144,11 +159,9 @@ class ControlPanelsContainer extends React.Component {
       ...controls[name],
       name,
     };
-    const {
-      validationErrors,
-      provideFormDataToProps,
-      ...restProps
-    } = controlData;
+    const { validationErrors, ...restProps } = controlData as ControlState & {
+      validationErrors?: any[];
+    };
 
     // if visibility check says the config is not visible, don't render it
     if (visibility && !visibility.call(config, this.props, controlData)) {
@@ -160,30 +173,41 @@ class ControlPanelsContainer extends React.Component {
         name={name}
         validationErrors={validationErrors}
         actions={actions}
-        formData={provideFormDataToProps ? formData : null}
-        datasource={formData?.datasource}
+        controls={controls}
+        formData={formData}
         {...restProps}
       />
     );
   }
 
-  renderControlPanelSection(section) {
+  renderControlPanelSection(section: ExpandedControlPanelSectionConfig) {
     const { controls } = this.props;
     const { label, description } = section;
 
     const hasErrors = section.controlSetRows.some(rows =>
-      rows.some(
-        s =>
-          controls[s] &&
-          controls[s].validationErrors &&
-          controls[s].validationErrors.length > 0,
-      ),
+      rows.some(item => {
+        const controlName =
+          typeof item === 'string'
+            ? item
+            : item && 'name' in item
+            ? item.name
+            : null;
+        return (
+          controlName &&
+          controlName in controls &&
+          controls[controlName].validationErrors &&
+          controls[controlName].validationErrors.length > 0
+        );
+      }),
     );
     const PanelHeader = () => (
       <span>
         <span>{label}</span>{' '}
         {description && (
-          <InfoTooltipWithTrigger label={label} tooltip={description} />
+          <InfoTooltipWithTrigger
+            label={label as string}
+            tooltip={description as string}
+          />
         )}
         {hasErrors && (
           <InfoTooltipWithTrigger
@@ -199,7 +223,7 @@ class ControlPanelsContainer extends React.Component {
       <Collapse.Panel
         className="control-panel-section"
         header={PanelHeader()}
-        key={section.label}
+        key={String(section.label)}
       >
         {section.controlSetRows.map((controlSets, i) => {
           const renderedControls = controlSets
@@ -229,7 +253,6 @@ class ControlPanelsContainer extends React.Component {
           return (
             <ControlRow
               key={`controlsetrow-${i}`}
-              className="control-row"
               controls={renderedControls}
             />
           );
@@ -247,8 +270,8 @@ class ControlPanelsContainer extends React.Component {
       return <Loading />;
     }
 
-    const querySectionsToRender = [];
-    const displaySectionsToRender = [];
+    const querySectionsToRender: ExpandedControlPanelSectionConfig[] = [];
+    const displaySectionsToRender: ExpandedControlPanelSectionConfig[] = [];
     this.sectionsToRender().forEach(section => {
       // if at least one control in the section is not `renderTrigger`
       // or asks to be displayed at the Data tab
@@ -258,6 +281,7 @@ class ControlPanelsContainer extends React.Component {
           rows.some(
             control =>
               control &&
+              'config' in control &&
               control.config &&
               (!control.config.renderTrigger ||
                 control.config.tabOverride === 'data'),
@@ -277,14 +301,6 @@ class ControlPanelsContainer extends React.Component {
     );
     return (
       <Styles>
-        {this.props.alert && (
-          <Alert
-            type="warning"
-            message={this.props.alert}
-            closable
-            onClose={this.removeAlert}
-          />
-        )}
         <ControlPanelsTabs
           id="controlSections"
           data-test="control-tabs"
@@ -318,26 +334,19 @@ class ControlPanelsContainer extends React.Component {
   }
 }
 
-ControlPanelsContainer.propTypes = propTypes;
-
-function mapStateToProps({ explore }) {
-  return {
-    alert: explore.controlPanelAlert,
-    isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
-    controls: explore.controls,
-    exploreState: explore,
-  };
-}
-
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(exploreActions, dispatch),
-  };
-}
-
 export { ControlPanelsContainer };
 
 export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
+  function mapStateToProps({ explore }: InitialExploreState) {
+    return {
+      isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
+      controls: explore.controls,
+      exploreState: explore,
+    };
+  },
+  function mapDispatchToProps(dispatch) {
+    return {
+      actions: bindActionCreators(exploreActions, dispatch),
+    };
+  },
 )(ControlPanelsContainer);

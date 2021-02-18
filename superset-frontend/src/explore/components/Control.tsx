@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { ReactNode } from 'react';
-import { ControlType } from '@superset-ui/chart-controls';
+import { ControlStateMapping, ControlType } from '@superset-ui/chart-controls';
 import { JsonValue, QueryFormData } from '@superset-ui/core';
 import { ExploreActions } from '../actions/exploreActions';
 import controlMap from './controls';
@@ -35,6 +35,7 @@ export type ControlProps = {
   tooltipOnClick?: () => ReactNode;
   places?: number;
   rightNode?: ReactNode;
+  controls?: ControlStateMapping;
   formData?: QueryFormData | null;
   value?: JsonValue;
   validationErrors?: any[];

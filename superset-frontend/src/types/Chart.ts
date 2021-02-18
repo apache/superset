@@ -21,6 +21,7 @@
  * The Chart model as returned from the API
  */
 
+import { QueryFormData } from '@superset-ui/core';
 import Owner from './Owner';
 
 export interface Chart {
@@ -45,7 +46,7 @@ export type Slice = {
   slice_name: string;
   description: string | null;
   cache_timeout: number | null;
-  url?: string;
+  form_data: QueryFormData;
 };
 
 export default Chart;

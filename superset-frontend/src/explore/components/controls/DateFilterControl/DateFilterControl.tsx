@@ -165,16 +165,22 @@ const IconWrapper = styled.span`
   }
 `;
 
-interface DateFilterLabelProps {
+interface DateFilterControlProps {
   name: string;
   onChange: (timeRange: string) => void;
   value?: string;
   endpoints?: TimeRangeEndpoints;
   datasource?: string;
+  formData?: { datasource: string };
 }
 
-export default function DateFilterControl(props: DateFilterLabelProps) {
-  const { value = 'Last week', endpoints, onChange, datasource } = props;
+export default function DateFilterControl(props: DateFilterControlProps) {
+  const {
+    value = 'Last week',
+    endpoints,
+    onChange,
+    formData: { datasource } = {},
+  } = props;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
