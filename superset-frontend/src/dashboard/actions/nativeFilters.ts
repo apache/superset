@@ -25,10 +25,10 @@ import {
 } from 'src/dashboard/components/nativeFilters/types';
 import { dashboardInfoChanged } from './dashboardInfo';
 import {
-  FiltersState, FilterState,
-  CurrentFilterState,
+  FiltersState,
+  FilterState,
   FiltersSet,
-  NativeFilterState,
+  FilterSets,
 } from '../reducers/types';
 import { SelectedValues } from '../components/nativeFilters/FilterConfigModal/types';
 

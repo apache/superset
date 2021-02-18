@@ -23,19 +23,19 @@ import cx from 'classnames';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
 import {
-  FilterState, FullFilterState,
+  FullFilterState,
   CurrentFilterState,
+  FilterState,
   FiltersSet,
-  NativeFilterState,
 } from 'src/dashboard/reducers/types';
 import { Input, Select } from 'src/common/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { setFilterSetsConfiguration,
-  saveFilterSets,
-  setFiltersState,
-  updateExtraFormData, } from 'src/dashboard/actions/nativeFilters';
+import {
+  setFilterSetsConfiguration,
+  updateExtraFormData,
+} from 'src/dashboard/actions/nativeFilters';
 import FilterConfigurationLink from './FilterConfigurationLink';
-import { useFilters, useFilterSets, useFiltersState } from './state';
+import { useFilters, useFilterSets, useFiltersStateNative } from './state';
 import { useFilterConfiguration } from '../state';
 import { Filter } from '../types';
 import {
@@ -182,13 +182,14 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   directPathToChild,
 }) => {
   const [filterData, setFilterData] = useState<{
-    [id: string]: {
+    [filterId: string]: {
+      id: string;
       extraFormData: ExtraFormData;
-      currentState: FilterState;
+      currentState: CurrentFilterState;
     };
   }>({});
   const dispatch = useDispatch();
-  const filtersState = useFiltersState();
+  const filtersStateNative = useFiltersStateNative();
   const filterSets = useFilterSets();
   const filterConfigs = useFilterConfiguration();
   const filterSetsConfigs = useSelector<any, FiltersSet[]>(
@@ -240,19 +241,19 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const handleFilterSelectionChange = (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
-    { nativeFilters }: FullFilterState,
+    filtersState: FullFilterState,
   ) => {
+    // @ts-ignore
     setFilterData(prevFilterData => {
-
       const children = cascadeChildren[filter.id] || [];
       // force instant updating on initialization or for parent filters
       if (filter.isInstant || children.length > 0) {
-        dispatch(updateExtraFormData(filter.id, filterState));
+        dispatch(updateExtraFormData(filter.id, filtersState));
       }
 
       return {
         ...prevFilterData,
-        [filter.id]: nativeFilters,
+        [filter.id]: filtersState.nativeFilters,
       };
     });
   };
@@ -264,12 +265,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     }
     const filtersSet = filterSets[value];
     Object.values(filtersSet.filtersState).forEach(filterState => {
-      const {
-        extraFormData,
-        currentState,
-        id,
-      } = filterState as NativeFilterState;
-      handleFilterSelectionChange({ id }, extraFormData, currentState);
+      const { extraFormData, currentState, id } = filterState as FilterState;
+      handleFilterSelectionChange(
+        { id },
+        { nativeFilters: { id, extraFormData, currentState } },
+      );
     });
   };
 
@@ -277,7 +277,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     const filterIds = Object.keys(filterData);
     filterIds.forEach(filterId => {
       if (filterData[filterId]) {
-        dispatch(updateExtraFormData(filterId, filterData[filterId]));
+        dispatch(
+          updateExtraFormData(filterId, {
+            nativeFilters: filterData[filterId],
+          }),
+        );
       }
     });
   };
@@ -295,8 +299,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           {
             name: filtersSetName.trim(),
             id: generateFiltersSetId(),
-            // TODO: After merge https://github.com/apache/superset/pull/13137, compare if data changed (meantime save only clicking `apply`)
-            filtersState,
+            filtersState: {
+              nativeFilters: filtersStateNative,
+            },
           },
         ]),
       ),

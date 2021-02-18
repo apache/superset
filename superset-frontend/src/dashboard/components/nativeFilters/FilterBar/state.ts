@@ -20,8 +20,9 @@ import { useSelector } from 'react-redux';
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
 import {
   NativeFiltersState,
-  FilterSets,
   FilterState,
+  FiltersSet,
+  FilterSets,
 } from 'src/dashboard/reducers/types';
 import { mergeExtraFormData } from '../utils';
 import { Filter } from '../types';
@@ -30,9 +31,9 @@ export function useFilters() {
   return useSelector<any, Filter>(state => state.nativeFilters.filters);
 }
 
-export function useFiltersState() {
-  return useSelector<any, NativeFilterState>(
-    state => state.nativeFilters.filtersState,
+export function useFiltersStateNative() {
+  return useSelector<any, FilterState>(
+    state => state.nativeFilters.filtersState.nativeFitlers ?? {},
   );
 }
 

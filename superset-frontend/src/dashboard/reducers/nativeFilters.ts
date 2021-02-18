@@ -25,7 +25,12 @@ import {
   SET_FILTER_SETS_CONFIG_COMPLETE,
   SET_FILTERS_STATE,
 } from 'src/dashboard/actions/nativeFilters';
-import { FiltersSet, NativeFiltersState, FilterState, FiltersState } from './types';
+import {
+  NativeFiltersState,
+  FilterState,
+  FiltersState,
+  FiltersSet,
+} from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
 
 export function getInitialFilterState(id: string): FilterState {
@@ -64,21 +69,22 @@ export function getInitialState({
     });
     state.filters = filters;
     state.filtersState = {
+      ...emptyFiltersState,
       ...prevState?.filtersState,
       nativeFilters: filtersState.nativeFilters,
     };
   } else {
     state.filters = prevState?.filters ?? {};
-    state.filtersState = prevState?.filtersState ?? emptyFiltersState;
+    state.filtersState = prevState?.filtersState ?? { ...emptyFiltersState };
   }
 
   if (filterSetsConfig) {
-    const filterSets = {};
+    const filterSets = { ...emptyFiltersState };
     filterSetsConfig.forEach(filtersSet => {
       const { id } = filtersSet;
       filterSets[id] = filtersSet;
     });
-    state.filterSets = filterSets;
+    state.filterSets = filterSets.nativeFilters;
   } else {
     state.filterSets = prevState?.filterSets ?? {};
   }
