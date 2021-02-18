@@ -19,7 +19,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import cx from 'classnames';
 import { t } from '@superset-ui/core';
-import TooltipWrapper from './TooltipWrapper';
+import { Tooltip } from 'src/common/components/Tooltip';
 
 interface EditableTitleProps {
   canEdit?: boolean;
@@ -174,9 +174,9 @@ export default function EditableTitle({
     );
   if (showTooltip && !isEditing) {
     titleComponent = (
-      <TooltipWrapper
-        label="title"
-        tooltip={
+      <Tooltip
+        id="title-tooltip"
+        title={
           canEdit
             ? t('Click to edit')
             : noPermitTooltip ||
@@ -184,7 +184,7 @@ export default function EditableTitle({
         }
       >
         {titleComponent}
-      </TooltipWrapper>
+      </Tooltip>
     );
   }
   if (!canEdit) {

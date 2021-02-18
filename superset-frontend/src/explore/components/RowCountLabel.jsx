@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { getNumberFormatter, t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
-import TooltipWrapper from '../../components/TooltipWrapper';
+import { Tooltip } from 'src/common/components/Tooltip';
 
 const propTypes = {
   rowcount: PropTypes.number,
@@ -47,11 +47,11 @@ export default function RowCountLabel({ rowcount, limit, suffix, loading }) {
     </span>
   );
   return (
-    <TooltipWrapper label="tt-rowcount" tooltip={tooltip}>
+    <Tooltip id="tt-rowcount-tooltip" title={tooltip}>
       <Label type={type} data-test="row-count-label">
         {loading ? 'Loading...' : `${formattedRowCount} ${suffix}`}
       </Label>
-    </TooltipWrapper>
+    </Tooltip>
   );
 }
 
