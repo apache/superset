@@ -26,9 +26,7 @@ export default {
   component: Popover,
 };
 
-export const InteractivePopover = (
-  args: JSX.IntrinsicAttributes & PopoverProps & React.RefAttributes<unknown>,
-) => (
+export const InteractivePopover = (args: PopoverProps) => (
   <Popover {...args}>
     <Button
       style={{

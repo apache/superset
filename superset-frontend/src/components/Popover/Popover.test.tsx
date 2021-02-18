@@ -47,7 +47,7 @@ test('it should not render a title or content when not visible', () => {
   expect(title).not.toBeInTheDocument();
 });
 
-test('renders with icon child', async () => {
+test('renders with icon child', () => {
   render(
     <Popover content="Content sample" title="Popover title">
       <Icon name="alert" role="img">
