@@ -355,8 +355,8 @@ export const controls = {
         "using the engine's local timezone. Note one can explicitly set the timezone " +
         'per the ISO 8601 format if specifying either the start and/or end time.',
     ),
-    mapStateToProps: ({ form_data }) => ({
-      endpoints: form_data?.time_range_endpoints,
+    mapStateToProps: ({ form_data: formData }) => ({
+      endpoints: formData?.time_range_endpoints,
     }),
   },
 

@@ -17,17 +17,22 @@
  * under the License.
  */
 import shortid from 'shortid';
+import {
+  Datasource,
+  DatasourceType,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
+import { Slice } from 'src/types/Chart';
+import { CommonBootstrapData } from 'src/types/bootstrapTypes';
 
-import getToastsFromPyFlashMessages from '../../messageToasts/utils/getToastsFromPyFlashMessages';
-import { getChartKey } from '../exploreUtils';
-import { getControlsState } from '../store';
+import getToastsFromPyFlashMessages from 'src/messageToasts/utils/getToastsFromPyFlashMessages';
+import { getChartKey } from 'src/explore/exploreUtils';
+import { getControlsState } from 'src/explore/store';
 import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
-} from '../controlUtils';
-import { Datasource, DatasourceType, JsonObject, QueryFormData } from '@superset-ui/core';
-import { Slice } from 'src/types/Chart';
-import { CommonBootstrapData } from 'src/types/bootstrapTypes';
+} from 'src/explore/controlUtils';
 
 export interface ExlorePageBootstrapData extends JsonObject {
   can_add: boolean;
@@ -44,7 +49,9 @@ export interface ExlorePageBootstrapData extends JsonObject {
   common: CommonBootstrapData;
 }
 
-export default function getInitialState(bootstrapData: ExlorePageBootstrapData) {
+export default function getInitialState(
+  bootstrapData: ExlorePageBootstrapData,
+) {
   const { form_data: rawFormData } = bootstrapData;
   const { slice } = bootstrapData;
   const sliceName = slice ? slice.slice_name : null;

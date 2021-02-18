@@ -46,7 +46,7 @@ export type Slice = {
   slice_name: string;
   description: string | null;
   cache_timeout: number | null;
-  form_data: QueryFormData;
+  form_data?: QueryFormData;
 };
 
 export default Chart;
