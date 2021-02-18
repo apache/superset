@@ -19,23 +19,14 @@
 import { useSelector } from 'react-redux';
 import { useMemo } from 'react';
 import { Filter, FilterConfiguration } from './types';
-import { FilterSets, FiltersSet } from '../../reducers/types';
 
 const defaultFilterConfiguration: Filter[] = [];
-const defaultFilterSetsConfiguration: FiltersSet[] = [];
 
 export function useFilterConfiguration() {
   return useSelector<any, FilterConfiguration>(
     state =>
       state.dashboardInfo?.metadata?.filter_configuration ||
       defaultFilterConfiguration,
-  );
-}
-export function useFilterSetsConfiguration() {
-  return useSelector<any, FiltersSet[]>(
-    state =>
-      state.dashboardInfo?.metadata?.filterSets_configuration ||
-      defaultFilterSetsConfiguration,
   );
 }
 

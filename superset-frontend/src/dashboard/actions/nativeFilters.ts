@@ -26,7 +26,6 @@ import {
 import { dashboardInfoChanged } from './dashboardInfo';
 import {
   CurrentFilterState,
-  FilterSets,
   FiltersSet,
   NativeFilterState,
 } from '../reducers/types';
@@ -50,18 +49,18 @@ export interface SetFilterConfigFail {
 export const SET_FILTER_SETS_CONFIG_BEGIN = 'SET_FILTER_SETS_CONFIG_BEGIN';
 export interface SetFilterSetsConfigBegin {
   type: typeof SET_FILTER_SETS_CONFIG_BEGIN;
-  filterConfig: FiltersSet[];
+  filterSetsConfig: FiltersSet[];
 }
 export const SET_FILTER_SETS_CONFIG_COMPLETE =
   'SET_FILTER_SETS_CONFIG_COMPLETE';
 export interface SetFilterSetsConfigComplete {
   type: typeof SET_FILTER_SETS_CONFIG_COMPLETE;
-  filterConfig: FiltersSet[];
+  filterSetsConfig: FiltersSet[];
 }
 export const SET_FILTER_SETS_CONFIG_FAIL = 'SET_FILTER_SETS_CONFIG_FAIL';
 export interface SetFilterSetsConfigFail {
   type: typeof SET_FILTER_SETS_CONFIG_FAIL;
-  filterConfig: FiltersSet[];
+  filterSetsConfig: FiltersSet[];
 }
 
 export const SET_FILTER_STATE = 'SET_FILTER_STATE';

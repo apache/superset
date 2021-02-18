@@ -22,15 +22,14 @@ import { useDispatch, useSelector } from 'react-redux';
 import cx from 'classnames';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
-import { CurrentFilterState } from 'src/dashboard/reducers/types';
+import {
+  CurrentFilterState,
+  FiltersSet,
+  NativeFilterState,
+} from 'src/dashboard/reducers/types';
 import { Input, Select } from 'src/common/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import {
-  saveFilterSets,
-  setFilterSetsConfiguration,
-  setFiltersState,
-} from 'src/dashboard/actions/nativeFilters';
-import { SelectValue } from 'antd/lib/select';
+import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
 import FilterConfigurationLink from './FilterConfigurationLink';
 import {
   useFilters,
@@ -38,7 +37,7 @@ import {
   useFiltersState,
   useSetExtraFormData,
 } from './state';
-import { useFilterConfiguration, useFilterSetsConfiguration } from '../state';
+import { useFilterConfiguration } from '../state';
 import { Filter } from '../types';
 import {
   buildCascadeFiltersTree,
@@ -194,13 +193,33 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const filtersState = useFiltersState();
   const filterSets = useFilterSets();
   const filterConfigs = useFilterConfiguration();
-  const filterSetsConfigs = useFilterSetsConfiguration();
+  const filterSetsConfigs = useSelector<any, FiltersSet[]>(
+    state => state.dashboardInfo?.metadata?.filter_sets_configuration || [],
+  );
   const filters = useFilters();
   const [filtersSetName, setFiltersSetName] = useState('');
+  const [selectedFiltersSetId, setSelectedFiltersSetId] = useState<
+    string | null
+  >(null);
   const canEdit = useSelector<any, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
   const [visiblePopoverId, setVisiblePopoverId] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isInitialized) {
+      return;
+    }
+    const areFiltersInitialized = filterConfigs.every(
+      filterConfig =>
+        filterConfig.defaultValue ===
+        filterData[filterConfig.id]?.currentState?.value,
+    );
+    if (areFiltersInitialized) {
+      setIsInitialized(true);
+    }
+  }, [filterConfigs, filterData, isInitialized]);
 
   useEffect(() => {
     if (filterConfigs.length === 0 && filtersOpen) {
@@ -219,18 +238,20 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       currentValue: filterData[filter.id]?.currentState?.value,
     }));
     return buildCascadeFiltersTree(filtersWithValue);
-  }, [filterConfigs]);
+  }, [filterConfigs, filterData]);
 
   const handleFilterSelectionChange = (
-    filter: Filter,
+    filter: Pick<Filter, 'id'> & Partial<Filter>,
     extraFormData: ExtraFormData,
     currentState: CurrentFilterState,
   ) => {
-    let isInitialized = false;
     setFilterData(prevFilterData => {
-      if (filter.id in prevFilterData) {
-        isInitialized = true;
+      const children = cascadeChildren[filter.id] || [];
+      // force instant updating on initialization or for parent filters
+      if (filter.isInstant || children.length > 0) {
+        setExtraFormData(filter.id, extraFormData, currentState);
       }
+
       return {
         ...prevFilterData,
         [filter.id]: {
@@ -239,12 +260,22 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         },
       };
     });
+  };
 
-    const children = cascadeChildren[filter.id] || [];
-    // force instant updating on initialization or for parent filters
-    if (!isInitialized || filter.isInstant || children.length > 0) {
-      setExtraFormData(filter.id, extraFormData, currentState);
+  const takeFiltersSet = (value: string) => {
+    setSelectedFiltersSetId(value);
+    if (!value) {
+      return;
     }
+    const filtersSet = filterSets[value];
+    Object.values(filtersSet.filtersState).forEach(filterState => {
+      const {
+        extraFormData,
+        currentState,
+        id,
+      } = filterState as NativeFilterState;
+      handleFilterSelectionChange({ id }, extraFormData, currentState);
+    });
   };
 
   const handleApply = () => {
@@ -260,6 +291,12 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     });
   };
 
+  useEffect(() => {
+    if (isInitialized) {
+      handleApply();
+    }
+  }, [isInitialized]);
+
   const handleSaveFilterSets = () => {
     dispatch(
       setFilterSetsConfiguration(
@@ -267,12 +304,25 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           {
             name: filtersSetName.trim(),
             id: generateFiltersSetId(),
+            // TODO: After merge https://github.com/apache/superset/pull/13137, compare if data changed (meantime save only clicking `apply`)
             filtersState,
           },
         ]),
       ),
     );
     setFiltersSetName('');
+  };
+
+  const handleDeleteFilterSets = () => {
+    dispatch(
+      setFilterSetsConfiguration(
+        filterSetsConfigs.filter(
+          filtersSet => filtersSet.id !== selectedFiltersSetId,
+        ),
+      ),
+    );
+    setFiltersSetName('');
+    setSelectedFiltersSetId(null);
   };
 
   const handleResetAll = () => {
@@ -282,10 +332,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         value: filters[filter.id]?.defaultValue,
       });
     });
-  };
-
-  const takeFiltersSet = (value: SelectValue) => {
-    dispatch(setFiltersState(filterSets[String(value)]?.filtersState));
   };
 
   return (
@@ -338,6 +384,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
                 <Select
                   size="small"
                   allowClear
+                  value={selectedFiltersSetId as string}
                   placeholder={tn(
                     'Available %d sets',
                     Object.keys(filterSets).length,
@@ -349,6 +396,15 @@ const FilterBar: React.FC<FiltersBarProps> = ({
                   ))}
                 </Select>
               </StyledTitle>
+              <Button
+                buttonStyle="warning"
+                buttonSize="small"
+                disabled={!selectedFiltersSetId}
+                onClick={handleDeleteFilterSets}
+                data-test="filter-save-filters-set-button"
+              >
+                {t('Delete Filters Set')}
+              </Button>
               <StyledTitle>
                 <div>{t('Name')}</div>
                 <Input

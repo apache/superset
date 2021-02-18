@@ -24,17 +24,14 @@ import {
   SET_FILTER_SETS_CONFIG_COMPLETE,
   SET_FILTERS_STATE,
 } from 'src/dashboard/actions/nativeFilters';
-import {
-  FilterSets,
-  NativeFiltersState,
-  NativeFilterState,
-} from './types';
+import { FiltersSet, NativeFiltersState, NativeFilterState } from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
 
 export function getInitialFilterState(id: string): NativeFilterState {
   return {
     id,
     extraFormData: {},
+    currentState: {},
   };
 }
 
@@ -47,25 +44,35 @@ export function getInitialState({
   filterConfig?: FilterConfiguration;
   state?: NativeFiltersState;
 }): NativeFiltersState {
-  const filters = prevState?.filters ?? {};
-  const filtersState = prevState?.filtersState ?? {};
-  const filterSets: FilterSets = prevState?.filterSets ?? {};
-  const state = {
-    filters,
-    filtersState,
-    filterSets,
-  };
-  filterConfig?.forEach(filter => {
-    const { id } = filter;
-    filters[id] = filter;
-    filtersState[id] =
-      prevState?.filtersState?.[id] || getInitialFilterState(id);
-  });
-  filterSetsConfig?.forEach(filtersSet => {
-    const { id } = filtersSet;
-    filterSets[id] = filtersSet;
-  });
-  return state;
+  const state: Partial<NativeFiltersState> = {};
+
+  const filters = {};
+  const filtersState = {};
+  if (filterConfig) {
+    filterConfig.forEach(filter => {
+      const { id } = filter;
+      filters[id] = filter;
+      filtersState[id] =
+        prevState?.filtersState?.[id] || getInitialFilterState(id);
+    });
+    state.filters = filters;
+    state.filtersState = filtersState;
+  } else {
+    state.filters = prevState?.filters ?? {};
+    state.filtersState = prevState?.filtersState ?? {};
+  }
+
+  if (filterSetsConfig) {
+    const filterSets = {};
+    filterSetsConfig.forEach(filtersSet => {
+      const { id } = filtersSet;
+      filterSets[id] = filtersSet;
+    });
+    state.filterSets = filterSets;
+  } else {
+    state.filterSets = prevState?.filterSets ?? {};
+  }
+  return state as NativeFiltersState;
 }
 
 export default function nativeFilterReducer(
