@@ -76,7 +76,7 @@ class Query(Model, ExtraJSONMixin):
     executed_sql = Column(Text)
     # Could be configured in the superset config.
     limit = Column(Integer)
-    limiting_factor = XXX
+    limiting_factor = Column(Integer)  # change to enum
     was_limited = Column(Boolean, default=False)
     select_as_cta = Column(Boolean)
     select_as_cta_used = Column(Boolean, default=False)
