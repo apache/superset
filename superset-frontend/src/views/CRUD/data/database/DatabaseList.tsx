@@ -25,7 +25,7 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
-import TooltipWrapper from 'src/components/TooltipWrapper';
+import { Tooltip } from 'src/common/components/Tooltip';
 import Icon from 'src/components/Icon';
 import ListView, { Filters } from 'src/components/ListView';
 import { commonMenuData } from 'src/views/CRUD/data/common';
@@ -205,13 +205,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       {
         accessor: 'allow_run_async',
         Header: (
-          <TooltipWrapper
-            label="allow-run-async-header"
-            tooltip={t('Asynchronous query execution')}
+          <Tooltip
+            id="allow-run-async-header-tooltip"
+            title={t('Asynchronous query execution')}
             placement="top"
           >
             <span>{t('AQE')}</span>
-          </TooltipWrapper>
+          </Tooltip>
         ),
         Cell: ({
           row: {
@@ -223,13 +223,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       {
         accessor: 'allow_dml',
         Header: (
-          <TooltipWrapper
-            label="allow-dml-header"
-            tooltip={t('Allow data manipulation language')}
+          <Tooltip
+            id="allow-dml-header-tooltip"
+            title={t('Allow data manipulation language')}
             placement="top"
           >
             <span>{t('DML')}</span>
-          </TooltipWrapper>
+          </Tooltip>
         ),
         Cell: ({
           row: {
@@ -298,19 +298,19 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
                   data-test="database-delete"
                   onClick={handleDelete}
                 >
-                  <TooltipWrapper
-                    label="delete-action"
-                    tooltip={t('Delete database')}
+                  <Tooltip
+                    id="delete-action-tooltip"
+                    title={t('Delete database')}
                     placement="bottom"
                   >
                     <Icon name="trash" />
-                  </TooltipWrapper>
+                  </Tooltip>
                 </span>
               )}
               {canExport && (
-                <TooltipWrapper
-                  label="export-action"
-                  tooltip={t('Export')}
+                <Tooltip
+                  id="export-action-tooltip"
+                  title={t('Export')}
                   placement="bottom"
                 >
                   <span
@@ -321,12 +321,12 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
                   >
                     <Icon name="share" />
                   </span>
-                </TooltipWrapper>
+                </Tooltip>
               )}
               {canEdit && (
-                <TooltipWrapper
-                  label="edit-action"
-                  tooltip={t('Edit')}
+                <Tooltip
+                  id="edit-action-tooltip"
+                  title={t('Edit')}
                   placement="bottom"
                 >
                   <span
@@ -338,7 +338,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
                   >
                     <Icon name="edit-alt" />
                   </span>
-                </TooltipWrapper>
+                </Tooltip>
               )}
             </span>
           );
@@ -367,13 +367,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       },
       {
         Header: (
-          <TooltipWrapper
-            label="allow-run-async-filter-header"
-            tooltip={t('Asynchronous query execution')}
+          <Tooltip
+            id="allow-run-async-filter-header-tooltip"
+            title={t('Asynchronous query execution')}
             placement="top"
           >
             <span>{t('AQE')}</span>
-          </TooltipWrapper>
+          </Tooltip>
         ),
         id: 'allow_run_async',
         input: 'select',

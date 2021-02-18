@@ -24,12 +24,12 @@ import { styled, SupersetClient, t } from '@superset-ui/core';
 import { Menu, NoAnimationDropdown } from 'src/common/components';
 import Icon from 'src/components/Icon';
 import { URL_PARAMS } from 'src/constants';
+import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import CssEditor from './CssEditor';
 import RefreshIntervalModal from './RefreshIntervalModal';
 import SaveModal from './SaveModal';
 import injectCustomCss from '../util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
-import URLShortLinkModal from '../../components/URLShortLinkModal';
 import FilterScopeModal from './filterscope/FilterScopeModal';
 import downloadAsImage from '../../utils/downloadAsImage';
 import getDashboardUrl from '../util/getDashboardUrl';
@@ -197,11 +197,18 @@ class HeaderActionsDropdown extends React.PureComponent {
       refreshLimit,
       refreshWarning,
       lastModifiedTime,
+      addSuccessToast,
+      addDangerToast,
     } = this.props;
 
     const emailTitle = t('Superset dashboard');
     const emailSubject = `${emailTitle} ${dashboardTitle}`;
     const emailBody = t('Check out this dashboard: ');
+    const url = getDashboardUrl(
+      window.location.pathname,
+      getActiveFilters(),
+      window.location.hash,
+    );
 
     const menu = (
       <Menu
@@ -234,19 +241,15 @@ class HeaderActionsDropdown extends React.PureComponent {
             />
           </Menu.Item>
         )}
-        <Menu.Item key={MENU_KEYS.SHARE_DASHBOARD}>
-          <URLShortLinkModal
-            url={getDashboardUrl(
-              window.location.pathname,
-              getActiveFilters(),
-              window.location.hash,
-            )}
-            emailSubject={emailSubject}
-            emailContent={emailBody}
-            addDangerToast={this.props.addDangerToast}
-            triggerNode={<span>{t('Share dashboard')}</span>}
-          />
-        </Menu.Item>
+        <ShareMenuItems
+          url={url}
+          copyMenuItemTitle={t('Copy dashboard URL')}
+          emailMenuItemTitle={t('Share dashboard by email')}
+          emailSubject={emailSubject}
+          emailBody={emailBody}
+          addSuccessToast={addSuccessToast}
+          addDangerToast={addDangerToast}
+        />
         <Menu.Item
           key={MENU_KEYS.REFRESH_DASHBOARD}
           data-test="refresh-dashboard-menu-item"

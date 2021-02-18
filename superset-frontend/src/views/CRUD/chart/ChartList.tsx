@@ -46,7 +46,7 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
-import TooltipWrapper from 'src/components/TooltipWrapper';
+import { Tooltip } from 'src/common/components/Tooltip';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
@@ -308,9 +308,9 @@ function ChartList(props: ChartListProps) {
                   onConfirm={handleDelete}
                 >
                   {confirmDelete => (
-                    <TooltipWrapper
-                      label="delete-action"
-                      tooltip={t('Delete')}
+                    <Tooltip
+                      id="delete-action-tooltip"
+                      title={t('Delete')}
                       placement="bottom"
                     >
                       <span
@@ -321,14 +321,14 @@ function ChartList(props: ChartListProps) {
                       >
                         <Icon name="trash" />
                       </span>
-                    </TooltipWrapper>
+                    </Tooltip>
                   )}
                 </ConfirmStatusChange>
               )}
               {canExport && (
-                <TooltipWrapper
-                  label="export-action"
-                  tooltip={t('Export')}
+                <Tooltip
+                  id="export-action-tooltip"
+                  title={t('Export')}
                   placement="bottom"
                 >
                   <span
@@ -339,12 +339,12 @@ function ChartList(props: ChartListProps) {
                   >
                     <Icon name="share" />
                   </span>
-                </TooltipWrapper>
+                </Tooltip>
               )}
               {canEdit && (
-                <TooltipWrapper
-                  label="edit-action"
-                  tooltip={t('Edit')}
+                <Tooltip
+                  id="edit-action-tooltip"
+                  title={t('Edit')}
                   placement="bottom"
                 >
                   <span
@@ -355,7 +355,7 @@ function ChartList(props: ChartListProps) {
                   >
                     <Icon name="edit-alt" />
                   </span>
-                </TooltipWrapper>
+                </Tooltip>
               )}
             </span>
           );

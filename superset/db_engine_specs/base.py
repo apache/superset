@@ -153,6 +153,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_joins = True
     allows_subqueries = True
     allows_column_aliases = True
+    allows_sql_comments = True
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length = 0
@@ -857,7 +858,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         parsed_query = ParsedQuery(statement)
         sql = parsed_query.stripped()
-
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
         if sql_query_mutator:
             sql = sql_query_mutator(sql, user_name, security_manager, database)
@@ -933,6 +933,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param kwargs: kwargs to be passed to cursor.execute()
         :return:
         """
+        if not cls.allows_sql_comments:
+            query = sql_parse.strip_comments_from_sql(query)
+
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
         try:
