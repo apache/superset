@@ -26,6 +26,7 @@ import { FilterValue } from 'src/components/ListView/types';
 import Chart, { Slice } from 'src/types/Chart';
 import copyTextToClipboard from 'src/utils/copy';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { useComponentDidMount } from 'src/utils/useComponentDidMount';
 import { FavoriteStatus, ImportResourceName } from './types';
 
 interface ListViewResourceState<D extends object = any> {
@@ -63,7 +64,7 @@ export function useListViewResource<D extends object = any>(
     updateState({ bulkSelectEnabled: !state.bulkSelectEnabled });
   }
 
-  useEffect(() => {
+  useComponentDidMount(() => {
     if (!infoEnable) return;
     SupersetClient.get({
       endpoint: `/api/v1/${resource}/_info?q=${rison.encode({
@@ -85,7 +86,7 @@ export function useListViewResource<D extends object = any>(
         ),
       ),
     );
-  }, []);
+  });
 
   function hasPerm(perm: string) {
     if (!state.permissions.length) {

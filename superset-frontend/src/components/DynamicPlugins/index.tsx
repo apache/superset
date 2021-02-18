@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useContext, useEffect, useReducer } from 'react';
+import React, { useContext, useReducer } from 'react';
 import { defineSharedModules, logging, makeApi } from '@superset-ui/core';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { useComponentDidMount } from 'src/utils/useComponentDidMount';
 
 export type PluginContextType = {
   loading: boolean;
@@ -167,11 +168,11 @@ export const DynamicPluginProvider: React.FC = ({ children }) => {
     }
   }
 
-  useEffect(() => {
+  useComponentDidMount(() => {
     if (isFeatureEnabled(FeatureFlag.DYNAMIC_PLUGINS)) {
       fetchAll();
     }
-  }, []);
+  });
 
   return (
     <PluginContext.Provider value={pluginState}>

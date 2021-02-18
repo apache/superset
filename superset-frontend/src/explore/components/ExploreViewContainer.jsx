@@ -24,7 +24,6 @@ import { connect } from 'react-redux';
 import { styled, t, supersetTheme, css } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Resizable } from 're-resizable';
-
 import { useDynamicPluginContext } from 'src/components/DynamicPlugins';
 import { Global } from '@emotion/core';
 import { Tooltip } from 'src/common/components/Tooltip';
@@ -35,6 +34,7 @@ import {
   setInLocalStorage,
 } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
+import { useComponentDidMount } from 'src/utils/useComponentDidMount';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
@@ -49,6 +49,7 @@ import * as saveModalActions from '../actions/saveModalActions';
 import * as chartActions from '../../chart/chartAction';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import * as logActions from '../../logger/actions';
+import cls from 'classnames';
 import {
   LOG_ACTIONS_MOUNT_EXPLORER,
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
@@ -146,11 +147,11 @@ const getWindowSize = () => ({
 function useWindowSize({ delayMs = 250 } = {}) {
   const [size, setSize] = useState(getWindowSize());
 
-  useEffect(() => {
+  useComponentDidMount(() => {
     const onWindowResize = debounce(() => setSize(getWindowSize()), delayMs);
     window.addEventListener('resize', onWindowResize);
     return () => window.removeEventListener('resize', onWindowResize);
-  }, []);
+  });
 
   return size;
 }
@@ -268,7 +269,7 @@ function ExploreViewContainer(props) {
   }
 
   // effect to run on mount
-  useEffect(() => {
+  useComponentDidMount(() => {
     props.actions.logEvent(LOG_ACTIONS_MOUNT_EXPLORER);
     addHistory({ isReplace: true });
     window.addEventListener('popstate', handlePopstate);
@@ -277,7 +278,7 @@ function ExploreViewContainer(props) {
       window.removeEventListener('popstate', handlePopstate);
       document.removeEventListener('keydown', handleKeydown);
     };
-  }, []);
+  });
 
   useEffect(() => {
     if (wasDynamicPluginLoading && !isDynamicPluginLoading) {
@@ -286,7 +287,7 @@ function ExploreViewContainer(props) {
     }
   }, [isDynamicPluginLoading]);
 
-  useEffect(() => {
+  useComponentDidMount(() => {
     const hasError = Object.values(props.controls).some(
       control =>
         control.validationErrors && control.validationErrors.length > 0,
@@ -294,7 +295,7 @@ function ExploreViewContainer(props) {
     if (!hasError) {
       props.actions.triggerQuery(true, props.chart.id);
     }
-  }, []);
+  });
 
   // effect to run when controls change
   useEffect(() => {
@@ -528,9 +529,10 @@ function ExploreViewContainer(props) {
         />
       </Resizable>
       <div
-        className={`main-explore-content ${
-          isCollapsed ? 'col-sm-9' : 'col-sm-7'
-        }`}
+        className={cls(
+          'main-explore-content',
+          isCollapsed ? 'col-sm-9' : 'col-sm-7',
+        )}
       >
         {renderChartContainer()}
       </div>
