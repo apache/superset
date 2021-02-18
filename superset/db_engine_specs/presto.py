@@ -27,7 +27,7 @@ from typing import Any, cast, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 from urllib import parse
 
 import pandas as pd
-import simplejson as jsoget_connect_argsn
+import simplejson as json
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import Column, literal_column, types
 from sqlalchemy.engine.base import Engine
