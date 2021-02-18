@@ -20,8 +20,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import { t } from '@superset-ui/core';
+import { Tooltip } from 'src/common/components/Tooltip';
 import EditableTitle from '../../components/EditableTitle';
-import TooltipWrapper from '../../components/TooltipWrapper';
 import SliceHeaderControls from './SliceHeaderControls';
 import FiltersBadge from '../containers/FiltersBadge';
 
@@ -122,22 +122,22 @@ class SliceHeader extends React.PureComponent {
             showTooltip={false}
           />
           {!!Object.values(annotationQuery).length && (
-            <TooltipWrapper
-              label="annotations-loading"
+            <Tooltip
+              id="annotations-loading-tooltip"
               placement="top"
-              tooltip={annoationsLoading}
+              title={annoationsLoading}
             >
               <i className="fa fa-refresh warning" />
-            </TooltipWrapper>
+            </Tooltip>
           )}
           {!!Object.values(annotationError).length && (
-            <TooltipWrapper
-              label="annoation-errors"
+            <Tooltip
+              id="annoation-errors-tooltip"
               placement="top"
-              tooltip={annoationsError}
+              title={annoationsError}
             >
               <i className="fa fa-exclamation-circle danger" />
-            </TooltipWrapper>
+            </Tooltip>
           )}
         </div>
         <div className="header-controls">
