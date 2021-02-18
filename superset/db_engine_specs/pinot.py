@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import datetime
 from typing import Dict, List, Optional
 
 from sqlalchemy.sql.expression import ColumnClause, ColumnElement
@@ -79,11 +78,6 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         tf = ""
         java_date_format = ""
         if not is_epoch:
-            try:
-                today = datetime.datetime.today()
-                today.strftime(str(pdf))
-            except ValueError:
-                raise ValueError(f"Invalid column datetime format:{str(pdf)}")
             java_date_format = pdf
             for (
                 python_pattern,

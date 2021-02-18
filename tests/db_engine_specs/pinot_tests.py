@@ -64,3 +64,16 @@ class TestPinotDbEngineSpec(TestDbEngineSpec):
         self.assertEqual(
             result, "DATETRUNC('month', tstamp, 'SECONDS')",
         )  # noqa
+
+    def test_invalid_get_time_expression_arguments(self):
+        with self.assertRaises(NotImplementedError) as context:
+            PinotEngineSpec.get_timestamp_expr(column("tstamp"), None, "P1M")
+        self.assertEqual("Empty date format for 'tstamp'", str(context.exception))
+
+        with self.assertRaises(NotImplementedError) as context:
+            PinotEngineSpec.get_timestamp_expr(
+                column("tstamp"), "epoch_s", "invalid_grain"
+            )
+        self.assertEqual(
+            "No pinot grain spec for 'invalid_grain'", str(context.exception)
+        )
