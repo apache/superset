@@ -35,6 +35,7 @@ import {
 } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import { useComponentDidMount } from 'src/utils/useComponentDidMount';
+import cls from 'classnames';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
@@ -49,7 +50,6 @@ import * as saveModalActions from '../actions/saveModalActions';
 import * as chartActions from '../../chart/chartAction';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import * as logActions from '../../logger/actions';
-import cls from 'classnames';
 import {
   LOG_ACTIONS_MOUNT_EXPLORER,
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
