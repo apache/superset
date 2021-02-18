@@ -68,6 +68,7 @@ describe('getFormDataWithExtraFilters', () => {
           [filterId]: {
             id: filterId,
             extraFormData: {},
+            currentState: {},
           },
         },
       },

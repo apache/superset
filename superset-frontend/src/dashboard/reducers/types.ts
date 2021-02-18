@@ -75,8 +75,8 @@ export type LayoutItem = {
 /** Current state of the filter, stored in `nativeFilters` in redux */
 export type FilterState = {
   id: string; // ties this filter state to the config object
-  extraFormData?: ExtraFormData;
-  currentState?: CurrentFilterState;
+  extraFormData: ExtraFormData;
+  currentState: CurrentFilterState;
 };
 
 export type FiltersSet = {

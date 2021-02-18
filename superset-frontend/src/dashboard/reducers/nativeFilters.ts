@@ -22,9 +22,10 @@ import {
   SAVE_FILTER_SETS,
   SET_FILTER_CONFIG_COMPLETE,
   UpdateExtraFormData,
+  SET_FILTER_SETS_CONFIG_COMPLETE,
   SET_FILTERS_STATE,
 } from 'src/dashboard/actions/nativeFilters';
-import { NativeFiltersState, FilterState, FiltersState } from './types';
+import { FiltersSet, NativeFiltersState, FilterState, FiltersState } from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
 
 export function getInitialFilterState(id: string): FilterState {
@@ -35,28 +36,53 @@ export function getInitialFilterState(id: string): FilterState {
   };
 }
 
-export function getInitialState(
-  filterConfig: FilterConfiguration,
-  prevFiltersState: FiltersState = {
+export function getInitialState({
+  filterSetsConfig,
+  filterConfig,
+  state: prevState,
+}: {
+  filterSetsConfig?: FiltersSet[];
+  filterConfig?: FilterConfiguration;
+  state?: NativeFiltersState;
+}): NativeFiltersState {
+  const state: Partial<NativeFiltersState> = {};
+
+  const emptyFiltersState = {
     nativeFilters: {},
     crossFilters: {},
     ownFilters: {},
-  },
-): NativeFiltersState {
-  const filters = {};
-  const filtersState = { ...prevFiltersState };
-  const state = {
-    filters,
-    filtersState,
-    filterSets: prevFiltersState?.filterSets ?? {},
   };
-  filterConfig.forEach(filter => {
-    const { id } = filter;
-    filters[id] = filter;
-    filtersState.nativeFilters[id] =
-      prevFiltersState?.filtersState?.nativeFilters[id] ?? getInitialFilterState(id);
-  });
-  return state;
+
+  const filters = {};
+  const filtersState = { ...emptyFiltersState };
+  if (filterConfig) {
+    filterConfig.forEach(filter => {
+      const { id } = filter;
+      filters[id] = filter;
+      filtersState.nativeFilters[id] =
+        prevState?.filtersState?.nativeFilters[id] || getInitialFilterState(id);
+    });
+    state.filters = filters;
+    state.filtersState = {
+      ...prevState?.filtersState,
+      nativeFilters: filtersState.nativeFilters,
+    };
+  } else {
+    state.filters = prevState?.filters ?? {};
+    state.filtersState = prevState?.filtersState ?? emptyFiltersState;
+  }
+
+  if (filterSetsConfig) {
+    const filterSets = {};
+    filterSetsConfig.forEach(filtersSet => {
+      const { id } = filtersSet;
+      filterSets[id] = filtersSet;
+    });
+    state.filterSets = filterSets;
+  } else {
+    state.filterSets = prevState?.filterSets ?? {};
+  }
+  return state as NativeFiltersState;
 }
 
 const getUnitState = (
@@ -118,7 +144,13 @@ export default function nativeFilterReducer(
       };
 
     case SET_FILTER_CONFIG_COMPLETE:
-      return getInitialState(action.filterConfig, state);
+      return getInitialState({ filterConfig: action.filterConfig, state });
+
+    case SET_FILTER_SETS_CONFIG_COMPLETE:
+      return getInitialState({
+        filterSetsConfig: action.filterSetsConfig,
+        state,
+      });
 
     // TODO handle SET_FILTER_CONFIG_FAIL action
     default:
