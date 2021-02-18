@@ -25,7 +25,7 @@ export default function transformProps(chartProps) {
     data: queriesData[0].data,
     groups: groupby,
     liftValPrec: parseInt(liftvaluePrecision, 10),
-    metrics,
+    metrics: metrics.map(metric => (typeof metric === 'string' ? metric : metric.label)),
     pValPrec: parseInt(pvaluePrecision, 10),
   };
 }
