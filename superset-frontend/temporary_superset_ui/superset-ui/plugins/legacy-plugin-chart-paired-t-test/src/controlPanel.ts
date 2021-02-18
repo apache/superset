@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t, validateNonEmpty } from '@superset-ui/core';
 import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -47,6 +47,13 @@ const config: ControlPanelConfig = {
               label: t('Contribution'),
               default: false,
               description: t('Compute the contribution to the total'),
+            },
+          },
+
+          {
+            name: 'groupby',
+            override: {
+              validators: [validateNonEmpty],
             },
           },
         ],
