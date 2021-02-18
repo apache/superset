@@ -15,8 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# export SUPERSET_LOAD_EXAMPLES="yes"
-
 /app/docker/docker-init.sh
 
 # TODO: copy config overrides from ENV vars

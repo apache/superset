@@ -71,7 +71,6 @@ jobs:
         ECR_REPOSITORY: superset-ci
         SHA: ${{ steps.get-sha.outputs.sha }}
         IMAGE_TAG: pr-${{ steps.get-pr.outputs.num }}
-        SUPERSET_LOAD_EXAMPLES: yes
       run: |
         docker load < $SHA.tar.gz
         docker tag $SHA $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG

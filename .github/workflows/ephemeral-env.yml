@@ -37,7 +37,7 @@ jobs:
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
         script: |
-          const errMsg = 'Ephemeral environment creation is currently limited to committers.'
+          const errMsg = '@${{ github.event.comment.user.login }} Ephemeral environment creation is currently limited to committers.'
           github.issues.createComment({
             issue_number: ${{ github.event.issue.number }},
             owner: context.repo.owner,
@@ -83,7 +83,7 @@ jobs:
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
         script: |
-          const errMsg = 'Container image not yet published for this PR. Please try again when build is complete.'
+          const errMsg = '@${{ github.event.comment.user.login }} Container image not yet published for this PR. Please try again when build is complete.'
           github.issues.createComment({
             issue_number: ${{ github.event.issue.number }},
             owner: context.repo.owner,
@@ -157,7 +157,7 @@ jobs:
             issue_number: ${{ github.event.issue.number }},
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: 'Ephemeral environment spinning up at http://${{ steps.get-ip.outputs.ip }}:8080. Credentials are `admin`/`admin`. Please allow several minutes for bootstrapping and startup.'
+            body: '@${{ github.event.comment.user.login }} Ephemeral environment spinning up at http://${{ steps.get-ip.outputs.ip }}:8080. Credentials are `admin`/`admin`. Please allow several minutes for bootstrapping and startup.'
           })
 
     - name: Comment (failure)
@@ -170,5 +170,5 @@ jobs:
             issue_number: ${{ github.event.issue.number }},
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: 'Ephemeral environment creation failed. Please check the Actions logs for details.'
+            body: '@${{ github.event.comment.user.login }} Ephemeral environment creation failed. Please check the Actions logs for details.'
           })
