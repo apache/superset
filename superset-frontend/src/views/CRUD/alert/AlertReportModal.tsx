@@ -837,11 +837,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const value = +target.value;
 
     // Need to make sure grace period is not lower than TIMEOUT_MIN
-    if ( value === 0 ) {
+    if (value === 0) {
       updateAlertState(target.name, null);
-    }
-    else {
-      updateAlertState(target.name, value ? Math.max(value, TIMEOUT_MIN) : value);
+    } else {
+      updateAlertState(
+        target.name,
+        value ? Math.max(value, TIMEOUT_MIN) : value,
+      );
     }
   };
 

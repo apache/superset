@@ -252,25 +252,27 @@ describe('AlertReportModal', () => {
     const input = addWrapper.find('input[name="grace_period"]');
 
     input.simulate('change', { target: { name: 'grace_period', value: 7 } });
-    expect(input.instance().value).toEqual("7");
+    expect(input.instance().value).toEqual('7');
 
     input.simulate('change', { target: { name: 'grace_period', value: 0 } });
-    expect(input.instance().value).toEqual("");
+    expect(input.instance().value).toEqual('');
 
     input.simulate('change', { target: { name: 'grace_period', value: -1 } });
-    expect(input.instance().value).toEqual("1");
+    expect(input.instance().value).toEqual('1');
   });
 
   it('only allows working timeout values > 1', () => {
     const input = wrapper.find('input[name="working_timeout"]');
 
     input.simulate('change', { target: { name: 'working_timeout', value: 7 } });
-    expect(input.instance().value).toEqual("7");
+    expect(input.instance().value).toEqual('7');
 
     input.simulate('change', { target: { name: 'working_timeout', value: 0 } });
-    expect(input.instance().value).toEqual("");
+    expect(input.instance().value).toEqual('');
 
-    input.simulate('change', { target: { name: 'working_timeout', value: -1 } });
-    expect(input.instance().value).toEqual("1");
+    input.simulate('change', {
+      target: { name: 'working_timeout', value: -1 },
+    });
+    expect(input.instance().value).toEqual('1');
   });
 });
