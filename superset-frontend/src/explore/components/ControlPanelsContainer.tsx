@@ -159,8 +159,13 @@ class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps
       ...controls[name],
       name,
     };
-    const { validationErrors, ...restProps } = controlData as ControlState & {
+    const {
+      validationErrors,
+      provideFormDataToProps,
+      ...restProps
+    } = controlData as ControlState & {
       validationErrors?: any[];
+      provideFormDataToProps?: boolean;
     };
 
     // if visibility check says the config is not visible, don't render it
@@ -173,8 +178,7 @@ class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps
         name={name}
         validationErrors={validationErrors}
         actions={actions}
-        controls={controls}
-        formData={formData}
+        formData={provideFormDataToProps ? formData : null}
         {...restProps}
       />
     );

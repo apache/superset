@@ -35,7 +35,6 @@ export type ControlProps = {
   tooltipOnClick?: () => ReactNode;
   places?: number;
   rightNode?: ReactNode;
-  controls?: ControlStateMapping;
   formData?: QueryFormData | null;
   value?: JsonValue;
   validationErrors?: any[];

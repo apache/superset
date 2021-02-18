@@ -355,6 +355,7 @@ export const controls = {
         "using the engine's local timezone. Note one can explicitly set the timezone " +
         'per the ISO 8601 format if specifying either the start and/or end time.',
     ),
+    provideFormDataToProps: true,
     mapStateToProps: ({ form_data: formData }) => ({
       endpoints: formData?.time_range_endpoints,
     }),
@@ -467,6 +468,7 @@ export const controls = {
     label: t('Filters'),
     default: null,
     description: '',
+    provideFormDataToProps: true,
     mapStateToProps: state => ({
       columns: state.datasource
         ? state.datasource.columns.filter(c => c.filterable)
