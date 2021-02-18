@@ -17,30 +17,15 @@
  * under the License.
  */
 import React from 'react';
-import moment from 'moment';
+
 import { styled, t } from '@superset-ui/core';
 
 import Loading from 'src/components/Loading';
-import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/components/Menu/SubMenu';
+import ActivityTableRow from './ActivityTableRow';
 import { ActivityData } from './Welcome';
-import { mq, CardStyles } from '../utils';
+import { mq } from '../utils';
 import EmptyState from './EmptyState';
-
-interface ActivityObjects {
-  action?: string;
-  item_title?: string;
-  slice_name: string;
-  time: string;
-  changed_on_utc: string;
-  url: string;
-  sql: string;
-  dashboard_title: string;
-  label: string;
-  id: string;
-  table: object;
-  item_url: string;
-}
 
 interface ActivityProps {
   user: {
@@ -85,25 +70,6 @@ export default function ActivityTable({
   setActiveChild,
   activityData,
 }: ActivityProps) {
-  const getFilterTitle = (e: ActivityObjects) => {
-    if (e.dashboard_title) return e.dashboard_title;
-    if (e.label) return e.label;
-    if (e.url && !e.table) return e.item_title;
-    if (e.item_title) return e.item_title;
-    return e.slice_name;
-  };
-
-  const getIconName = (e: ActivityObjects) => {
-    if (e.sql) return 'sql';
-    if (e.url?.includes('dashboard') || e.item_url?.includes('dashboard')) {
-      return 'nav-dashboard';
-    }
-    if (e.url?.includes('explore') || e.item_url?.includes('explore')) {
-      return 'nav-charts';
-    }
-    return '';
-  };
-
   const tabs = [
     {
       name: 'Edited',
@@ -139,35 +105,6 @@ export default function ActivityTable({
     });
   }
 
-  const renderActivity = () => {
-    const getRecentRef = (e: ActivityObjects) => {
-      if (activeChild === 'Viewed') {
-        return e.item_url;
-      }
-      return e.sql ? `/superset/sqllab?savedQueryId=${e.id}` : e.url;
-    };
-    return activityData[activeChild].map((e: ActivityObjects) => (
-      <CardStyles
-        onClick={() => {
-          window.location.href = getRecentRef(e);
-        }}
-        key={e.id}
-      >
-        <ListViewCard
-          loading={loading}
-          cover={<></>}
-          url={e.sql ? `/superset/sqllab?savedQueryId=${e.id}` : e.url}
-          title={getFilterTitle(e)}
-          description={`Last Edited: ${moment(
-            e.changed_on_utc,
-            'MM/DD/YYYY HH:mm:ss',
-          )}`}
-          avatar={getIconName(e)}
-          actions={null}
-        />
-      </CardStyles>
-    ));
-  };
   if (loading) return <Loading position="inline" />;
   return (
     <>
@@ -178,7 +115,13 @@ export default function ActivityTable({
       />
       <>
         {activityData[activeChild]?.length > 0 ? (
-          <ActivityContainer>{renderActivity()}</ActivityContainer>
+          <ActivityContainer>
+            <ActivityTableRow
+              activityList={activityData[activeChild]}
+              activeChild={activeChild}
+              loading={loading}
+            />
+          </ActivityContainer>
         ) : (
           <EmptyState tableName="RECENTS" tab={activeChild} />
         )}
