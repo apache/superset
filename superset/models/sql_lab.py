@@ -18,6 +18,7 @@
 import enum
 import re
 from datetime import datetime
+import enum
 from typing import Any, Dict, List
 
 import simplejson as json
@@ -32,6 +33,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Enum,
     Integer,
     Numeric,
     String,
@@ -50,6 +52,10 @@ from superset.models.tags import QueryUpdater
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.utils.core import QueryStatus, user_label
 
+class LimitMethod(str, enum.Enum):
+    QUERY = "QUERY"
+    DROPDOWN = "DROPDOWN"
+    UNKNOWN = "UNKNOWN"
 
 class LimitingFactor(str, enum.Enum):
     QUERY = "QUERY"
@@ -86,9 +92,14 @@ class Query(Model, ExtraJSONMixin):
     executed_sql = Column(Text)
     # Could be configured in the superset config.
     limit = Column(Integer)
+<<<<<<< HEAD
     limiting_factor = Column(
         Enum(LimitingFactor), server_default=LimitingFactor.UNKNOWN
     )
+=======
+    limiting_factor = Column(Enum(LimitMethod), server_default=LimitMethod.UNKNOWN)
+    was_limited = Column(Boolean, default=False)
+>>>>>>> Set default values
     select_as_cta = Column(Boolean)
     select_as_cta_used = Column(Boolean, default=False)
     ctas_method = Column(String(16), default=CtasMethod.TABLE)
@@ -133,6 +144,10 @@ class Query(Model, ExtraJSONMixin):
             "id": self.client_id,
             "queryId": self.id,
             "limit": self.limit,
+<<<<<<< HEAD
+=======
+            "wasLimited": self.was_limited,
+>>>>>>> Set default values
             "limitingFactor": self.limiting_factor,
             "progress": self.progress,
             "rows": self.rows,
