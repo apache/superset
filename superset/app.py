@@ -149,6 +149,7 @@ class SupersetAppInitializer:
         from superset.databases.api import DatabaseRestApi
         from superset.datasets.api import DatasetRestApi
         from superset.queries.api import QueryRestApi
+        from superset.security.api import SecurityRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
@@ -406,7 +407,7 @@ class SupersetAppInitializer:
                 category_label=__("Security"),
                 icon="fa-list-ol",
             )
-
+        appbuilder.add_api(SecurityRestApi)
         #
         # Conditionally setup email views
         #
