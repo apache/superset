@@ -35,6 +35,8 @@ const mockData = {
   id: 1,
   name: 'test report',
   description: 'test report description',
+  chart: { id: 1, slice_name: 'test chart' },
+  database: { id: 1, database_name: 'test database' },
 };
 const FETCH_REPORT_ENDPOINT = 'glob:*/api/v1/report/*';
 const REPORT_PAYLOAD = { result: mockData };
@@ -147,6 +149,24 @@ describe('AlertReportModal', () => {
     expect(editWrapper.find('input[name="description"]').props().value).toEqual(
       'test report description',
     );
+  });
+
+  it('renders async select with value in alert edit modal', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+      isReport: false,
+    };
+
+    const editWrapper = await mountAndWait(props);
+    expect(editWrapper.find(AsyncSelect).at(1).props().value).toEqual({
+      value: 1,
+      label: 'test database',
+    });
+    expect(editWrapper.find(AsyncSelect).at(2).props().value).toEqual({
+      value: 1,
+      label: 'test chart',
+    });
   });
 
   // Fields
