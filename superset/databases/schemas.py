@@ -144,10 +144,11 @@ def sqlalchemy_uri_validator(value: str) -> str:
                 )
             ]
         )
-    try:
-        check_sqlalchemy_uri(uri)
-    except SupersetSecurityException as ex:
-        raise ValidationError([str(ex)])
+    if current_app.config.get("PREVENT_UNSAFE_DB_CONNECTIONS", True):
+        try:
+            check_sqlalchemy_uri(uri)
+        except SupersetSecurityException as ex:
+            raise ValidationError([str(ex)])
     return value
 
 
