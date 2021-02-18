@@ -24,7 +24,6 @@ export interface OptionWrapperProps {
   index: number;
   clickClose: (index: number) => void;
   onShiftOptions: (dragIndex: number, hoverIndex: number) => void;
-  onDrop: () => void;
   withCaret?: boolean;
 }
 
