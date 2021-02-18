@@ -19,6 +19,7 @@ import logging
 import re
 import textwrap
 import time
+import requests
 from collections import defaultdict, deque
 from contextlib import closing
 from datetime import datetime
@@ -33,9 +34,10 @@ from sqlalchemy import Column, literal_column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import RowProxy
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
+from sqlalchemy.engine.url import make_url, URL
 
 from superset import app, cache_manager, is_feature_enabled
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -136,8 +138,9 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         version = extra.get("version")
         return version is not None and StrictVersion(version) >= StrictVersion("0.319")
 
+
     @classmethod
-    def get_configuration_for_impersonation(
+    def get_connect_args_for_impersonation(
         cls, uri: str, impersonate_user: bool, username: Optional[str]
     ) -> Dict[str, str]:
         """
@@ -157,6 +160,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         if backend_name == "presto" and impersonate_user and username is not None:
             configuration["principal_username"] = username
         return configuration
+
 
     @classmethod
     def get_table_names(
@@ -195,9 +199,9 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
         engine = cls.get_engine(database, schema=schema)
         with closing(engine.raw_connection()) as conn:
-            cursor = conn.cursor()
-            cursor.execute(sql, params)
-            results = cursor.fetchall()
+            with closing(conn.cursor()) as cursor:
+                cursor.execute(sql, params)
+                results = cursor.fetchall()
 
         return [row[0] for row in results]
 
@@ -538,6 +542,45 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         return result
 
     @classmethod
+    def download_statement_result(  # pylint: disable=too-many-locals
+        cls, statement: str, username: str
+    ) -> Dict[str, Any]:
+        """
+        Run a SQL query that estimates the cost of a given statement.
+
+        :param statement: A single SQL statement
+        :param database: Database instance
+        :param cursor: Cursor instance
+        :param username: Effective username
+        :return: JSON response from Presto
+        """
+        url = config["BIFROST_DOWNLOAD_API_URL"]
+        token = config["BIFROST_API_TOKEN"]
+        download_format = config["BIFROST_DOWNLOAD_FILE_FORMAT"]
+        download_compression = config["BIFROST_DOWNLOAD_FILE_COMPRESSION"]
+
+        payload = {
+            "query": statement,
+            "engine": "PRESTO",
+            "username" : username,
+            "output" : {
+                "format": download_format,
+                "compression": download_compression
+            }
+        }
+        # Adding empty header as parameters are being sent in payload
+        headers = {
+            "Authorization" : token,
+            "Content-Type": "application/json"
+        }
+        r = requests.post(url, data=json.dumps(payload), headers=headers)
+        content = json.loads(r.content)
+        if r.ok:
+            return {"Request response" : "Successfully submitted. Please visit \"Download History\" under SQL Lab menu for status."}
+        else:
+            raise Exception(content["message"])
+
+    @classmethod
     def query_cost_formatter(
         cls, raw_cost: List[Dict[str, Any]]
     ) -> List[Dict[str, str]]:
@@ -780,18 +823,18 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
         engine = cls.get_engine(database, schema)
         with closing(engine.raw_connection()) as conn:
-            cursor = conn.cursor()
-            sql = f"SHOW CREATE VIEW {schema}.{table}"
-            try:
-                cls.execute(cursor, sql)
-                polled = cursor.poll()
-
-                while polled:
-                    time.sleep(0.2)
+            with closing(conn.cursor()) as cursor:
+                sql = f"SHOW CREATE VIEW {schema}.{table}"
+                try:
+                    cls.execute(cursor, sql)
                     polled = cursor.poll()
-            except DatabaseError:  # not a VIEW
-                return None
-            rows = cls.fetch_data(cursor, 1)
+
+                    while polled:
+                        time.sleep(0.2)
+                        polled = cursor.poll()
+                except DatabaseError:  # not a VIEW
+                    return None
+                rows = cls.fetch_data(cursor, 1)
         return rows[0][0]
 
     @classmethod

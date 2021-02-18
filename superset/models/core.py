@@ -336,7 +336,7 @@ class Database(
 
         # If using presto, this will set principal_username=$effective_username
         connect_args.update(
-            self.db_engine_spec.get_configuration_for_impersonation(
+            self.db_engine_spec.get_connect_args_for_impersonation(
                 str(sqlalchemy_url), self.impersonate_user, effective_username
             )
         )
