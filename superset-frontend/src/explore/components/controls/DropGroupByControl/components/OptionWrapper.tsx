@@ -32,7 +32,7 @@ import {
 } from '../types';
 
 export default function OptionWrapper(props: OptionWrapperProps) {
-  const { index, onShiftOptions } = props;
+  const { index, onShiftOptions, onDrop } = props;
   const ref = useRef<HTMLDivElement>(null);
 
   const item: GroupByItemInterface = {
@@ -48,6 +48,10 @@ export default function OptionWrapper(props: OptionWrapperProps) {
 
   const [, drop] = useDrop({
     accept: GroupByItemType,
+
+    drop: () => {
+      onDrop();
+    },
 
     hover: (item: GroupByItemInterface, monitor: DropTargetMonitor) => {
       if (!ref.current) {

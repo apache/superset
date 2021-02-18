@@ -34,7 +34,7 @@ function Option(props: OptionProps) {
       <CloseContainer
         role="button"
         data-test="remove-control-button"
-        onClick={() => props.clickClose(props.column.column_name)}
+        onClick={() => props.clickClose(props.index)}
       >
         <Icon name="x-small" color={props.theme.colors.grayscale.light1} />
       </CloseContainer>

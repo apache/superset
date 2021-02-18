@@ -18,16 +18,41 @@
  */
 import { ColumnMeta } from '@superset-ui/chart-controls';
 
-export function getOptionsFromGroupByValues(
-  options: { string: ColumnMeta },
-  groupByValues: string[],
-): ColumnMeta[] {
-  return groupByValues
-    .map(value => {
-      if (value in options) {
-        return options[value];
-      }
-      return null;
-    })
-    .filter(Boolean);
+export class OptionSelector {
+  groupByOptions: ColumnMeta[];
+
+  options: { string: ColumnMeta };
+
+  constructor(options: { string: ColumnMeta }, groupByValues: string[]) {
+    this.options = options;
+    this.groupByOptions = groupByValues
+      .map(value => {
+        if (value in options) {
+          return options[value];
+        }
+        return null;
+      })
+      .filter(Boolean);
+  }
+
+  add(value: string) {
+    if (value in this.options) {
+      this.groupByOptions.push(this.options[value]);
+    }
+  }
+
+  del(idx: number) {
+    this.groupByOptions.splice(idx, 1);
+  }
+
+  swap = (a: number, b: number) => {
+    [this.groupByOptions[a], this.groupByOptions[b]] = [
+      this.groupByOptions[b],
+      this.groupByOptions[a],
+    ];
+  };
+
+  getValues(): string[] {
+    return this.groupByOptions.map(option => option.column_name);
+  }
 }

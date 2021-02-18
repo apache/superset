@@ -33,7 +33,7 @@ import {
 } from 'src/explore/components/DatasourcePanel/types';
 import Icon from 'src/components/Icon';
 import OptionWrapper from './components/OptionWrapper';
-import { getOptionsFromGroupByValues } from './utils';
+import { OptionSelector } from './utils';
 
 interface DropGroupByControlProps extends BaseControlConfig {
   name: string;
@@ -45,17 +45,18 @@ interface DropGroupByControlProps extends BaseControlConfig {
 
 function DropGroupByControl(props: DropGroupByControlProps) {
   const { value: groupByValues, options } = props;
+  const optionSelector = new OptionSelector(options, groupByValues);
   const [groupByOptions, setGroupByOptions] = useState<ColumnMeta[]>(
-    getOptionsFromGroupByValues(options, groupByValues),
+    optionSelector.groupByOptions,
   );
 
   const [, datasourcePanelDrop] = useDrop({
     accept: DatasourcePanelDndType.COLUMN,
 
     drop: (item: DatasourcePanelDndItem) => {
-      const newGroupByValues = groupByValues.concat([item.metricOrColumnName]);
-      setGroupByOptions(getOptionsFromGroupByValues(options, newGroupByValues));
-      props.onChange(newGroupByValues);
+      optionSelector.add(item.metricOrColumnName);
+      setGroupByOptions(optionSelector.groupByOptions);
+      props.onChange(optionSelector.getValues());
     },
 
     canDrop: (item: DatasourcePanelDndItem) =>
@@ -67,41 +68,42 @@ function DropGroupByControl(props: DropGroupByControlProps) {
     }),
   });
 
-  function onClickClose(columnName: string) {
-    const newGroupByValues = groupByValues.filter(
-      value => value !== columnName,
-    );
-    setGroupByOptions(getOptionsFromGroupByValues(options, newGroupByValues));
-    props.onChange(newGroupByValues);
+  function onClickClose(index: number) {
+    optionSelector.del(index);
+    setGroupByOptions(optionSelector.groupByOptions);
+    props.onChange(optionSelector.getValues());
   }
 
   function onShiftOptions(dragIndex: number, hoverIndex: number) {
-    const val = [...groupByValues];
-    [val[hoverIndex], val[dragIndex]] = [val[dragIndex], val[hoverIndex]];
-    setGroupByOptions(getOptionsFromGroupByValues(options, val));
-    props.onChange(val);
+    optionSelector.swap(dragIndex, hoverIndex);
+    setGroupByOptions(optionSelector.groupByOptions);
   }
 
-  const PlaceHolderRenderer = () => (
-    <AddControlLabel cancelHover>
-      <Icon name="plus-small" color={props.theme.colors.grayscale.light1} />
-      {t('Drop Columns')}
-    </AddControlLabel>
-  );
+  function onDrop() {
+    props.onChange(optionSelector.getValues());
+  }
 
-  const OptionsRenderer = () => (
-    <>
-      {groupByOptions.map(column => (
-        <OptionWrapper
-          key={column.column_name}
-          column={column}
-          index={groupByOptions.indexOf(column)}
-          clickClose={onClickClose}
-          onShiftOptions={onShiftOptions}
-        />
-      ))}
-    </>
-  );
+  function placeHolderRenderer() {
+    return (
+      <AddControlLabel cancelHover>
+        <Icon name="plus-small" color={props.theme.colors.grayscale.light1} />
+        {t('Drop Columns')}
+      </AddControlLabel>
+    );
+  }
+
+  function optionsRenderer() {
+    return groupByOptions.map((column, idx) => (
+      <OptionWrapper
+        key={idx}
+        index={idx}
+        column={column}
+        clickClose={onClickClose}
+        onShiftOptions={onShiftOptions}
+        onDrop={onDrop}
+      />
+    ));
+  }
 
   return (
     <>
@@ -110,11 +112,7 @@ function DropGroupByControl(props: DropGroupByControlProps) {
           <ControlHeader {...props} />
         </HeaderContainer>
         <LabelsContainer>
-          {isEmpty(groupByOptions) ? (
-            <PlaceHolderRenderer />
-          ) : (
-            <OptionsRenderer />
-          )}
+          {isEmpty(groupByOptions) ? placeHolderRenderer() : optionsRenderer()}
         </LabelsContainer>
       </div>
     </>
