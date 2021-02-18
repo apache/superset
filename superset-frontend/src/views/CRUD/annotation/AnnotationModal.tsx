@@ -111,10 +111,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
     addDangerToast,
   );
 
-  // Functions
-  const hide = () => {
-    setIsHidden(true);
-
+  const resetAnnotation = () => {
     // Reset annotation
     setCurrentAnnotation({
       short_descr: '',
@@ -123,6 +120,14 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       json_metadata: '',
       long_descr: '',
     });
+  };
+
+  // Functions
+  const hide = () => {
+    setIsHidden(true);
+
+    // Reset annotation
+    resetAnnotation();
 
     onHide();
   };
@@ -242,13 +247,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       !isEditMode &&
       (!currentAnnotation || currentAnnotation.id || (isHidden && show))
     ) {
-      setCurrentAnnotation({
-        short_descr: '',
-        start_dttm: '',
-        end_dttm: '',
-        json_metadata: '',
-        long_descr: '',
-      });
+      resetAnnotation();
     }
   }, [annotation]);
 

@@ -108,15 +108,20 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
     addDangerToast,
   );
 
-  // Functions
-  const hide = () => {
-    setIsHidden(true);
-
+  const resetLayer = () => {
     // Reset layer
     setCurrentLayer({
       name: '',
       descr: '',
     });
+  };
+
+  // Functions
+  const hide = () => {
+    setIsHidden(true);
+
+    // Reset layer
+    resetLayer();
 
     onHide();
   };
@@ -194,10 +199,8 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
       !isEditMode &&
       (!currentLayer || currentLayer.id || (isHidden && show))
     ) {
-      setCurrentLayer({
-        name: '',
-        descr: '',
-      });
+      // Reset layer
+      resetLayer();
     }
   }, [layer, show]);
 
