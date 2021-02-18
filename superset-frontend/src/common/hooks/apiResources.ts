@@ -92,7 +92,7 @@ export function useApiResourceFullBody<RESULT>(
 
   useEffect(() => {
     // If refresh is implemented, this will need to change.
-    // The state will need to keep
+    // The previous values should stay during refresh.
     setResource(initialState);
 
     // when this effect runs, the endpoint function has changed.
