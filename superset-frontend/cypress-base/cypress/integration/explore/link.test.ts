@@ -48,7 +48,7 @@ describe('Test explore links', () => {
     });
   });
 
-  it('Visit short link', () => {
+  it('Test if short link is generated', () => {
     cy.intercept('POST', 'r/shortner/').as('getShortUrl');
 
     cy.visitChartByName('Growth Rate');
@@ -58,13 +58,6 @@ describe('Test explore links', () => {
 
     // explicitly wait for the url response
     cy.wait('@getShortUrl');
-
-    cy.get('#shorturl-popover [data-test="short-url"]')
-      .invoke('text')
-      .then(text => {
-        cy.visit(text);
-      });
-    cy.verifySliceSuccess({ waitAlias: '@chartData' });
   });
 
   it('Test iframe link', () => {

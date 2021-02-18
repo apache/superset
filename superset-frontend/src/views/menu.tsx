@@ -16,6 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// Menu App. Used in views that do not already include the Menu component in the layout.
+// eg, backend rendered views
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { ThemeProvider } from '@superset-ui/core';

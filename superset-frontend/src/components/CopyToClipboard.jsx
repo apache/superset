@@ -32,6 +32,7 @@ const propTypes = {
   wrapped: PropTypes.bool,
   tooltipText: PropTypes.string,
   addDangerToast: PropTypes.func.isRequired,
+  addSuccessToast: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -45,20 +46,10 @@ const defaultProps = {
 class CopyToClipboard extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      tooltipText: this.props.tooltipText,
-    };
 
     // bindings
     this.copyToClipboard = this.copyToClipboard.bind(this);
-    this.resetTooltipText = this.resetTooltipText.bind(this);
-    this.onMouseOut = this.onMouseOut.bind(this);
     this.onClick = this.onClick.bind(this);
-  }
-
-  onMouseOut() {
-    // delay to avoid flash of text change on tooltip
-    setTimeout(this.resetTooltipText, 200);
   }
 
   onClick() {
@@ -75,18 +66,13 @@ class CopyToClipboard extends React.Component {
     return React.cloneElement(this.props.copyNode, {
       style: { cursor: 'pointer' },
       onClick: this.onClick,
-      onMouseOut: this.onMouseOut,
     });
-  }
-
-  resetTooltipText() {
-    this.setState({ tooltipText: this.props.tooltipText });
   }
 
   copyToClipboard(textToCopy) {
     copyTextToClipboard(textToCopy)
       .then(() => {
-        this.setState({ tooltipText: t('Copied!') });
+        this.props.addSuccessToast(t('Copied to clipboard!'));
       })
       .catch(() => {
         this.props.addDangerToast(
@@ -106,10 +92,8 @@ class CopyToClipboard extends React.Component {
         id="copy-to-clipboard-tooltip"
         placement="top"
         style={{ cursor: 'pointer' }}
-        title={this.state.tooltipText}
+        title={this.props.tooltipText}
         trigger={['hover']}
-        onClick={this.onClick}
-        onMouseOut={this.onMouseOut}
       >
         {this.getDecoratedCopyNode()}
       </Tooltip>
@@ -127,7 +111,7 @@ class CopyToClipboard extends React.Component {
         <Tooltip
           id="copy-to-clipboard-tooltip"
           placement="top"
-          title={this.state.tooltipText}
+          title={this.props.tooltipText}
           trigger={['hover']}
         >
           {this.getDecoratedCopyNode()}

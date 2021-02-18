@@ -40,7 +40,7 @@ import FacePile from 'src/components/FacePile';
 import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
-import TooltipWrapper from 'src/components/TooltipWrapper';
+import { Tooltip } from 'src/common/components/Tooltip';
 import ImportModelsModal from 'src/components/ImportModal/index';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
@@ -291,9 +291,9 @@ function DashboardList(props: DashboardListProps) {
                   onConfirm={handleDelete}
                 >
                   {confirmDelete => (
-                    <TooltipWrapper
-                      label="delete-action"
-                      tooltip={t('Delete')}
+                    <Tooltip
+                      id="delete-action-tooltip"
+                      title={t('Delete')}
                       placement="bottom"
                     >
                       <span
@@ -307,14 +307,14 @@ function DashboardList(props: DashboardListProps) {
                           name="trash"
                         />
                       </span>
-                    </TooltipWrapper>
+                    </Tooltip>
                   )}
                 </ConfirmStatusChange>
               )}
               {canExport && (
-                <TooltipWrapper
-                  label="export-action"
-                  tooltip={t('Export')}
+                <Tooltip
+                  id="export-action-tooltip"
+                  title={t('Export')}
                   placement="bottom"
                 >
                   <span
@@ -325,12 +325,12 @@ function DashboardList(props: DashboardListProps) {
                   >
                     <Icon name="share" />
                   </span>
-                </TooltipWrapper>
+                </Tooltip>
               )}
               {canEdit && (
-                <TooltipWrapper
-                  label="edit-action"
-                  tooltip={t('Edit')}
+                <Tooltip
+                  id="edit-action-tooltip"
+                  title={t('Edit')}
                   placement="bottom"
                 >
                   <span
@@ -341,7 +341,7 @@ function DashboardList(props: DashboardListProps) {
                   >
                     <Icon name="edit-alt" />
                   </span>
-                </TooltipWrapper>
+                </Tooltip>
               )}
             </span>
           );
