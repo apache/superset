@@ -46,7 +46,7 @@ class SecurityRestApi(BaseApi):
             Fetch the CSRF token
           responses:
             200:
-              description: Async event results
+              description: Result contains the CSRF token
               content:
                 application/json:
                   schema:
