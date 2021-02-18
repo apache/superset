@@ -50,7 +50,7 @@ initFeatureFlags(bootstrap.common.feature_flags);
 const App = () => (
   <ReduxProvider store={store}>
     <ThemeProvider theme={theme}>
-      <FlashProvider common={common}>
+      <FlashProvider messages={common.flash_messages}>
         <Router>
           <DynamicPluginProvider>
             <QueryParamProvider

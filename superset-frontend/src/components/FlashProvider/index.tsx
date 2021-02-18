@@ -20,14 +20,12 @@ import React from 'react';
 import { useToasts } from 'src/messageToasts/enhancers/withToasts';
 import { useComponentDidMount } from 'src/utils/useComponentDidMount';
 
-type Message = Array<string>;
+type FlashMessageType = 'info' | 'alert' | 'danger' | 'warning' | 'success';
+export type FlashMessage = [FlashMessageType, string];
 
-interface CommonObject {
-  flash_messages: Array<Message>;
-}
 interface Props {
   children: JSX.Element;
-  common: CommonObject;
+  messages: FlashMessage[];
 }
 
 const flashObj = {
@@ -38,11 +36,10 @@ const flashObj = {
   success: 'addSuccessToast',
 };
 
-const FlashProvider: React.FC<Props> = ({ children, ...props }) => {
+const FlashProvider: React.FC<Props> = ({ children, messages }) => {
   const toasts = useToasts();
   useComponentDidMount(() => {
-    const flashMessages = props.common.flash_messages;
-    flashMessages.forEach(message => {
+    messages.forEach(message => {
       const [type, text] = message;
       const flash = flashObj[type];
       const toast = toasts[flash];
