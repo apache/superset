@@ -18,10 +18,8 @@
 import pytest
 from sqlalchemy.engine.url import make_url
 
-from superset.security.analytics_db_safety import (
-    check_sqlalchemy_uri,
-    DBSecurityException,
-)
+from superset.exceptions import SupersetSecurityException
+from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from tests.base_tests import SupersetTestCase
 
 
@@ -30,14 +28,14 @@ class TestDBConnections(SupersetTestCase):
         check_sqlalchemy_uri(make_url("postgres://user:password@test.com"))
 
     def test_check_sqlalchemy_url_sqlite(self):
-        with pytest.raises(DBSecurityException) as excinfo:
+        with pytest.raises(SupersetSecurityException) as excinfo:
             check_sqlalchemy_uri(make_url("sqlite:///home/superset/bad.db"))
         assert (
             str(excinfo.value)
             == "SQLiteDialect_pysqlite cannot be used as a data source for security reasons."
         )
 
-        with pytest.raises(DBSecurityException) as excinfo:
+        with pytest.raises(SupersetSecurityException) as excinfo:
             check_sqlalchemy_uri(make_url("shillelagh:///home/superset/bad.db"))
         assert (
             str(excinfo.value)

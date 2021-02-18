@@ -14,10 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from flask_babel import lazy_gettext as _
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchModuleError
 
-from superset.exceptions import SupersetException
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 
 # list of unsafe SQLAlchemy dialects
 BLOCKLIST = {
@@ -29,12 +31,6 @@ BLOCKLIST = {
 }
 
 
-class DBSecurityException(SupersetException):
-    """ Exception to prevent a security issue with connecting to a DB """
-
-    status = 400
-
-
 def check_sqlalchemy_uri(uri: URL) -> None:
     if uri.drivername in BLOCKLIST:
         try:
@@ -42,6 +38,13 @@ def check_sqlalchemy_uri(uri: URL) -> None:
         except NoSuchModuleError:
             dialect = uri.drivername
 
-        raise DBSecurityException(
-            f"{dialect} cannot be used as a data source for security reasons."
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
+                message=_(
+                    "%(dialect)s cannot be used as a data source for security reasons.",
+                    dialect=dialect,
+                ),
+                level=ErrorLevel.ERROR,
+            )
         )
