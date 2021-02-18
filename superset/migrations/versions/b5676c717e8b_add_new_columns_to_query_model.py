@@ -30,21 +30,14 @@ from enum import Enum
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import mysql
-
-
-# TODO import from source code
-class QueryLimiter(Enum):
-    QUERY = "QUERY"
-    DROPDOWN = "DROPDOWN"
-
+from superset.models.sql_lab import LimitMethod
 
 def upgrade():
     with op.batch_alter_table("query") as batch_op:
-        batch_op.add_column(sa.Column("was_limited", sa.Boolean(), nullable=False))
+        batch_op.add_column(sa.Column("was_limited", sa.Boolean(), nullable=True))
         batch_op.add_column(
-            sa.Column("limiting_factor", sa.Enum(QueryLimiter), nullable=False)
+            sa.Column("limiting_factor", sa.Enum("DROPDOWN", "QUERY", "UNKNOWN", name="limitingfactor"))
         )
-
 
 def downgrade():
     with op.batch_alter_table("query") as batch_op:

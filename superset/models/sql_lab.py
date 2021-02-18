@@ -17,6 +17,7 @@
 """A collection of ORM sqlalchemy models for SQL Lab"""
 import re
 from datetime import datetime
+import enum
 from typing import Any, Dict, List
 
 import simplejson as json
@@ -30,6 +31,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     ForeignKey,
+    Enum,
     Integer,
     Numeric,
     String,
@@ -48,6 +50,10 @@ from superset.models.tags import QueryUpdater
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.utils.core import QueryStatus, user_label
 
+class LimitMethod(str, enum.Enum):
+    QUERY = "QUERY"
+    DROPDOWN = "DROPDOWN"
+    UNKNOWN = "UNKNOWN"
 
 class Query(Model, ExtraJSONMixin):
     """ORM model for SQL query
@@ -76,7 +82,7 @@ class Query(Model, ExtraJSONMixin):
     executed_sql = Column(Text)
     # Could be configured in the superset config.
     limit = Column(Integer)
-    limiting_factor = Column(Integer)  # change to enum
+    limiting_factor = Column(Enum(LimitMethod), server_default=LimitMethod.UNKNOWN)
     was_limited = Column(Boolean, default=False)
     select_as_cta = Column(Boolean)
     select_as_cta_used = Column(Boolean, default=False)
@@ -122,6 +128,8 @@ class Query(Model, ExtraJSONMixin):
             "id": self.client_id,
             "queryId": self.id,
             "limit": self.limit,
+            "wasLimited": self.was_limited,
+            "limitingFactor": self.limiting_factor,
             "progress": self.progress,
             "rows": self.rows,
             "schema": self.schema,
