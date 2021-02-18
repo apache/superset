@@ -19,8 +19,6 @@
 import { useSelector } from 'react-redux';
 import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
 import {
-  CurrentFilterState,
-  NativeFilterState,
   NativeFiltersState,
   FilterSets,
   FilterState,
@@ -42,19 +40,6 @@ export function useFilterSets() {
   return useSelector<any, FilterSets>(
     state => state.nativeFilters.filterSets ?? {},
   );
-}
-
-export function useSetExtraFormData() {
-  const dispatch = useDispatch();
-  return useCallback(
-    (
-      id: string,
-      extraFormData: ExtraFormData,
-      currentState: CurrentFilterState,
-    ) => dispatch(setExtraFormData(id, extraFormData, currentState)),
-    [dispatch],
-  );
-  return useSelector<any, Filter>(state => state.nativeFilters.filters);
 }
 
 export function useCascadingFilters(id: string) {

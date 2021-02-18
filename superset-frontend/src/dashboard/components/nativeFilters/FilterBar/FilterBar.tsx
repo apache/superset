@@ -22,21 +22,17 @@ import { useDispatch, useSelector } from 'react-redux';
 import cx from 'classnames';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
-import { FullFilterState } from 'src/dashboard/reducers/types';
+import { FilterState, FullFilterState } from 'src/dashboard/reducers/types';
 import { Input, Select } from 'src/common/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   saveFilterSets,
   setFiltersState,
+  updateExtraFormData,
 } from 'src/dashboard/actions/nativeFilters';
 import { SelectValue } from 'antd/lib/select';
 import FilterConfigurationLink from './FilterConfigurationLink';
-import {
-  useFilters,
-  useFilterSets,
-  useFiltersState,
-  useSetExtraFormData,
-} from './state';
+import { useFilters, useFilterSets, useFiltersState } from './state';
 import { useFilterConfiguration } from '../state';
 import { Filter } from '../types';
 import {
@@ -45,7 +41,6 @@ import {
   mapParentFiltersToChildren,
 } from './utils';
 import CascadePopover from './CascadePopover';
-import { updateExtraFormData } from '../../../actions/nativeFilters';
 
 const barWidth = `250px`;
 
@@ -186,7 +181,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const [filterData, setFilterData] = useState<{
     [id: string]: {
       extraFormData: ExtraFormData;
-      currentState: FullFilterState;
+      currentState: FilterState;
     };
   }>({});
   const dispatch = useDispatch();
@@ -221,7 +216,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const handleFilterSelectionChange = (
     filter: Filter,
-    filterState: FullFilterState,
+    { nativeFilters }: FullFilterState,
   ) => {
     let isInitialized = false;
     setFilterData(prevFilterData => {
@@ -230,7 +225,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       }
       return {
         ...prevFilterData,
-        [filter.id]: filterState,
+        [filter.id]: nativeFilters,
       };
     });
 
@@ -265,8 +260,12 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     filterConfigs.forEach(filter => {
       dispatch(
         updateExtraFormData(filter.id, {
-          ...filterData[filter.id]?.currentState,
-          value: filters[filter.id]?.defaultValue,
+          nativeFilters: {
+            currentState: {
+              ...filterData[filter.id]?.currentState,
+              value: filters[filter.id]?.defaultValue,
+            },
+          },
         }),
       );
     });

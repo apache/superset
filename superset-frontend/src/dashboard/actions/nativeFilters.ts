@@ -24,7 +24,7 @@ import {
   FilterConfiguration,
 } from 'src/dashboard/components/nativeFilters/types';
 import { dashboardInfoChanged } from './dashboardInfo';
-import { FilterState, CurrentFilterState, NativeFilterState } from '../reducers/types';
+import { FiltersState, FilterState } from '../reducers/types';
 import { SelectedValues } from '../components/nativeFilters/FilterConfigModal/types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
@@ -108,14 +108,14 @@ export const SAVE_FILTER_SETS = 'SAVE_FILTER_SETS';
 export interface SaveFilterSets {
   type: typeof SAVE_FILTER_SETS;
   name: string;
-  filtersState: NativeFilterState;
+  filtersState: Pick<FiltersState, 'nativeFilters'>;
   filtersSetId: string;
 }
 
 export const SET_FILTERS_STATE = 'SET_FILTERS_STATE';
 export interface SetFiltersState {
   type: typeof SET_FILTERS_STATE;
-  filtersState: NativeFilterState;
+  filtersState: FiltersState;
 }
 
 export function setFilterState(
@@ -153,7 +153,7 @@ export function updateExtraFormData(
 export function saveFilterSets(
   name: string,
   filtersSetId: string,
-  filtersState: NativeFilterState,
+  filtersState: Pick<FiltersState, 'nativeFilters'>,
 ): SaveFilterSets {
   return {
     type: SAVE_FILTER_SETS,
@@ -163,9 +163,7 @@ export function saveFilterSets(
   };
 }
 
-export function setFiltersState(
-  filtersState: NativeFilterState,
-): SetFiltersState {
+export function setFiltersState(filtersState: FiltersState): SetFiltersState {
   return {
     type: SET_FILTERS_STATE,
     filtersState,
