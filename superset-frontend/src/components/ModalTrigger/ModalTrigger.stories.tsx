@@ -54,5 +54,3 @@ InteractiveModalTrigger.args = {
   maxWidth: '1000px',
   responsive: true,
 };
-
-InteractiveModalTrigger.argTypes = {};
