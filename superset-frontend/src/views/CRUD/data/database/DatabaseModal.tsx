@@ -143,6 +143,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const conf = useSelector((state: RootState) => state.common.conf);
+  const documentationLink = conf?.SQLALCHEMY_DOCS_URL ?? '';
 
   const isEditMode = database !== null;
   const defaultExtra =
@@ -413,11 +414,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="helper">
               {t('Refer to the ')}
               <a
-                href={conf?.SQLALCHEMY_DOCS_URL ?? ''}
+                href={documentationLink}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {t('SQLAlchemy docs')}
+                {documentationLink.includes('sqlalchemy')
+                  ? t('SQLAlchemy docs')
+                  : t('Connection Strings documentation')}
               </a>
               {t(' for more information on how to structure your URI.')}
             </div>
