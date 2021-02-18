@@ -26,7 +26,7 @@ import {
 } from '../actions/dashboardState';
 import { updateComponents } from '../actions/dashboardLayout';
 import { changeFilter } from '../actions/dashboardFilters';
-import { addDangerToast } from '../../messageToasts/actions';
+import { addSuccessToast, addDangerToast } from '../../messageToasts/actions';
 import { refreshChart } from '../../chart/chartAction';
 import { logEvent } from '../../logger/actions';
 import {
@@ -89,6 +89,7 @@ function mapDispatchToProps(dispatch) {
   return bindActionCreators(
     {
       updateComponents,
+      addSuccessToast,
       addDangerToast,
       toggleExpandSlice,
       changeFilter,

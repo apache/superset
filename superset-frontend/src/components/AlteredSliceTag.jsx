@@ -22,7 +22,7 @@ import { isEqual, isEmpty } from 'lodash';
 import { t } from '@superset-ui/core';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import { safeStringify } from 'src/utils/safeStringify';
-import TooltipWrapper from './TooltipWrapper';
+import { Tooltip } from 'src/common/components/Tooltip';
 import ModalTrigger from './ModalTrigger';
 import TableView from './TableView';
 
@@ -174,14 +174,14 @@ export default class AlteredSliceTag extends React.Component {
 
   renderTriggerNode() {
     return (
-      <TooltipWrapper label="difference" tooltip={t('Click to see difference')}>
+      <Tooltip id="difference-tooltip" title={t('Click to see difference')}>
         <span
           className="label label-warning m-l-5"
           style={{ fontSize: '12px' }}
         >
           {t('Altered')}
         </span>
-      </TooltipWrapper>
+      </Tooltip>
     );
   }
 
