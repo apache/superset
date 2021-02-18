@@ -95,7 +95,7 @@ export function useApiResourceFullBody<RESULT>(
     // The previous values should stay during refresh.
     setResource(initialState);
 
-    // when this effect runs, the endpoint function has changed.
+    // when this effect runs, the endpoint has changed.
     // cancel any current calls so that state doesn't get messed up.
     cancelRef.current();
     let cancelled = false;
