@@ -59,6 +59,4 @@ class CrateEngineSpec(BaseEngineSpec):
     @classmethod
     def alter_new_orm_column(cls, orm_col: "TableColumn") -> None:
         if orm_col.type == "TIMESTAMP":
-            orm_col.type = "INT"
-            orm_col.is_dttm = True
             orm_col.python_date_format = "epoch_ms"
