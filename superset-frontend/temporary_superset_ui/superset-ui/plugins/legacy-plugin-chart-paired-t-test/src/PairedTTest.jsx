@@ -45,7 +45,7 @@ class PairedTTest extends React.PureComponent {
 
     return (
       <div className={`superset-legacy-chart-paired-t-test ${className}`}>
-        <div className="paired-ttest-table scrollbar-container">
+        <div className="paired-ttest-table">
           <div className="scrollbar-content">
             {metrics.map((metric, i) => (
               <TTestTable

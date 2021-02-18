@@ -32,7 +32,7 @@
     "@superset-ui/core": "0.17.9",
     "distributions": "^1.0.0",
     "prop-types": "^15.6.2",
-    "reactable-arc": "0.15.0"
+    "reactable": "^1.1.0"
   },
   "peerDependencies": {
     "react": "^15 || ^16"
