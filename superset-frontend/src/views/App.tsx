@@ -29,14 +29,13 @@ import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import Menu from 'src/components/Menu/Menu';
-import FlashProvider from 'src/components/FlashProvider';
+import FlashProvider from 'src/components/FlashProvider/index';
 import { theme } from 'src/preamble';
 import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import setupPlugins from 'src/setup/setupPlugins';
 import setupApp from 'src/setup/setupApp';
-import messageToastReducer from 'src/messageToasts/reducers';
-import { initEnhancer } from 'src/reduxUtils';
 import { routes, isFrontendRoute } from 'src/views/routes';
+import { store } from './Store';
 
 setupApp();
 setupPlugins();
@@ -47,14 +46,6 @@ const user = { ...bootstrap.user };
 const menu = { ...bootstrap.common.menu_data };
 const common = { ...bootstrap.common };
 initFeatureFlags(bootstrap.common.feature_flags);
-
-const store = createStore(
-  combineReducers({
-    messageToasts: messageToastReducer,
-  }),
-  {},
-  compose(applyMiddleware(thunk), initEnhancer(false)),
-);
 
 const App = () => (
   <ReduxProvider store={store}>
