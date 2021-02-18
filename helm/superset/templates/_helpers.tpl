@@ -102,7 +102,7 @@ RESULTS_BACKEND = RedisCache(
 # Overrides
 {{- range $key, $value := .Values.configOverrides }}
 # {{ $key }}
-{{ $value }}
+{{ tpl $value $ }}
 {{- end }}
 {{- end }}
 
