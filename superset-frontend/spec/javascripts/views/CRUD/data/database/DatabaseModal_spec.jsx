@@ -43,6 +43,11 @@ const dbProps = {
   },
 };
 
+jest.mock('react-redux', () => ({
+  ...jest.requireActual('react-redux'),
+  useSelector: jest.fn(),
+}));
+
 const DATABASE_ENDPOINT = 'glob:*/api/v1/database/*';
 
 fetchMock.get(DATABASE_ENDPOINT, {});
