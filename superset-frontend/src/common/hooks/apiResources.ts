@@ -108,9 +108,6 @@ export function useApiResourceFullBody<RESULT>(
       endpoint,
     });
 
-    // pass {} to fetchResource, only because makeApi requires it.
-    // we should change makeApi, and then remove that param.
-    // TODO support request cancellation in makeApi
     fetchResource({})
       .then(result => {
         if (!cancelled) {
