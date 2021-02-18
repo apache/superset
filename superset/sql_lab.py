@@ -215,7 +215,7 @@ def execute_sql_statement(
         if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):
             query.limit = SQL_MAX_ROW
         if query.limit:
-            sql = database.apply_limit_to_sql(sql, query.limit)
+            sql = database.apply_limit_to_sql(sql, query.limit + 1)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
@@ -245,7 +245,20 @@ def execute_sql_statement(
                 query.id,
                 str(query.to_dict()),
             )
-            data = db_engine_spec.fetch_data(cursor, query.limit)
+            data = db_engine_spec.fetch_data(cursor, query.limit + 1)
+            if len(data) <= query.limit:
+                query.was_limited = False
+            else:
+                query.was_limited = True
+                data = data[:-1]
+
+    except SoftTimeLimitExceeded as ex:
+        logger.error("Query %d: Time limit exceeded", query.id)
+        logger.debug("Query %d: %s", query.id, ex)
+        raise SqlLabTimeoutException(
+            "SQL Lab timeout. This environment's policy is to kill queries "
+            "after {} seconds.".format(SQLLAB_TIMEOUT)
+        )
     except Exception as ex:
         logger.error("Query %d: %s", query.id, type(ex))
         logger.debug("Query %d: %s", query.id, ex)
