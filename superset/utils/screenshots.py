@@ -196,15 +196,17 @@ class ChartScreenshot(BaseScreenshot):
     thumbnail_type: str = "chart"
     element: str = "chart-container"
 
-    def __init__(self,
-                 url: str,
-                 digest: str,
-                 window_size: Optional[WindowSize] = None,
-                 thumb_size: Optional[WindowSize] = None
-                 ):
+    def __init__(
+        self,
+        url: str,
+        digest: str,
+        window_size: Optional[WindowSize] = None,
+        thumb_size: Optional[WindowSize] = None,
+    ):
         super().__init__(url, digest)
-        self.window_size = \
+        self.window_size = (
             window_size or current_app.config["WEBDRIVER_WINDOW"]["slice"]
+        )
         self.thumb_size = thumb_size or (800, 600)
 
 
@@ -212,13 +214,15 @@ class DashboardScreenshot(BaseScreenshot):
     thumbnail_type: str = "dashboard"
     element: str = "grid-container"
 
-    def __init__(self,
-                 url: str,
-                 digest: str,
-                 window_size: Optional[WindowSize] = None,
-                 thumb_size: Optional[WindowSize] = None
-                 ):
+    def __init__(
+        self,
+        url: str,
+        digest: str,
+        window_size: Optional[WindowSize] = None,
+        thumb_size: Optional[WindowSize] = None,
+    ):
         super().__init__(url, digest)
-        self.window_size = \
+        self.window_size = (
             window_size or current_app.config["WEBDRIVER_WINDOW"]["dashboard"]
+        )
         self.thumb_size = thumb_size or (800, 600)
