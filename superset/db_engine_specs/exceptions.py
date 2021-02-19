@@ -39,3 +39,19 @@ class SupersetDBAPIOperationalError(SupersetDBAPIError):
 
 class SupersetDBAPIProgrammingError(SupersetDBAPIError):
     pass
+
+
+class SupersetDBAPIInterfaceError(SupersetDBAPIError):
+    pass
+
+
+class SupersetDBAPIIntegrityError(SupersetDBAPIError):
+    pass
+
+
+class SupersetDBAPIInternalError(SupersetDBAPIError):
+    pass
+
+
+class SupersetDBAPINotSupportedError(SupersetDBAPIError):
+    pass
