@@ -357,6 +357,7 @@ export const controls = {
     ),
     provideFormDataToProps: true,
     mapStateToProps: ({ form_data: formData }) => ({
+      // eslint-disable-next-line camelcase
       endpoints: formData?.time_range_endpoints,
     }),
   },
