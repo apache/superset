@@ -137,6 +137,10 @@ export const routes: Routes = [
     Component: QueryList,
   },
   {
+    path: '/csvtodatabaseview/form/',
+    Component: DatabaseList,
+  },
+  {
     path: '/alert/list/',
     Component: AlertList,
   },
