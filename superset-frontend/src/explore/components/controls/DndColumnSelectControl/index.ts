@@ -16,4 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default } from './DropGroupByLabel';
+export { default } from './DndColumnSelectLabel';

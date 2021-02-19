@@ -35,7 +35,7 @@ import Icon from 'src/components/Icon';
 import OptionWrapper from './components/OptionWrapper';
 import { OptionSelector } from './utils';
 
-interface DropGroupByControlLabel extends BaseControlConfig {
+interface LabelProps extends BaseControlConfig {
   name: string;
   value: string[] | string | null;
   onChange: (value: string[] | string | null) => void;
@@ -43,7 +43,7 @@ interface DropGroupByControlLabel extends BaseControlConfig {
   theme: SupersetTheme;
 }
 
-function DropGroupByLabel(props: DropGroupByControlLabel) {
+function DndColumnSelectLabel(props: LabelProps) {
   const { value, options } = props;
   const optionSelector = new OptionSelector(options, value);
   const [groupByOptions, setGroupByOptions] = useState<ColumnMeta[]>(
@@ -115,4 +115,4 @@ function DropGroupByLabel(props: DropGroupByControlLabel) {
   );
 }
 
-export default withTheme(DropGroupByLabel);
+export default withTheme(DndColumnSelectLabel);
