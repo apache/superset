@@ -608,7 +608,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             TestConnectionDatabaseCommand(g.user, item).run()
             return self.response(200, message="OK")
         except DatabaseTestConnectionFailedError as ex:
-            logger.exception("Database test connection failed")
+            logger.warning("Database test connection failed", exc_info=True)
             return self.response_422(message=str(ex))
 
     @expose("/<int:pk>/related_objects/", methods=["GET"])
@@ -801,7 +801,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             logger.warning("Import database failed")
             return self.response_422(message=exc.normalized_messages())
         except DatabaseImportError as exc:
-            logger.exception("Import database failed")
+            logger.warning("Import database failed", exc_info=True)
             return self.response_500(message=str(exc))
 
     @expose("/<int:pk>/function_names/", methods=["GET"])
