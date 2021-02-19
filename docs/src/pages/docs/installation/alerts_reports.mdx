@@ -16,31 +16,20 @@ Users can configure automated alerts and reports to send dashboards or charts to
 
 Alerts and reports are disabled by default. To turn them on, you need to do some setup, described here.
 
-### Requirements summary:
+### Requirements
 
 #### Commons
 
-##### In your `superset_config.py`:
+##### In your `superset_config.py`
 - `"ALERT_REPORTS"` feature flag must be turned to True.
 - `CELERYBEAT_SCHEDULE` in CeleryConfig must contain schedule for `reports.scheduler`.
 - At least one of those must be configured, depending on what you want to use:
   - emails: `SMTP_*` settings
   - Slack messages: `SLACK_API_TOKEN`
 
-##### In your `Dockerfile`:
+##### In your `Dockerfile`
 - You must install a headless browser, for taking screenshots of the charts and dashboards. Only Firefox and Chrome are currently supported.
   >If you choose Chrome, you must also change the value of `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
-
-#### Docker-compose specific
-- `docker-compose.yaml`
-  - redis message broker
-  - replacing SQLlite DB with Postgres DB
-  - celery worker
-  - celery beat
-
-#### Kubernetes specific
-- You must have a `celery beat` pod running. If you're using the chart included in the GitHub repository under [helm/superset](https://github.com/apache/superset/tree/master/helm/superset), you need to put `supersetCeleryBeat.enabled = true` in your values override.
-- You can see the dedicated docs about [Kubernetes installation](/docs/installation/running-on-kubernetes) for more generic details.
 
 #### Slack integration
 To send alerts and reports to Slack channels, you need to create a new Slack Application on your workspace.
@@ -56,7 +45,18 @@ To send alerts and reports to Slack channels, you need to create a new Slack App
 6. The app should now be installed in your workspace, and a "Bot User OAuth Access Token" should have been created. Copy that token in the `SLACK_API_TOKEN` variable of your `superset_config.py`.
 7. Restart the service (or run `superset init`) to pull in the new configuration.
 
-Note: when you configure an alert or a report, the Slack channel list take channel names without the leading '#' eg. use `alerts` instead of `#alerts`.
+Note: when you configure an alert or a report, the Slack channel list take channel names without the leading '#' e.g. use `alerts` instead of `#alerts`.
+
+#### Kubernetes specific
+- You must have a `celery beat` pod running. If you're using the chart included in the GitHub repository under [helm/superset](https://github.com/apache/superset/tree/master/helm/superset), you need to put `supersetCeleryBeat.enabled = true` in your values override.
+- You can see the dedicated docs about [Kubernetes installation](/docs/installation/running-on-kubernetes) for more generic details.
+
+#### Docker-compose specific
+##### You must have in your`docker-compose.yaml`
+  - a redis message broker
+  - PostgreSQL DB instead of SQLlite
+  - one or more `celery worker`
+  - a single `celery beat`
 
 ### Summary of steps to turn on alerts and reporting:
 Using the templates below,
@@ -72,8 +72,8 @@ Using the templates below,
 10. Finally, restart the running instance - `CTRL-C`, then `docker-compose up`
  
 (note: v 1.0.1 is current at time of writing, you can change the version number to the latest version if a newer version is available)
-### Dockerfile
 
+### Dockerfile
 A webdriver (and headless browser) is needed to capture screenshots of the charts and dashboards which are then sent to the recipient. As the base image does not have a webdriver installed by default, we need to extend the base image and install the webdriver (this template uses the Chrome webdriver). We are also adding in connectors for MySQL and Postgres, as well as Redis and Flower (Flower and MySQL are optional depending on your requirements)
 
 You can extend the image by running this Docker build command from the directory that contains the Dockerfile:
