@@ -48,18 +48,22 @@ import getLocationHash from '../util/getLocationHash';
 import newComponentFactory from '../util/newComponentFactory';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 
-export default function getInitialState(bootstrapData, chartdata) {
+export default function getInitialState(bootstrapData, chartData, dashboardData) {
+  // user_id and datasources need exploration for spa
   const { user_id, datasources, common, editMode, urlParams } = bootstrapData;
   const dashboard = { ...bootstrapData.dashboard_data };
+  // console.log('dashboard', dashboard, { common, editMode, datasources, urlParams })
+  const metadata = JSON.parse(dashboardData.json_metadata);
   let preselectFilters = {};
-  chartdata.forEach(chart => {
+
+  chartData.forEach(chart => {
     // eslint-disable-next-line no-param-reassign
     chart.slice_id = chart.form_data.slice_id;
   });
   try {
     // allow request parameter overwrite dashboard metadata
     preselectFilters = JSON.parse(
-      getParam('preselect_filters') || dashboard.metadata.default_filters,
+      getParam('preselect_filters') || metadata.default_filters,
     );
   } catch (e) {
     //
@@ -67,12 +71,12 @@ export default function getInitialState(bootstrapData, chartdata) {
 
   // Priming the color palette with user's label-color mapping provided in
   // the dashboard's JSON metadata
-  if (dashboard.metadata && dashboard.metadata.label_colors) {
-    const scheme = dashboard.metadata.color_scheme;
-    const namespace = dashboard.metadata.color_namespace;
-    const colorMap = isString(dashboard.metadata.label_colors)
-      ? JSON.parse(dashboard.metadata.label_colors)
-      : dashboard.metadata.label_colors;
+  if (metadata && metadata.label_colors) {
+    const scheme = metadata.color_scheme;
+    const namespace = metadata.color_namespace;
+    const colorMap = isString(metadata.label_colors)
+      ? JSON.parse(metadata.label_colors)
+      : metadata.label_colors;
     Object.keys(colorMap).forEach(label => {
       CategoricalColorNamespace.getScale(scheme, namespace).setColor(
         label,
@@ -82,7 +86,7 @@ export default function getInitialState(bootstrapData, chartdata) {
   }
 
   // dashboard layout
-  const { position_json: positionJson } = dashboard;
+  const positionJson = JSON.parse(dashboardData.position_json);
   // new dash: positionJson could be {} or null
   const layout =
     positionJson && Object.keys(positionJson).length > 0
@@ -103,13 +107,13 @@ export default function getInitialState(bootstrapData, chartdata) {
   let newSlicesContainer;
   let newSlicesContainerWidth = 0;
 
-  const filterScopes = dashboard.metadata.filter_scopes || {};
+  const filterScopes = metadata.filter_scopes || {};
 
   const chartQueries = {};
   const dashboardFilters = {};
   const slices = {};
   const sliceIds = new Set();
-  chartdata.forEach(slice => {
+  chartData.forEach(slice => {
     const key = slice.slice_id;
     const form_data = {
       ...slice.form_data,
@@ -272,9 +276,9 @@ export default function getInitialState(bootstrapData, chartdata) {
     charts: chartQueries,
     // read-only data
     dashboardInfo: {
-      id: dashboard.id,
-      slug: dashboard.slug,
-      metadata: dashboard.metadata,
+      id: dashboardData.id,
+      slug: dashboardData.slug,
+      metadata,
       userId: user_id,
       dash_edit_perm: dashboard.dash_edit_perm,
       dash_save_perm: dashboard.dash_save_perm,
@@ -294,19 +298,19 @@ export default function getInitialState(bootstrapData, chartdata) {
       directPathToChild,
       directPathLastUpdated: Date.now(),
       focusedFilterField: null,
-      expandedSlices: dashboard.metadata.expanded_slices || {},
-      refreshFrequency: dashboard.metadata.refresh_frequency || 0,
+      expandedSlices: metadata.expanded_slices || {},
+      refreshFrequency: metadata.refresh_frequency || 0,
       // dashboard viewers can set refresh frequency for the current visit,
       // only persistent refreshFrequency will be saved to backend
       shouldPersistRefreshFrequency: false,
-      css: dashboard.css || '',
-      colorNamespace: dashboard.metadata.color_namespace,
-      colorScheme: dashboard.metadata.color_scheme,
+      css: dashboardData.css || '',
+      colorNamespace: metadata.color_namespace,
+      colorScheme: metadata.color_scheme,
       editMode: dashboard.dash_edit_perm && editMode,
-      isPublished: dashboard.published,
+      isPublished: dashboardData.published,
       hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,
-      lastModifiedTime: dashboard.last_modified_time,
+      lastModifiedTime: dashboardData.changed_on,
     },
     dashboardLayout,
     messageToasts: [],

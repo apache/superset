@@ -19,7 +19,7 @@
 import React, { useEffect, useState, FC } from 'react';
 import { connect } from 'react-redux';
 import { AnyAction, bindActionCreators, Dispatch } from 'redux';
-import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
 import setBootstrapData from 'src/dashboard/actions/bootstrapData';
 import Loading from 'src/components/Loading';
 import getInitialState from '../reducers/getInitialState';
@@ -30,10 +30,25 @@ interface DashboardRouteProps {
   };
   dashboardId: string;
 }
+const getData = (id: string) => {
+  const batch = [
+    SupersetClient.get({ endpoint: `/api/v1/dashboard/${id}/charts` }),
+    SupersetClient.get({ endpoint: `/api/v1/dashboard/${id}` }),
+  ];
+  return Promise.all(batch)
+    .then(([chartRes, dashboardRes]) => ({
+      chartRes: chartRes.json.result,
+      dashboardRes: dashboardRes.json.result,
+    }))
+    .catch(err => {
+      console.log('err', err);
+    });
+};
+
 const DashboardRoute: FC<DashboardRouteProps> = ({
   children,
   actions,
-  dashboardId,
+  dashboardId, // eventually get from react router
 }) => {
   const appContainer = document.getElementById('app');
   const bootstrapData = appContainer?.getAttribute('data-bootstrap');
@@ -41,16 +56,19 @@ const DashboardRoute: FC<DashboardRouteProps> = ({
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    SupersetClient.get({ endpoint: `/api/v1/dashboard/${dashboardId}/charts` })
-      .then(r => {
-        const initState = getInitialState(bootstrapDataJson, r.json.result);
+    getData(dashboardId).then(data => {
+      if (data) {
+        const initState = getInitialState(
+          bootstrapDataJson,
+          data.chartRes,
+          data.dashboardRes,
+        );
         actions.setBootstrapData(initState);
         setLoaded(true);
-      })
-      .catch(err => {
-        console.log('err', err);
-      });
+      }
+    });
   }, []);
+
   if (!loaded) return <Loading />;
   return <>{children} </>;
 };
