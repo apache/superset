@@ -37,6 +37,7 @@ interface TextControlProps {
 
 interface TextControlState {
   controlId: string;
+  currentDatasource?: string;
   value?: string | number;
 }
 
@@ -55,8 +56,14 @@ export default class TextControl extends React.Component<
     props: TextControlProps,
     state: TextControlState,
   ) {
-    if (props.value !== state.value) {
-      return { value: props.value };
+    // reset value when datasource changes
+    // props.datasource and props.value don't update in the same re-render,
+    // so we need to synchronize them to update the state with correct values
+    if (
+      props.value !== state.value &&
+      props.datasource !== state.currentDatasource
+    ) {
+      return { value: props.value, currentDatasource: props.datasource };
     }
     return null;
   }
@@ -69,12 +76,9 @@ export default class TextControl extends React.Component<
     this.state = {
       controlId: generateControlId(props.controlId),
       value: props.value,
+      currentDatasource: props.datasource,
     };
   }
-
-  defaultInput = () => {
-    this.setState({ value: '' });
-  };
 
   onChange = (inputValue: string) => {
     let parsedValue: string | number = inputValue;
