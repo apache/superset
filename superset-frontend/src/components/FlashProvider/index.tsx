@@ -36,7 +36,7 @@ const flashObj = {
   success: 'addSuccessToast',
 };
 
-const FlashProvider: React.FC<Props> = ({ children, messages }) => {
+export default function FlashProvider({ children, messages }: Props) {
   const toasts = useToasts();
   useComponentDidMount(() => {
     messages.forEach(message => {
@@ -49,6 +49,4 @@ const FlashProvider: React.FC<Props> = ({ children, messages }) => {
     });
   });
   return children;
-};
-
-export default FlashProvider;
+}
