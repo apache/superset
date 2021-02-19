@@ -100,6 +100,22 @@ const MonospaceDiv = styled.div`
   white-space: pre-wrap;
 `;
 
+const ReturnedRows = styled.div`
+  margin-top: 48px;
+  margin-bottom: -32px;
+  font-size: 13px;
+  line-height: 24px;
+  .ReturnedRowsImage {
+    color: #ff7f43;
+    vertical-align: bottom;
+    margin-right: 8px;
+  }
+  .LimitMessage {
+    color: #8e94b0;
+    margin-left: 8px;
+  }
+`;
+
 export default class ResultSet extends React.PureComponent<
   ResultSetProps,
   ResultSetState
@@ -483,15 +499,12 @@ export default class ResultSet extends React.PureComponent<
 
   rowsReturned() {
     const { query } = this.props;
-    let limitWarning = null;
-    if (query.results?.displayLimitReached) {
-      limitWarning = <Icon className="ReturnedRowsImage" name="warning" />;
-    }
+    const limitWarning = <Icon className="ReturnedRowsImage" name="warning" />;
     return (
-      <div className="ReturnedRows">
-        {limitWarning}
+      <ReturnedRows>
+        {query.results?.displayLimitReached && limitWarning}
         <span>{t(`%s rows returned`, query.rows)}</span>
-        {limitWarning && (
+        {query.results?.displayLimitReached && (
           <span className="LimitMessage">
             {t(
               `It appears that the number of rows in the query results displayed
@@ -501,7 +514,7 @@ export default class ResultSet extends React.PureComponent<
             )}
           </span>
         )}
-      </div>
+      </ReturnedRows>
     );
   }
 
