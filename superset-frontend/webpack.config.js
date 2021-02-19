@@ -23,6 +23,7 @@ const webpack = require('webpack');
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
@@ -118,6 +119,20 @@ const plugins = [
       { from: 'images', to: 'images' },
       { from: 'stylesheets', to: 'stylesheets' },
     ],
+  }),
+
+  // static pages
+  new HtmlWebpackPlugin({
+    template: './src/staticPages/404.html',
+    inject: true,
+    chunks: [],
+    filename: '404.html',
+  }),
+  new HtmlWebpackPlugin({
+    template: './src/staticPages/500.html',
+    inject: true,
+    chunks: [],
+    filename: '500.html',
   }),
 ];
 
@@ -375,10 +390,23 @@ const config = {
       /* for css linking images (and viz plugin thumbnails) */
       {
         test: /\.png$/,
+        issuer: {
+          exclude: /\/src\/staticPages\//,
+        },
         loader: 'url-loader',
         options: {
           limit: 10000,
           name: '[name].[hash:8].[ext]',
+        },
+      },
+      {
+        test: /\.png$/,
+        issuer: {
+          test: /\/src\/staticPages\//,
+        },
+        loader: 'url-loader',
+        options: {
+          limit: 150000, // Convert images < 150kb to base64 strings
         },
       },
       {
