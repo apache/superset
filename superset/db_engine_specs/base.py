@@ -58,7 +58,6 @@ from superset import app, security_manager, sql_parse
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIDatabaseError,
     SupersetDBAPIDataError,
-    SupersetDBAPIDisconnectionError,
     SupersetDBAPIError,
     SupersetDBAPIIntegrityError,
     SupersetDBAPIInterfaceError,
