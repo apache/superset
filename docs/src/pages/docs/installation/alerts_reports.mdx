@@ -40,6 +40,7 @@ Alerts and reports are disabled by default. To turn them on, you need to do some
 
 #### Kubernetes specific
 - You must have a `celery beat` pod running. If you're using the chart included in the GitHub repository under [helm/superset](https://github.com/apache/superset/tree/master/helm/superset), you need to put `supersetCeleryBeat.enabled = true` in your values override.
+- You can see the dedicated docs about [Kubernetes installation](/docs/installation/running-on-kubernetes) for more generic details.
 
 #### Slack integration
 To send alerts and reports to Slack channels, you need to create a new Slack Application on your workspace.
@@ -312,11 +313,11 @@ SUPERSET_WEBSERVER_TIMEOUT=600
 ### Summary
 With the extended image created by using the `Dockerfile`, and then running that image using `docker-compose.yaml`, plus the required configurations in the `superset_config.py` you should now have alerts and reporting working correctly.
 
-- For Kubernetes you can see the Helm chart here
 - The above templates also work in a Docker swarm environment, you would just need to add `Deploy:` to the Superset, Redis and Postgres services along with your specific configs for your swarm
 
 
-#
+# Old Reports feature
+
 ## Scheduling and Emailing Reports
 (version 0.38 and below)
 ### Email Reports
