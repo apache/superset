@@ -27,7 +27,7 @@ import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import Menu from 'src/components/Menu/Menu';
-import FlashProvider from 'src/components/FlashProvider/index';
+import FlashProvider from 'src/components/FlashProvider';
 import { theme } from 'src/preamble';
 import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import setupPlugins from 'src/setup/setupPlugins';
