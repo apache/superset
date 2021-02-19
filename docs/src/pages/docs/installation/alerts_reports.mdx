@@ -71,7 +71,7 @@ Using the templates below,
 8. Then run `docker exec -it superset-1.0.1-extended superset init`
 9. Then setup your admin user if need be, `docker exec -it superset-1.0.1-extended superset fab create-admin`
 10. Finally, restart the running instance - `CTRL-C`, then `docker-compose up`
- 
+
 (note: v 1.0.1 is current at time of writing, you can change the version number to the latest version if a newer version is available)
 
 ### Dockerfile
@@ -112,10 +112,10 @@ To ferry requests between the celery worker and the Superset instance, we use a 
 While it might be possible to use SQLite for alerts and reporting, it is highly recommended to use a more production ready DB for Superset in general. Our template uses Postgres.
 
 #### Celery worker
-The worker will process the tasks that need to be performed when an alert or report is fired. 
+The worker will process the tasks that need to be performed when an alert or report is fired.
 
 #### Celery beat
-The beat is the scheduler that tells the worker when to perform its tasks. This schedule is defined when you create the alert or report. 
+The beat is the scheduler that tells the worker when to perform its tasks. This schedule is defined when you create the alert or report.
 
 #### Full `docker-compose.yaml` configuration
 The Redis, Postgres, Celery worker and Celery beat services are defined in the template:
@@ -127,7 +127,7 @@ services:
   redis:
     image: redis:6.0.9-buster
     restart: on-failure
-    volumes: 
+    volumes:
       - redis:/data
   postgres:
     image: postgres
@@ -138,7 +138,7 @@ services:
       POSTGRES_USER: superset
     volumes:
       - db:/var/lib/postgresql/data
-  worker: 
+  worker:
     image: superset-1.0.1-extended
     restart: on-failure
     healthcheck:
@@ -186,61 +186,24 @@ volumes:
 
 The following configurations need to be added to the `superset_config.py` file. This file is loaded when the image runs, and any configurations in it will override the default configurations found in the `config.py`.
 
-You will need to add your custom SMTP settings, and or Slack APP token
+You need to replace default values with your custom Redis, Slack and/or SMTP config.
+
+As said before, in the`CeleryConfig`, only the `CELERYBEAT_SCHEDULE` is relative to this feature, the rest of the `CeleryConfig` can be changed for your needs.
 
 Config for `superset_config.py`:
 ```python
-from superset_config import *
 from celery.schedules import crontab
-from cachelib import RedisCache
-from superset.typing import CacheConfig
-import os
 
 FEATURE_FLAGS = {
     "ALERT_REPORTS": True
 }
 
-# slack API token (optional)
 SLACK_API_TOKEN = "xoxb-"
-SLACK_PROXY = None
 
-POSTGRES_USER = "superset"
-POSTGRES_PASS = "superset"
-POSTGRES_HOST = "postgres"
-POSTGRES_PORT = "5432"
-POSTGRES_DATABASE = "superset"
 REDIS_HOST = "redis-superset"
 REDIS_PORT = "6379"
-# The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://%s:%s@%s:%s/%s?client_encoding=utf8' % (POSTGRES_USER,
-                                                          POSTGRES_PASS,
-                                                          POSTGRES_HOST,
-                                                          POSTGRES_PORT,
-                                                          POSTGRES_DATABASE)
-CACHE_CONFIG: CacheConfig = {
-    'CACHE_TYPE': 'redis',
-    'CACHE_DEFAULT_TIMEOUT': 24*60*60, # 1 day - if your alerts are running faster than 1 day, the cache should match
-    'CACHE_KEY_PREFIX': 'superset_',
-    'CACHE_REDIS_URL': 'redis://%s:%s/1' % (REDIS_HOST, REDIS_PORT)
-}
-DATA_CACHE_CONFIG: CacheConfig = {
-    'CACHE_TYPE': 'redis',
-    'CACHE_DEFAULT_TIMEOUT': 24*60*60, # 1 day - if your alerts are running faster than 1 day, the cache should match
-    'CACHE_KEY_PREFIX': 'data_',
-    'CACHE_REDIS_URL': 'redis://%s:%s/1' % (REDIS_HOST, REDIS_PORT)
-}
-THUMBNAIL_SELENIUM_USER = "admin"
-THUMBNAIL_CACHE_CONFIG: CacheConfig = {
-    'CACHE_TYPE': 'redis',
-    'CACHE_DEFAULT_TIMEOUT': 24*60*60*30,
-    'CACHE_KEY_PREFIX': 'thumbnail_',
-    'CACHE_NO_NULL_WARNING': True,
-    'CACHE_REDIS_URL': 'redis://%s:%s/1' % (REDIS_HOST, REDIS_PORT)
-}
-SCREENSHOT_LOCATE_WAIT = 100
-SCREENSHOT_LOAD_WAIT = 600
-RESULTS_BACKEND = RedisCache(host=REDIS_HOST, port=REDIS_PORT, key_prefix='superset_results')
-class CeleryConfig(object):
+
+class CeleryConfig:
     BROKER_URL = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
     CELERY_IMPORTS = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
     CELERY_RESULT_BACKEND = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
@@ -266,23 +229,13 @@ class CeleryConfig(object):
             'task': 'reports.prune_log',
             'schedule': crontab(minute=0, hour=0),
         },
-        'cache-warmup-hourly': {
-            'task': 'cache-warmup',
-            'schedule': crontab(minute='*/30', hour='*'),
-             'kwargs': {
-                'strategy_name': 'top_n_dashboards',
-                'top_n': 10,
-                'since': '7 days ago',
-            },
-       },
     }
 CELERY_CONFIG = CeleryConfig
 
-# SMTP email configuration
-EMAIL_REPORTS_USER="admin" # change to a user that has access to the chart / dashboard that you are sending
-EMAIL_PAGE_RENDER_WAIT=300
-EMAIL_NOTIFICATIONS = True
+SCREENSHOT_LOCATE_WAIT = 100
+SCREENSHOT_LOAD_WAIT = 600
 
+# SMTP email configuration
 SMTP_HOST = "smtp.sendgrid.net" #change to your host
 SMTP_STARTTLS = True
 SMTP_SSL = False
@@ -291,6 +244,9 @@ SMTP_PORT = 2525 # your port eg. 587
 SMTP_PASSWORD = "your_password"
 SMTP_MAIL_FROM = "noreply@youremail.com"
 
+# WebDriver configuration
+# If you use Firefox, you can stick with default values
+# If you use Chrome, then add the following WEBDRIVER_TYPE and WEBDRIVER_OPTION_ARGS
 WEBDRIVER_TYPE= "chrome"
 WEBDRIVER_OPTION_ARGS = [
         "--force-device-scale-factor=2.0",
@@ -303,12 +259,10 @@ WEBDRIVER_OPTION_ARGS = [
         "--disable-extensions",
         ]
 
+# This is for internal use, you can keep http
 WEBDRIVER_BASEURL="http://superset:8088"
-WEBDRIVER_BASEURL_USER_FRIENDLY="http://localhost:8088" # change to your domain eg. https://superset.mydomain.com - this is the link that is sent to the recipient
-SUPERSET_WEBSERVER_ADDRESS = "localhost"
-SUPERSET_WEBSERVER_PORT = 8088
-SUPERSET_WEBSERVER_TIMEOUT=600
-
+# This is the link sent to the recipient, change to your domain eg. https://superset.mydomain.com
+WEBDRIVER_BASEURL_USER_FRIENDLY="http://localhost:8088"
 ```
 
 ### Summary
