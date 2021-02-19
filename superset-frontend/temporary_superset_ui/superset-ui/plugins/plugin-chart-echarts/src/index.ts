@@ -19,6 +19,7 @@
 export { default as EchartsBoxPlotChartPlugin } from './BoxPlot';
 export { default as EchartsTimeseriesChartPlugin } from './Timeseries';
 export { default as EchartsPieChartPlugin } from './Pie';
+export { default as EchartsGraphChartPlugin } from './Graph';
 
 /**
  * Note: this file exports the default export from EchartsTimeseries.tsx.

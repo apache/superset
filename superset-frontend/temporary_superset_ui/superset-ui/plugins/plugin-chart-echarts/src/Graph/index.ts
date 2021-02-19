@@ -16,16 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  EchartsPieChartPlugin,
-  EchartsTimeseriesChartPlugin,
-  EchartsGraphChartPlugin,
-} from '../src';
+import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import controlPanel from './controlPanel';
+import transformProps from './transformProps';
+import thumbnail from './images/thumbnail.png';
+import buildQuery from './buildQuery';
 
-describe('@superset-ui/plugin-chart-echarts', () => {
-  it('exists', () => {
-    expect(EchartsPieChartPlugin).toBeDefined();
-    expect(EchartsTimeseriesChartPlugin).toBeDefined();
-    expect(EchartsGraphChartPlugin).toBeDefined();
-  });
-});
+export default class EchartsGraphChartPlugin extends ChartPlugin {
+  constructor() {
+    super({
+      buildQuery,
+      controlPanel,
+      loadChart: () => import('./EchartsGraph'),
+      metadata: new ChartMetadata({
+        credits: ['https://echarts.apache.org'],
+        name: t('Graph Chart'),
+        thumbnail,
+      }),
+      transformProps,
+    });
+  }
+}

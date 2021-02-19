@@ -124,8 +124,8 @@ export interface BaseFormData extends TimeRange, FormDataResidual {
   groupby?: QueryFormColumn[];
   all_columns?: QueryFormColumn[];
   /** list of filters */
-  adhoc_filters?: AdhocFilter[];
-  extra_filters?: QueryFormExtraFilter[];
+  adhoc_filters?: AdhocFilter[] | null;
+  extra_filters?: QueryFormExtraFilter[] | null;
   /** order descending */
   order_desc?: boolean;
   /** limit number of time series */

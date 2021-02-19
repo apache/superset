@@ -17,7 +17,9 @@
  * under the License.
  */
 import { t } from '../translation';
+import { removeDuplicates } from '../utils';
 import { DTTM_ALIAS } from './buildQueryObject';
+import getMetricLabel from './getMetricLabel';
 import { QueryFields, QueryFieldAliases, FormDataResidual, QueryMode } from './types/QueryFormData';
 
 /**
@@ -108,6 +110,10 @@ export default function extractQueryFields(
   if (includeTime && !finalQueryFields.columns.includes(DTTM_ALIAS)) {
     finalQueryFields.columns.unshift(DTTM_ALIAS);
   }
+
+  // remove duplicate columns and metrics
+  finalQueryFields.columns = removeDuplicates(finalQueryFields.columns);
+  finalQueryFields.metrics = removeDuplicates(finalQueryFields.metrics, getMetricLabel);
 
   return finalQueryFields;
 }
