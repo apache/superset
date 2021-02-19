@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Collapse } from 'src/common/components';
 import { User } from 'src/types/bootstrapTypes';
@@ -29,7 +29,6 @@ import {
   mq,
 } from 'src/views/CRUD/utils';
 
-import { useComponentDidMount } from 'src/utils/useComponentDidMount';
 import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
 import SavedQueries from './SavedQueries';
@@ -91,7 +90,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   const [activeChild, setActiveChild] = useState('Viewed');
   const [activityData, setActivityData] = useState<ActivityData>({});
   const [loading, setLoading] = useState(true);
-  useComponentDidMount(() => {
+  useEffect(() => {
     getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
       .then(res => {
         const data: any = {
@@ -124,7 +123,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           );
         }),
       );
-  });
+  }, []);
 
   return (
     <WelcomeContainer>
