@@ -39,7 +39,7 @@ import VizTypeControl from './VizTypeControl';
 import MetricsControl from './MetricControl/MetricsControl';
 import AdhocFilterControl from './FilterControl/AdhocFilterControl';
 import FilterBoxItemControl from './FilterBoxItemControl';
-import DropGroupByControl from './DropGroupByControl/DropGroupByControl';
+import DropGroupByControl from './DropGroupByControl';
 
 const controlMap = {
   AnnotationLayerControl,

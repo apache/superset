@@ -35,17 +35,17 @@ import Icon from 'src/components/Icon';
 import OptionWrapper from './components/OptionWrapper';
 import { OptionSelector } from './utils';
 
-interface DropGroupByControlProps extends BaseControlConfig {
+interface DropGroupByControlLabel extends BaseControlConfig {
   name: string;
-  value: string[];
-  onChange: (value: string[]) => void;
+  value: string[] | string | null;
+  onChange: (value: string[] | string | null) => void;
   options: { string: ColumnMeta };
   theme: SupersetTheme;
 }
 
-function DropGroupByControl(props: DropGroupByControlProps) {
-  const { value: groupByValues, options } = props;
-  const optionSelector = new OptionSelector(options, groupByValues);
+function DropGroupByLabel(props: DropGroupByControlLabel) {
+  const { value, options } = props;
+  const optionSelector = new OptionSelector(options, value);
   const [groupByOptions, setGroupByOptions] = useState<ColumnMeta[]>(
     optionSelector.groupByOptions,
   );
@@ -60,7 +60,7 @@ function DropGroupByControl(props: DropGroupByControlProps) {
     },
 
     canDrop: (item: DatasourcePanelDndItem) =>
-      !groupByValues.includes(item.metricOrColumnName),
+      !optionSelector.has(item.metricOrColumnName),
 
     collect: monitor => ({
       isOver: monitor.isOver(),
@@ -115,4 +115,4 @@ function DropGroupByControl(props: DropGroupByControlProps) {
   );
 }
 
-export default withTheme(DropGroupByControl);
+export default withTheme(DropGroupByLabel);
