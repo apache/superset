@@ -1060,7 +1060,7 @@ class CalHeatmapViz(BaseViz):
             "month": "P1M",
             "year": "P1Y",
         }
-        d["extras"]["time_grain_sqla"] = "test"
+        d["extras"]["time_grain_sqla"] = mapping[fd.get("subdomain_granularity", "min")]
         return d
 
 
