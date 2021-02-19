@@ -55,7 +55,6 @@ import {
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
 } from '../../logger/LogUtils';
 
-
 const propTypes = {
   ...ExploreChartPanel.propTypes,
   height: PropTypes.string,
