@@ -803,6 +803,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "slice": slc.data if slc else None,
             "standalone": standalone_mode,
             "user_id": user_id,
+            "user": bootstrap_user_data(g.user, include_perms=True),
             "forced_height": request.args.get("height"),
             "common": common_bootstrap_payload(),
         }
@@ -1861,6 +1862,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         bootstrap_data = {
             "user_id": g.user.get_id(),
+            "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
             "editMode": edit_mode,
             "urlParams": url_params,
