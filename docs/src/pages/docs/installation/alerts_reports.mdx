@@ -123,7 +123,7 @@ SMTP_MAIL_FROM = "noreply@youremail.com"
 # WebDriver configuration
 # If you use Firefox, you can stick with default values
 # If you use Chrome, then add the following WEBDRIVER_TYPE and WEBDRIVER_OPTION_ARGS
-WEBDRIVER_TYPE= "chrome"
+WEBDRIVER_TYPE = "chrome"
 WEBDRIVER_OPTION_ARGS = [
     "--force-device-scale-factor=2.0",
     "--high-dpi-support=2.0",
@@ -150,14 +150,14 @@ FROM apache/superset:1.0.1
 
 USER root
 
-RUN apt-get update \
-    && apt install --no-install-recommends -y firefox-esr
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y firefox-esr
 
 ENV GECKODRIVER_VERSION=0.29.0
-RUN wget -q https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz \
-    && tar -x geckodriver -zf geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz -O > /usr/bin/geckodriver \
-    && chmod 755 /usr/bin/geckodriver \
-    && rm geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz
+RUN wget -q https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz && \
+    tar -x geckodriver -zf geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz -O > /usr/bin/geckodriver && \
+    chmod 755 /usr/bin/geckodriver && \
+    rm geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz
 
 RUN pip install --no-cache gevent psycopg2 redis
 
@@ -169,16 +169,16 @@ FROM apache/superset:1.0.1
 
 USER root
 
-RUN apt update && \
-    wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    apt install -y --no-install-recommends ./google-chrome-stable_current_amd64.deb && \
-    wget https://chromedriver.storage.googleapis.com/88.0.4324.96/chromedriver_linux64.zip && \
-    unzip chromedriver_linux64.zip && \
-    chmod +x chromedriver && \
-    mv chromedriver /usr/bin && \
-    apt autoremove -yqq --purge && \
-    apt clean && \
-    rm -f google-chrome-stable_current_amd64.deb chromedriver_linux64.zip
+RUN apt-get update && \
+    wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+    apt-get install -y --no-install-recommends ./google-chrome-stable_current_amd64.deb && \
+    rm -f google-chrome-stable_current_amd64.deb
+
+RUN export CHROMEDRIVER_VERSION=$(curl --silent https://chromedriver.storage.googleapis.com/LATEST_RELEASE_88) && \
+    wget -q https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip && \
+    unzip chromedriver_linux64.zip -d /usr/bin && \
+    chmod 755 /usr/bin/chromedriver && \
+    rm -f chromedriver_linux64.zip
 
 RUN pip install --no-cache gevent psycopg2 redis
 
