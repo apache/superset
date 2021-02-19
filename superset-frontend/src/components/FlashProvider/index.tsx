@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { useToasts } from 'src/messageToasts/enhancers/withToasts';
-import { useComponentDidMount } from 'src/utils/useComponentDidMount';
+import { useComponentDidMount } from 'src/common/hooks/useComponentDidMount';
 
 type FlashMessageType = 'info' | 'alert' | 'danger' | 'warning' | 'success';
 export type FlashMessage = [FlashMessageType, string];
