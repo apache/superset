@@ -1000,7 +1000,6 @@ class CalHeatmapViz(BaseViz):
             return None
 
         form_data = self.form_data
-
         data = {}
         records = df.to_dict("records")
         for metric in self.metric_labels:
@@ -1031,7 +1030,7 @@ class CalHeatmapViz(BaseViz):
         diff_secs = (end - start).total_seconds()
 
         if domain == "year":
-            range_ = diff_delta.years + 1
+            range_ = end.year - start.year + 1
         elif domain == "month":
             range_ = diff_delta.years * 12 + diff_delta.months + 1
         elif domain == "week":
@@ -1053,6 +1052,15 @@ class CalHeatmapViz(BaseViz):
         d = super().query_obj()
         fd = self.form_data
         d["metrics"] = fd.get("metrics")
+        mapping = {
+            "min": "PT1M",
+            "hour": "PT1H",
+            "day": "P1D",
+            "week": "P1W",
+            "month": "P1M",
+            "year": "P1Y",
+        }
+        d["extras"]["time_grain_sqla"] = "test"
         return d
 
 
