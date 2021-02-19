@@ -31,6 +31,7 @@ import { debounce } from 'lodash';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { put as updateDatset } from 'src/api/dataset';
+import Icon from 'src/components/Icon';
 import Loading from '../../components/Loading';
 import ExploreCtasResultsButton from './ExploreCtasResultsButton';
 import ExploreResultsButton from './ExploreResultsButton';
@@ -482,11 +483,33 @@ export default class ResultSet extends React.PureComponent<
   }
 
   rowsReturned() {
+    const { query } = this.props;
+    let limitMessage;
+    const message = query.sql
+      .split(' ')
+      .filter((limit: string) => limit === 'LIMIT');
+    if (message.length > 0) {
+      limitMessage = t(
+        `The number of rows displayed is limited to %s by the query.`,
+        query.rows,
+      );
+    } else if (query.queryLimit === query.rows) {
+      limitMessage = t(
+        `The number of rows displayed is limited to %s by the limit dropdown.`,
+        query.queryLimit,
+      );
+    }
+
+    let limitWarning = null;
+    if (query.results?.displayLimitReached) {
+      limitWarning = <Icon className="ReturnedRowsImage" name="warning" />;
+    }
     return (
       <div className="ReturnedRows">
-        <span>
-          {t(`%s rows returned`, this.props.query.results.data.length)}
-        </span>
+        {console.log(query)}
+        {limitWarning}
+        <span>{t(`%s rows returned`, query.results.data.length)}</span>
+        <span className="LimitMessage">{limitMessage}</span>
       </div>
     );
   }
