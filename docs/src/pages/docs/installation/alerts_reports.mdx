@@ -1,3 +1,4 @@
+
 ---
 name: Alerts and Reports
 menu: Installation and Configuration
@@ -24,12 +25,12 @@ Alerts and reports are disabled by default. To turn them on, you need to do some
 - `"ALERT_REPORTS"` feature flag must be turned to True.
 - `CELERYBEAT_SCHEDULE` in CeleryConfig must contain schedule for `reports.scheduler`.
 - At least one of those must be configured, depending on what you want to use:
-  - emails: `SMTP_*` settings
-  - Slack messages: `SLACK_API_TOKEN`
+    - emails: `SMTP_*` settings
+    - Slack messages: `SLACK_API_TOKEN`
 
 ##### In your `Dockerfile`
 - You must install a headless browser, for taking screenshots of the charts and dashboards. Only Firefox and Chrome are currently supported.
-  >If you choose Chrome, you must also change the value of `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
+    > If you choose Chrome, you must also change the value of `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
 
 #### Slack integration
 To send alerts and reports to Slack channels, you need to create a new Slack Application on your workspace.
@@ -37,8 +38,8 @@ To send alerts and reports to Slack channels, you need to create a new Slack App
 1. Connect to your Slack workspace, then head to https://api.slack.com/apps.
 2. Create a new app.
 3. Go to "OAuth & Permissions" section, and give the following scopes to your app:
-  1. `incoming-webhook`
-  2. `files:write`
+    - `incoming-webhook`
+    - `files:write`
 4. At the top of the "OAuth and Permissions" section, click "install to workspace".
 5. Select a default channel for your app and continue.
 (You can post to any channel by inviting your Superset app into that channel).
