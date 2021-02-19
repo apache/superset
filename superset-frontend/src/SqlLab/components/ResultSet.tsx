@@ -27,7 +27,7 @@ import shortid from 'shortid';
 import rison from 'rison';
 import { styled, t, makeApi } from '@superset-ui/core';
 import { debounce } from 'lodash';
-
+import Icon from 'src/components/Icon';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { put as updateDatset } from 'src/api/dataset';
@@ -483,9 +483,24 @@ export default class ResultSet extends React.PureComponent<
 
   rowsReturned() {
     const { query } = this.props;
+    let limitWarning = null;
+    if (query.results?.displayLimitReached) {
+      limitWarning = <Icon className="ReturnedRowsImage" name="warning" />;
+    }
     return (
       <div className="ReturnedRows">
-        <span>{t(`%s rows returned`, query.results.data.length)}</span>
+        {limitWarning}
+        <span>{t(`%s rows returned`, query.rows)}</span>
+        {limitWarning && (
+          <span className="LimitMessage">
+            {t(
+              `It appears that the number of rows in the query results displayed
+           was limited on the server side to
+           the %s limit.`,
+              query.rows,
+            )}
+          </span>
+        )}
       </div>
     );
   }
