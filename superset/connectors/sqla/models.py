@@ -70,6 +70,7 @@ from superset.result_set import SupersetResultSet
 from superset.sql_parse import ParsedQuery
 from superset.typing import Metric, QueryObjectDict
 from superset.utils import core as utils
+from superset.connectors.sqla.sql_query_utils import update_template_kwargs
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -877,6 +878,29 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
             )
 
+    def _get_template_kwargs(  # pylint:disable = too-many-arguments, no-self-use
+        self,
+        metrics: List[Metric],
+        extra_cache_keys: List[Any],
+        filter_: Optional[List[Dict[str, Any]]] = None,
+        from_dttm: Optional[datetime] = None,
+        to_dttm: Optional[datetime] = None,
+        groupby: Optional[List[str]] = None,
+        row_limit: Optional[int] = None,
+        row_offset: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        return {
+            "from_dttm": from_dttm.isoformat() if from_dttm else None,
+            "groupby": groupby,
+            "metrics": metrics,
+            "row_limit": row_limit,
+            "row_offset": row_offset,
+            "to_dttm": to_dttm.isoformat() if to_dttm else None,
+            "filter": filter_,
+            "columns": [col.column_name for col in self.columns],
+            "extra_cache_keys": extra_cache_keys,
+        }
+
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
         metrics: List[Metric],
@@ -900,20 +924,40 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         order_desc: bool = True,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
-        template_kwargs = {
-            "from_dttm": from_dttm.isoformat() if from_dttm else None,
-            "groupby": groupby,
-            "metrics": metrics,
-            "row_limit": row_limit,
-            "row_offset": row_offset,
-            "to_dttm": to_dttm.isoformat() if to_dttm else None,
-            "filter": filter,
-            "columns": [col.column_name for col in self.columns],
-        }
-        template_kwargs.update(self.template_params_dict)
+
         extra_cache_keys: List[Any] = []
-        template_kwargs["extra_cache_keys"] = extra_cache_keys
+        is_sip_38 = is_feature_enabled("SIP_38_VIZ_REARCHITECTURE")
+        orderby = orderby or []
+        assert extras is not None
+
+        if not granularity and is_timeseries:
+            raise QueryObjectValidationError(
+                _(
+                    "Datetime column not provided as part table configuration "
+                    "and is required by this type of chart"
+                )
+            )
+        if (
+            not metrics
+            and not columns
+            and (is_sip_38 or (not is_sip_38 and not groupby))
+        ):
+            raise QueryObjectValidationError(_("Empty query?"))
+
+        template_kwargs = self._get_template_kwargs(
+            metrics,
+            extra_cache_keys,
+            filter,
+            from_dttm,
+            to_dttm,
+            groupby,
+            row_limit,
+            row_offset,
+        )
+        
+        update_template_kwargs(template_kwargs, self.template_params_dict)
         template_processor = self.get_template_processor(**template_kwargs)
+
         db_engine_spec = self.database.db_engine_spec
         prequeries: List[str] = []
 
