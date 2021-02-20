@@ -16,5 +16,8 @@
 # under the License.
 from typing import Any, Dict
 
-def update_template_kwargs(template_kwargs: Dict[str, Any], template_params_dict:Dict[Any, Any]) -> None:
+
+def update_template_kwargs(
+    template_kwargs: Dict[str, Any], template_params_dict: Dict[Any, Any]
+) -> None:
     template_kwargs.update(template_params_dict)

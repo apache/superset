@@ -53,6 +53,7 @@ from sqlalchemy.types import TypeEngine
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
+from superset.connectors.sqla.sql_query_utils import update_template_kwargs
 from superset.constants import NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -70,7 +71,6 @@ from superset.result_set import SupersetResultSet
 from superset.sql_parse import ParsedQuery
 from superset.typing import Metric, QueryObjectDict
 from superset.utils import core as utils
-from superset.connectors.sqla.sql_query_utils import update_template_kwargs
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -954,7 +954,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             row_limit,
             row_offset,
         )
-        
+
         update_template_kwargs(template_kwargs, self.template_params_dict)
         template_processor = self.get_template_processor(**template_kwargs)
 
