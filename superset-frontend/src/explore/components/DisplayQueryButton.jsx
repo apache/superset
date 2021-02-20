@@ -47,7 +47,6 @@ const propTypes = {
   onOpenPropertiesModal: PropTypes.func,
   onOpenInEditor: PropTypes.func,
   chartStatus: PropTypes.string,
-  chartHeight: PropTypes.string.isRequired,
   latestQueryFormData: PropTypes.object.isRequired,
   slice: PropTypes.object,
 };
@@ -100,7 +99,7 @@ export const DisplayQueryButton = props => {
   };
 
   const handleMenuClick = ({ key, domEvent }) => {
-    const { chartHeight, slice, onOpenInEditor, latestQueryFormData } = props;
+    const { slice, onOpenInEditor, latestQueryFormData } = props;
     switch (key) {
       case MENU_KEYS.EDIT_PROPERTIES:
         props.onOpenPropertiesModal();
@@ -110,12 +109,11 @@ export const DisplayQueryButton = props => {
         break;
       case MENU_KEYS.DOWNLOAD_AS_IMAGE:
         downloadAsImage(
-          '.chart-container',
+          '.panel-body > .chart-container',
           // eslint-disable-next-line camelcase
           slice?.slice_name ?? t('New chart'),
-          {
-            height: parseInt(chartHeight, 10),
-          },
+          {},
+          true,
         )(domEvent);
         break;
       default:
