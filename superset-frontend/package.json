@@ -56,7 +56,7 @@
     "last 3 edge versions"
   ],
   "engines": {
-    "node": ">= 12.18.3 < 13",
+    "node": "^14.15.5",
     "npm": "^7.5.4"
   },
   "homepage": "https://superset.apache.org/",
