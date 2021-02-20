@@ -100,7 +100,7 @@ except ImportError:
     pass
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.base.models import BaseColumn, BaseDatasource
     from superset.models.core import Database
 
 
@@ -163,10 +163,12 @@ class ChartDataResultType(str, Enum):
     Chart data response type
     """
 
+    COLUMNS = "columns"
     FULL = "full"
     QUERY = "query"
     RESULTS = "results"
     SAMPLES = "samples"
+    TIMEGRAINS = "timegrains"
 
 
 class ExtraFiltersTimeColumnType(str, Enum):
@@ -1488,6 +1490,15 @@ def extract_dataframe_dtypes(df: pd.DataFrame) -> List[GenericDataType]:
         generic_types.append(generic_type)
 
     return generic_types
+
+
+def extract_column_dtype(col: "BaseColumn") -> GenericDataType:
+    if col.is_temporal:
+        return GenericDataType.TEMPORAL
+    if col.is_numeric:
+        return GenericDataType.NUMERIC
+    # TODO: add check for boolean data type when proper support is added
+    return GenericDataType.STRING
 
 
 def indexed(

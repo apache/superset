@@ -1700,3 +1700,44 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
                 name
             )
         return name
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_rowcount(self):
+        """
+        Chart data API: Query total rows
+        """
+        self.login(username="admin")
+        request_payload = get_query_context("birth_names")
+        request_payload["queries"][0]["is_rowcount"] = True
+        request_payload["queries"][0]["groupby"] = ["name"]
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        expected_row_count = self.get_expected_row_count("client_id_4")
+        self.assertEqual(result["data"][0]["rowcount"], expected_row_count)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_timegrains(self):
+        """
+        Chart data API: Query timegrains and columns
+        """
+        self.login(username="admin")
+        request_payload = get_query_context("birth_names")
+        request_payload["queries"] = [
+            {"result_type": utils.ChartDataResultType.TIMEGRAINS},
+            {"result_type": utils.ChartDataResultType.COLUMNS},
+        ]
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        timegrain_result = response_payload["result"][0]
+        column_result = response_payload["result"][1]
+        assert list(timegrain_result["data"][0].keys()) == [
+            "name",
+            "function",
+            "duration",
+        ]
+        assert list(column_result["data"][0].keys()) == [
+            "column_name",
+            "verbose_name",
+            "dtype",
+        ]

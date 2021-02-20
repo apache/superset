@@ -152,13 +152,39 @@ class QueryContext:
         self, query_obj: QueryObject, force_cached: Optional[bool] = False,
     ) -> Dict[str, Any]:
         """Return results payload for a single quey"""
-        if self.result_type == utils.ChartDataResultType.QUERY:
+        result_type = query_obj.result_type or self.result_type
+        datasource = query_obj.datasource or self.datasource
+        if result_type == utils.ChartDataResultType.COLUMNS:
             return {
-                "query": self.datasource.get_query_str(query_obj.to_dict()),
-                "language": self.datasource.query_language,
+                "data": [
+                    {
+                        "column_name": col.column_name,
+                        "verbose_name": col.verbose_name,
+                        "dtype": utils.extract_column_dtype(col),
+                    }
+                    for col in datasource.columns
+                ]
             }
 
-        if self.result_type == utils.ChartDataResultType.SAMPLES:
+        if result_type == utils.ChartDataResultType.TIMEGRAINS:
+            return {
+                "data": [
+                    {
+                        "name": grain.name,
+                        "function": grain.function,
+                        "duration": grain.duration,
+                    }
+                    for grain in datasource.database.grains()
+                ]
+            }
+
+        if result_type == utils.ChartDataResultType.QUERY:
+            return {
+                "query": datasource.get_query_str(query_obj.to_dict()),
+                "language": datasource.query_language,
+            }
+
+        if result_type == utils.ChartDataResultType.SAMPLES:
             row_limit = query_obj.row_limit or math.inf
             query_obj = copy.copy(query_obj)
             query_obj.is_timeseries = False
@@ -168,7 +194,7 @@ class QueryContext:
             query_obj.post_processing = []
             query_obj.row_limit = min(row_limit, config["SAMPLES_ROW_LIMIT"])
             query_obj.row_offset = 0
-            query_obj.columns = [o.column_name for o in self.datasource.columns]
+            query_obj.columns = [o.column_name for o in datasource.columns]
 
         payload = self.get_df_payload(query_obj, force_cached=force_cached)
         df = payload["df"]
@@ -181,9 +207,9 @@ class QueryContext:
 
         filters = query_obj.filter
         filter_columns = cast(List[str], [flt.get("col") for flt in filters])
-        columns = set(self.datasource.column_names)
+        columns = set(datasource.column_names)
         applied_time_columns, rejected_time_columns = utils.get_time_filter_status(
-            self.datasource, query_obj.applied_time_extras
+            datasource, query_obj.applied_time_extras
         )
         payload["applied_filters"] = [
             {"column": col} for col in filter_columns if col in columns
@@ -195,7 +221,7 @@ class QueryContext:
         ] + rejected_time_columns
 
         if (
-            self.result_type == utils.ChartDataResultType.RESULTS
+            result_type == utils.ChartDataResultType.RESULTS
             and status != utils.QueryStatus.FAILED
         ):
             return {"data": payload["data"]}
