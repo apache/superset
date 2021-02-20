@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { useToasts } from 'src/messageToasts/enhancers/withToasts';
 import { useComponentDidMount } from 'src/common/hooks/useComponentDidMount';
 
