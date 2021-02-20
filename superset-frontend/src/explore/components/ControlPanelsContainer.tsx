@@ -114,21 +114,21 @@ class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps
     const {
       actions: { setControlValue },
     } = this.props;
+    // reset controls using column info (metric, group by, sort by, filter, etc.)
+    // to default values when datasource changes.
     if (this.props.form_data.datasource !== prevProps.form_data.datasource) {
-      const defaultValues = [
-        'MetricsControl',
-        'AdhocFilterControl',
-        'TextControl',
-        'SelectControl',
-        'CheckboxControl',
-        'AnnotationLayerControl',
-      ];
-      Object.entries(this.props.controls).forEach(([controlName, control]) => {
-        const { type, default: defaultValue } = control;
-        if (typeof type === 'string' && defaultValues.includes(type)) {
-          setControlValue(controlName, defaultValue);
-        }
-      });
+      Object.entries(this.props.controls).forEach(
+        ([controlName, controlState]) => {
+          if (
+            // for direct column select controls
+            controlState.valueKey === 'column_name' ||
+            // for all other controls
+            'columns' in controlState
+          ) {
+            setControlValue(controlName, controlState.default);
+          }
+        },
+      );
     }
   }
 
@@ -148,7 +148,7 @@ class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps
   }
 
   renderControl({ name, config }: CustomControlItem) {
-    const { actions, controls, form_data: formData } = this.props;
+    const { actions, controls } = this.props;
     const { visibility } = config;
 
     // If the control item is not an object, we have to look up the control data from
@@ -159,13 +159,8 @@ class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps
       ...controls[name],
       name,
     };
-    const {
-      validationErrors,
-      provideFormDataToProps,
-      ...restProps
-    } = controlData as ControlState & {
+    const { validationErrors, ...restProps } = controlData as ControlState & {
       validationErrors?: any[];
-      provideFormDataToProps?: boolean;
     };
 
     // if visibility check says the config is not visible, don't render it
@@ -178,7 +173,6 @@ class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps
         name={name}
         validationErrors={validationErrors}
         actions={actions}
-        formData={provideFormDataToProps ? formData : null}
         {...restProps}
       />
     );

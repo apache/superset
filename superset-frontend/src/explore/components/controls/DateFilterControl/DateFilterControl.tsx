@@ -25,6 +25,7 @@ import {
   t,
   TimeRangeEndpoints,
 } from '@superset-ui/core';
+import { DatasourceMeta } from '@superset-ui/chart-controls';
 import {
   buildTimeRangeString,
   formatTimeRange,
@@ -170,29 +171,21 @@ interface DateFilterControlProps {
   onChange: (timeRange: string) => void;
   value?: string;
   endpoints?: TimeRangeEndpoints;
-  datasource?: string;
-  formData?: { datasource: string };
+  datasource?: DatasourceMeta;
 }
 
 export default function DateFilterControl(props: DateFilterControlProps) {
-  const {
-    value = 'Last week',
-    endpoints,
-    onChange,
-    formData: { datasource } = {},
-  } = props;
+  const { value = 'Last week', endpoints, onChange, datasource } = props;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
   const [frame, setFrame] = useState<FrameType>(guessFrame(value));
-  const [isMounted, setIsMounted] = useState<boolean>(false);
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
   const [tooltipTitle, setTooltipTitle] = useState<string>(value);
 
   useEffect(() => {
-    if (!isMounted) setIsMounted(true);
     fetchTimeRange(value, endpoints).then(({ value: actualRange, error }) => {
       if (error) {
         setEvalResponse(error || '');
@@ -227,12 +220,10 @@ export default function DateFilterControl(props: DateFilterControlProps) {
   }, [value]);
 
   useEffect(() => {
-    if (isMounted) {
-      onChange('Last week');
-      setTimeRangeValue('Last week');
-      setFrame(guessFrame('Last week'));
-    }
-  }, [datasource]);
+    onChange('Last week');
+    setTimeRangeValue('Last week');
+    setFrame(guessFrame('Last week'));
+  }, [datasource?.id, onChange]);
 
   useEffect(() => {
     fetchTimeRange(timeRangeValue, endpoints).then(({ value, error }) => {
@@ -271,7 +262,7 @@ export default function DateFilterControl(props: DateFilterControlProps) {
     }
   };
 
-  function onFrame(option: SelectOptionType) {
+  function onChangeFrame(option: SelectOptionType) {
     if (option.value === 'No filter') {
       setTimeRangeValue('No filter');
     }
@@ -284,7 +275,7 @@ export default function DateFilterControl(props: DateFilterControlProps) {
       <Select
         options={FRAME_OPTIONS}
         value={FRAME_OPTIONS.filter(({ value }) => value === frame)}
-        onChange={onFrame}
+        onChange={onChangeFrame}
         className="frame-dropdown"
       />
       {frame !== 'No filter' && <Divider />}

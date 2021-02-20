@@ -46,12 +46,7 @@ const propTypes = {
   datasource: PropTypes.object,
   columns: PropTypes.arrayOf(columnType),
   savedMetrics: PropTypes.arrayOf(savedMetricType),
-  formData: PropTypes.shape({
-    metric: PropTypes.oneOfType([PropTypes.string, adhocMetricType]),
-    metrics: PropTypes.arrayOf(
-      PropTypes.oneOfType([PropTypes.string, adhocMetricType]),
-    ),
-  }),
+  selectedMetrics: PropTypes.oneOfType([PropTypes.string, adhocMetricType]),
   isLoading: PropTypes.bool,
 };
 
@@ -60,7 +55,7 @@ const defaultProps = {
   onChange: () => {},
   columns: [],
   savedMetrics: [],
-  formData: {},
+  selectedMetrics: [],
 };
 
 function isDictionaryForAdhocFilter(value) {
@@ -141,10 +136,7 @@ class AdhocFilterControl extends React.Component {
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
-    if (
-      this.props.columns !== nextProps.columns ||
-      this.props.formData !== nextProps.formData
-    ) {
+    if (this.props.columns !== nextProps.columns) {
       this.setState({ options: this.optionsForSelect(nextProps) });
     }
     if (this.props.value !== nextProps.value) {
@@ -270,7 +262,7 @@ class AdhocFilterControl extends React.Component {
   optionsForSelect(props) {
     const options = [
       ...props.columns,
-      ...[...(props.formData?.metrics || []), props.formData?.metric].map(
+      ...[...(props.selectedMetrics || [])].map(
         metric =>
           metric &&
           (typeof metric === 'string'
