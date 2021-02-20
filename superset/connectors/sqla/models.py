@@ -878,7 +878,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 _("Error in jinja expression in RLS filters: %(msg)s", msg=ex.message,)
             )
 
-    def _get_template_kwargs(
+    def _get_template_kwargs(  # pylint:disable = too-many-arguments
         self,
         metrics: List[Metric],
         extra_cache_keys: List[Any],
