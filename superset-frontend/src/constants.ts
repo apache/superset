@@ -27,3 +27,13 @@ export const URL_PARAMS = {
   standalone: 'standalone',
   preselectFilters: 'preselect_filters',
 };
+
+/**
+ * Faster debounce delay for inputs without expensive operation.
+ */
+export const FAST_DEBOUNCE = 250;
+
+/**
+ * Slower debounce delay for inputs with expensive API calls.
+ */
+export const SLOW_DEBOUNCE = 500;

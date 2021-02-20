@@ -25,6 +25,7 @@ import { debounce } from 'lodash';
 
 import ModalTrigger from 'src/components/ModalTrigger';
 import { ConfigEditor } from 'src/components/AsyncAceEditor';
+import { FAST_DEBOUNCE } from 'src/constants';
 
 const propTypes = {
   onChange: PropTypes.func,
@@ -80,7 +81,7 @@ function TemplateParamsEditor({ code, language, onChange }) {
         mode={language}
         minLines={25}
         maxLines={50}
-        onChange={debounce(onChange, 200)}
+        onChange={debounce(onChange, FAST_DEBOUNCE)}
         width="100%"
         editorProps={{ $blockScrolling: true }}
         enableLiveAutocompletion
