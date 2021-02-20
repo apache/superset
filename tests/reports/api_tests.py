@@ -512,6 +512,30 @@ class TestReportSchedulesApi(SupersetTestCase):
         rv = self.client.post(uri, json=report_schedule_data)
         assert rv.status_code == 400
 
+        # Test that report can be created with null grace period
+        report_schedule_data = {
+            "type": ReportScheduleType.ALERT,
+            "name": "new3",
+            "description": "description",
+            "crontab": "0 9 * * *",
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {"target": "target@superset.org"},
+                },
+                {
+                    "type": ReportRecipientType.SLACK,
+                    "recipient_config_json": {"target": "channel"},
+                },
+            ],
+            "working_timeout": 3600,
+            "chart": chart.id,
+            "database": example_db.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        assert rv.status_code == 201
+
         # Test that grace period and working timeout cannot be < 1
         report_schedule_data = {
             "type": ReportScheduleType.ALERT,
