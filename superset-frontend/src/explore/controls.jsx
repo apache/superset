@@ -468,7 +468,6 @@ export const controls = {
     label: t('Filters'),
     default: null,
     description: '',
-    provideFormDataToProps: true,
     mapStateToProps: state => ({
       columns: state.datasource
         ? state.datasource.columns.filter(c => c.filterable)
