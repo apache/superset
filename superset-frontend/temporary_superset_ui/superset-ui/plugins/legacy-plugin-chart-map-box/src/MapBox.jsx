@@ -119,6 +119,7 @@ class MapBox extends React.Component {
         height={height}
         mapboxApiAccessToken={mapboxApiKey}
         onViewportChange={this.handleViewportChange}
+        preserveDrawingBuffer
       >
         <ScatterPlotGlowOverlay
           {...viewport}
