@@ -135,7 +135,7 @@ function DashboardCard({
         loading={dashboard.loading || false}
         title={dashboard.dashboard_title}
         titleRight={
-          <Label>{dashboard.published ? 'published' : 'draft'}</Label>
+          <Label>{dashboard.published ? t('published') : t('draft')}</Label>
         }
         url={bulkSelectEnabled ? undefined : dashboard.url}
         imgURL={dashboard.thumbnail_url}
