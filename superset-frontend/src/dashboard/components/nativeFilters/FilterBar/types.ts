@@ -17,17 +17,14 @@
  * under the License.
  */
 import React from 'react';
-import { FullFilterState } from 'src/dashboard/reducers/types';
+import { DataMask } from '@superset-ui/core';
 import { Filter } from '../types';
 
 export interface FilterProps {
   filter: Filter;
   icon?: React.ReactElement;
   directPathToChild?: string[];
-  onFilterSelectionChange: (
-    filter: Filter,
-    filterState: FullFilterState,
-  ) => void;
+  onFilterSelectionChange: (filter: Filter, filterState: DataMask) => void;
 }
 
 export interface CascadeFilter extends Filter {

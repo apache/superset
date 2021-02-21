@@ -79,12 +79,12 @@ export function getInitialState({
   }
 
   if (filterSetsConfig) {
-    const filterSets = { ...emptyFiltersState };
+    const filterSets = {};
     filterSetsConfig.forEach(filtersSet => {
       const { id } = filtersSet;
       filterSets[id] = filtersSet;
     });
-    state.filterSets = filterSets.nativeFilters;
+    state.filterSets = filterSets;
   } else {
     state.filterSets = prevState?.filterSets ?? {};
   }

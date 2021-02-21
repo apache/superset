@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled, Behavior, DataMask, t } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import { PluginFilterSelectProps } from './types';
@@ -31,7 +31,7 @@ const Styles = styled.div<PluginFilterStylesProps>`
 const { Option } = Select;
 
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
-  const { data, formData, height, width, setDataMask } = props;
+  const { data, formData, height, width, behaviors, setDataMask } = props;
   const {
     defaultValue,
     enableEmptyFilter,
@@ -58,23 +58,33 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       resultValue = value;
     }
     setValues(resultValue);
+
     const [col] = groupby;
     const emptyFilter =
       enableEmptyFilter && !inverseSelection && resultValue?.length === 0;
-    setDataMask({
-      // @ts-ignore
-      nativeFilters: {
-        extraFormData: getSelectExtraFormData(
-          col,
-          resultValue,
-          emptyFilter,
-          inverseSelection,
-        ),
-        currentState: {
-          value: resultValue.length ? resultValue : null,
-        },
+
+    const dataMask = {
+      extraFormData: getSelectExtraFormData(
+        col,
+        resultValue,
+        emptyFilter,
+        inverseSelection,
+      ),
+      currentState: {
+        value: resultValue.length ? resultValue : null,
       },
-    });
+    };
+
+    const dataMaskObject: DataMask = {};
+    if (behaviors.includes(Behavior.NATIVE_FILTER)) {
+      dataMaskObject.nativeFilters = dataMask;
+    }
+
+    if (behaviors.includes(Behavior.CROSS_FILTER)) {
+      dataMaskObject.crossFilters = dataMask;
+    }
+
+    setDataMask(dataMaskObject);
   };
 
   useEffect(() => {
@@ -89,8 +99,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const placeholderText =
     (data || []).length === 0
-      ? 'No data'
-      : `${data.length} option${data.length > 1 ? 's' : 0}`;
+      ? t('No data')
+      : t(`%d option%s`, data.length, data.length === 1 ? '' : 's');
   return (
     <Styles height={height} width={width}>
       <Select

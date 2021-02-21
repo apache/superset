@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecord, QueryFormData, SetDataMaskHook } from '@superset-ui/core';
+import {
+  DataRecord,
+  QueryFormData,
+  SetDataMaskHook,
+  Behavior,
+} from '@superset-ui/core';
 import { RefObject } from 'react';
 import { PluginFilterStylesProps } from '../types';
 
@@ -33,5 +38,6 @@ export type PluginFilterRangeProps = PluginFilterStylesProps & {
   data: DataRecord[];
   formData: PluginFilterRangeQueryFormData;
   setDataMask: SetDataMaskHook;
+  behaviors: Behavior[];
   inputRef: RefObject<any>;
 };

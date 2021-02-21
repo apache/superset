@@ -16,18 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t, tn, ExtraFormData } from '@superset-ui/core';
+import { styled, t, tn, DataMask } from '@superset-ui/core';
 import React, { useState, useEffect, useMemo, ChangeEvent } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import cx from 'classnames';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
-import {
-  FullFilterState,
-  CurrentFilterState,
-  FilterState,
-  FiltersSet,
-} from 'src/dashboard/reducers/types';
+import { FiltersSet, FilterState } from 'src/dashboard/reducers/types';
 import { Input, Select } from 'src/common/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
@@ -182,11 +177,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   directPathToChild,
 }) => {
   const [filterData, setFilterData] = useState<{
-    [filterId: string]: {
-      id: string;
-      extraFormData: ExtraFormData;
-      currentState: CurrentFilterState;
-    };
+    [filterId: string]: FilterState;
   }>({});
   const dispatch = useDispatch();
   const filtersStateNative = useFiltersStateNative();
@@ -241,7 +232,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const handleFilterSelectionChange = (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
-    filtersState: FullFilterState,
+    filtersState: DataMask,
   ) => {
     // @ts-ignore
     setFilterData(prevFilterData => {
@@ -264,13 +255,15 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       return;
     }
     const filtersSet = filterSets[value];
-    Object.values(filtersSet.filtersState).forEach(filterState => {
-      const { extraFormData, currentState, id } = filterState as FilterState;
-      handleFilterSelectionChange(
-        { id },
-        { nativeFilters: { id, extraFormData, currentState } },
-      );
-    });
+    Object.values(filtersSet.filtersState?.nativeFilters ?? []).forEach(
+      filterState => {
+        const { extraFormData, currentState, id } = filterState as FilterState;
+        handleFilterSelectionChange(
+          { id },
+          { nativeFilters: { extraFormData, currentState } },
+        );
+      },
+    );
   };
 
   const handleApply = () => {

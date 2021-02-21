@@ -17,9 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { styled } from '@superset-ui/core';
+import { styled, DataMask } from '@superset-ui/core';
 import Icon from 'src/components/Icon';
-import { FullFilterState } from 'src/dashboard/reducers/types';
 import FilterControl from './FilterControl';
 import { Filter } from '../types';
 import { CascadeFilter } from './types';
@@ -27,10 +26,7 @@ import { CascadeFilter } from './types';
 interface CascadeFilterControlProps {
   filter: CascadeFilter;
   directPathToChild?: string[];
-  onFilterSelectionChange: (
-    filter: Filter,
-    filterState: FullFilterState,
-  ) => void;
+  onFilterSelectionChange: (filter: Filter, filterState: DataMask) => void;
 }
 
 const StyledCascadeChildrenList = styled.ul`

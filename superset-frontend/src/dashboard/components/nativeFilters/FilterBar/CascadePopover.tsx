@@ -17,11 +17,10 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, DataMask } from '@superset-ui/core';
 import Popover from 'src/common/components/Popover';
 import Icon from 'src/components/Icon';
 import { Pill } from 'src/dashboard/components/FiltersBadge/Styles';
-import { FullFilterState } from 'src/dashboard/reducers/types';
 import { useFilterStateNative } from './state';
 import FilterControl from './FilterControl';
 import CascadeFilterControl from './CascadeFilterControl';
@@ -33,10 +32,7 @@ interface CascadePopoverProps {
   visible: boolean;
   directPathToChild?: string[];
   onVisibleChange: (visible: boolean) => void;
-  onFilterSelectionChange: (
-    filter: Filter,
-    filterState: FullFilterState,
-  ) => void;
+  onFilterSelectionChange: (filter: Filter, filterState: DataMask) => void;
 }
 
 const StyledTitleBox = styled.div`

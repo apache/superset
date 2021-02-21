@@ -17,12 +17,18 @@
  * under the License.
  */
 import React, { useEffect, useRef, useState } from 'react';
-import { QueryFormData, styled, SuperChart, t } from '@superset-ui/core';
+import {
+  QueryFormData,
+  styled,
+  SuperChart,
+  DataMask,
+  t,
+  Behavior,
+} from '@superset-ui/core';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import Loading from 'src/components/Loading';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
-import { FullFilterState } from 'src/dashboard/reducers/types';
 import { FilterProps } from './types';
 import { getFormData } from '../utils';
 import { useCascadingFilters } from './state';
@@ -103,8 +109,8 @@ const FilterValue: React.FC<FilterProps> = ({
     return undefined;
   }, [inputRef, directPathToChild, filter.id]);
 
-  const setDataMask = (filterState: FullFilterState) =>
-    onFilterSelectionChange(filter, filterState);
+  const setDataMask = (dataMask: DataMask) =>
+    onFilterSelectionChange(filter, dataMask);
 
   if (loading) {
     return (
@@ -133,7 +139,7 @@ const FilterValue: React.FC<FilterProps> = ({
         // For charts that don't have datasource we need workaround for empty placeholder
         queriesData={hasDataSource ? state : [{ data: [null] }]}
         chartType={filterType}
-        // @ts-ignore (update superset-ui)
+        behaviors={[Behavior.NATIVE_FILTER]}
         hooks={{ setDataMask }}
       />
     </FilterItem>

@@ -17,19 +17,14 @@
  * under the License.
  */
 
-import { makeApi } from '@superset-ui/core';
+import { makeApi, DataMask } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {
   Filter,
   FilterConfiguration,
 } from 'src/dashboard/components/nativeFilters/types';
 import { dashboardInfoChanged } from './dashboardInfo';
-import {
-  FiltersState,
-  FilterState,
-  FiltersSet,
-  FilterSets,
-} from '../reducers/types';
+import { FiltersState, FilterState, FiltersSet } from '../reducers/types';
 import { SelectedValues } from '../components/nativeFilters/FilterConfigModal/types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
@@ -197,11 +192,7 @@ export function setFilterState(
  */
 export function updateExtraFormData(
   filterId: string,
-  filterState: {
-    nativeFilters?: Omit<FilterState, 'id'>;
-    crossFilters?: Omit<FilterState, 'id'>;
-    ownFilters?: Omit<FilterState, 'id'>;
-  },
+  filterState: DataMask,
 ): UpdateExtraFormData {
   return {
     type: UPDATE_EXTRA_FORM_DATA,
