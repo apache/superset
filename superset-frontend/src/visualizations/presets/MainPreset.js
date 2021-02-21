@@ -57,7 +57,7 @@ import {
   EchartsPieChartPlugin,
   EchartsBoxPlotChartPlugin,
   EchartsTimeseriesChartPlugin,
-  EchartsGraphChartPlugin
+  EchartsGraphChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   AntdSelectFilterPlugin,
