@@ -16,6 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+type adhocFilters = {
+  expressionType: string;
+  subject: string;
+  operator: string;
+  comparator: string;
+  clause: string;
+  sqlExpression: string | null;
+  filterOptionName: string;
+};
+
 describe('Visualization > Graph', () => {
   const GRAPH_FORM_DATA = {
     datasource: '1__table',
@@ -33,7 +43,9 @@ describe('Visualization > Graph', () => {
     color_scheme: 'bnbColors',
   };
 
-  function verify(formData) {
+  function verify(formData: {
+    [name: string]: string | boolean | number | Array<adhocFilters>;
+  }): void {
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson' });
   }
