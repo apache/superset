@@ -79,11 +79,16 @@ export const useBackendFormUpdate = (
   form: FormInstance<NativeFiltersForm>,
   filterId: string,
   filterToEdit?: Filter,
+  hasDatasource?: boolean,
 ) => {
   const forceUpdate = useForceUpdate();
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
   useEffect(() => {
     let resolvedDefaultValue: any = null;
+    if (!hasDatasource) {
+      forceUpdate();
+      return;
+    }
     // No need to check data set change because it cascading update column
     // So check that column exists is enough
     if (!formFilter?.column) {
@@ -96,9 +101,8 @@ export const useBackendFormUpdate = (
     const formData = getFormData({
       datasetId: formFilter?.dataset?.value,
       groupby: formFilter?.column,
-      allowsMultipleValues: formFilter?.allowsMultipleValues,
       defaultValue: formFilter?.defaultValue,
-      inverseSelection: formFilter?.inverseSelection,
+      ...formFilter,
     });
     getChartDataRequest({
       formData,
@@ -108,8 +112,7 @@ export const useBackendFormUpdate = (
       if (
         filterToEdit?.filterType === formFilter?.filterType &&
         filterToEdit?.targets[0].datasetId === formFilter?.dataset?.value &&
-        formFilter?.column === filterToEdit?.targets[0]?.column?.name &&
-        filterToEdit?.allowsMultipleValues === formFilter?.allowsMultipleValues
+        formFilter?.column === filterToEdit?.targets[0].column?.name
       ) {
         resolvedDefaultValue = filterToEdit?.defaultValue;
       }

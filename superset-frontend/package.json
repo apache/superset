@@ -26,7 +26,7 @@
     "prettier": "npm run format",
     "check-translation": "prettier --check ../superset/translations/**/LC_MESSAGES/*.json",
     "clean-translation": "prettier --write ../superset/translations/**/LC_MESSAGES/*.json",
-    "storybook": "NODE_ENV=development BABEL_ENV=development start-storybook -p 6006",
+    "storybook": "NODE_ENV=development BABEL_ENV=development start-storybook -s ./images -p 6006",
     "build-storybook": "build-storybook"
   },
   "repository": {
@@ -56,8 +56,8 @@
     "last 3 edge versions"
   ],
   "engines": {
-    "node": ">= 12.18.3 < 13",
-    "npm": ">= 6.14.8 < 7"
+    "node": "^14.15.5",
+    "npm": "^7.5.4"
   },
   "homepage": "https://superset.apache.org/",
   "dependencies": {
@@ -65,6 +65,7 @@
     "@babel/runtime-corejs3": "^7.12.5",
     "@data-ui/sparkline": "^0.0.84",
     "@emotion/core": "^10.0.35",
+<<<<<<< HEAD
     "@superset-ui/chart-controls": "^0.17.10",
     "@superset-ui/core": "^0.17.10",
     "@superset-ui/legacy-plugin-chart-calendar": "^0.17.10",
@@ -93,6 +94,36 @@
     "@superset-ui/plugin-chart-table": "^0.17.10",
     "@superset-ui/plugin-chart-word-cloud": "^0.17.10",
     "@superset-ui/preset-chart-xy": "^0.17.10",
+=======
+    "@superset-ui/chart-controls": "^0.17.9",
+    "@superset-ui/core": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-calendar": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-chord": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-country-map": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-event-flow": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-force-directed": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-heatmap": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-histogram": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-horizon": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-map-box": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-paired-t-test": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-parallel-coordinates": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-partition": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-pivot-table": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-rose": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-sankey": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-sankey-loop": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-sunburst": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-treemap": "^0.17.9",
+    "@superset-ui/legacy-plugin-chart-world-map": "^0.17.9",
+    "@superset-ui/legacy-preset-chart-big-number": "^0.17.9",
+    "@superset-ui/legacy-preset-chart-deckgl": "^0.4.2",
+    "@superset-ui/legacy-preset-chart-nvd3": "^0.17.9",
+    "@superset-ui/plugin-chart-echarts": "^0.17.9",
+    "@superset-ui/plugin-chart-table": "^0.17.9",
+    "@superset-ui/plugin-chart-word-cloud": "^0.17.9",
+    "@superset-ui/preset-chart-xy": "^0.17.9",
+>>>>>>> 4bc2daf4c1c4730bd4321f64b320eb5856e85757
     "@vx/responsive": "^0.0.195",
     "abortcontroller-polyfill": "^1.1.9",
     "antd": "^4.9.4",

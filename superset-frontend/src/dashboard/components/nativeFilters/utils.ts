@@ -30,40 +30,46 @@ import { Filter } from './types';
 import { NativeFiltersState } from '../../reducers/types';
 
 export const getFormData = ({
-  datasetId = 18,
+  datasetId,
   cascadingFilters = {},
   groupby,
-  allowsMultipleValues = false,
-  defaultValue,
   currentValue,
-  inverseSelection,
   inputRef,
+  defaultValue,
+  controlValues,
+  filterType,
 }: Partial<Filter> & {
   datasetId?: number;
   inputRef?: RefObject<HTMLInputElement>;
   cascadingFilters?: object;
-  groupby: string;
-}): Partial<QueryFormData> => ({
-  adhoc_filters: [],
-  datasource: `${datasetId}__table`,
-  extra_filters: [],
-  extra_form_data: cascadingFilters,
-  granularity_sqla: 'ds',
-  groupby: [groupby],
-  inverseSelection,
-  metrics: ['count'],
-  multiSelect: allowsMultipleValues,
-  row_limit: 10000,
-  showSearch: true,
-  currentValue,
-  time_range: 'No filter',
-  time_range_endpoints: ['inclusive', 'exclusive'],
-  url_params: {},
-  viz_type: 'filter_select',
-  // TODO: need process per filter type after will be decided approach
-  defaultValue,
-  inputRef,
-});
+  groupby?: string;
+}): Partial<QueryFormData> => {
+  let otherProps: { datasource?: string; groupby?: string[] } = {};
+  if (datasetId && groupby) {
+    otherProps = {
+      datasource: `${datasetId}__table`,
+      groupby: [groupby],
+    };
+  }
+  return {
+    ...controlValues,
+    ...otherProps,
+    adhoc_filters: [],
+    extra_filters: [],
+    extra_form_data: cascadingFilters,
+    granularity_sqla: 'ds',
+    metrics: ['count'],
+    row_limit: 10000,
+    showSearch: true,
+    currentValue,
+    defaultValue,
+    time_range: 'No filter',
+    time_range_endpoints: ['inclusive', 'exclusive'],
+    url_params: {},
+    viz_type: filterType,
+    inputRef,
+  };
+};
 
 export function mergeExtraFormData(
   originalExtra: ExtraFormData,
@@ -86,9 +92,9 @@ export function mergeExtraFormData(
   appendKeys.forEach(key => {
     appendFormData[key] = [
       // @ts-ignore
-      ...(originalAppend[key] || []),
+      ...(originalAppend?.[key] || []),
       // @ts-ignore
-      ...(newAppend[key] || []),
+      ...(newAppend?.[key] || []),
     ];
   });
 
@@ -111,9 +117,10 @@ export function isCrossFilter(vizType: string) {
 export function getExtraFormData(
   nativeFilters: NativeFiltersState,
   charts: Charts,
+  filterIdsAppliedOnChart: string[],
 ): ExtraFormData {
   let extraFormData: ExtraFormData = {};
-  Object.keys(nativeFilters.filters).forEach(key => {
+  filterIdsAppliedOnChart.forEach(key => {
     const filterState = nativeFilters.filtersState[key] || {};
     const { extraFormData: newExtra = {} } = filterState;
     extraFormData = mergeExtraFormData(extraFormData, newExtra);

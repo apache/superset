@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties } from 'react';
+import React, { CSSProperties, Children, ReactElement } from 'react';
 import { kebabCase } from 'lodash';
 import { mix } from 'polished';
 import cx from 'classnames';
@@ -144,6 +144,17 @@ export default function Button(props: ButtonProps) {
     colorHover = primary.base;
   }
 
+  const element = children as ReactElement;
+
+  let renderedChildren = [];
+  if (element && element.type === React.Fragment) {
+    renderedChildren = Children.toArray(element.props.children);
+  } else {
+    renderedChildren = Children.toArray(children);
+  }
+
+  const firstChildMargin = renderedChildren.length > 1 ? theme.gridUnit * 2 : 0;
+
   const button = (
     <AntdButton
       href={disabled ? undefined : href}
@@ -188,13 +199,12 @@ export default function Button(props: ButtonProps) {
           backgroundColor: backgroundColorDisabled,
           borderColor: borderColorDisabled,
         },
-        'i:first-of-type, svg:first-of-type': {
-          marginRight: theme.gridUnit * 2,
-          padding: `0 ${theme.gridUnit * 2} 0 0`,
-        },
         marginLeft: theme.gridUnit * 2,
         '&:first-of-type': {
           marginLeft: 0,
+        },
+        '& :first-of-type': {
+          marginRight: firstChildMargin,
         },
       }}
       {...restProps}

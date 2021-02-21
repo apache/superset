@@ -16,12 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const TIME_CHOICES = [
-  '1 hour ago',
-  '12 hours ago',
-  '1 day ago',
-  '7 days ago',
-  '28 days ago',
-  '90 days ago',
-  '1 year ago',
-];
+import { useState, useEffect } from 'react';
+import { getShortUrl as getShortUrlUtil } from 'src/utils/urlUtils';
+
+export function useUrlShortener(url: string): Function {
+  const [update, setUpdate] = useState(false);
+  const [shortUrl, setShortUrl] = useState('');
+
+  async function getShortUrl() {
+    if (update) {
+      const newShortUrl = await getShortUrlUtil(url);
+      setShortUrl(newShortUrl);
+      setUpdate(false);
+      return newShortUrl;
+    }
+    return shortUrl;
+  }
+
+  useEffect(() => setUpdate(true), [url]);
+
+  return getShortUrl;
+}

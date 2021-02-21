@@ -247,6 +247,7 @@ export default class SelectControl extends React.PureComponent {
       isMulti &&
       optionsRemaining &&
       Array.isArray(this.state.value) &&
+      Array.isArray(value) &&
       !!value.length
     ) {
       assistiveText = optionRemaingText;

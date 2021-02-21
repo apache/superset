@@ -91,6 +91,13 @@ datasource_type_description = (
 )
 datasource_name_description = "The datasource name."
 dashboards_description = "A list of dashboards to include this new chart to."
+changed_on_description = "The ISO date that the chart was last changed."
+slice_url_description = "The URL of the chart."
+form_data_description = (
+    "Form data from the Explore controls used to form the chart's data query."
+)
+description_markeddown_description = "Sanitized HTML version of the chart description."
+owners_name_description = "Name of an owner of the chart."
 
 #
 # OpenAPI method specification overrides
@@ -136,6 +143,24 @@ TIME_GRAINS = (
     "P1W/1970-01-03T00:00:00Z",  # Week ending Saturday
     "P1W/1970-01-04T00:00:00Z",  # Week ending Sunday
 )
+
+
+class ChartEntityResponseSchema(Schema):
+    """
+    Schema for a chart object
+    """
+
+    slice_id = fields.Integer()
+    slice_name = fields.String(description=slice_name_description)
+    cache_timeout = fields.Integer(description=cache_timeout_description)
+    changed_on = fields.String(description=changed_on_description)
+    datasource = fields.String(description=datasource_name_description)
+    description = fields.String(description=description_description)
+    description_markeddown = fields.String(
+        description=description_markeddown_description
+    )
+    form_data = fields.Dict(description=form_data_description)
+    slice_url = fields.String(description=slice_url_description)
 
 
 class ChartPostSchema(Schema):
@@ -1175,6 +1200,7 @@ CHART_SCHEMAS = (
     ChartDataGeohashDecodeOptionsSchema,
     ChartDataGeohashEncodeOptionsSchema,
     ChartDataGeodeticParseOptionsSchema,
+    ChartEntityResponseSchema,
     ChartGetDatasourceResponseSchema,
     ChartCacheScreenshotResponseSchema,
     GetFavStarIdsSchema,

@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FilterType } from 'src/dashboard/components/nativeFilters/types';
 import { NativeFiltersState } from 'src/dashboard/reducers/types';
 
 export const nativeFilters: NativeFiltersState = {
+  filterSets: {},
   filters: {
     'NATIVE_FILTER-e7Q8zKixx': {
       id: 'NATIVE_FILTER-e7Q8zKixx',
       name: 'region',
-      filterType: FilterType.filter_select,
+      filterType: 'filter_select',
       targets: [
         {
           datasetId: 2,
@@ -39,15 +39,17 @@ export const nativeFilters: NativeFiltersState = {
         rootPath: ['ROOT_ID'],
         excluded: [],
       },
-      inverseSelection: false,
       isInstant: true,
-      allowsMultipleValues: false,
-      isRequired: false,
+      controlValues: {
+        multiSelect: false,
+        enableEmptyFilter: false,
+        inverseSelection: false,
+      },
     },
     'NATIVE_FILTER-x9QPw0so1': {
       id: 'NATIVE_FILTER-x9QPw0so1',
       name: 'country_code',
-      filterType: FilterType.filter_select,
+      filterType: 'filter_select',
       targets: [
         {
           datasetId: 2,
@@ -62,15 +64,20 @@ export const nativeFilters: NativeFiltersState = {
         rootPath: ['ROOT_ID'],
         excluded: [],
       },
-      inverseSelection: false,
+      controlValues: {
+        multiSelect: false,
+        enableEmptyFilter: false,
+        inverseSelection: false,
+      },
       isInstant: true,
-      allowsMultipleValues: false,
-      isRequired: false,
     },
   },
   filtersState: {
     'NATIVE_FILTER-e7Q8zKixx': {
       id: 'NATIVE_FILTER-e7Q8zKixx',
+      currentState: {
+        value: ['East Asia & Pacific'],
+      },
       extraFormData: {
         append_form_data: {
           filters: [
@@ -86,6 +93,7 @@ export const nativeFilters: NativeFiltersState = {
     'NATIVE_FILTER-x9QPw0so1': {
       id: 'NATIVE_FILTER-x9QPw0so1',
       extraFormData: {},
+      currentState: {},
     },
   },
 };
@@ -124,6 +132,9 @@ export const singleNativeFiltersState = {
     [NATIVE_FILTER_ID]: {
       id: NATIVE_FILTER_ID,
       extraFormData,
+      currentState: {
+        value: ['No, not an ethnic minority'],
+      },
     },
   },
 };

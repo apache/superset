@@ -51,7 +51,7 @@ const Indicator = ({
       <ItemIcon>
         <SearchOutlined />
       </ItemIcon>
-      {name.toUpperCase()}
+      {name}
       {value.length ? ': ' : ''}
     </Title>
     <FilterValue>{value.length ? value.join(', ') : ''}</FilterValue>

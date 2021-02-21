@@ -142,10 +142,10 @@ function ChartTable({
         buttons={[
           {
             name: (
-              <div>
+              <>
                 <i className="fa fa-plus" />
                 {t('Chart')}
-              </div>
+              </>
             ),
             buttonStyle: 'tertiary',
             onClick: () => {

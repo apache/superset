@@ -14,20 +14,37 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from flask_babel import lazy_gettext as _
 from sqlalchemy.engine.url import URL
+from sqlalchemy.exc import NoSuchModuleError
 
-from superset.exceptions import SupersetException
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 
-
-class DBSecurityException(SupersetException):
-    """ Exception to prevent a security issue with connecting to a DB """
-
-    status = 400
+# list of unsafe SQLAlchemy dialects
+BLOCKLIST = {
+    # sqlite creates a local DB, which allows mapping server's filesystem
+    "sqlite",
+    # shillelagh allows opening local files (eg, 'SELECT * FROM "csv:///etc/passwd"')
+    "shillelagh",
+    "shillelagh+apsw",
+}
 
 
 def check_sqlalchemy_uri(uri: URL) -> None:
-    if uri.startswith("sqlite"):
-        # sqlite creates a local DB, which allows mapping server's filesystem
-        raise DBSecurityException(
-            "SQLite database cannot be used as a data source for security reasons."
+    if uri.drivername in BLOCKLIST:
+        try:
+            dialect = uri.get_dialect().__name__
+        except NoSuchModuleError:
+            dialect = uri.drivername
+
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
+                message=_(
+                    "%(dialect)s cannot be used as a data source for security reasons.",
+                    dialect=dialect,
+                ),
+                level=ErrorLevel.ERROR,
+            )
         )

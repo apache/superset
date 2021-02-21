@@ -127,7 +127,6 @@ export default function getInitialState(bootstrapData) {
       slice_url: slice.slice_url,
       slice_name: slice.slice_name,
       form_data: slice.form_data,
-      edit_url: slice.edit_url,
       viz_type: slice.form_data.viz_type,
       datasource: slice.form_data.datasource,
       description: slice.description,
@@ -259,9 +258,10 @@ export default function getInitialState(bootstrapData) {
     directPathToChild.push(directLinkComponentId);
   }
 
-  const nativeFilters = getInitialNativeFilterState(
-    dashboard.metadata.filter_configuration || [],
-  );
+  const nativeFilters = getInitialNativeFilterState({
+    filterConfig: dashboard.metadata.filter_configuration || [],
+    filterSetsConfig: dashboard.metadata.filter_sets_configuration || [],
+  });
 
   return {
     datasources,
