@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-type adhocFilters = {
+type adhocFilter = {
   expressionType: string;
   subject: string;
   operator: string;
@@ -44,7 +44,7 @@ describe('Visualization > Graph', () => {
   };
 
   function verify(formData: {
-    [name: string]: string | boolean | number | Array<adhocFilters>;
+    [name: string]: string | boolean | number | Array<adhocFilter>;
   }): void {
     cy.visitChartByParams(JSON.stringify(formData));
     cy.verifySliceSuccess({ waitAlias: '@getJson' });
