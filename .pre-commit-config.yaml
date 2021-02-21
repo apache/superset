@@ -52,3 +52,4 @@ repos:
     hooks:
       - id: prettier
         types: [javascript]
+        exclude: docs/
