@@ -55,7 +55,7 @@ def upgrade():
         groupby = params.get("groupby", [])
         if groupby:
             params["source"] = groupby[0]
-            params["target"] = groupby[1]
+            params["target"] = groupby[1] if len(groupby) > 1 else None
             params["edgeLength"] = 400
             params["repulsion"] = 1000
             params["layout"] = "force"
