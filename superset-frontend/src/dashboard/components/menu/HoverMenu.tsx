@@ -16,42 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
-import { t } from '@superset-ui/core';
+import React, { RefObject } from 'react';
+import cx from 'classnames';
 
-import PopoverDropdown from './PopoverDropdown';
-
-const propTypes = {
-  id: PropTypes.string.isRequired,
-  value: PropTypes.string.isRequired,
-  onChange: PropTypes.func.isRequired,
+interface HoverMenuProps {
+  position?: 'left' | 'top',
+  innerRef?: RefObject<any>,
+  children?: React.ReactNode,
 };
 
-const dropdownOptions = [
-  {
-    value: 'edit',
-    label: t('Edit'),
-  },
-  {
-    value: 'preview',
-    label: t('Preview'),
-  },
-];
+export default class HoverMenu extends React.PureComponent<HoverMenuProps> {
+  static defaultProps = {
+    position: 'left',
+    innerRef: null,
+    children: null,
+  };
 
-export default class MarkdownModeDropdown extends React.PureComponent {
   render() {
-    const { id, value, onChange } = this.props;
-
+    const { innerRef, position, children } = this.props;
     return (
-      <PopoverDropdown
-        id={id}
-        options={dropdownOptions}
-        value={value}
-        onChange={onChange}
-      />
+      <div
+        ref={innerRef}
+        className={cx(
+          'hover-menu',
+          position === 'left' && 'hover-menu--left',
+          position === 'top' && 'hover-menu--top',
+        )}
+      >
+        {children}
+      </div>
     );
   }
 }
-
-MarkdownModeDropdown.propTypes = propTypes;
