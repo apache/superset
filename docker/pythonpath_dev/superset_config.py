@@ -78,12 +78,6 @@ class CeleryConfig(object):
 
 CELERY_CONFIG = CeleryConfig
 SQLLAB_CTAS_NO_LIMIT = True
-FEATURE_FLAGS = {
-    'DASHBOARD_NATIVE_FILTERS': True,
-    'DASHBOARD_CROSS_FILTERS': True,
-    'DASHBOARD_NATIVE_FILTERS_SET': True,
-    'DASHBOARD_RBAC': True,
-}
 
 #
 # Optionally import superset_config_docker.py (which will have been included on
