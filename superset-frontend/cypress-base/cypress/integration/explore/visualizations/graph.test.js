@@ -30,8 +30,6 @@ describe('Visualization > Graph', () => {
     target: 'target',
     row_limit: 50000,
     show_legend: true,
-    show_labels: true,
-    labels_outside: true,
     color_scheme: 'bnbColors',
   };
 
