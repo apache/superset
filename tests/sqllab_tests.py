@@ -248,6 +248,7 @@ class TestSqlLab(SupersetTestCase):
         db.session.commit()
 
     def test_queries_endpoint(self):
+        self.login("admin")
         self.run_some_queries()
 
         # Not logged in, should error out
