@@ -80,6 +80,8 @@ FRONTEND_CONF_KEYS = (
     "DISPLAY_MAX_ROW",
     "GLOBAL_ASYNC_QUERIES_TRANSPORT",
     "GLOBAL_ASYNC_QUERIES_POLLING_DELAY",
+    "SQLALCHEMY_DOCS_URL",
+    "SQLALCHEMY_DISPLAY_TEXT",
 )
 logger = logging.getLogger(__name__)
 
@@ -322,6 +324,7 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         "feature_flags": get_feature_flags(),
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
+        "theme_overrides": conf["THEME_OVERRIDES"],
         "menu_data": menu_data(),
     }
 

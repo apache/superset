@@ -16,17 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// Menu App. Used in views that do not already include the Menu component in the layout.
+// eg, backend rendered views
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { ThemeProvider } from '@superset-ui/core';
 import Menu from 'src/components/Menu/Menu';
+import { theme } from '../preamble';
 
 const container = document.getElementById('app');
 const bootstrapJson = container?.getAttribute('data-bootstrap') ?? '{}';
 const bootstrap = JSON.parse(bootstrapJson);
 const menu = { ...bootstrap.common.menu_data };
 const app = (
-  <ThemeProvider theme={supersetTheme}>
+  <ThemeProvider theme={theme}>
     <Menu data={menu} />
   </ThemeProvider>
 );

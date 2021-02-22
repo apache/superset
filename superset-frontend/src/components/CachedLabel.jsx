@@ -22,7 +22,7 @@ import moment from 'moment';
 import { t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
-import TooltipWrapper from './TooltipWrapper';
+import { Tooltip } from 'src/common/components/Tooltip';
 
 const propTypes = {
   onClick: PropTypes.func,
@@ -67,19 +67,19 @@ class CacheLabel extends React.PureComponent {
   }
 
   render() {
-    const labelStyle = this.state.hovered ? 'primary' : 'default';
+    const labelType = this.state.hovered ? 'primary' : 'default';
     return (
-      <TooltipWrapper tooltip={this.state.tooltipContent} label="cache-desc">
+      <Tooltip title={this.state.tooltipContent} id="cache-desc-tooltip">
         <Label
           className={`${this.props.className}`}
-          bsStyle={labelStyle}
+          type={labelType}
           onClick={this.props.onClick}
           onMouseOver={this.mouseOver.bind(this)}
           onMouseOut={this.mouseOut.bind(this)}
         >
           {t('cached')} <i className="fa fa-refresh" />
         </Label>
-      </TooltipWrapper>
+      </Tooltip>
     );
   }
 }

@@ -32,10 +32,12 @@ interface TextControlProps {
   value?: string | number;
   controlId?: string;
   renderTrigger?: boolean;
+  datasource?: string;
 }
 
 interface TextControlState {
   controlId: string;
+  currentDatasource?: string;
   value?: string | number;
 }
 
@@ -50,6 +52,22 @@ export default class TextControl extends React.Component<
     this.onChange(inputValue);
   }, 500);
 
+  static getDerivedStateFromProps(
+    props: TextControlProps,
+    state: TextControlState,
+  ) {
+    // reset value when datasource changes
+    // props.datasource and props.value don't update in the same re-render,
+    // so we need to synchronize them to update the state with correct values
+    if (
+      props.value !== state.value &&
+      props.datasource !== state.currentDatasource
+    ) {
+      return { value: props.value, currentDatasource: props.datasource };
+    }
+    return null;
+  }
+
   constructor(props: TextControlProps) {
     super(props);
 
@@ -58,6 +76,7 @@ export default class TextControl extends React.Component<
     this.state = {
       controlId: generateControlId(props.controlId),
       value: props.value,
+      currentDatasource: props.datasource,
     };
   }
 
@@ -103,7 +122,6 @@ export default class TextControl extends React.Component<
       typeof rawValue !== 'undefined' && rawValue !== null
         ? rawValue.toString()
         : '';
-
     return (
       <div>
         <ControlHeader {...this.props} />

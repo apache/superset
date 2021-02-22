@@ -31,7 +31,7 @@ from flask_babel import _
 from sqlalchemy.orm.exc import NoResultFound
 
 import superset.models.core as models
-from superset import app, dataframe, db, is_feature_enabled, result_set
+from superset import app, dataframe, db, result_set, viz
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -53,11 +53,6 @@ from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
 stats_logger = app.config["STATS_LOGGER"]
-
-if is_feature_enabled("SIP_38_VIZ_REARCHITECTURE"):
-    from superset import viz_sip38 as viz
-else:
-    from superset import viz  # type: ignore
 
 
 REJECTED_FORM_DATA_KEYS: List[str] = []

@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import shortid from 'shortid';
-import { Alert } from 'react-bootstrap';
+import Alert from 'src/components/Alert';
 import Tabs from 'src/common/components/Tabs';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -33,7 +33,7 @@ import QueryHistory from './QueryHistory';
 import ResultSet from './ResultSet';
 import {
   STATUS_OPTIONS,
-  STATE_BSSTYLE_MAP,
+  STATE_TYPE_MAP,
   LOCALSTORAGE_MAX_QUERY_AGE_MS,
 } from '../constants';
 
@@ -97,10 +97,7 @@ export class SouthPane extends React.PureComponent {
   render() {
     if (this.props.offline) {
       return (
-        <Label
-          className="m-r-3"
-          bsStyle={STATE_BSSTYLE_MAP[STATUS_OPTIONS.offline]}
-        >
+        <Label className="m-r-3" type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
           {STATUS_OPTIONS.offline}
         </Label>
       );
@@ -123,9 +120,12 @@ export class SouthPane extends React.PureComponent {
         !latestQuery.results
       ) {
         results = (
-          <Alert bsStyle="warning">
-            {t('No stored results found, you need to re-run your query')}
-          </Alert>
+          <Alert
+            type="warning"
+            message={t(
+              'No stored results found, you need to re-run your query',
+            )}
+          />
         );
       } else if (
         Date.now() - latestQuery.startDttm <=
@@ -145,7 +145,7 @@ export class SouthPane extends React.PureComponent {
       }
     } else {
       results = (
-        <Alert bsStyle="info">{t('Run a query to display results here')}</Alert>
+        <Alert type="info" message={t('Run a query to display results here')} />
       );
     }
     const dataPreviewTabs = props.dataPreviewQueries.map(query => (

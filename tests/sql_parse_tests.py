@@ -18,7 +18,7 @@ import unittest
 
 import sqlparse
 
-from superset.sql_parse import ParsedQuery, Table
+from superset.sql_parse import ParsedQuery, strip_comments_from_sql, Table
 
 
 class TestSupersetSqlParse(unittest.TestCase):
@@ -732,3 +732,19 @@ class TestSupersetSqlParse(unittest.TestCase):
         """
         parsed = ParsedQuery(query, strip_comments=True)
         assert not parsed.is_valid_ctas()
+
+    def test_strip_comments_from_sql(self):
+        """Test that we are able to strip comments out of SQL stmts"""
+
+        assert (
+            strip_comments_from_sql("SELECT col1, col2 FROM table1")
+            == "SELECT col1, col2 FROM table1"
+        )
+        assert (
+            strip_comments_from_sql("SELECT col1, col2 FROM table1\n-- comment")
+            == "SELECT col1, col2 FROM table1\n"
+        )
+        assert (
+            strip_comments_from_sql("SELECT '--abc' as abc, col2 FROM table1\n")
+            == "SELECT '--abc' as abc, col2 FROM table1"
+        )

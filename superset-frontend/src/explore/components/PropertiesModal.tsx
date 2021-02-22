@@ -167,8 +167,8 @@ export default function PropertiesModal({
         <>
           <Button
             data-test="properties-modal-cancel-button"
-            type="button"
-            buttonSize="sm"
+            htmlType="button"
+            buttonSize="small"
             onClick={onHide}
             cta
           >
@@ -176,8 +176,8 @@ export default function PropertiesModal({
           </Button>
           <Button
             data-test="properties-modal-save-button"
-            type="button"
-            buttonSize="sm"
+            htmlType="button"
+            buttonSize="small"
             buttonStyle="primary"
             // @ts-ignore
             onClick={onSubmit}

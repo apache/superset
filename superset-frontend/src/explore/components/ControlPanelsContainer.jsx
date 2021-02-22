@@ -21,11 +21,11 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Alert } from 'react-bootstrap';
 import { t, styled, getChartControlPanelRegistry } from '@superset-ui/core';
 
 import Tabs from 'src/common/components/Tabs';
 import { Collapse } from 'src/common/components';
+import Alert from 'src/components/Alert';
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -90,6 +90,28 @@ class ControlPanelsContainer extends React.Component {
     this.removeAlert = this.removeAlert.bind(this);
     this.renderControl = this.renderControl.bind(this);
     this.renderControlPanelSection = this.renderControlPanelSection.bind(this);
+  }
+
+  componentDidUpdate(prevProps) {
+    const {
+      actions: { setControlValue },
+    } = this.props;
+    if (this.props.form_data.datasource !== prevProps.form_data.datasource) {
+      const defaultValues = [
+        'MetricsControl',
+        'AdhocFilterControl',
+        'TextControl',
+        'SelectControl',
+        'CheckboxControl',
+        'AnnotationLayerControl',
+      ];
+      Object.entries(this.props.controls).forEach(([controlName, control]) => {
+        const { type, default: defaultValue } = control;
+        if (defaultValues.includes(type)) {
+          setControlValue(controlName, defaultValue);
+        }
+      });
+    }
   }
 
   sectionsToRender() {
@@ -253,21 +275,15 @@ class ControlPanelsContainer extends React.Component {
     const expandedCustomSections = this.sectionsToExpand(
       displaySectionsToRender,
     );
-
     return (
       <Styles>
         {this.props.alert && (
-          <Alert bsStyle="warning">
-            {this.props.alert}
-            <i
-              role="button"
-              aria-label="Remove alert"
-              tabIndex={0}
-              className="fa fa-close pull-right"
-              onClick={this.removeAlert}
-              style={{ cursor: 'pointer' }}
-            />
-          </Alert>
+          <Alert
+            type="warning"
+            message={this.props.alert}
+            closable
+            onClose={this.removeAlert}
+          />
         )}
         <ControlPanelsTabs
           id="controlSections"

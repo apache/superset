@@ -130,6 +130,9 @@ def load_examples_run(
     print("Loading [Birth names]")
     examples.load_birth_names(only_metadata, force)
 
+    print("Loading [Tabbed dashboard]")
+    examples.load_tabbed_dashboard(only_metadata)
+
     if not load_test_data:
         print("Loading [Random time series data]")
         examples.load_random_time_series_data(only_metadata, force)
@@ -164,11 +167,8 @@ def load_examples_run(
         print("Loading DECK.gl demo")
         examples.load_deck_dash()
 
-    print("Loading [Tabbed dashboard]")
-    examples.load_tabbed_dashboard(only_metadata)
-
     # load examples that are stored as YAML config files
-    examples.load_from_configs(force)
+    examples.load_from_configs(force, load_test_data)
 
 
 @with_appcontext

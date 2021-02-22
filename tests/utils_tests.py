@@ -23,10 +23,12 @@ import hashlib
 import json
 import os
 import re
+from typing import Any, Tuple, List
 from unittest.mock import Mock, patch
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
-import numpy
+import numpy as np
+import pandas as pd
 import pytest
 from flask import Flask, g
 import marshmallow
@@ -43,7 +45,9 @@ from superset.utils.core import (
     cast_to_num,
     convert_legacy_filters_into_adhoc,
     create_ssl_cert_file,
+    DTTM_ALIAS,
     format_timedelta,
+    GenericDataType,
     get_form_data_token,
     get_iterable,
     get_email_address_list,
@@ -54,9 +58,12 @@ from superset.utils.core import (
     JSONEncodedDict,
     memoized,
     merge_extra_filters,
+    merge_extra_form_data,
     merge_request_params,
+    normalize_dttm_col,
     parse_ssl_cert,
     parse_js_uri_path_item,
+    extract_dataframe_dtypes,
     split,
     TimeRangeEndpoint,
     validate_json,
@@ -113,9 +120,9 @@ class TestUtils(SupersetTestCase):
             json_iso_dttm_ser("this is not a date")
 
     def test_base_json_conv(self):
-        assert isinstance(base_json_conv(numpy.bool_(1)), bool) is True
-        assert isinstance(base_json_conv(numpy.int64(1)), int) is True
-        assert isinstance(base_json_conv(numpy.array([1, 2, 3])), list) is True
+        assert isinstance(base_json_conv(np.bool_(1)), bool) is True
+        assert isinstance(base_json_conv(np.int64(1)), int) is True
+        assert isinstance(base_json_conv(np.array([1, 2, 3])), list) is True
         assert isinstance(base_json_conv(set([1])), list) is True
         assert isinstance(base_json_conv(Decimal("1.0")), float) is True
         assert isinstance(base_json_conv(uuid.uuid4()), str) is True
@@ -898,6 +905,35 @@ class TestUtils(SupersetTestCase):
             layout, filter_scopes, default_filters, box_plot.id
         ) == [{"col": "region", "op": "==", "val": "North America"}]
 
+    def test_merge_extra_filters_with_no_extras(self):
+        form_data = {
+            "time_range": "Last 10 days",
+        }
+        merge_extra_form_data(form_data)
+        self.assertEqual(
+            form_data,
+            {
+                "time_range": "Last 10 days",
+                "applied_time_extras": {},
+                "adhoc_filters": [],
+            },
+        )
+
+    def test_merge_extra_filters_with_extras(self):
+        form_data = {
+            "time_range": "Last 10 days",
+            "extra_form_data": {
+                "append_form_data": {
+                    "filters": [{"col": "foo", "op": "IN", "val": "bar"}]
+                },
+                "override_form_data": {"time_range": "Last 100 years",},
+            },
+        }
+        merge_extra_form_data(form_data)
+        assert form_data["applied_time_extras"] == {"__time_range": "Last 100 years"}
+        assert form_data["time_range"] == "Last 100 years"
+        assert len(form_data["adhoc_filters"]) == 1
+
     def test_ssl_certificate_parse(self):
         parsed_certificate = parse_ssl_cert(ssl_certificate)
         self.assertEqual(parsed_certificate.serial_number, 12355228710836649848)
@@ -1066,3 +1102,61 @@ class TestUtils(SupersetTestCase):
         assert get_form_data_token({"token": "token_abcdefg1"}) == "token_abcdefg1"
         generated_token = get_form_data_token({})
         assert re.match(r"^token_[a-z0-9]{8}$", generated_token) is not None
+
+    def test_extract_dataframe_dtypes(self):
+        cols: Tuple[Tuple[str, GenericDataType, List[Any]], ...] = (
+            ("dt", GenericDataType.TEMPORAL, [date(2021, 2, 4), date(2021, 2, 4)]),
+            (
+                "dttm",
+                GenericDataType.TEMPORAL,
+                [datetime(2021, 2, 4, 1, 1, 1), datetime(2021, 2, 4, 1, 1, 1)],
+            ),
+            ("str", GenericDataType.STRING, ["foo", "foo"]),
+            ("int", GenericDataType.NUMERIC, [1, 1]),
+            ("float", GenericDataType.NUMERIC, [0.5, 0.5]),
+            ("mixed-int-float", GenericDataType.NUMERIC, [0.5, 1.0]),
+            ("bool", GenericDataType.BOOLEAN, [True, False]),
+            ("mixed-str-int", GenericDataType.STRING, ["abc", 1.0]),
+            ("obj", GenericDataType.STRING, [{"a": 1}, {"a": 1}]),
+            ("dt_null", GenericDataType.TEMPORAL, [None, date(2021, 2, 4)]),
+            (
+                "dttm_null",
+                GenericDataType.TEMPORAL,
+                [None, datetime(2021, 2, 4, 1, 1, 1)],
+            ),
+            ("str_null", GenericDataType.STRING, [None, "foo"]),
+            ("int_null", GenericDataType.NUMERIC, [None, 1]),
+            ("float_null", GenericDataType.NUMERIC, [None, 0.5]),
+            ("bool_null", GenericDataType.BOOLEAN, [None, False]),
+            ("obj_null", GenericDataType.STRING, [None, {"a": 1}]),
+        )
+
+        df = pd.DataFrame(data={col[0]: col[2] for col in cols})
+        assert extract_dataframe_dtypes(df) == [col[1] for col in cols]
+
+    def test_normalize_dttm_col(self):
+        ts = pd.Timestamp(2021, 2, 15, 19, 0, 0, 0)
+        df = pd.DataFrame([{"__timestamp": ts, "a": 1}])
+
+        # test regular (non-numeric) format
+        assert normalize_dttm_col(df, None, 0, None)[DTTM_ALIAS][0] == ts
+        assert normalize_dttm_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts
+        assert normalize_dttm_col(df, "epoch_s", 0, None)[DTTM_ALIAS][0] == ts
+
+        # test offset
+        assert normalize_dttm_col(df, None, 1, None)[DTTM_ALIAS][0] == pd.Timestamp(
+            2021, 2, 15, 20, 0, 0, 0
+        )
+
+        # test offset and timedelta
+        assert normalize_dttm_col(df, None, 1, timedelta(minutes=30))[DTTM_ALIAS][
+            0
+        ] == pd.Timestamp(2021, 2, 15, 20, 30, 0, 0)
+
+        # test numeric epoch_s format
+        df = pd.DataFrame([{"__timestamp": ts.timestamp(), "a": 1}])
+        assert normalize_dttm_col(df, "epoch_s", 0, None)[DTTM_ALIAS][0] == ts
+
+        # test numeric epoch_ms format
+        df = pd.DataFrame([{"__timestamp": ts.timestamp() * 1000, "a": 1}])
+        assert normalize_dttm_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts

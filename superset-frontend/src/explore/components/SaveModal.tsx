@@ -18,9 +18,11 @@
  */
 /* eslint camelcase: 0 */
 import React from 'react';
-import { Alert, FormControl, FormGroup, Radio } from 'react-bootstrap';
+import { FormControl, FormGroup } from 'react-bootstrap';
+import Alert from 'src/components/Alert';
 import { JsonObject, t, styled } from '@superset-ui/core';
 import ReactMarkdown from 'react-markdown';
+import { Radio } from 'src/common/components/Radio';
 import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
@@ -170,12 +172,16 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         title={t('Save chart')}
         footer={
           <div data-test="save-modal-footer">
-            <Button id="btn_cancel" buttonSize="sm" onClick={this.props.onHide}>
+            <Button
+              id="btn_cancel"
+              buttonSize="small"
+              onClick={this.props.onHide}
+            >
               {t('Cancel')}
             </Button>
             <Button
               id="btn_modal_save_goto_dash"
-              buttonSize="sm"
+              buttonSize="small"
               disabled={
                 !this.state.newSliceName ||
                 (!this.state.saveToDashboardId && !this.state.newDashboardName)
@@ -186,7 +192,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             </Button>
             <Button
               id="btn_modal_save"
-              buttonSize="sm"
+              buttonSize="small"
               buttonStyle="primary"
               onClick={() => this.saveOrOverwrite(false)}
               disabled={!this.state.newSliceName}
@@ -201,22 +207,26 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       >
         <div data-test="save-modal-body">
           {(this.state.alert || this.props.alert) && (
-            <Alert>
-              {this.state.alert ? this.state.alert : this.props.alert}
-              <i
-                role="button"
-                aria-label="Remove alert"
-                tabIndex={0}
-                className="fa fa-close pull-right"
-                onClick={this.removeAlert.bind(this)}
-                style={{ cursor: 'pointer' }}
-              />
-            </Alert>
+            <Alert
+              type="warning"
+              message={
+                <>
+                  {this.state.alert ? this.state.alert : this.props.alert}
+                  <i
+                    role="button"
+                    aria-label="Remove alert"
+                    tabIndex={0}
+                    className="fa fa-close pull-right"
+                    onClick={this.removeAlert.bind(this)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                </>
+              }
+            />
           )}
           <FormGroup data-test="radio-group">
             <Radio
               id="overwrite-radio"
-              inline
               disabled={!(this.props.can_overwrite && this.props.slice)}
               checked={this.state.action === 'overwrite'}
               onChange={() => this.changeAction('overwrite')}
@@ -227,7 +237,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             <Radio
               id="saveas-radio"
               data-test="saveas-radio"
-              inline
               checked={this.state.action === 'saveas'}
               onChange={() => this.changeAction('saveas')}
             >

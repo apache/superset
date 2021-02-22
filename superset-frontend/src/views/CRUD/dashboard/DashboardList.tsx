@@ -40,7 +40,7 @@ import FacePile from 'src/components/FacePile';
 import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
-import TooltipWrapper from 'src/components/TooltipWrapper';
+import { Tooltip } from 'src/common/components/Tooltip';
 import ImportModelsModal from 'src/components/ImportModal/index';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
@@ -169,6 +169,7 @@ function DashboardList(props: DashboardListProps) {
       )}`,
     }).then(
       ({ json = {} }) => {
+        refreshData();
         addSuccessToast(json.message);
       },
       createErrorHandler(errMsg =>
@@ -290,9 +291,9 @@ function DashboardList(props: DashboardListProps) {
                   onConfirm={handleDelete}
                 >
                   {confirmDelete => (
-                    <TooltipWrapper
-                      label="delete-action"
-                      tooltip={t('Delete')}
+                    <Tooltip
+                      id="delete-action-tooltip"
+                      title={t('Delete')}
                       placement="bottom"
                     >
                       <span
@@ -306,14 +307,14 @@ function DashboardList(props: DashboardListProps) {
                           name="trash"
                         />
                       </span>
-                    </TooltipWrapper>
+                    </Tooltip>
                   )}
                 </ConfirmStatusChange>
               )}
               {canExport && (
-                <TooltipWrapper
-                  label="export-action"
-                  tooltip={t('Export')}
+                <Tooltip
+                  id="export-action-tooltip"
+                  title={t('Export')}
                   placement="bottom"
                 >
                   <span
@@ -324,12 +325,12 @@ function DashboardList(props: DashboardListProps) {
                   >
                     <Icon name="share" />
                   </span>
-                </TooltipWrapper>
+                </Tooltip>
               )}
               {canEdit && (
-                <TooltipWrapper
-                  label="edit-action"
-                  tooltip={t('Edit')}
+                <Tooltip
+                  id="edit-action-tooltip"
+                  title={t('Edit')}
                   placement="bottom"
                 >
                   <span
@@ -340,7 +341,7 @@ function DashboardList(props: DashboardListProps) {
                   >
                     <Icon name="edit-alt" />
                   </span>
-                </TooltipWrapper>
+                </Tooltip>
               )}
             </span>
           );
@@ -360,7 +361,7 @@ function DashboardList(props: DashboardListProps) {
       id: 'owners',
       input: 'select',
       operator: FilterOperators.relationManyMany,
-      unfilteredLabel: 'All',
+      unfilteredLabel: t('All'),
       fetchSelects: createFetchRelated(
         'dashboard',
         'owners',
@@ -381,7 +382,7 @@ function DashboardList(props: DashboardListProps) {
       id: 'created_by',
       input: 'select',
       operator: FilterOperators.relationOneMany,
-      unfilteredLabel: 'All',
+      unfilteredLabel: t('All'),
       fetchSelects: createFetchRelated(
         'dashboard',
         'created_by',
@@ -402,7 +403,7 @@ function DashboardList(props: DashboardListProps) {
       id: 'published',
       input: 'select',
       operator: FilterOperators.equals,
-      unfilteredLabel: 'Any',
+      unfilteredLabel: t('Any'),
       selects: [
         { label: t('Published'), value: true },
         { label: t('Unpublished'), value: false },
@@ -414,7 +415,7 @@ function DashboardList(props: DashboardListProps) {
       urlDisplay: 'favorite',
       input: 'select',
       operator: FilterOperators.dashboardIsFav,
-      unfilteredLabel: 'Any',
+      unfilteredLabel: t('Any'),
       selects: [
         { label: t('Yes'), value: true },
         { label: t('No'), value: false },
@@ -432,19 +433,19 @@ function DashboardList(props: DashboardListProps) {
     {
       desc: false,
       id: 'dashboard_title',
-      label: 'Alphabetical',
+      label: t('Alphabetical'),
       value: 'alphabetical',
     },
     {
       desc: true,
       id: 'changed_on_delta_humanized',
-      label: 'Recently modified',
+      label: t('Recently modified'),
       value: 'recently_modified',
     },
     {
       desc: false,
       id: 'changed_on_delta_humanized',
-      label: 'Least recently modified',
+      label: t('Least recently modified'),
       value: 'least_recently_modified',
     },
   ];
@@ -471,6 +472,7 @@ function DashboardList(props: DashboardListProps) {
     subMenuButtons.push({
       name: t('Bulk select'),
       buttonStyle: 'secondary',
+      'data-test': 'bulk-select',
       onClick: toggleBulkSelect,
     });
   }

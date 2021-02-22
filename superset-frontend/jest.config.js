@@ -25,7 +25,7 @@ module.exports = {
     '^src/(.*)$': '<rootDir>/src/$1',
     '^spec/(.*)$': '<rootDir>/spec/$1',
   },
-  testEnvironment: 'enzyme',
+  testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
   testURL: 'http://localhost',
   collectCoverageFrom: ['src/**/*.{js,jsx,ts,tsx}'],

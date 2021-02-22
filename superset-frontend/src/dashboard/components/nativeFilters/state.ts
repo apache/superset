@@ -16,25 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { setExtraFormData } from 'src/dashboard/actions/nativeFilters';
-import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
-import { ExtraFormData, t } from '@superset-ui/core';
-import { Charts, Layout, RootState } from 'src/dashboard/types';
-import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import {
-  CHART_TYPE,
-  DASHBOARD_ROOT_TYPE,
-} from 'src/dashboard/util/componentTypes';
-import {
-  Filter,
-  FilterConfiguration,
-  FilterState,
-  NativeFiltersState,
-  TreeItem,
-} from './types';
-import { buildTree, mergeExtraFormData } from './utils';
+import { useSelector } from 'react-redux';
+import { useMemo } from 'react';
+import { Filter, FilterConfiguration } from './types';
 
 const defaultFilterConfiguration: Filter[] = [];
 
@@ -60,70 +44,4 @@ export function useFilterConfigMap() {
       }, {} as Record<string, Filter>),
     [filterConfig],
   );
-}
-
-export function useFilterState(id: string) {
-  return useSelector<any, FilterState>(
-    state => state.nativeFilters.filtersState[id] || getInitialFilterState(id),
-  );
-}
-
-export function useSetExtraFormData() {
-  const dispatch = useDispatch();
-  return useCallback(
-    (id: string, extraFormData: ExtraFormData) =>
-      dispatch(setExtraFormData(id, extraFormData)),
-    [dispatch],
-  );
-}
-
-export function useFilterScopeTree(): {
-  treeData: [TreeItem];
-  layout: Layout;
-} {
-  const layout = useSelector<RootState, Layout>(
-    ({ dashboardLayout: { present } }) => present,
-  );
-
-  const charts = useSelector<RootState, Charts>(({ charts }) => charts);
-  const tree = {
-    children: [],
-    key: DASHBOARD_ROOT_ID,
-    type: DASHBOARD_ROOT_TYPE,
-    title: t('All panels'),
-  };
-
-  // We need to get only nodes that have charts as children or grandchildren
-  const validNodes = useMemo(
-    () =>
-      Object.values(layout).reduce<string[]>((acc, cur) => {
-        if (cur?.type === CHART_TYPE) {
-          return [...new Set([...acc, ...cur?.parents, cur.id])];
-        }
-        return acc;
-      }, []),
-    [layout],
-  );
-
-  useMemo(() => {
-    buildTree(layout[DASHBOARD_ROOT_ID], tree, layout, charts, validNodes);
-  }, [charts, layout, tree]);
-
-  return { treeData: [tree], layout };
-}
-
-export function useCascadingFilters(id: string) {
-  return useSelector<any, ExtraFormData>(state => {
-    const { nativeFilters }: { nativeFilters: NativeFiltersState } = state;
-    const { filters, filtersState } = nativeFilters;
-    const filter = filters[id];
-    const cascadeParentIds = filter?.cascadeParentIds ?? [];
-    let cascadedFilters = {};
-    cascadeParentIds.forEach(parentId => {
-      const parentState = filtersState[parentId] || {};
-      const { extraFormData: parentExtra = {} } = parentState;
-      cascadedFilters = mergeExtraFormData(cascadedFilters, parentExtra);
-    });
-    return cascadedFilters;
-  });
 }
