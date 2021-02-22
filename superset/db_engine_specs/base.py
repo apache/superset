@@ -916,7 +916,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         username: Optional[str],
     ) -> None:
         """
-        Update a configuration dictionary that can set the correct properties for impersonating users
+        Update a configuration dictionary
+        that can set the correct properties for impersonating users
 
         :param connect_args: config to be updated
         :param uri: URI

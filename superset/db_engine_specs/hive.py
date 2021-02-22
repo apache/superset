@@ -494,7 +494,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         username: Optional[str],
     ) -> None:
         """
-        Update a configuration dictionary that can set the correct properties for impersonating users
+        Update a configuration dictionary
+        that can set the correct properties for impersonating users
         :param connect_args:
         :param uri: URI string
         :param impersonate_user: Flag indicating if impersonation is enabled

@@ -144,7 +144,8 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         username: Optional[str],
     ) -> None:
         """
-        Update a configuration dictionary that can set the correct properties for impersonating users
+        Update a configuration dictionary
+        that can set the correct properties for impersonating users
         :param connect_args: config to be updated
         :param uri: URI string
         :param impersonate_user: Flag indicating if impersonation is enabled
