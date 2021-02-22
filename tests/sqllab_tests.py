@@ -254,7 +254,7 @@ class TestSqlLab(SupersetTestCase):
         # Not logged in, should error out
         resp = self.client.get("/superset/queries/0")
         # Redirects to the login page
-        self.assertEqual(403, resp.status_code)
+        self.assertEqual(401, resp.status_code)
 
         # Admin sees queries
         self.login("admin")
