@@ -21,22 +21,18 @@ import React, { FC } from 'react';
 import { t, styled } from '@superset-ui/core';
 import { Radio } from 'src/common/components/Radio';
 import { Form, Typography, Space, FormInstance } from 'src/common/components';
-import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { NativeFiltersForm, Scoping } from './types';
+import { NativeFiltersForm } from '../../types';
+import { Filter } from '../../../types';
+import { Scoping } from './types';
 import ScopingTree from './ScopingTree';
-import { isScopingAll, setFilterFieldValues, useForceUpdate } from './utils';
-import { Filter } from '../types';
+import { setFilterFieldValues, useForceUpdate } from '../utils';
+import { getDefaultScopeValue, isScopingAll } from './utils';
 
 type FilterScopeProps = {
   filterId: string;
   filterToEdit?: Filter;
   form: FormInstance<NativeFiltersForm>;
 };
-
-export const getDefaultScopeValue = () => ({
-  rootPath: [DASHBOARD_ROOT_ID],
-  excluded: [],
-});
 
 const CleanFormItem = styled(Form.Item)`
   margin-bottom: 0;
