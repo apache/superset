@@ -17,25 +17,13 @@
  * under the License.
  */
 import React, { useState, useEffect, useMemo } from 'react';
-import PropTypes from 'prop-types';
 import { t, SupersetClient, JsonObject } from '@superset-ui/core';
-import TableView from 'src/components/TableView';
-import withToasts from '../messageToasts/enhancers/withToasts';
-import Loading from './Loading';
-import '../../stylesheets/reactable-pagination.less';
-import { EmptyWrapperType } from './TableView/TableView';
+import TableView, { EmptyWrapperType } from 'src/components/TableView';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
+import Loading from 'src/components/Loading';
+import 'stylesheets/reactable-pagination.less';
 
-const propTypes = {
-  dataEndpoint: PropTypes.string.isRequired,
-  mutator: PropTypes.func,
-  columns: PropTypes.arrayOf(PropTypes.string),
-  addDangerToast: PropTypes.func.isRequired,
-  addInfoToast: PropTypes.func.isRequired,
-  addSuccessToast: PropTypes.func.isRequired,
-  addWarningToast: PropTypes.func.isRequired,
-};
-
-interface TableLoaderProps {
+export interface TableLoaderProps {
   dataEndpoint?: string;
   mutator?: (data: JsonObject) => any[];
   columns?: string[];
@@ -95,7 +83,5 @@ const TableLoader = (props: TableLoaderProps) => {
     />
   );
 };
-
-TableLoader.propTypes = propTypes;
 
 export default withToasts(TableLoader);
