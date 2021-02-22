@@ -30,7 +30,6 @@ from flask import current_app, g
 from sqlalchemy import Float, Date, String
 
 from superset.models.dashboard import Dashboard
-from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 from superset import app, appbuilder, db, security_manager, viz, ConnectorRegistry
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
@@ -48,9 +47,11 @@ from .dashboard_utils import (
     create_slice,
     create_dashboard,
 )
-from .fixtures.energy_dashboard import load_energy_table_with_slice
-from .fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
+from tests.fixtures.public_role import public_role_like_gamma
+from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 NEW_SECURITY_CONVERGE_VIEWS = (
     "Annotation",
@@ -815,12 +816,9 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_gamma(get_perm_tuples("Gamma"))
         self.assert_cannot_alpha(get_perm_tuples("Gamma"))
 
+    @pytest.mark.usefixtures("public_role_like_gamma")
     def test_public_permissions_basic(self):
-        app.config["PUBLIC_ROLE_LIKE"] = "Gamma"
-        security_manager.sync_role_definitions()
         self.assert_can_gamma(get_perm_tuples("Public"))
-        security_manager.get_public_role().permissions = []
-        db.session.commit()
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"

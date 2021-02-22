@@ -20,20 +20,21 @@ from datetime import datetime
 import json
 import unittest
 from random import random
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import pytest
 from flask import escape, url_for
 from sqlalchemy import func
 
-from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_position
 from tests.test_app import app
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
+from tests.fixtures.public_role import public_role_like_gamma
+from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_position
 from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 from .base_tests import SupersetTestCase
@@ -419,10 +420,8 @@ class TestDashboard(SupersetTestCase):
         self.revoke_public_access_to_table(table)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("public_role_like_gamma")
     def test_dashboard_with_created_by_can_be_accessed_by_public_users(self):
-        app.config["PUBLIC_ROLE_LIKE"] = "Gamma"
-        security_manager.sync_role_definitions()
-
         self.logout()
         table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
         self.grant_public_access_to_table(table)
@@ -436,8 +435,6 @@ class TestDashboard(SupersetTestCase):
         assert "Births" in self.get_resp("/superset/dashboard/births/")
         # Cleanup
         self.revoke_public_access_to_table(table)
-        security_manager.get_public_role().permissions = []
-        db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_only_owners_can_save(self):
