@@ -287,7 +287,7 @@ class TestSqlLab(SupersetTestCase):
         self.logout()
         resp = self.client.get("/superset/queries/0")
         # Redirects to the login page
-        self.assertEqual(403, resp.status_code)
+        self.assertEqual(401, resp.status_code)
 
     def test_search_query_on_db_id(self):
         self.run_some_queries()
