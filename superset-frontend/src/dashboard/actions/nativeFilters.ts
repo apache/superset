@@ -19,17 +19,13 @@
 
 import { ExtraFormData, makeApi } from '@superset-ui/core';
 import { Dispatch } from 'redux';
-import {
-  Filter,
-  FilterConfiguration,
-} from 'src/dashboard/components/nativeFilters/types';
+import { FilterConfiguration } from 'src/dashboard/components/nativeFilters/types';
 import { dashboardInfoChanged } from './dashboardInfo';
 import {
   CurrentFilterState,
   FiltersSet,
   NativeFilterState,
 } from '../reducers/types';
-import { SelectedValues } from '../components/nativeFilters/FilterConfigModal/types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
 export interface SetFilterConfigBegin {
@@ -61,14 +57,6 @@ export const SET_FILTER_SETS_CONFIG_FAIL = 'SET_FILTER_SETS_CONFIG_FAIL';
 export interface SetFilterSetsConfigFail {
   type: typeof SET_FILTER_SETS_CONFIG_FAIL;
   filterSetsConfig: FiltersSet[];
-}
-
-export const SET_FILTER_STATE = 'SET_FILTER_STATE';
-export interface SetFilterState {
-  type: typeof SET_FILTER_STATE;
-  selectedValues: SelectedValues;
-  filter: Filter;
-  filters: FilterConfiguration;
 }
 
 interface DashboardInfo {
@@ -176,18 +164,6 @@ export interface SetFiltersState {
   filtersState: NativeFilterState;
 }
 
-export function setFilterState(
-  selectedValues: SelectedValues,
-  filter: Filter,
-  filters: FilterConfiguration,
-) {
-  return {
-    type: SET_FILTER_STATE,
-    selectedValues,
-    filter,
-    filters,
-  };
-}
 /**
  * Sets the selected option(s) for a given filter
  * @param filterId the id of the native filter
@@ -238,5 +214,4 @@ export type AnyFilterAction =
   | SetFilterSetsConfigFail
   | SetFiltersState
   | SetExtraFormData
-  | SaveFilterSets
-  | SetFilterState;
+  | SaveFilterSets;
