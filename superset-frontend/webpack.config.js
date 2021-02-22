@@ -24,14 +24,27 @@ const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
-const ManifestPlugin = require('webpack-manifest-plugin');
+const {
+  WebpackManifestPlugin,
+  getCompilerHooks,
+} = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
 const getProxyConfig = require('./webpack.proxy-config');
 const packageConfig = require('./package.json');
+
+// TODO:
+// 1. Fix "Unable to resolve path to module 'mathjs'"
+// 2. Fix "WARNING in ./node_modules/@data-ui/shared/esm/enhancer/WithTooltip.js 3:60-78
+//    export 'withTooltipPropTypes' (imported as 'vxTooltipPropTypes') was not found in
+//    '@vx/tooltip/build/tooltips/TooltipWithBounds' (possible exports: __esModule, default)
+// 3. Fix "WARNING in ./src/common/components/index.tsx 30:0-42
+//    export 'TreeProps' (reexported as 'TreeProps') was not found
+//    in 'antd/lib/tree' (possible exports: __esModule, default)
+// 4. Optional - suppress ESLint warnings in build output
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -54,8 +67,8 @@ const output = {
   publicPath: '/static/assets/', // necessary for lazy-loaded chunks
 };
 if (isDevMode) {
-  output.filename = '[name].[hash:8].entry.js';
-  output.chunkFilename = '[name].[hash:8].chunk.js';
+  output.filename = '[name].[contenthash:8].entry.js';
+  output.chunkFilename = '[name].[contenthash:8].chunk.js';
 } else if (nameChunks) {
   output.filename = '[name].[chunkhash].entry.js';
   output.chunkFilename = '[name].[chunkhash].chunk.js';
@@ -66,7 +79,7 @@ if (isDevMode) {
 
 const plugins = [
   // creates a manifest.json mapping of name to hashed output used in template files
-  new ManifestPlugin({
+  new WebpackManifestPlugin({
     publicPath: output.publicPath,
     seed: { app: 'superset' },
     // This enables us to include all relevant files for an entry
@@ -107,9 +120,13 @@ const plugins = [
 
   // runs type checking on a separate process to speed up the build
   new ForkTsCheckerWebpackPlugin({
-    eslint: true,
-    checkSyntacticErrors: true,
-    memoryLimit: 4096,
+    eslint: {
+      files: './src/**/*.{ts,tsx,js,jsx}',
+      memoryLimit: 4096,
+    },
+    typescript: {
+      memoryLimit: 4096,
+    },
   }),
 
   new CopyPlugin({
@@ -131,6 +148,7 @@ if (!isDevServer) {
     new CleanWebpackPlugin({
       // required because the build directory is outside the frontend directory:
       dangerouslyAllowCleanPatternsOutsideProject: true,
+      dry: false,
     }),
   );
 }
@@ -143,7 +161,6 @@ if (!isDevMode) {
       chunkFilename: '[name].[chunkhash].chunk.css',
     }),
   );
-  plugins.push(new OptimizeCSSAssetsPlugin());
 }
 
 const PREAMBLE = [path.join(APP_DIR, '/src/preamble.ts')];
@@ -182,9 +199,6 @@ const babelLoader = {
 };
 
 const config = {
-  node: {
-    fs: 'empty',
-  },
   entry: {
     theme: path.join(APP_DIR, '/src/theme.ts'),
     preamble: PREAMBLE,
@@ -217,7 +231,7 @@ const config = {
       cacheGroups: {
         automaticNamePrefix: 'chunk',
         // basic stable dependencies
-        vendors: {
+        defaultVendors: {
           priority: 50,
           name: 'vendors',
           test: new RegExp(
@@ -291,6 +305,11 @@ const config = {
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
     symlinks: false,
+    fallback: {
+      fs: 'emtpy',
+      path: false,
+      vm: false,
+    },
   },
   context: APP_DIR, // to automatically find tsconfig.json
   module: {
@@ -300,7 +319,14 @@ const config = {
     rules: [
       {
         test: /datatables\.net.*/,
-        loader: 'imports-loader?define=>false',
+        use: [
+          {
+            loader: 'imports-loader',
+            options: {
+              additionalCode: 'var define = false;',
+            },
+          },
+        ],
       },
       {
         test: /\.tsx?$/,
@@ -340,6 +366,12 @@ const config = {
         use: [babelLoader],
       },
       {
+        test: /\.m?js/,
+        resolve: {
+          fullySpecified: false,
+        },
+      },
+      {
         test: /\.css$/,
         include: [APP_DIR, /superset-ui.+\/src/],
         use: [
@@ -375,40 +407,41 @@ const config = {
       /* for css linking images (and viz plugin thumbnails) */
       {
         test: /\.png$/,
-        loader: 'url-loader',
-        options: {
-          limit: 10000,
-          name: '[name].[hash:8].[ext]',
-        },
+        type: 'asset/inline',
       },
       {
         test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
-        issuer: {
-          test: /\.(j|t)sx?$/,
-        },
+        issuer: /\.(j|t)sx?$/,
         use: ['@svgr/webpack'],
       },
       {
         test: /\.(jpg|gif)$/,
-        loader: 'file-loader',
-        options: {
-          name: '[name].[hash:8].[ext]',
-        },
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              name: '[name].[hash:8].[ext]',
+            },
+          },
+        ],
+        type: 'javascript/auto',
       },
       /* for font-awesome */
       {
         test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-        loader: 'url-loader?limit=10000&mimetype=application/font-woff',
-        options: {
-          esModule: false,
-        },
+        type: 'asset/inline',
       },
       {
         test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-        loader: 'file-loader',
-        options: {
-          esModule: false,
-        },
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              esModule: false,
+            },
+          },
+        ],
+        type: 'javascript/auto',
       },
     ],
   },
@@ -428,8 +461,8 @@ if (isDevMode) {
   config.devServer = {
     before(app, server, compiler) {
       // load proxy config when manifest updates
-      const hook = compiler.hooks.webpackManifestPluginAfterEmit;
-      hook.tap('ManifestPlugin', manifest => {
+      const { beforeEmit } = getCompilerHooks(compiler);
+      beforeEmit.tap('WebpackManifestPlugin', manifest => {
         proxyConfig = getProxyConfig(manifest);
       });
     },
@@ -469,12 +502,14 @@ if (isDevMode) {
     console.log(''); // pure cosmetic new line
   }
 } else {
+  config.optimization.minimize = true;
   config.optimization.minimizer = [
     new TerserPlugin({
       cache: '.terser-plugin-cache/',
       parallel: true,
       extractComments: true,
     }),
+    new CssMinimizerPlugin(),
   ];
 }
 

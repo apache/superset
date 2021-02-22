@@ -55,5 +55,6 @@ export function findValue<OptionType extends OptionTypeBase>(
 
   // If value is a single string, must return an Array so `cleanValue` won't be
   // empty: https://github.com/JedWatson/react-select/blob/32ad5c040bdd96cd1ca71010c2558842d684629c/packages/react-select/src/utils.js#L64
-  return (Array.isArray(value) ? value : [value]).map(find);
+  const val: any[] = Array.isArray(value) ? value : [value];
+  return val.map(find);
 }
