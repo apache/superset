@@ -19,12 +19,11 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import Alert from 'src/components/Alert';
-import { styled, logging } from '@superset-ui/core';
+import { styled, logging, t } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
+import Button from 'src/components/Button';
 import Loading from '../components/Loading';
-import RefreshChartOverlay from '../components/RefreshChartOverlay';
 import ErrorBoundary from '../components/ErrorBoundary';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
@@ -85,6 +84,17 @@ const Styles = styled.div`
     opacity: 0.75;
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
   }
+`;
+
+const RefreshOverlayWrapper = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 class Chart extends React.PureComponent {
@@ -168,7 +178,6 @@ class Chart extends React.PureComponent {
 
   render() {
     const {
-      width,
       height,
       chartAlert,
       chartStatus,
@@ -212,11 +221,11 @@ class Chart extends React.PureComponent {
           </div>
 
           {!isLoading && !chartAlert && isFaded && (
-            <RefreshChartOverlay
-              width={width}
-              height={height}
-              onQuery={onQuery}
-            />
+            <RefreshOverlayWrapper>
+              <Button onClick={onQuery} buttonStyle="primary">
+                {t('Run query')}
+              </Button>
+            </RefreshOverlayWrapper>
           )}
 
           {isLoading && <Loading />}
