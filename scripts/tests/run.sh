@@ -52,7 +52,7 @@ function test_init() {
   echo --------------------
   echo Superset init
   echo --------------------
-#  superset init
+  superset init
 }
 
 #
