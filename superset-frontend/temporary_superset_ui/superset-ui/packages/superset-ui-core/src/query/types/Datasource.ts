@@ -42,3 +42,5 @@ export interface Datasource {
     [key: string]: string;
   };
 }
+
+export default {};

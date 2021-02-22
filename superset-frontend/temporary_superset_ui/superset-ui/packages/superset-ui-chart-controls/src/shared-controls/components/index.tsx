@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import RadioButtonControl from '../components/RadioButtonControl';
+import RadioButtonControl from './RadioButtonControl';
 
-export * from '../components/RadioButtonControl';
+export * from './RadioButtonControl';
 
 /**
- * Aliases for Control Components
+ * Shared chart controls. Can be referred via string shortcuts in chart control
+ * configs.
  */
 export default {
   RadioButtonControl,

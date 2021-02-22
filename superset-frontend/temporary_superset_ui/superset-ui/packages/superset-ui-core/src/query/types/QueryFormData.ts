@@ -176,3 +176,5 @@ export type QueryFormData = DruidFormData | SqlaFormData;
 export function isDruidFormData(formData: QueryFormData): formData is DruidFormData {
   return 'granularity' in formData;
 }
+
+export default {};

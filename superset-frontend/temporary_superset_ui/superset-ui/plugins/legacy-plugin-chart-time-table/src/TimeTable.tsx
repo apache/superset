@@ -21,7 +21,7 @@ import Mustache from 'mustache';
 import { scaleLinear } from 'd3-scale';
 import { Table, Thead, Th, Tr, Td } from 'reactable-arc';
 import { formatNumber, formatTime, styled } from '@superset-ui/core';
-import { InfoTooltipWithTrigger, MetricOption, Metric } from '@superset-ui/chart-controls';
+import { InfoTooltipWithTrigger, MetricOption } from '@superset-ui/chart-controls';
 import moment from 'moment';
 
 import FormattedNumber from './FormattedNumber';
@@ -117,9 +117,7 @@ class TimeTable extends React.PureComponent<ChartProps, {}> {
       return column.label;
     }
 
-    return (
-      <MetricOption openInNewWindow metric={row as Metric} url={fullUrl} showFormula={false} />
-    );
+    return <MetricOption openInNewWindow metric={row} url={fullUrl} showFormula={false} />;
   }
 
   // eslint-disable-next-line class-methods-use-this

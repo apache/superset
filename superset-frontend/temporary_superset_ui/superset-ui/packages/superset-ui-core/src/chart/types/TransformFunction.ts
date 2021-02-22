@@ -11,3 +11,5 @@ export type TransformProps<Props extends ChartProps = ChartProps> = TransformFun
 export type PostTransformProps = TransformFunction;
 
 export type BuildQueryFunction<T extends QueryFormData> = (formData: T) => QueryContext;
+
+export default {};

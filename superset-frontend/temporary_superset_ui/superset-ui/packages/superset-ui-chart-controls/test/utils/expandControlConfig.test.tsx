@@ -17,8 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { expandControlConfig, sharedControls, CustomControlItem } from '../../src';
-import RadioButtonControl from '../../src/components/RadioButtonControl';
+import {
+  expandControlConfig,
+  sharedControls,
+  CustomControlItem,
+  sharedControlComponents,
+} from '../../src';
 
 describe('expandControlConfig()', () => {
   it('expands shared control alias', () => {
@@ -65,7 +69,7 @@ describe('expandControlConfig()', () => {
       },
     };
     expect((expandControlConfig(input) as CustomControlItem).config.type).toEqual(
-      RadioButtonControl,
+      sharedControlComponents.RadioButtonControl,
     );
   });
 

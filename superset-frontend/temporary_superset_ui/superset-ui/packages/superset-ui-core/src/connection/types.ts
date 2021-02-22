@@ -140,3 +140,5 @@ export interface SupersetClientInterface
 }
 
 export type SupersetClientResponse = Response | JsonResponse | TextResponse;
+
+export default {};
