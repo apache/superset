@@ -46,7 +46,7 @@ test('should be shown as required', () => {
   const requiredProps = {
     ...mockedProps,
     required: true,
-  }
+  };
   render(<FormLabel {...requiredProps} />);
   expect(screen.getByTestId('span-required')).toBeInTheDocument();
   expect(screen.getByText('*')).toBeInTheDocument();
