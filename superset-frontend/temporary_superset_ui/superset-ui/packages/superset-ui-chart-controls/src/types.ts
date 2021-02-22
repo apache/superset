@@ -18,21 +18,11 @@
  * under the License.
  */
 import React, { ReactNode, ReactText, ReactElement } from 'react';
-import { QueryFormData, DatasourceType } from '@superset-ui/core';
+import { QueryFormData, DatasourceType, Metric } from '@superset-ui/core';
 import sharedControls from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
 
-export type Metric = {
-  metric_name: string;
-  verbose_name?: string;
-  label?: string;
-  description?: string;
-  warning_text?: string;
-  expression?: string;
-  is_certified?: boolean;
-  certified_by?: string | null;
-  certification_details?: string | null;
-};
+export { Metric } from '@superset-ui/core';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyDict = Record<string, any>;
