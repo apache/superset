@@ -40,7 +40,7 @@ type ActionButtonProps = {
 
 type ExploreActionButtonsProps = {
   actions: { redirectSQLLab: Function; openPropertiesModal: Function };
-  canDownload: boolean;
+  canDownloadCSV: boolean;
   chartStatus: string;
   latestQueryFormData: {};
   queriesResponse: {};
@@ -83,7 +83,7 @@ const ActionButton = (props: ActionButtonProps) => {
 const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
   const {
     actions,
-    canDownload,
+    canDownloadCSV,
     chartStatus,
     latestQueryFormData,
     queriesResponse,
@@ -118,20 +118,22 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
     }
   };
 
-  const doExportCSV = exportChart.bind(this, {
-    formData: latestQueryFormData,
-    resultType: 'results',
-    resultFormat: 'csv',
-  });
+  const doExportCSV = canDownloadCSV
+    ? exportChart.bind(this, {
+        formData: latestQueryFormData,
+        resultType: 'results',
+        resultFormat: 'csv',
+      })
+    : null;
 
-  const doExportChart = exportChart.bind(this, {
+  const doExportJson = exportChart.bind(this, {
     formData: latestQueryFormData,
     resultType: 'results',
     resultFormat: 'json',
   });
 
   const exportToCSVClasses = cx('btn btn-default btn-sm', {
-    disabled: !canDownload,
+    disabled: !canDownloadCSV,
   });
 
   return (
@@ -175,7 +177,7 @@ const ExploreActionButtons = (props: ExploreActionButtonsProps) => {
             icon={<i className="fa fa-file-code-o" />}
             text=".JSON"
             tooltip={t('Export to .JSON format')}
-            onClick={doExportChart}
+            onClick={doExportJson}
           />
           <ActionButton
             icon={<i className="fa fa-file-text-o" />}

@@ -578,6 +578,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 response_type = response_option
                 break
 
+        # Verify user has permission to export CSV file
+        if (
+            response_type == utils.ChartDataResultFormat.CSV
+            and not security_manager.can_access("can_csv", "Superset")
+        ):
+            return json_error_response(
+                _("You don't have the rights to ") + _("download as csv"), status=403,
+            )
+
         form_data = get_form_data()[0]
 
         try:
@@ -739,7 +748,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # slc perms
         slice_add_perm = security_manager.can_access("can_write", "Chart")
         slice_overwrite_perm = is_owner(slc, g.user) if slc else False
-        slice_download_perm = security_manager.can_access("can_read", "Chart")
+        slice_download_perm = security_manager.can_access("can_csv", "Superset")
 
         form_data["datasource"] = str(datasource_id) + "__" + cast(str, datasource_type)
 
