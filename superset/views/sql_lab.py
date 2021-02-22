@@ -141,6 +141,7 @@ class TabStateView(BaseSupersetView):
             schema=query_editor.get("schema"),
             sql=query_editor.get("sql", "SELECT ..."),
             query_limit=query_editor.get("queryLimit"),
+            hide_left_bar=query_editor.get("hideLeftBar"),
         )
         (
             db.session.query(TabState)
