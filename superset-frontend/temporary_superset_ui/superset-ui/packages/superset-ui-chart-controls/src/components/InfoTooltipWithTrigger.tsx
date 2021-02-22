@@ -20,11 +20,11 @@ import React from 'react';
 import { kebabCase } from 'lodash';
 import { TooltipPlacement } from 'antd/lib/tooltip';
 import { t } from '@superset-ui/core';
-import { Tooltip } from './Tooltip';
+import { Tooltip, TooltipProps } from './Tooltip';
 
 export interface InfoTooltipWithTriggerProps {
   label?: string;
-  tooltip?: string;
+  tooltip?: TooltipProps['title'];
   icon?: string;
   onClick?: () => void;
   placement?: TooltipPlacement;

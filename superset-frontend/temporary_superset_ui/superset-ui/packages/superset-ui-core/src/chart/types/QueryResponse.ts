@@ -25,3 +25,5 @@ export type LegacyQueryData = PlainObject;
  * Don't use this for a specific chart (since you know which API it uses already).
  */
 export type QueryData = LegacyQueryData | ChartDataResponseResult;
+
+export default {};
