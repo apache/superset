@@ -36,7 +36,7 @@ export default function FormLabel({
       <ControlLabel htmlFor={htmlFor}>
         {children}
         {required && (
-          <span className="text-danger m-l-4">
+          <span className="text-danger m-l-4" data-test-id="span-required">
             <strong>*</strong>
           </span>
         )}
