@@ -19,7 +19,7 @@
 import React from 'react';
 import { styled, t } from '@superset-ui/core';
 import Alert from 'react-bootstrap/lib/Alert';
-import Button from 'src/components/Button';
+import Button, { OnClickHandler } from 'src/components/Button';
 import Icon from 'src/components/Icon';
 
 const StyledAlert = styled(Alert)`
@@ -63,8 +63,8 @@ const StyledAlertIcon = styled(Icon)`
 export interface ConfirmationAlertProps {
   title: string;
   children: React.ReactNode;
-  onConfirm: () => void;
-  onDismiss: () => void;
+  onConfirm: OnClickHandler;
+  onDismiss: OnClickHandler;
 }
 
 export function CancelConfirmationAlert({

@@ -21,14 +21,10 @@ import React, { FC, useMemo, useState } from 'react';
 import { FormInstance, Tree } from 'src/common/components';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import { useFilterScopeTree } from './state';
-import {
-  findFilterScope,
-  getTreeCheckedItems,
-  setFilterFieldValues,
-  useForceUpdate,
-} from './utils';
-import { NativeFiltersForm } from './types';
-import { Scope } from '../types';
+import { setFilterFieldValues, useForceUpdate } from '../utils';
+import { findFilterScope, getTreeCheckedItems } from './utils';
+import { NativeFiltersForm } from '../../types';
+import { Scope } from '../../../types';
 
 type ScopingTreeProps = {
   form: FormInstance<NativeFiltersForm>;
