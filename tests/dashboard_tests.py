@@ -379,6 +379,7 @@ class TestDashboard(SupersetTestCase):
         self.assertEqual(len(data["slices"]), origin_slices_length - 1)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("public_role_like_gamma")
     def test_public_user_dashboard_access(self):
         table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
 
