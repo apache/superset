@@ -540,8 +540,7 @@ class BaseViz:
                     + (query_obj.get("groupby") or [])
                     + utils.get_column_names_from_metrics(
                         cast(
-                            List[Union[str, Dict[str, Any]]],
-                            query_obj.get("metrics"),
+                            List[Union[str, Dict[str, Any]]], query_obj.get("metrics"),
                         )
                     )
                     if col not in self.datasource.column_names
@@ -1833,12 +1832,7 @@ class SankeyViz(BaseViz):
         source, target = self.groupby
         (value,) = self.metric_labels
         df.rename(
-            columns={
-                source: "source",
-                target: "target",
-                value: "value",
-            },
-            inplace=True,
+            columns={source: "source", target: "target", value: "value",}, inplace=True,
         )
         df["source"] = df["source"].astype(str)
         df["target"] = df["target"].astype(str)
