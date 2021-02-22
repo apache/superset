@@ -36,6 +36,9 @@ from superset.reports.commands.exceptions import (
 logger = logging.getLogger(__name__)
 
 
+ALERT_SQL_LIMIT = 2
+# All sql statements have an applied LIMIT,
+# to avoid heavy loads done by a user mistake
 OPERATOR_FUNCTIONS = {">=": ge, ">": gt, "<=": le, "<": lt, "==": eq, "!=": ne}
 
 
@@ -117,7 +120,10 @@ class AlertCommand(BaseCommand):
         )
         rendered_sql = sql_template.process_template(self._report_schedule.sql)
         try:
-            df = self._report_schedule.database.get_df(rendered_sql)
+            limited_rendered_sql = self._report_schedule.database.apply_limit_to_sql(
+                rendered_sql, ALERT_SQL_LIMIT
+            )
+            df = self._report_schedule.database.get_df(limited_rendered_sql)
         except Exception as ex:
             raise AlertQueryError(message=str(ex))
 

@@ -35,6 +35,8 @@ const mockData = {
   id: 1,
   name: 'test report',
   description: 'test report description',
+  chart: { id: 1, slice_name: 'test chart' },
+  database: { id: 1, database_name: 'test database' },
 };
 const FETCH_REPORT_ENDPOINT = 'glob:*/api/v1/report/*';
 const REPORT_PAYLOAD = { result: mockData };
@@ -105,6 +107,11 @@ describe('AlertReportModal', () => {
     expect(wrapper.find(Modal)).toExist();
   });
 
+  it('render a empty modal', () => {
+    expect(wrapper.find('input[name="name"]').text()).toEqual('');
+    expect(wrapper.find('input[name="description"]').text()).toEqual('');
+  });
+
   it('renders add header for report when no alert is included, and isReport is true', async () => {
     const addWrapper = await mountAndWait();
 
@@ -126,10 +133,40 @@ describe('AlertReportModal', () => {
     ).toEqual('Add Alert');
   });
 
-  it.skip('renders edit header when alert prop is included', () => {
+  it('renders edit modal', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+    };
+
+    const editWrapper = await mountAndWait(props);
     expect(
-      wrapper.find('[data-test="alert-report-modal-title"]').text(),
+      editWrapper.find('[data-test="alert-report-modal-title"]').text(),
     ).toEqual('Edit Report');
+    expect(editWrapper.find('input[name="name"]').props().value).toEqual(
+      'test report',
+    );
+    expect(editWrapper.find('input[name="description"]').props().value).toEqual(
+      'test report description',
+    );
+  });
+
+  it('renders async select with value in alert edit modal', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+      isReport: false,
+    };
+
+    const editWrapper = await mountAndWait(props);
+    expect(editWrapper.find(AsyncSelect).at(1).props().value).toEqual({
+      value: 1,
+      label: 'test database',
+    });
+    expect(editWrapper.find(AsyncSelect).at(2).props().value).toEqual({
+      value: 1,
+      label: 'test chart',
+    });
   });
 
   // Fields

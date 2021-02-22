@@ -22,7 +22,11 @@ import { FormControl } from 'react-bootstrap';
 import { Column } from 'react-table';
 import debounce from 'lodash/debounce';
 
-import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
+import {
+  BOOL_FALSE_DISPLAY,
+  BOOL_TRUE_DISPLAY,
+  SLOW_DEBOUNCE,
+} from 'src/constants';
 import Button from 'src/components/Button';
 import {
   applyFormattingToTabularData,
@@ -67,7 +71,7 @@ export const FilterInput = ({
 }: {
   onChangeHandler(filterText: string): void;
 }) => {
-  const debouncedChangeHandler = debounce(onChangeHandler, 500);
+  const debouncedChangeHandler = debounce(onChangeHandler, SLOW_DEBOUNCE);
   return (
     <FormControl
       placeholder={t('Search')}

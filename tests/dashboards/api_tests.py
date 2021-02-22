@@ -174,6 +174,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         """
         Dashboard API: Test getting charts belonging to a dashboard
         """
+        self.login(username="admin")
         dashboard = self.dashboards[0]
         uri = f"api/v1/dashboard/{dashboard.id}/charts"
         response = self.get_assert_metric(uri, "get_charts")
@@ -192,6 +193,17 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.login(username="admin")
         bad_id = self.get_nonexistent_numeric_id(Dashboard)
         uri = f"api/v1/dashboard/{bad_id}/charts"
+        response = self.get_assert_metric(uri, "get_charts")
+        self.assertEqual(response.status_code, 404)
+
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_get_dashboard_charts_not_allowed(self):
+        """
+        Dashboard API: Test getting charts on a dashboard a user does not have access to
+        """
+        self.login(username="gamma")
+        dashboard = self.dashboards[0]
+        uri = f"api/v1/dashboard/{dashboard.id}/charts"
         response = self.get_assert_metric(uri, "get_charts")
         self.assertEqual(response.status_code, 404)
 

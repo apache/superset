@@ -22,6 +22,10 @@
 # to check for python changes, run with CHECKS=python
 # To check for frontend changes, run with CHECKS=frontend
 # To check for python and frontend changes, run with CHECKS="python frontend"
+if [[ -z ${PR_NUMBER} ]]; then
+  echo "Not a PR; Exiting with FAILURE code"
+  exit 1
+fi
 
 URL="https://api.github.com/repos/${GITHUB_REPO}/pulls/${PR_NUMBER}/files"
 FILES=$(curl -s -X GET -G "${URL}" | jq -r '.[] | .filename')

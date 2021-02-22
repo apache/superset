@@ -20,11 +20,11 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import { Menu, NoAnimationDropdown } from 'src/common/components';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
-import URLShortLinkModal from 'src/components/URLShortLinkModal';
 import HeaderActionsDropdown from 'src/dashboard/components/HeaderActionsDropdown';
 import SaveModal from 'src/dashboard/components/SaveModal';
 import CssEditor from 'src/dashboard/components/CssEditor';
 import fetchMock from 'fetch-mock';
+import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 
@@ -79,9 +79,9 @@ describe('HeaderActionsDropdown', () => {
       expect(menu.find(SaveModal)).not.toExist();
     });
 
-    it('should render five Menu items', () => {
+    it('should render available Menu items', () => {
       const { menu } = setup(overrideProps);
-      expect(menu.find(Menu.Item)).toHaveLength(5);
+      expect(menu.find(Menu.Item)).toHaveLength(4);
     });
 
     it('should render the RefreshIntervalModal', () => {
@@ -89,9 +89,9 @@ describe('HeaderActionsDropdown', () => {
       expect(menu.find(RefreshIntervalModal)).toExist();
     });
 
-    it('should render the URLShortLinkModal', () => {
+    it('should render the ShareMenuItems', () => {
       const { menu } = setup(overrideProps);
-      expect(menu.find(URLShortLinkModal)).toExist();
+      expect(menu.find(ShareMenuItems)).toExist();
     });
 
     it('should not render the CssEditor', () => {
@@ -113,9 +113,9 @@ describe('HeaderActionsDropdown', () => {
       expect(menu.find(SaveModal)).toExist();
     });
 
-    it('should render six Menu items', () => {
+    it('should render available Menu items', () => {
       const { menu } = setup(overrideProps);
-      expect(menu.find(Menu.Item)).toHaveLength(6);
+      expect(menu.find(Menu.Item)).toHaveLength(5);
     });
 
     it('should render the RefreshIntervalModal', () => {
@@ -123,9 +123,9 @@ describe('HeaderActionsDropdown', () => {
       expect(menu.find(RefreshIntervalModal)).toExist();
     });
 
-    it('should render the URLShortLinkModal', () => {
+    it('should render the ShareMenuItems', () => {
       const { menu } = setup(overrideProps);
-      expect(menu.find(URLShortLinkModal)).toExist();
+      expect(menu.find(ShareMenuItems)).toExist();
     });
 
     it('should not render the CssEditor', () => {
@@ -147,9 +147,9 @@ describe('HeaderActionsDropdown', () => {
       expect(menu.find(SaveModal)).toExist();
     });
 
-    it('should render seven MenuItems', () => {
+    it('should render available MenuItems', () => {
       const { menu } = setup(overrideProps);
-      expect(menu.find(Menu.Item)).toHaveLength(7);
+      expect(menu.find(Menu.Item)).toHaveLength(6);
     });
 
     it('should render the RefreshIntervalModal', () => {
@@ -157,9 +157,9 @@ describe('HeaderActionsDropdown', () => {
       expect(menu.find(RefreshIntervalModal)).toExist();
     });
 
-    it('should render the URLShortLinkModal', () => {
+    it('should render the ShareMenuItems', () => {
       const { menu } = setup(overrideProps);
-      expect(menu.find(URLShortLinkModal)).toExist();
+      expect(menu.find(ShareMenuItems)).toExist();
     });
 
     it('should render the CssEditor', () => {

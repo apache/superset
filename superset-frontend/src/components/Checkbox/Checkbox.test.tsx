@@ -43,7 +43,9 @@ describe('Checkbox', () => {
       const shallowWrapper = shallow(
         <Checkbox style={{}} checked={false} onChange={() => true} />,
       );
-      expect(shallowWrapper.dive().dive().find(CheckboxUnchecked)).toExist();
+      expect(
+        shallowWrapper.dive().dive().dive().find(CheckboxUnchecked),
+      ).toExist();
     });
   });
 
@@ -52,7 +54,9 @@ describe('Checkbox', () => {
       const shallowWrapper = shallow(
         <Checkbox style={{}} checked onChange={() => true} />,
       );
-      expect(shallowWrapper.dive().dive().find(CheckboxChecked)).toExist();
+      expect(
+        shallowWrapper.dive().dive().dive().find(CheckboxChecked),
+      ).toExist();
     });
   });
 

@@ -31,7 +31,15 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import Owner from 'src/types/Owner';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
-import { AlertObject, Operator, Recipient, MetaObject } from './types';
+import {
+  AlertObject,
+  ChartObject,
+  DashboardObject,
+  DatabaseObject,
+  MetaObject,
+  Operator,
+  Recipient,
+} from './types';
 
 const SELECT_PAGE_SIZE = 2000; // temporary fix for paginated query
 
@@ -104,6 +112,19 @@ const RETENTION_OPTIONS = [
 const DEFAULT_RETENTION = 90;
 const DEFAULT_WORKING_TIMEOUT = 3600;
 const DEFAULT_CRON_VALUE = '* * * * *'; // every minute
+const DEFAULT_ALERT = {
+  active: true,
+  crontab: DEFAULT_CRON_VALUE,
+  log_retention: DEFAULT_RETENTION,
+  working_timeout: DEFAULT_WORKING_TIMEOUT,
+  name: '',
+  owners: [],
+  recipients: [],
+  sql: '',
+  validator_config_json: {},
+  validator_type: '',
+  grace_period: undefined,
+};
 
 const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
@@ -563,6 +584,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     clearError();
     setIsHidden(true);
     onHide();
+    setCurrentAlert({ ...DEFAULT_ALERT });
+    setNotificationSettings([]);
   };
 
   const onSave = () => {
@@ -935,19 +958,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       !isEditMode &&
       (!currentAlert || currentAlert.id || (isHidden && show))
     ) {
-      setCurrentAlert({
-        active: true,
-        crontab: DEFAULT_CRON_VALUE,
-        log_retention: DEFAULT_RETENTION,
-        working_timeout: DEFAULT_WORKING_TIMEOUT,
-        name: '',
-        owners: [],
-        recipients: [],
-        sql: '',
-        validator_config_json: {},
-        validator_type: '',
-      });
-
+      setCurrentAlert({ ...DEFAULT_ALERT });
       setNotificationSettings([]);
       setNotificationAddState('active');
     }
@@ -979,16 +990,21 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       setCurrentAlert({
         ...resource,
         chart: resource.chart
-          ? getChartData(resource.chart) || { value: resource.chart.id }
+          ? getChartData(resource.chart) || {
+              value: (resource.chart as ChartObject).id,
+              label: (resource.chart as ChartObject).slice_name,
+            }
           : undefined,
         dashboard: resource.dashboard
           ? getDashboardData(resource.dashboard) || {
-              value: resource.dashboard.id,
+              value: (resource.dashboard as DashboardObject).id,
+              label: (resource.dashboard as DashboardObject).dashboard_title,
             }
           : undefined,
         database: resource.database
           ? getSourceData(resource.database) || {
-              value: resource.database.id,
+              value: (resource.database as DatabaseObject).id,
+              label: (resource.database as DatabaseObject).database_name,
             }
           : undefined,
         owners: (resource.owners || []).map(owner => ({
@@ -1282,7 +1298,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   <input
                     type="number"
                     name="grace_period"
-                    value={currentAlert ? currentAlert.grace_period : ''}
+                    value={currentAlert?.grace_period || ''}
                     placeholder={t('Time in seconds')}
                     onChange={onTextChange}
                   />
