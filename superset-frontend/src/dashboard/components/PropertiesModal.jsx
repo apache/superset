@@ -249,8 +249,8 @@ class PropertiesModal extends React.PureComponent {
       },
     } = this.state;
     const { onlyApply } = this.props;
-    const owners = ownersValue.map(o => o.value);
-    const roles = rolesValue.map(o => o.value);
+    const owners = ownersValue?.map(o => o.value) ?? [];
+    const roles = rolesValue?.map(o => o.value) ?? [];
     let metadataColorScheme;
 
     // update color scheme to match metadata
