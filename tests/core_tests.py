@@ -949,17 +949,7 @@ class TestCore(SupersetTestCase):
     )
     def test_explore_json_async_results_format(self):
         tbl_id = self.table_ids.get("birth_names")
-        form_data = {
-            "datasource": f"{tbl_id}__table",
-            "viz_type": "dist_bar",
-            "time_range_endpoints": ["inclusive", "exclusive"],
-            "granularity_sqla": "ds",
-            "time_range": "No filter",
-            "metrics": ["count"],
-            "adhoc_filters": [],
-            "groupby": ["gender"],
-            "row_limit": 100,
-        }
+        form_data = dist_bar_form_data(table_id=tbl_id)
         async_query_manager.init_app(app)
         self.login(username="admin")
         rv = self.client.post(
@@ -976,21 +966,7 @@ class TestCore(SupersetTestCase):
     @mock.patch("superset.viz.BaseViz.force_cached", new_callable=mock.PropertyMock)
     def test_explore_json_data(self, mock_force_cached, mock_cache):
         tbl_id = self.table_ids.get("birth_names")
-        form_data = dict(
-            {
-                "form_data": {
-                    "datasource": f"{tbl_id}__table",
-                    "viz_type": "dist_bar",
-                    "time_range_endpoints": ["inclusive", "exclusive"],
-                    "granularity_sqla": "ds",
-                    "time_range": "No filter",
-                    "metrics": ["count"],
-                    "adhoc_filters": [],
-                    "groupby": ["gender"],
-                    "row_limit": 100,
-                }
-            }
-        )
+        form_data = dict({"form_data": dist_bar_form_data(table_id=tbl_id),})
 
         class MockCache:
             def get(self, key):
@@ -1015,21 +991,7 @@ class TestCore(SupersetTestCase):
     )
     def test_explore_json_data_no_login(self, mock_cache):
         tbl_id = self.table_ids.get("birth_names")
-        form_data = dict(
-            {
-                "form_data": {
-                    "datasource": f"{tbl_id}__table",
-                    "viz_type": "dist_bar",
-                    "time_range_endpoints": ["inclusive", "exclusive"],
-                    "granularity_sqla": "ds",
-                    "time_range": "No filter",
-                    "metrics": ["count"],
-                    "adhoc_filters": [],
-                    "groupby": ["gender"],
-                    "row_limit": 100,
-                }
-            }
-        )
+        form_data = dict({"form_data": dist_bar_form_data(table_id=tbl_id)})
 
         class MockCache:
             def get(self, key):
