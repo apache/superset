@@ -17,6 +17,7 @@
 """Unit tests for Superset"""
 from unittest import mock
 
+import pytest
 from tests.dashboards.dashboard_test_utils import *
 from tests.dashboards.security.base_case import BaseTestDashboardSecurity
 from tests.dashboards.superset_factory_util import (
@@ -25,6 +26,7 @@ from tests.dashboards.superset_factory_util import (
     create_datasource_table_to_db,
     create_slice_to_db,
 )
+from tests.fixtures.public_role import public_role_like_gamma
 
 
 @mock.patch.dict(
@@ -117,6 +119,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # post
         revoke_access_to_dashboard(dashboard_to_access, new_role)
 
+    @pytest.mark.usefixtures("public_role_like_gamma")
     def test_get_dashboard_view__public_user_can_not_access_without_permission(self):
         dashboard_to_access = create_dashboard_to_db(published=True)
         self.logout()
@@ -127,6 +130,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # assert
         self.assert403(response)
 
+    @pytest.mark.usefixtures("public_role_like_gamma")
     def test_get_dashboard_view__public_user_with_dashboard_permission_can_not_access_draft(
         self,
     ):
@@ -143,6 +147,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # post
         revoke_access_to_dashboard(dashboard_to_access, "Public")
 
+    @pytest.mark.usefixtures("public_role_like_gamma")
     def test_get_dashboard_view__public_user_access_with_dashboard_permission(self):
         # arrange
         dashboard_to_access = create_dashboard_to_db(
@@ -267,6 +272,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         self.login(username)
         return new_role, draft_dashboards, published_dashboards
 
+    @pytest.mark.usefixtures("public_role_like_gamma")
     def test_get_dashboards_list__public_user_without_any_permissions_get_empty_list(
         self,
     ):
@@ -278,6 +284,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # assert
         self.assert_dashboards_list_view_response(response, 0)
 
+    @pytest.mark.usefixtures("public_role_like_gamma")
     def test_get_dashboards_list__public_user_get_only_published_permitted_dashboards(
         self,
     ):
@@ -370,6 +377,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         for dash in published_dashboards + draft_dashboards:
             revoke_access_to_dashboard(dash, new_role)
 
+    @pytest.mark.usefixtures("public_role_like_gamma")
     def test_get_dashboards_api__public_user_without_any_permissions_get_empty_list(
         self,
     ):
@@ -382,6 +390,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # assert
         self.assert_dashboards_api_response(response, 0)
 
+    @pytest.mark.usefixtures("public_role_like_gamma")
     def test_get_dashboards_api__public_user_get_only_published_permitted_dashboards(
         self,
     ):
