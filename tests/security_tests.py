@@ -571,6 +571,7 @@ class TestRolePermission(SupersetTestCase):
         )  # wb_health_population slice, has access
         self.assertNotIn("Girl Name Cloud", data)  # birth_names slice, no access
 
+    @pytest.mark.usefixtures("public_role_like_gamma")
     def test_public_sync_role_data_perms(self):
         """
         Security: Tests if the sync role method preserves data access permissions
