@@ -325,7 +325,8 @@ const time_range: SharedControlConfig<'DateFilterControl'> = {
       "using the engine's local timezone. Note one can explicitly set the timezone " +
       'per the ISO 8601 format if specifying either the start and/or end time.',
   ),
-  mapStateToProps: ({ form_data }) => ({
+  mapStateToProps: ({ datasource, form_data }) => ({
+    datasource,
     endpoints: form_data?.time_range_endpoints || null,
   }),
 };
@@ -443,12 +444,13 @@ const adhoc_filters: SharedControlConfig<'AdhocFilterControl'> = {
   label: t('Filters'),
   default: null,
   description: '',
-  mapStateToProps: ({ datasource }) => ({
+  mapStateToProps: ({ datasource, form_data }) => ({
     columns: datasource?.columns.filter(c => c.filterable) || [],
     savedMetrics: datasource?.metrics || [],
+    // current active adhoc metrics
+    selectedMetrics: form_data.metrics || (form_data.metric ? [form_data.metric] : []),
     datasource,
   }),
-  provideFormDataToProps: true,
 };
 
 const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
