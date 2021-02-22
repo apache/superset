@@ -18,14 +18,15 @@
  */
 import React from 'react';
 import { styled } from '@superset-ui/core';
-import TooltipWrapper from 'src/components/TooltipWrapper';
+import { Tooltip } from 'src/common/components/Tooltip';
 import { IconName } from 'src/components/Icon';
 import Icons from 'src/components/Icons';
+import { TooltipPlacement } from 'antd/lib/tooltip';
 
 export type ActionProps = {
   label: string;
   tooltip?: string | React.ReactElement;
-  placement?: string;
+  placement?: TooltipPlacement;
   icon: IconName;
   onClick: () => void;
 };
@@ -60,10 +61,10 @@ export default function ActionsBar({ actions }: ActionsBarProps) {
         const ActionIcon = Icons[action.icon];
         if (action.tooltip) {
           return (
-            <TooltipWrapper
-              label={action.label}
-              tooltip={action.tooltip}
-              placement={action.placement || ''}
+            <Tooltip
+              id={`${action.label}-tooltip`}
+              title={action.tooltip}
+              placement={action.placement}
               key={index}
             >
               <ActionWrapper
@@ -75,7 +76,7 @@ export default function ActionsBar({ actions }: ActionsBarProps) {
               >
                 <ActionIcon />
               </ActionWrapper>
-            </TooltipWrapper>
+            </Tooltip>
           );
         }
 

@@ -21,7 +21,7 @@ import { mount } from 'enzyme';
 
 import ModalTrigger from 'src/components/ModalTrigger';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
-import { Alert } from 'react-bootstrap';
+import Alert from 'src/components/Alert';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 const getMountWrapper = props =>

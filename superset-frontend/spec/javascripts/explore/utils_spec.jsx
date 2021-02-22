@@ -30,6 +30,7 @@ import {
   buildTimeRangeString,
   formatTimeRange,
 } from 'src/explore/dateFilterUtils';
+import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
 import { getChartMetadataRegistry } from '@superset-ui/core';
 
@@ -99,7 +100,9 @@ describe('exploreUtils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore/').search({ standalone: 'true' }),
+        URI('/superset/explore/').search({
+          standalone: DashboardStandaloneMode.HIDE_NAV,
+        }),
       );
     });
     it('preserves main URLs params', () => {
@@ -205,7 +208,7 @@ describe('exploreUtils', () => {
         URI(getExploreLongUrl(formData, 'standalone')),
         URI('/superset/explore/').search({
           form_data: sFormData,
-          standalone: 'true',
+          standalone: DashboardStandaloneMode.HIDE_NAV,
         }),
       );
     });

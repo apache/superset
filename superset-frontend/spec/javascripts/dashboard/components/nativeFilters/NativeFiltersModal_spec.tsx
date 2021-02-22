@@ -21,10 +21,10 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import { act } from 'react-dom/test-utils';
 import { ReactWrapper } from 'enzyme';
 import { Provider } from 'react-redux';
-import Alert from 'react-bootstrap/lib/Alert';
-import { FilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterConfigModal';
+import Alert from 'src/components/Alert';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { mockStore } from 'spec/fixtures/mockStore';
+import { FiltersConfigModal } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -40,24 +40,39 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
+jest.mock('@superset-ui/core', () => ({
+  // @ts-ignore
+  ...jest.requireActual('@superset-ui/core'),
+  getChartMetadataRegistry: () => ({
+    items: {
+      filter_select: {
+        value: {
+          datasourceCount: 1,
+          behaviors: ['NATIVE_FILTER'],
+        },
+      },
+    },
+  }),
+}));
+
 describe('FiltersConfigModal', () => {
   const mockedProps = {
     isOpen: true,
-    initialFilterId: 'DefaultFilterId',
+    initialFilterId: 'DefaultsID',
     createNewOnOpen: true,
     onCancel: jest.fn(),
-    save: jest.fn(),
+    onSave: jest.fn(),
   };
   function setup(overridesProps?: any) {
     return mount(
       <Provider store={mockStore}>
-        <FilterConfigModal {...mockedProps} {...overridesProps} />
+        <FiltersConfigModal {...mockedProps} {...overridesProps} />
       </Provider>,
     );
   }
 
   it('should be a valid react element', () => {
-    expect(React.isValidElement(<FilterConfigModal {...mockedProps} />)).toBe(
+    expect(React.isValidElement(<FiltersConfigModal {...mockedProps} />)).toBe(
       true,
     );
   });

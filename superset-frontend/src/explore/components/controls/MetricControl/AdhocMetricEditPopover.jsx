@@ -24,7 +24,7 @@ import Tabs from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
 import { Select } from 'src/common/components/Select';
 import { styled, t } from '@superset-ui/core';
-import { ColumnOption } from '@superset-ui/chart-controls';
+import { ColumnOption, MetricOption } from '@superset-ui/chart-controls';
 
 import FormLabel from 'src/components/FormLabel';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
@@ -122,6 +122,9 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
           this.state.savedMetric?.metric_name,
         adhocMetricLabel: this.state.adhocMetric?.getDefaultLabel(),
       });
+    }
+    if (prevProps.datasource !== this.props.datasource) {
+      this.props.onChange(null);
     }
   }
 
@@ -272,7 +275,6 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       datasourceType,
       ...popoverProps
     } = this.props;
-
     const { adhocMetric, savedMetric } = this.state;
     const keywords = sqlKeywords.concat(
       columns.map(column => ({
@@ -368,7 +370,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                       }
                       key={savedMetric.id}
                     >
-                      {this.renderColumnOption(savedMetric)}
+                      <MetricOption metric={savedMetric} showType />
                     </Select.Option>
                   ))}
               </Select>

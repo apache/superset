@@ -1,5 +1,5 @@
-# Python MySQL unit tests
-name: Python MySQL
+# Python unit tests
+name: Python
 
 on:
   push:
@@ -39,11 +39,20 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+      - name: Check if python changes are present
+        id: check
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        continue-on-error: true
+        run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
+        if: steps.check.outcome == 'failure'
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
+        if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
           run: |
@@ -52,11 +61,14 @@ jobs:
             pip install -r requirements/testing.txt
             setup-mysql
       - name: Run celery
+        if: steps.check.outcome == 'failure'
         run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
       - name: Python unit tests (MySQL)
+        if: steps.check.outcome == 'failure'
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
+        if: steps.check.outcome == 'failure'
         run: |
           bash <(curl -s https://codecov.io/bash) -cF python
 
@@ -91,11 +103,20 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+      - name: Check if python changes are present
+        id: check
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        continue-on-error: true
+        run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
+        if: steps.check.outcome == 'failure'
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
+        if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
           run: |
@@ -104,11 +125,14 @@ jobs:
             pip install -r requirements/testing.txt
             setup-postgres
       - name: Run celery
+        if: steps.check.outcome == 'failure'
         run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
       - name: Python unit tests (PostgreSQL)
+        if: steps.check.outcome == 'failure'
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
+        if: steps.check.outcome == 'failure'
         run: |
           bash <(curl -s https://codecov.io/bash) -cF python
 
@@ -135,11 +159,20 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
+      - name: Check if python changes are present
+        id: check
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        continue-on-error: true
+        run: ./scripts/ci_check_no_file_changes.sh python
       - name: Setup Python
+        if: steps.check.outcome == 'failure'
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
+        if: steps.check.outcome == 'failure'
         uses: ./.github/actions/cached-dependencies
         with:
           run: |
@@ -148,10 +181,13 @@ jobs:
             pip install -r requirements/testing.txt
             mkdir ${{ github.workspace }}/.temp
       - name: Run celery
+        if: steps.check.outcome == 'failure'
         run: celery worker --app=superset.tasks.celery_app:app -Ofair -c 2 &
       - name: Python unit tests (SQLite)
+        if: steps.check.outcome == 'failure'
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
+        if: steps.check.outcome == 'failure'
         run: |
           bash <(curl -s https://codecov.io/bash) -cF python

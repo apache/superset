@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
 import { t, SupersetClient, makeApi, styled } from '@superset-ui/core';
 import moment from 'moment';
@@ -135,6 +135,12 @@ function AlertList({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canCreate = hasPerm('can_write');
+
+  useEffect(() => {
+    if (bulkSelectEnabled && canDelete) {
+      toggleBulkSelect();
+    }
+  }, [isReportEnabled]);
 
   const handleAlertDelete = ({ id, name }: AlertObject) => {
     SupersetClient.delete({
@@ -414,12 +420,14 @@ function AlertList({
             label: t('Alerts'),
             url: '/alert/list/',
             usesRouter: true,
+            'data-test': 'alert-list',
           },
           {
             name: 'Reports',
             label: t('Reports'),
             url: '/report/list/',
             usesRouter: true,
+            'data-test': 'report-list',
           },
         ]}
         buttons={subMenuButtons}
@@ -434,6 +442,7 @@ function AlertList({
         layer={currentAlert}
         onHide={() => {
           setAlertModalOpen(false);
+          setCurrentAlert(null);
           refreshData();
         }}
         show={alertModalOpen}

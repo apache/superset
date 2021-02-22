@@ -41,7 +41,7 @@ import SubMenu, {
 import { commonMenuData } from 'src/views/CRUD/data/common';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import TooltipWrapper from 'src/components/TooltipWrapper';
+import { Tooltip } from 'src/common/components/Tooltip';
 import Icons from 'src/components/Icons';
 import FacePile from 'src/components/FacePile';
 import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
@@ -203,22 +203,19 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         }: any) => {
           if (kind === 'physical') {
             return (
-              <TooltipWrapper
-                label="physical-dataset"
-                tooltip={t('Physical dataset')}
+              <Tooltip
+                id="physical-dataset-tooltip"
+                title={t('Physical dataset')}
               >
                 <Icons.DatasetPhysical />
-              </TooltipWrapper>
+              </Tooltip>
             );
           }
 
           return (
-            <TooltipWrapper
-              label="virtual-dataset"
-              tooltip={t('Virtual dataset')}
-            >
+            <Tooltip id="virtual-dataset-tooltip" title={t('Virtual dataset')}>
               <Icons.DatasetVirtual />
-            </TooltipWrapper>
+            </Tooltip>
           );
         },
         accessor: 'kind_icon',
@@ -329,9 +326,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           return (
             <Actions className="actions">
               {canDelete && (
-                <TooltipWrapper
-                  label="delete-action"
-                  tooltip={t('Delete')}
+                <Tooltip
+                  id="delete-action-tooltip"
+                  title={t('Delete')}
                   placement="bottom"
                 >
                   <span
@@ -342,12 +339,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   >
                     <Icons.Trash />
                   </span>
-                </TooltipWrapper>
+                </Tooltip>
               )}
               {canExport && (
-                <TooltipWrapper
-                  label="export-action"
-                  tooltip={t('Export')}
+                <Tooltip
+                  id="export-action-tooltip"
+                  title={t('Export')}
                   placement="bottom"
                 >
                   <span
@@ -358,12 +355,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   >
                     <Icons.Share />
                   </span>
-                </TooltipWrapper>
+                </Tooltip>
               )}
               {canEdit && (
-                <TooltipWrapper
-                  label="edit-action"
-                  tooltip={t('Edit')}
+                <Tooltip
+                  id="edit-action-tooltip"
+                  title={t('Edit')}
                   placement="bottom"
                 >
                   <span
@@ -374,7 +371,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   >
                     <Icons.EditAlt />
                   </span>
-                </TooltipWrapper>
+                </Tooltip>
               )}
             </Actions>
           );

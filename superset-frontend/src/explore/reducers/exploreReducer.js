@@ -121,12 +121,25 @@ export default function exploreReducer(state = {}, action) {
       });
       const hasErrors = errors && errors.length > 0;
 
+      const currentControlsState =
+        action.controlName === 'viz_type' &&
+        action.value !== state.controls.viz_type.value
+          ? // rebuild the full control state if switching viz type
+            getControlsState(
+              state,
+              getFormDataFromControls({
+                ...state.controls,
+                viz_type: control,
+              }),
+            )
+          : state.controls;
+
       return {
         ...state,
         form_data: new_form_data,
         triggerRender: control.renderTrigger && !hasErrors,
         controls: {
-          ...state.controls,
+          ...currentControlsState,
           [action.controlName]: {
             ...control,
             validationErrors: errors,
@@ -144,15 +157,6 @@ export default function exploreReducer(state = {}, action) {
       return {
         ...state,
         sliceName: action.sliceName,
-      };
-    },
-    [actions.RESET_FIELDS]() {
-      return {
-        ...state,
-        controls: getControlsState(
-          state,
-          getFormDataFromControls(state.controls),
-        ),
       };
     },
     [actions.CREATE_NEW_SLICE]() {

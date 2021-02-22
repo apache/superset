@@ -29,6 +29,7 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 from sqlalchemy.ext.declarative.api import DeclarativeMeta
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 
 from tests.test_app import app
 from superset.sql_parse import CtasMethod
@@ -125,6 +126,10 @@ class SupersetTestCase(TestCase):
         return app
 
     @staticmethod
+    def get_nonexistent_numeric_id(model):
+        return (db.session.query(func.max(model.id)).scalar() or 0) + 1
+
+    @staticmethod
     def get_birth_names_dataset():
         example_db = get_example_database()
         return (
@@ -178,6 +183,15 @@ class SupersetTestCase(TestCase):
         user = (
             db.session.query(security_manager.user_model)
             .filter_by(username=username)
+            .one_or_none()
+        )
+        return user
+
+    @staticmethod
+    def get_role(name: str) -> Optional[ab_models.User]:
+        user = (
+            db.session.query(security_manager.role_model)
+            .filter_by(name=name)
             .one_or_none()
         )
         return user

@@ -19,13 +19,13 @@
 
 import { ExtraFormData, makeApi } from '@superset-ui/core';
 import { Dispatch } from 'redux';
+import { FilterConfiguration } from 'src/dashboard/components/nativeFilters/types';
+import { dashboardInfoChanged } from './dashboardInfo';
 import {
   CurrentFilterState,
-  Filter,
-  FilterConfiguration,
-  SelectedValues,
-} from 'src/dashboard/components/nativeFilters/types';
-import { dashboardInfoChanged } from './dashboardInfo';
+  FiltersSet,
+  NativeFilterState,
+} from '../reducers/types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
 export interface SetFilterConfigBegin {
@@ -42,13 +42,21 @@ export interface SetFilterConfigFail {
   type: typeof SET_FILTER_CONFIG_FAIL;
   filterConfig: FilterConfiguration;
 }
-
-export const SET_FILTER_STATE = 'SET_FILTER_STATE';
-export interface SetFilterState {
-  type: typeof SET_FILTER_STATE;
-  selectedValues: SelectedValues;
-  filter: Filter;
-  filters: FilterConfiguration;
+export const SET_FILTER_SETS_CONFIG_BEGIN = 'SET_FILTER_SETS_CONFIG_BEGIN';
+export interface SetFilterSetsConfigBegin {
+  type: typeof SET_FILTER_SETS_CONFIG_BEGIN;
+  filterSetsConfig: FiltersSet[];
+}
+export const SET_FILTER_SETS_CONFIG_COMPLETE =
+  'SET_FILTER_SETS_CONFIG_COMPLETE';
+export interface SetFilterSetsConfigComplete {
+  type: typeof SET_FILTER_SETS_CONFIG_COMPLETE;
+  filterSetsConfig: FiltersSet[];
+}
+export const SET_FILTER_SETS_CONFIG_FAIL = 'SET_FILTER_SETS_CONFIG_FAIL';
+export interface SetFilterSetsConfigFail {
+  type: typeof SET_FILTER_SETS_CONFIG_FAIL;
+  filterSetsConfig: FiltersSet[];
 }
 
 interface DashboardInfo {
@@ -95,6 +103,45 @@ export const setFilterConfiguration = (
   }
 };
 
+export const setFilterSetsConfiguration = (
+  filterSetsConfig: FiltersSet[],
+) => async (dispatch: Dispatch, getState: () => any) => {
+  dispatch({
+    type: SET_FILTER_SETS_CONFIG_BEGIN,
+    filterSetsConfig,
+  });
+  const { id, metadata } = getState().dashboardInfo;
+
+  // TODO extract this out when makeApi supports url parameters
+  const updateDashboard = makeApi<
+    Partial<DashboardInfo>,
+    { result: DashboardInfo }
+  >({
+    method: 'PUT',
+    endpoint: `/api/v1/dashboard/${id}`,
+  });
+
+  try {
+    const response = await updateDashboard({
+      json_metadata: JSON.stringify({
+        ...metadata,
+        filter_sets_configuration: filterSetsConfig,
+      }),
+    });
+    dispatch(
+      dashboardInfoChanged({
+        metadata: JSON.parse(response.result.json_metadata),
+      }),
+    );
+    dispatch({
+      type: SET_FILTER_SETS_CONFIG_COMPLETE,
+      filterSetsConfig,
+    });
+  } catch (err) {
+    dispatch({ type: SET_FILTER_SETS_CONFIG_FAIL, filterSetsConfig });
+  }
+};
+
 export const SET_EXTRA_FORM_DATA = 'SET_EXTRA_FORM_DATA';
 export interface SetExtraFormData {
   type: typeof SET_EXTRA_FORM_DATA;
@@ -103,18 +150,20 @@ export interface SetExtraFormData {
   currentState: CurrentFilterState;
 }
 
-export function setFilterState(
-  selectedValues: SelectedValues,
-  filter: Filter,
-  filters: FilterConfiguration,
-) {
-  return {
-    type: SET_FILTER_STATE,
-    selectedValues,
-    filter,
-    filters,
-  };
+export const SAVE_FILTER_SETS = 'SAVE_FILTER_SETS';
+export interface SaveFilterSets {
+  type: typeof SAVE_FILTER_SETS;
+  name: string;
+  filtersState: NativeFilterState;
+  filtersSetId: string;
 }
+
+export const SET_FILTERS_STATE = 'SET_FILTERS_STATE';
+export interface SetFiltersState {
+  type: typeof SET_FILTERS_STATE;
+  filtersState: NativeFilterState;
+}
+
 /**
  * Sets the selected option(s) for a given filter
  * @param filterId the id of the native filter
@@ -134,9 +183,35 @@ export function setExtraFormData(
   };
 }
 
+export function saveFilterSets(
+  name: string,
+  filtersSetId: string,
+  filtersState: NativeFilterState,
+): SaveFilterSets {
+  return {
+    type: SAVE_FILTER_SETS,
+    name,
+    filtersSetId,
+    filtersState,
+  };
+}
+
+export function setFiltersState(
+  filtersState: NativeFilterState,
+): SetFiltersState {
+  return {
+    type: SET_FILTERS_STATE,
+    filtersState,
+  };
+}
+
 export type AnyFilterAction =
   | SetFilterConfigBegin
   | SetFilterConfigComplete
   | SetFilterConfigFail
+  | SetFilterSetsConfigBegin
+  | SetFilterSetsConfigComplete
+  | SetFilterSetsConfigFail
+  | SetFiltersState
   | SetExtraFormData
-  | SetFilterState;
+  | SaveFilterSets;

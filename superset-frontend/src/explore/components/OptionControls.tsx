@@ -18,8 +18,11 @@
  */
 import React, { useRef } from 'react';
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
-import { styled, useTheme } from '@superset-ui/core';
-import { ColumnOption } from '@superset-ui/chart-controls';
+import { styled, t, useTheme } from '@superset-ui/core';
+import {
+  MetricOption,
+  InfoTooltipWithTrigger,
+} from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/common/components/Tooltip';
 import Icon from 'src/components/Icon';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
@@ -45,7 +48,7 @@ const OptionControlContainer = styled.div<{
 `;
 
 const Label = styled.div`
-  display: inline-block;
+  display: flex;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -71,6 +74,10 @@ const CloseContainer = styled.div`
   width: ${({ theme }) => theme.gridUnit * 6}px;
   border-right: solid 1px ${({ theme }) => theme.colors.grayscale.dark2}0C;
   cursor: pointer;
+`;
+
+const StyledInfoTooltipWithTrigger = styled(InfoTooltipWithTrigger)`
+  margin: 0 ${({ theme }) => theme.gridUnit}px;
 `;
 
 export const HeaderContainer = styled.div`
@@ -138,6 +145,7 @@ export const OptionControlLabel = ({
   isFunction,
   type,
   index,
+  isExtra,
   ...props
 }: {
   label: string | React.ReactNode;
@@ -150,6 +158,7 @@ export const OptionControlLabel = ({
   isDraggable?: boolean;
   type: string;
   index: number;
+  isExtra?: boolean;
 }) => {
   const theme = useTheme();
   const ref = useRef<HTMLDivElement>(null);
@@ -209,12 +218,7 @@ export const OptionControlLabel = ({
 
   const getLabelContent = () => {
     if (savedMetric?.metric_name) {
-      // add column_name to fix typescript error
-      const column = { ...savedMetric, column_name: '' };
-      if (!column.verbose_name) {
-        column.verbose_name = column.metric_name;
-      }
-      return <ColumnOption column={column} />;
+      return <MetricOption metric={savedMetric} />;
     }
     return <Tooltip title={label}>{label}</Tooltip>;
   };
@@ -236,6 +240,17 @@ export const OptionControlLabel = ({
         {isFunction && <Icon name="function" viewBox="0 0 16 11" />}
         {getLabelContent()}
       </Label>
+      {isExtra && (
+        <StyledInfoTooltipWithTrigger
+          icon="exclamation-triangle"
+          placement="top"
+          bsStyle="warning"
+          tooltip={t(`
+                This filter was inherited from the dashboard's context.
+                It won't be saved when saving the chart.
+              `)}
+        />
+      )}
       {isAdhoc && (
         <CaretContainer>
           <Icon name="caret-right" color={theme.colors.grayscale.light1} />

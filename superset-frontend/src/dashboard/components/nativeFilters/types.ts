@@ -16,43 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ExtraFormData,
-  JsonObject,
-  QueryObjectFilterClause,
-} from '@superset-ui/core';
-
-export enum Scoping {
-  all,
-  specific,
-}
-
-// Using to pass setState React callbacks directly to And components
-export type AntCallback = (value1?: any, value2?: any) => void;
-
-interface NativeFiltersFormItem {
-  scope: Scope;
-  name: string;
-  filterType: FilterType;
-  dataset: {
-    value: number;
-    label: string;
-  };
-  column: string;
-  defaultValue: any;
-  parentFilter: {
-    value: string;
-    label: string;
-  };
-  inverseSelection: boolean;
-  isInstant: boolean;
-  allowsMultipleValues: boolean;
-  isRequired: boolean;
-}
-
-export interface NativeFiltersForm {
-  filters: Record<string, NativeFiltersFormItem>;
-}
 
 export interface Column {
   name: string;
@@ -74,71 +37,21 @@ export interface Target {
   // clarityColumns?: Column[];
 }
 
-export enum FilterType {
-  filter_select = 'filter_select',
-  filter_range = 'filter_range',
-}
-
-/**
- * This is a filter configuration object, stored in the dashboard's json metadata.
- * The values here do not reflect the current state of the filter.
- */
 export interface Filter {
-  allowsMultipleValues: boolean;
   cascadeParentIds: string[];
   defaultValue: any;
   currentValue?: any;
-  inverseSelection: boolean;
   isInstant: boolean;
-  isRequired: boolean;
   id: string; // randomly generated at filter creation
   name: string;
   scope: Scope;
-  filterType: FilterType;
+  filterType: string;
   // for now there will only ever be one target
   // when multiple targets are supported, change this to Target[]
-  targets: [Target];
-}
-
-export interface CascadeFilter extends Filter {
-  cascadeChildren: CascadeFilter[];
+  targets: [Partial<Target>];
+  controlValues: {
+    [key: string]: any;
+  };
 }
 
 export type FilterConfiguration = Filter[];
-
-export type SelectedValues = string[] | null;
-export type CurrentFilterState = JsonObject & {
-  value: any;
-};
-
-/** Current state of the filter, stored in `nativeFilters` in redux */
-export type FilterState = {
-  id: string; // ties this filter state to the config object
-  extraFormData?: ExtraFormData;
-  currentState?: CurrentFilterState;
-};
-
-export type AllFilterState = {
-  column: Column;
-  datasetId: number;
-  datasource: string;
-  id: string;
-  selectedValues: SelectedValues;
-  filterClause?: QueryObjectFilterClause;
-};
-
-/** UI Ant tree type */
-export type TreeItem = {
-  children: TreeItem[];
-  key: string;
-  title: string;
-};
-
-export type NativeFiltersState = {
-  filters: {
-    [filterId: string]: Filter;
-  };
-  filtersState: {
-    [filterId: string]: FilterState;
-  };
-};
