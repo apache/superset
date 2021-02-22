@@ -67,6 +67,7 @@ from superset.views.database.views import DatabaseView
 
 from .base_tests import SupersetTestCase
 from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
+from tests.fixtures.test_conn import bad_database_test_conn_request
 
 logger = logging.getLogger(__name__)
 
@@ -508,13 +509,7 @@ class TestCore(SupersetTestCase):
             expected_body,
         )
 
-        data = json.dumps(
-            {
-                "uri": "mssql+pymssql://url",
-                "name": "examples",
-                "impersonate_user": False,
-            }
-        )
+        data = bad_database_test_conn_request()
         response = self.client.post(
             "/superset/testconn", data=data, content_type="application/json"
         )
