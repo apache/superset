@@ -130,6 +130,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # assert
         self.assert403(response)
 
+
     @pytest.mark.usefixtures("public_role_like_gamma")
     def test_get_dashboard_view__public_user_with_dashboard_permission_can_not_access_draft(
         self,
