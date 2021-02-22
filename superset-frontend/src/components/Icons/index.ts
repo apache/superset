@@ -103,7 +103,7 @@ import { ReactComponent as MapIcon } from 'images/icons/map.svg';
 import { ReactComponent as MessageIcon } from 'images/icons/message.svg';
 import { ReactComponent as MinusIcon } from 'images/icons/minus.svg';
 import { ReactComponent as MinusSolidIcon } from 'images/icons/minus_solid.svg';
-import { ReactComponent as ModeHorizIcon } from 'images/icons/more_horiz.svg';
+import { ReactComponent as MoreHorizIcon } from 'images/icons/more_horiz.svg';
 import { ReactComponent as MoveIcon } from 'images/icons/move.svg';
 import { ReactComponent as NavChartsIcon } from 'images/icons/nav_charts.svg';
 import { ReactComponent as NavDashboardIcon } from 'images/icons/nav_dashboard.svg';
@@ -241,7 +241,7 @@ export default {
   Message: (props: IconType) => renderIcon(MessageIcon, props),
   Minus: (props: IconType) => renderIcon(MinusIcon, props),
   MinusSolid: (props: IconType) => renderIcon(MinusSolidIcon, props),
-  ModeHoriz: (props: IconType) => renderIcon(ModeHorizIcon, props),
+  MoreHoriz: (props: IconType) => renderIcon(MoreHorizIcon, props),
   Move: (props: IconType) => renderIcon(MoveIcon, props),
   NavCharts: (props: IconType) => renderIcon(NavChartsIcon, props),
   NavDashboard: (props: IconType) => renderIcon(NavDashboardIcon, props),
