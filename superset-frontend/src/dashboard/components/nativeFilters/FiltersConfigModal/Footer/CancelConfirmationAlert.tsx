@@ -19,13 +19,13 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 import Alert from 'src/components/Alert';
-import Button from 'src/components/Button';
+import Button, { OnClickHandler } from 'src/components/Button';
 
 export interface ConfirmationAlertProps {
   title: string;
   children: React.ReactNode;
-  onConfirm: () => void;
-  onDismiss: () => void;
+  onConfirm: OnClickHandler;
+  onDismiss: OnClickHandler;
 }
 
 export function CancelConfirmationAlert({
