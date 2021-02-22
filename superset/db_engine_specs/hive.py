@@ -487,9 +487,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         # the configuraiton dictionary. See get_configuration_for_impersonation
 
     @classmethod
-    def get_configuration_for_impersonation(
+    def update_connect_args_for_impersonation(
         cls, uri: str, impersonate_user: bool, username: Optional[str]
-    ) -> Dict[str, str]:
+    ) -> Dict[str, Any]:
         """
         Return a configuration dictionary that can be merged with other configs
         that can set the correct properties for impersonating users
@@ -498,15 +498,16 @@ class HiveEngineSpec(PrestoEngineSpec):
         :param username: Effective username
         :return: Configs required for impersonation
         """
-        configuration = {}
         url = make_url(uri)
         backend_name = url.get_backend_name()
 
         # Must be Hive connection, enable impersonation, and set optional param
         # auth=LDAP|KERBEROS
         if backend_name == "hive" and impersonate_user and username is not None:
-            configuration["hive.server2.proxy.user"] = username
-        return configuration
+            connect_args = {"configuration": {}}  # type: Dict[str, Any]
+            connect_args["configuration"]["hive.server2.proxy.user"] = username
+            return connect_args
+        return {}
 
     @staticmethod
     def execute(  # type: ignore

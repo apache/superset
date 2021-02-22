@@ -325,24 +325,15 @@ class Database(
             params["poolclass"] = NullPool
 
         connect_args = params.get("connect_args", {})
-        configuration = connect_args.get("configuration", {})
-
-        # If using Hive, this will set hive.server2.proxy.user=$effective_username
-        configuration.update(
-            self.db_engine_spec.get_configuration_for_impersonation(
-                str(sqlalchemy_url), self.impersonate_user, effective_username
-            )
-        )
 
         # If using presto, this will set principal_username=$effective_username
+        # If using Hive, this will set hive.server2.proxy.user=$effective_username on connect_args['configuration']
         connect_args.update(
-            self.db_engine_spec.connect_arg_for_impersonation(
+            self.db_engine_spec.update_connect_args_for_impersonation(
                 str(sqlalchemy_url), self.impersonate_user, effective_username
             )
         )
 
-        if configuration:
-            connect_args["configuration"] = configuration
         if connect_args:
             params["connect_args"] = connect_args
 
