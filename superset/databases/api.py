@@ -66,13 +66,11 @@ from superset.databases.schemas import (
 from superset.databases.utils import get_table_metadata
 from superset.extensions import security_manager
 from superset.models.core import Database
-from superset.stats_logger import StatsdStatsLogger
 from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
-statsd = StatsdStatsLogger()
 
 
 class DatabaseRestApi(BaseSupersetModelRestApi):
