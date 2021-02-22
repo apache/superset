@@ -83,7 +83,7 @@ const ActivityTableRow: React.FC<ActivityProps> = ({
   <>
     {activityList.map(activity => (
       <CardStyles
-        key={`${activity.item_title}__${activity.time}`}
+        key={`${activity.dashboard_title}__${activity.time}__${activity.id}`}
         onClick={() => {
           window.location.href = getRecentRef(activeChild, activity);
         }}
@@ -108,5 +108,4 @@ const ActivityTableRow: React.FC<ActivityProps> = ({
     ))}
   </>
 );
-
 export default ActivityTableRow;
