@@ -1709,7 +1709,18 @@ class DistributionBarViz(BaseViz):
             raise QueryObjectValidationError(_("Pick at least one metric"))
         if not fd.get("groupby"):
             raise QueryObjectValidationError(_("Pick at least one field for [Series]"))
-        d["orderby"] = [(metric, False) for metric in d["metrics"]]
+
+        sort_by = fd.get("timeseries_limit_metric")
+        if sort_by:
+            sort_by_label = utils.get_metric_name(sort_by)
+            if sort_by_label not in d["metrics"]:
+                d["metrics"].append(sort_by)
+            d["orderby"] = [(sort_by, not fd.get("order_desc", True))]
+        elif d["metrics"]:
+            # Legacy behavior of sorting by first metric by default
+            first_metric = d["metrics"][0]
+            d["orderby"] = [(first_metric, not fd.get("order_desc", True))]
+
         return d
 
     def get_data(self, df: pd.DataFrame) -> VizData:
