@@ -966,7 +966,21 @@ class TestCore(SupersetTestCase):
     @mock.patch("superset.viz.BaseViz.force_cached", new_callable=mock.PropertyMock)
     def test_explore_json_data(self, mock_force_cached, mock_cache):
         tbl_id = self.table_ids.get("birth_names")
-        form_data = dict({"form_data": dist_bar_form_data(table_id=tbl_id),})
+        form_data = dict(
+            {
+                "form_data": {
+                    "datasource": f"{tbl_id}__table",
+                    "viz_type": "dist_bar",
+                    "time_range_endpoints": ["inclusive", "exclusive"],
+                    "granularity_sqla": "ds",
+                    "time_range": "No filter",
+                    "metrics": ["count"],
+                    "adhoc_filters": [],
+                    "groupby": ["gender"],
+                    "row_limit": 100,
+                }
+            }
+        )
 
         class MockCache:
             def get(self, key):
