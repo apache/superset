@@ -25,6 +25,7 @@ import { Filter } from '../../types';
 import { getFormData } from '../../utils';
 
 // When some fields in form changed we need re-fetch data for Filter defaultValue
+// eslint-disable-next-line import/prefer-default-export
 export const useBackendFormUpdate = (
   form: FormInstance<NativeFiltersForm>,
   filterId: string,
