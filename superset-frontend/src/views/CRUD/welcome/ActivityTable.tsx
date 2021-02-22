@@ -24,7 +24,7 @@ import Loading from 'src/components/Loading';
 import SubMenu from 'src/components/Menu/SubMenu';
 import ActivityTableRow from './ActivityTableRow';
 import { ActivityData } from './Welcome';
-import { mq } from '../utils';
+import { mq } from 'src/views/CURD/utils';
 import EmptyState from './EmptyState';
 
 interface ActivityProps {
