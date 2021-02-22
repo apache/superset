@@ -17,7 +17,7 @@
 """legacy force directed to echart
 
 Revision ID: 1412ec1e5a7b
-Revises: 070c043f2fdb
+Revises: c501b7c653a3
 Create Date: 2021-02-14 11:46:02.379832
 
 """
@@ -32,7 +32,7 @@ from superset import db
 
 # revision identifiers, used by Alembic.
 revision = "1412ec1e5a7b"
-down_revision = "070c043f2fdb"
+down_revision = "c501b7c653a3"
 
 
 Base = declarative_base()
