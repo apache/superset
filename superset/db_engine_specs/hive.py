@@ -489,9 +489,8 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def update_connect_args_for_impersonation(
         cls,
-        connect_args: Dict[Any, Any],
+        connect_args: Dict[str, Any],
         uri: str,
-        impersonate_user: bool,
         username: Optional[str],
     ) -> None:
         """
@@ -507,7 +506,8 @@ class HiveEngineSpec(PrestoEngineSpec):
 
         # Must be Hive connection, enable impersonation, and set optional param
         # auth=LDAP|KERBEROS
-        if backend_name == "hive" and impersonate_user and username is not None:
+        # this will set hive.server2.proxy.user=$effective_username on connect_args['configuration']
+        if backend_name == "hive" and username is not None:
             configuration = connect_args.get("configuration", {})
             configuration["hive.server2.proxy.user"] = username
             connect_args["configuration"] = configuration

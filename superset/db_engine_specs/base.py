@@ -911,9 +911,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def update_connect_args_for_impersonation(
         cls,
-        connect_args: Dict[Any, Any],
+        connect_args: Dict[str, Any],
         uri: str,
-        impersonate_user: bool,
         username: Optional[str],
     ) -> None:
         """
