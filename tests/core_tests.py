@@ -67,7 +67,10 @@ from superset.views.database.views import DatabaseView
 
 from .base_tests import SupersetTestCase
 from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
-from tests.fixtures.test_conn import bad_database_test_conn_request
+from tests.fixtures.core import (
+    bad_database_test_conn_request,
+    create_query_editor_request,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1353,18 +1356,7 @@ class TestCore(SupersetTestCase):
         user_id = security_manager.find_user(username).id
 
         # create a tab
-        data = {
-            "queryEditor": json.dumps(
-                {
-                    "title": "Untitled Query 1",
-                    "dbId": 1,
-                    "schema": None,
-                    "autorun": False,
-                    "sql": "SELECT ...",
-                    "queryLimit": 1000,
-                }
-            )
-        }
+        data = create_query_editor_request()
         resp = self.get_json_resp("/tabstateview/", data=data)
         tab_state_id = resp["id"]
 
