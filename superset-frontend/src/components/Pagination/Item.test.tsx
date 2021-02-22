@@ -19,7 +19,8 @@
 
 import React from 'react';
 import '@testing-library/jest-dom';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Item } from './Item';
 
 test('Item - click when the item is not active', () => {
@@ -30,7 +31,7 @@ test('Item - click when the item is not active', () => {
     </Item>,
   );
   expect(click).toBeCalledTimes(0);
-  fireEvent.click(screen.getByRole('button'));
+  userEvent.click(screen.getByRole('button'));
   expect(click).toBeCalledTimes(1);
   expect(screen.getByTestId('test')).toBeInTheDocument();
 });
@@ -43,7 +44,7 @@ test('Item - click when the item is active', () => {
     </Item>,
   );
   expect(click).toBeCalledTimes(0);
-  fireEvent.click(screen.getByRole('button'));
+  userEvent.click(screen.getByRole('button'));
   expect(click).toBeCalledTimes(0);
   expect(screen.getByTestId('test')).toBeInTheDocument();
 });
