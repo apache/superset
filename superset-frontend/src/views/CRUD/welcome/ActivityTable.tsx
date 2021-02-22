@@ -22,9 +22,9 @@ import { styled, t } from '@superset-ui/core';
 
 import Loading from 'src/components/Loading';
 import SubMenu from 'src/components/Menu/SubMenu';
+import { mq } from 'src/views/CRUD/utils';
 import ActivityTableRow from './ActivityTableRow';
 import { ActivityData } from './Welcome';
-import { mq } from 'src/views/CURD/utils';
 import EmptyState from './EmptyState';
 
 interface ActivityProps {
