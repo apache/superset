@@ -910,18 +910,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def update_connect_args_for_impersonation(
-        cls, uri: str, impersonate_user: bool, username: Optional[str]
-    ) -> Dict[str, Any]:
+        cls, connect_args : Dict[Any, Any], uri: str, impersonate_user: bool, username: Optional[str]
+    ) -> None:
         """
-        Return a configuration dictionary that can be merged with other configs
-        that can set the correct properties for impersonating users
+        Update a configuration dictionary that can set the correct properties for impersonating users
 
+        :param connect_args: config to be updated
         :param uri: URI
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
-        :return: Configs required for impersonation
+        :return: None
         """
-        return {}
 
     @classmethod
     def execute(cls, cursor: Any, query: str, **kwargs: Any) -> None:

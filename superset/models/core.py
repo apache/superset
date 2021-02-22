@@ -328,10 +328,8 @@ class Database(
 
         # If using presto, this will set principal_username=$effective_username
         # If using Hive, this will set hive.server2.proxy.user=$effective_username on connect_args['configuration']
-        connect_args.update(
-            self.db_engine_spec.update_connect_args_for_impersonation(
-                str(sqlalchemy_url), self.impersonate_user, effective_username
-            )
+        self.db_engine_spec.update_connect_args_for_impersonation(
+            connect_args, str(sqlalchemy_url), self.impersonate_user, effective_username
         )
 
         if connect_args:

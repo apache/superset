@@ -138,17 +138,16 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
     @classmethod
     def update_connect_args_for_impersonation(
-        cls, uri: str, impersonate_user: bool, username: Optional[str]
-    ) -> Dict[str, Any]:
+        cls, connect_args : Dict[Any, Any], uri: str, impersonate_user: bool, username: Optional[str]
+    ) -> None:
         """
-        Return a configuration dictionary that can be merged with other configs
-        that can set the correct properties for impersonating users
+        Update a configuration dictionary that can set the correct properties for impersonating users
+        :param connect_args: config to be updated
         :param uri: URI string
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
-        :return: Configs required for impersonation
+        :return: None
         """
-        connect_args = {}
         url = make_url(uri)
         backend_name = url.get_backend_name()
 
@@ -156,7 +155,6 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         # auth=LDAP|KERBEROS
         if backend_name == "presto" and impersonate_user and username is not None:
             connect_args["principal_username"] = username
-        return connect_args
 
     @classmethod
     def get_table_names(
