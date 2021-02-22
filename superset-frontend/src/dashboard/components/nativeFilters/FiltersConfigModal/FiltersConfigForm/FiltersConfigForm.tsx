@@ -18,53 +18,31 @@
  */
 import {
   styled,
-  SuperChart,
   t,
-  getChartControlPanelRegistry,
   getChartMetadataRegistry,
   Behavior,
 } from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
 import React, { useCallback } from 'react';
-import {
-  Button,
-  Checkbox,
-  Form,
-  Input,
-  Typography,
-} from 'src/common/components';
+import { Checkbox, Form, Input, Typography } from 'src/common/components';
 import { Select } from 'src/components/Select/SupersetStyledSelect';
 import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
-import { CustomControlItem } from '@superset-ui/chart-controls';
 import { ColumnSelect } from './ColumnSelect';
-import { NativeFiltersForm } from './types';
-import FilterScope from './FilterScope';
-import { getControlItems, setFilterFieldValues, useForceUpdate } from './utils';
+import { NativeFiltersForm } from '../types';
+import {
+  datasetToSelectOption,
+  setFilterFieldValues,
+  useForceUpdate,
+} from './utils';
 import { useBackendFormUpdate } from './state';
-import { getFormData } from '../utils';
-import { Filter } from '../types';
-
-type DatasetSelectValue = {
-  value: number;
-  label: string;
-};
-
-const datasetToSelectOption = (item: any): DatasetSelectValue => ({
-  value: item.id,
-  label: item.table_name,
-});
-
-const RemovedContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 400px; // arbitrary
-  text-align: center;
-  justify-content: center;
-  align-items: center;
-  color: ${({ theme }) => theme.colors.grayscale.base};
-`;
+import { getFormData } from '../../utils';
+import { Filter } from '../../types';
+import ControlItems from './ControlItems';
+import FilterScope from './FilterScope/FilterScope';
+import RemovedFilter from './RemovedFilter';
+import DefaultValue from './DefaultValue';
 
 const StyledContainer = styled.div`
   display: flex;
@@ -72,16 +50,16 @@ const StyledContainer = styled.div`
   justify-content: space-between;
 `;
 
-const StyledFormItem = styled(Form.Item)`
+export const StyledFormItem = styled(Form.Item)`
   width: 49%;
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
 `;
 
-const StyledCheckboxFormItem = styled(Form.Item)`
+export const StyledCheckboxFormItem = styled(Form.Item)`
   margin-bottom: 0;
 `;
 
-const StyledLabel = styled.span`
+export const StyledLabel = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
   font-size: ${({ theme }) => theme.typography.sizes.s};
   text-transform: uppercase;
@@ -91,11 +69,11 @@ const CleanFormItem = styled(Form.Item)`
   margin-bottom: 0;
 `;
 
-export interface FilterConfigFormProps {
+export interface FiltersConfigFormProps {
   filterId: string;
   filterToEdit?: Filter;
   removed?: boolean;
-  restore: (filterId: string) => void;
+  restoreFilter: (filterId: string) => void;
   form: FormInstance<NativeFiltersForm>;
   parentFilters: { id: string; title: string }[];
 }
@@ -104,20 +82,16 @@ export interface FilterConfigFormProps {
  * The configuration form for a specific filter.
  * Assigns field values to `filters[filterId]` in the form.
  */
-export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
+export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
   filterId,
   filterToEdit,
   removed,
-  restore,
+  restoreFilter,
   form,
   parentFilters,
 }) => {
-  const controlPanelRegistry = getChartControlPanelRegistry();
   const forceUpdate = useForceUpdate();
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
-  const controlItems = getControlItems(
-    controlPanelRegistry.get(formFilter?.filterType),
-  );
 
   const nativeFilterItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterItems)
@@ -157,20 +131,7 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   );
 
   if (removed) {
-    return (
-      <RemovedContent>
-        <p>{t('You have removed this filter.')}</p>
-        <div>
-          <Button
-            data-test="restore-filter-button"
-            type="primary"
-            onClick={() => restore(filterId)}
-          >
-            {t('Restore Filter')}
-          </Button>
-        </div>
-      </RemovedContent>
-    );
+    return <RemovedFilter onClick={() => restoreFilter(filterId)} />;
   }
 
   const parentFilterOptions = parentFilters.map(filter => ({
@@ -274,36 +235,6 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
         initialValue={null}
       />
       <StyledFormItem
-        name={['filters', filterId, 'defaultValue']}
-        initialValue={filterToEdit?.defaultValue}
-        data-test="default-input"
-        label={<StyledLabel>{t('Default Value')}</StyledLabel>}
-      >
-        {((hasFilledDatasource && formFilter?.defaultValueQueriesData) ||
-          !hasDatasource) && (
-          <SuperChart
-            height={25}
-            width={250}
-            formData={newFormData}
-            // For charts that don't have datasource we need workaround for empty placeholder
-            queriesData={
-              hasDatasource
-                ? formFilter?.defaultValueQueriesData
-                : [{ data: [null] }]
-            }
-            chartType={formFilter?.filterType}
-            hooks={{
-              setExtraFormData: ({ currentState }) => {
-                setFilterFieldValues(form, filterId, {
-                  defaultValue: currentState?.value,
-                });
-                forceUpdate();
-              },
-            }}
-          />
-        )}
-      </StyledFormItem>
-      <StyledFormItem
         name={['filters', filterId, 'parentFilter']}
         label={<StyledLabel>{t('Parent filter')}</StyledLabel>}
         initialValue={parentFilterOptions.find(
@@ -317,6 +248,14 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
           isClearable
         />
       </StyledFormItem>
+      <DefaultValue
+        filterId={filterId}
+        hasFilledDatasource={hasFilledDatasource}
+        hasDatasource={hasDatasource}
+        filterToEdit={filterToEdit}
+        form={form}
+        formData={newFormData}
+      />
       <StyledCheckboxFormItem
         name={['filters', filterId, 'isInstant']}
         initialValue={filterToEdit?.isInstant}
@@ -327,33 +266,13 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
           {t('Apply changes instantly')}
         </Checkbox>
       </StyledCheckboxFormItem>
-      {controlItems
-        .filter(
-          (controlItem: CustomControlItem) =>
-            controlItem?.config?.renderTrigger,
-        )
-        .map(controlItem => (
-          <StyledCheckboxFormItem
-            name={['filters', filterId, 'controlValues', controlItem.name]}
-            initialValue={filterToEdit?.controlValues?.[controlItem.name]}
-            valuePropName="checked"
-            colon={false}
-          >
-            <Checkbox
-              onChange={() => {
-                if (!controlItem.config.resetConfig) {
-                  return;
-                }
-                setFilterFieldValues(form, filterId, {
-                  defaultValue: null,
-                });
-                forceUpdate();
-              }}
-            >
-              {controlItem.config.label}
-            </Checkbox>
-          </StyledCheckboxFormItem>
-        ))}
+      <ControlItems
+        filterToEdit={filterToEdit}
+        formFilter={formFilter}
+        filterId={filterId}
+        form={form}
+        forceUpdate={forceUpdate}
+      />
       <FilterScope
         filterId={filterId}
         filterToEdit={filterToEdit}
@@ -363,4 +282,4 @@ export const FilterConfigForm: React.FC<FilterConfigFormProps> = ({
   );
 };
 
-export default FilterConfigForm;
+export default FiltersConfigForm;

@@ -45,6 +45,7 @@ interface RootState {
   common: {
     conf: {
       SQLALCHEMY_DOCS_URL: string;
+      SQLALCHEMY_DISPLAY_TEXT: string;
     };
   };
   messageToast: Array<Object>;
@@ -417,7 +418,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {t('SQLAlchemy docs')}
+                {conf?.SQLALCHEMY_DISPLAY_TEXT ?? ''}
               </a>
               {t(' for more information on how to structure your URI.')}
             </div>

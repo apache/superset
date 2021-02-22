@@ -35,6 +35,8 @@ const mockData = {
   id: 1,
   name: 'test report',
   description: 'test report description',
+  chart: { id: 1, slice_name: 'test chart' },
+  database: { id: 1, database_name: 'test database' },
 };
 const FETCH_REPORT_ENDPOINT = 'glob:*/api/v1/report/*';
 const REPORT_PAYLOAD = { result: mockData };
@@ -149,6 +151,24 @@ describe('AlertReportModal', () => {
     );
   });
 
+  it('renders async select with value in alert edit modal', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+      isReport: false,
+    };
+
+    const editWrapper = await mountAndWait(props);
+    expect(editWrapper.find(AsyncSelect).at(1).props().value).toEqual({
+      value: 1,
+      label: 'test database',
+    });
+    expect(editWrapper.find(AsyncSelect).at(2).props().value).toEqual({
+      value: 1,
+      label: 'test chart',
+    });
+  });
+
   // Fields
   it('renders input element for name', () => {
     expect(wrapper.find('input[name="name"]')).toExist();
@@ -239,5 +259,40 @@ describe('AlertReportModal', () => {
 
     expect(addWrapper.find('input[name="grace_period"]')).toExist();
     expect(wrapper.find('input[name="grace_period"]')).toHaveLength(0);
+  });
+
+  it('only allows grace period values > 1', async () => {
+    const props = {
+      ...mockedProps,
+      isReport: false,
+    };
+
+    const addWrapper = await mountAndWait(props);
+
+    const input = addWrapper.find('input[name="grace_period"]');
+
+    input.simulate('change', { target: { name: 'grace_period', value: 7 } });
+    expect(input.instance().value).toEqual('7');
+
+    input.simulate('change', { target: { name: 'grace_period', value: 0 } });
+    expect(input.instance().value).toEqual('');
+
+    input.simulate('change', { target: { name: 'grace_period', value: -1 } });
+    expect(input.instance().value).toEqual('1');
+  });
+
+  it('only allows working timeout values > 1', () => {
+    const input = wrapper.find('input[name="working_timeout"]');
+
+    input.simulate('change', { target: { name: 'working_timeout', value: 7 } });
+    expect(input.instance().value).toEqual('7');
+
+    input.simulate('change', { target: { name: 'working_timeout', value: 0 } });
+    expect(input.instance().value).toEqual('');
+
+    input.simulate('change', {
+      target: { name: 'working_timeout', value: -1 },
+    });
+    expect(input.instance().value).toEqual('1');
   });
 });

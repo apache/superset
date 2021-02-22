@@ -27,8 +27,9 @@ import {
 } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
-import { ExploreActions } from '../actions/exploreActions';
-import Control from './Control';
+import { FAST_DEBOUNCE } from 'src/constants';
+import { ExploreActions } from 'src/explore/actions/exploreActions';
+import Control from 'src/explore/components/Control';
 
 interface DatasourceControl extends ControlConfig {
   datasource?: DatasourceMeta;
@@ -162,7 +163,7 @@ export default function DataSourcePanel({
           String(a.rankedValue).localeCompare(b.rankedValue),
       }),
     });
-  }, 200);
+  }, FAST_DEBOUNCE);
 
   useEffect(() => {
     setList({
