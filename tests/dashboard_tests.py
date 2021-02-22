@@ -420,6 +420,9 @@ class TestDashboard(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_dashboard_with_created_by_can_be_accessed_by_public_users(self):
+        app.config["PUBLIC_ROLE_LIKE"] = "Gamma"
+        security_manager.sync_role_definitions()
+
         self.logout()
         table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
         self.grant_public_access_to_table(table)
@@ -433,6 +436,8 @@ class TestDashboard(SupersetTestCase):
         assert "Births" in self.get_resp("/superset/dashboard/births/")
         # Cleanup
         self.revoke_public_access_to_table(table)
+        security_manager.get_public_role().permissions = []
+        db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_only_owners_can_save(self):
