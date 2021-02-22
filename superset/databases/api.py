@@ -238,7 +238,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except DatabaseInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatabaseConnectionFailedError as ex:
-            logger.warning("Database connection failed")
+            logger.warning("Database connection failed: %s", item["sqlalchemy_uri"])
             return self.response_422(message=str(ex))
         except DatabaseCreateFailedError as ex:
             logger.error(
