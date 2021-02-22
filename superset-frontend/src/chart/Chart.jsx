@@ -18,7 +18,7 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { Alert } from 'react-bootstrap';
+import Alert from 'src/components/Alert';
 import { styled, logging } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -193,9 +193,11 @@ class Chart extends React.PureComponent {
     }
     if (errorMessage) {
       return (
-        <Alert data-test="alert-warning" bsStyle="warning">
-          {errorMessage}
-        </Alert>
+        <Alert
+          data-test="alert-warning"
+          message={errorMessage}
+          type="warning"
+        />
       );
     }
 
