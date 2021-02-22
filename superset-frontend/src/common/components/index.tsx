@@ -28,7 +28,6 @@ import { DropDownProps } from 'antd/lib/dropdown';
  */
 // eslint-disable-next-line no-restricted-imports
 export {
-  Alert,
   AutoComplete,
   Avatar,
   Button,
@@ -52,13 +51,15 @@ export {
   Select,
   Skeleton,
   Switch,
+  Tag,
   Tabs,
   Tooltip,
   Input as AntdInput,
 } from 'antd';
+export { default as Alert, AlertProps } from 'antd/lib/alert';
 export { TreeProps } from 'antd/lib/tree';
 export { FormInstance } from 'antd/lib/form';
-
+export { RadioChangeEvent } from 'antd/lib/radio';
 export { default as Collapse } from './Collapse';
 export { default as Badge } from './Badge';
 export { default as Progress } from './ProgressBar';

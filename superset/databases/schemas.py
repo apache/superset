@@ -27,8 +27,9 @@ from sqlalchemy import MetaData
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import ArgumentError
 
-from superset.exceptions import CertificateException
+from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import PASSWORD_MASK
+from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils.core import markdown, parse_ssl_cert
 
 database_schemas_query_schema = {
@@ -133,7 +134,7 @@ def sqlalchemy_uri_validator(value: str) -> str:
     Validate if it's a valid SQLAlchemy URI and refuse SQLLite by default
     """
     try:
-        make_url(value.strip())
+        uri = make_url(value.strip())
     except (ArgumentError, AttributeError, ValueError):
         raise ValidationError(
             [
@@ -143,17 +144,11 @@ def sqlalchemy_uri_validator(value: str) -> str:
                 )
             ]
         )
-    if current_app.config.get("PREVENT_UNSAFE_DB_CONNECTIONS", True) and value:
-        if value.startswith("sqlite"):
-            raise ValidationError(
-                [
-                    _(
-                        "SQLite database cannot be used as a data source for "
-                        "security reasons."
-                    )
-                ]
-            )
-
+    if current_app.config.get("PREVENT_UNSAFE_DB_CONNECTIONS", True):
+        try:
+            check_sqlalchemy_uri(uri)
+        except SupersetSecurityException as ex:
+            raise ValidationError([str(ex)])
     return value
 
 
@@ -413,11 +408,15 @@ class DatabaseRelatedObjectsResponse(Schema):
     dashboards = fields.Nested(DatabaseRelatedDashboards)
 
 
+class DatabaseFunctionNamesResponse(Schema):
+    function_names = fields.List(fields.String())
+
+
 class ImportV1DatabaseExtraSchema(Schema):
     metadata_params = fields.Dict(keys=fields.Str(), values=fields.Raw())
     engine_params = fields.Dict(keys=fields.Str(), values=fields.Raw())
     metadata_cache_timeout = fields.Dict(keys=fields.Str(), values=fields.Integer())
-    schemas_allowed_for_csv_upload = fields.List(fields.String)
+    schemas_allowed_for_csv_upload = fields.List(fields.String())
     cost_estimate_enabled = fields.Boolean()
 
 

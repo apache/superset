@@ -21,7 +21,7 @@
  */
 import React from 'react';
 import { render, sleep, waitFor } from 'spec/helpers/testing-library';
-import Timer from 'src/components/Timer';
+import Timer, { TimerProps } from 'src/components/Timer';
 import { now } from 'src/modules/dates';
 
 function parseTime(text?: string | null) {
@@ -29,7 +29,7 @@ function parseTime(text?: string | null) {
 }
 
 describe('Timer', () => {
-  const mockProps = {
+  const mockProps: TimerProps = {
     startTime: now(),
     endTime: undefined,
     isRunning: true,
@@ -41,7 +41,6 @@ describe('Timer', () => {
     const node = screen.getByRole('timer');
     let text = node.textContent || '';
     expect(node).toBeInTheDocument();
-    expect(node).toHaveClass('label-warning');
     expect(node).toHaveTextContent('00:00:00.00');
     // should start running
     await waitFor(() => {

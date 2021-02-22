@@ -26,10 +26,9 @@ import markdownSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/mar
 import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
-import { DropdownButton } from 'react-bootstrap';
 import { styled, t } from '@superset-ui/core';
 
-import { Menu } from 'src/common/components';
+import { Dropdown, Menu } from 'src/common/components';
 import { getClientErrorObject } from '../../utils/getClientErrorObject';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { getChartDataRequest } from '../../chart/chartAction';
@@ -48,7 +47,6 @@ const propTypes = {
   onOpenPropertiesModal: PropTypes.func,
   onOpenInEditor: PropTypes.func,
   chartStatus: PropTypes.string,
-  chartHeight: PropTypes.string.isRequired,
   latestQueryFormData: PropTypes.object.isRequired,
   slice: PropTypes.object,
 };
@@ -75,7 +73,6 @@ export const DisplayQueryButton = props => {
   const [sqlSupported] = useState(
     datasource && datasource.split('__')[1] === 'table',
   );
-  const [menuVisible, setMenuVisible] = useState(false);
 
   const beforeOpen = resultType => {
     setIsLoading(true);
@@ -102,8 +99,7 @@ export const DisplayQueryButton = props => {
   };
 
   const handleMenuClick = ({ key, domEvent }) => {
-    const { chartHeight, slice, onOpenInEditor, latestQueryFormData } = props;
-    setMenuVisible(false);
+    const { slice, onOpenInEditor, latestQueryFormData } = props;
     switch (key) {
       case MENU_KEYS.EDIT_PROPERTIES:
         props.onOpenPropertiesModal();
@@ -113,12 +109,11 @@ export const DisplayQueryButton = props => {
         break;
       case MENU_KEYS.DOWNLOAD_AS_IMAGE:
         downloadAsImage(
-          '.chart-container',
+          '.panel-body > .chart-container',
           // eslint-disable-next-line camelcase
           slice?.slice_name ?? t('New chart'),
-          {
-            height: parseInt(chartHeight, 10),
-          },
+          {},
+          true,
         )(domEvent);
         break;
       default:
@@ -140,7 +135,7 @@ export const DisplayQueryButton = props => {
             text={query}
             shouldShowText={false}
             copyNode={
-              <CopyButtonViewQuery buttonSize="xs">
+              <CopyButtonViewQuery buttonSize="xsmall">
                 <i className="fa fa-clipboard" />
               </CopyButtonViewQuery>
             }
@@ -156,48 +151,47 @@ export const DisplayQueryButton = props => {
 
   const { slice } = props;
   return (
-    <DropdownButton
-      open={menuVisible}
-      noCaret
+    <Dropdown
+      trigger="click"
       data-test="query-dropdown"
-      title={
-        <span>
-          <i className="fa fa-bars" />
-          &nbsp;
-        </span>
+      overlay={
+        <Menu onClick={handleMenuClick} selectable={false}>
+          {slice && (
+            <Menu.Item key={MENU_KEYS.EDIT_PROPERTIES}>
+              {t('Edit properties')}
+            </Menu.Item>
+          )}
+          <Menu.Item>
+            <ModalTrigger
+              triggerNode={
+                <span data-test="view-query-menu-item">{t('View query')}</span>
+              }
+              modalTitle={t('View query')}
+              beforeOpen={() => beforeOpen('query')}
+              modalBody={renderQueryModalBody()}
+              responsive
+            />
+          </Menu.Item>
+          {sqlSupported && (
+            <Menu.Item key={MENU_KEYS.RUN_IN_SQL_LAB}>
+              {t('Run in SQL Lab')}
+            </Menu.Item>
+          )}
+          <Menu.Item key={MENU_KEYS.DOWNLOAD_AS_IMAGE}>
+            {t('Download as image')}
+          </Menu.Item>
+        </Menu>
       }
-      bsSize="sm"
-      pullRight
-      id="query"
-      onToggle={setMenuVisible}
     >
-      <Menu onClick={handleMenuClick} selectable={false}>
-        {slice && (
-          <Menu.Item key={MENU_KEYS.EDIT_PROPERTIES}>
-            {t('Edit properties')}
-          </Menu.Item>
-        )}
-        <Menu.Item>
-          <ModalTrigger
-            triggerNode={
-              <span data-test="view-query-menu-item">{t('View query')}</span>
-            }
-            modalTitle={t('View query')}
-            beforeOpen={() => beforeOpen('query')}
-            modalBody={renderQueryModalBody()}
-            responsive
-          />
-        </Menu.Item>
-        {sqlSupported && (
-          <Menu.Item key={MENU_KEYS.RUN_IN_SQL_LAB}>
-            {t('Run in SQL Lab')}
-          </Menu.Item>
-        )}
-        <Menu.Item key={MENU_KEYS.DOWNLOAD_AS_IMAGE}>
-          {t('Download as image')}
-        </Menu.Item>
-      </Menu>
-    </DropdownButton>
+      <div
+        role="button"
+        id="query"
+        tabIndex={0}
+        className="btn btn-default btn-sm"
+      >
+        <i className="fa fa-bars" />
+      </div>
+    </Dropdown>
   );
 };
 

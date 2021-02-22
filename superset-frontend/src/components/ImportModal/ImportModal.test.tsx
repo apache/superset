@@ -21,7 +21,7 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { ReactWrapper } from 'enzyme';
-
+import Button from 'src/components/Button';
 import { ImportResourceName } from 'src/views/CRUD/types';
 import ImportModelsModal from 'src/components/ImportModal';
 import Modal from 'src/common/components/Modal';
@@ -82,18 +82,13 @@ describe('ImportModelsModal', () => {
   });
 
   it('should render the import button initially disabled', () => {
-    expect(wrapper.find('button[children="Import"]').prop('disabled')).toBe(
-      true,
-    );
+    expect(wrapper.find(Button).at(1).prop('disabled')).toBe(true);
   });
 
   it('should render the import button enabled when a file is selected', () => {
     const file = new File([new ArrayBuffer(1)], 'model_export.zip');
     wrapper.find('input').simulate('change', { target: { files: [file] } });
-
-    expect(wrapper.find('button[children="Import"]').prop('disabled')).toBe(
-      false,
-    );
+    expect(wrapper.find(Button).at(1).prop('disabled')).toBe(false);
   });
 
   it('should render password fields when needed for import', () => {

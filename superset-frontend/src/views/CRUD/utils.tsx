@@ -144,10 +144,10 @@ export const getRecentAcitivtyObjs = (
             ];
             return res;
           })
-          .catch(e =>
+          .catch(errMsg =>
             addDangerToast(
               t('There was an error fetching your recent activity:'),
-              e,
+              errMsg,
             ),
           );
       }
@@ -300,12 +300,5 @@ export const CardStyles = styled.div`
   cursor: pointer;
   a {
     text-decoration: none;
-  }
-`;
-
-export const IconContainer = styled.div`
-  svg {
-    vertical-align: -7px;
-    color: ${({ theme }) => theme.colors.primary.dark1};
   }
 `;

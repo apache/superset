@@ -19,7 +19,16 @@
 export default {
   id: 1234,
   slug: 'dashboardSlug',
-  metadata: {},
+  metadata: {
+    filter_configuration: [
+      {
+        id: 'DefaultsID',
+        filterType: 'filter_select',
+        targets: [{}],
+        cascadeParentIds: [],
+      },
+    ],
+  },
   userId: 'mock_user_id',
   dash_edit_perm: true,
   dash_save_perm: true,

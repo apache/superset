@@ -42,6 +42,7 @@ const propTypes = {
   refreshOverlayVisible: PropTypes.bool,
   // dashboard callbacks
   addFilter: PropTypes.func,
+  setExtraFormData: PropTypes.func,
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
 };
@@ -73,6 +74,12 @@ class ChartRenderer extends React.Component {
       setControlValue: this.handleSetControlValue,
       onFilterMenuOpen: this.props.onFilterMenuOpen,
       onFilterMenuClose: this.props.onFilterMenuClose,
+      setExtraFormData: ({ extraFormData, currentState }) =>
+        this.props.actions?.setExtraFormData(
+          this.props.chartId,
+          extraFormData,
+          currentState,
+        ),
     };
   }
 

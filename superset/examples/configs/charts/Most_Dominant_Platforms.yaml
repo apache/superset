@@ -58,7 +58,7 @@ params:
     sqlExpression: null
   number_format: SMART_NUMBER
   outerRadius: 67
-  pie_label_type: key
+  label_type: key
   queryFields:
     groupby: groupby
     metric: metrics

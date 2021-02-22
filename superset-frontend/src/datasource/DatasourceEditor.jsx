@@ -18,7 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Alert, Col, Radio, Well } from 'react-bootstrap';
+import { Col, Well } from 'react-bootstrap';
+import { Radio } from 'src/common/components/Radio';
+import Alert from 'src/components/Alert';
 import Badge from 'src/common/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
@@ -56,6 +58,14 @@ const DatasourceContainer = styled.div`
 
   .change-warning .bold {
     font-weight: ${({ theme }) => theme.typography.weights.bold};
+  }
+
+  .form-group.has-feedback > .help-block {
+    margin-top: 8px;
+  }
+
+  .form-group.form-group-md {
+    margin-bottom: 8px;
   }
 `;
 
@@ -609,6 +619,9 @@ class DatasourceEditor extends React.PureComponent {
           fieldKey="offset"
           label={t('Hours offset')}
           control={<TextControl controlId="offset" />}
+          description={t(
+            'The number of hours, negative or positive, to shift the time column. This can be used to move UTC time to local time.',
+          )}
         />
         {this.state.isSqla && (
           <Field
@@ -818,11 +831,17 @@ class DatasourceEditor extends React.PureComponent {
   renderErrors() {
     if (this.state.errors.length > 0) {
       return (
-        <Alert bsStyle="danger">
-          {this.state.errors.map(err => (
-            <div key={err}>{err}</div>
-          ))}
-        </Alert>
+        <Alert
+          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+          type="error"
+          message={
+            <>
+              {this.state.errors.map(err => (
+                <div key={err}>{err}</div>
+              ))}
+            </>
+          }
+        />
       );
     }
     return null;
@@ -958,14 +977,19 @@ class DatasourceEditor extends React.PureComponent {
     return (
       <DatasourceContainer>
         {this.renderErrors()}
-        <div className="m-t-10">
-          <Alert bsStyle="warning">
-            <strong>{t('Be careful.')} </strong>
-            {t(
-              'Changing these settings will affect all charts using this dataset, including charts owned by other people.',
-            )}
-          </Alert>
-        </div>
+        <Alert
+          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+          type="warning"
+          message={
+            <>
+              {' '}
+              <strong>{t('Be careful.')} </strong>
+              {t(
+                'Changing these settings will affect all charts using this dataset, including charts owned by other people.',
+              )}
+            </>
+          }
+        />
         <Tabs
           fullWidth={false}
           id="table-tabs"
@@ -1000,7 +1024,7 @@ class DatasourceEditor extends React.PureComponent {
               <ColumnButtonWrapper>
                 <span className="m-t-10 m-r-10">
                   <Button
-                    buttonSize="sm"
+                    buttonSize="small"
                     buttonStyle="primary"
                     onClick={this.syncMetadata}
                     className="sync-from-source"

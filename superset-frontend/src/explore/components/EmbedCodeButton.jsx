@@ -22,8 +22,11 @@ import { t } from '@superset-ui/core';
 
 import Popover from 'src/common/components/Popover';
 import FormLabel from 'src/components/FormLabel';
+import Icon from 'src/components/Icon';
+import { Tooltip } from 'src/common/components/Tooltip';
 import CopyToClipboard from 'src/components/CopyToClipboard';
-import { getShortUrl } from 'src/utils/common';
+import { getShortUrl } from 'src/utils/urlUtils';
+import { URL_PARAMS } from 'src/constants';
 import { getExploreLongUrl, getURIDirectory } from '../exploreUtils';
 
 const propTypes = {
@@ -66,7 +69,7 @@ export default class EmbedCodeButton extends React.Component {
   generateEmbedHTML() {
     const srcLink = `${window.location.origin + getURIDirectory()}?r=${
       this.state.shortUrlId
-    }&standalone=true&height=${this.state.height}`;
+    }&${URL_PARAMS.standalone}=1&height=${this.state.height}`;
     return (
       '<iframe\n' +
       `  width="${this.state.width}"\n` +
@@ -149,10 +152,20 @@ export default class EmbedCodeButton extends React.Component {
         onClick={this.getCopyUrl}
         content={this.renderPopoverContent()}
       >
-        <span className="btn btn-default btn-sm" data-test="embed-code-button">
-          <i className="fa fa-code" />
-          &nbsp;
-        </span>
+        <Tooltip
+          id="embed-code-tooltip"
+          placement="top"
+          title="Embed code"
+          trigger={['hover']}
+        >
+          <div
+            className="btn btn-default btn-sm"
+            data-test="embed-code-button"
+            style={{ height: 30 }}
+          >
+            <Icon name="code" width={15} height={15} style={{ marginTop: 1 }} />
+          </div>
+        </Tooltip>
       </Popover>
     );
   }

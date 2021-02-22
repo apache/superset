@@ -21,11 +21,11 @@ import {
   CategoricalColorNamespace,
   DataRecordFilters,
 } from '@superset-ui/core';
-import { ChartQueryPayload, LayoutItem } from 'src/dashboard/types';
-import { NativeFiltersState } from 'src/dashboard/components/nativeFilters/types';
+import { ChartQueryPayload, Charts, LayoutItem } from 'src/dashboard/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getActiveNativeFilters } from '../activeDashboardNativeFilters';
+import { NativeFiltersState } from '../../reducers/types';
 
 // We cache formData objects so that our connected container components don't always trigger
 // render cascades. we cannot leverage the reselect library because our cache size is >1
@@ -34,6 +34,7 @@ const cachedFormdataByChart = {};
 
 export interface GetFormDataWithExtraFiltersArguments {
   chart: ChartQueryPayload;
+  charts: Charts;
   filters: DataRecordFilters;
   layout: { [key: string]: LayoutItem };
   colorScheme?: string;
@@ -47,6 +48,7 @@ export interface GetFormDataWithExtraFiltersArguments {
 // filters param only contains those applicable to this chart.
 export default function getFormDataWithExtraFilters({
   chart,
+  charts,
   filters,
   colorScheme,
   colorNamespace,
@@ -73,12 +75,16 @@ export default function getFormDataWithExtraFilters({
 
   let extraData = {};
   const activeNativeFilters = getActiveNativeFilters({ nativeFilters, layout });
-  const isAffectedChart = Object.values(activeNativeFilters).some(({ scope }) =>
-    scope.includes(chart.id),
-  );
-  if (isAffectedChart) {
+  const filterIdsAppliedOnChart = Object.entries(activeNativeFilters)
+    .filter(([, { scope }]) => scope.includes(chart.id))
+    .map(([filterId]) => filterId);
+  if (filterIdsAppliedOnChart.length) {
     extraData = {
-      extra_form_data: getExtraFormData(nativeFilters),
+      extra_form_data: getExtraFormData(
+        nativeFilters,
+        charts,
+        filterIdsAppliedOnChart,
+      ),
     };
   }
 

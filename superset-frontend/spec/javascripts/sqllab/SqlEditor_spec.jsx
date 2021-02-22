@@ -22,7 +22,7 @@ import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
-
+import fetchMock from 'fetch-mock';
 import {
   SQL_EDITOR_GUTTER_HEIGHT,
   SQL_EDITOR_GUTTER_MARGIN,
@@ -33,11 +33,16 @@ import ConnectedSouthPane from 'src/SqlLab/components/SouthPane';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 import { Dropdown } from 'src/common/components';
-import { queryEditorSetSelectedText } from 'src/SqlLab/actions/sqlLab';
-
+import {
+  queryEditorSetFunctionNames,
+  queryEditorSetSelectedText,
+} from 'src/SqlLab/actions/sqlLab';
+import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { initialState, queries, table } from './fixtures';
 
 const MOCKED_SQL_EDITOR_HEIGHT = 500;
+
+fetchMock.get('glob:*/api/v1/database/*', {});
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
@@ -45,7 +50,11 @@ const store = mockStore(initialState);
 
 describe('SqlEditor', () => {
   const mockedProps = {
-    actions: { queryEditorSetSelectedText },
+    actions: {
+      queryEditorSetFunctionNames,
+      queryEditorSetSelectedText,
+      addDangerToast: jest.fn(),
+    },
     database: {},
     queryEditorId: initialState.sqlLab.queryEditors[0].id,
     latestQuery: queries[0],
@@ -69,22 +78,26 @@ describe('SqlEditor', () => {
       },
     );
 
-  it('render a SqlEditorLeftBar', () => {
+  it('render a SqlEditorLeftBar', async () => {
     const wrapper = buildWrapper();
+    await waitForComponentToPaint(wrapper);
     expect(wrapper.find(SqlEditorLeftBar)).toExist();
   });
-  it('render an AceEditorWrapper', () => {
+  it('render an AceEditorWrapper', async () => {
     const wrapper = buildWrapper();
+    await waitForComponentToPaint(wrapper);
     expect(wrapper.find(AceEditorWrapper)).toExist();
   });
-  it('render a SouthPane', () => {
+  it('render a SouthPane', async () => {
     const wrapper = buildWrapper();
+    await waitForComponentToPaint(wrapper);
     expect(wrapper.find(ConnectedSouthPane)).toExist();
   });
   // TODO eschutho convert tests to RTL
   // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('does not overflow the editor window', () => {
+  it.skip('does not overflow the editor window', async () => {
     const wrapper = buildWrapper();
+    await waitForComponentToPaint(wrapper);
     const totalSize =
       parseFloat(wrapper.find(AceEditorWrapper).props().height) +
       wrapper.find(ConnectedSouthPane).props().height +
@@ -94,9 +107,10 @@ describe('SqlEditor', () => {
     expect(totalSize).toEqual(MOCKED_SQL_EDITOR_HEIGHT);
   });
   // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('does not overflow the editor window after resizing', () => {
+  it.skip('does not overflow the editor window after resizing', async () => {
     const wrapper = buildWrapper();
     wrapper.setState({ height: 450 });
+    await waitForComponentToPaint(wrapper);
     const totalSize =
       parseFloat(wrapper.find(AceEditorWrapper).props().height) +
       wrapper.find(ConnectedSouthPane).props().height +
@@ -105,10 +119,11 @@ describe('SqlEditor', () => {
       SQL_EDITOR_GUTTER_HEIGHT;
     expect(totalSize).toEqual(450);
   });
-  it('render a Limit Dropdown', () => {
+  it('render a Limit Dropdown', async () => {
     const defaultQueryLimit = 101;
     const updatedProps = { ...mockedProps, defaultQueryLimit };
     const wrapper = buildWrapper(updatedProps);
+    await waitForComponentToPaint(wrapper);
     expect(wrapper.find(Dropdown)).toExist();
   });
 });

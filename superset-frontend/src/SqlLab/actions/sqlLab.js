@@ -57,6 +57,8 @@ export const QUERY_EDITOR_SET_QUERY_LIMIT = 'QUERY_EDITOR_SET_QUERY_LIMIT';
 export const QUERY_EDITOR_SET_TEMPLATE_PARAMS =
   'QUERY_EDITOR_SET_TEMPLATE_PARAMS';
 export const QUERY_EDITOR_SET_SELECTED_TEXT = 'QUERY_EDITOR_SET_SELECTED_TEXT';
+export const QUERY_EDITOR_SET_FUNCTION_NAMES =
+  'QUERY_EDITOR_SET_FUNCTION_NAMES';
 export const QUERY_EDITOR_PERSIST_HEIGHT = 'QUERY_EDITOR_PERSIST_HEIGHT';
 export const MIGRATE_QUERY_EDITOR = 'MIGRATE_QUERY_EDITOR';
 export const MIGRATE_TAB_HISTORY = 'MIGRATE_TAB_HISTORY';
@@ -1298,5 +1300,25 @@ export function createCtasDatasource(vizOptions) {
         dispatch(createDatasourceFailed(errorMsg));
         return Promise.reject(new Error(errorMsg));
       });
+  };
+}
+
+export function queryEditorSetFunctionNames(queryEditor, dbId) {
+  return function (dispatch) {
+    return SupersetClient.get({
+      endpoint: encodeURI(`/api/v1/database/${dbId}/function_names/`),
+    })
+      .then(({ json }) =>
+        dispatch({
+          type: QUERY_EDITOR_SET_FUNCTION_NAMES,
+          queryEditor,
+          functionNames: json.function_names,
+        }),
+      )
+      .catch(() =>
+        dispatch(
+          addDangerToast(t('An error occurred while fetching function names.')),
+        ),
+      );
   };
 }

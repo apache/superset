@@ -46,7 +46,7 @@ import withToasts from 'src/messageToasts/enhancers/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
-import TooltipWrapper from 'src/components/TooltipWrapper';
+import { Tooltip } from 'src/common/components/Tooltip';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
@@ -207,7 +207,11 @@ function ChartList(props: ChartListProps) {
           row: {
             original: { url, slice_name: sliceName },
           },
-        }: any) => <a href={url}>{sliceName}</a>,
+        }: any) => (
+          <a href={url} data-test={`${sliceName}-list-chart-title`}>
+            {sliceName}
+          </a>
+        ),
         Header: t('Chart'),
         accessor: 'slice_name',
       },
@@ -304,9 +308,9 @@ function ChartList(props: ChartListProps) {
                   onConfirm={handleDelete}
                 >
                   {confirmDelete => (
-                    <TooltipWrapper
-                      label="delete-action"
-                      tooltip={t('Delete')}
+                    <Tooltip
+                      id="delete-action-tooltip"
+                      title={t('Delete')}
                       placement="bottom"
                     >
                       <span
@@ -317,14 +321,14 @@ function ChartList(props: ChartListProps) {
                       >
                         <Icon name="trash" />
                       </span>
-                    </TooltipWrapper>
+                    </Tooltip>
                   )}
                 </ConfirmStatusChange>
               )}
               {canExport && (
-                <TooltipWrapper
-                  label="export-action"
-                  tooltip={t('Export')}
+                <Tooltip
+                  id="export-action-tooltip"
+                  title={t('Export')}
                   placement="bottom"
                 >
                   <span
@@ -335,12 +339,12 @@ function ChartList(props: ChartListProps) {
                   >
                     <Icon name="share" />
                   </span>
-                </TooltipWrapper>
+                </Tooltip>
               )}
               {canEdit && (
-                <TooltipWrapper
-                  label="edit-action"
-                  tooltip={t('Edit')}
+                <Tooltip
+                  id="edit-action-tooltip"
+                  title={t('Edit')}
                   placement="bottom"
                 >
                   <span
@@ -351,7 +355,7 @@ function ChartList(props: ChartListProps) {
                   >
                     <Icon name="edit-alt" />
                   </span>
-                </TooltipWrapper>
+                </Tooltip>
               )}
             </span>
           );
@@ -371,7 +375,7 @@ function ChartList(props: ChartListProps) {
       id: 'owners',
       input: 'select',
       operator: FilterOperators.relationManyMany,
-      unfilteredLabel: 'All',
+      unfilteredLabel: t('All'),
       fetchSelects: createFetchRelated(
         'chart',
         'owners',
@@ -392,7 +396,7 @@ function ChartList(props: ChartListProps) {
       id: 'created_by',
       input: 'select',
       operator: FilterOperators.relationOneMany,
-      unfilteredLabel: 'All',
+      unfilteredLabel: t('All'),
       fetchSelects: createFetchRelated(
         'chart',
         'created_by',
@@ -413,7 +417,7 @@ function ChartList(props: ChartListProps) {
       id: 'viz_type',
       input: 'select',
       operator: FilterOperators.equals,
-      unfilteredLabel: 'All',
+      unfilteredLabel: t('All'),
       selects: registry
         .keys()
         .map(k => ({ label: registry.get(k)?.name || k, value: k }))
@@ -437,7 +441,7 @@ function ChartList(props: ChartListProps) {
       id: 'datasource_id',
       input: 'select',
       operator: FilterOperators.equals,
-      unfilteredLabel: 'All',
+      unfilteredLabel: t('All'),
       fetchSelects: createFetchDatasets(
         createErrorHandler(errMsg =>
           addDangerToast(
@@ -456,7 +460,7 @@ function ChartList(props: ChartListProps) {
       urlDisplay: 'favorite',
       input: 'select',
       operator: FilterOperators.chartIsFav,
-      unfilteredLabel: 'Any',
+      unfilteredLabel: t('Any'),
       selects: [
         { label: t('Yes'), value: true },
         { label: t('No'), value: false },
@@ -474,19 +478,19 @@ function ChartList(props: ChartListProps) {
     {
       desc: false,
       id: 'slice_name',
-      label: 'Alphabetical',
+      label: t('Alphabetical'),
       value: 'alphabetical',
     },
     {
       desc: true,
       id: 'changed_on_delta_humanized',
-      label: 'Recently modified',
+      label: t('Recently modified'),
       value: 'recently_modified',
     },
     {
       desc: false,
       id: 'changed_on_delta_humanized',
-      label: 'Least recently modified',
+      label: t('Least recently modified'),
       value: 'least_recently_modified',
     },
   ];
@@ -512,6 +516,7 @@ function ChartList(props: ChartListProps) {
     subMenuButtons.push({
       name: t('Bulk select'),
       buttonStyle: 'secondary',
+      'data-test': 'bulk-select',
       onClick: toggleBulkSelect,
     });
   }

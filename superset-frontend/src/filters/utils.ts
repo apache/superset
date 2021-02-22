@@ -20,7 +20,7 @@ import { QueryObjectFilterClause } from '@superset-ui/core';
 
 export const getSelectExtraFormData = (
   col: string,
-  value?: undefined | null | string[] | number[],
+  value?: null | (string | number)[],
   emptyFilter = false,
   inverseSelection = false,
 ) => ({

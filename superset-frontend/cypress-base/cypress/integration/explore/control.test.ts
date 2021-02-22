@@ -104,7 +104,7 @@ describe('VizType control', () => {
       numScripts = nodes.length;
     });
 
-    cy.get('.Control .label').contains('Table').click();
+    cy.get('[data-test="visualization-type"]').contains('Table').click();
 
     cy.get('[role="button"]').contains('Line Chart').click();
 

@@ -46,10 +46,16 @@ body {
   height: 100%;
 }
 
+.ant-tabs-content-holder {
+  /* This is needed for Safari */
+  height: 100%;
+}
+
 .ant-tabs-content {
   height: 100%;
   position: relative;
   background-color: @lightest;
+  overflow: auto;
 
   > .ant-tabs-tabpane {
     position: absolute;

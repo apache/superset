@@ -137,7 +137,7 @@ export default function ChartCard({
         description={t('Last modified %s', chart.changed_on_delta_humanized)}
         coverLeft={<FacePile users={chart.owners || []} />}
         coverRight={
-          <Label bsStyle="secondary">{chart.datasource_name_text}</Label>
+          <Label type="secondary">{chart.datasource_name_text}</Label>
         }
         actions={
           <ListViewCard.Actions

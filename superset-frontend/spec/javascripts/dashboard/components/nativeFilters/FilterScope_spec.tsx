@@ -21,8 +21,8 @@ import { Provider } from 'react-redux';
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import { mockStoreWithChartsInTabsAndRoot } from 'spec/fixtures/mockStore';
 import { Form, FormInstance } from 'src/common/components';
-import { NativeFiltersForm } from 'src/dashboard/components/nativeFilters/types';
-import FilterConfigForm from 'src/dashboard/components/nativeFilters/FilterConfigForm';
+import { NativeFiltersForm } from 'src/dashboard/components/nativeFilters/FilterConfigModal/types';
+import FilterConfigForm from 'src/dashboard/components/nativeFilters/FilterConfigModal/FilterConfigForm';
 
 describe('FilterScope', () => {
   const save = jest.fn();
