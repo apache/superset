@@ -488,7 +488,11 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def update_connect_args_for_impersonation(
-        cls, connect_args : Dict[Any, Any], uri: str, impersonate_user: bool, username: Optional[str]
+        cls,
+        connect_args: Dict[Any, Any],
+        uri: str,
+        impersonate_user: bool,
+        username: Optional[str],
     ) -> None:
         """
         Update a configuration dictionary that can set the correct properties for impersonating users
