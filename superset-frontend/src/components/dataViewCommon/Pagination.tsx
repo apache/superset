@@ -24,7 +24,7 @@ import {
 } from 'react-ultimate-pagination';
 
 const ListViewPagination = createUltimatePagination({
-  WrapperComponent: Pagination,
+  WrapperComponent: Pagination.PaginationWrapper,
   itemTypeToComponent: {
     [ITEM_TYPES.PAGE]: ({ value, isActive, onClick }) => (
       <Pagination.Item active={isActive} onClick={onClick}>

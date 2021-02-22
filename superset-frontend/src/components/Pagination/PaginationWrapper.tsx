@@ -16,59 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { PureComponent } from 'react';
-import cx from 'classnames';
+
+import React from 'react';
 import { styled } from '@superset-ui/core';
-
-interface PaginationButton {
-  disabled?: boolean;
-  onClick: React.EventHandler<React.SyntheticEvent<HTMLElement>>;
-}
-
-interface PaginationItemButton extends PaginationButton {
-  active: boolean;
-  children: React.ReactNode;
-}
-
-function Prev({ disabled, onClick }: PaginationButton) {
-  return (
-    <li className={cx({ disabled })}>
-      <span role="button" tabIndex={disabled ? -1 : 0} onClick={onClick}>
-        «
-      </span>
-    </li>
-  );
-}
-
-function Next({ disabled, onClick }: PaginationButton) {
-  return (
-    <li className={cx({ disabled })}>
-      <span role="button" tabIndex={disabled ? -1 : 0} onClick={onClick}>
-        »
-      </span>
-    </li>
-  );
-}
-
-function Item({ active, children, onClick }: PaginationItemButton) {
-  return (
-    <li className={cx({ active })}>
-      <span role="button" tabIndex={active ? -1 : 0} onClick={onClick}>
-        {children}
-      </span>
-    </li>
-  );
-}
-
-function Ellipsis({ disabled, onClick }: PaginationButton) {
-  return (
-    <li className={cx({ disabled })}>
-      <span role="button" tabIndex={disabled ? -1 : 0} onClick={onClick}>
-        …
-      </span>
-    </li>
-  );
-}
 
 interface PaginationProps {
   children: React.ReactNode;
@@ -122,16 +72,6 @@ const PaginationList = styled.ul`
   }
 `;
 
-export default class Pagination extends PureComponent<PaginationProps> {
-  static Next = Next;
-
-  static Prev = Prev;
-
-  static Item = Item;
-
-  static Ellipsis = Ellipsis;
-
-  render() {
-    return <PaginationList> {this.props.children}</PaginationList>;
-  }
+export function PaginationWrapper({ children }: PaginationProps) {
+  return <PaginationList role="navigation">{children}</PaginationList>;
 }
