@@ -137,7 +137,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         return version is not None and StrictVersion(version) >= StrictVersion("0.319")
 
     @classmethod
-    def update_connect_args_for_impersonation(
+    def update_impersonation_config(
         cls,
         connect_args: Dict[str, Any],
         uri: str,

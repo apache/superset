@@ -487,7 +487,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         # the configuraiton dictionary. See get_configuration_for_impersonation
 
     @classmethod
-    def update_connect_args_for_impersonation(
+    def update_impersonation_config(
         cls,
         connect_args: Dict[str, Any],
         uri: str,

@@ -909,7 +909,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             url.username = username
 
     @classmethod
-    def update_connect_args_for_impersonation(
+    def update_impersonation_config(
         cls,
         connect_args: Dict[str, Any],
         uri: str,

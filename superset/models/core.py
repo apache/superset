@@ -326,7 +326,7 @@ class Database(
 
         connect_args = params.get("connect_args", {})
         if self.impersonate_user:
-            self.db_engine_spec.update_connect_args_for_impersonation(
+            self.db_engine_spec.update_impersonation_config(
                 connect_args, str(sqlalchemy_url), effective_username
             )
 
