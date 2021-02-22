@@ -66,11 +66,13 @@ from superset.databases.schemas import (
 from superset.databases.utils import get_table_metadata
 from superset.extensions import security_manager
 from superset.models.core import Database
+from superset.stats_logger import StatsdStatsLogger
 from superset.typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
+statsd = StatsdStatsLogger()
 
 
 class DatabaseRestApi(BaseSupersetModelRestApi):
@@ -238,7 +240,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except DatabaseInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatabaseConnectionFailedError as ex:
-            logger.warning("Database connection failed: %s", item["sqlalchemy_uri"])
+            statsd.incr("db_connection_error")  # add engine
             return self.response_422(message=str(ex))
         except DatabaseCreateFailedError as ex:
             logger.error(
@@ -608,7 +610,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             TestConnectionDatabaseCommand(g.user, item).run()
             return self.response(200, message="OK")
         except DatabaseTestConnectionFailedError as ex:
-            logger.warning(ex)
+            statsd.incr("db_test_connection_error")  # add engine
             return self.response_422(message=str(ex))
 
     @expose("/<int:pk>/related_objects/", methods=["GET"])
