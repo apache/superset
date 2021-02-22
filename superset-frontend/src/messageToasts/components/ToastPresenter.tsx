@@ -25,8 +25,9 @@ const StyledToastPresenter = styled.div`
   max-width: 600px;
   position: fixed;
   bottom: 0px;
-  right: -110px;
-  transform: translate(-50%, 0);
+  right: 0px;
+  margin-right: 50px;
+  margin-bottom: 50px;
   z-index: ${({ theme }) => theme.zIndex.max};
 
   .toast {

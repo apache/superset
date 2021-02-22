@@ -23,6 +23,10 @@ import { styled, useTheme } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/chart/ChartContainer';
+import {
+  getFromLocalStorage,
+  setInLocalStorage,
+} from 'src/utils/localStorageHelpers';
 import ConnectedExploreChartHeader from './ExploreChartHeader';
 import { DataTablesPane } from './DataTablesPane';
 
@@ -43,7 +47,7 @@ const propTypes = {
   table_name: PropTypes.string,
   vizType: PropTypes.string.isRequired,
   form_data: PropTypes.object,
-  standalone: PropTypes.bool,
+  standalone: PropTypes.number,
   timeout: PropTypes.number,
   refreshOverlayVisible: PropTypes.bool,
   chart: chartPropShape,
@@ -55,6 +59,10 @@ const GUTTER_SIZE_FACTOR = 1.25;
 
 const CHART_PANEL_PADDING = 30;
 const HEADER_PADDING = 15;
+
+const STORAGE_KEYS = {
+  sizes: 'chart_split_sizes',
+};
 
 const INITIAL_SIZES = [90, 10];
 const MIN_SIZES = [300, 50];
@@ -110,11 +118,13 @@ const ExploreChartPanel = props => {
     refreshMode: 'debounce',
     refreshRate: 300,
   });
-  const { width: chartWidth, ref: chartRef } = useResizeDetector({
+  const { width: chartPanelWidth, ref: chartPanelRef } = useResizeDetector({
     refreshMode: 'debounce',
     refreshRate: 300,
   });
-  const [splitSizes, setSplitSizes] = useState(INITIAL_SIZES);
+  const [splitSizes, setSplitSizes] = useState(
+    getFromLocalStorage(STORAGE_KEYS.sizes, INITIAL_SIZES),
+  );
 
   const calcSectionHeight = useCallback(
     percent => {
@@ -149,6 +159,10 @@ const ExploreChartPanel = props => {
     recalcPanelSizes(splitSizes);
   }, [recalcPanelSizes, splitSizes]);
 
+  useEffect(() => {
+    setInLocalStorage(STORAGE_KEYS.sizes, splitSizes);
+  }, [splitSizes]);
+
   const onDragEnd = sizes => {
     setSplitSizes(sizes);
   };
@@ -169,6 +183,7 @@ const ExploreChartPanel = props => {
   const renderChart = useCallback(() => {
     const { chart } = props;
     const newHeight = calcSectionHeight(splitSizes[0]) - CHART_PANEL_PADDING;
+    const chartWidth = chartPanelWidth - CHART_PANEL_PADDING;
     return (
       chartWidth > 0 && (
         <ChartContainer
@@ -194,20 +209,20 @@ const ExploreChartPanel = props => {
         />
       )
     );
-  }, [calcSectionHeight, chartWidth, props, splitSizes]);
+  }, [calcSectionHeight, chartPanelWidth, props, splitSizes]);
 
   const panelBody = useMemo(
     () => (
-      <div className="panel-body" ref={chartRef}>
+      <div className="panel-body" ref={chartPanelRef}>
         {renderChart()}
       </div>
     ),
-    [chartRef, renderChart],
+    [chartPanelRef, renderChart],
   );
 
   const standaloneChartBody = useMemo(
-    () => <div ref={chartRef}>{renderChart()}</div>,
-    [chartRef, renderChart],
+    () => <div ref={chartPanelRef}>{renderChart()}</div>,
+    [chartPanelRef, renderChart],
   );
 
   if (props.standalone) {
@@ -226,7 +241,6 @@ const ExploreChartPanel = props => {
       addHistory={props.addHistory}
       can_overwrite={props.can_overwrite}
       can_download={props.can_download}
-      chartHeight={props.height}
       isStarred={props.isStarred}
       slice={props.slice}
       sliceName={props.sliceName}
@@ -242,7 +256,7 @@ const ExploreChartPanel = props => {
   });
 
   return (
-    <Styles className="panel panel-default chart-container">
+    <Styles className="panel panel-default chart-container" ref={chartPanelRef}>
       <div className="panel-heading" ref={headerRef}>
         {header}
       </div>

@@ -42,6 +42,10 @@ little bit helps, and credit will always be given.
       - [Merging](#merging)
       - [Post-merge Responsibility](#post-merge-responsibility)
   - [Design Guidelines](#design-guidelines)
+    - [Capitalization guidelines](#capitalization-guidelines)
+      - [Sentence case](#sentence-case)
+      - [How to refer to UI elements](#how-to-refer-to-ui-elements)
+      - [\*\*Exceptions to sentence case:](#exceptions-to-sentence-case)
   - [Managing Issues and PRs](#managing-issues-and-prs)
   - [Reporting a Security Vulnerability](#reporting-a-security-vulnerability)
   - [Revert Guidelines](#revert-guidelines)
@@ -76,6 +80,7 @@ little bit helps, and credit will always be given.
   - [Translating](#translating)
     - [Enabling language selection](#enabling-language-selection)
     - [Extracting new strings for translation](#extracting-new-strings-for-translation)
+    - [Updating language files](#updating-language-files)
     - [Creating a new language dictionary](#creating-a-new-language-dictionary)
   - [Tips](#tips)
     - [Adding a new datasource](#adding-a-new-datasource)
@@ -222,6 +227,7 @@ Finally, never submit a PR that will put master branch in broken state. If the P
     - `fix(chart-api): cached-indicator always shows value is cached`
 
 - Add prefix `[WIP]` to title if not ready for review (WIP = work-in-progress). We recommend creating a PR with `[WIP]` first and remove it once you have passed CI test and read through your code changes at least once.
+- If you believe your PR contributes a potentially breaking change, put a `!` after the semantic prefix but before the colon in the PR title, like so: `feat!: Added foo functionality to bar`
 - **Screenshots/GIFs:** Changes to user interface require before/after screenshots, or GIF for interactions
   - Recommended capture tools ([Kap](https://getkap.co/), [LICEcap](https://www.cockos.com/licecap/), [Skitch](https://download.cnet.com/Skitch/3000-13455_4-189876.html))
   - If no screenshot is provided, the committers will mark the PR with `need:screenshot` label and will not review until screenshot is provided.
@@ -258,9 +264,11 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 ### Capitalization guidelines
 
 #### Sentence case
-Use sentence-case capitalization for everything in the UI (except these **).
+
+Use sentence-case capitalization for everything in the UI (except these \*\*).
 
 Sentence case is predominantly lowercase. Capitalize only the initial character of the first word, and other words that require capitalization, like:
+
 - **Proper nouns.** Objects in the product _are not_ considered proper nouns e.g. dashboards, charts, saved queries etc. Proprietary feature names eg. SQL Lab, Preset Manager _are_ considered proper nouns
 - **Acronyms** (e.g. CSS, HTML)
 - When referring to **UI labels that are themselves capitalized** from sentence case (e.g. page titles - Dashboards page, Charts page, Saved queries page, etc.)
@@ -271,10 +279,12 @@ Title case: "A Dog Takes a Walk in Paris"
 Sentence case: "A dog takes a walk in Paris"
 
 **Why sentence case?**
+
 - It’s generally accepted as the quickest to read
 - It’s the easiest form to distinguish between common and proper nouns
 
 #### How to refer to UI elements
+
 When writing about a UI element, use the same capitalization as used in the UI.
 
 For example, if an input field is labeled “Name” then you refer to this as the “Name input field”. Similarly, if a button has the label “Save” in it, then it is correct to refer to the “Save button”.
@@ -292,7 +302,7 @@ Often a product page will have the same title as the objects it contains. In thi
 - Queries that you save will appear on the Saved queries page
 - Create custom queries in SQL Lab then create dashboards
 
-#### **Exceptions to sentence case:
+#### \*\*Exceptions to sentence case:
 
 - Input labels, buttons and UI tabs are all caps
 - User input values (e.g. column names, SQL Lab tab names) should be in their original case
@@ -463,7 +473,7 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 
 ##### nvm and node
 
-First, be sure you are using recent versions of NodeJS and npm. We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
+First, be sure you are using recent versions of Node.js and npm. We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
 
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash
@@ -474,6 +484,12 @@ nvm use
 ```
 
 For those interested, you may also try out [avn](https://github.com/nvm-sh/nvm#deeper-shell-integration) to automatically switch to the node version that is required to run Superset frontend.
+
+We have upgraded our `package-lock.json` to use `lockfileversion: 2` from npm 7, so please make sure you have installed npm 7, too:
+
+```bash
+npm install -g npm@7
+```
 
 #### Install dependencies
 
@@ -563,7 +579,7 @@ pip3 install -r requirements/integration.txt
 pre-commit install
 ```
 
-Alternatively it possible to run pre-commit via tox:
+Alternatively it is possible to run pre-commit via tox:
 
 ```bash
 tox -e pre-commit
@@ -836,7 +852,7 @@ To convert all PO files to formatted JSON files you can use the `po2json.sh` scr
 ```
 
 If you get errors running `po2json`, you might be running the Ubuntu package with the same
-name, rather than the NodeJS package (they have a different format for the arguments). If
+name, rather than the Node.js package (they have a different format for the arguments). If
 there is a conflict, you may need to update your `PATH` environment variable or fully qualify
 the executable path (e.g. `/usr/local/bin/po2json` instead of `po2json`).
 If you get a lot of `[null,***]` in `messages.json`, just delete all the `null,`.
@@ -894,6 +910,9 @@ yarn build
 Then use `npm link` to create symlinks of the plugins/superset-ui packages you want to edit in `superset-frontend/node_modules`:
 
 ```bash
+# Since npm 7, you have to install plugin dependencies separately, too
+cd ../../superset-ui/plugins/[PLUGIN NAME] && npm install --legacy-peer-deps
+
 cd superset/superset-frontend
 npm link ../../superset-ui/plugins/[PLUGIN NAME]
 

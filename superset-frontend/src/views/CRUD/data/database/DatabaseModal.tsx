@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { styled, t, SupersetClient } from '@superset-ui/core';
 import InfoTooltip from 'src/common/components/InfoTooltip';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -39,8 +40,18 @@ interface DatabaseModalProps {
   database?: DatabaseObject | null; // If included, will go into edit mode
 }
 
-const DEFAULT_TAB_KEY = '1';
+// todo: define common type fully in types file
+interface RootState {
+  common: {
+    conf: {
+      SQLALCHEMY_DOCS_URL: string;
+      SQLALCHEMY_DISPLAY_TEXT: string;
+    };
+  };
+  messageToast: Array<Object>;
+}
 
+const DEFAULT_TAB_KEY = '1';
 const StyledIcon = styled(Icon)`
   margin: auto ${({ theme }) => theme.gridUnit * 2}px auto 0;
 `;
@@ -132,6 +143,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useState<DatabaseObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
+  const conf = useSelector((state: RootState) => state.common.conf);
 
   const isEditMode = database !== null;
   const defaultExtra =
@@ -302,11 +314,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         .then(() => {
           setDB(dbFetched);
         })
-        .catch(e =>
+        .catch(errMsg =>
           addDangerToast(
             t(
               'Sorry there was an error fetching database information: %s',
-              e.message,
+              errMsg.message,
             ),
           ),
         );
@@ -402,11 +414,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             <div className="helper">
               {t('Refer to the ')}
               <a
-                href="https://docs.sqlalchemy.org/en/rel_1_2/core/engines.html#"
+                href={conf?.SQLALCHEMY_DOCS_URL ?? ''}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                {t('SQLAlchemy docs')}
+                {conf?.SQLALCHEMY_DISPLAY_TEXT ?? ''}
               </a>
               {t(' for more information on how to structure your URI.')}
             </div>

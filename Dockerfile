@@ -45,7 +45,10 @@ RUN cd /app \
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-FROM node:12 AS superset-node
+FROM node:14 AS superset-node
+
+ARG NPM_VER=7
+RUN npm install -g npm@${NPM_VER}
 
 ARG NPM_BUILD_CMD="build"
 ENV BUILD_CMD=${NPM_BUILD_CMD}

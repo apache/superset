@@ -25,6 +25,10 @@ import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { getChartDataRequest } from 'src/chart/chartAction';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import {
+  getFromLocalStorage,
+  setInLocalStorage,
+} from 'src/utils/localStorageHelpers';
+import {
   CopyToClipboardButton,
   FilterInput,
   RowCount,
@@ -43,6 +47,12 @@ const NULLISH_RESULTS_STATE = {
 };
 
 const DATA_TABLE_PAGE_SIZE = 50;
+
+const STORAGE_KEYS = {
+  isOpen: 'is_datapanel_open',
+};
+
+const DATAPANEL_KEY = 'data';
 
 const TableControlsWrapper = styled.div`
   display: flex;
@@ -98,7 +108,9 @@ export const DataTablesPane = ({
     [RESULT_TYPES.results]?: boolean;
     [RESULT_TYPES.samples]?: boolean;
   }>(NULLISH_RESULTS_STATE);
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(
+    getFromLocalStorage(STORAGE_KEYS.isOpen, false),
+  );
 
   const getData = useCallback(
     (resultType: string) => {
@@ -139,6 +151,10 @@ export const DataTablesPane = ({
     },
     [queryFormData],
   );
+
+  useEffect(() => {
+    setInLocalStorage(STORAGE_KEYS.isOpen, panelOpen);
+  }, [panelOpen]);
 
   useEffect(() => {
     setIsRequestPending(prevState => ({
@@ -244,11 +260,12 @@ export const DataTablesPane = ({
         <Collapse
           accordion
           bordered={false}
+          defaultActiveKey={panelOpen ? DATAPANEL_KEY : undefined}
           onChange={handleCollapseChange}
           bold
           ghost
         >
-          <Collapse.Panel header={t('Data')} key="data">
+          <Collapse.Panel header={t('Data')} key={DATAPANEL_KEY}>
             <Tabs
               fullWidth={false}
               tabBarExtraContent={TableControls}
