@@ -17,11 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { styled } from '@superset-ui/core';
+import { styled, Metric } from '@superset-ui/core';
 import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 import { ColumnTypeLabel } from './ColumnTypeLabel';
 import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
-import { Metric } from '../types';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -33,7 +32,7 @@ const FlexRowContainer = styled.div`
 `;
 
 export interface MetricOptionProps {
-  metric: Metric;
+  metric: Omit<Metric, 'id'> & { label?: string };
   openInNewWindow?: boolean;
   showFormula?: boolean;
   showType?: boolean;

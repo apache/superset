@@ -43,3 +43,5 @@ export interface Column {
   type: ColumnType;
   columnName: string;
 }
+
+export default {};

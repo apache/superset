@@ -49,14 +49,16 @@ export type SavedMetric = string;
  * Metric definition stored in datasource metadata.
  */
 export interface Metric {
-  id: number;
+  id?: number;
+  metric_name: string;
+  expression?: Maybe<string>;
   certification_details?: Maybe<string>;
   certified_by?: Maybe<string>;
   d3format?: Maybe<string>;
   description?: Maybe<string>;
-  expression: Maybe<string>;
   is_certified?: boolean;
-  metric_name: string;
   verbose_name?: string;
   warning_text?: Maybe<string>;
 }
+
+export default {};
