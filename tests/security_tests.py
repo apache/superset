@@ -816,7 +816,11 @@ class TestRolePermission(SupersetTestCase):
         self.assert_cannot_alpha(get_perm_tuples("Gamma"))
 
     def test_public_permissions_basic(self):
+        app.config["PUBLIC_ROLE_LIKE"] = "Gamma"
+        security_manager.sync_role_definitions()
         self.assert_can_gamma(get_perm_tuples("Public"))
+        security_manager.get_public_role().permissions = []
+        db.session.commit()
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pydruid"), "pydruid not installed"
