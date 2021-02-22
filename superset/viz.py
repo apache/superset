@@ -1060,7 +1060,11 @@ class CalHeatmapViz(BaseViz):
             "month": "P1M",
             "year": "P1Y",
         }
-        d["extras"]["time_grain_sqla"] = mapping[fd.get("subdomain_granularity", "min")]
+        time_grain = mapping[fd.get("subdomain_granularity", "min")]
+        if self.datasource.type == 'druid':
+            d["granularity"] = time_grain
+        else:
+            d["extras"]["time_grain_sqla"] = time_grain
         return d
 
 
