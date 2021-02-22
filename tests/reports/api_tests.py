@@ -158,11 +158,17 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert rv.status_code == 200
         expected_result = {
             "active": report_schedule.active,
-            "chart": {"id": report_schedule.chart.id},
+            "chart": {
+                "id": report_schedule.chart.id,
+                "slice_name": report_schedule.chart.slice_name,
+            },
             "context_markdown": report_schedule.context_markdown,
             "crontab": report_schedule.crontab,
             "dashboard": None,
-            "database": {"id": report_schedule.database.id},
+            "database": {
+                "id": report_schedule.database.id,
+                "database_name": report_schedule.database.database_name,
+            },
             "description": report_schedule.description,
             "grace_period": report_schedule.grace_period,
             "id": report_schedule.id,
