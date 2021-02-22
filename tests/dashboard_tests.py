@@ -458,6 +458,7 @@ class TestDashboard(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_energy_table_with_slice", "load_dashboard")
     def test_users_can_view_published_dashboard(self):
+        self.login("alpha")
         resp = self.get_resp("/api/v1/dashboard/")
         self.assertNotIn(f"/superset/dashboard/{pytest.hidden_dash_slug}/", resp)
         self.assertIn(f"/superset/dashboard/{pytest.published_dash_slug}/", resp)
