@@ -540,7 +540,8 @@ class BaseViz:
                     + (query_obj.get("groupby") or [])
                     + utils.get_column_names_from_metrics(
                         cast(
-                            List[Union[str, Dict[str, Any]]], query_obj.get("metrics"),
+                            List[Union[str, Dict[str, Any]]],
+                            query_obj.get("metrics"),
                         )
                     )
                     if col not in self.datasource.column_names
@@ -1061,7 +1062,7 @@ class CalHeatmapViz(BaseViz):
             "year": "P1Y",
         }
         time_grain = mapping[fd.get("subdomain_granularity", "min")]
-        if self.datasource.type == 'druid':
+        if self.datasource.type == "druid":
             d["granularity"] = time_grain
         else:
             d["extras"]["time_grain_sqla"] = time_grain
@@ -1832,7 +1833,12 @@ class SankeyViz(BaseViz):
         source, target = self.groupby
         (value,) = self.metric_labels
         df.rename(
-            columns={source: "source", target: "target", value: "value",}, inplace=True,
+            columns={
+                source: "source",
+                target: "target",
+                value: "value",
+            },
+            inplace=True,
         )
         df["source"] = df["source"].astype(str)
         df["target"] = df["target"].astype(str)
