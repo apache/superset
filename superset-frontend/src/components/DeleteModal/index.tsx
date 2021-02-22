@@ -70,7 +70,6 @@ export default function DeleteModal({
         </FormLabel>
         <FormControl
           data-test="delete-modal-input"
-          data-test-id="delete-modal-input"
           type="text"
           id="delete"
           bsSize="sm"

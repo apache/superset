@@ -20,14 +20,16 @@
 import React from 'react';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, configure } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DeleteModal from '.';
 
+configure({ testIdAttribute: 'data-test' });
+
 test('Must display title and content', () => {
   const props = {
-    title: <div data-test-id="test-title">Title</div>,
-    description: <div data-test-id="test-description">Description</div>,
+    title: <div data-test="test-title">Title</div>,
+    description: <div data-test="test-description">Description</div>,
     onConfirm: jest.fn(),
     onHide: jest.fn(),
     open: true,
@@ -45,8 +47,8 @@ test('Must display title and content', () => {
 
 test('Calling "onHide"', () => {
   const props = {
-    title: <div data-test-id="test-title">Title</div>,
-    description: <div data-test-id="test-description">Description</div>,
+    title: <div data-test="test-title">Title</div>,
+    description: <div data-test="test-description">Description</div>,
     onConfirm: jest.fn(),
     onHide: jest.fn(),
     open: true,
@@ -66,8 +68,8 @@ test('Calling "onHide"', () => {
 
 test('Calling "onConfirm" only after typing "delete" in the input', () => {
   const props = {
-    title: <div data-test-id="test-title">Title</div>,
-    description: <div data-test-id="test-description">Description</div>,
+    title: <div data-test="test-title">Title</div>,
+    description: <div data-test="test-description">Description</div>,
     onConfirm: jest.fn(),
     onHide: jest.fn(),
     open: true,
