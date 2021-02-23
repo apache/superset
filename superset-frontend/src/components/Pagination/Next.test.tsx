@@ -18,8 +18,7 @@
  */
 
 import React from 'react';
-import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Next } from './Next';
 

@@ -18,18 +18,14 @@
  */
 
 import React from 'react';
-import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { render, screen } from 'spec/helpers/testing-library';
 import { PaginationWrapper } from './PaginationWrapper';
 
 test('PaginationWrapper rendering correctly', () => {
   render(
-    <ThemeProvider theme={supersetTheme}>
-      <PaginationWrapper>
-        <li data-test-id="test" />
-      </PaginationWrapper>
-    </ThemeProvider>,
+    <PaginationWrapper>
+      <li data-test-id="test" />
+    </PaginationWrapper>,
   );
   expect(screen.getByRole('navigation')).toBeInTheDocument();
   expect(screen.getByTestId('test')).toBeInTheDocument();
