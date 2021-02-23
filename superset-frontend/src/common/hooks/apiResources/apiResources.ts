@@ -144,7 +144,7 @@ export function useApiResourceFullBody<RESULT>(
  * @param transformFn a callback that transforms the result object into the shape you want.
  * Make sure to use a persistent function for this so it doesn't constantly recalculate!
  */
-export function useResourceTransform<IN, OUT>(
+export function useTransformedResource<IN, OUT>(
   resource: Resource<IN>,
   transformFn: (result: IN) => OUT,
 ): Resource<OUT> {
@@ -161,7 +161,8 @@ export function useResourceTransform<IN, OUT>(
 }
 
 // returns the "result" field from a fetched API v1 endpoint
-const innerResult = <T>(responseBody: { result: T }) => responseBody.result;
+const extractInnerResult = <T>(responseBody: { result: T }) =>
+  responseBody.result;
 
 /**
  * A general-purpose hook to fetch a Superset resource from a v1 API endpoint.
@@ -173,8 +174,8 @@ const innerResult = <T>(responseBody: { result: T }) => responseBody.result;
  * @param endpoint The url where the resource is located.
  */
 export function useApiV1Resource<RESULT>(endpoint: string): Resource<RESULT> {
-  return useResourceTransform(
+  return useTransformedResource(
     useApiResourceFullBody<{ result: RESULT }>(endpoint),
-    innerResult,
+    extractInnerResult,
   );
 }

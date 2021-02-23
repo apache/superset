@@ -20,10 +20,10 @@
 export {
   useApiResourceFullBody,
   useApiV1Resource,
-  useResourceTransform,
+  useTransformedResource,
 } from './apiResources';
 
-// A central catalog of API hooks.
+// A central catalog of API Resource hooks.
 // Add new API hooks here, organized under
 // different files for different resource types.
 export { useChartOwnerNames } from './charts';
