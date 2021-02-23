@@ -1463,10 +1463,14 @@ class MultiLineViz(NVD3Viz):
                 x_values = [value["x"] for value in series["values"]]
                 min_x = min(x_values + ([min_x] if min_x is not None else []))
                 max_x = max(x_values + ([max_x] if max_x is not None else []))
-
+                series_key = (
+                    series["key"]
+                    if isinstance(series["key"], (list, tuple))
+                    else [series["key"]]
+                )
                 data.append(
                     {
-                        "key": prefix + ", ".join(series["key"]),
+                        "key": prefix + ", ".join(series_key),
                         "type": "line",
                         "values": series["values"],
                         "yAxis": y_axis,
