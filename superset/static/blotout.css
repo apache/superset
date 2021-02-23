@@ -103,8 +103,7 @@ body > footer {
   box-shadow: none
 }
 
-.superset-legacy-chart-sankey,
-.dashboard-component-chart-holder.full-size > div {
+.superset-legacy-chart-sankey {
   display: flex;
   flex-flow: column;
   height: 100%;
