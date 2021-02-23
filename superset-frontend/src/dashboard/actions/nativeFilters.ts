@@ -23,7 +23,7 @@ import {
   Filter,
   FilterConfiguration,
 } from 'src/dashboard/components/nativeFilters/types';
-import { SET_BOOTSTRAP_DATA } from './bootstrapData';
+import { LOAD_DASHBOARD_BOOTSTRAPDATA } from './bootstrapData';
 import { dashboardInfoChanged } from './dashboardInfo';
 import { CurrentFilterState } from '../reducers/types';
 import { SelectedValues } from '../components/nativeFilters/FilterConfigModal/types';
@@ -104,7 +104,7 @@ type Data = {
 };
 
 export interface SetBooststapData {
-  type: typeof SET_BOOTSTRAP_DATA;
+  type: typeof LOAD_DASHBOARD_BOOTSTRAPDATA;
   data: Data;
 }
 

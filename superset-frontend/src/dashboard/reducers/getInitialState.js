@@ -48,11 +48,17 @@ import getLocationHash from '../util/getLocationHash';
 import newComponentFactory from '../util/newComponentFactory';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 
-export default function getInitialState(bootstrapData, chartData, dashboardData) {
+export default function getInitialState(
+  bootstrapData,
+  chartData,
+  dashboardData,
+) {
   // user_id and datasources need exploration for spa
+  console.log('dashboarddata', dashboardData)
   const { user_id, datasources, common, editMode, urlParams } = bootstrapData;
   const dashboard = { ...bootstrapData.dashboard_data };
-  // console.log('dashboard', dashboard, { common, editMode, datasources, urlParams })
+  console.log('chartData', chartData)
+  console.log('dashboard', dashboard, { common, editMode, datasources, urlParams })
   const metadata = JSON.parse(dashboardData.json_metadata);
   let preselectFilters = {};
 

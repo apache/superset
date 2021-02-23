@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const SET_BOOTSTRAP_DATA = 'SET_BOOTSTRAP_DATA';
+export const LOAD_DASHBOARD_BOOTSTRAPDATA = 'LOAD_DASHBOARD_BOOTSTRAPDATA';
 
-export default function setBootstrapData(data) {
+export default function setDashboardData(data) {
   return {
-    type: SET_BOOTSTRAP_DATA,
+    type: LOAD_DASHBOARD_BOOTSTRAPDATA,
     data,
   };
 }

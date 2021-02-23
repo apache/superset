@@ -43,10 +43,10 @@ import {
   DASHBOARD_TITLE_CHANGED,
 } from '../actions/dashboardLayout';
 
-import { SET_BOOTSTRAP_DATA } from '../actions/bootstrapData';
+import { LOAD_DASHBOARD_BOOTSTRAPDATA } from '../actions/bootstrapData';
 
 const actionHandlers = {
-  [SET_BOOTSTRAP_DATA](state, action) {
+  [LOAD_DASHBOARD_BOOTSTRAPDATA](state, action) {
     return {
       ...action.data.dashboardLayout.present,
     };

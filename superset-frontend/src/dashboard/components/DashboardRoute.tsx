@@ -20,13 +20,13 @@ import React, { useEffect, useState, FC } from 'react';
 import { connect } from 'react-redux';
 import { AnyAction, bindActionCreators, Dispatch } from 'redux';
 import { SupersetClient } from '@superset-ui/core';
-import setBootstrapData from 'src/dashboard/actions/bootstrapData';
+import setInitialState from 'src/dashboard/actions/bootstrapData';
 import Loading from 'src/components/Loading';
 import getInitialState from '../reducers/getInitialState';
 
 interface DashboardRouteProps {
   actions: {
-    setBootstrapData: (arg0: object) => void;
+    setInitialState: (arg0: object) => void;
   };
   dashboardId: string;
 }
@@ -63,7 +63,7 @@ const DashboardRoute: FC<DashboardRouteProps> = ({
           data.chartRes,
           data.dashboardRes,
         );
-        actions.setBootstrapData(initState);
+        actions.setInitialState(initState);
         setLoaded(true);
       }
     });
@@ -77,7 +77,7 @@ function mapDispatchToProps(dispatch: Dispatch<AnyAction>) {
   return {
     actions: bindActionCreators(
       {
-        setBootstrapData,
+        setInitialState,
       },
       dispatch,
     ),

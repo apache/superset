@@ -23,7 +23,7 @@ import {
   FETCH_ALL_SLICES_STARTED,
   SET_ALL_SLICES,
 } from '../actions/sliceEntities';
-import { SET_BOOTSTRAP_DATA } from '../actions/bootstrapData';
+import { LOAD_DASHBOARD_BOOTSTRAPDATA } from '../actions/bootstrapData';
 
 export const initSliceEntities = {
   slices: {},
@@ -37,7 +37,7 @@ export default function sliceEntitiesReducer(
   action,
 ) {
   const actionHandlers = {
-    [SET_BOOTSTRAP_DATA]() {
+    [LOAD_DASHBOARD_BOOTSTRAPDATA]() {
       return {
         ...action.data.sliceEntities,
       };

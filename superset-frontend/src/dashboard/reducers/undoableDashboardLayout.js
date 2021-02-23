@@ -29,7 +29,7 @@ import {
   HANDLE_COMPONENT_DROP,
 } from '../actions/dashboardLayout';
 
-import { SET_BOOTSTRAP_DATA } from '../actions/bootstrapData';
+import { LOAD_DASHBOARD_BOOTSTRAPDATA } from '../actions/bootstrapData';
 
 import dashboardLayout from './dashboardLayout';
 
@@ -38,7 +38,7 @@ export default undoable(dashboardLayout, {
   // +1 again so we can detect if we've exceeded the limit
   limit: UNDO_LIMIT + 2,
   filter: includeAction([
-    SET_BOOTSTRAP_DATA,
+    LOAD_DASHBOARD_BOOTSTRAPDATA,
     UPDATE_COMPONENTS,
     DELETE_COMPONENT,
     CREATE_COMPONENT,
