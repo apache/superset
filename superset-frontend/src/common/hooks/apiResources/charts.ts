@@ -17,31 +17,23 @@
  * under the License.
  */
 
-import React from 'react';
-import { useChartOwnerNames } from 'src/common/hooks/apiResources';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
-import { SupersetError } from 'src/components/ErrorMessage/types';
+import rison from 'rison';
+import Chart from 'src/types/Chart';
+import { useApiV1Resource, useResourceTransform } from './apiResources';
 
-interface Props {
-  chartId: string;
-  error?: SupersetError;
+function extractOwnerNames({ owners }: Chart) {
+  if (!owners) return null;
+  return owners.map(owner => `${owner.first_name} ${owner.last_name}`);
 }
 
-/**
- * fetches the chart owners and adds them to the extra data of the error message
- */
-export const ChartErrorMessage: React.FC<Props> = ({
-  chartId,
-  error,
-  ...props
-}) => {
-  const { result: owners } = useChartOwnerNames(chartId);
+const ownerNamesQuery = rison.encode({
+  columns: ['owners.first_name', 'owners.last_name'],
+  keys: ['none'],
+});
 
-  // don't mutate props
-  const ownedError = error && {
-    ...error,
-    extra: { ...error.extra, owners },
-  };
-
-  return <ErrorMessageWithStackTrace {...props} error={ownedError} />;
-};
+export function useChartOwnerNames(chartId: string) {
+  return useResourceTransform(
+    useApiV1Resource<Chart>(`/api/v1/chart/${chartId}?q=${ownerNamesQuery}`),
+    extractOwnerNames,
+  );
+}
