@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+
+import { render, screen } from 'spec/helpers/testing-library';
 import React from 'react';
 import { Provider } from 'react-redux';
 import { store } from 'src/views/store';
@@ -28,7 +28,7 @@ test('Rerendering correctly with default props', () => {
   render(
     <Provider store={store}>
       <FlashProvider messages={messages}>
-        <div data-test-id="my-component">My Component</div>
+        <div data-test="my-component">My Component</div>
       </FlashProvider>
     </Provider>,
   );
@@ -44,7 +44,7 @@ test('messages should only be inserted in the State when the component is mounte
   const { rerender } = render(
     <Provider store={store}>
       <FlashProvider messages={messages}>
-        <div data-teste-id="my-component">My Component</div>
+        <div data-teste="my-component">My Component</div>
       </FlashProvider>
     </Provider>,
   );
@@ -56,7 +56,7 @@ test('messages should only be inserted in the State when the component is mounte
   rerender(
     <Provider store={store}>
       <FlashProvider messages={[...messages, ['info', 'teste message 03']]}>
-        <div data-teste-id="my-component">My Component</div>
+        <div data-teste="my-component">My Component</div>
       </FlashProvider>
     </Provider>,
   );
