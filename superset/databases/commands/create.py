@@ -21,6 +21,7 @@ from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
+from superset import app
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.databases.commands.exceptions import (
@@ -35,6 +36,8 @@ from superset.databases.dao import DatabaseDAO
 from superset.extensions import db, security_manager
 
 logger = logging.getLogger(__name__)
+config = app.config
+stats_logger = config["STATS_LOGGER"]
 
 
 class CreateDatabaseCommand(BaseCommand):
@@ -52,6 +55,9 @@ class CreateDatabaseCommand(BaseCommand):
                 TestConnectionDatabaseCommand(self._actor, self._properties).run()
             except Exception:
                 db.session.rollback()
+                stats_logger.incr(
+                    f"db_connection_failed.{database.db_engine_spec.__name__}"
+                )
                 raise DatabaseConnectionFailedError()
 
             # adding a new database we always want to force refresh schema list
