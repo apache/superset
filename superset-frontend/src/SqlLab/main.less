@@ -55,7 +55,8 @@ body {
   height: 100%;
   position: relative;
   background-color: @lightest;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
 
   > .ant-tabs-tabpane {
     position: absolute;
@@ -366,7 +367,6 @@ div.tablePopover {
   display: flex;
   justify-content: space-between;
   padding: 8px 0;
-  position: fixed;
 }
 
 .ResultSetButtons {

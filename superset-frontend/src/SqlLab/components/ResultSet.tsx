@@ -101,7 +101,6 @@ const MonospaceDiv = styled.div`
 `;
 
 const ReturnedRows = styled.div`
-  margin-bottom: -32px;
   font-size: 13px;
   line-height: 24px;
   .returnedRowsImage {

@@ -66,9 +66,6 @@ const StyledPane = styled.div`
   .ant-tabs .ant-tabs-content-holder {
     overflow: visible;
   }
-  .ant-tabs-content ant-tabs-content-top {
-    overflow: hidden;
-  }
   .SouthPaneTabs {
     height: 100%;
     display: flex;
