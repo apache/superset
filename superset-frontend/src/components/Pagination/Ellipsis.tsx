@@ -19,9 +19,9 @@
 
 import React from 'react';
 import classNames from 'classnames';
-import { PaginationButton } from './PaginationButton.types';
+import { PaginationButtonProps } from './PaginationButtonProps';
 
-export function Ellipsis({ disabled, onClick }: PaginationButton) {
+export function Ellipsis({ disabled, onClick }: PaginationButtonProps) {
   return (
     <li className={classNames({ disabled })}>
       <span

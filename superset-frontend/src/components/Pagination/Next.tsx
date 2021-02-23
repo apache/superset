@@ -19,9 +19,9 @@
 
 import React from 'react';
 import classNames from 'classnames';
-import { PaginationButton } from './PaginationButton.types';
+import { PaginationButtonProps } from './PaginationButtonProps';
 
-export function Next({ disabled, onClick }: PaginationButton) {
+export function Next({ disabled, onClick }: PaginationButtonProps) {
   return (
     <li className={classNames({ disabled })}>
       <span
