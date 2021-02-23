@@ -57,6 +57,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, Table
 from superset.utils import core as utils
+from superset.utils.core import ColumnSpec, GenericDataType
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -1097,3 +1098,56 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
         return parsed_query.is_select() or parsed_query.is_explain()
+
+    @classmethod
+    def get_column_type(
+        cls,
+        source: utils.ColumnTypeSource,
+        db_type_map: Dict[utils.GenericDataType, List[str]],
+        native_type: Union[utils.GenericDataType, str],
+    ) -> Tuple[Union[utils.GenericDataType, str], bool]:
+        for generic_type in db_type_map:
+            is_dttm = True if generic_type == utils.GenericDataType.TEMPORAL else False
+            for db_type in db_type_map[generic_type]:
+                if db_type == native_type:
+                    if source == utils.ColumnTypeSource.CURSOR_DESCRIPION:
+                        return db_type, is_dttm
+                    elif source == utils.ColumnTypeSource.GET_TABLE:
+                        return generic_type, is_dttm
+        return "", False
+
+    @classmethod
+    def get_column_spec(
+        cls,
+        source: utils.ColumnTypeSource,
+        column_name: str,
+        native_type: Union[utils.GenericDataType, str],
+    ) -> utils.ColumnSpec:
+        postgres_types_map: Dict[utils.GenericDataType, List[str]] = {
+            utils.GenericDataType.NUMERIC: [
+                "smallint",
+                "integer",
+                "bigint",
+                "decimal",
+                "numeric",
+                "real",
+                "double precision",
+                "smallserial",
+                "serial",
+                "bigserial",
+            ],
+            utils.GenericDataType.STRING: ["varchar", "char", "text",],
+            utils.GenericDataType.TEMPORAL: [
+                "DATE",
+                "TIME",
+                "TIMESTAMP",
+                "TIMESTAMPTZ",
+                "INTERVAL",
+            ],
+            utils.GenericDataType.BOOLEAN: ["boolean",],
+        }
+
+        type, is_dttm = cls.get_column_type(source, postgres_types_map, native_type)
+        column_spec = ColumnSpec(type, is_dttm)
+
+        return column_spec
