@@ -17,7 +17,11 @@
  * under the License.
  */
 
-export * from './apiResources';
+export {
+  useApiResourceFullBody,
+  useApiV1Resource,
+  useTransformedResource,
+} from './apiResources';
 
 // A central catalog of API Resource hooks.
 // Add new API hooks here, organized under

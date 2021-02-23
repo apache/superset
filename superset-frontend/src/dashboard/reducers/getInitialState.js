@@ -47,7 +47,6 @@ import getFilterConfigsFromFormdata from '../util/getFilterConfigsFromFormdata';
 import getLocationHash from '../util/getLocationHash';
 import newComponentFactory from '../util/newComponentFactory';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
-import { initialResourcesState } from 'src/common/hooks/apiResources/apiResources';
 
 export default function getInitialState(bootstrapData) {
   const { user_id, datasources, common, editMode, urlParams } = bootstrapData;
@@ -309,6 +308,5 @@ export default function getInitialState(bootstrapData) {
     dashboardLayout,
     messageToasts: [],
     impressionId: shortid.generate(),
-    apiResources: initialResourcesState,
   };
 }
