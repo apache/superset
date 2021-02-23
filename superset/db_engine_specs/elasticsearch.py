@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from types import ModuleType
 from typing import Dict, Optional, Type
 
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -49,17 +48,14 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
     type_code_map: Dict[int, str] = {}  # loaded from get_datatype only if needed
 
     @classmethod
-    def get_dbapi_exception_mapping(
-        cls, dbapi: ModuleType
-    ) -> Dict[Type[Exception], Type[Exception]]:
+    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
         import es.exceptions as es_exceptions  # pylint: disable=import-error
 
-        base_map = super().get_dbapi_exception_mapping(dbapi)
-        base_map[es_exceptions.DatabaseError] = SupersetDBAPIDatabaseError
-        base_map[es_exceptions.OperationalError] = SupersetDBAPIOperationalError
-        base_map[es_exceptions.ProgrammingError] = SupersetDBAPIProgrammingError
-
-        return base_map
+        return {
+            es_exceptions.DatabaseError: SupersetDBAPIDatabaseError,
+            es_exceptions.OperationalError: SupersetDBAPIOperationalError,
+            es_exceptions.ProgrammingError: SupersetDBAPIProgrammingError,
+        }
 
     @classmethod
     def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:

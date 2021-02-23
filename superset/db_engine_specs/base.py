@@ -17,13 +17,11 @@
 # pylint: disable=unused-argument
 import dataclasses
 import hashlib
-import importlib
 import json
 import logging
 import re
 from contextlib import closing
 from datetime import datetime
-from types import ModuleType
 from typing import (
     Any,
     Callable,
@@ -77,6 +75,19 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
 logger = logging.getLogger()
+
+
+standard_dbapi_exception_names = {
+    "Error": SupersetDBAPIError,
+    "InterfaceError": SupersetDBAPIInterfaceError,
+    "DatabaseError": SupersetDBAPIDatabaseError,
+    "DataError": SupersetDBAPIDataError,
+    "OperationalError": SupersetDBAPIOperationalError,
+    "IntegrityError": SupersetDBAPIIntegrityError,
+    "InternalError": SupersetDBAPIInternalError,
+    "ProgrammingError": SupersetDBAPIProgrammingError,
+    "NotSupportedError": SupersetDBAPINotSupportedError,
+}
 
 
 class TimeGrain(NamedTuple):  # pylint: disable=too-few-public-methods
@@ -193,9 +204,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     }
 
     @classmethod
-    def get_dbapi_exception_mapping(
-        cls, dbapi: ModuleType
-    ) -> Dict[Type[Exception], Type[Exception]]:
+    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
         """
         Each engine can implement and converge its own specific exceptions into
         Superset DBAPI exceptions
@@ -205,27 +214,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :return: A map of driver specific exception to superset custom exceptions
         """
-        dbapi_exception_names = {
-            "Error": SupersetDBAPIError,
-            "InterfaceError": SupersetDBAPIInterfaceError,
-            "DatabaseError": SupersetDBAPIDatabaseError,
-            "DataError": SupersetDBAPIDataError,
-            "OperationalError": SupersetDBAPIOperationalError,
-            "IntegrityError": SupersetDBAPIIntegrityError,
-            "InternalError": SupersetDBAPIInternalError,
-            "ProgrammingError": SupersetDBAPIProgrammingError,
-            "NotSupportedError": SupersetDBAPINotSupportedError,
-        }
-        return {
-            getattr(dbapi, exception_name): exception
-            for exception_name, exception in dbapi_exception_names.items()
-            if hasattr(dbapi, exception_name)
-        }
+        return {}
 
     @classmethod
-    def get_dbapi_mapped_exception(
-        cls, dbapi: ModuleType, exception: Exception
-    ) -> Exception:
+    def get_dbapi_mapped_exception(cls, exception: Exception) -> Exception:
         """
         Get a superset custom DBAPI exception from the driver specific exception.
 
@@ -235,7 +227,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param exception: The driver specific exception
         :return: Superset custom DBAPI exception
         """
-        new_exception = cls.get_dbapi_exception_mapping(dbapi).get(type(exception))
+        new_exception: Optional[Type[Exception]]
+        if exception.__class__.__name__ in standard_dbapi_exception_names:
+            new_exception = standard_dbapi_exception_names[exception.__class__.__name__]
+        else:
+            new_exception = cls.get_dbapi_exception_mapping().get(type(exception))
         if not new_exception:
             return exception
         return new_exception(str(exception))
@@ -382,8 +378,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 return cursor.fetchmany(limit)
             return cursor.fetchall()
         except Exception as ex:
-            dbapi = importlib.import_module(cursor.__module__)
-            raise cls.get_dbapi_mapped_exception(dbapi, ex)
+            raise cls.get_dbapi_mapped_exception(ex)
 
     @classmethod
     def expand_data(
@@ -974,8 +969,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         try:
             cursor.execute(query)
         except Exception as ex:
-            dbapi = importlib.import_module(cursor.__module__)
-            raise cls.get_dbapi_mapped_exception(dbapi, ex)
+            raise cls.get_dbapi_mapped_exception(ex)
 
     @classmethod
     def make_label_compatible(cls, label: str) -> Union[str, quoted_name]:

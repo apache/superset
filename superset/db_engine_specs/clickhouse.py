@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from types import ModuleType
 from typing import Dict, Optional, Type
 
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -48,20 +47,14 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     }
 
     @classmethod
-    def get_dbapi_exception_mapping(
-        cls, dbapi: ModuleType
-    ) -> Dict[Type[Exception], Type[Exception]]:
+    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
         from urllib3.exceptions import NewConnectionError
 
-        base_map = super().get_dbapi_exception_mapping(dbapi)
-        base_map[NewConnectionError] = SupersetDBAPIDatabaseError
-        return base_map
+        return {NewConnectionError: SupersetDBAPIDatabaseError}
 
     @classmethod
-    def get_dbapi_mapped_exception(
-        cls, dbapi: ModuleType, exception: Exception
-    ) -> Exception:
-        new_exception = cls.get_dbapi_exception_mapping(dbapi).get(type(exception))
+    def get_dbapi_mapped_exception(cls, exception: Exception) -> Exception:
+        new_exception = cls.get_dbapi_exception_mapping().get(type(exception))
         if new_exception == SupersetDBAPIDatabaseError:
             return SupersetDBAPIDatabaseError("Connection failed")
         if not new_exception:
