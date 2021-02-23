@@ -51,24 +51,24 @@ def upgrade():
 
     for slc in session.query(Slice).filter(Slice.viz_type.like("directed_force")):
         params = json.loads(slc.params)
-
         groupby = params.get("groupby", [])
         if groupby:
             params["source"] = groupby[0]
             params["target"] = groupby[1] if len(groupby) > 1 else None
-            params["edgeLength"] = 400
-            params["repulsion"] = 1000
-            params["layout"] = "force"
             del params["groupby"]
 
-            if "charge" in params:
-                del params["charge"]
-            if "collapsed_fieldset" in params:
-                del params["collapsed_fieldsets"]
-            if "link_length" in params:
-                del params["link_length"]
-            slc.params = json.dumps(params)
+        params["edgeLength"] = 400
+        params["repulsion"] = 1000
+        params["layout"] = "force"
 
+        if "charge" in params:
+            del params["charge"]
+        if "collapsed_fieldset" in params:
+            del params["collapsed_fieldsets"]
+        if "link_length" in params:
+            del params["link_length"]
+
+        slc.params = json.dumps(params)
         slc.viz_type = "graph_chart"
         session.merge(slc)
         session.commit()
@@ -85,21 +85,20 @@ def downgrade():
         target = params.get("target", None)
         if source and target:
             params["groupby"] = [source, target]
-            params["charge"] = "-500"
-            params["collapsed_fieldsets"] = ""
-            params["link_length"] = "200"
-
             del params["source"]
             del params["target"]
-            if "edgeLength" in params:
-                del params["edgeLength"]
-            if "repulsion" in params:
-                del params["repulsion"]
-            if "layout" in params:
-                del params["layout"]
 
-            slc.params = json.dumps(params)
+        params["charge"] = "-500"
+        params["collapsed_fieldsets"] = ""
+        params["link_length"] = "200"
+        if "edgeLength" in params:
+            del params["edgeLength"]
+        if "repulsion" in params:
+            del params["repulsion"]
+        if "layout" in params:
+            del params["layout"]
 
+        slc.params = json.dumps(params)
         slc.viz_type = "directed_force"
         session.merge(slc)
         session.commit()
