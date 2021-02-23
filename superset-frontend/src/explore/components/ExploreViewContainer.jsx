@@ -35,6 +35,7 @@ import {
   setInLocalStorage,
 } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
+import cx from 'classnames';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
@@ -528,9 +529,10 @@ function ExploreViewContainer(props) {
         />
       </Resizable>
       <div
-        className={`main-explore-content ${
-          isCollapsed ? 'col-sm-9' : 'col-sm-7'
-        }`}
+        className={cx(
+          'main-explore-content',
+          isCollapsed ? 'col-sm-9' : 'col-sm-7',
+        )}
       >
         {renderChartContainer()}
       </div>

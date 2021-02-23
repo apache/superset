@@ -612,6 +612,7 @@ class TestCore(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_cache_logging(self):
+        self.login("admin")
         store_cache_keys = app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = True
         girls_slice = self.get_slice("Girls", db.session)
@@ -785,6 +786,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_id_is_always_logged_correctly_on_web_request(self):
         # superset/explore case
+        self.login("admin")
         slc = db.session.query(Slice).filter_by(slice_name="Girls").one()
         qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
         self.get_resp(slc.slice_url, {"form_data": json.dumps(slc.form_data)})
