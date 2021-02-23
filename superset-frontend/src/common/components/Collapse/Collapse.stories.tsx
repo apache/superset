@@ -18,16 +18,54 @@
  */
 import React from 'react';
 import { useTheme } from '@superset-ui/core';
-import { Tooltip as AntdTooltip } from 'antd';
-import { TooltipProps } from 'antd/lib/tooltip';
+import Collapse, { CollapseProps } from '.';
 
-export const Tooltip = (props: TooltipProps) => {
+export default {
+  title: 'Collapse',
+  component: Collapse,
+};
+
+export const InteractiveCollapse = (args: CollapseProps) => {
   const theme = useTheme();
   return (
-    <AntdTooltip
-      overlayStyle={{ fontSize: theme.typography.sizes.s, lineHeight: '1.6' }}
-      color={`${theme.colors.grayscale.dark2}e6`}
-      {...props}
-    />
+    <Collapse
+      defaultActiveKey={['1']}
+      style={
+        args.light ? { background: theme.colors.grayscale.light2 } : undefined
+      }
+      {...args}
+    >
+      <Collapse.Panel header="Header 1" key="1">
+        Content 1
+      </Collapse.Panel>
+      <Collapse.Panel header="Header 2" key="2">
+        Content 2
+      </Collapse.Panel>
+    </Collapse>
   );
+};
+
+InteractiveCollapse.args = {
+  ghost: false,
+  bordered: true,
+  accordion: false,
+};
+
+InteractiveCollapse.argTypes = {
+  theme: {
+    table: {
+      disable: true,
+    },
+  },
+};
+
+InteractiveCollapse.story = {
+  parameters: {
+    actions: {
+      disabled: true,
+    },
+    knobs: {
+      disabled: true,
+    },
+  },
 };
