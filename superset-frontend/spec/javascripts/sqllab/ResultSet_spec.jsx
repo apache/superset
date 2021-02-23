@@ -18,10 +18,13 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
+import { styledMount } from 'spec/helpers/theming';
+import { Provider } from 'react-redux';
 import sinon from 'sinon';
-import { Alert } from 'react-bootstrap';
+import Alert from 'src/components/Alert';
 import ProgressBar from 'src/common/components/ProgressBar';
-
+import configureStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
 import FilterableTable from 'src/components/FilterableTable/FilterableTable';
 import ExploreResultsButton from 'src/SqlLab/components/ExploreResultsButton';
 import ResultSet from 'src/SqlLab/components/ResultSet';
@@ -33,7 +36,11 @@ import {
   queries,
   runningQuery,
   stoppedQuery,
+  initialState,
 } from './fixtures';
+
+const mockStore = configureStore([thunk]);
+const store = mockStore(initialState);
 
 describe('ResultSet', () => {
   const clearQuerySpy = sinon.spy();
@@ -105,17 +112,18 @@ describe('ResultSet', () => {
       expect(wrapper.find(ExploreResultsButton)).toExist();
     });
     it('should render empty results', () => {
-      const wrapper = shallow(<ResultSet {...mockedProps} />);
-      const emptyResults = {
-        ...queries[0],
-        results: {
-          data: [],
-        },
+      const props = {
+        ...mockedProps,
+        query: { ...mockedProps.query, results: { data: [] } },
       };
-      wrapper.setProps({ query: emptyResults });
+      const wrapper = styledMount(
+        <Provider store={store}>
+          <ResultSet {...props} />
+        </Provider>,
+      );
       expect(wrapper.find(FilterableTable)).not.toExist();
       expect(wrapper.find(Alert)).toExist();
-      expect(wrapper.find(Alert).shallow().text()).toBe(
+      expect(wrapper.find(Alert).render().text()).toBe(
         'The query returned no data',
       );
     });

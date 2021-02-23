@@ -16,25 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { flatMapDeep } from 'lodash';
 import { Charts, Layout, LayoutItem } from 'src/dashboard/types';
 import {
   CHART_TYPE,
   DASHBOARD_ROOT_TYPE,
   TAB_TYPE,
 } from 'src/dashboard/util/componentTypes';
-import { FormInstance } from 'antd/lib/form';
-import React from 'react';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { CustomControlItem } from '@superset-ui/chart-controls';
 import { TreeItem } from './types';
-import { Scope } from '../types';
-
-export const useForceUpdate = () => {
-  const [, updateState] = React.useState({});
-  return React.useCallback(() => updateState({}), []);
-};
+import { Scope } from '../../../types';
 
 export const isShowTypeInTree = ({ type, meta }: LayoutItem, charts?: Charts) =>
   (type === TAB_TYPE || type === CHART_TYPE || type === DASHBOARD_ROOT_TYPE) &&
@@ -155,33 +145,10 @@ export const findFilterScope = (
   };
 };
 
-export const setFilterFieldValues = (
-  form: FormInstance,
-  filterId: string,
-  values: object,
-) => {
-  const formFilters = form.getFieldValue('filters');
-  form.setFieldsValue({
-    filters: {
-      ...formFilters,
-      [filterId]: {
-        ...formFilters[filterId],
-        ...values,
-      },
-    },
-  });
-};
-
-export const getControlItems = (
-  controlConfig: { [key: string]: any } = {},
-): CustomControlItem[] =>
-  (flatMapDeep(controlConfig.controlPanelSections)?.reduce(
-    (acc: any, { controlSetRows = [] }: any) => [
-      ...acc,
-      ...flatMapDeep(controlSetRows),
-    ],
-    [],
-  ) as CustomControlItem[]) ?? [];
+export const getDefaultScopeValue = () => ({
+  rootPath: [DASHBOARD_ROOT_ID],
+  excluded: [],
+});
 
 export const isScopingAll = (scope: Scope) =>
   !scope || (scope.rootPath[0] === DASHBOARD_ROOT_ID && !scope.excluded.length);

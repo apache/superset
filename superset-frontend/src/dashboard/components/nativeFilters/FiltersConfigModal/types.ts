@@ -16,16 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObjectFilterClause } from '@superset-ui/core';
-import { Column, Scope } from '../types';
-
-export enum Scoping {
-  all,
-  specific,
-}
-
-// Using to pass setState React callbacks directly to And components
-export type AntCallback = (value1?: any, value2?: any) => void;
+import { Scope } from '../types';
 
 export interface NativeFiltersFormItem {
   scope: Scope;
@@ -51,20 +42,10 @@ export interface NativeFiltersForm {
   filters: Record<string, NativeFiltersFormItem>;
 }
 
-export type SelectedValues = string[] | null;
-
-export type AllFilterState = {
-  column: Column;
-  datasetId: number;
-  datasource: string;
-  id: string;
-  selectedValues: SelectedValues;
-  filterClause?: QueryObjectFilterClause;
-};
-
-/** UI Ant tree type */
-export type TreeItem = {
-  children: TreeItem[];
-  key: string;
-  title: string;
-};
+export type FilterRemoval =
+  | null
+  | {
+      isPending: true; // the filter sticks around for a moment before removal is finalized
+      timerId: number; // id of the timer that finally removes the filter
+    }
+  | { isPending: false };

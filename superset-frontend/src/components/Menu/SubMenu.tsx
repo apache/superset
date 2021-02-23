@@ -91,6 +91,7 @@ type MenuChild = {
   url?: string;
   usesRouter?: boolean;
   onClick?: () => void;
+  'data-test'?: string;
 };
 
 export interface ButtonProps {
@@ -140,6 +141,7 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
                 return (
                   <React.Fragment key={tab.label}>
                     <li
+                      data-test={tab['data-test']}
                       className={tab.name === props.activeChild ? 'active' : ''}
                     >
                       <div>

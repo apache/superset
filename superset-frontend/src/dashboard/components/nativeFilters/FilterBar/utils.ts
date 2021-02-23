@@ -1,3 +1,4 @@
+import shortid from 'shortid';
 import { Filter } from '../types';
 import { CascadeFilter } from './types';
 
@@ -51,3 +52,5 @@ export function buildCascadeFiltersTree(filters: Filter[]): CascadeFilter[] {
     .filter(filter => !filter.cascadeParentIds?.length)
     .map(getCascadeFilter);
 }
+
+export const generateFiltersSetId = () => `FILTERS_SET-${shortid.generate()}`;
