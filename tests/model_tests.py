@@ -16,7 +16,7 @@
 # under the License.
 # isort:skip_file
 import textwrap
-import unittest
+from unittest import mock, skipUnless
 from tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_datasource,
@@ -37,7 +37,7 @@ from .fixtures.energy_dashboard import load_energy_table_with_slice
 
 
 class TestDatabaseModel(SupersetTestCase):
-    @unittest.skipUnless(
+    @skipUnless(
         SupersetTestCase.is_module_installed("requests"), "requests not installed"
     )
     def test_database_schema_presto(self):
@@ -69,12 +69,8 @@ class TestDatabaseModel(SupersetTestCase):
         db = make_url(model.get_sqla_engine(schema="foo").url).database
         self.assertEqual("prod", db)
 
-    @unittest.skipUnless(
-        SupersetTestCase.is_module_installed("thrift"), "thrift not installed"
-    )
-    @unittest.skipUnless(
-        SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
-    )
+    @skipUnless(SupersetTestCase.is_module_installed("thrift"), "thrift not installed")
+    @skipUnless(SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed")
     def test_database_schema_hive(self):
         sqlalchemy_uri = "hive://hive@hive.airbnb.io:10000/default?auth=NOSASL"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
@@ -84,7 +80,7 @@ class TestDatabaseModel(SupersetTestCase):
         db = make_url(model.get_sqla_engine(schema="core_db").url).database
         self.assertEqual("core_db", db)
 
-    @unittest.skipUnless(
+    @skipUnless(
         SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
     )
     def test_database_schema_mysql(self):
@@ -97,7 +93,7 @@ class TestDatabaseModel(SupersetTestCase):
         db = make_url(model.get_sqla_engine(schema="staging").url).database
         self.assertEqual("staging", db)
 
-    @unittest.skipUnless(
+    @skipUnless(
         SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
     )
     def test_database_impersonate_user(self):
@@ -112,6 +108,98 @@ class TestDatabaseModel(SupersetTestCase):
         model.impersonate_user = False
         user_name = make_url(model.get_sqla_engine(user_name=example_user).url).username
         self.assertNotEqual(example_user, user_name)
+
+    @mock.patch("superset.models.core.create_engine")
+    def test_impersonate_user_presto(self, mocked_create_engine):
+        uri = "presto://localhost"
+        principal_user = "logged_in_user"
+        extra = """
+                {
+                    "metadata_params": {},
+                    "engine_params": {
+                               "connect_args":{
+                                  "protocol": "https",
+                                  "username":"original_user",
+                                  "password":"original_user_password"
+                               }
+                    },
+                    "metadata_cache_timeout": {},
+                    "schemas_allowed_for_csv_upload": []
+                }
+                """
+
+        model = Database(database_name="test_database", sqlalchemy_uri=uri, extra=extra)
+
+        model.impersonate_user = True
+        model.get_sqla_engine(user_name=principal_user)
+        call_args = mocked_create_engine.call_args
+
+        assert str(call_args[0][0]) == "presto://logged_in_user@localhost"
+
+        assert call_args[1]["connect_args"] == {
+            "protocol": "https",
+            "username": "original_user",
+            "password": "original_user_password",
+            "principal_username": "logged_in_user",
+        }
+
+        model.impersonate_user = False
+        model.get_sqla_engine(user_name=principal_user)
+        call_args = mocked_create_engine.call_args
+
+        assert str(call_args[0][0]) == "presto://localhost"
+
+        assert call_args[1]["connect_args"] == {
+            "protocol": "https",
+            "username": "original_user",
+            "password": "original_user_password",
+        }
+
+    @mock.patch("superset.models.core.create_engine")
+    def test_impersonate_user_hive(self, mocked_create_engine):
+        uri = "hive://localhost"
+        principal_user = "logged_in_user"
+        extra = """
+                {
+                    "metadata_params": {},
+                    "engine_params": {
+                               "connect_args":{
+                                  "protocol": "https",
+                                  "username":"original_user",
+                                  "password":"original_user_password"
+                               }
+                    },
+                    "metadata_cache_timeout": {},
+                    "schemas_allowed_for_csv_upload": []
+                }
+                """
+
+        model = Database(database_name="test_database", sqlalchemy_uri=uri, extra=extra)
+
+        model.impersonate_user = True
+        model.get_sqla_engine(user_name=principal_user)
+        call_args = mocked_create_engine.call_args
+
+        assert str(call_args[0][0]) == "hive://localhost"
+
+        assert call_args[1]["connect_args"] == {
+            "protocol": "https",
+            "username": "original_user",
+            "password": "original_user_password",
+            "configuration": {"hive.server2.proxy.user": "logged_in_user"},
+        }
+
+        model.impersonate_user = False
+        model.get_sqla_engine(user_name=principal_user)
+        call_args = mocked_create_engine.call_args
+
+        assert str(call_args[0][0]) == "hive://localhost"
+
+        assert call_args[1]["connect_args"] == {
+            "protocol": "https",
+            "username": "original_user",
+            "password": "original_user_password",
+        }
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_select_star(self):

@@ -19,8 +19,8 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { FilterConfigModal } from '../FilterConfigModal/FilterConfigModal';
 import { FilterConfiguration } from '../types';
+import { FiltersConfigModal } from '../FiltersConfigModal/FiltersConfigModal';
 
 export interface FCBProps {
   createNewOnOpen?: boolean;
@@ -46,9 +46,9 @@ export const FilterConfigurationLink: React.FC<FCBProps> = ({
     <>
       {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div onClick={() => setOpen(true)}>{children}</div>
-      <FilterConfigModal
+      <FiltersConfigModal
         isOpen={isOpen}
-        save={submit}
+        onSave={submit}
         onCancel={close}
         createNewOnOpen={createNewOnOpen}
       />

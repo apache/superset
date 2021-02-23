@@ -21,15 +21,15 @@ import { Provider } from 'react-redux';
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import { mockStoreWithChartsInTabsAndRoot } from 'spec/fixtures/mockStore';
 import { Form, FormInstance } from 'src/common/components';
-import { NativeFiltersForm } from 'src/dashboard/components/nativeFilters/FilterConfigModal/types';
-import FilterConfigForm from 'src/dashboard/components/nativeFilters/FilterConfigModal/FilterConfigForm';
+import { NativeFiltersForm } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
+import FiltersConfigForm from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm';
 
 describe('FilterScope', () => {
   const save = jest.fn();
   let form: FormInstance<NativeFiltersForm>;
   const mockedProps = {
     filterId: 'DefaultFilterId',
-    restore: jest.fn(),
+    restoreFilter: jest.fn(),
     parentFilters: [],
     save,
   };
@@ -49,7 +49,7 @@ describe('FilterScope', () => {
     return (
       <Provider store={mockStoreWithChartsInTabsAndRoot}>
         <Form form={form}>
-          <FilterConfigForm form={form} {...mockedProps} />
+          <FiltersConfigForm form={form} {...mockedProps} />
         </Form>
       </Provider>
     );

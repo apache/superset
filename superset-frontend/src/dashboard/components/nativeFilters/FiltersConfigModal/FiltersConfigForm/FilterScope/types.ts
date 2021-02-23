@@ -16,22 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-class Worker {
-  url: string;
 
-  onMessage: Function;
-
-  terminate: Function;
-
-  constructor(stringUrl: string) {
-    this.url = stringUrl;
-    this.onMessage = () => {};
-    this.terminate = () => {};
-  }
-
-  postMessage(msg: string) {
-    this.onMessage(msg);
-  }
+export enum Scoping {
+  all,
+  specific,
 }
 
-export { Worker };
+/** UI Ant tree type */
+export type TreeItem = {
+  children: TreeItem[];
+  key: string;
+  title: string;
+};

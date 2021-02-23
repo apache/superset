@@ -21,10 +21,10 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import { act } from 'react-dom/test-utils';
 import { ReactWrapper } from 'enzyme';
 import { Provider } from 'react-redux';
-import { FilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterConfigModal/FilterConfigModal';
 import Alert from 'src/components/Alert';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { mockStore } from 'spec/fixtures/mockStore';
+import { FiltersConfigModal } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -61,18 +61,18 @@ describe('FiltersConfigModal', () => {
     initialFilterId: 'DefaultsID',
     createNewOnOpen: true,
     onCancel: jest.fn(),
-    save: jest.fn(),
+    onSave: jest.fn(),
   };
   function setup(overridesProps?: any) {
     return mount(
       <Provider store={mockStore}>
-        <FilterConfigModal {...mockedProps} {...overridesProps} />
+        <FiltersConfigModal {...mockedProps} {...overridesProps} />
       </Provider>,
     );
   }
 
   it('should be a valid react element', () => {
-    expect(React.isValidElement(<FilterConfigModal {...mockedProps} />)).toBe(
+    expect(React.isValidElement(<FiltersConfigModal {...mockedProps} />)).toBe(
       true,
     );
   });

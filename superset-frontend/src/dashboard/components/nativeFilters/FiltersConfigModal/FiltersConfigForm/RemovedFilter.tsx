@@ -16,36 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import Button, { OnClickHandler } from 'src/components/Button';
+import React, { FC } from 'react';
+import { styled, t } from '@superset-ui/core';
 
-/**
- * The Chart model as returned from the API
- */
+const RemovedContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 400px; // arbitrary
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
 
-import Owner from './Owner';
-
-export interface Chart {
-  id: number;
-  url: string;
-  viz_type: string;
-  slice_name: string;
-  creator: string;
-  changed_on: string;
-  changed_on_delta_humanized?: string;
-  changed_on_utc?: string;
-  description: string | null;
-  cache_timeout: number | null;
-  thumbnail_url?: string;
-  owners?: Owner[];
-  datasource_name_text?: string;
-}
-
-export type Slice = {
-  id?: number;
-  slice_id: number;
-  slice_name: string;
-  description: string | null;
-  cache_timeout: number | null;
-  url?: string;
+type RemovedFilterProps = {
+  onClick: OnClickHandler;
 };
 
-export default Chart;
+const RemovedFilter: FC<RemovedFilterProps> = ({ onClick }) => (
+  <RemovedContent>
+    <p>{t('You have removed this filter.')}</p>
+    <div>
+      <Button
+        data-test="restore-filter-button"
+        buttonStyle="primary"
+        onClick={onClick}
+      >
+        {t('Restore Filter')}
+      </Button>
+    </div>
+  </RemovedContent>
+);
+
+export default RemovedFilter;

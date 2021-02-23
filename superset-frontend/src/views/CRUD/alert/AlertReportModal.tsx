@@ -42,6 +42,7 @@ import {
 } from './types';
 
 const SELECT_PAGE_SIZE = 2000; // temporary fix for paginated query
+const TIMEOUT_MIN = 1;
 
 type SelectValue = {
   value: string;
@@ -837,6 +838,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState(target.name, target.value);
   };
 
+  const onTimeoutVerifyChange = (
+    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+  ) => {
+    const { target } = event;
+    const value = +target.value;
+
+    // Need to make sure grace period is not lower than TIMEOUT_MIN
+    if (value === 0) {
+      updateAlertState(target.name, null);
+    } else {
+      updateAlertState(
+        target.name,
+        value ? Math.max(value, TIMEOUT_MIN) : value,
+      );
+    }
+  };
+
   const onSQLChange = (value: string) => {
     updateAlertState('sql', value || '');
   };
@@ -1283,10 +1301,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <div className="input-container">
                 <input
                   type="number"
+                  min="1"
                   name="working_timeout"
-                  value={currentAlert ? currentAlert.working_timeout : ''}
+                  value={currentAlert?.working_timeout || ''}
                   placeholder={t('Time in seconds')}
-                  onChange={onTextChange}
+                  onChange={onTimeoutVerifyChange}
                 />
                 <span className="input-label">seconds</span>
               </div>
@@ -1297,10 +1316,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <div className="input-container">
                   <input
                     type="number"
+                    min="1"
                     name="grace_period"
                     value={currentAlert?.grace_period || ''}
                     placeholder={t('Time in seconds')}
-                    onChange={onTextChange}
+                    onChange={onTimeoutVerifyChange}
                   />
                   <span className="input-label">seconds</span>
                 </div>
