@@ -319,7 +319,17 @@ def create_alert_email_chart(request):
 
 
 @pytest.yield_fixture(
-    params=["alert1", "alert2", "alert3", "alert4", "alert5", "alert6", "alert7"]
+    params=[
+        "alert1",
+        "alert2",
+        "alert3",
+        "alert4",
+        "alert5",
+        "alert6",
+        "alert7",
+        "alert8",
+        "alert9",
+    ]
 )
 def create_no_alert_email_chart(request):
     param_config = {
@@ -355,6 +365,16 @@ def create_no_alert_email_chart(request):
         },
         "alert7": {
             "sql": "SELECT first from test_table where 1=0",
+            "validator_type": ReportScheduleValidatorType.OPERATOR,
+            "validator_config_json": '{"op": ">", "threshold": 0}',
+        },
+        "alert8": {
+            "sql": "SELECT Null as metric",
+            "validator_type": ReportScheduleValidatorType.NOT_NULL,
+            "validator_config_json": "{}",
+        },
+        "alert9": {
+            "sql": "SELECT Null as metric",
             "validator_type": ReportScheduleValidatorType.OPERATOR,
             "validator_config_json": '{"op": ">", "threshold": 0}',
         },
