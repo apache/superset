@@ -1256,7 +1256,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 qry = qry.where(top_groups)
         if is_rowcount:
             if not db_engine_spec.allows_subqueries:
-                raise QueryObjectValidationError("Database does not support subqueries")
+                raise QueryObjectValidationError(
+                    _("Database does not support subqueries")
+                )
             label = "rowcount"
             col = self.make_sqla_column_compatible(literal_column("COUNT(*)"), label)
             qry = select([col]).select_from(qry.select_from(tbl).alias("rowcount_qry"))

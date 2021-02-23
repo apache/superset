@@ -32,6 +32,7 @@ from superset.typing import Metric
 from superset.utils import pandas_postprocessing
 from superset.utils.core import (
     ChartDataResultType,
+    DatasourceDict,
     DTTM_ALIAS,
     find_duplicates,
     get_metric_names,
@@ -95,7 +96,7 @@ class QueryObject:
 
     def __init__(
         self,
-        datasource: Optional[BaseDatasource] = None,
+        datasource: Optional[DatasourceDict] = None,
         result_type: Optional[ChartDataResultType] = None,
         annotation_layers: Optional[List[Dict[str, Any]]] = None,
         applied_time_extras: Optional[Dict[str, str]] = None,
