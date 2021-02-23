@@ -35,9 +35,8 @@ import AsyncSelect from '../../components/AsyncSelect';
 interface propTypes {
   actions: {
     addDangerToast: (msg: string) => void;
-    setDatabases: (data: Array<any>) => Array<any>;
+    setDatabases: (data: Record<string, any>) => Record<string, any>;
   };
-  // why is height required and then never used or invoked?
   displayLimit: number;
 }
 
@@ -70,7 +69,7 @@ function QuerySearch({ actions, displayLimit }: propTypes) {
   const [from, setFrom] = useState<string>('28 days ago');
   const [to, setTo] = useState<string>('now');
   const [status, setStatus] = useState<string>('success');
-  const [queriesArray, setQueriesArray] = useState([]);
+  const [queriesArray, setQueriesArray] = useState<any>([]);
   const [queriesLoading, setQueriesLoading] = useState<boolean>(true);
 
   const getTimeFromSelection = (selection: string) => {
@@ -135,7 +134,6 @@ function QuerySearch({ actions, displayLimit }: propTypes) {
   };
 
   const onDbClicked = (dbId: string) => {
-    // By my reading of this, it is setting state, and then running the refreshQueries function. Is that correct? I ended up keeping these two, because I couldn't think of a good way of enabling these in useEffect without also having it refreshQueries when you change the DB or example in the DB (which was not part of original functionality)
     setDatabaseId(dbId);
     refreshQueries();
   };
