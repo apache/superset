@@ -33,7 +33,7 @@ import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import setupPlugins from 'src/setup/setupPlugins';
 import setupApp from 'src/setup/setupApp';
 import { routes, isFrontendRoute } from 'src/views/routes';
-import { store } from './Store';
+import { store } from './store';
 
 setupApp();
 setupPlugins();
