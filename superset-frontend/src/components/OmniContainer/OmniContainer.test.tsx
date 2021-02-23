@@ -18,9 +18,7 @@
  */
 
 import React from 'react';
-import '@testing-library/jest-dom';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import { isFeatureEnabled } from 'src/featureFlags';
 import OmniContainer from './index';
 
@@ -35,11 +33,9 @@ test('Do not open Omnibar with the featureflag disabled', () => {
   );
   const logEvent = jest.fn();
   render(
-    <ThemeProvider theme={supersetTheme}>
-      <div data-test="test">
-        <OmniContainer logEvent={logEvent} />
-      </div>
-    </ThemeProvider>,
+    <div data-test="test">
+      <OmniContainer logEvent={logEvent} />
+    </div>,
   );
 
   expect(
@@ -60,11 +56,9 @@ test('Open Omnibar with ctrl + k with featureflag enabled', () => {
   );
   const logEvent = jest.fn();
   render(
-    <ThemeProvider theme={supersetTheme}>
-      <div data-test="test">
-        <OmniContainer logEvent={logEvent} />
-      </div>
-    </ThemeProvider>,
+    <div data-test="test">
+      <OmniContainer logEvent={logEvent} />
+    </div>,
   );
 
   expect(
@@ -96,11 +90,9 @@ test('Open Omnibar with ctrl + s with featureflag enabled', () => {
   );
   const logEvent = jest.fn();
   render(
-    <ThemeProvider theme={supersetTheme}>
-      <div data-test="test">
-        <OmniContainer logEvent={logEvent} />
-      </div>
-    </ThemeProvider>,
+    <div data-test="test">
+      <OmniContainer logEvent={logEvent} />
+    </div>,
   );
 
   expect(
@@ -132,11 +124,9 @@ test('Open Omnibar with Command + k with featureflag enabled', () => {
   );
   const logEvent = jest.fn();
   render(
-    <ThemeProvider theme={supersetTheme}>
-      <div data-test="test">
-        <OmniContainer logEvent={logEvent} />
-      </div>
-    </ThemeProvider>,
+    <div data-test="test">
+      <OmniContainer logEvent={logEvent} />
+    </div>,
   );
 
   expect(
@@ -168,11 +158,9 @@ test('Open Omnibar with Command + s with featureflag enabled', () => {
   );
   const logEvent = jest.fn();
   render(
-    <ThemeProvider theme={supersetTheme}>
-      <div data-test="test">
-        <OmniContainer logEvent={logEvent} />
-      </div>
-    </ThemeProvider>,
+    <div data-test="test">
+      <OmniContainer logEvent={logEvent} />
+    </div>,
   );
 
   expect(
