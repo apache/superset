@@ -130,7 +130,9 @@ export default function ChartCard({
   return (
     <CardStyles
       onClick={() => {
-        window.location.href = chart.url;
+        if (!bulkSelectEnabled) {
+          window.location.href = chart.url;
+        }
       }}
     >
       <ListViewCard

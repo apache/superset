@@ -1369,7 +1369,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         test_client.set_cookie(
             "localhost", app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], "foo"
         )
-        rv = post_assert_metric(test_client, CHART_DATA_URI, request_payload, "data")
+        rv = test_client.post(CHART_DATA_URI, json=request_payload)
         self.assertEqual(rv.status_code, 401)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -1444,9 +1444,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             return orig_run(self, force_cached=False)
 
         with mock.patch.object(ChartDataCommand, "run", new=mock_run):
-            rv = self.get_assert_metric(
-                f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
-            )
+            rv = self.client.get(f"{CHART_DATA_URI}/test-cache-key",)
 
         self.assertEqual(rv.status_code, 401)
 

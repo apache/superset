@@ -14,30 +14,31 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add roles relationship to dashboard
+import pytest
 
-Revision ID: e11ccdd12658
-Revises: 260bf0649a77
-Create Date: 2021-01-14 19:12:43.406230
-"""
-# revision identifiers, used by Alembic.
-revision = "e11ccdd12658"
-down_revision = "260bf0649a77"
-import sqlalchemy as sa
-from alembic import op
+from superset.extensions import db, security_manager
+from tests.test_app import app
 
 
-def upgrade():
-    op.create_table(
-        "dashboard_roles",
-        sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("role_id", sa.Integer(), nullable=False),
-        sa.Column("dashboard_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["dashboard_id"], ["dashboards.id"]),
-        sa.ForeignKeyConstraint(["role_id"], ["ab_role.id"]),
-        sa.PrimaryKeyConstraint("id"),
-    )
+@pytest.fixture()
+def public_role_like_gamma():
+    with app.app_context():
+        app.config["PUBLIC_ROLE_LIKE"] = "Gamma"
+        security_manager.sync_role_definitions()
+
+        yield
+
+        security_manager.get_public_role().permissions = []
+        db.session.commit()
 
 
-def downgrade():
-    op.drop_table("dashboard_roles")
+@pytest.fixture()
+def public_role_like_test_role():
+    with app.app_context():
+        app.config["PUBLIC_ROLE_LIKE"] = "TestRole"
+        security_manager.sync_role_definitions()
+
+        yield
+
+        security_manager.get_public_role().permissions = []
+        db.session.commit()

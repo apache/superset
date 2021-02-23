@@ -135,7 +135,9 @@ function DashboardCard({
   return (
     <CardStyles
       onClick={() => {
-        window.location.href = dashboard.url;
+        if (!bulkSelectEnabled) {
+          window.location.href = dashboard.url;
+        }
       }}
     >
       <ListViewCard
