@@ -24,7 +24,7 @@ from flask_babel import _
 from superset import app, db, is_feature_enabled
 from superset.annotation_layers.dao import AnnotationLayerDAO
 from superset.charts.dao import ChartDAO
-from superset.common.actions import get_query_results
+from superset.common.query_actions import get_query_results
 from superset.common.query_object import QueryObject
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
