@@ -18,7 +18,8 @@
  */
 /* eslint camelcase: 0 */
 import React from 'react';
-import { Alert, FormControl, FormGroup } from 'react-bootstrap';
+import { FormControl, FormGroup } from 'react-bootstrap';
+import Alert from 'src/components/Alert';
 import { JsonObject, t, styled } from '@superset-ui/core';
 import ReactMarkdown from 'react-markdown';
 import { Radio } from 'src/common/components/Radio';
@@ -206,17 +207,22 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       >
         <div data-test="save-modal-body">
           {(this.state.alert || this.props.alert) && (
-            <Alert>
-              {this.state.alert ? this.state.alert : this.props.alert}
-              <i
-                role="button"
-                aria-label="Remove alert"
-                tabIndex={0}
-                className="fa fa-close pull-right"
-                onClick={this.removeAlert.bind(this)}
-                style={{ cursor: 'pointer' }}
-              />
-            </Alert>
+            <Alert
+              type="warning"
+              message={
+                <>
+                  {this.state.alert ? this.state.alert : this.props.alert}
+                  <i
+                    role="button"
+                    aria-label="Remove alert"
+                    tabIndex={0}
+                    className="fa fa-close pull-right"
+                    onClick={this.removeAlert.bind(this)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                </>
+              }
+            />
           )}
           <FormGroup data-test="radio-group">
             <Radio

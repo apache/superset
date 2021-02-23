@@ -24,7 +24,7 @@ import { AsyncSelect } from 'src/components/Select';
 import { useToasts } from 'src/messageToasts/enhancers/withToasts';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
-import { NativeFiltersForm } from './types';
+import { NativeFiltersForm } from '../types';
 
 type ColumnSelectValue = {
   value: string;

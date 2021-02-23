@@ -620,7 +620,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose("/import_dashboards", methods=["GET", "POST"])
+    @expose("/import_dashboards/", methods=["GET", "POST"])
     def import_dashboards(self) -> FlaskResponse:
         """Overrides the dashboards using json instances from the file."""
         import_file = request.files.get("file")

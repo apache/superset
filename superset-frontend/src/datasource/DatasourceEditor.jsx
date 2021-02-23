@@ -18,8 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Alert, Col, Well } from 'react-bootstrap';
+import { Col, Well } from 'react-bootstrap';
 import { Radio } from 'src/common/components/Radio';
+import Alert from 'src/components/Alert';
 import Badge from 'src/common/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
@@ -830,11 +831,17 @@ class DatasourceEditor extends React.PureComponent {
   renderErrors() {
     if (this.state.errors.length > 0) {
       return (
-        <Alert bsStyle="danger">
-          {this.state.errors.map(err => (
-            <div key={err}>{err}</div>
-          ))}
-        </Alert>
+        <Alert
+          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+          type="error"
+          message={
+            <>
+              {this.state.errors.map(err => (
+                <div key={err}>{err}</div>
+              ))}
+            </>
+          }
+        />
       );
     }
     return null;
@@ -970,14 +977,19 @@ class DatasourceEditor extends React.PureComponent {
     return (
       <DatasourceContainer>
         {this.renderErrors()}
-        <div className="m-t-10">
-          <Alert bsStyle="warning">
-            <strong>{t('Be careful.')} </strong>
-            {t(
-              'Changing these settings will affect all charts using this dataset, including charts owned by other people.',
-            )}
-          </Alert>
-        </div>
+        <Alert
+          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+          type="warning"
+          message={
+            <>
+              {' '}
+              <strong>{t('Be careful.')} </strong>
+              {t(
+                'Changing these settings will affect all charts using this dataset, including charts owned by other people.',
+              )}
+            </>
+          }
+        />
         <Tabs
           fullWidth={false}
           id="table-tabs"
