@@ -101,16 +101,15 @@ const MonospaceDiv = styled.div`
 `;
 
 const ReturnedRows = styled.div`
-  margin-top: 48px;
   margin-bottom: -32px;
   font-size: 13px;
   line-height: 24px;
-  .ReturnedRowsImage {
+  .returnedRowsImage {
     color: #ff7f43;
     vertical-align: bottom;
     margin-right: 8px;
   }
-  .LimitMessage {
+  .limitMessage {
     color: #8e94b0;
     margin-left: 8px;
   }
@@ -497,20 +496,21 @@ export default class ResultSet extends React.PureComponent<
     return <div className="noControls" />;
   }
 
-  rowsReturned() {
-    const { query } = this.props;
-    const limitWarning = <Icon className="ReturnedRowsImage" name="warning" />;
+  renderRowsReturned() {
+    const { results, rows } = this.props.query;
+    const limitReached = results?.displayLimitReached;
+    const limitWarning = <Icon className="returnedRowsImage" name="warning" />;
     return (
       <ReturnedRows>
-        {query.results?.displayLimitReached && limitWarning}
-        <span>{t(`%s rows returned`, query.rows)}</span>
-        {query.results?.displayLimitReached && (
-          <span className="LimitMessage">
+        {limitReached && limitWarning}
+        <span>{t(`%s rows returned`, rows)}</span>
+        {limitReached && (
+          <span className="limitMessage">
             {t(
               `It appears that the number of rows in the query results displayed
            was limited on the server side to
            the %s limit.`,
-              query.rows,
+              rows,
             )}
           </span>
         )}
@@ -607,7 +607,7 @@ export default class ResultSet extends React.PureComponent<
         return (
           <>
             {this.renderControls()}
-            {this.rowsReturned()}
+            {this.renderRowsReturned()}
             {sql}
             <FilterableTable
               data={data}
