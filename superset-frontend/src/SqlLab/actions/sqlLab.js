@@ -638,6 +638,7 @@ export function switchQueryEditor(queryEditor, displayLimit) {
               errors: [],
               completed: false,
             },
+            hideLeftBar: json.hide_left_bar,
           };
           dispatch(loadQueryEditor(loadedQueryEditor));
           dispatch(setTables(json.table_schemas || []));
