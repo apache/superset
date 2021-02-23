@@ -227,12 +227,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param exception: The driver specific exception
         :return: Superset custom DBAPI exception
         """
-        new_exception: Optional[Type[Exception]]
-        if exception.__class__.__name__ in standard_dbapi_exception_names:
+        dbapi_exception_maping = cls.get_dbapi_exception_mapping()
+        if type(exception) in dbapi_exception_maping:
+            new_exception = dbapi_exception_maping[type(exception)]
+        elif exception.__class__.__name__ in standard_dbapi_exception_names:
             new_exception = standard_dbapi_exception_names[exception.__class__.__name__]
         else:
-            new_exception = cls.get_dbapi_exception_mapping().get(type(exception))
-        if not new_exception:
             return exception
         return new_exception(str(exception))
 
