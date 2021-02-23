@@ -165,7 +165,7 @@ function DashboardCard({
               isStarred={favoriteStatus}
             />
             <Dropdown overlay={menu}>
-              <Icons.ModeHoriz />
+              <Icons.MoreHoriz />
             </Dropdown>
           </ListViewCard.Actions>
         }
