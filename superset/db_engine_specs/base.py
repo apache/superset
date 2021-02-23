@@ -1107,12 +1107,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         native_type: Union[utils.GenericDataType, str],
     ) -> Tuple[Union[utils.GenericDataType, str], bool]:
         for generic_type in db_type_map:
-            is_dttm = True if generic_type == utils.GenericDataType.TEMPORAL else False
+            is_dttm = generic_type == utils.GenericDataType.TEMPORAL
             for db_type in db_type_map[generic_type]:
                 if db_type == native_type:
                     if source == utils.ColumnTypeSource.CURSOR_DESCRIPION:
                         return db_type, is_dttm
-                    elif source == utils.ColumnTypeSource.GET_TABLE:
+                    if source == utils.ColumnTypeSource.GET_TABLE:
                         return generic_type, is_dttm
         return "", False
 
@@ -1147,7 +1147,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             utils.GenericDataType.BOOLEAN: ["boolean",],
         }
 
-        type, is_dttm = cls.get_column_type(source, postgres_types_map, native_type)
-        column_spec = ColumnSpec(type, is_dttm)
+        col_type, is_dttm = cls.get_column_type(source, postgres_types_map, native_type)
+        column_spec = ColumnSpec(col_type, is_dttm)
 
         return column_spec
