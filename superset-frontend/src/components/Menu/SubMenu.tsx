@@ -169,14 +169,15 @@ const SubMenu: React.FunctionComponent<SubMenuProps> = props => {
         </Nav>
         <Nav className="navbar-right">
           {props.buttons?.map((btn, i) => (
-            <Button
-              key={`${i}`}
-              buttonStyle={btn.buttonStyle}
-              onClick={btn.onClick}
-              data-test={btn['data-test']}
-            >
-              {btn.name}
-            </Button>
+            <React.Fragment key={`${i}`}>
+              <Button
+                buttonStyle={btn.buttonStyle}
+                onClick={btn.onClick}
+                data-test={btn['data-test']}
+              >
+                {btn.name}
+              </Button>
+            </React.Fragment>
           ))}
         </Nav>
       </Navbar>
