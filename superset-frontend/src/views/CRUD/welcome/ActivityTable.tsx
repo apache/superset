@@ -99,20 +99,17 @@ const ActivityContainer = styled.div`
 
 const UNTITLED = t('[Untitled]');
 const UNKNOWN_TIME = t('Unknown');
-// translation keys for last action on
-const TRANS_LAST_VIEWED = `Last viewed %s`;
-const TRANS_LAST_MODIFIED = `Last modified %s`;
 
-const getEntityTitle = (e: ActivityObject) => {
-  if ('dashboard_title' in e) return e.dashboard_title || UNTITLED;
-  if ('slice_name' in e) return e.slice_name || UNTITLED;
-  if ('label' in e) return e.label || UNTITLED;
-  return e.item_title || UNTITLED;
+const getEntityTitle = (entity: ActivityObject) => {
+  if ('dashboard_title' in entity) return entity.dashboard_title || UNTITLED;
+  if ('slice_name' in entity) return entity.slice_name || UNTITLED;
+  if ('label' in entity) return entity.label || UNTITLED;
+  return entity.item_title || UNTITLED;
 };
 
-const getEntityIconName = (e: ActivityObject) => {
-  if ('sql' in e) return 'sql';
-  const url = 'item_url' in e ? e.item_url : e.url;
+const getEntityIconName = (entity: ActivityObject) => {
+  if ('sql' in entity) return 'sql';
+  const url = 'item_url' in entity ? entity.item_url : entity.url;
   if (url?.includes('dashboard')) {
     return 'nav-dashboard';
   }
@@ -122,30 +119,35 @@ const getEntityIconName = (e: ActivityObject) => {
   return '';
 };
 
-const getEntityUrl = (e: ActivityObject) => {
-  if ('sql' in e) return `/superset/sqllab?savedQueryId=${e.id}`;
-  if ('url' in e) return e.url;
-  return e.item_url;
+const getEntityUrl = (entity: ActivityObject) => {
+  if ('sql' in entity) return `/superset/sqllab?savedQueryId=${entity.id}`;
+  if ('url' in entity) return entity.url;
+  return entity.item_url;
 };
 
-const getEntityLastActionOn = (e: ActivityObject) => {
-  if ('time_delta_humanized' in e) {
-    return t(TRANS_LAST_VIEWED, e.time_delta_humanized);
+const getEntityLastActionOn = (entity: ActivityObject) => {
+  // translation keys for last action on
+  const LAST_VIEWED = `Last viewed %s`;
+  const LAST_MODIFIED = `Last modified %s`;
+
+  // for Recent viewed items
+  if ('time_delta_humanized' in entity) {
+    return t(LAST_VIEWED, entity.time_delta_humanized);
   }
 
-  if ('changed_on_delta_humanized' in e) {
-    return t(TRANS_LAST_MODIFIED, e.changed_on_delta_humanized);
+  if ('changed_on_delta_humanized' in entity) {
+    return t(LAST_MODIFIED, entity.changed_on_delta_humanized);
   }
 
   let time: number | string | undefined | null;
-  let translationKey = TRANS_LAST_MODIFIED;
-  if ('time' in e) {
+  let translationKey = LAST_MODIFIED;
+  if ('time' in entity) {
     // eslint-disable-next-line prefer-destructuring
-    time = e.time;
-    translationKey = TRANS_LAST_VIEWED;
+    time = entity.time;
+    translationKey = LAST_VIEWED;
   }
-  if ('changed_on' in e) time = e.changed_on;
-  if ('changed_on_utc' in e) time = e.changed_on_utc;
+  if ('changed_on' in entity) time = entity.changed_on;
+  if ('changed_on_utc' in entity) time = entity.changed_on_utc;
 
   return t(
     translationKey,
@@ -195,9 +197,9 @@ export default function ActivityTable({
   }
 
   const renderActivity = () =>
-    activityData[activeChild].map((e: ActivityObject) => {
-      const url = getEntityUrl(e);
-      const lastActionOn = getEntityLastActionOn(e);
+    activityData[activeChild].map((entity: ActivityObject) => {
+      const url = getEntityUrl(entity);
+      const lastActionOn = getEntityLastActionOn(entity);
       return (
         <CardStyles
           onClick={() => {
@@ -209,9 +211,9 @@ export default function ActivityTable({
             loading={loading}
             cover={<></>}
             url={url}
-            title={getEntityTitle(e)}
+            title={getEntityTitle(entity)}
             description={lastActionOn}
-            avatar={getEntityIconName(e)}
+            avatar={getEntityIconName(entity)}
             actions={null}
           />
         </CardStyles>
