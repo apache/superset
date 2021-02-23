@@ -16,19 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetTheme } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 
-export interface OptionWrapperProps {
+export interface OptionProps {
   column: ColumnMeta;
   index: number;
   clickClose: (index: number) => void;
   onShiftOptions: (dragIndex: number, hoverIndex: number) => void;
   withCaret?: boolean;
-}
-
-export interface OptionProps extends OptionWrapperProps {
-  theme: SupersetTheme;
 }
 
 export const GroupByItemType = 'groupByItem';

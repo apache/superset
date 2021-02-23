@@ -34,9 +34,5 @@ export default function DatasourcePanelDragWrapper(
     },
   });
 
-  return (
-    <>
-      <div ref={drag}>{props.children}</div>
-    </>
-  );
+  return <div ref={drag}>{props.children}</div>;
 }

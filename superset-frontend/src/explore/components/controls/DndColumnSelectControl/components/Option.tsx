@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { withTheme } from '@superset-ui/core';
+import { useTheme } from '@superset-ui/core';
 import { ColumnOption } from '@superset-ui/chart-controls';
 import Icon from 'src/components/Icon';
 import {
@@ -28,7 +28,9 @@ import {
 } from 'src/explore/components/OptionControls';
 import { OptionProps } from '../types';
 
-function Option(props: OptionProps) {
+export default function Option(props: OptionProps) {
+  const theme = useTheme();
+
   return (
     <OptionControlContainer data-test="option-label">
       <CloseContainer
@@ -36,21 +38,16 @@ function Option(props: OptionProps) {
         data-test="remove-control-button"
         onClick={() => props.clickClose(props.index)}
       >
-        <Icon name="x-small" color={props.theme.colors.grayscale.light1} />
+        <Icon name="x-small" color={theme.colors.grayscale.light1} />
       </CloseContainer>
       <Label data-test="control-label">
         <ColumnOption column={props.column} showType />
       </Label>
       {props.withCaret && (
         <CaretContainer>
-          <Icon
-            name="caret-right"
-            color={props.theme.colors.grayscale.light1}
-          />
+          <Icon name="caret-right" color={theme.colors.grayscale.light1} />
         </CaretContainer>
       )}
     </OptionControlContainer>
   );
 }
-
-export default withTheme(Option);

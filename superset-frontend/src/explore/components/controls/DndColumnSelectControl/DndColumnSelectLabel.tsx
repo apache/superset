@@ -19,7 +19,7 @@
 import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { isEmpty } from 'lodash';
-import { t, withTheme, SupersetTheme } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import { BaseControlConfig, ColumnMeta } from '@superset-ui/chart-controls';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import {
@@ -40,10 +40,10 @@ interface LabelProps extends BaseControlConfig {
   value: string[] | string | null;
   onChange: (value: string[] | string | null) => void;
   options: { string: ColumnMeta };
-  theme: SupersetTheme;
 }
 
-function DndColumnSelectLabel(props: LabelProps) {
+export default function DndColumnSelectLabel(props: LabelProps) {
+  const theme = useTheme();
   const { value, options } = props;
   const optionSelector = new OptionSelector(options, value);
   const [groupByOptions, setGroupByOptions] = useState<ColumnMeta[]>(
@@ -83,7 +83,7 @@ function DndColumnSelectLabel(props: LabelProps) {
   function placeHolderRenderer() {
     return (
       <AddControlLabel cancelHover>
-        <Icon name="plus-small" color={props.theme.colors.grayscale.light1} />
+        <Icon name="plus-small" color={theme.colors.grayscale.light1} />
         {t('Drop Columns')}
       </AddControlLabel>
     );
@@ -102,17 +102,13 @@ function DndColumnSelectLabel(props: LabelProps) {
   }
 
   return (
-    <>
-      <div ref={datasourcePanelDrop}>
-        <HeaderContainer>
-          <ControlHeader {...props} />
-        </HeaderContainer>
-        <LabelsContainer>
-          {isEmpty(groupByOptions) ? placeHolderRenderer() : optionsRenderer()}
-        </LabelsContainer>
-      </div>
-    </>
+    <div ref={datasourcePanelDrop}>
+      <HeaderContainer>
+        <ControlHeader {...props} />
+      </HeaderContainer>
+      <LabelsContainer>
+        {isEmpty(groupByOptions) ? placeHolderRenderer() : optionsRenderer()}
+      </LabelsContainer>
+    </div>
   );
 }
-
-export default withTheme(DndColumnSelectLabel);

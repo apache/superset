@@ -25,13 +25,9 @@ import {
 } from 'react-dnd';
 import { DragContainer } from 'src/explore/components/OptionControls';
 import Option from './Option';
-import {
-  OptionWrapperProps,
-  GroupByItemInterface,
-  GroupByItemType,
-} from '../types';
+import { OptionProps, GroupByItemInterface, GroupByItemType } from '../types';
 
-export default function OptionWrapper(props: OptionWrapperProps) {
+export default function OptionWrapper(props: OptionProps) {
   const { index, onShiftOptions } = props;
   const ref = useRef<HTMLDivElement>(null);
 
