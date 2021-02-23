@@ -159,7 +159,7 @@ export default function Button(props: ButtonProps) {
     <AntdButton
       href={disabled ? undefined : href}
       disabled={disabled}
-      className={cx(className, { cta: !!cta })}
+      className={cx(className, 'superset-button', { cta: !!cta })}
       css={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -199,9 +199,9 @@ export default function Button(props: ButtonProps) {
           backgroundColor: backgroundColorDisabled,
           borderColor: borderColorDisabled,
         },
-        marginLeft: theme.gridUnit * 2,
-        '&:first-of-type': {
-          marginLeft: 0,
+        marginLeft: 0,
+        '& + .superset-button': {
+          marginLeft: theme.gridUnit * 2,
         },
         '& :first-of-type': {
           marginRight: firstChildMargin,
