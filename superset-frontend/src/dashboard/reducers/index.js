@@ -18,6 +18,7 @@
  */
 import { combineReducers } from 'redux';
 
+import { resourcesReducer } from 'src/common/hooks/apiResources';
 import charts from '../../chart/chartReducer';
 import dashboardInfo from './dashboardInfo';
 import dashboardState from './dashboardState';
@@ -41,4 +42,5 @@ export default combineReducers({
   impressionId,
   messageToasts,
   sliceEntities,
+  apiResources: resourcesReducer,
 });

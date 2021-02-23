@@ -17,8 +17,10 @@
  * under the License.
  */
 
+import { createContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Action, Dispatch } from 'redux';
 import { makeApi } from '@superset-ui/core';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 
 export enum ResourceStatus {
   LOADING = 'loading',
@@ -31,6 +33,10 @@ export enum ResourceStatus {
  * as well as loading and error info
  */
 export type Resource<T> = LoadingState | CompleteState<T> | ErrorState;
+
+export type ReduxState = {
+  [url: string]: Resource<any>;
+};
 
 // Trying out something a little different: a separate type per status.
 // This should let Typescript know whether a Resource has a result or error.
@@ -61,11 +67,86 @@ type ErrorState = {
   error: Error;
 };
 
-const initialState: LoadingState = {
+const loadingState: LoadingState = {
   status: ResourceStatus.LOADING,
   result: null,
   error: null,
 };
+
+const RESOURCE_FETCH_START = 'RESOURCE_FETCH_START';
+const RESOURCE_FETCH_COMPLETE = 'RESOURCE_FETCH_COMPLETE';
+const RESOURCE_FETCH_ERROR = 'RESROUCE_FETCH_ERROR';
+
+type FetchStart = {
+  type: typeof RESOURCE_FETCH_START;
+  endpoint: string;
+};
+
+type FetchComplete<T = any> = {
+  type: typeof RESOURCE_FETCH_COMPLETE;
+  endpoint: string;
+  result: T;
+};
+
+type FetchError = {
+  type: typeof RESOURCE_FETCH_ERROR;
+  endpoint: string;
+  error: Error;
+};
+
+type ResourceAction = FetchStart | FetchComplete | FetchError;
+
+export type ResourcesState = Record<string, Resource<any>>;
+
+export const initialResourcesState: ResourcesState = {};
+
+export function resourcesReducer(
+  state: ResourcesState = initialResourcesState,
+  action: ResourceAction,
+): ResourcesState {
+  switch (action.type) {
+    case RESOURCE_FETCH_START: {
+      return {
+        ...state,
+        [action.endpoint]: {
+          status: ResourceStatus.LOADING,
+          result: null,
+          error: null,
+        },
+      };
+    }
+    case RESOURCE_FETCH_COMPLETE: {
+      const { endpoint, result } = action;
+      return {
+        ...state,
+        [endpoint]: {
+          status: ResourceStatus.COMPLETE,
+          result,
+          error: null,
+        },
+      };
+    }
+    case RESOURCE_FETCH_ERROR: {
+      const { endpoint, error } = action as FetchError;
+      return {
+        ...state,
+        [endpoint]: {
+          status: ResourceStatus.ERROR,
+          result: null,
+          error,
+        },
+      };
+    }
+    default:
+      return state;
+  }
+}
+
+type ReduxRootState = { apiResources: ResourcesState };
+
+const selectResourceForEndpoint = <RESULT>(endpoint: string) => (
+  state: ReduxRootState,
+): Resource<RESULT> | null => state.apiResources[endpoint] ?? null;
 
 /**
  * A general-purpose hook to fetch the response from an endpoint.
@@ -87,21 +168,19 @@ const initialState: LoadingState = {
 export function useApiResourceFullBody<RESULT>(
   endpoint: string,
 ): Resource<RESULT> {
-  const [resource, setResource] = useState<Resource<RESULT>>(initialState);
-  const cancelRef = useRef<() => void>(() => {});
+  const dispatch = useDispatch<Dispatch<ResourceAction>>();
+  const resource = useSelector(selectResourceForEndpoint<RESULT>(endpoint));
 
   useEffect(() => {
-    // If refresh is implemented, this will need to change.
-    // The previous values should stay during refresh.
-    setResource(initialState);
+    if (resource != null) {
+      // fetching already underway/complete, don't duplicate work.
+      return;
+    }
 
-    // when this effect runs, the endpoint has changed.
-    // cancel any current calls so that state doesn't get messed up.
-    cancelRef.current();
-    let cancelled = false;
-    cancelRef.current = () => {
-      cancelled = true;
-    };
+    dispatch({
+      type: RESOURCE_FETCH_START,
+      endpoint,
+    });
 
     const fetchResource = makeApi<{}, RESULT>({
       method: 'GET',
@@ -110,31 +189,22 @@ export function useApiResourceFullBody<RESULT>(
 
     fetchResource({})
       .then(result => {
-        if (!cancelled) {
-          setResource({
-            status: ResourceStatus.COMPLETE,
-            result,
-            error: null,
-          });
-        }
+        dispatch({
+          type: RESOURCE_FETCH_COMPLETE,
+          endpoint,
+          result,
+        });
       })
       .catch(error => {
-        if (!cancelled) {
-          setResource({
-            status: ResourceStatus.ERROR,
-            result: null,
-            error,
-          });
-        }
+        dispatch({
+          type: RESOURCE_FETCH_ERROR,
+          endpoint,
+          error,
+        });
       });
+  }, [endpoint, resource, dispatch]);
 
-    // Cancel the request when the component un-mounts
-    return () => {
-      cancelled = true;
-    };
-  }, [endpoint]);
-
-  return resource;
+  return resource ?? loadingState;
 }
 
 /**
