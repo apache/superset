@@ -238,11 +238,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except DatabaseInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatabaseConnectionFailedError as ex:
-            engine = item["sqlalchemy_uri"].split("://")[0]
-            self.incr_stats(
-                f"db_connection_failed.{engine}.{ex.__class__.__name__}",
-                self.post.__name__,
-            )
             return self.response_422(message=str(ex))
         except DatabaseCreateFailedError as ex:
             logger.error(
@@ -612,11 +607,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             TestConnectionDatabaseCommand(g.user, item).run()
             return self.response(200, message="OK")
         except DatabaseTestConnectionFailedError as ex:
-            engine = item["sqlalchemy_uri"].split("://")[0]
-            self.incr_stats(
-                f"db_test_connection_failed.{engine}.{ex.__class__.__name__}",
-                self.test_connection.__name__,
-            )
             return self.response_422(message=str(ex))
 
     @expose("/<int:pk>/related_objects/", methods=["GET"])
