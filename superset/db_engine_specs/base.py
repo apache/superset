@@ -57,7 +57,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, Table
 from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, GenericDataType
+from superset.utils.core import ColumnSpec
 
 if TYPE_CHECKING:
     # prevent circular imports
