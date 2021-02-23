@@ -1408,6 +1408,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/csrf_token/", methods=["GET"])
     def csrf_token(self) -> FlaskResponse:
+        logger.warning(
+            "This API endpoint is deprecated and will be removed in version 2.0.0"
+        )
         return Response(
             self.render_template("superset/csrf_token.json"), mimetype="text/json"
         )
