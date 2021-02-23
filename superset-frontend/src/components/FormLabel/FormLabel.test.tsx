@@ -48,6 +48,5 @@ test('should be shown as required', () => {
     required: true,
   };
   render(<FormLabel {...requiredProps} />);
-  expect(screen.getByTestId('span-required')).toBeInTheDocument();
-  expect(screen.getByText('*')).toBeInTheDocument();
+  expect(screen.getByText('*').parentNode).toBeInTheDocument();
 });
