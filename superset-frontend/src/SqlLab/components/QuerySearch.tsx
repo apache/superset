@@ -130,8 +130,7 @@ function QuerySearch({ actions, displayLimit }: propTypes) {
   };
   useEffect(() => {
     refreshQueries();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  });
 
   const onUserClicked = (userId: string) => {
     setUserId(userId);
