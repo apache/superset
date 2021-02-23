@@ -23,24 +23,42 @@ import { styled, t } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/components/Menu/SubMenu';
+import { Chart } from 'src/types/Chart';
+import { Dashboard, SavedQueryObject } from 'src/views/CRUD/types';
+import { mq, CardStyles } from 'src/views/CRUD/utils';
+
 import { ActivityData } from './Welcome';
-import { mq, CardStyles } from '../utils';
 import EmptyState from './EmptyState';
 
-interface ActivityObjects {
-  action?: string;
-  item_title?: string;
-  slice_name: string;
-  time: string;
-  changed_on_utc: string;
-  url: string;
-  sql: string;
-  dashboard_title: string;
-  label: string;
-  id: string;
-  table: object;
+/**
+ * Return result from /superset/recent_activity/{user_id}
+ */
+interface RecentActivity {
+  action: string;
+  item_type: 'slice' | 'dashboard';
   item_url: string;
+  item_title: string;
+  time: number;
+  time_delta_humanized?: string;
 }
+
+interface RecentSlice extends RecentActivity {
+  item_type: 'slice';
+}
+
+interface RecentDashboard extends RecentActivity {
+  item_type: 'dashboard';
+}
+
+/**
+ * Recent activity objects fetched by `getRecentAcitivtyObjs`.
+ */
+type ActivityObject =
+  | RecentSlice
+  | RecentDashboard
+  | Chart
+  | Dashboard
+  | SavedQueryObject;
 
 interface ActivityProps {
   user: {
@@ -79,31 +97,68 @@ const ActivityContainer = styled.div`
   }
 `;
 
+const UNTITLED = t('[Untitled]');
+const UNKNOWN_TIME = t('Unknown');
+// translation keys for last action on
+const TRANS_LAST_VIEWED = `Last viewed %s`;
+const TRANS_LAST_MODIFIED = `Last modified %s`;
+
+const getEntityTitle = (e: ActivityObject) => {
+  if ('dashboard_title' in e) return e.dashboard_title || UNTITLED;
+  if ('slice_name' in e) return e.slice_name || UNTITLED;
+  if ('label' in e) return e.label || UNTITLED;
+  return e.item_title || UNTITLED;
+};
+
+const getEntityIconName = (e: ActivityObject) => {
+  if ('sql' in e) return 'sql';
+  const url = 'item_url' in e ? e.item_url : e.url;
+  if (url?.includes('dashboard')) {
+    return 'nav-dashboard';
+  }
+  if (url?.includes('explore')) {
+    return 'nav-charts';
+  }
+  return '';
+};
+
+const getEntityUrl = (e: ActivityObject) => {
+  if ('sql' in e) return `/superset/sqllab?savedQueryId=${e.id}`;
+  if ('url' in e) return e.url;
+  return e.item_url;
+};
+
+const getEntityLastActionOn = (e: ActivityObject) => {
+  if ('time_delta_humanized' in e) {
+    return t(TRANS_LAST_VIEWED, e.time_delta_humanized);
+  }
+
+  if ('changed_on_delta_humanized' in e) {
+    return t(TRANS_LAST_MODIFIED, e.changed_on_delta_humanized);
+  }
+
+  let time: number | string | undefined | null;
+  let translationKey = TRANS_LAST_MODIFIED;
+  if ('time' in e) {
+    // eslint-disable-next-line prefer-destructuring
+    time = e.time;
+    translationKey = TRANS_LAST_VIEWED;
+  }
+  if ('changed_on' in e) time = e.changed_on;
+  if ('changed_on_utc' in e) time = e.changed_on_utc;
+
+  return t(
+    translationKey,
+    time == null ? UNKNOWN_TIME : moment(time).fromNow(),
+  );
+};
+
 export default function ActivityTable({
   loading,
   activeChild,
   setActiveChild,
   activityData,
 }: ActivityProps) {
-  const getFilterTitle = (e: ActivityObjects) => {
-    if (e.dashboard_title) return e.dashboard_title;
-    if (e.label) return e.label;
-    if (e.url && !e.table) return e.item_title;
-    if (e.item_title) return e.item_title;
-    return e.slice_name;
-  };
-
-  const getIconName = (e: ActivityObjects) => {
-    if (e.sql) return 'sql';
-    if (e.url?.includes('dashboard') || e.item_url?.includes('dashboard')) {
-      return 'nav-dashboard';
-    }
-    if (e.url?.includes('explore') || e.item_url?.includes('explore')) {
-      return 'nav-charts';
-    }
-    return '';
-  };
-
   const tabs = [
     {
       name: 'Edited',
@@ -139,35 +194,30 @@ export default function ActivityTable({
     });
   }
 
-  const renderActivity = () => {
-    const getRecentRef = (e: ActivityObjects) => {
-      if (activeChild === 'Viewed') {
-        return e.item_url;
-      }
-      return e.sql ? `/superset/sqllab?savedQueryId=${e.id}` : e.url;
-    };
-    return activityData[activeChild].map((e: ActivityObjects) => (
-      <CardStyles
-        onClick={() => {
-          window.location.href = getRecentRef(e);
-        }}
-        key={e.id}
-      >
-        <ListViewCard
-          loading={loading}
-          cover={<></>}
-          url={e.sql ? `/superset/sqllab?savedQueryId=${e.id}` : e.url}
-          title={getFilterTitle(e)}
-          description={`Last Edited: ${moment(
-            e.changed_on_utc,
-            'MM/DD/YYYY HH:mm:ss',
-          )}`}
-          avatar={getIconName(e)}
-          actions={null}
-        />
-      </CardStyles>
-    ));
-  };
+  const renderActivity = () =>
+    activityData[activeChild].map((e: ActivityObject) => {
+      const url = getEntityUrl(e);
+      const lastActionOn = getEntityLastActionOn(e);
+      return (
+        <CardStyles
+          onClick={() => {
+            window.location.href = url;
+          }}
+          key={url}
+        >
+          <ListViewCard
+            loading={loading}
+            cover={<></>}
+            url={url}
+            title={getEntityTitle(e)}
+            description={lastActionOn}
+            avatar={getEntityIconName(e)}
+            actions={null}
+          />
+        </CardStyles>
+      );
+    });
+
   if (loading) return <Loading position="inline" />;
   return (
     <>
