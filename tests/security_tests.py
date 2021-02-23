@@ -30,19 +30,13 @@ from flask import current_app, g
 from tests.test_app import app as testing_app
 from sqlalchemy import Float, Date, String
 
-from superset.models.dashboard import Dashboard
-from tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_datasource,
-)
-from tests.fixtures.expose_db_in_sqllab import expose_in_sqllab
-
 from superset import app, appbuilder, db, security_manager, viz, ConnectorRegistry
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
+from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.sql_parse import Table
 from superset.utils.core import get_example_database
@@ -55,12 +49,16 @@ from .dashboard_utils import (
 )
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
+from tests.fixtures.expose_db_in_sqllab import expose_in_sqllab
 from tests.fixtures.public_role import (
     public_role_like_gamma,
     public_role_like_test_role,
 )
 from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
-from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
+from tests.fixtures.world_bank_dashboard import (
+    load_world_bank_datasource,
+    load_world_bank_dashboard_with_slices,
+)
 
 NEW_SECURITY_CONVERGE_VIEWS = (
     "Annotation",
@@ -584,7 +582,7 @@ class TestRolePermission(SupersetTestCase):
         self.assertNotIn("Girl Name Cloud", data)  # birth_names slice, no access
 
     @pytest.mark.usefixtures(
-        "load_birth_names_datasource", "load_world_bank_datasource"
+        "load_birth_names_dashboard_with_slices", "load_world_bank_datasource"
     )
     @pytest.mark.usefixtures("public_role_like_gamma")
     def test_public_sync_role_data_perms(self):
