@@ -23,6 +23,7 @@ from flask_babel import gettext as _
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
+from superset import app
 from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import (
     DatabaseSecurityUnsafeError,
@@ -35,6 +36,8 @@ from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
+config = app.config
+stats_logger = config["STATS_LOGGER"]
 
 
 class TestConnectionDatabaseCommand(BaseCommand):
@@ -69,10 +72,17 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 message=_("Could not load database driver: {}").format(driver_name),
             )
         except DBAPIError:
+            stats_logger.incr(f"test_connection_error.{make_url(uri).drivername}.dbapi")
             raise DatabaseTestConnectionFailedError()
         except SupersetSecurityException as ex:
+            stats_logger.incr(
+                f"test_connection_error.{make_url(uri).drivername}.security"
+            )
             raise DatabaseSecurityUnsafeError(message=str(ex))
         except Exception:
+            stats_logger.incr(
+                f"test_connection_error.{make_url(uri).drivername}.unknown"
+            )
             raise DatabaseTestConnectionUnexpectedError()
 
     def validate(self) -> None:
