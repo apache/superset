@@ -33,6 +33,7 @@ import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
 } from 'src/explore/controlUtils';
+import { ControlStateMapping } from '@superset-ui/chart-controls';
 
 export interface ExlorePageBootstrapData extends JsonObject {
   can_add: boolean;
@@ -56,7 +57,7 @@ export default function getInitialState(
   const { slice } = bootstrapData;
   const sliceName = slice ? slice.slice_name : null;
 
-  const bootstrappedState = {
+  const exploreState = {
     // note this will add `form_data` to state,
     // which will be manipulatable by future reducers.
     ...bootstrapData,
@@ -65,36 +66,36 @@ export default function getInitialState(
       flash_messages: bootstrapData.common.flash_messages,
       conf: bootstrapData.common.conf,
     },
-    filterColumnOpts: [],
     isDatasourceMetaLoading: false,
     isStarred: false,
-    controls: {},
   };
-  const controls = getControlsState(bootstrappedState, initialFormData);
-  bootstrappedState.controls = controls;
 
-  // reset control values to initial form data value in case they are incorrectly
-  // updated by `mapStateToProps` based on other controls' empty state.
-  // E.g. Query Mode for table chart.
-  Object.keys(controls).forEach(key => {
-    controls[key].value = initialFormData[key];
-  });
+  // Initial control state will to skip `control.mapStateToProps`
+  // because `state.controls` is undefined.
+  const controls: ControlStateMapping = getControlsState(
+    exploreState,
+    initialFormData,
+  );
+  const exploreStateWithControls = {
+    ...exploreState,
+    controls,
+  };
 
   // apply initial mapStateToProps for all controls, must execute AFTER
-  // bootstrappedState has initialized `controls`. Order of execution is not
+  // bootstrapState has initialized `controls`. Order of execution is not
   // guaranteed, so controls shouldn't rely on the each other's mapped state.
   Object.entries(controls).forEach(([key, controlState]) => {
     controls[key] = applyMapStateToPropsToControl(
       controlState,
-      bootstrappedState,
+      exploreStateWithControls,
     );
   });
 
   const sliceFormData = slice
-    ? getFormDataFromControls(getControlsState(bootstrapData, slice.form_data))
+    ? getFormDataFromControls(getControlsState(exploreState, slice.form_data))
     : null;
 
-  const chartKey = getChartKey(bootstrappedState);
+  const chartKey: number = getChartKey(exploreState);
 
   return {
     charts: {
@@ -116,7 +117,7 @@ export default function getInitialState(
       dashboards: [],
       saveModalAlert: null,
     },
-    explore: bootstrappedState,
+    explore: exploreStateWithControls,
     impressionId: shortid.generate(),
     messageToasts: getToastsFromPyFlashMessages(
       (bootstrapData.common || {}).flash_messages || [],
