@@ -68,34 +68,29 @@ export default function getInitialState(
     },
     isDatasourceMetaLoading: false,
     isStarred: false,
-  };
-
-  // Initial control state will to skip `control.mapStateToProps`
-  // because `state.controls` is undefined.
-  const controls: ControlStateMapping = getControlsState(
-    exploreState,
-    initialFormData,
-  );
-  const exploreStateWithControls = {
-    ...exploreState,
-    controls,
+    // Initial control state will skip `control.mapStateToProps`
+    // because `bootstrapData.controls` is undefined.
+    controls: getControlsState(
+      bootstrapData,
+      initialFormData,
+    ) as ControlStateMapping,
   };
 
   // apply initial mapStateToProps for all controls, must execute AFTER
   // bootstrapState has initialized `controls`. Order of execution is not
   // guaranteed, so controls shouldn't rely on the each other's mapped state.
-  Object.entries(controls).forEach(([key, controlState]) => {
-    controls[key] = applyMapStateToPropsToControl(
+  Object.entries(exploreState.controls).forEach(([key, controlState]) => {
+    exploreState.controls[key] = applyMapStateToPropsToControl(
       controlState,
-      exploreStateWithControls,
+      exploreState,
     );
   });
 
   const sliceFormData = slice
-    ? getFormDataFromControls(getControlsState(exploreState, slice.form_data))
+    ? getFormDataFromControls(getControlsState(bootstrapData, slice.form_data))
     : null;
 
-  const chartKey: number = getChartKey(exploreState);
+  const chartKey: number = getChartKey(bootstrapData);
 
   return {
     charts: {
@@ -105,7 +100,7 @@ export default function getInitialState(
         chartStatus: null,
         chartUpdateEndTime: null,
         chartUpdateStartTime: 0,
-        latestQueryFormData: getFormDataFromControls(controls),
+        latestQueryFormData: getFormDataFromControls(exploreState.controls),
         sliceFormData,
         queryController: null,
         queriesResponse: null,
@@ -117,7 +112,7 @@ export default function getInitialState(
       dashboards: [],
       saveModalAlert: null,
     },
-    explore: exploreStateWithControls,
+    explore: exploreState,
     impressionId: shortid.generate(),
     messageToasts: getToastsFromPyFlashMessages(
       (bootstrapData.common || {}).flash_messages || [],
