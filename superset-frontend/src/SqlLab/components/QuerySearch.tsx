@@ -20,7 +20,7 @@ import React, { useState, useEffect } from 'react';
 import Button from 'src/components/Button';
 import Select from 'src/components/Select';
 import { styled, t, SupersetClient } from '@superset-ui/core';
-
+import { debounce } from 'lodash';
 import Loading from '../../components/Loading';
 import QueryTable from './QueryTable';
 import {
@@ -38,6 +38,11 @@ interface propTypes {
     setDatabases: (data: Record<string, any>) => Record<string, any>;
   };
   displayLimit: number;
+}
+
+interface userMutatorProps {
+  value: number;
+  text: string;
 }
 
 const TableWrapper = styled.div`
@@ -63,7 +68,7 @@ const StyledTableStylesContainer = styled.div`
   overflow: auto;
 `;
 function QuerySearch({ actions, displayLimit }: propTypes) {
-  const [databaseId, setDatabaseId] = useState<string>('');
+  const [databaseId, setDatabaseId] = useState<any>('');
   const [userId, setUserId] = useState<string>('');
   const [searchText, setSearchText] = useState<string>('');
   const [from, setFrom] = useState<string>('28 days ago');
@@ -112,21 +117,22 @@ function QuerySearch({ actions, displayLimit }: propTypes) {
     ];
 
     // make into async method
-    SupersetClient.get({
-      endpoint: insertParams('/superset/search_queries', params),
-    })
-      .then(({ json }) => {
-        setQueriesArray(json);
-        setQueriesLoading(false);
-      })
-      .catch(() => {
-        actions.addDangerToast(t('An error occurred when refreshing queries'));
+    try {
+      const promise = await SupersetClient.get({
+        endpoint: insertParams('/superset/search_queries', params),
       });
+      setQueriesArray(promise.json);
+    } catch (err) {
+      actions.addDangerToast(t('An error occurred when refreshing queries'));
+    } finally {
+      setQueriesLoading(false);
+    }
   };
 
   useEffect(() => {
     refreshQueries();
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onUserClicked = (userId: string) => {
     setUserId(userId);
@@ -144,10 +150,6 @@ function QuerySearch({ actions, displayLimit }: propTypes) {
     }
   };
 
-  interface userMutatorProps {
-    value: number;
-    text: string;
-  }
   const userMutator = (data: any) =>
     data.result.map(({ value, text }: userMutatorProps) => ({
       label: text,
@@ -192,7 +194,10 @@ function QuerySearch({ actions, displayLimit }: propTypes) {
         <div className="col-sm-4">
           <input
             type="text"
-            onChange={(event: any) => setSearchText(event.target.value)}
+            onChange={debounce(
+              (event: any) => setSearchText(event.target.value),
+              200,
+            )}
             onKeyDown={onKeyDown}
             className="form-control input-sm"
             placeholder={t('Query search string')}

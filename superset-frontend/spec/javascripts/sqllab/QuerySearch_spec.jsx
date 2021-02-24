@@ -24,6 +24,7 @@ import QuerySearch from 'src/SqlLab/components/QuerySearch';
 import { Provider } from 'react-redux';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { fireEvent, render, screen, act } from '@testing-library/react';
+import '@testing-library/jest-dom/extend-expect';
 import userEvent from '@testing-library/user-event';
 
 const mockStore = configureStore([thunk]);
@@ -69,7 +70,6 @@ describe('QuerySearch', () => {
   });
 
   it('should have three Selects', () => {
-    // console.log(screen.logTestingPlaygroundURL());
     expect(screen.getByText(/28 days ago/i)).toBeInTheDocument();
     expect(screen.getByText(/now/i)).toBeInTheDocument();
     expect(screen.getByText(/success/i)).toBeInTheDocument();
