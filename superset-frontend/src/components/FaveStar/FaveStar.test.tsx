@@ -101,5 +101,4 @@ test('Call fetchFaveStar only on the first render', () => {
 
   rerender(<FaveStar {...{ ...props, itemId: 2 }} />);
   expect(props.fetchFaveStar).toBeCalledTimes(1);
-  // expect(screen.getByText('backend-name')).toBeInTheDocument();
 });
