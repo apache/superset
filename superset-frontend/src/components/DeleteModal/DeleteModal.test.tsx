@@ -20,11 +20,9 @@
 import React from 'react';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import '@testing-library/jest-dom';
-import { render, screen, configure } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DeleteModal from '.';
-
-configure({ testIdAttribute: 'data-test' });
 
 test('Must display title and content', () => {
   const props = {
