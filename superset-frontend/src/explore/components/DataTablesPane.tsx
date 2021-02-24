@@ -17,8 +17,8 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { styled, t } from '@superset-ui/core';
-import { Collapse } from 'src/common/components';
+import { styled, t, css } from '@superset-ui/core';
+import Collapse from 'src/common/components/Collapse';
 import Tabs from 'src/common/components/Tabs';
 import Loading from 'src/components/Loading';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
@@ -264,8 +264,27 @@ export const DataTablesPane = ({
           onChange={handleCollapseChange}
           bold
           ghost
+          css={css`
+            height: 100%;
+
+            .ant-collapse-item {
+              height: 100%;
+
+              .ant-collapse-content {
+                height: 100%;
+
+                .ant-collapse-content-box {
+                  height: 100%;
+                }
+              }
+            }
+          `}
         >
-          <Collapse.Panel header={t('Data')} key={DATAPANEL_KEY}>
+          <Collapse.Panel
+            header={t('Data')}
+            key={DATAPANEL_KEY}
+            css={{ paddingBottom: 12 }}
+          >
             <Tabs
               fullWidth={false}
               tabBarExtraContent={TableControls}

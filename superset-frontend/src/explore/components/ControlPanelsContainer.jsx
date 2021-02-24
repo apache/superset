@@ -24,8 +24,8 @@ import { connect } from 'react-redux';
 import { t, styled, getChartControlPanelRegistry } from '@superset-ui/core';
 
 import Tabs from 'src/common/components/Tabs';
-import { Collapse } from 'src/common/components';
 import Alert from 'src/components/Alert';
+import Collapse from 'src/common/components/Collapse';
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';

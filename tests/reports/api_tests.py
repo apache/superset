@@ -433,6 +433,8 @@ class TestReportSchedulesApi(SupersetTestCase):
                     "recipient_config_json": {"target": "channel"},
                 },
             ],
+            "grace_period": 14400,
+            "working_timeout": 3600,
             "chart": chart.id,
             "database": example_db.id,
         }
@@ -443,6 +445,8 @@ class TestReportSchedulesApi(SupersetTestCase):
         created_model = db.session.query(ReportSchedule).get(data.get("id"))
         assert created_model is not None
         assert created_model.name == report_schedule_data["name"]
+        assert created_model.grace_period == report_schedule_data["grace_period"]
+        assert created_model.working_timeout == report_schedule_data["working_timeout"]
         assert created_model.description == report_schedule_data["description"]
         assert created_model.crontab == report_schedule_data["crontab"]
         assert created_model.chart.id == report_schedule_data["chart"]
@@ -507,6 +511,78 @@ class TestReportSchedulesApi(SupersetTestCase):
             "name": "name3",
             "description": "description",
             "crontab": "0 9 * * *",
+            "chart": chart.id,
+            "database": example_db.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        assert rv.status_code == 400
+
+        # Test that report can be created with null grace period
+        report_schedule_data = {
+            "type": ReportScheduleType.ALERT,
+            "name": "new3",
+            "description": "description",
+            "crontab": "0 9 * * *",
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {"target": "target@superset.org"},
+                },
+                {
+                    "type": ReportRecipientType.SLACK,
+                    "recipient_config_json": {"target": "channel"},
+                },
+            ],
+            "working_timeout": 3600,
+            "chart": chart.id,
+            "database": example_db.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        assert rv.status_code == 201
+
+        # Test that grace period and working timeout cannot be < 1
+        report_schedule_data = {
+            "type": ReportScheduleType.ALERT,
+            "name": "new3",
+            "description": "description",
+            "crontab": "0 9 * * *",
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {"target": "target@superset.org"},
+                },
+                {
+                    "type": ReportRecipientType.SLACK,
+                    "recipient_config_json": {"target": "channel"},
+                },
+            ],
+            "working_timeout": -10,
+            "chart": chart.id,
+            "database": example_db.id,
+        }
+        uri = "api/v1/report/"
+        rv = self.client.post(uri, json=report_schedule_data)
+        assert rv.status_code == 400
+
+        report_schedule_data = {
+            "type": ReportScheduleType.ALERT,
+            "name": "new3",
+            "description": "description",
+            "crontab": "0 9 * * *",
+            "recipients": [
+                {
+                    "type": ReportRecipientType.EMAIL,
+                    "recipient_config_json": {"target": "target@superset.org"},
+                },
+                {
+                    "type": ReportRecipientType.SLACK,
+                    "recipient_config_json": {"target": "channel"},
+                },
+            ],
+            "grace_period": -10,
+            "working_timeout": 3600,
             "chart": chart.id,
             "database": example_db.id,
         }
