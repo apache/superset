@@ -19109,10 +19109,15 @@ react@^16.13.1, react@^16.8.3:
     object-assign "^4.1.1"
     prop-types "^15.6.2"
 
-reactable-arc@0.15.0, reactable-arc@^0.15.0:
+reactable-arc@^0.15.0:
   version "0.15.0"
   resolved "https://registry.yarnpkg.com/reactable-arc/-/reactable-arc-0.15.0.tgz#b9e145f58c787227bced894cd9c1611b37c20f3c"
   integrity sha512-XH1mryI/xvbYb3lCVOU3rx/KRacDE0PDa45KazL/PPTM0AgPZ/awVmCAxRi179BpjbStk7cgCyFjI2oYJ28E8A==
+
+reactable@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/reactable/-/reactable-1.1.0.tgz#2f84bb8b3808df8ac64694b539be416438db8498"
+  integrity sha512-SnvZ3CXyFFxGotw9cqNiVUGb2oW16UlIypGQZRJGgPiJuFqW22jO7A+Y/Tvv8no8F/bZoLdZ+QJP7eZfcc9kCw==
 
 reactcss@^1.2.0:
   version "1.2.3"
