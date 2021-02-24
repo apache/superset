@@ -9,11 +9,11 @@ jobs:
   build:
     name: Bump version and publish package(s)
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     strategy:
       matrix:
-        node-version: [12.x]
+        node-version: [14.x]
 
     steps:
       - uses: actions/checkout@v2
