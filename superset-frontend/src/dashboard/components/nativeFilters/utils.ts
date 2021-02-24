@@ -30,13 +30,14 @@ import { Filter } from './types';
 import { NativeFiltersState } from '../../reducers/types';
 
 export const getFormData = ({
-  datasetId = 18,
+  datasetId,
   cascadingFilters = {},
   groupby,
   currentValue,
   inputRef,
   defaultValue,
   controlValues,
+  filterType,
 }: Partial<Filter> & {
   datasetId?: number;
   inputRef?: RefObject<HTMLInputElement>;
@@ -51,6 +52,8 @@ export const getFormData = ({
     };
   }
   return {
+    ...controlValues,
+    ...otherProps,
     adhoc_filters: [],
     extra_filters: [],
     extra_form_data: cascadingFilters,
@@ -63,10 +66,8 @@ export const getFormData = ({
     time_range: 'No filter',
     time_range_endpoints: ['inclusive', 'exclusive'],
     url_params: {},
-    viz_type: 'filter_select',
+    viz_type: filterType,
     inputRef,
-    ...controlValues,
-    ...otherProps,
   };
 };
 
@@ -116,9 +117,10 @@ export function isCrossFilter(vizType: string) {
 export function getExtraFormData(
   nativeFilters: NativeFiltersState,
   charts: Charts,
+  filterIdsAppliedOnChart: string[],
 ): ExtraFormData {
   let extraFormData: ExtraFormData = {};
-  Object.keys(nativeFilters.filters).forEach(key => {
+  filterIdsAppliedOnChart.forEach(key => {
     const filterState = nativeFilters.filtersState[key] || {};
     const { extraFormData: newExtra = {} } = filterState;
     extraFormData = mergeExtraFormData(extraFormData, newExtra);

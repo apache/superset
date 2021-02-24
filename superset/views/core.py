@@ -92,10 +92,7 @@ from superset.models.slice import Slice
 from superset.models.sql_lab import Query, TabState
 from superset.models.user_attributes import UserAttribute
 from superset.queries.dao import QueryDAO
-from superset.security.analytics_db_safety import (
-    check_sqlalchemy_uri,
-    DBSecurityException,
-)
+from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sql_validators import get_validator_by_name
 from superset.tasks.async_queries import load_explore_json_into_cache
@@ -623,7 +620,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose("/import_dashboards", methods=["GET", "POST"])
+    @expose("/import_dashboards/", methods=["GET", "POST"])
     def import_dashboards(self) -> FlaskResponse:
         """Overrides the dashboards using json instances from the file."""
         import_file = request.files.get("file")
@@ -1235,7 +1232,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         uri = request.json.get("uri")
         try:
             if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
-                check_sqlalchemy_uri(uri)
+                check_sqlalchemy_uri(make_url(uri))
             # if the database already exists in the database, only its safe
             # (password-masked) URI would be shown in the UI and would be passed in the
             # form data so if the database already exists and the form was submitted
@@ -1295,7 +1292,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(
                 _("Connection failed, please check your connection settings"), 400
             )
-        except DBSecurityException as ex:
+        except SupersetSecurityException as ex:
             logger.warning("Stopped an unsafe database connection")
             return json_error_response(_(str(ex)), 400)
         except Exception as ex:  # pylint: disable=broad-except
@@ -2875,7 +2872,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose("/sqllab", methods=["GET", "POST"])
+    @expose("/sqllab/", methods=["GET", "POST"])
     def sqllab(self) -> FlaskResponse:
         """SQL Editor"""
         payload = {

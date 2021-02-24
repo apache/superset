@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { t, styled } from '@superset-ui/core';
-import TooltipWrapper from './TooltipWrapper';
+import { Tooltip } from 'src/common/components/Tooltip';
 import Icon from './Icon';
 
 interface FaveStarProps {
@@ -65,12 +65,12 @@ export default class FaveStar extends React.PureComponent<FaveStarProps> {
 
     if (this.props.showTooltip) {
       return (
-        <TooltipWrapper
-          label="fave-unfave"
-          tooltip={t('Click to favorite/unfavorite')}
+        <Tooltip
+          id="fave-unfave-tooltip"
+          title={t('Click to favorite/unfavorite')}
         >
           {content}
-        </TooltipWrapper>
+        </Tooltip>
       );
     }
 

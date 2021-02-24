@@ -109,9 +109,12 @@ class Tabs extends React.PureComponent {
         directPathToChild: props.directPathToChild,
       }),
     );
+    const { children: tabIds } = props.component;
+    const activeKey = tabIds[tabIndex];
 
     this.state = {
       tabIndex,
+      activeKey,
     };
     this.handleClickTab = this.handleClickTab.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
@@ -121,8 +124,23 @@ class Tabs extends React.PureComponent {
 
   UNSAFE_componentWillReceiveProps(nextProps) {
     const maxIndex = Math.max(0, nextProps.component.children.length - 1);
+    const currTabsIds = this.props.component.children;
+    const nextTabsIds = nextProps.component.children;
+
     if (this.state.tabIndex > maxIndex) {
       this.setState(() => ({ tabIndex: maxIndex }));
+    }
+
+    if (nextTabsIds.length) {
+      const lastTabId = nextTabsIds[nextTabsIds.length - 1];
+      // if a new tab is added focus on it immediately
+      if (nextTabsIds.length > currTabsIds.length) {
+        this.setState(() => ({ activeKey: lastTabId }));
+      }
+      // if a tab is removed focus on the first
+      if (nextTabsIds.length < currTabsIds.length) {
+        this.setState(() => ({ activeKey: nextTabsIds[0] }));
+      }
     }
 
     if (nextProps.isComponentVisible) {
@@ -191,6 +209,7 @@ class Tabs extends React.PureComponent {
 
   handleClickTab(tabIndex) {
     const { component } = this.props;
+    const { children: tabIds } = component;
 
     if (tabIndex !== this.state.tabIndex) {
       const pathToTabIndex = getDirectPathToTabIndex(component, tabIndex);
@@ -202,6 +221,7 @@ class Tabs extends React.PureComponent {
 
       this.props.onChangeTab({ pathToTabIndex });
     }
+    this.setState(() => ({ activeKey: tabIds[tabIndex] }));
   }
 
   handleDeleteComponent() {
@@ -250,10 +270,8 @@ class Tabs extends React.PureComponent {
       editMode,
     } = this.props;
 
-    const { tabIndex: selectedTabIndex } = this.state;
     const { children: tabIds } = tabsComponent;
-
-    const activeKey = tabIds[selectedTabIndex];
+    const { tabIndex: selectedTabIndex, activeKey } = this.state;
 
     return (
       <DragDroppable

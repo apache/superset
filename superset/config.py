@@ -329,6 +329,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "ESCAPE_MARKDOWN_HTML": False,
     "DASHBOARD_NATIVE_FILTERS": False,
     "DASHBOARD_CROSS_FILTERS": False,
+    "DASHBOARD_NATIVE_FILTERS_SET": False,
     "GLOBAL_ASYNC_QUERIES": False,
     "VERSIONED_EXPORT": False,
     # Note that: RowLevelSecurityFilter is only given by default to the Admin role
@@ -1091,6 +1092,10 @@ GLOBAL_ASYNC_QUERIES_POLLING_DELAY = 500
 # It's possible to add a dataset health check logic which is specific to your system.
 # It will get executed each time when user open a chart's explore view.
 DATASET_HEALTH_CHECK = None
+
+# SQLalchemy link doc reference
+SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
+SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

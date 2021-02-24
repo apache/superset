@@ -24,7 +24,11 @@ import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
 import Button from 'src/components/Button';
 import { t, SupersetClient } from '@superset-ui/core';
 
-import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
+import {
+  BOOL_FALSE_DISPLAY,
+  BOOL_TRUE_DISPLAY,
+  SLOW_DEBOUNCE,
+} from 'src/constants';
 import FormLabel from 'src/components/FormLabel';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import ControlRow from 'src/explore/components/ControlRow';
@@ -184,7 +188,7 @@ class FilterBox extends React.PureComponent {
     if (!(key in this.debouncerCache)) {
       this.debouncerCache[key] = debounce((input, callback) => {
         this.loadOptions(key, input).then(callback);
-      }, 500);
+      }, SLOW_DEBOUNCE);
     }
     return this.debouncerCache[key];
   }
@@ -298,7 +302,6 @@ class FilterBox extends React.PureComponent {
       datasourceFilters.push(
         <ControlRow
           key="sqla-filters"
-          className="control-row"
           controls={sqlaFilters.map(control => (
             <Control {...this.getControlData(control)} />
           ))}
@@ -309,7 +312,6 @@ class FilterBox extends React.PureComponent {
       datasourceFilters.push(
         <ControlRow
           key="druid-filters"
-          className="control-row"
           controls={druidFilters.map(control => (
             <Control {...this.getControlData(control)} />
           ))}

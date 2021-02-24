@@ -18,6 +18,8 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
+from flask_appbuilder.models.sqla.interface import SQLAInterface
+from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import contains_eager
 
@@ -38,14 +40,24 @@ class DashboardDAO(BaseDAO):
     base_filter = DashboardFilter
 
     @staticmethod
-    def get_charts_for_dashboard(dashboard_id: int) -> List[Slice]:
+    def get_charts_for_dashboard(dashboard_id_or_slug: str) -> List[Slice]:
         query = (
             db.session.query(Dashboard)
             .outerjoin(Slice, Dashboard.slices)
             .outerjoin(Slice.table)
-            .filter(Dashboard.id == dashboard_id)
+            .filter(
+                or_(
+                    Dashboard.id == dashboard_id_or_slug,
+                    Dashboard.slug == dashboard_id_or_slug,
+                )
+            )
             .options(contains_eager(Dashboard.slices))
         )
+        # Apply dashboard base filters
+        query = DashboardFilter("id", SQLAInterface(Dashboard, db.session)).apply(
+            query, None
+        )
+
         dashboard = query.one_or_none()
         if not dashboard:
             raise DashboardNotFoundError()

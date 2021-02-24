@@ -16,18 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { useState, useEffect } from 'react';
+import { getShortUrl as getShortUrlUtil } from 'src/utils/urlUtils';
 
-import ModalTrigger from 'src/components/ModalTrigger';
+export function useUrlShortener(url: string): Function {
+  const [update, setUpdate] = useState(false);
+  const [shortUrl, setShortUrl] = useState('');
 
-describe('ModalTrigger', () => {
-  const defaultProps = {
-    triggerNode: <i className="fa fa-link" />,
-    modalTitle: 'My Modal Title',
-    modalBody: <div>Modal Body</div>,
-  };
+  async function getShortUrl() {
+    if (update) {
+      const newShortUrl = await getShortUrlUtil(url);
+      setShortUrl(newShortUrl);
+      setUpdate(false);
+      return newShortUrl;
+    }
+    return shortUrl;
+  }
 
-  it('is a valid element', () => {
-    expect(React.isValidElement(<ModalTrigger {...defaultProps} />)).toBe(true);
-  });
-});
+  useEffect(() => setUpdate(true), [url]);
+
+  return getShortUrl;
+}

@@ -387,7 +387,7 @@ class TestDatabaseApi(SupersetTestCase):
         expected_response = {
             "message": {
                 "sqlalchemy_uri": [
-                    "SQLite database cannot be used as a data source "
+                    "SQLiteDialect_pysqlite cannot be used as a data source "
                     "for security reasons."
                 ]
             }
@@ -858,7 +858,7 @@ class TestDatabaseApi(SupersetTestCase):
         expected_response = {
             "message": {
                 "sqlalchemy_uri": [
-                    "SQLite database cannot be used as a data source for security reasons."
+                    "SQLiteDialect_pysqlite cannot be used as a data source for security reasons."
                 ]
             }
         }

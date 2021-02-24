@@ -19,9 +19,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
-import { styled } from '@superset-ui/core';
-import { DropdownButton } from 'react-bootstrap';
-import { Menu } from 'src/common/components';
+import { styled, withTheme } from '@superset-ui/core';
+import { Dropdown, Menu } from 'src/common/components';
+import Icon from 'src/components/Icon';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -78,6 +78,7 @@ const MenuItem = styled(Menu.Item)`
 class PopoverDropdown extends React.PureComponent {
   constructor(props) {
     super(props);
+
     this.handleSelect = this.handleSelect.bind(this);
   }
 
@@ -86,28 +87,41 @@ class PopoverDropdown extends React.PureComponent {
   }
 
   render() {
-    const { id, value, options, renderButton, renderOption } = this.props;
+    const {
+      id,
+      value,
+      options,
+      renderButton,
+      renderOption,
+      theme,
+    } = this.props;
     const selected = options.find(opt => opt.value === value);
     return (
-      <DropdownButton
+      <Dropdown
         id={id}
-        bsSize="small"
-        title={renderButton(selected)}
-        className="popover-dropdown"
+        trigger="click"
+        overlayStyle={{ zIndex: theme.zIndex.max }}
+        overlay={
+          <Menu onClick={this.handleSelect}>
+            {options.map(option => (
+              <MenuItem
+                id="menu-item"
+                key={option.value}
+                className={cx('dropdown-item', {
+                  active: option.value === value,
+                })}
+              >
+                {renderOption(option)}
+              </MenuItem>
+            ))}
+          </Menu>
+        }
       >
-        <Menu onClick={this.handleSelect}>
-          {options.map(option => (
-            <MenuItem
-              key={option.value}
-              className={cx('dropdown-item', {
-                active: option.value === value,
-              })}
-            >
-              {renderOption(option)}
-            </MenuItem>
-          ))}
-        </Menu>
-      </DropdownButton>
+        <div role="button" css={{ display: 'flex', alignItems: 'center' }}>
+          {renderButton(selected)}
+          <Icon name="caret-down" css={{ marginTop: 4 }} />
+        </div>
+      </Dropdown>
     );
   }
 }
@@ -115,4 +129,4 @@ class PopoverDropdown extends React.PureComponent {
 PopoverDropdown.propTypes = propTypes;
 PopoverDropdown.defaultProps = defaultProps;
 
-export default PopoverDropdown;
+export default withTheme(PopoverDropdown);
