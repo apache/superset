@@ -82,7 +82,7 @@ from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
-from sqlalchemy.types import TEXT, TypeDecorator
+from sqlalchemy.types import TEXT, TypeDecorator, TypeEngine
 
 import _thread  # pylint: disable=C0411
 from superset.errors import ErrorLevel, SupersetErrorType
@@ -304,7 +304,7 @@ class ColumnTypeSource(Enum):
 
 
 class ColumnSpec(NamedTuple):
-    type: Union[GenericDataType, str]
+    type: Union[TypeEngine, GenericDataType, str]
     is_dttm: bool
     normalized_column_name: Optional[str] = None
     python_date_format: Optional[str] = None

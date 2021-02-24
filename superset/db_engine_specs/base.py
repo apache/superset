@@ -41,7 +41,8 @@ import pandas as pd
 import sqlparse
 from flask import g
 from flask_babel import lazy_gettext as _
-from sqlalchemy import column, DateTime, select
+from sqlalchemy import column, DateTime, select, types
+from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
@@ -179,6 +180,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             re.compile(r".*(DATE|TIME).*", re.IGNORECASE),
         ),
     }
+
+    dttm_types = [
+        types.TIME,
+        types.TIMESTAMP,
+        types.TIMESTAMP(timezone=True),
+        types.Interval,
+    ]
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
@@ -968,20 +976,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return label_mutated
 
     @classmethod
-    def get_sqla_column_type(cls, type_: Optional[str]) -> Optional[TypeEngine]:
+    def get_sqla_column_type(cls, column_type: Optional[str]) -> Optional[TypeEngine]:
         """
         Return a sqlalchemy native column type that corresponds to the column type
         defined in the data source (return None to use default type inferred by
         SQLAlchemy). Override `column_type_mappings` for specific needs
         (see MSSQL for example of NCHAR/NVARCHAR handling).
 
-        :param type_: Column type returned by inspector
+        :param column_type: Column type returned by inspector
         :return: SqlAlchemy column type
         """
-        if not type_:
+        if not column_type:
             return None
         for regex, sqla_type in cls.column_type_mappings:
-            match = regex.match(type_)
+            match = regex.match(column_type)
             if match:
                 if callable(sqla_type):
                     return sqla_type(match)
@@ -1100,54 +1108,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return parsed_query.is_select() or parsed_query.is_explain()
 
     @classmethod
-    def get_column_type(
-        cls,
-        source: utils.ColumnTypeSource,
-        db_type_map: Dict[utils.GenericDataType, List[str]],
-        native_type: Union[utils.GenericDataType, str],
-    ) -> Tuple[Union[utils.GenericDataType, str], bool]:
-        for generic_type in db_type_map:
-            is_dttm = generic_type == utils.GenericDataType.TEMPORAL
-            for db_type in db_type_map[generic_type]:
-                if db_type == native_type:
-                    if source == utils.ColumnTypeSource.CURSOR_DESCRIPION:
-                        return db_type, is_dttm
-                    if source == utils.ColumnTypeSource.GET_TABLE:
-                        return generic_type, is_dttm
-        return "", False
+    def type_is_dttm(cls, column_type: Optional[TypeEngine]) -> bool:
+        return column_type in cls.dttm_types
 
-    @classmethod
     def get_column_spec(
-        cls,
-        source: utils.ColumnTypeSource,
-        column_name: str,
-        native_type: Union[utils.GenericDataType, str],
+        self,
+        column_name: Optional[str],
+        native_type: str,
+        source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
     ) -> utils.ColumnSpec:
-        postgres_types_map: Dict[utils.GenericDataType, List[str]] = {
-            utils.GenericDataType.NUMERIC: [
-                "smallint",
-                "integer",
-                "bigint",
-                "decimal",
-                "numeric",
-                "real",
-                "double precision",
-                "smallserial",
-                "serial",
-                "bigserial",
-            ],
-            utils.GenericDataType.STRING: ["varchar", "char", "text",],
-            utils.GenericDataType.TEMPORAL: [
-                "DATE",
-                "TIME",
-                "TIMESTAMP",
-                "TIMESTAMPTZ",
-                "INTERVAL",
-            ],
-            utils.GenericDataType.BOOLEAN: ["boolean",],
-        }
 
-        col_type, is_dttm = cls.get_column_type(source, postgres_types_map, native_type)
-        column_spec = ColumnSpec(col_type, is_dttm)
+        column_type = self.get_sqla_column_type(native_type)
+        is_dttm = self.type_is_dttm(column_type)
+
+        if column_name:  # Further logic to be implemented
+            pass
+        if (
+            source == utils.ColumnTypeSource.CURSOR_DESCRIPION
+        ):  # Further logic to be implemented
+            pass
+
+        column_spec = ColumnSpec(type=column_type, is_dttm=is_dttm)
 
         return column_spec
