@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React from 'react';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import '@testing-library/jest-dom';
