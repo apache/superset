@@ -898,6 +898,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         orderby: Optional[List[Tuple[ColumnElement, bool]]] = None,
         extras: Optional[Dict[str, Any]] = None,
         order_desc: bool = True,
+        is_rowcount: bool = False,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         template_kwargs = {
@@ -1253,10 +1254,21 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     result.df, dimensions, groupby_exprs_sans_timestamp
                 )
                 qry = qry.where(top_groups)
+        if is_rowcount:
+            if not db_engine_spec.allows_subqueries:
+                raise QueryObjectValidationError(
+                    _("Database does not support subqueries")
+                )
+            label = "rowcount"
+            col = self.make_sqla_column_compatible(literal_column("COUNT(*)"), label)
+            qry = select([col]).select_from(qry.select_from(tbl).alias("rowcount_qry"))
+            labels_expected = [label]
+        else:
+            qry = qry.select_from(tbl)
         return SqlaQuery(
             extra_cache_keys=extra_cache_keys,
             labels_expected=labels_expected,
-            sqla_query=qry.select_from(tbl),
+            sqla_query=qry,
             prequeries=prequeries,
         )
 
