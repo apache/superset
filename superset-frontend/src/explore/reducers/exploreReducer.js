@@ -18,13 +18,14 @@
  */
 /* eslint camelcase: 0 */
 import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/chart/chartAction';
-import { getControlsState } from '../store';
+import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
+import { getControlsState } from 'src/explore/store';
 import {
   getControlConfig,
   getFormDataFromControls,
   getControlStateFromControlConfig,
-} from '../controlUtils';
-import * as actions from '../actions/exploreActions';
+} from 'src/explore/controlUtils';
+import * as actions from 'src/explore/actions/exploreActions';
 
 export default function exploreReducer(state = {}, action) {
   const actionHandlers = {
@@ -60,6 +61,12 @@ export default function exploreReducer(state = {}, action) {
           delete newFormData.granularity_sqla;
           delete newFormData.time_grain_sqla;
         }
+      }
+      if (
+        action.datasource.id !== state.datasource.id ||
+        action.datasource.type !== state.datasource.type
+      ) {
+        newFormData.time_range = DEFAULT_TIME_RANGE;
       }
       const newState = {
         ...state,

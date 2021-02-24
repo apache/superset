@@ -46,7 +46,9 @@ const propTypes = {
   datasource: PropTypes.object,
   columns: PropTypes.arrayOf(columnType),
   savedMetrics: PropTypes.arrayOf(savedMetricType),
-  selectedMetrics: PropTypes.oneOfType([PropTypes.string, adhocMetricType]),
+  selectedMetrics: PropTypes.arrayOf(
+    PropTypes.oneOfType([PropTypes.string, adhocMetricType]),
+  ),
   isLoading: PropTypes.bool,
 };
 

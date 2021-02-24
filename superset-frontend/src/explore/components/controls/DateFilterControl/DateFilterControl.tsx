@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import rison from 'rison';
 import {
   SupersetClient,
@@ -39,6 +39,8 @@ import { Divider } from 'src/common/components';
 import Icon from 'src/components/Icon';
 import { Select } from 'src/components/Select';
 import { Tooltip } from 'src/common/components/Tooltip';
+import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
+
 import { SelectOptionType, FrameType } from './types';
 import {
   COMMON_RANGE_VALUES_SET,
@@ -175,11 +177,12 @@ interface DateFilterControlProps {
 }
 
 export default function DateFilterControl(props: DateFilterControlProps) {
-  const { value = 'Last week', endpoints, onChange, datasource } = props;
+  const { value = DEFAULT_TIME_RANGE, endpoints, onChange } = props;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
-  const [frame, setFrame] = useState<FrameType>(guessFrame(value));
+  const guessedFrame = useMemo(() => guessFrame(value), [value]);
+  const [frame, setFrame] = useState<FrameType>(guessedFrame);
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
@@ -204,9 +207,9 @@ export default function DateFilterControl(props: DateFilterControlProps) {
           +--------------+------+----------+--------+----------+-----------+
         */
         if (
-          frame === 'Common' ||
-          frame === 'Calendar' ||
-          frame === 'No filter'
+          guessedFrame === 'Common' ||
+          guessedFrame === 'Calendar' ||
+          guessedFrame === 'No filter'
         ) {
           setActualTimeRange(value);
           setTooltipTitle(actualRange || '');
@@ -218,12 +221,6 @@ export default function DateFilterControl(props: DateFilterControlProps) {
       }
     });
   }, [value]);
-
-  useEffect(() => {
-    onChange('Last week');
-    setTimeRangeValue('Last week');
-    setFrame(guessFrame('Last week'));
-  }, [datasource?.id, onChange]);
 
   useEffect(() => {
     fetchTimeRange(timeRangeValue, endpoints).then(({ value, error }) => {
@@ -244,13 +241,13 @@ export default function DateFilterControl(props: DateFilterControlProps) {
 
   function onOpen() {
     setTimeRangeValue(value);
-    setFrame(guessFrame(value));
+    setFrame(guessedFrame);
     setShow(true);
   }
 
   function onHide() {
     setTimeRangeValue(value);
-    setFrame(guessFrame(value));
+    setFrame(guessedFrame);
     setShow(false);
   }
 
