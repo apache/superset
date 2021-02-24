@@ -45,9 +45,8 @@ import { sectionsToRender } from '../controlUtils';
 import { ExploreActions, exploreActions } from '../actions/exploreActions';
 import { InitialExploreState } from '../reducers/getInitialState';
 
-type ControlPanelsContainerProps = {
+export type ControlPanelsContainerProps = {
   actions: ExploreActions;
-  alert: string;
   datasource_type: DatasourceType;
   exploreState: Record<string, any>;
   controls: Record<string, ControlState>;
@@ -55,7 +54,7 @@ type ControlPanelsContainerProps = {
   isDatasourceMetaLoading: boolean;
 };
 
-type ExpandedControlPanelSectionConfig = Omit<
+export type ExpandedControlPanelSectionConfig = Omit<
   ControlPanelSectionConfig,
   'controlSetRows'
 > & {
@@ -68,9 +67,6 @@ const Styles = styled.div`
   overflow: auto;
   overflow-x: visible;
   overflow-y: auto;
-  .remove-alert {
-    cursor: pointer;
-  }
   #controlSections {
     min-height: 100%;
     overflow: visible;
