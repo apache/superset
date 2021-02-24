@@ -29,7 +29,6 @@ import {
 } from '@superset-ui/core';
 
 import Tabs from 'src/common/components/Tabs';
-import Alert from 'src/components/Alert';
 import Collapse from 'src/common/components/Collapse';
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
