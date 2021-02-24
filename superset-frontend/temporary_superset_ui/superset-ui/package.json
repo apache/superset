@@ -138,8 +138,8 @@
     "@types/react-bootstrap/@types/react": "^16.14.2"
   },
   "engines": {
-    "node": ">=10.10.0",
-    "npm": ">=6.8.0",
+    "node": "^14.15.0",
+    "npm": "^7.5.4",
     "yarn": ">=1.13.0"
   },
   "workspaces": [
