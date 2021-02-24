@@ -19,7 +19,7 @@
 
 import React from 'react';
 import classNames from 'classnames';
-import { PaginationButtonProps } from './PaginationButtonProps';
+import { PaginationButtonProps } from './types';
 
 interface PaginationItemButton extends PaginationButtonProps {
   active?: boolean;
