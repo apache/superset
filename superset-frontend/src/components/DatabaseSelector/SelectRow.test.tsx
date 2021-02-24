@@ -18,25 +18,24 @@
  */
 
 import React from 'react';
-import moment from 'moment';
-import { t } from '@superset-ui/core';
+import '@testing-library/jest-dom';
+import { render, screen } from '@testing-library/react';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { SelectRow } from './SelectRow';
 
-interface Props {
-  cachedTimestamp?: string;
-}
-export const TooltipContent: React.FC<Props> = ({ cachedTimestamp }) => {
-  const cachedText = cachedTimestamp ? (
-    <span>
-      {t('Loaded data cached')}
-      <b> {moment.utc(cachedTimestamp).fromNow()}</b>
-    </span>
-  ) : (
-    t('Loaded from cache')
+test('Rendering DatabaseOption correctly', () => {
+  render(
+    <ThemeProvider theme={supersetTheme}>
+      <SelectRow
+        select={<div data-test="select">Select</div>}
+        refreshBtn={
+          <button data-test="refresh" type="button">
+            Refresh
+          </button>
+        }
+      />
+    </ThemeProvider>,
   );
-
-  return (
-    <span data-test="tooltip-content">
-      {cachedText}. {t('Click to force-refresh')}
-    </span>
-  );
-};
+  expect(screen.getByTestId('select')).toBeInTheDocument();
+  expect(screen.getByTestId('refresh')).toBeInTheDocument();
+});
