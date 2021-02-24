@@ -11,12 +11,12 @@ on:
 jobs:
   build:
     name: Build and test
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       CODECOV_TOKEN: '${{ secrets.CODECOV_TOKEN }}'
     strategy:
       matrix:
-        node-version: [12.x]
+        node-version: [14.x]
 
     steps:
       - uses: actions/checkout@v2
