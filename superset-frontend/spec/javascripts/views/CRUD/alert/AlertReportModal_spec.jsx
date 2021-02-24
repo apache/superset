@@ -260,4 +260,39 @@ describe('AlertReportModal', () => {
     expect(addWrapper.find('input[name="grace_period"]')).toExist();
     expect(wrapper.find('input[name="grace_period"]')).toHaveLength(0);
   });
+
+  it('only allows grace period values > 1', async () => {
+    const props = {
+      ...mockedProps,
+      isReport: false,
+    };
+
+    const addWrapper = await mountAndWait(props);
+
+    const input = addWrapper.find('input[name="grace_period"]');
+
+    input.simulate('change', { target: { name: 'grace_period', value: 7 } });
+    expect(input.instance().value).toEqual('7');
+
+    input.simulate('change', { target: { name: 'grace_period', value: 0 } });
+    expect(input.instance().value).toEqual('');
+
+    input.simulate('change', { target: { name: 'grace_period', value: -1 } });
+    expect(input.instance().value).toEqual('1');
+  });
+
+  it('only allows working timeout values > 1', () => {
+    const input = wrapper.find('input[name="working_timeout"]');
+
+    input.simulate('change', { target: { name: 'working_timeout', value: 7 } });
+    expect(input.instance().value).toEqual('7');
+
+    input.simulate('change', { target: { name: 'working_timeout', value: 0 } });
+    expect(input.instance().value).toEqual('');
+
+    input.simulate('change', {
+      target: { name: 'working_timeout', value: -1 },
+    });
+    expect(input.instance().value).toEqual('1');
+  });
 });

@@ -18,8 +18,6 @@
  */
 import React, { Suspense } from 'react';
 import { hot } from 'react-hot-loader/root';
-import thunk from 'redux-thunk';
-import { createStore, applyMiddleware, compose, combineReducers } from 'redux';
 import { Provider as ReduxProvider } from 'react-redux';
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
@@ -34,9 +32,8 @@ import { theme } from 'src/preamble';
 import ToastPresenter from 'src/messageToasts/containers/ToastPresenter';
 import setupPlugins from 'src/setup/setupPlugins';
 import setupApp from 'src/setup/setupApp';
-import messageToastReducer from 'src/messageToasts/reducers';
-import { initEnhancer } from 'src/reduxUtils';
 import { routes, isFrontendRoute } from 'src/views/routes';
+import { store } from './store';
 
 setupApp();
 setupPlugins();
@@ -48,19 +45,10 @@ const menu = { ...bootstrap.common.menu_data };
 const common = { ...bootstrap.common };
 initFeatureFlags(bootstrap.common.feature_flags);
 
-const store = createStore(
-  combineReducers({
-    messageToasts: messageToastReducer,
-    common: () => common,
-  }),
-  {},
-  compose(applyMiddleware(thunk), initEnhancer(false)),
-);
-
 const App = () => (
   <ReduxProvider store={store}>
     <ThemeProvider theme={theme}>
-      <FlashProvider common={common}>
+      <FlashProvider messages={common.flash_messages}>
         <Router>
           <DynamicPluginProvider>
             <QueryParamProvider

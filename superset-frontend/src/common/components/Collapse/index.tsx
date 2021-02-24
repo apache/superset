@@ -18,11 +18,10 @@
  */
 import React from 'react';
 import { styled } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
 import { Collapse as AntdCollapse } from 'antd';
 import { CollapseProps as AntdCollapseProps } from 'antd/lib/collapse';
 
-interface CollapseProps extends AntdCollapseProps {
+export interface CollapseProps extends AntdCollapseProps {
   light?: boolean;
   bigger?: boolean;
   bold?: boolean;
@@ -34,13 +33,7 @@ const Collapse = Object.assign(
   styled(({ light, bigger, bold, animateArrows, ...props }: CollapseProps) => (
     <AntdCollapse {...props} />
   ))`
-    height: 100%;
     .ant-collapse-item {
-      border: 0;
-      height: 100%;
-      &:last-of-type.ant-collapse-item-active {
-        padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
-      }
       .ant-collapse-header {
         font-weight: ${({ bold, theme }) =>
           bold
@@ -80,9 +73,7 @@ const Collapse = Object.assign(
           `}
       }
       .ant-collapse-content {
-        height: 100%;
         .ant-collapse-content-box {
-          height: 100%;
           .loading.inline {
             margin: ${({ theme }) => theme.gridUnit * 12}px auto;
             display: block;

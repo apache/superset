@@ -149,6 +149,7 @@ class SupersetAppInitializer:
         from superset.databases.api import DatabaseRestApi
         from superset.datasets.api import DatasetRestApi
         from superset.queries.api import QueryRestApi
+        from superset.security.api import SecurityRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
@@ -369,7 +370,7 @@ class SupersetAppInitializer:
             appbuilder.add_link(
                 "Upload a CSV",
                 label=__("Upload a CSV"),
-                href="/csvtodatabaseview/form/",
+                href="/csvtodatabaseview/form",
                 icon="fa-upload",
                 category="Data",
                 category_label=__("Data"),
@@ -384,7 +385,7 @@ class SupersetAppInitializer:
                 appbuilder.add_link(
                     "Upload Excel",
                     label=__("Upload Excel"),
-                    href="/exceltodatabaseview/form/",
+                    href="/exceltodatabaseview/form",
                     icon="fa-upload",
                     category="Data",
                     category_label=__("Data"),
@@ -406,7 +407,7 @@ class SupersetAppInitializer:
                 category_label=__("Security"),
                 icon="fa-list-ol",
             )
-
+        appbuilder.add_api(SecurityRestApi)
         #
         # Conditionally setup email views
         #
