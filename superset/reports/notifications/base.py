@@ -30,7 +30,8 @@ class ScreenshotData:
 @dataclass
 class NotificationContent:
     name: str
-    screenshot: ScreenshotData
+    screenshot: Optional[ScreenshotData] = None
+    text: Optional[str] = None
 
 
 class BaseNotification:  # pylint: disable=too-few-public-methods

@@ -958,7 +958,7 @@ def send_mime_email(
             smtp.starttls()
         if smtp_user and smtp_password:
             smtp.login(smtp_user, smtp_password)
-        logger.info("Sent an email to %s", str(e_to))
+        logger.debug("Sent an email to %s", str(e_to))
         smtp.sendmail(e_from, e_to, mime_msg.as_string())
         smtp.quit()
     else:
