@@ -71,17 +71,19 @@ class TestConnectionDatabaseCommand(BaseCommand):
             raise DatabaseTestConnectionDriverError(
                 message=_("Could not load database driver: {}").format(driver_name),
             )
-        except DBAPIError:
-            stats_logger.incr(f"test_connection_error.{make_url(uri).drivername}.dbapi")
+        except DBAPIError as ex:
+            stats_logger.incr(
+                f"test_connection_error.{make_url(uri).drivername}.{ex.__class__.__name__}"
+            )
             raise DatabaseTestConnectionFailedError()
         except SupersetSecurityException as ex:
             stats_logger.incr(
-                f"test_connection_error.{make_url(uri).drivername}.security"
+                f"test_connection_error.{make_url(uri).drivername}.{ex.__class__.__name__}"
             )
             raise DatabaseSecurityUnsafeError(message=str(ex))
-        except Exception:
+        except Exception as ex:
             stats_logger.incr(
-                f"test_connection_error.{make_url(uri).drivername}.unknown"
+                f"test_connection_error.{make_url(uri).drivername}.{ex.__class__.__name__}"
             )
             raise DatabaseTestConnectionUnexpectedError()
 
