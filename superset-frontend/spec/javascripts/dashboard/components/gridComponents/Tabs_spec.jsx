@@ -134,7 +134,7 @@ describe('Tabs', () => {
     const wrapper = setup({ editMode: true, onChangeTab });
     wrapper
       .find(
-        '[data-test="dashboard-component-tabs"] .ant-tabs-tab [data-test="short-link-button"]',
+        '[data-test="dashboard-component-tabs"] .ant-tabs-tab [role="button"]',
       )
       .at(1) // will not call if it is already selected
       .simulate('click');

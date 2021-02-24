@@ -20,15 +20,41 @@ import '@testing-library/jest-dom/extend-expect';
 import React, { ReactNode, ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { Provider } from 'react-redux';
+import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
+import thunk from 'redux-thunk';
+import reducerIndex from 'spec/helpers/reducerIndex';
 
-function SupersetProviders({ children }: { children?: ReactNode }) {
-  return <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>;
+type Options = Omit<RenderOptions, 'queries'> & {
+  useRedux?: boolean;
+  initialState?: {};
+  reducers?: {};
+};
+
+function createWrapper(options?: Options) {
+  const { useRedux, initialState, reducers } = options || {};
+
+  if (useRedux) {
+    const store = createStore(
+      combineReducers(reducers || reducerIndex),
+      initialState || {},
+      compose(applyMiddleware(thunk)),
+    );
+
+    return ({ children }: { children?: ReactNode }) => (
+      <Provider store={store}>
+        <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>
+      </Provider>
+    );
+  }
+
+  return ({ children }: { children?: ReactNode }) => (
+    <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>
+  );
 }
 
-const customRender = (
-  ui: ReactElement,
-  options?: Omit<RenderOptions, 'queries'>,
-) => render(ui, { wrapper: SupersetProviders, ...options });
+const customRender = (ui: ReactElement, options?: Options) =>
+  render(ui, { wrapper: createWrapper(options), ...options });
 
 export function sleep(time: number) {
   return new Promise(resolve => {
