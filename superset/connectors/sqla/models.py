@@ -1465,6 +1465,12 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         for statement in templatable_statements:
             if ExtraCache.regex.search(statement):
                 return True
+
+        # Always recalculate the cache keys since the SQL query mutator can modify the
+        # query in arbitrary ways
+        if config["SQL_QUERY_MUTATOR"]:
+            return True
+
         return False
 
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> List[Hashable]:
