@@ -54,7 +54,11 @@ export default function DndColumnSelectLabel(props: LabelProps) {
     accept: DatasourcePanelDndType.COLUMN,
 
     drop: (item: DatasourcePanelDndItem) => {
-      optionSelector.add(item.metricOrColumnName);
+      if (optionSelector.isScalar && !isEmpty(optionSelector.groupByOptions)) {
+        optionSelector.replace(0, item.metricOrColumnName);
+      } else {
+        optionSelector.add(item.metricOrColumnName);
+      }
       setGroupByOptions(optionSelector.groupByOptions);
       props.onChange(optionSelector.getValues());
     },

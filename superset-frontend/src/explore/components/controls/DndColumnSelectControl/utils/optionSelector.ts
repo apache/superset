@@ -23,7 +23,7 @@ export class OptionSelector {
 
   options: { string: ColumnMeta };
 
-  scalar: boolean;
+  isScalar: boolean;
 
   constructor(
     options: { string: ColumnMeta },
@@ -33,10 +33,10 @@ export class OptionSelector {
     let groupByValues: string[];
     if (Array.isArray(values)) {
       groupByValues = values;
-      this.scalar = false;
+      this.isScalar = false;
     } else {
       groupByValues = values ? [values] : [];
-      this.scalar = true;
+      this.isScalar = true;
     }
     this.groupByOptions = groupByValues
       .map(value => {
@@ -58,6 +58,12 @@ export class OptionSelector {
     this.groupByOptions.splice(idx, 1);
   }
 
+  replace(idx: number, value: string) {
+    if (this.groupByOptions[idx]) {
+      this.groupByOptions[idx] = this.options[value];
+    }
+  }
+
   swap(a: number, b: number) {
     [this.groupByOptions[a], this.groupByOptions[b]] = [
       this.groupByOptions[b],
@@ -66,14 +72,11 @@ export class OptionSelector {
   }
 
   has(groupBy: string): boolean {
-    if (this.scalar) {
-      return !!this.getValues();
-    }
     return !!this.getValues()?.includes(groupBy);
   }
 
   getValues(): string[] | string | null {
-    if (this.scalar) {
+    if (this.isScalar) {
       return this.groupByOptions.length > 0
         ? this.groupByOptions[0].column_name
         : null;
