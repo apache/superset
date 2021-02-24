@@ -24,7 +24,8 @@ import {
   CheckCircleFilled,
   ExclamationCircleFilled,
 } from '@ant-design/icons';
-import { Collapse, Popover } from 'src/common/components/index';
+import { Popover } from 'src/common/components/index';
+import Collapse from 'src/common/components/Collapse';
 import { Global } from '@emotion/core';
 import {
   Indent,
@@ -173,7 +174,7 @@ const DetailsPanelPopover = ({
                 </Title>
               }
             >
-              <Indent>
+              <Indent css={{ paddingBottom: theme.gridUnit * 3 }}>
                 {appliedIndicators.map(indicator => (
                   <Indicator
                     key={indicatorKey(indicator)}
@@ -197,7 +198,7 @@ const DetailsPanelPopover = ({
                 </Title>
               }
             >
-              <Indent>
+              <Indent css={{ paddingBottom: theme.gridUnit * 3 }}>
                 {incompatibleIndicators.map(indicator => (
                   <Indicator
                     key={indicatorKey(indicator)}
@@ -219,7 +220,7 @@ const DetailsPanelPopover = ({
               }
               disabled={!unsetIndicators.length}
             >
-              <Indent>
+              <Indent css={{ paddingBottom: theme.gridUnit * 3 }}>
                 {unsetIndicators.map(indicator => (
                   <Indicator
                     key={indicatorKey(indicator)}
