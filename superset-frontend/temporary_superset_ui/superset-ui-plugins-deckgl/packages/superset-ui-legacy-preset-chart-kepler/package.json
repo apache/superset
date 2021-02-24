@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-preset-chart-kepler",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Superset Chart - kerpler.gl",
   "sideEffects": true,
   "main": "lib/index.js",
