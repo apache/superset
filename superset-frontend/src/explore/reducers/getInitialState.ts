@@ -73,6 +73,13 @@ export default function getInitialState(
   const controls = getControlsState(bootstrappedState, initialFormData);
   bootstrappedState.controls = controls;
 
+  // reset control values to initial form data value in case they are incorrectly
+  // updated by `mapStateToProps` based on other controls' empty state.
+  // E.g. Query Mode for table chart.
+  Object.keys(controls).forEach(key => {
+    controls[key].value = initialFormData[key];
+  });
+
   // apply initial mapStateToProps for all controls, must execute AFTER
   // bootstrappedState has initialized `controls`. Order of execution is not
   // guaranteed, so controls shouldn't rely on the each other's mapped state.
