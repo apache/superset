@@ -92,6 +92,23 @@ export const LabelsContainer = styled.div`
   border-radius: ${({ theme }) => theme.gridUnit}px;
 `;
 
+export const DndLabelsContainer = styled.div<{
+  canDrop?: boolean;
+  isOver?: boolean;
+}>`
+  padding: ${({ theme }) => theme.gridUnit}px;
+  border: ${({ canDrop, isOver, theme }) => {
+    if (isOver && canDrop) {
+      return `dashed 1px ${theme.colors.info.dark1}`;
+    }
+    if (isOver && !canDrop) {
+      return `dashed 1px ${theme.colors.error.dark1}`;
+    }
+    return `solid 1px ${theme.colors.grayscale.light2}`;
+  }};
+  border-radius: ${({ theme }) => theme.gridUnit}px;
+`;
+
 export const AddControlLabel = styled.div<{
   cancelHover?: boolean;
 }>`

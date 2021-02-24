@@ -24,12 +24,12 @@ import { BaseControlConfig, ColumnMeta } from '@superset-ui/chart-controls';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import {
   AddControlLabel,
+  DndLabelsContainer,
   HeaderContainer,
-  LabelsContainer,
 } from 'src/explore/components/OptionControls';
 import {
-  DatasourcePanelDndType,
   DatasourcePanelDndItem,
+  DatasourcePanelDndType,
 } from 'src/explore/components/DatasourcePanel/types';
 import Icon from 'src/components/Icon';
 import OptionWrapper from './components/OptionWrapper';
@@ -50,7 +50,7 @@ export default function DndColumnSelectLabel(props: LabelProps) {
     optionSelector.groupByOptions,
   );
 
-  const [, datasourcePanelDrop] = useDrop({
+  const [{ isOver, canDrop }, datasourcePanelDrop] = useDrop({
     accept: DatasourcePanelDndType.COLUMN,
 
     drop: (item: DatasourcePanelDndItem) => {
@@ -65,6 +65,7 @@ export default function DndColumnSelectLabel(props: LabelProps) {
     collect: monitor => ({
       isOver: monitor.isOver(),
       canDrop: monitor.canDrop(),
+      type: monitor.getItemType(),
     }),
   });
 
@@ -106,9 +107,9 @@ export default function DndColumnSelectLabel(props: LabelProps) {
       <HeaderContainer>
         <ControlHeader {...props} />
       </HeaderContainer>
-      <LabelsContainer>
+      <DndLabelsContainer canDrop={canDrop} isOver={isOver}>
         {isEmpty(groupByOptions) ? placeHolderRenderer() : optionsRenderer()}
-      </LabelsContainer>
+      </DndLabelsContainer>
     </div>
   );
 }

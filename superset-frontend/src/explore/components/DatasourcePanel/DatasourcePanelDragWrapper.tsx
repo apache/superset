@@ -18,7 +18,20 @@
  */
 import React, { ReactNode } from 'react';
 import { useDrag } from 'react-dnd';
+import { styled } from '@superset-ui/core';
 import { DatasourcePanelDndItem } from './types';
+
+const DatasourceItemContainer = styled.div`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: ${({ theme }) => theme.gridUnit * 6}px;
+  cursor: pointer;
+
+  :hover {
+    background-color: ${({ theme }) => theme.colors.grayscale.light2};
+  }
+`;
 
 interface DatasourcePanelDragWrapperProps extends DatasourcePanelDndItem {
   children?: ReactNode;
@@ -34,5 +47,9 @@ export default function DatasourcePanelDragWrapper(
     },
   });
 
-  return <div ref={drag}>{props.children}</div>;
+  return (
+    <DatasourceItemContainer ref={drag}>
+      {props.children}
+    </DatasourceItemContainer>
+  );
 }
