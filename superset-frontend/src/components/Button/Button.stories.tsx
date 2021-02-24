@@ -98,13 +98,13 @@ export const ButtonGallery = () => (
 ButtonGallery.story = {
   parameters: {
     actions: {
-      disabled: true,
+      disable: true,
     },
     controls: {
-      disabled: true,
+      disable: true,
     },
     knobs: {
-      disabled: true,
+      disable: true,
     },
   },
 };
@@ -117,7 +117,7 @@ export const InteractiveButton = (args: ButtonProps & { label: string }) => {
 InteractiveButton.story = {
   parameters: {
     knobs: {
-      disabled: true,
+      disable: true,
     },
   },
 };
