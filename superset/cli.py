@@ -20,6 +20,7 @@ import logging
 import sys
 from datetime import datetime, timedelta
 from subprocess import Popen
+from types import ModuleType
 from typing import Any, Dict, List, Optional, Type, Union
 from zipfile import ZipFile
 
@@ -108,18 +109,11 @@ def version(verbose: bool) -> None:
     print(Style.RESET_ALL)
 
 
-def load_examples_run(
-    load_test_data: bool, only_metadata: bool = False, force: bool = False
+def load_test_data(
+    examples: ModuleType,
+    only_metadata: bool = False,
+    force: bool = False,
 ) -> None:
-    if only_metadata:
-        print("Loading examples metadata")
-    else:
-        examples_db = utils.get_example_database()
-        print(f"Loading examples metadata and related data into {examples_db}")
-
-    from superset import examples
-
-    examples.load_css_templates()
 
     print("Loading energy related dataset")
     examples.load_energy(only_metadata, force)
@@ -133,47 +127,54 @@ def load_examples_run(
     print("Loading [Tabbed dashboard]")
     examples.load_tabbed_dashboard(only_metadata)
 
-    if not load_test_data:
-        print("Loading [Random time series data]")
-        examples.load_random_time_series_data(only_metadata, force)
+    print("Loading additional examples")
+    examples.load_from_configs(force, load_test_data=True)
 
-        print("Loading [Random long/lat data]")
-        examples.load_long_lat_data(only_metadata, force)
 
-        print("Loading [Country Map data]")
-        examples.load_country_map_data(only_metadata, force)
+def load_examples(
+    examples: ModuleType, only_metadata: bool = False, force: bool = False
+) -> None:
+    print("Loading [Random time series data]")
+    examples.load_random_time_series_data(only_metadata, force)
 
-        print("Loading [Multiformat time series]")
-        examples.load_multiformat_time_series(only_metadata, force)
+    print("Loading [Random long/lat data]")
+    examples.load_long_lat_data(only_metadata, force)
 
-        print("Loading [Paris GeoJson]")
-        examples.load_paris_iris_geojson(only_metadata, force)
+    print("Loading [Country Map data]")
+    examples.load_country_map_data(only_metadata, force)
 
-        print("Loading [San Francisco population polygons]")
-        examples.load_sf_population_polygons(only_metadata, force)
+    print("Loading [Multiformat time series]")
+    examples.load_multiformat_time_series(only_metadata, force)
 
-        print("Loading [Flights data]")
-        examples.load_flights(only_metadata, force)
+    print("Loading [Paris GeoJson]")
+    examples.load_paris_iris_geojson(only_metadata, force)
 
-        print("Loading [BART lines]")
-        examples.load_bart_lines(only_metadata, force)
+    print("Loading [San Francisco population polygons]")
+    examples.load_sf_population_polygons(only_metadata, force)
 
-        print("Loading [Multi Line]")
-        examples.load_multi_line(only_metadata)
+    print("Loading [Flights data]")
+    examples.load_flights(only_metadata, force)
 
-        print("Loading [Misc Charts] dashboard")
-        examples.load_misc_dashboard()
+    print("Loading [BART lines]")
+    examples.load_bart_lines(only_metadata, force)
 
-        print("Loading DECK.gl demo")
-        examples.load_deck_dash()
+    print("Loading [Multi Line]")
+    examples.load_multi_line(only_metadata)
 
-    # load examples that are stored as YAML config files
-    examples.load_from_configs(force, load_test_data)
+    print("Loading [Misc Charts] dashboard")
+    examples.load_misc_dashboard()
+
+    print("Loading DECK.gl demo")
+    examples.load_deck_dash()
+
+    print("Loading additional examples")
+    examples.load_from_configs(force, load_test_data=False)
 
 
 @with_appcontext
 @superset.command()
 @click.option("--load-test-data", "-t", is_flag=True, help="Load additional test data")
+@click.option("--load-big-test-data", "-b", is_flag=True, help="Load big test data")
 @click.option(
     "--only-metadata", "-m", is_flag=True, help="Only load metadata, skip actual data"
 )
@@ -184,6 +185,14 @@ def load_examples(
     load_test_data: bool, only_metadata: bool = False, force: bool = False
 ) -> None:
     """Loads a set of Slices and Dashboards and a supporting dataset """
+    if only_metadata:
+        print("Loading examples metadata")
+    else:
+        examples_db = utils.get_example_database()
+        print(f"Loading examples metadata and related data into {examples_db}")
+    from superset import examples
+
+    examples.load_css_templates()
     load_examples_run(load_test_data, only_metadata, force)
 
 
@@ -304,7 +313,9 @@ if feature_flags.get("VERSIONED_EXPORT"):
     @superset.command()
     @with_appcontext
     @click.option(
-        "--path", "-p", help="Path to a single ZIP file",
+        "--path",
+        "-p",
+        help="Path to a single ZIP file",
     )
     @click.option(
         "--username",
