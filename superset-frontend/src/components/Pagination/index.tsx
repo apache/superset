@@ -19,6 +19,10 @@
 
 import React from 'react';
 import { styled } from '@superset-ui/core';
+import { Next } from './Next';
+import { Prev } from './Prev';
+import { Item } from './Item';
+import { Ellipsis } from './Ellipsis';
 
 interface PaginationProps {
   children: React.ReactNode;
@@ -72,6 +76,13 @@ const PaginationList = styled.ul`
   }
 `;
 
-export function PaginationWrapper({ children }: PaginationProps) {
+function Pagination({ children }: PaginationProps) {
   return <PaginationList role="navigation">{children}</PaginationList>;
 }
+
+Pagination.Next = Next;
+Pagination.Prev = Prev;
+Pagination.Item = Item;
+Pagination.Ellipsis = Ellipsis;
+
+export default Pagination;
