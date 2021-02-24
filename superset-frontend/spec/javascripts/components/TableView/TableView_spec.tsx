@@ -67,7 +67,7 @@ describe('TableView', () => {
 
   it('renders pagination controls', () => {
     const wrapper = factory();
-    expect(wrapper.find(Pagination.PaginationWrapper)).toExist();
+    expect(wrapper.find(Pagination)).toExist();
     expect(wrapper.find(Pagination.Prev)).toExist();
     expect(wrapper.find(Pagination.Item)).toExist();
     expect(wrapper.find(Pagination.Next)).toExist();
