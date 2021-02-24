@@ -18,7 +18,13 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, logging, SupersetClient, withTheme } from '@superset-ui/core';
+import {
+  t,
+  logging,
+  SupersetClient,
+  withTheme,
+  ensureIsArray,
+} from '@superset-ui/core';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
@@ -39,6 +45,11 @@ import AdhocFilterOption from './AdhocFilterOption';
 import AdhocFilter, { CLAUSES, EXPRESSION_TYPES } from './AdhocFilter';
 import adhocFilterType from './adhocFilterType';
 
+const selectedMetricType = PropTypes.oneOfType([
+  PropTypes.string,
+  adhocMetricType,
+]);
+
 const propTypes = {
   name: PropTypes.string,
   onChange: PropTypes.func,
@@ -46,9 +57,10 @@ const propTypes = {
   datasource: PropTypes.object,
   columns: PropTypes.arrayOf(columnType),
   savedMetrics: PropTypes.arrayOf(savedMetricType),
-  selectedMetrics: PropTypes.arrayOf(
-    PropTypes.oneOfType([PropTypes.string, adhocMetricType]),
-  ),
+  selectedMetrics: PropTypes.oneOfType([
+    selectedMetricType,
+    PropTypes.arrayOf(selectedMetricType),
+  ]),
   isLoading: PropTypes.bool,
 };
 
@@ -264,7 +276,7 @@ class AdhocFilterControl extends React.Component {
   optionsForSelect(props) {
     const options = [
       ...props.columns,
-      ...[...(props.selectedMetrics || [])].map(
+      ...ensureIsArray(props.selectedMetrics).map(
         metric =>
           metric &&
           (typeof metric === 'string'
