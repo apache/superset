@@ -30,7 +30,6 @@ from flask import current_app, g
 from sqlalchemy import Float, Date, String
 
 from superset.models.dashboard import Dashboard
-from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 from superset import app, appbuilder, db, security_manager, viz, ConnectorRegistry
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
@@ -48,9 +47,14 @@ from .dashboard_utils import (
     create_slice,
     create_dashboard,
 )
-from .fixtures.energy_dashboard import load_energy_table_with_slice
-from .fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
+from tests.fixtures.public_role import (
+    public_role_like_gamma,
+    public_role_like_test_role,
+)
+from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
 NEW_SECURITY_CONVERGE_VIEWS = (
     "Annotation",
@@ -567,6 +571,7 @@ class TestRolePermission(SupersetTestCase):
         )  # wb_health_population slice, has access
         self.assertNotIn("Girl Name Cloud", data)  # birth_names slice, no access
 
+    @pytest.mark.usefixtures("public_role_like_gamma")
     def test_public_sync_role_data_perms(self):
         """
         Security: Tests if the sync role method preserves data access permissions
@@ -594,13 +599,11 @@ class TestRolePermission(SupersetTestCase):
         # Cleanup
         self.revoke_public_access_to_table(table)
 
+    @pytest.mark.usefixtures("public_role_like_test_role")
     def test_public_sync_role_builtin_perms(self):
         """
         Security: Tests public role creation based on a builtin role
         """
-        current_app.config["PUBLIC_ROLE_LIKE"] = "TestRole"
-
-        security_manager.sync_role_definitions()
         public_role = security_manager.get_public_role()
         public_role_resource_names = [
             [permission.view_menu.name, permission.permission.name]
@@ -608,10 +611,6 @@ class TestRolePermission(SupersetTestCase):
         ]
         for pvm in current_app.config["FAB_ROLES"]["TestRole"]:
             assert pvm in public_role_resource_names
-
-        # Cleanup
-        current_app.config["PUBLIC_ROLE_LIKE"] = "Gamma"
-        security_manager.sync_role_definitions()
 
     def test_sqllab_gamma_user_schema_access_to_sqllab(self):
         session = db.session
@@ -815,6 +814,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_gamma(get_perm_tuples("Gamma"))
         self.assert_cannot_alpha(get_perm_tuples("Gamma"))
 
+    @pytest.mark.usefixtures("public_role_like_gamma")
     def test_public_permissions_basic(self):
         self.assert_can_gamma(get_perm_tuples("Public"))
 

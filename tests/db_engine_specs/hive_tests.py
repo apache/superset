@@ -271,7 +271,6 @@ def test_get_create_table_stmt() -> None:
     location = "s3a://directory/table"
     from unittest import TestCase
 
-    TestCase.maxDiff = None
     assert HiveEngineSpec.get_create_table_stmt(
         table, schema_def, location, ",", 0, [""]
     ) == (

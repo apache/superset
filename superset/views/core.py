@@ -23,6 +23,7 @@ from typing import Any, Callable, cast, Dict, List, Optional, Union
 from urllib import parse
 
 import backoff
+import humanize
 import pandas as pd
 import simplejson as json
 from flask import abort, flash, g, Markup, redirect, render_template, request, Response
@@ -620,7 +621,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose("/import_dashboards", methods=["GET", "POST"])
+    @expose("/import_dashboards/", methods=["GET", "POST"])
     def import_dashboards(self) -> FlaskResponse:
         """Overrides the dashboards using json instances from the file."""
         import_file = request.files.get("file")
@@ -1177,7 +1178,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # the dashboard was open. it was use to avoid mid-air collision.
         remote_last_modified_time = data.get("last_modified_time")
         current_last_modified_time = dash.changed_on.replace(microsecond=0).timestamp()
-        if remote_last_modified_time < current_last_modified_time:
+        if (
+            remote_last_modified_time
+            and remote_last_modified_time < current_last_modified_time
+        ):
             return json_error_response(
                 __(
                     "This dashboard was changed recently. "
@@ -1395,6 +1399,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     "item_url": item_url,
                     "item_title": item_title,
                     "time": log.dttm,
+                    "time_delta_humanized": humanize.naturaltime(
+                        datetime.now() - log.dttm
+                    ),
                 }
             )
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
@@ -1404,6 +1411,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/csrf_token/", methods=["GET"])
     def csrf_token(self) -> FlaskResponse:
+        logger.warning(
+            "This API endpoint is deprecated and will be removed in version 2.0.0"
+        )
         return Response(
             self.render_template("superset/csrf_token.json"), mimetype="text/json"
         )

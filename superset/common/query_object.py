@@ -24,11 +24,15 @@ import simplejson as json
 from flask_babel import gettext as _
 from pandas import DataFrame
 
-from superset import app
+from superset import app, db
+from superset.connectors.base.models import BaseDatasource
+from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import QueryObjectValidationError
 from superset.typing import Metric
 from superset.utils import pandas_postprocessing
 from superset.utils.core import (
+    ChartDataResultType,
+    DatasourceDict,
     DTTM_ALIAS,
     find_duplicates,
     get_metric_names,
@@ -86,9 +90,14 @@ class QueryObject:
     columns: List[str]
     orderby: List[List[str]]
     post_processing: List[Dict[str, Any]]
+    datasource: Optional[BaseDatasource]
+    result_type: Optional[ChartDataResultType]
+    is_rowcount: bool
 
     def __init__(
         self,
+        datasource: Optional[DatasourceDict] = None,
+        result_type: Optional[ChartDataResultType] = None,
         annotation_layers: Optional[List[Dict[str, Any]]] = None,
         applied_time_extras: Optional[Dict[str, str]] = None,
         granularity: Optional[str] = None,
@@ -107,8 +116,16 @@ class QueryObject:
         columns: Optional[List[str]] = None,
         orderby: Optional[List[List[str]]] = None,
         post_processing: Optional[List[Optional[Dict[str, Any]]]] = None,
+        is_rowcount: bool = False,
         **kwargs: Any,
     ):
+        self.is_rowcount = is_rowcount
+        self.datasource = None
+        if datasource:
+            self.datasource = ConnectorRegistry.get_datasource(
+                str(datasource["type"]), int(datasource["id"]), db.session
+            )
+        self.result_type = result_type
         annotation_layers = annotation_layers or []
         metrics = metrics or []
         columns = columns or []
@@ -156,7 +173,7 @@ class QueryObject:
             for metric in metrics
         ]
 
-        self.row_limit = row_limit or config["ROW_LIMIT"]
+        self.row_limit = config["ROW_LIMIT"] if row_limit is None else row_limit
         self.row_offset = row_offset or 0
         self.filter = filters or []
         self.timeseries_limit = timeseries_limit
@@ -247,6 +264,7 @@ class QueryObject:
             "groupby": self.groupby,
             "from_dttm": self.from_dttm,
             "to_dttm": self.to_dttm,
+            "is_rowcount": self.is_rowcount,
             "is_timeseries": self.is_timeseries,
             "metrics": self.metrics,
             "row_limit": self.row_limit,
@@ -271,6 +289,10 @@ class QueryObject:
         """
         cache_dict = self.to_dict()
         cache_dict.update(extra)
+        if self.datasource:
+            cache_dict["datasource"] = self.datasource.uid
+        if self.result_type:
+            cache_dict["result_type"] = self.result_type
 
         for k in ["from_dttm", "to_dttm"]:
             del cache_dict[k]
