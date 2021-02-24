@@ -313,7 +313,6 @@ class TestQueryContext(SupersetTestCase):
         Ensure that query objects with unknown fields don't raise an Exception and
         have an identical cache key as one without the unknown field
         """
-        self.maxDiff = None
         self.login(username="admin")
         payload = get_query_context("birth_names")
         query_context = ChartDataQueryContextSchema().load(payload)
