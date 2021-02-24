@@ -26,6 +26,7 @@ import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/re
 import { getParam } from 'src/modules/utils';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
+import getPermissions from 'src/dashboard/util/getPermissions';
 import {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
   dashboardFilter,
@@ -53,12 +54,15 @@ export default function getInitialState(
   chartData,
   dashboardData,
 ) {
-  // user_id and datasources need exploration for spa
-  console.log('dashboarddata', dashboardData)
-  const { user_id, datasources, common, editMode, urlParams } = bootstrapData;
+  const {
+    user_id,
+    datasources,
+    common,
+    editMode,
+    urlParams,
+    user,
+  } = bootstrapData;
   const dashboard = { ...bootstrapData.dashboard_data };
-  console.log('chartData', chartData)
-  console.log('dashboard', dashboard, { common, editMode, datasources, urlParams })
   const metadata = JSON.parse(dashboardData.json_metadata);
   let preselectFilters = {};
 
@@ -276,6 +280,8 @@ export default function getInitialState(
     dashboard.metadata.filter_configuration || [],
   );
 
+  const roles = user.roles.Admin;
+
   return {
     datasources,
     sliceEntities: { ...initSliceEntities, slices, isLoading: false },
@@ -286,11 +292,11 @@ export default function getInitialState(
       slug: dashboardData.slug,
       metadata,
       userId: user_id,
-      dash_edit_perm: dashboard.dash_edit_perm,
-      dash_save_perm: dashboard.dash_save_perm,
-      superset_can_explore: dashboard.superset_can_explore,
-      superset_can_csv: dashboard.superset_can_csv,
-      slice_can_edit: dashboard.slice_can_edit,
+      dash_edit_perm: getPermissions('can_write', 'Dashboard', roles),
+      dash_save_perm: getPermissions('can_save_dash', 'Superset', roles),
+      superset_can_explore: getPermissions('can_explore', 'Superset', roles),
+      superset_can_csv: getPermissions('can_csv', 'Superset', roles),
+      slice_can_edit: getPermissions('can_slice', 'Superset', roles),
       common: {
         flash_messages: common.flash_messages,
         conf: common.conf,
@@ -312,7 +318,7 @@ export default function getInitialState(
       css: dashboardData.css || '',
       colorNamespace: metadata.color_namespace,
       colorScheme: metadata.color_scheme,
-      editMode: dashboard.dash_edit_perm && editMode,
+      editMode: getPermissions('can_write', 'Dashboard', roles) && editMode,
       isPublished: dashboardData.published,
       hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,
