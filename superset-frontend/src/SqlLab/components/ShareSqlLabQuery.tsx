@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import { Tooltip } from 'src/common/components/Tooltip';
 import { t, styled, supersetTheme } from '@superset-ui/core';
 import cx from 'classnames';
@@ -30,17 +29,17 @@ import { storeQuery } from 'src/utils/common';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 
-const propTypes = {
-  queryEditor: PropTypes.shape({
-    dbId: PropTypes.number,
-    title: PropTypes.string,
-    schema: PropTypes.string,
-    autorun: PropTypes.bool,
-    sql: PropTypes.string,
-    remoteId: PropTypes.number,
-  }).isRequired,
-  addDangerToast: PropTypes.func.isRequired,
-};
+interface propTypes {
+  queryEditor: {
+    dbId: number;
+    title: string;
+    schema: string;
+    autorun: boolean;
+    sql: string;
+    remoteId: number;
+  };
+  addDangerToast: (msg: string) => void;
+}
 
 const Styles = styled.div`
   .btn-disabled {
@@ -56,16 +55,9 @@ const Styles = styled.div`
   }
 `;
 
-class ShareSqlLabQuery extends React.Component {
-  getCopyUrl(callback) {
-    if (isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE)) {
-      return this.getCopyUrlForKvStore(callback);
-    }
-    return this.getCopyUrlForSavedQuery(callback);
-  }
-
-  getCopyUrlForKvStore(callback) {
-    const { dbId, title, schema, autorun, sql } = this.props.queryEditor;
+function ShareSqlLabQuery({ queryEditor, addDangerToast }: propTypes) {
+  const getCopyUrlForKvStore = (callback: any) => {
+    const { dbId, title, schema, autorun, sql } = queryEditor;
     const sharedQuery = { dbId, title, schema, autorun, sql };
 
     return storeQuery(sharedQuery)
@@ -74,28 +66,34 @@ class ShareSqlLabQuery extends React.Component {
       })
       .catch(response => {
         getClientErrorObject(response).then(() => {
-          this.props.addDangerToast(t('There was an error with your request'));
+          addDangerToast(t('There was an error with your request'));
         });
       });
-  }
+  };
 
-  getCopyUrlForSavedQuery(callback) {
+  const getCopyUrlForSavedQuery = (callback: any) => {
     let savedQueryToastContent;
 
-    if (this.props.queryEditor.remoteId) {
+    if (queryEditor.remoteId) {
       savedQueryToastContent = `${
         window.location.origin + window.location.pathname
-      }?savedQueryId=${this.props.queryEditor.remoteId}`;
+      }?savedQueryId=${queryEditor.remoteId}`;
       callback(savedQueryToastContent);
     } else {
       savedQueryToastContent = t('Please save the query to enable sharing');
       callback(savedQueryToastContent);
     }
-  }
+  };
+  const getCopyUrl = (callback: any) => {
+    if (isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE)) {
+      return getCopyUrlForKvStore(callback);
+    }
+    return getCopyUrlForSavedQuery(callback);
+  };
 
-  buildButton() {
+  const buildButton = () => {
     const canShare =
-      this.props.queryEditor.remoteId ||
+      queryEditor.remoteId ||
       isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE);
     return (
       <Styles>
@@ -114,36 +112,33 @@ class ShareSqlLabQuery extends React.Component {
         </Button>
       </Styles>
     );
-  }
+  };
 
-  render() {
-    const canShare =
-      this.props.queryEditor.remoteId ||
-      isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE);
-    return (
-      <Tooltip
-        id="copy_link"
-        placement="top"
-        title={
-          canShare
-            ? t('Copy query link to your clipboard')
-            : t('Save the query to copy the link')
-        }
-      >
-        {canShare ? (
-          <CopyToClipboard
-            getText={callback => this.getCopyUrl(callback)}
-            wrapped={false}
-            copyNode={this.buildButton()}
-          />
-        ) : (
-          this.buildButton()
-        )}
-      </Tooltip>
-    );
-  }
+  const canShare =
+    queryEditor.remoteId ||
+    isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE);
+
+  return (
+    <Tooltip
+      id="copy_link"
+      placement="top"
+      title={
+        canShare
+          ? t('Copy query link to your clipboard')
+          : t('Save the query to copy the link')
+      }
+    >
+      {canShare ? (
+        <CopyToClipboard
+          getText={(callback: any) => getCopyUrl(callback)}
+          wrapped={false}
+          copyNode={buildButton()}
+        />
+      ) : (
+        buildButton()
+      )}
+    </Tooltip>
+  );
 }
-
-ShareSqlLabQuery.propTypes = propTypes;
 
 export default withToasts(ShareSqlLabQuery);
