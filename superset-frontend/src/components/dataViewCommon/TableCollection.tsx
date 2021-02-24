@@ -84,7 +84,6 @@ export const Table = styled.table`
 
     svg {
       display: inline-block;
-      top: 2px;
       position: relative;
     }
   }

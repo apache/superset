@@ -267,10 +267,10 @@ const SavedQueries = ({
         buttons={[
           {
             name: (
-              <div>
+              <>
                 <i className="fa fa-plus" />
-                SQL Query{' '}
-              </div>
+                SQL Query
+              </>
             ),
             buttonStyle: 'tertiary',
             onClick: () => {

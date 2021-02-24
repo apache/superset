@@ -1138,8 +1138,13 @@ class DruidDatasource(Model, BaseDatasource):
         phase: int = 2,
         client: Optional["PyDruid"] = None,
         order_desc: bool = True,
+        is_rowcount: bool = False,
     ) -> str:
         """Runs a query against Druid and returns a dataframe."""
+        # is_rowcount is only supported on SQL connector
+        if is_rowcount:
+            raise SupersetException("is_rowcount is not supported on Druid connector")
+
         # TODO refactor into using a TBD Query object
         client = client or self.cluster.get_pydruid_client()
         row_limit = row_limit or conf.get("ROW_LIMIT")

@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import TooltipWrapper from './TooltipWrapper';
+import { Tooltip } from 'src/common/components/Tooltip';
 
 import './RefreshLabel.less';
 
@@ -30,7 +30,7 @@ const propTypes = {
 class RefreshLabel extends React.PureComponent {
   render() {
     return (
-      <TooltipWrapper tooltip={this.props.tooltipContent} label="cache-desc">
+      <Tooltip title={this.props.tooltipContent} id="cache-desc-tooltip">
         <i
           aria-label="Icon"
           role="button"
@@ -38,7 +38,7 @@ class RefreshLabel extends React.PureComponent {
           className="RefreshLabel fa fa-refresh pointer"
           onClick={this.props.onClick}
         />
-      </TooltipWrapper>
+      </Tooltip>
     );
   }
 }

@@ -91,6 +91,13 @@ datasource_type_description = (
 )
 datasource_name_description = "The datasource name."
 dashboards_description = "A list of dashboards to include this new chart to."
+changed_on_description = "The ISO date that the chart was last changed."
+slice_url_description = "The URL of the chart."
+form_data_description = (
+    "Form data from the Explore controls used to form the chart's data query."
+)
+description_markeddown_description = "Sanitized HTML version of the chart description."
+owners_name_description = "Name of an owner of the chart."
 
 #
 # OpenAPI method specification overrides
@@ -136,6 +143,24 @@ TIME_GRAINS = (
     "P1W/1970-01-03T00:00:00Z",  # Week ending Saturday
     "P1W/1970-01-04T00:00:00Z",  # Week ending Sunday
 )
+
+
+class ChartEntityResponseSchema(Schema):
+    """
+    Schema for a chart object
+    """
+
+    slice_id = fields.Integer()
+    slice_name = fields.String(description=slice_name_description)
+    cache_timeout = fields.Integer(description=cache_timeout_description)
+    changed_on = fields.String(description=changed_on_description)
+    datasource = fields.String(description=datasource_name_description)
+    description = fields.String(description=description_description)
+    description_markeddown = fields.String(
+        description=description_markeddown_description
+    )
+    form_data = fields.Dict(description=form_data_description)
+    slice_url = fields.String(description=slice_url_description)
 
 
 class ChartPostSchema(Schema):
@@ -862,9 +887,21 @@ class AnnotationLayerSchema(Schema):
     )
 
 
+class ChartDataDatasourceSchema(Schema):
+    description = "Chart datasource"
+    id = fields.Integer(description="Datasource id", required=True,)
+    type = fields.String(
+        description="Datasource type",
+        validate=validate.OneOf(choices=("druid", "table")),
+    )
+
+
 class ChartDataQueryObjectSchema(Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
+
+    datasource = fields.Nested(ChartDataDatasourceSchema, allow_none=True)
+    result_type = EnumField(ChartDataResultType, by_value=True, allow_none=True)
 
     annotation_layers = fields.List(
         fields.Nested(AnnotationLayerSchema),
@@ -946,10 +983,10 @@ class ChartDataQueryObjectSchema(Schema):
         description="Metric used to limit timeseries queries by.", allow_none=True,
     )
     row_limit = fields.Integer(
-        description='Maximum row count. Default: `config["ROW_LIMIT"]`',
+        description='Maximum row count (0=disabled). Default: `config["ROW_LIMIT"]`',
         allow_none=True,
         validate=[
-            Range(min=1, error=_("`row_limit` must be greater than or equal to 1"))
+            Range(min=0, error=_("`row_limit` must be greater than or equal to 0"))
         ],
     )
     row_offset = fields.Integer(
@@ -1013,14 +1050,9 @@ class ChartDataQueryObjectSchema(Schema):
         values=fields.String(description="The value of the query parameter"),
         allow_none=True,
     )
-
-
-class ChartDataDatasourceSchema(Schema):
-    description = "Chart datasource"
-    id = fields.Integer(description="Datasource id", required=True,)
-    type = fields.String(
-        description="Datasource type",
-        validate=validate.OneOf(choices=("druid", "table")),
+    is_rowcount = fields.Boolean(
+        description="Should the rowcount of the actual query be returned",
+        allow_none=True,
     )
 
 
@@ -1175,6 +1207,7 @@ CHART_SCHEMAS = (
     ChartDataGeohashDecodeOptionsSchema,
     ChartDataGeohashEncodeOptionsSchema,
     ChartDataGeodeticParseOptionsSchema,
+    ChartEntityResponseSchema,
     ChartGetDatasourceResponseSchema,
     ChartCacheScreenshotResponseSchema,
     GetFavStarIdsSchema,

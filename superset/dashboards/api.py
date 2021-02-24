@@ -30,6 +30,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
 from superset import is_feature_enabled, thumbnail_cache
+from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -90,6 +91,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
         "favorite_status",
+        "get_charts",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -187,6 +189,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     add_model_schema = DashboardPostSchema()
     edit_model_schema = DashboardPutSchema()
+    chart_entity_response_schema = ChartEntityResponseSchema()
 
     base_filters = [["slice", DashboardFilter, lambda: []]]
 
@@ -204,7 +207,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Dashboards"
     """ Override the name set for this collection of endpoints """
-    openapi_spec_component_schemas = (GetFavStarIdsSchema,)
+    openapi_spec_component_schemas = (ChartEntityResponseSchema, GetFavStarIdsSchema)
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
         "get_export_ids_schema": get_export_ids_schema,
@@ -218,6 +221,53 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         if is_feature_enabled("THUMBNAILS"):
             self.include_route_methods = self.include_route_methods | {"thumbnail"}
         super().__init__()
+
+    @expose("/<pk>/charts", methods=["GET"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_charts",
+        log_to_statsd=False,
+    )
+    def get_charts(self, pk: int) -> Response:
+        """Gets the chart definitions for a given dashboard
+        ---
+        get:
+          description: >-
+            Get the chart definitions for a given dashboard
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Dashboard chart definitions
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ChartEntityResponseSchema'
+            302:
+              description: Redirects to the current digest
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        try:
+            charts = DashboardDAO.get_charts_for_dashboard(pk)
+            result = [self.chart_entity_response_schema.dump(chart) for chart in charts]
+            return self.response(200, result=result)
+        except DashboardNotFoundError:
+            return self.response_404()
 
     @expose("/", methods=["POST"])
     @protect()

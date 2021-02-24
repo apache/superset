@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -35,6 +35,7 @@ import {
   setInLocalStorage,
 } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
+import cx from 'classnames';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
@@ -165,7 +166,6 @@ function ExploreViewContainer(props) {
   const windowSize = useWindowSize();
 
   const [showingModal, setShowingModal] = useState(false);
-  const [chartIsStale, setChartIsStale] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const width = `${windowSize.width}px`;
@@ -226,7 +226,6 @@ function ExploreViewContainer(props) {
     props.actions.removeControlPanelAlert();
     props.actions.triggerQuery(true, props.chart.id);
 
-    setChartIsStale(false);
     addHistory();
   }
 
@@ -301,9 +300,6 @@ function ExploreViewContainer(props) {
   // effect to run when controls change
   useEffect(() => {
     if (previousControls) {
-      if (props.controls.viz_type.value !== previousControls.viz_type.value) {
-        props.actions.resetControls();
-      }
       if (
         props.controls.datasource &&
         (previousControls.datasource == null ||
@@ -334,19 +330,32 @@ function ExploreViewContainer(props) {
         props.actions.renderTriggered(new Date().getTime(), props.chart.id);
         addHistory();
       }
+    }
+  }, [props.controls]);
 
-      // this should be handled inside actions too
-      const hasQueryControlChanged = changedControlKeys.some(
+  const chartIsStale = useMemo(() => {
+    if (previousControls) {
+      const changedControlKeys = Object.keys(props.controls).filter(
+        key =>
+          typeof previousControls[key] !== 'undefined' &&
+          !areObjectsEqual(
+            props.controls[key].value,
+            previousControls[key].value,
+          ),
+      );
+
+      return changedControlKeys.some(
         key =>
           !props.controls[key].renderTrigger &&
           !props.controls[key].dontRefreshOnChange,
       );
-      if (hasQueryControlChanged) {
-        props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS);
-        setChartIsStale(true);
-      }
     }
-  }, [props.controls]);
+    return false;
+  }, [previousControls, props.controls]);
+
+  if (chartIsStale) {
+    props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS);
+  }
 
   function renderErrorMessage() {
     // Returns an error message as a node if any errors are in the store
@@ -520,9 +529,10 @@ function ExploreViewContainer(props) {
         />
       </Resizable>
       <div
-        className={`main-explore-content ${
-          isCollapsed ? 'col-sm-9' : 'col-sm-7'
-        }`}
+        className={cx(
+          'main-explore-content',
+          isCollapsed ? 'col-sm-9' : 'col-sm-7',
+        )}
       >
         {renderChartContainer()}
       </div>

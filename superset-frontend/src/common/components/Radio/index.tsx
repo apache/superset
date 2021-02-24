@@ -17,9 +17,9 @@
  * under the License.
  */
 import { styled } from '@superset-ui/core';
-import { Radio as BaseRadio } from 'src/common/components';
+import { Radio as AntdRadio } from 'antd';
 
-const StyledRadio = styled(BaseRadio)`
+const StyledRadio = styled(AntdRadio)`
   .ant-radio-inner {
     top: -1px;
     left: 2px;
@@ -51,7 +51,7 @@ const StyledRadio = styled(BaseRadio)`
     }
   }
 `;
-const StyledGroup = styled(BaseRadio.Group)`
+const StyledGroup = styled(AntdRadio.Group)`
   font-size: inherit;
 `;
 

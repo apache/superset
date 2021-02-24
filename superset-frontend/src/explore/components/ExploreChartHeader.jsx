@@ -21,14 +21,13 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import { styled, t } from '@superset-ui/core';
-
+import { Tooltip } from 'src/common/components/Tooltip';
 import { chartPropShape } from '../../dashboard/util/propShapes';
 import ExploreActionButtons from './ExploreActionButtons';
 import RowCountLabel from './RowCountLabel';
 import EditableTitle from '../../components/EditableTitle';
 import AlteredSliceTag from '../../components/AlteredSliceTag';
 import FaveStar from '../../components/FaveStar';
-import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
 import CachedLabel from '../../components/CachedLabel';
 import PropertiesModal from './PropertiesModal';
@@ -45,7 +44,6 @@ const propTypes = {
   addHistory: PropTypes.func,
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
-  chartHeight: PropTypes.string.isRequired,
   isStarred: PropTypes.bool.isRequired,
   slice: PropTypes.object,
   sliceName: PropTypes.string,
@@ -161,9 +159,9 @@ export class ExploreChartHeader extends React.PureComponent {
                 onSave={this.props.sliceUpdated}
                 slice={this.props.slice}
               />
-              <TooltipWrapper
-                label="edit-desc"
-                tooltip={t('Edit chart properties')}
+              <Tooltip
+                id="edit-desc-tooltip"
+                title={t('Edit chart properties')}
               >
                 <span
                   role="button"
@@ -173,7 +171,7 @@ export class ExploreChartHeader extends React.PureComponent {
                 >
                   <i className="fa fa-edit" />
                 </span>
-              </TooltipWrapper>
+              </Tooltip>
               {this.props.chart.sliceFormData && (
                 <AlteredSliceTag
                   className="altered"
@@ -211,7 +209,6 @@ export class ExploreChartHeader extends React.PureComponent {
             slice={this.props.slice}
             canDownload={this.props.can_download}
             chartStatus={chartStatus}
-            chartHeight={this.props.chartHeight}
             latestQueryFormData={latestQueryFormData}
             queryResponse={queryResponse}
           />

@@ -72,7 +72,7 @@ def create_app() -> Flask:
 class SupersetIndexView(IndexView):
     @expose("/")
     def index(self) -> FlaskResponse:
-        return redirect("/superset/welcome")
+        return redirect("/superset/welcome/")
 
 
 class SupersetAppInitializer:
@@ -149,6 +149,7 @@ class SupersetAppInitializer:
         from superset.databases.api import DatabaseRestApi
         from superset.datasets.api import DatasetRestApi
         from superset.queries.api import QueryRestApi
+        from superset.security.api import SecurityRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
@@ -222,7 +223,7 @@ class SupersetAppInitializer:
         #
         if appbuilder.app.config["LOGO_TARGET_PATH"]:
             appbuilder.add_link(
-                "Home", label=__("Home"), href="/superset/welcome",
+                "Home", label=__("Home"), href="/superset/welcome/",
             )
         appbuilder.add_view(
             AnnotationLayerModelView,
@@ -245,7 +246,7 @@ class SupersetAppInitializer:
         appbuilder.add_link(
             "Datasets",
             label=__("Datasets"),
-            href="/tablemodelview/list/?_flt_1_is_sqllab_view=y",
+            href="/tablemodelview/list/",
             icon="fa-table",
             category="Data",
             category_label=__("Data"),
@@ -333,7 +334,7 @@ class SupersetAppInitializer:
             appbuilder.add_link(
                 "Import Dashboards",
                 label=__("Import Dashboards"),
-                href="/superset/import_dashboards",
+                href="/superset/import_dashboards/",
                 icon="fa-cloud-upload",
                 category="Manage",
                 category_label=__("Manage"),
@@ -342,7 +343,7 @@ class SupersetAppInitializer:
         appbuilder.add_link(
             "SQL Editor",
             label=_("SQL Editor"),
-            href="/superset/sqllab",
+            href="/superset/sqllab/",
             category_icon="fa-flask",
             icon="fa-flask",
             category="SQL Lab",
@@ -350,14 +351,14 @@ class SupersetAppInitializer:
         )
         appbuilder.add_link(
             __("Saved Queries"),
-            href="/sqllab/my_queries/",
+            href="/savedqueryview/list/",
             icon="fa-save",
             category="SQL Lab",
         )
         appbuilder.add_link(
             "Query Search",
             label=_("Query History"),
-            href="/superset/sqllab/history",
+            href="/superset/sqllab/history/",
             icon="fa-search",
             category_icon="fa-flask",
             category="SQL Lab",
@@ -406,7 +407,7 @@ class SupersetAppInitializer:
                 category_label=__("Security"),
                 icon="fa-list-ol",
             )
-
+        appbuilder.add_api(SecurityRestApi)
         #
         # Conditionally setup email views
         #

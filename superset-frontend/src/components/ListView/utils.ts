@@ -324,7 +324,7 @@ export function useListViewState({
     setQuery(queryParams, method);
 
     fetchData({ pageIndex, pageSize, sortBy, filters });
-  }, [fetchData, pageIndex, pageSize, sortBy, filters, viewMode]);
+  }, [fetchData, pageIndex, pageSize, sortBy, filters]);
 
   useEffect(() => {
     if (!isEqual(initialState.pageIndex, pageIndex)) {

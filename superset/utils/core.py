@@ -76,12 +76,14 @@ from flask_appbuilder.security.sqla.models import Role, User
 from flask_babel import gettext as __
 from flask_babel.speaklater import LazyString
 from pandas.api.types import infer_dtype
+from pandas.core.dtypes.common import is_numeric_dtype
 from sqlalchemy import event, exc, select, Text
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TEXT, TypeDecorator
+from typing_extensions import TypedDict
 
 import _thread  # pylint: disable=C0411
 from superset.errors import ErrorLevel, SupersetErrorType
@@ -99,7 +101,7 @@ except ImportError:
     pass
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.base.models import BaseColumn, BaseDatasource
     from superset.models.core import Database
 
 
@@ -162,10 +164,17 @@ class ChartDataResultType(str, Enum):
     Chart data response type
     """
 
+    COLUMNS = "columns"
     FULL = "full"
     QUERY = "query"
     RESULTS = "results"
     SAMPLES = "samples"
+    TIMEGRAINS = "timegrains"
+
+
+class DatasourceDict(TypedDict):
+    type: str
+    id: int
 
 
 class ExtraFiltersTimeColumnType(str, Enum):
@@ -1489,6 +1498,15 @@ def extract_dataframe_dtypes(df: pd.DataFrame) -> List[GenericDataType]:
     return generic_types
 
 
+def extract_column_dtype(col: "BaseColumn") -> GenericDataType:
+    if col.is_temporal:
+        return GenericDataType.TEMPORAL
+    if col.is_numeric:
+        return GenericDataType.NUMERIC
+    # TODO: add check for boolean data type when proper support is added
+    return GenericDataType.STRING
+
+
 def indexed(
     items: List[Any], key: Union[str, Callable[[Any], Any]]
 ) -> Dict[Any, List[Any]]:
@@ -1579,3 +1597,34 @@ def format_list(items: Sequence[str], sep: str = ", ", quote: str = '"') -> str:
 def find_duplicates(items: Iterable[InputType]) -> List[InputType]:
     """Find duplicate items in an iterable."""
     return [item for item, count in collections.Counter(items).items() if count > 1]
+
+
+def normalize_dttm_col(
+    df: pd.DataFrame,
+    timestamp_format: Optional[str],
+    offset: int,
+    time_shift: Optional[timedelta],
+) -> pd.DataFrame:
+    if DTTM_ALIAS not in df.columns:
+        return df
+    df = df.copy()
+    if timestamp_format in ("epoch_s", "epoch_ms"):
+        dttm_col = df[DTTM_ALIAS]
+        if is_numeric_dtype(dttm_col):
+            # Column is formatted as a numeric value
+            unit = timestamp_format.replace("epoch_", "")
+            df[DTTM_ALIAS] = pd.to_datetime(
+                dttm_col, utc=False, unit=unit, origin="unix"
+            )
+        else:
+            # Column has already been formatted as a timestamp.
+            df[DTTM_ALIAS] = dttm_col.apply(pd.Timestamp)
+    else:
+        df[DTTM_ALIAS] = pd.to_datetime(
+            df[DTTM_ALIAS], utc=False, format=timestamp_format
+        )
+    if offset:
+        df[DTTM_ALIAS] += timedelta(hours=offset)
+    if time_shift is not None:
+        df[DTTM_ALIAS] += time_shift
+    return df

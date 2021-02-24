@@ -372,7 +372,6 @@ div.tablePopover {
 .ResultSetButtons {
   display: grid;
   grid-auto-flow: column;
-  grid-gap: 4px;
   padding-right: 8px;
 }
 
@@ -414,8 +413,6 @@ div.tablePopover {
 }
 
 .TableElement {
-  margin-right: 10px;
-
   .well {
     margin-top: 5px;
     margin-bottom: 5px;
@@ -429,18 +426,22 @@ div.tablePopover {
 
   .header-container {
     display: flex;
+    flex: 1;
+    align-items: center;
 
     .table-name {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       font-size: 16px;
+      flex: 1;
     }
 
     .header-right-side {
       margin-left: auto;
       display: flex;
       align-items: center;
+      margin-right: 33px;
     }
   }
 }

@@ -17,13 +17,13 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
-from typing import List, Optional
 from datetime import datetime, timedelta
 from io import BytesIO
 from unittest import mock
 from zipfile import is_zipfile, ZipFile
 
 from superset.models.sql_lab import Query
+from tests.insert_chart_mixin import InsertChartMixin
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
 import humanize
@@ -36,9 +36,8 @@ from sqlalchemy.sql import func
 from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 from tests.test_app import app
 from superset.charts.commands.data import ChartDataCommand
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
-from superset.extensions import async_query_manager, cache_manager, db, security_manager
+from superset.extensions import async_query_manager, cache_manager, db
 from superset.models.annotations import AnnotationLayer
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
@@ -67,43 +66,8 @@ CHART_DATA_URI = "api/v1/chart/data"
 CHARTS_FIXTURE_COUNT = 10
 
 
-class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
+class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
     resource_name = "chart"
-
-    def insert_chart(
-        self,
-        slice_name: str,
-        owners: List[int],
-        datasource_id: int,
-        created_by=None,
-        datasource_type: str = "table",
-        description: Optional[str] = None,
-        viz_type: Optional[str] = None,
-        params: Optional[str] = None,
-        cache_timeout: Optional[int] = None,
-    ) -> Slice:
-        obj_owners = list()
-        for owner in owners:
-            user = db.session.query(security_manager.user_model).get(owner)
-            obj_owners.append(user)
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id, db.session
-        )
-        slice = Slice(
-            cache_timeout=cache_timeout,
-            created_by=created_by,
-            datasource_id=datasource.id,
-            datasource_name=datasource.name,
-            datasource_type=datasource.type,
-            description=description,
-            owners=obj_owners,
-            params=params,
-            slice_name=slice_name,
-            viz_type=viz_type,
-        )
-        db.session.add(slice)
-        db.session.commit()
-        return slice
 
     @pytest.fixture(autouse=True)
     def clear_data_cache(self):
@@ -1138,7 +1102,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.common.query_context.config", {**app.config, "SAMPLES_ROW_LIMIT": 5},
+        "superset.common.query_actions.config", {**app.config, "SAMPLES_ROW_LIMIT": 5},
     )
     def test_chart_data_default_sample_limit(self):
         """
@@ -1405,7 +1369,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
         test_client.set_cookie(
             "localhost", app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], "foo"
         )
-        rv = post_assert_metric(test_client, CHART_DATA_URI, request_payload, "data")
+        rv = test_client.post(CHART_DATA_URI, json=request_payload)
         self.assertEqual(rv.status_code, 401)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -1480,9 +1444,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
             return orig_run(self, force_cached=False)
 
         with mock.patch.object(ChartDataCommand, "run", new=mock_run):
-            rv = self.get_assert_metric(
-                f"{CHART_DATA_URI}/test-cache-key", "data_from_cache"
-            )
+            rv = self.client.get(f"{CHART_DATA_URI}/test-cache-key",)
 
         self.assertEqual(rv.status_code, 401)
 
@@ -1736,3 +1698,44 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin):
                 name
             )
         return name
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_rowcount(self):
+        """
+        Chart data API: Query total rows
+        """
+        self.login(username="admin")
+        request_payload = get_query_context("birth_names")
+        request_payload["queries"][0]["is_rowcount"] = True
+        request_payload["queries"][0]["groupby"] = ["name"]
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        result = response_payload["result"][0]
+        expected_row_count = self.get_expected_row_count("client_id_4")
+        self.assertEqual(result["data"][0]["rowcount"], expected_row_count)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_chart_data_timegrains(self):
+        """
+        Chart data API: Query timegrains and columns
+        """
+        self.login(username="admin")
+        request_payload = get_query_context("birth_names")
+        request_payload["queries"] = [
+            {"result_type": utils.ChartDataResultType.TIMEGRAINS},
+            {"result_type": utils.ChartDataResultType.COLUMNS},
+        ]
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        response_payload = json.loads(rv.data.decode("utf-8"))
+        timegrain_result = response_payload["result"][0]
+        column_result = response_payload["result"][1]
+        assert list(timegrain_result["data"][0].keys()) == [
+            "name",
+            "function",
+            "duration",
+        ]
+        assert list(column_result["data"][0].keys()) == [
+            "column_name",
+            "verbose_name",
+            "dtype",
+        ]

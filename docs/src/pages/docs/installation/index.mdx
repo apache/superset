@@ -68,11 +68,20 @@ $ git checkout latest
 Then, run the following command:
 
 ```bash
-$ docker-compose up
+$ docker-compose -f docker-compose-non-dev.yml up
 ```
 
 You should see a wall of logging output from the containers being launched on your machine. Once
 this output slows, you should have a running instance of Superset on your local machine!
+
+**Note:** this will bring up superset in a non-dev mode, changes to the codebase will not be reflected.
+If you would like to run superset in dev mode, simply replace the previous command with:
+
+```bash
+$ docker-compose up
+```
+
+and wait for the `superset_node` container to finish building the assets.
 
 ### 4. Log in to Superset
 
