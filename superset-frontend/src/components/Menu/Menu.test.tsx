@@ -17,10 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen, configure } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import { Menu } from './Menu';
-
-configure({ testIdAttribute: 'data-test' });
 
 const mockedProps = {
   data: {
@@ -159,29 +157,43 @@ test('should render all the top navbar menu items', () => {
   } = mockedProps;
   render(<Menu {...mockedProps} />);
   menu.forEach(item => {
-    expect(screen.getByText(item.name)).toBeInTheDocument();
+    const menuItem = screen.getByText(item.label);
+    expect(menuItem).toHaveAttribute('href', item.url);
   });
 });
 
 test('should render the top navbar child menu items', () => {
+  const {
+    data: { menu },
+  } = mockedProps;
   render(<Menu {...mockedProps} />);
-  expect(screen.getByText('Datasets')).toBeInTheDocument();
-  expect(screen.getByText('Databases')).toBeInTheDocument();
+  const datasets = screen.getByText('Datasets');
+  const databases = screen.getByText('Databases');
+  const dataset = menu[1].childs![0] as { url: string };
+  const database = menu[1].childs![2] as { url: string };
+
+  expect(datasets).toHaveAttribute('href', dataset.url);
+  expect(databases).toHaveAttribute('href', database.url);
 });
 
 test('should render the Settings', () => {
   render(<Menu {...mockedProps} />);
-  expect(screen.getByText('Settings')).toBeInTheDocument();
+  const settings = screen.getByText('Settings');
+  expect(settings).toHaveAttribute('href', '#');
 });
 
-test('should render the Settings menu', () => {
+test('should render the Settings menu item', () => {
   render(<Menu {...mockedProps} />);
   expect(screen.getByText('Security')).toBeInTheDocument();
 });
 
 test('should render the Settings dropdown child menu items', () => {
+  const {
+    data: { settings },
+  } = mockedProps;
   render(<Menu {...mockedProps} />);
-  expect(screen.getByText('List Users')).toBeInTheDocument();
+  const listUsers = screen.getByText('List Users');
+  expect(listUsers).toHaveAttribute('href', settings[0].childs[0].url);
 });
 
 test('should render the plus menu (+) when user is not anonymous', () => {
@@ -204,11 +216,11 @@ test('should render the user actions when user is not anonymous', () => {
   render(<Menu {...notanonProps} />);
   expect(screen.getByText('User')).toBeInTheDocument();
 
-  const infoLinK = screen.getByText('Info');
-  const logoutLink = screen.getByText('Logout');
+  const info = screen.getByText('Info');
+  const logout = screen.getByText('Logout');
 
-  expect(infoLinK).toHaveAttribute('href', user_info_url);
-  expect(logoutLink).toHaveAttribute('href', user_logout_url);
+  expect(info).toHaveAttribute('href', user_info_url);
+  expect(logout).toHaveAttribute('href', user_logout_url);
 });
 
 test('should NOT render the user actions when user is anonymous', () => {
@@ -224,8 +236,8 @@ test('should render the Profile link when available', () => {
   } = mockedProps;
 
   render(<Menu {...notanonProps} />);
-  const profileLink = screen.getByText('Profile');
-  expect(profileLink).toHaveAttribute('href', user_profile_url);
+  const profile = screen.getByText('Profile');
+  expect(profile).toHaveAttribute('href', user_profile_url);
 });
 
 test('should render the About section and version_string or sha when available', () => {
@@ -249,8 +261,8 @@ test('should render the Documentation link when available', () => {
   } = mockedProps;
 
   render(<Menu {...mockedProps} />);
-  const docLink = screen.getByTitle('Documentation');
-  expect(docLink).toHaveAttribute('href', documentation_url);
+  const doc = screen.getByTitle('Documentation');
+  expect(doc).toHaveAttribute('href', documentation_url);
 });
 
 test('should render the Bug Report link when available', () => {
@@ -261,8 +273,8 @@ test('should render the Bug Report link when available', () => {
   } = mockedProps;
 
   render(<Menu {...mockedProps} />);
-  const bugreportLink = screen.getByTitle('Report a Bug');
-  expect(bugreportLink).toHaveAttribute('href', bug_report_url);
+  const bugReport = screen.getByTitle('Report a Bug');
+  expect(bugReport).toHaveAttribute('href', bug_report_url);
 });
 
 test('should render the Login link when user is anonymous', () => {
@@ -273,8 +285,8 @@ test('should render the Login link when user is anonymous', () => {
   } = mockedProps;
 
   render(<Menu {...mockedProps} />);
-  const loginLink = screen.getByText('Login');
-  expect(loginLink).toHaveAttribute('href', user_login_url);
+  const login = screen.getByText('Login');
+  expect(login).toHaveAttribute('href', user_login_url);
 });
 
 test('should render the Language Picker', () => {
