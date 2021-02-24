@@ -227,9 +227,5 @@ export type AnyFilterAction =
   | SetFilterSetsConfigFail
   | SetFiltersState
   | SetExtraFormData
-<<<<<<< HEAD
-  | SetFilterState
-  | SetBooststapData;
-=======
+  | SetBooststapData
   | SaveFilterSets;
->>>>>>> master
