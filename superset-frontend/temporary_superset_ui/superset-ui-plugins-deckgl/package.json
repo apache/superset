@@ -24,6 +24,8 @@
     "prepare-release": "git checkout master && git pull --rebase origin master && lerna bootstrap && yarn install && yarn test",
     "prerelease": "yarn build",
     "pretest": "yarn lint",
+    "release-patch-version": "yarn prepare-release && lerna version patch && lerna publish && yarn postrelease",
+    "release-minor-version": "yarn prepare-release && lerna version minor && lerna publish && yarn postrelease",
     "release": "yarn prepare-release && lerna publish --exact && yarn postrelease",
     "postrelease": "lerna run deploy-demo",
     "storybook": "cd packages/superset-ui-plugins-demo && yarn storybook"
