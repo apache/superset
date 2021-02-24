@@ -15,18 +15,25 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=no-self-use, invalid-name
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
 import yaml
+from sqlalchemy.exc import DBAPIError
 
 from superset import db, security_manager
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
-from superset.databases.commands.exceptions import DatabaseNotFoundError
+from superset.databases.commands.exceptions import (
+    DatabaseNotFoundError,
+    DatabaseTestConnectionDriverError,
+)
 from superset.databases.commands.export import ExportDatabasesCommand
 from superset.databases.commands.importers.v1 import ImportDatabasesCommand
+from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
+from superset.databases.schemas import DatabaseTestConnectionSchema
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_database
 from tests.base_tests import SupersetTestCase
@@ -508,3 +515,20 @@ class TestImportDatabasesCommand(SupersetTestCase):
         # verify that the database was not added
         new_num_databases = db.session.query(Database).count()
         assert new_num_databases == num_databases
+
+
+class TestTestConnectionDatabaseCommand(SupersetTestCase):
+    @mock.patch("superset.databases.commands.test_connection.stats_logger")
+    def test_connection_db_exception_dbapi(self, mock_stats_logger):
+        """Test that users can't export databases they don't have access to"""
+        json_payload = {"sqlalchemy_uri": "mssql+pymssql://test"}
+        test_item = DatabaseTestConnectionSchema().load(json_payload)
+        command = TestConnectionDatabaseCommand(
+            security_manager.find_user("admin"), test_item
+        )
+        with pytest.raises(DBAPIError) as excinfo:
+            command.run()
+
+        mock_stats_logger.assert_called()
+
+        # assert False is True
