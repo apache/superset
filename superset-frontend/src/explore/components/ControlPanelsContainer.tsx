@@ -274,6 +274,7 @@ class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps
           rows.some(
             control =>
               control &&
+              typeof control === 'object' &&
               'config' in control &&
               control.config &&
               (!control.config.renderTrigger ||

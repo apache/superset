@@ -84,16 +84,16 @@ describe('ControlPanelsContainer', () => {
     getChartControlPanelRegistry().remove('table');
   });
 
-  function getDefaultProps(): ControlPanelsContainerProps {
+  function getDefaultProps() {
     const controls = defaultControls as ControlPanelsContainerProps['controls'];
     return {
       datasource_type: DatasourceType.Table,
-      actions: {} as ControlPanelsContainerProps['actions'],
+      actions: {},
       controls,
       form_data: getFormDataFromControls(controls),
       isDatasourceMetaLoading: false,
-      exploreState: {} as ControlPanelsContainerProps['exploreState'],
-    };
+      exploreState: {},
+    } as ControlPanelsContainerProps;
   }
 
   it('renders ControlPanelSections', () => {
