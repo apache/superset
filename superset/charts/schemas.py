@@ -887,9 +887,21 @@ class AnnotationLayerSchema(Schema):
     )
 
 
+class ChartDataDatasourceSchema(Schema):
+    description = "Chart datasource"
+    id = fields.Integer(description="Datasource id", required=True,)
+    type = fields.String(
+        description="Datasource type",
+        validate=validate.OneOf(choices=("druid", "table")),
+    )
+
+
 class ChartDataQueryObjectSchema(Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
+
+    datasource = fields.Nested(ChartDataDatasourceSchema, allow_none=True)
+    result_type = EnumField(ChartDataResultType, by_value=True, allow_none=True)
 
     annotation_layers = fields.List(
         fields.Nested(AnnotationLayerSchema),
@@ -971,10 +983,10 @@ class ChartDataQueryObjectSchema(Schema):
         description="Metric used to limit timeseries queries by.", allow_none=True,
     )
     row_limit = fields.Integer(
-        description='Maximum row count. Default: `config["ROW_LIMIT"]`',
+        description='Maximum row count (0=disabled). Default: `config["ROW_LIMIT"]`',
         allow_none=True,
         validate=[
-            Range(min=1, error=_("`row_limit` must be greater than or equal to 1"))
+            Range(min=0, error=_("`row_limit` must be greater than or equal to 0"))
         ],
     )
     row_offset = fields.Integer(
@@ -1038,14 +1050,9 @@ class ChartDataQueryObjectSchema(Schema):
         values=fields.String(description="The value of the query parameter"),
         allow_none=True,
     )
-
-
-class ChartDataDatasourceSchema(Schema):
-    description = "Chart datasource"
-    id = fields.Integer(description="Datasource id", required=True,)
-    type = fields.String(
-        description="Datasource type",
-        validate=validate.OneOf(choices=("druid", "table")),
+    is_rowcount = fields.Boolean(
+        description="Should the rowcount of the actual query be returned",
+        allow_none=True,
     )
 
 
