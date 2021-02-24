@@ -19,11 +19,14 @@
 import { snakeCase } from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import { SuperChart, logging } from '@superset-ui/core';
-import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
+import {
+  SuperChart,
+  logging,
+  ThemeProvider,
+  supersetTheme,
+} from '@superset-ui/core';
 import Frame from 'react-frame-component';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
-
+import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -209,8 +212,8 @@ class ChartRenderer extends React.Component {
 
     return (
       <Frame>
-        <ThemeProvider theme={supersetTheme}> 
-          <StyledSuperChart
+        <ThemeProvider theme={supersetTheme}>
+          <SuperChart
             disableErrorBoundary
             key={`${chartId}${webpackHash}`}
             id={`chart-id-${chartId}`}
@@ -229,7 +232,6 @@ class ChartRenderer extends React.Component {
           />
         </ThemeProvider>
       </Frame>
-      
     );
   }
 }
