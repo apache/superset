@@ -1178,7 +1178,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # the dashboard was open. it was use to avoid mid-air collision.
         remote_last_modified_time = data.get("last_modified_time")
         current_last_modified_time = dash.changed_on.replace(microsecond=0).timestamp()
-        if remote_last_modified_time < current_last_modified_time:
+        if (
+            remote_last_modified_time
+            and remote_last_modified_time < current_last_modified_time
+        ):
             return json_error_response(
                 __(
                     "This dashboard was changed recently. "
