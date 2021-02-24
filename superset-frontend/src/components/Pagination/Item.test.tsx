@@ -26,7 +26,7 @@ test('Item - click when the item is not active', () => {
   const click = jest.fn();
   render(
     <Item onClick={click}>
-      <div data-test-id="test" />
+      <div data-test="test" />
     </Item>,
   );
   expect(click).toBeCalledTimes(0);
@@ -39,7 +39,7 @@ test('Item - click when the item is active', () => {
   const click = jest.fn();
   render(
     <Item onClick={click} active>
-      <div data-test-id="test" />
+      <div data-test="test" />
     </Item>,
   );
   expect(click).toBeCalledTimes(0);
