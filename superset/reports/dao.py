@@ -35,6 +35,9 @@ from superset.models.reports import (
 logger = logging.getLogger(__name__)
 
 
+REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER = "Notification sent with error"
+
+
 class ReportScheduleDAO(BaseDAO):
     model_cls = ReportSchedule
 
@@ -222,6 +225,41 @@ class ReportScheduleDAO(BaseDAO):
             .order_by(ReportExecutionLog.end_dttm.desc())
             .first()
         )
+
+    @staticmethod
+    def find_last_error_notification(
+        report_schedule: ReportSchedule, session: Optional[Session] = None,
+    ) -> Optional[ReportExecutionLog]:
+        """
+        Finds last error email sent
+        """
+        session = session or db.session
+        last_error_email_log = (
+            session.query(ReportExecutionLog)
+            .filter(
+                ReportExecutionLog.error_message
+                == REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+                ReportExecutionLog.report_schedule == report_schedule,
+            )
+            .order_by(ReportExecutionLog.end_dttm.desc())
+            .first()
+        )
+        if not last_error_email_log:
+            return None
+        # Checks that only errors have occurred since the last email
+        report_from_last_email = (
+            session.query(ReportExecutionLog)
+            .filter(
+                ReportExecutionLog.state.notin_(
+                    [ReportState.ERROR, ReportState.WORKING]
+                ),
+                ReportExecutionLog.report_schedule == report_schedule,
+                ReportExecutionLog.end_dttm < last_error_email_log.end_dttm,
+            )
+            .order_by(ReportExecutionLog.end_dttm.desc())
+            .first()
+        )
+        return last_error_email_log if not report_from_last_email else None
 
     @staticmethod
     def bulk_delete_logs(
