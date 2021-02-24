@@ -43,7 +43,7 @@ import ControlRow from './ControlRow';
 import Control from './Control';
 import { sectionsToRender } from '../controlUtils';
 import { ExploreActions, exploreActions } from '../actions/exploreActions';
-import { InitialExploreState } from '../reducers/getInitialState';
+import { ExploreState } from '../reducers/getInitialState';
 
 export type ControlPanelsContainerProps = {
   actions: ExploreActions;
@@ -103,28 +103,6 @@ class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps
     super(props);
     this.renderControl = this.renderControl.bind(this);
     this.renderControlPanelSection = this.renderControlPanelSection.bind(this);
-  }
-
-  componentDidUpdate(prevProps: ControlPanelsContainerProps) {
-    const {
-      actions: { setControlValue },
-    } = this.props;
-    // reset controls using column info (metric, group by, sort by, filter, etc.)
-    // to default values when datasource changes.
-    if (this.props.form_data.datasource !== prevProps.form_data.datasource) {
-      Object.entries(this.props.controls).forEach(
-        ([controlName, controlState]) => {
-          if (
-            // for direct column select controls
-            controlState.valueKey === 'column_name' ||
-            // for all other controls
-            'columns' in controlState
-          ) {
-            setControlValue(controlName, controlState.default);
-          }
-        },
-      );
-    }
   }
 
   sectionsToRender(): ExpandedControlPanelSectionConfig[] {
@@ -331,7 +309,7 @@ class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps
 export { ControlPanelsContainer };
 
 export default connect(
-  function mapStateToProps({ explore }: InitialExploreState) {
+  function mapStateToProps({ explore }: ExploreState) {
     return {
       isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
       controls: explore.controls,

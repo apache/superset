@@ -66,8 +66,26 @@ export default function exploreReducer(state = {}, action) {
         action.datasource.id !== state.datasource.id ||
         action.datasource.type !== state.datasource.type
       ) {
+        // reset time range filter to default
         newFormData.time_range = DEFAULT_TIME_RANGE;
+        // if a control use datasource columns, reset it to default
+        // TODO: filter out only invalid columns and keep others
+        Object.entries(state.controls).forEach(
+          ([controlName, controlState]) => {
+            if (
+              // for direct column select controls
+              controlState.valueKey === 'column_name' ||
+              // for all other controls
+              'columns' in controlState
+            ) {
+              // reset to `undefined`, let `getControlsState` to pick up the default
+              controlState.value = undefined;
+              newFormData[controlName] = undefined;
+            }
+          },
+        );
       }
+
       const newState = {
         ...state,
         datasource: action.datasource,

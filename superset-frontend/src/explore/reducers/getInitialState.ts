@@ -52,23 +52,25 @@ export interface ExlorePageBootstrapData extends JsonObject {
 export default function getInitialState(
   bootstrapData: ExlorePageBootstrapData,
 ) {
-  const { form_data: rawFormData } = bootstrapData;
+  const { form_data: initialFormData } = bootstrapData;
   const { slice } = bootstrapData;
   const sliceName = slice ? slice.slice_name : null;
+
   const bootstrappedState = {
+    // note this will add `form_data` to state,
+    // which will be manipulatable by future reducers.
     ...bootstrapData,
     sliceName,
     common: {
       flash_messages: bootstrapData.common.flash_messages,
       conf: bootstrapData.common.conf,
     },
-    rawFormData,
     filterColumnOpts: [],
     isDatasourceMetaLoading: false,
     isStarred: false,
     controls: {},
   };
-  const controls = getControlsState(bootstrappedState, rawFormData);
+  const controls = getControlsState(bootstrappedState, initialFormData);
   bootstrappedState.controls = controls;
 
   // apply initial mapStateToProps for all controls, must execute AFTER
@@ -115,4 +117,4 @@ export default function getInitialState(
   };
 }
 
-export type InitialExploreState = ReturnType<typeof getInitialState>;
+export type ExploreState = ReturnType<typeof getInitialState>;

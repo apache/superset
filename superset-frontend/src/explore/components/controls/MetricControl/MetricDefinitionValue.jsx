@@ -56,10 +56,10 @@ export default function MetricDefinitionValue({
     savedMetrics.find(metric => metric.metric_name === metricName);
 
   let savedMetric;
-  if (option.metric_name) {
-    savedMetric = option;
-  } else if (typeof option === 'string') {
+  if (typeof option === 'string') {
     savedMetric = getSavedMetricByName(option);
+  } else if (option.metric_name) {
+    savedMetric = option;
   }
 
   if (option instanceof AdhocMetric || savedMetric) {
