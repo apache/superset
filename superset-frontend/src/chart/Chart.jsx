@@ -25,9 +25,9 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
 import Loading from '../components/Loading';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
-import ErrorMessageWithStackTrace from '../components/ErrorMessage/ErrorMessageWithStackTrace';
 import ErrorBoundary from '../components/ErrorBoundary';
 import ChartRenderer from './ChartRenderer';
+import { ChartErrorMessage } from './ChartErrorMessage';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -49,9 +49,6 @@ const propTypes = {
   timeout: PropTypes.number,
   vizType: PropTypes.string.isRequired,
   triggerRender: PropTypes.bool,
-  owners: PropTypes.arrayOf(
-    PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  ),
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
@@ -152,17 +149,13 @@ class Chart extends React.PureComponent {
   }
 
   renderErrorMessage(queryResponse) {
-    const { chartAlert, chartStackTrace, dashboardId, owners } = this.props;
+    const { chartId, chartAlert, chartStackTrace, dashboardId } = this.props;
 
     const error = queryResponse?.errors?.[0];
-    if (error) {
-      const extra = error.extra || {};
-      extra.owners = owners;
-      error.extra = extra;
-    }
     const message = chartAlert || queryResponse?.message;
     return (
-      <ErrorMessageWithStackTrace
+      <ChartErrorMessage
+        chartId={chartId}
         error={error}
         subtitle={message}
         copyText={message}
