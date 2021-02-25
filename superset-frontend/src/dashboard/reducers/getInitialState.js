@@ -170,7 +170,7 @@ export default function getInitialState(bootstrapData) {
     // build DashboardFilters for interactive filter features
     if (
       slice.form_data.viz_type === 'filter_box' ||
-      slice.form_data.viz_type === 'filter_select' || 
+      slice.form_data.viz_type === 'filter_select' ||
       slice.form_data.viz_type === 'table'
     ) {
       const configs = getFilterConfigsFromFormdata(slice.form_data);
