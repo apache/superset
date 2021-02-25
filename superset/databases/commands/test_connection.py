@@ -23,7 +23,6 @@ from flask_babel import gettext as _
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
-from superset import app
 from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import (
     DatabaseSecurityUnsafeError,
@@ -33,11 +32,10 @@ from superset.databases.commands.exceptions import (
 )
 from superset.databases.dao import DatabaseDAO
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import event_logger
 from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
-config = app.config
-stats_logger = config["STATS_LOGGER"]
 
 
 class TestConnectionDatabaseCommand(BaseCommand):
@@ -72,20 +70,20 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 message=_("Could not load database driver: {}").format(driver_name),
             )
         except DBAPIError as ex:
-            stats_logger.incr(
-                f"test_connection_error.{make_url(uri).drivername}.{ex.__class__.__name__}"
-            )
-            raise DatabaseTestConnectionFailedError()
+            with event_logger.log_context(
+                action=f"test_connection_error.{make_url(uri).drivername}.{ex.__class__.__name__}"
+            ):
+                raise DatabaseTestConnectionFailedError()
         except SupersetSecurityException as ex:
-            stats_logger.incr(
-                f"test_connection_error.{make_url(uri).drivername}.{ex.__class__.__name__}"
-            )
-            raise DatabaseSecurityUnsafeError(message=str(ex))
+            with event_logger.log_context(
+                action=f"test_connection_error.{make_url(uri).drivername}.{ex.__class__.__name__}"
+            ):
+                raise DatabaseSecurityUnsafeError(message=str(ex))
         except Exception as ex:
-            stats_logger.incr(
+            with event_logger.log_context(
                 f"test_connection_error.{make_url(uri).drivername}.{ex.__class__.__name__}"
-            )
-            raise DatabaseTestConnectionUnexpectedError()
+            ):
+                raise DatabaseTestConnectionUnexpectedError()
 
     def validate(self) -> None:
         database_name = self._properties.get("database_name")
