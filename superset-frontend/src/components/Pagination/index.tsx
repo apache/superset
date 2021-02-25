@@ -25,7 +25,7 @@ import { Item } from './Item';
 import { Ellipsis } from './Ellipsis';
 
 interface PaginationProps {
-  children: React.ReactNode;
+  children: JSX.Element | JSX.Element[];
 }
 
 const PaginationList = styled.ul`
