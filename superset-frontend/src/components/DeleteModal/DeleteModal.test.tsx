@@ -29,11 +29,7 @@ test('Must display title and content', () => {
     onHide: jest.fn(),
     open: true,
   };
-  render(
-    <ThemeProvider theme={supersetTheme}>
-      <DeleteModal {...props} />
-    </ThemeProvider>,
-  );
+  render(<DeleteModal {...props} />);
   expect(screen.getByTestId('test-title')).toBeInTheDocument();
   expect(screen.getByTestId('test-title')).toBeVisible();
   expect(screen.getByTestId('test-description')).toBeInTheDocument();
