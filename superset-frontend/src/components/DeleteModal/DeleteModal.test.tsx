@@ -48,11 +48,7 @@ test('Calling "onHide"', () => {
     onHide: jest.fn(),
     open: true,
   };
-  render(
-    <ThemeProvider theme={supersetTheme}>
-      <DeleteModal {...props} />
-    </ThemeProvider>,
-  );
+  render(<DeleteModal {...props} />);
   expect(props.onHide).toBeCalledTimes(0);
   expect(props.onConfirm).toBeCalledTimes(0);
   expect(screen.getByText('×')).toBeVisible();
