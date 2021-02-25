@@ -42,6 +42,7 @@ from sqlalchemy.orm import relationship, sessionmaker, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.sql import join, select
+from sqlalchemy.sql.elements import BinaryExpression
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseDatasource
@@ -359,14 +360,16 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         )
 
     @classmethod
+    def id_or_slug_filter(cls, id_or_slug: str) -> BinaryExpression:
+        if id_or_slug.isdigit():
+            return Dashboard.id == int(id_or_slug)
+        else:
+            return Dashboard.slug == id_or_slug
+
+    @classmethod
     def get(cls, id_or_slug: str) -> Dashboard:
         session = db.session()
-        qry = session.query(Dashboard)
-        if id_or_slug.isdigit():
-            qry = qry.filter_by(id=int(id_or_slug))
-        else:
-            qry = qry.filter_by(slug=id_or_slug)
-
+        qry = session.query(Dashboard).filter(Dashboard.id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
 
 
