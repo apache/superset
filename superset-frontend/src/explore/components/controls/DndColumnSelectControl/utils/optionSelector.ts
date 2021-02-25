@@ -33,10 +33,10 @@ export class OptionSelector {
     let groupByValues: string[];
     if (Array.isArray(values)) {
       groupByValues = values;
-      this.isArray = false;
+      this.isArray = true;
     } else {
       groupByValues = values ? [values] : [];
-      this.isArray = true;
+      this.isArray = false;
     }
     this.groupByOptions = groupByValues
       .map(value => {
@@ -76,7 +76,7 @@ export class OptionSelector {
   }
 
   getValues(): string[] | string | null {
-    if (this.isArray) {
+    if (!this.isArray) {
       return this.groupByOptions.length > 0
         ? this.groupByOptions[0].column_name
         : null;
