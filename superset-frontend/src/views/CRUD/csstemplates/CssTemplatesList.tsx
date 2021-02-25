@@ -29,7 +29,6 @@ import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
 import { Tooltip } from 'src/common/components/Tooltip';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
-import { IconName } from 'src/components/Icon';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import ListView, { ListViewProps, Filters } from 'src/components/ListView';
 import CssTemplateModal from './CssTemplateModal';
@@ -209,7 +208,7 @@ function CssTemplatesList({
                   label: 'edit-action',
                   tooltip: t('Edit template'),
                   placement: 'bottom',
-                  icon: 'edit' as IconName,
+                  icon: 'Edit',
                   onClick: handleEdit,
                 }
               : null,
@@ -218,7 +217,7 @@ function CssTemplatesList({
                   label: 'delete-action',
                   tooltip: t('Delete template'),
                   placement: 'bottom',
-                  icon: 'trash' as IconName,
+                  icon: 'Trash',
                   onClick: handleDelete,
                 }
               : null,
