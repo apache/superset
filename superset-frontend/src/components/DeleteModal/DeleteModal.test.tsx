@@ -65,11 +65,7 @@ test('Calling "onConfirm" only after typing "delete" in the input', () => {
     onHide: jest.fn(),
     open: true,
   };
-  render(
-    <ThemeProvider theme={supersetTheme}>
-      <DeleteModal {...props} />
-    </ThemeProvider>,
-  );
+  render(<DeleteModal {...props} />);
   expect(props.onHide).toBeCalledTimes(0);
   expect(props.onConfirm).toBeCalledTimes(0);
   expect(screen.getByTestId('delete-modal-input')).toBeVisible();
