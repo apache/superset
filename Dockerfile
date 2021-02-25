@@ -132,7 +132,7 @@ RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.28.0/geckod
 RUN tar -x geckodriver -zf geckodriver-v0.28.0-linux64.tar.gz -O > /usr/bin/geckodriver
 RUN chmod +x /usr/bin/geckodriver
 RUN rm geckodriver-v0.28.0-linux64.tar.gz
-
+RUN wget https://databricks.com/wp-content/uploads/drivers-2020/SimbaSparkODBC-2.6.16.1019-Debian-64bit.zip && unzip SimbaSparkODBC-2.6.16.1019-Debian-64bit.zip &&  apt install -f ./SimbaSparkODBC-2.6.16.1019-Debian-64bit/simbaspark_2.6.16.1019-2_amd64.deb
 
 RUN cd /app \
     && pip install --no-cache -r requirements/docker.txt \

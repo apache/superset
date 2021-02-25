@@ -48,6 +48,7 @@ from superset.utils.core import is_test
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 from superset.utils import core as utils
+from superset.utils.date_parser import get_since_until
 
 logger = logging.getLogger(__name__)
 
@@ -1103,7 +1104,7 @@ def time_filter(default: Optional[str] = None) -> Optional[Any]:
         time_range = time_range[0] if time_range else None
         if time_range is None:
             time_range = form_data.get("time_range") or None
-        since, until = utils.get_since_until(time_range)
+        since, until = get_since_until(time_range)
         time_format = '%Y-%m-%d %H:%M:%S'
 
         until = until.strftime(time_format)
@@ -1124,7 +1125,7 @@ def end_date_filter(default: Optional[str] = None) -> Optional[Any]:
         time_range = time_range[0] if time_range else None
         if time_range is None:
             time_range = form_data.get("time_range") or None
-        since, until = utils.get_since_until(time_range)
+        since, until = get_since_until(time_range)
         time_format = '%Y-%m-%d %H:%M:%S'
 
         until = until.strftime(time_format)
@@ -1142,7 +1143,7 @@ def start_date_filter(default: Optional[str] = None) -> Optional[Any]:
         time_range = time_range[0] if time_range else None
         if time_range is None:
             time_range = form_data.get("time_range") or None
-        since, until = utils.get_since_until(time_range)
+        since, until = get_since_until(time_range)
         time_format = '%Y-%m-%d %H:%M:%S'
 
         until = until.strftime(time_format)
