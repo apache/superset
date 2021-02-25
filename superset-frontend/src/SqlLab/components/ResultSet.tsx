@@ -452,7 +452,7 @@ export default class ResultSet extends React.PureComponent<
                 buttonSize="small"
                 href={`/superset/csv/${this.props.query.id}`}
               >
-                <i className="fa fa-file-text-o" /> {t('.CSV')}
+                <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>
             )}
 
@@ -461,7 +461,7 @@ export default class ResultSet extends React.PureComponent<
               wrapped={false}
               copyNode={
                 <Button buttonSize="small">
-                  <i className="fa fa-clipboard" /> {t('Clipboard')}
+                  <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
                 </Button>
               }
             />
