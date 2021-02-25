@@ -17,9 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import DeleteModal from '.';
 
