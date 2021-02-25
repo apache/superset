@@ -61,9 +61,14 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 database.db_engine_spec.mutate_db_for_connection_test(database)
                 username = self._actor.username if self._actor is not None else None
                 engine = database.get_sqla_engine(user_name=username)
-            with closing(engine.raw_connection()) as conn:
-                if not engine.dialect.do_ping(conn):
-                    raise DBAPIError(None, None, None)
+                with closing(engine.raw_connection()) as conn:
+                    if not engine.dialect.do_ping(conn):
+                        raise DBAPIError(None, None, None)
+                    else:
+                        with event_logger.log_context(
+                            action=f"test_connection_success.{make_url(uri).drivername}"
+                        ):
+                            return
         except (NoSuchModuleError, ModuleNotFoundError):
             driver_name = make_url(uri).drivername
             raise DatabaseTestConnectionDriverError(

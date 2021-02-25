@@ -21,19 +21,26 @@ from unittest.mock import patch
 import pytest
 import yaml
 from sqlalchemy.exc import DBAPIError
+from sqlalchemy.engine.url import make_url
 
-from superset import db, security_manager
-from superset.commands.exceptions import CommandInvalidError
+from superset import db, security_manager, conf
+from superset.commands.exceptions import (
+    CommandInvalidError
+)
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.commands.exceptions import (
     DatabaseNotFoundError,
-    DatabaseTestConnectionDriverError,
+    DatabaseSecurityUnsafeError,
+    DatabaseTestConnectionFailedError,
+    DatabaseTestConnectionUnexpectedError
 )
 from superset.databases.commands.export import ExportDatabasesCommand
 from superset.databases.commands.importers.v1 import ImportDatabasesCommand
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.schemas import DatabaseTestConnectionSchema
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_database
 from tests.base_tests import SupersetTestCase
@@ -518,17 +525,69 @@ class TestImportDatabasesCommand(SupersetTestCase):
 
 
 class TestTestConnectionDatabaseCommand(SupersetTestCase):
-    @mock.patch("superset.databases.commands.test_connection.stats_logger")
-    def test_connection_db_exception_dbapi(self, mock_stats_logger):
-        """Test that users can't export databases they don't have access to"""
-        json_payload = {"sqlalchemy_uri": "mssql+pymssql://test"}
+    @mock.patch("superset.extensions.event_logger.log_context")
+    @mock.patch("superset.databases.dao.DatabaseDAO.build_db_for_connection_test")
+    def test_connection_db_exception_dbapi(
+        self,
+        mock_build_db_connection_test,
+        mock_event_logger,
+    ):
+        """Test that exceptions are being properly logged"""
+        mock_build_db_connection_test.side_effect = [
+            DBAPIError(
+                "An error occurred!",
+                None,
+                None
+            ),
+            SupersetSecurityException(
+                SupersetError(
+                    "dummy",
+                    SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    ErrorLevel.ERROR,
+                )
+            ),
+            Exception("An error occurred!")
+        ]
+        database = get_example_database()
+        db_uri = database.sqlalchemy_uri_decrypted
+        json_payload = {"sqlalchemy_uri": db_uri}
         test_item = DatabaseTestConnectionSchema().load(json_payload)
         command = TestConnectionDatabaseCommand(
             security_manager.find_user("admin"), test_item
         )
-        with pytest.raises(DBAPIError) as excinfo:
+        with self.assertRaises(DatabaseTestConnectionFailedError):
             command.run()
+            mock_event_logger.assert_called_with(
+                action=f"test_connection_error.{make_url(db_uri).drivername}.DBAPIError"
+            )
 
-        mock_stats_logger.assert_called()
+        with self.assertRaises(DatabaseSecurityUnsafeError):
+            command.run()
+            mock_event_logger.assert_called_with(
+                action=f"test_connection_error.{make_url(db_uri).drivername}.SupersetSecurityException"
+            )
 
-        # assert False is True
+        with self.assertRaises(DatabaseTestConnectionUnexpectedError):
+            command.run()
+            mock_event_logger.assert_called_with(
+                action=f"test_connection_error.{make_url(db_uri).drivername}.Exception"
+            )
+
+    @mock.patch("superset.extensions.event_logger.log_context")
+    def test_connection_db_success_dbapi(
+        self,
+        mock_event_logger,
+    ):
+        """Test that test_connection is logging on success"""
+        database = get_example_database()
+        db_uri = database.sqlalchemy_uri_decrypted
+        json_payload = {"sqlalchemy_uri": db_uri}
+        test_item = DatabaseTestConnectionSchema().load(json_payload)
+        command = TestConnectionDatabaseCommand(
+            security_manager.find_user("admin"), test_item
+        )
+        command.run()
+
+        mock_event_logger.assert_called_with(
+            action=f"test_connection_success.{make_url(db_uri).drivername}"
+        )
