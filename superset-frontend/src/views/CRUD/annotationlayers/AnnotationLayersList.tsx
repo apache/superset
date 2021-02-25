@@ -26,7 +26,6 @@ import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import { IconName } from 'src/components/Icon';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import ListView, { ListViewProps, Filters } from 'src/components/ListView';
 import Button from 'src/components/Button';
@@ -230,7 +229,7 @@ function AnnotationLayersList({
                   label: 'edit-action',
                   tooltip: t('Edit template'),
                   placement: 'bottom',
-                  icon: 'edit' as IconName,
+                  icon: 'Edit',
                   onClick: handleEdit,
                 }
               : null,
@@ -239,7 +238,7 @@ function AnnotationLayersList({
                   label: 'delete-action',
                   tooltip: t('Delete template'),
                   placement: 'bottom',
-                  icon: 'trash' as IconName,
+                  icon: 'Trash',
                   onClick: handleDelete,
                 }
               : null,
