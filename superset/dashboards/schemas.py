@@ -61,7 +61,9 @@ published_description = (
     "Determines whether or not this dashboard is visible in "
     "the list of all dashboards."
 )
-
+charts_description = (
+    "The names of the dashboard's charts. Names are used for legacy reasons."
+)
 
 openapi_spec_methods_override = {
     "get": {"get": {"description": "Get a dashboard detail information."}},
@@ -119,6 +121,45 @@ class DashboardJSONMetadataSchema(Schema):
     stagger_time = fields.Integer()
     color_scheme = fields.Str(allow_none=True)
     label_colors = fields.Dict()
+
+
+class UserSchema(Schema):
+    id = fields.Int()
+    username = fields.String()
+    first_name = fields.String()
+    last_name = fields.String()
+
+
+class RolesSchema(Schema):
+    id = fields.Int()
+    name = fields.String()
+
+
+class DatasourceSchema(Schema):
+    id = fields.Int()
+    name = fields.String()
+    description = fields.String()
+
+
+class DashboardResponseSchema(Schema):
+    id = fields.Int()
+    slug = fields.String()
+    url = fields.String()
+    dashboard_title = fields.String(description=dashboard_title_description)
+    thumbnail_url = fields.String()
+    published = fields.Boolean()
+    css = fields.String(description=css_description)
+    json_metadata = fields.String(description=json_metadata_description)
+    position_json = fields.String(description=position_json_description)
+    changed_by_name = fields.String()
+    changed_by_url = fields.String()
+    changed_by = fields.Nested(UserSchema)
+    changed_on = fields.DateTime()
+    charts = fields.List(fields.String(description=charts_description))
+    owners = fields.List(fields.Nested(UserSchema))
+    roles = fields.List(fields.Nested(RolesSchema))
+    datasources = fields.List(fields.Nested(DatasourceSchema))
+    table_names = fields.String()  # legacy nonsense
 
 
 class BaseDashboardSchema(Schema):
