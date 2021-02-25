@@ -24,7 +24,6 @@ import moment from 'moment';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import Button from 'src/components/Button';
 import FacePile from 'src/components/FacePile';
-import { IconName } from 'src/components/Icon';
 import { Tooltip } from 'src/common/components/Tooltip';
 import ListView, {
   FilterOperators,
@@ -297,7 +296,7 @@ function AlertList({
                   label: 'execution-log-action',
                   tooltip: t('Execution log'),
                   placement: 'bottom',
-                  icon: 'note' as IconName,
+                  icon: 'Note',
                   onClick: handleGotoExecutionLog,
                 }
               : null,
@@ -306,7 +305,7 @@ function AlertList({
                   label: 'edit-action',
                   tooltip: t('Edit'),
                   placement: 'bottom',
-                  icon: 'edit' as IconName,
+                  icon: 'Edit',
                   onClick: handleEdit,
                 }
               : null,
@@ -315,7 +314,7 @@ function AlertList({
                   label: 'delete-action',
                   tooltip: t('Delete'),
                   placement: 'bottom',
-                  icon: 'trash' as IconName,
+                  icon: 'Trash',
                   onClick: handleDelete,
                 }
               : null,

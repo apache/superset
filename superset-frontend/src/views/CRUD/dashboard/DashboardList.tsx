@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, t } from '@superset-ui/core';
+import { styled, SupersetClient, t } from '@superset-ui/core';
 import React, { useState, useMemo } from 'react';
 import rison from 'rison';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -37,7 +37,7 @@ import ListView, {
 import Owner from 'src/types/Owner';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
 import FacePile from 'src/components/FacePile';
-import Icon from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import FaveStar from 'src/components/FaveStar';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { Tooltip } from 'src/common/components/Tooltip';
@@ -81,6 +81,10 @@ interface Dashboard {
   owners: Owner[];
   created_by: object;
 }
+
+const Actions = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
 
 function DashboardList(props: DashboardListProps) {
   const { addDangerToast, addSuccessToast } = props;
@@ -278,7 +282,7 @@ function DashboardList(props: DashboardListProps) {
           const handleExport = () => handleBulkDashboardExport([original]);
 
           return (
-            <span className="actions">
+            <Actions className="actions">
               {canDelete && (
                 <ConfirmStatusChange
                   title={t('Please confirm')}
@@ -302,10 +306,7 @@ function DashboardList(props: DashboardListProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icon
-                          data-test="dashboard-list-trash-icon"
-                          name="trash"
-                        />
+                        <Icons.Trash data-test="dashboard-list-trash-icon" />
                       </span>
                     </Tooltip>
                   )}
@@ -323,7 +324,7 @@ function DashboardList(props: DashboardListProps) {
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icon name="share" />
+                    <Icons.Share />
                   </span>
                 </Tooltip>
               )}
@@ -339,11 +340,11 @@ function DashboardList(props: DashboardListProps) {
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icon name="edit-alt" />
+                    <Icons.EditAlt data-test="edit-alt" />
                   </span>
                 </Tooltip>
               )}
-            </span>
+            </Actions>
           );
         },
         Header: t('Actions'),
@@ -491,7 +492,7 @@ function DashboardList(props: DashboardListProps) {
   }
   if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
     subMenuButtons.push({
-      name: <Icon name="import" />,
+      name: <Icons.Import />,
       buttonStyle: 'link',
       onClick: openDashboardImportModal,
     });
