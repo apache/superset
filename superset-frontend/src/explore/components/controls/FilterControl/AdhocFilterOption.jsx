@@ -68,7 +68,7 @@ const AdhocFilterOption = ({
       onDropLabel={onDropLabel}
       index={index}
       type={OPTION_TYPES.filter}
-      isAdhoc
+      withCaret
       isExtra={adhocFilter.isExtra}
     />
   </AdhocFilterPopoverTrigger>

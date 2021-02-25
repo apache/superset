@@ -16,19 +16,60 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ColumnMeta } from '@superset-ui/chart-controls';
+import { ReactNode } from 'react';
+import { AdhocFilter } from '@superset-ui/core';
+import {
+  BaseControlConfig,
+  ColumnMeta,
+  Metric,
+} from '@superset-ui/chart-controls';
+import { DatasourcePanelDndItem } from '../../DatasourcePanel/types';
+
+export const GroupByItemType = 'groupByItem';
+export const FilterItemType = 'filterItemType';
+export type Type = typeof GroupByItemType | typeof FilterItemType;
 
 export interface OptionProps {
-  column: ColumnMeta;
+  children: ReactNode;
   index: number;
   clickClose: (index: number) => void;
   onShiftOptions: (dragIndex: number, hoverIndex: number) => void;
+  type: Type;
   withCaret?: boolean;
 }
 
-export const GroupByItemType = 'groupByItem';
-
-export interface GroupByItemInterface {
-  type: typeof GroupByItemType;
+export interface OptionItemInterface {
+  type: Type;
   dragIndex: number;
 }
+
+export interface LabelProps extends BaseControlConfig {
+  name: string;
+  value: string[] | string | null;
+  onChange: (value: string[] | string | null) => void;
+  options: { string: ColumnMeta };
+}
+
+export interface DndColumnSelectProps extends LabelProps {
+  onDrop: (item: DatasourcePanelDndItem) => void;
+  canDrop: (item: DatasourcePanelDndItem) => boolean;
+  valuesRenderer: () => ReactNode;
+}
+
+export interface FilterColumnSelectProps {
+  name: string;
+  value: (Record<string, any> | AdhocFilter)[];
+  columns: ColumnMeta[];
+  datasource: Record<string, any>;
+  formData: Record<string, any>;
+  savedMetrics: Metric[];
+  onChange: (filters: (Record<string, any> | AdhocFilter)[]) => void;
+  options: { string: ColumnMeta };
+  type: Type;
+}
+
+export type OptionSortType = {
+  label: string;
+  saved_metric_name: string;
+  column_name: string;
+};

@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import { useDrop } from 'react-dnd';
 import { isEmpty } from 'lodash';
 import { t, useTheme } from '@superset-ui/core';
-import { BaseControlConfig, ColumnMeta } from '@superset-ui/chart-controls';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import {
   AddControlLabel,
@@ -32,39 +31,19 @@ import {
   DatasourcePanelDndType,
 } from 'src/explore/components/DatasourcePanel/types';
 import Icon from 'src/components/Icon';
-import OptionWrapper from './components/OptionWrapper';
-import { OptionSelector } from './utils';
+import { DndColumnSelectProps } from './types';
 
-interface LabelProps extends BaseControlConfig {
-  name: string;
-  value: string[] | string | null;
-  onChange: (value: string[] | string | null) => void;
-  options: { string: ColumnMeta };
-}
-
-export default function DndColumnSelectLabel(props: LabelProps) {
+export default function DndColumnSelectLabel(props: DndColumnSelectProps) {
   const theme = useTheme();
-  const { value, options } = props;
-  const optionSelector = new OptionSelector(options, value);
-  const [groupByOptions, setGroupByOptions] = useState<ColumnMeta[]>(
-    optionSelector.groupByOptions,
-  );
 
   const [{ isOver, canDrop }, datasourcePanelDrop] = useDrop({
     accept: DatasourcePanelDndType.COLUMN,
 
     drop: (item: DatasourcePanelDndItem) => {
-      if (!optionSelector.isArray && !isEmpty(optionSelector.groupByOptions)) {
-        optionSelector.replace(0, item.metricOrColumnName);
-      } else {
-        optionSelector.add(item.metricOrColumnName);
-      }
-      setGroupByOptions(optionSelector.groupByOptions);
-      props.onChange(optionSelector.getValues());
+      props.onDrop(item);
     },
 
-    canDrop: (item: DatasourcePanelDndItem) =>
-      !optionSelector.has(item.metricOrColumnName),
+    canDrop: (item: DatasourcePanelDndItem) => props.canDrop(item),
 
     collect: monitor => ({
       isOver: monitor.isOver(),
@@ -72,18 +51,6 @@ export default function DndColumnSelectLabel(props: LabelProps) {
       type: monitor.getItemType(),
     }),
   });
-
-  function onClickClose(index: number) {
-    optionSelector.del(index);
-    setGroupByOptions(optionSelector.groupByOptions);
-    props.onChange(optionSelector.getValues());
-  }
-
-  function onShiftOptions(dragIndex: number, hoverIndex: number) {
-    optionSelector.swap(dragIndex, hoverIndex);
-    setGroupByOptions(optionSelector.groupByOptions);
-    props.onChange(optionSelector.getValues());
-  }
 
   function renderPlaceHolder() {
     return (
@@ -94,25 +61,13 @@ export default function DndColumnSelectLabel(props: LabelProps) {
     );
   }
 
-  function renderOptions() {
-    return groupByOptions.map((column, idx) => (
-      <OptionWrapper
-        key={idx}
-        index={idx}
-        column={column}
-        clickClose={onClickClose}
-        onShiftOptions={onShiftOptions}
-      />
-    ));
-  }
-
   return (
     <div ref={datasourcePanelDrop}>
       <HeaderContainer>
         <ControlHeader {...props} />
       </HeaderContainer>
       <DndLabelsContainer canDrop={canDrop} isOver={isOver}>
-        {isEmpty(groupByOptions) ? renderPlaceHolder() : renderOptions()}
+        {isEmpty(props.values) ? renderPlaceHolder() : props.valuesRenderer()}
       </DndLabelsContainer>
     </div>
   );

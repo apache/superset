@@ -17,3 +17,5 @@
  * under the License.
  */
 export { default } from './DndColumnSelectLabel';
+export * from './GroupByColumnSelect';
+export * from './FilterColumnSelect';

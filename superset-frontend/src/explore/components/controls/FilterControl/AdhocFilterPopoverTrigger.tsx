@@ -30,9 +30,13 @@ interface AdhocFilterPopoverTriggerProps {
     | { saved_metric_name: string }[]
     | typeof adhocMetricType[];
   datasource: Record<string, any>;
-  onFilterEdit: () => void;
+  onFilterEdit: (editedFilter: AdhocFilter) => void;
   partitionColumn?: string;
   createNew?: boolean;
+  isControlledComponent?: boolean;
+  visible?: boolean;
+  togglePopover?: (visible: boolean) => void;
+  closePopover?: () => void;
 }
 
 interface AdhocFilterPopoverTriggerState {
@@ -68,7 +72,19 @@ class AdhocFilterPopoverTrigger extends React.PureComponent<
   }
 
   render() {
-    const { adhocFilter } = this.props;
+    const { adhocFilter, isControlledComponent } = this.props;
+
+    const { visible, togglePopover, closePopover } = isControlledComponent
+      ? {
+          visible: this.props.visible,
+          togglePopover: this.props.togglePopover,
+          closePopover: this.props.closePopover,
+        }
+      : {
+          visible: this.state.popoverVisible,
+          togglePopover: this.togglePopover,
+          closePopover: this.closePopover,
+        };
     const overlayContent = (
       <AdhocFilterEditPopover
         adhocFilter={adhocFilter}
@@ -76,7 +92,7 @@ class AdhocFilterPopoverTrigger extends React.PureComponent<
         datasource={this.props.datasource}
         partitionColumn={this.props.partitionColumn}
         onResize={this.onPopoverResize}
-        onClose={this.closePopover}
+        onClose={closePopover}
         onChange={this.props.onFilterEdit}
       />
     );
@@ -86,9 +102,9 @@ class AdhocFilterPopoverTrigger extends React.PureComponent<
         placement="right"
         trigger="click"
         content={overlayContent}
-        defaultVisible={this.state.popoverVisible}
-        visible={this.state.popoverVisible}
-        onVisibleChange={this.togglePopover}
+        defaultVisible={visible}
+        visible={visible}
+        onVisibleChange={togglePopover}
         destroyTooltipOnHide={this.props.createNew}
       >
         {this.props.children}

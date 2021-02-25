@@ -79,7 +79,7 @@ class AdhocMetricOption extends React.PureComponent {
           onDropLabel={onDropLabel}
           index={index}
           type={OPTION_TYPES.metric}
-          isAdhoc
+          withCaret
           isFunction
         />
       </AdhocMetricPopoverTrigger>
