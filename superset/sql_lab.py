@@ -34,6 +34,7 @@ from werkzeug.local import LocalProxy
 from superset import app, results_backend, results_backend_use_msgpack, security_manager
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
+from superset.db_engine_specs.base import LimitMethod
 from superset.extensions import celery_app
 from superset.models.core import Database
 from superset.models.sql_lab import Query
@@ -205,7 +206,8 @@ def execute_sql_statement(
     ):
         if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):
             query.limit = SQL_MAX_ROW
-        if query.limit:
+        # do not apply limit for databases that don't support LIMIT in the query
+        if query.limit and db_engine_spec.limit_method != LimitMethod.FETCH_MANY:
             sql = database.apply_limit_to_sql(sql, query.limit)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
