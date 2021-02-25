@@ -20,6 +20,7 @@
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
+import { supersetTheme } from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
@@ -37,8 +38,8 @@ const mockedProps = {
   body: 'Error body',
   level: 'warning' as ErrorLevel,
   copyText: 'Copy text',
-  subtitle: 'Error title',
-  title: 'Error subtitle',
+  subtitle: 'Error subtitle',
+  title: 'Error title',
   source: 'dashboard' as ErrorSource,
 };
 
@@ -86,7 +87,13 @@ test('should render the error title', () => {
 });
 
 test('should render the error subtitle', () => {
-  render(<ErrorAlert {...mockedProps} />);
+  render(
+    <Provider store={store}>
+      <ErrorAlert {...mockedProps} />
+    </Provider>,
+  );
+  const button = screen.getByText('See more');
+  userEvent.click(button);
   expect(screen.getByText('Error subtitle')).toBeInTheDocument();
 });
 
@@ -159,4 +166,26 @@ test('should render the Copy button', () => {
   const button = screen.getByText('See more');
   userEvent.click(button);
   expect(screen.getByText('Copy message')).toBeInTheDocument();
+});
+
+test('should render with warning theme', () => {
+  render(<ErrorAlert {...mockedProps} />);
+  expect(screen.getByRole('alert')).toHaveStyle(
+    `
+      backgroundColor: ${supersetTheme.colors.warning.light2};
+    `,
+  );
+});
+
+test('should render with error theme', () => {
+  const errorProps = {
+    ...mockedProps,
+    level: 'error' as ErrorLevel,
+  };
+  render(<ErrorAlert {...errorProps} />);
+  expect(screen.getByRole('alert')).toHaveStyle(
+    `
+      backgroundColor: ${supersetTheme.colors.error.light2};
+    `,
+  );
 });
