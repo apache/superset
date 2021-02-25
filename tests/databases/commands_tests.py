@@ -21,23 +21,31 @@ from unittest.mock import patch
 import pytest
 import yaml
 from sqlalchemy.exc import DBAPIError
+from sqlalchemy.engine.url import make_url
 
-from superset import db, security_manager
-from superset.commands.exceptions import CommandInvalidError
+from superset import db, security_manager, conf
+from superset.commands.exceptions import (
+    CommandInvalidError
+)
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.commands.exceptions import (
+    DatabaseCreateFailedError,
+    DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseSecurityUnsafeError,
-    DatabaseTestConnectionDriverError,
     DatabaseTestConnectionFailedError,
     DatabaseTestConnectionUnexpectedError,
+    DatabaseTestConnectionFailedError,
+    DatabaseTestConnectionUnexpectedError
 )
 from superset.databases.commands.export import ExportDatabasesCommand
 from superset.databases.commands.importers.v1 import ImportDatabasesCommand
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
+from superset.databases.commands.create import CreateDatabaseCommand
 from superset.databases.schemas import DatabaseTestConnectionSchema
-from superset.errors import SupersetError
+from superset.dao.exceptions import DAOCreateFailedError
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_database
@@ -521,67 +529,121 @@ class TestImportDatabasesCommand(SupersetTestCase):
         new_num_databases = db.session.query(Database).count()
         assert new_num_databases == num_databases
 
-
 class TestTestConnectionDatabaseCommand(SupersetTestCase):
-    @mock.patch("superset.databases.dao.DatabaseDAO.build_db_for_connection_test")
-    @mock.patch("superset.databases.commands.test_connection.stats_logger.incr")
+    @patch("superset.extensions.event_logger.log_context")
+    @patch("superset.databases.dao.DatabaseDAO.build_db_for_connection_test")
     def test_connection_db_exception(
-        self, mock_stats_logger, mock_build_db_for_connection_test
+        self,
+        mock_build_db_connection_test,
+        mock_event_logger,
     ):
-        """Test that users can't export databases they don't have access to"""
+        """Test that exceptions are being properly logged"""
+        mock_build_db_connection_test.side_effect = [
+            DBAPIError(
+                "An error occurred!",
+                None,
+                None
+            ),
+            SupersetSecurityException(
+                SupersetError(
+                    "dummy",
+                    SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    ErrorLevel.ERROR,
+                )
+            ),
+            Exception("An error occurred!")
+        ]
         database = get_example_database()
-        mock_build_db_for_connection_test.side_effect = Exception(
-            "An error has occurred!"
-        )
         db_uri = database.sqlalchemy_uri_decrypted
         json_payload = {"sqlalchemy_uri": db_uri}
-        command_without_db_name = TestConnectionDatabaseCommand(
-            security_manager.find_user("admin"), json_payload
+        test_item = DatabaseTestConnectionSchema().load(json_payload)
+        command = TestConnectionDatabaseCommand(
+            security_manager.find_user("admin"), test_item
         )
+        with self.assertRaises(DatabaseTestConnectionFailedError):
+            command.run()
 
-        with self.assertRaises(DatabaseTestConnectionUnexpectedError):
-            command_without_db_name.run()
-
-        mock_stats_logger.assert_called()
-
-    @mock.patch("superset.databases.dao.DatabaseDAO.build_db_for_connection_test")
-    @mock.patch("superset.databases.commands.test_connection.stats_logger.incr")
-    def test_connection_superset_security_connection(
-        self, mock_stats_logger, mock_build_db_for_connection_test
-    ):
-        """Test that users can't export databases they don't have access to"""
-        database = get_example_database()
-        mock_build_db_for_connection_test.side_effect = SupersetSecurityException(
-            SupersetError(error_type=500, message="test", level="info", extra={})
-        )
-        db_uri = database.sqlalchemy_uri_decrypted
-        json_payload = {"sqlalchemy_uri": db_uri}
-        command_without_db_name = TestConnectionDatabaseCommand(
-            security_manager.find_user("admin"), json_payload
+        mock_event_logger.assert_called_with(
+            action=f"test_connection_error.{make_url(db_uri).drivername}.DBAPIError"
         )
 
         with self.assertRaises(DatabaseSecurityUnsafeError):
-            command_without_db_name.run()
+            command.run()
 
-        mock_stats_logger.assert_called()
-
-    @mock.patch("superset.databases.dao.DatabaseDAO.build_db_for_connection_test")
-    @mock.patch("superset.databases.commands.test_connection.stats_logger.incr")
-    def test_connection_db_api_exc(
-        self, mock_stats_logger, mock_build_db_for_connection_test
-    ):
-        """Test that users can't export databases they don't have access to"""
-        database = get_example_database()
-        mock_build_db_for_connection_test.side_effect = DBAPIError(
-            statement="error", params={}, orig={}
+        mock_event_logger.assert_called_with(
+            action=f"test_connection_error.{make_url(db_uri).drivername}.SupersetSecurityException"
         )
+
+        with self.assertRaises(DatabaseTestConnectionUnexpectedError):
+            command.run()
+
+        mock_event_logger.assert_called_with(
+            action=f"test_connection_error.{make_url(db_uri).drivername}.Exception"
+        )
+
+    @mock.patch("superset.extensions.event_logger.log_context")
+    def test_connection_db_success(
+        self,
+        mock_event_logger,
+    ):
+        """Test that test_connection is logging on success"""
+        database = get_example_database()
         db_uri = database.sqlalchemy_uri_decrypted
         json_payload = {"sqlalchemy_uri": db_uri}
-        command_without_db_name = TestConnectionDatabaseCommand(
-            security_manager.find_user("admin"), json_payload
+        test_item = DatabaseTestConnectionSchema().load(json_payload)
+        command = TestConnectionDatabaseCommand(
+            security_manager.find_user("admin"), test_item
+        )
+        command.run()
+
+        mock_event_logger.assert_called_with(
+            action=f"test_connection_success.{make_url(db_uri).drivername}"
         )
 
-        with self.assertRaises(DatabaseTestConnectionFailedError):
+class TestCreateDatabaseCommand(SupersetTestCase):
+    @mock.patch("superset.databases.dao.DatabaseDAO.create")
+    @mock.patch("superset.extensions.event_logger.log_context")
+    @mock.patch("superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run")
+    def test_create_database_error(
+        self,
+        mock_test_connection_db,
+        mock_event_logger,
+        mock_db_create
+    ):
+        """Test that exceptions are being properly logged"""
+
+        database = get_example_database()
+        db_uri = database.sqlalchemy_uri_decrypted
+        json_payload = {"sqlalchemy_uri": db_uri}
+        command_without_db_name = CreateDatabaseCommand(
+            security_manager.find_user("admin"), json_payload
+        )
+        # test with no db name
+        with self.assertRaises(DatabaseInvalidError):
             command_without_db_name.run()
 
-        mock_stats_logger.assert_called()
+        mock_event_logger.assert_called_with(action="db_connection_failed.")
+
+        # test when connection fails
+        mock_test_connection_db.side_effect = Exception("An error has occurred!")
+        mock_db_create.return_value = database
+        json_payload = {"sqlalchemy_uri": db_uri, "database_name": "foo"}
+        command = CreateDatabaseCommand(
+            security_manager.find_user("admin"),
+            json_payload
+        )
+
+        with self.assertRaises(Exception):
+            command.run()
+
+        mock_event_logger.assert_called_with(
+            action=f"db_connection_failed.{database.db_engine_spec.__name__}"
+        )
+
+        # test when creation fails
+        mock_db_create.side_effect = DAOCreateFailedError(
+            exception = Exception("An error occurred")
+        )
+
+        with self.assertRaises(DatabaseCreateFailedError):
+            command.run()

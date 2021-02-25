@@ -21,7 +21,6 @@ from flask_appbuilder.models.sqla import Model
 from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
-from superset import app
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.databases.commands.exceptions import (
@@ -65,8 +64,9 @@ class CreateDatabaseCommand(BaseCommand):
             security_manager.add_permission_view_menu("database_access", database.perm)
             db.session.commit()
         except DAOCreateFailedError as ex:
-            logger.exception(ex.exception)
-            raise DatabaseCreateFailedError()
+            with event_logger.log_context(action=f"db_creation_failed.{ex.exception}"):
+                logger.exception(ex.exception)
+                raise DatabaseCreateFailedError()
         return database
 
     def validate(self) -> None:
@@ -86,4 +86,6 @@ class CreateDatabaseCommand(BaseCommand):
         if exceptions:
             exception = DatabaseInvalidError()
             exception.add_list(exceptions)
-            raise exception
+
+            with event_logger.log_context(action="db_connection_failed."):
+                raise exception
