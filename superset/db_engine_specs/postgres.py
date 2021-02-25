@@ -18,13 +18,12 @@ import json
 import logging
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from pytz import _FixedOffset  # type: ignore
 from sqlalchemy import types
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION
 from sqlalchemy.dialects.postgresql.base import PGInspector
-from sqlalchemy.sql.expression import column
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetException

@@ -42,7 +42,6 @@ import sqlparse
 from flask import g
 from flask_babel import lazy_gettext as _
 from sqlalchemy import column, DateTime, select, types
-from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
