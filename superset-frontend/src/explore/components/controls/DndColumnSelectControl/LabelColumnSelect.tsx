@@ -25,7 +25,7 @@ import OptionWrapper from './components/OptionWrapper';
 import { OptionSelector } from './utils';
 import { DatasourcePanelDndItem } from '../../DatasourcePanel/types';
 
-export const GroupByColumnSelect = (props: LabelProps) => {
+export const LabelColumnSelect = (props: LabelProps) => {
   const { value, options } = props;
   const optionSelector = new OptionSelector(options, value);
   const [values, setValues] = useState<ColumnMeta[]>(optionSelector.values);
