@@ -21,18 +21,8 @@ import React from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
 import { supersetTheme } from '@superset-ui/core';
-import { Provider } from 'react-redux';
-import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
-import thunk from 'redux-thunk';
 import ErrorAlert from './ErrorAlert';
 import { ErrorLevel, ErrorSource } from './types';
-
-// @TODO remove when Michaels'PR is merged https://github.com/apache/superset/pull/13319
-const store = createStore(
-  combineReducers({}),
-  {},
-  compose(applyMiddleware(thunk)),
-);
 
 const mockedProps = {
   body: 'Error body',
@@ -87,22 +77,14 @@ test('should render the error title', () => {
 });
 
 test('should render the error subtitle', () => {
-  render(
-    <Provider store={store}>
-      <ErrorAlert {...mockedProps} />
-    </Provider>,
-  );
+  render(<ErrorAlert {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
   userEvent.click(button);
   expect(screen.getByText('Error subtitle')).toBeInTheDocument();
 });
 
 test('should render the error body', () => {
-  render(
-    <Provider store={store}>
-      <ErrorAlert {...mockedProps} />
-    </Provider>,
-  );
+  render(<ErrorAlert {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
   userEvent.click(button);
   expect(screen.getByText('Error body')).toBeInTheDocument();
@@ -119,11 +101,7 @@ test('should render the See more button', () => {
 });
 
 test('should render the modal', () => {
-  render(
-    <Provider store={store}>
-      <ErrorAlert {...mockedProps} />
-    </Provider>,
-  );
+  render(<ErrorAlert {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
   userEvent.click(button);
   expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -135,11 +113,7 @@ test('should NOT render the modal', () => {
     ...mockedProps,
     source: 'explore' as ErrorSource,
   };
-  render(
-    <Provider store={store}>
-      <ErrorAlert {...expandableProps} />
-    </Provider>,
-  );
+  render(<ErrorAlert {...expandableProps} />, { useRedux: true });
   const button = screen.getByText('See more');
   userEvent.click(button);
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -158,11 +132,7 @@ test('should render the See less button', () => {
 });
 
 test('should render the Copy button', () => {
-  render(
-    <Provider store={store}>
-      <ErrorAlert {...mockedProps} />
-    </Provider>,
-  );
+  render(<ErrorAlert {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
   userEvent.click(button);
   expect(screen.getByText('Copy message')).toBeInTheDocument();
