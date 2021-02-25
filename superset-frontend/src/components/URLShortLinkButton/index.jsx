@@ -20,9 +20,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 import Popover from 'src/common/components/Popover';
-import CopyToClipboard from './CopyToClipboard';
-import { getShortUrl } from '../utils/urlUtils';
-import withToasts from '../messageToasts/enhancers/withToasts';
+import CopyToClipboard from 'src/components/CopyToClipboard';
+import { getShortUrl } from 'src/utils/urlUtils';
+import withToasts from 'src/messageToasts/enhancers/withToasts';
 
 const propTypes = {
   url: PropTypes.string,
@@ -85,7 +85,7 @@ class URLShortLinkButton extends React.Component {
       >
         <span
           className="short-link-trigger btn btn-default btn-sm"
-          data-test="short-link-button"
+          role="button"
         >
           <i className="short-link-trigger fa fa-link" />
           &nbsp;
