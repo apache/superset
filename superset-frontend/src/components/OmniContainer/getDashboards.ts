@@ -40,12 +40,12 @@ export const getDashboards = async (
 ): Promise<(Dashboards | { title: string })[]> => {
   // todo: Build a dedicated endpoint for dashboard searching
   // i.e. superset/v1/api/dashboards?q=${query}
-  const [error, response] = await to(
-    SupersetClient.get({
+  let response;
+  try {
+    response = await SupersetClient.get({
       endpoint: `/dashboardasync/api/read?_oc_DashboardModelViewAsync=changed_on&_od_DashboardModelViewAsync=desc&_flt_2_dashboard_title=${query}`,
-    }),
-  );
-  if (error) {
+    });
+  } catch (error) {
     return [{ title: t('An error occurred while fetching dashboards') }];
   }
   return response?.json.result.map((item: DashboardItem) => ({
