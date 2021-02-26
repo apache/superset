@@ -51,9 +51,5 @@
     "babel-loader": "^8.0.5",
     "gh-pages": "^2.0.1",
     "terser-webpack-plugin": "^2.1.0"
-  },
-  "peerDependencies": {
-    "@superset-ui/chart-controls": "^0.16.3",
-    "@superset-ui/core": "^0.16.3"
   }
 }

@@ -38,7 +38,7 @@
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "^0.17.12",
-    "@superset-ui/core": "^0.17.12",
+    "@superset-ui/core": "^0.17.11",
     "react": "^15 || ^16"
   }
 }
