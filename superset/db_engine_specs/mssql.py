@@ -77,12 +77,18 @@ class MssqlEngineSpec(BaseEngineSpec):
         # Lists of `pyodbc.Row` need to be unpacked further
         return cls.pyodbc_rows_to_tuples(data)
 
-    column_type_mappings = {
-        utils.GenericDataType.STRING: (
-            (re.compile(r"^N((VAR)?CHAR|TEXT)", re.IGNORECASE), UnicodeText()),
-            (re.compile(r"^((VAR)?CHAR|TEXT|STRING)", re.IGNORECASE), String()),
-        )
-    }
+    column_type_mappings = (
+        (
+            re.compile(r"^N((VAR)?CHAR|TEXT)", re.IGNORECASE),
+            UnicodeText(),
+            utils.GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^((VAR)?CHAR|TEXT|STRING)", re.IGNORECASE),
+            String(),
+            utils.GenericDataType.STRING,
+        ),
+    )
 
     @classmethod
     def extract_error_message(cls, ex: Exception) -> str:

@@ -308,7 +308,8 @@ class ColumnTypeSource(Enum):
 
 
 class ColumnSpec(NamedTuple):
-    type: Union[TypeEngine, GenericDataType, str]
+    sqla_type: Union[TypeEngine, str]
+    generic_type: GenericDataType
     is_dttm: bool
     normalized_column_name: Optional[str] = None
     python_date_format: Optional[str] = None

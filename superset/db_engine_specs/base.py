@@ -145,12 +145,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     ] = None  # used for user messages, overridden in child classes
     _date_trunc_functions: Dict[str, str] = {}
     _time_grain_expressions: Dict[Optional[str], str] = {}
-    column_type_mappings: Dict[
-        utils.GenericDataType,
+    column_type_mappings: Tuple[
         Tuple[
-            Tuple[Pattern[str], Union[TypeEngine, Callable[[Match[str]], TypeEngine]]],
-            ...,
+            Pattern[str],
+            Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
+            utils.GenericDataType,
         ],
+        ...,
     ] = ()
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
@@ -993,13 +994,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         if not column_type:
             return None, None
-        for generic_type in cls.column_type_mappings:
-            for regex, sqla_type in cls.column_type_mappings[generic_type]:
-                match = regex.match(column_type)
-                if match:
-                    if callable(sqla_type):
-                        return sqla_type(match), generic_type
-                    return sqla_type, generic_type
+        for regex, sqla_type, generic_type in cls.column_type_mappings:
+            match = regex.match(column_type)
+            if match:
+                if callable(sqla_type):
+                    return sqla_type(match), generic_type
+                return sqla_type, generic_type
         return None, None
 
     @staticmethod
@@ -1130,6 +1130,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ):  # Further logic to be implemented
             pass
 
-        column_spec = ColumnSpec(type=column_type, is_dttm=is_dttm)
+        column_spec = ColumnSpec(
+            sqla_type=column_type, generic_type=generic_type, is_dttm=is_dttm
+        )
 
         return column_spec

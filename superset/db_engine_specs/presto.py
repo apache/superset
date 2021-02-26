@@ -333,47 +333,91 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         columns = inspector.bind.execute("SHOW COLUMNS FROM {}".format(full_table))
         return columns
 
-    column_type_mappings = {
-        utils.GenericDataType.BOOLEAN: (
-            (re.compile(r"^boolean.*", re.IGNORECASE), types.Boolean()),
+    column_type_mappings = (
+        (
+            re.compile(r"^boolean.*", re.IGNORECASE),
+            types.Boolean(),
+            utils.GenericDataType.BOOLEAN,
         ),
-        utils.GenericDataType.NUMERIC: (
-            (re.compile(r"^tinyint.*", re.IGNORECASE), TinyInteger()),
-            (re.compile(r"^smallint.*", re.IGNORECASE), types.SmallInteger()),
-            (re.compile(r"^integer.*", re.IGNORECASE), types.Integer()),
-            (re.compile(r"^bigint.*", re.IGNORECASE), types.BigInteger()),
-            (re.compile(r"^real.*", re.IGNORECASE), types.Float()),
-            (re.compile(r"^double.*", re.IGNORECASE), types.Float()),
-            (re.compile(r"^decimal.*", re.IGNORECASE), types.DECIMAL()),
+        (
+            re.compile(r"^tinyint.*", re.IGNORECASE),
+            TinyInteger(),
+            utils.GenericDataType.NUMERIC,
         ),
-        utils.GenericDataType.STRING: (
-            (
-                re.compile(r"^varchar(\((\d+)\))*$", re.IGNORECASE),
-                lambda match: types.VARCHAR(int(match[2]))
-                if match[2]
-                else types.String(),
-            ),
-            (
-                re.compile(r"^char(\((\d+)\))*$", re.IGNORECASE),
-                lambda match: types.CHAR(int(match[2])) if match[2] else types.CHAR(),
-            ),
-            (re.compile(r"^varbinary.*", re.IGNORECASE), types.VARBINARY()),
+        (
+            re.compile(r"^smallint.*", re.IGNORECASE),
+            types.SmallInteger(),
+            utils.GenericDataType.NUMERIC,
         ),
-        utils.GenericDataType.JSON: (
-            (re.compile(r"^json.*", re.IGNORECASE), types.JSON()),
+        (
+            re.compile(r"^integer.*", re.IGNORECASE),
+            types.Integer(),
+            utils.GenericDataType.NUMERIC,
         ),
-        utils.GenericDataType.TEMPORAL: (
-            (re.compile(r"^date.*", re.IGNORECASE), types.DATE()),
-            (re.compile(r"^timestamp.*", re.IGNORECASE), types.TIMESTAMP()),
-            (re.compile(r"^time.*", re.IGNORECASE), types.Time()),
-            (re.compile(r"^interval.*", re.IGNORECASE), Interval()),
+        (
+            re.compile(r"^bigint.*", re.IGNORECASE),
+            types.BigInteger(),
+            utils.GenericDataType.NUMERIC,
         ),
-        utils.GenericDataType.ARRAY: (
-            (re.compile(r"^array.*", re.IGNORECASE), Array()),
+        (
+            re.compile(r"^real.*", re.IGNORECASE),
+            types.Float(),
+            utils.GenericDataType.NUMERIC,
         ),
-        utils.GenericDataType.MAP: ((re.compile(r"^map.*", re.IGNORECASE), Map()),),
-        utils.GenericDataType.ROW: ((re.compile(r"^row.*", re.IGNORECASE), Row()),),
-    }
+        (
+            re.compile(r"^double.*", re.IGNORECASE),
+            types.Float(),
+            utils.GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^decimal.*", re.IGNORECASE),
+            types.DECIMAL(),
+            utils.GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^varchar(\((\d+)\))*$", re.IGNORECASE),
+            lambda match: types.VARCHAR(int(match[2])) if match[2] else types.String(),
+            utils.GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^char(\((\d+)\))*$", re.IGNORECASE),
+            lambda match: types.CHAR(int(match[2])) if match[2] else types.CHAR(),
+            utils.GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^varbinary.*", re.IGNORECASE),
+            types.VARBINARY(),
+            utils.GenericDataType.STRING,
+        ),
+        (
+            re.compile(r"^json.*", re.IGNORECASE),
+            types.JSON(),
+            utils.GenericDataType.JSON,
+        ),
+        (
+            re.compile(r"^date.*", re.IGNORECASE),
+            types.DATE(),
+            utils.GenericDataType.TEMPORAL,
+        ),
+        (
+            re.compile(r"^timestamp.*", re.IGNORECASE),
+            types.TIMESTAMP(),
+            utils.GenericDataType.TEMPORAL,
+        ),
+        (
+            re.compile(r"^time.*", re.IGNORECASE),
+            types.Time(),
+            utils.GenericDataType.TEMPORAL,
+        ),
+        (
+            re.compile(r"^interval.*", re.IGNORECASE),
+            Interval(),
+            utils.GenericDataType.TEMPORAL,
+        ),
+        (re.compile(r"^array.*", re.IGNORECASE), Array(), utils.GenericDataType.ARRAY),
+        (re.compile(r"^map.*", re.IGNORECASE), Map(), utils.GenericDataType.MAP),
+        (re.compile(r"^row.*", re.IGNORECASE), Row(), utils.GenericDataType.ROW),
+    )
 
     @classmethod
     def get_columns(
