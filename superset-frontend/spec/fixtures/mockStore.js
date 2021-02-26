@@ -30,6 +30,9 @@ import { sliceId } from './mockChartQueries';
 import { dashboardFilters } from './mockDashboardFilters';
 import { nativeFilters } from './mockNativeFilters';
 
+export const storeWithState = state =>
+  createStore(rootReducer, state, compose(applyMiddleware(thunk)));
+
 export const getMockStore = overrideState =>
   createStore(
     rootReducer,
