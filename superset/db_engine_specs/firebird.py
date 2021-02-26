@@ -76,8 +76,8 @@ class FirebirdEngineSpec(BaseEngineSpec):
             dttm_formatted = dttm.isoformat(sep=" ")
             dttm_valid_precision = dttm_formatted[: len("YYYY-MM-DD HH:MM:SS.MMMM")]
             return f"CAST('{dttm_valid_precision}' AS TIMESTAMP )"
-        elif tt == utils.TemporalType.DATE:
+        if tt == utils.TemporalType.DATE:
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
-        elif tt == utils.TemporalType.TIME:
+        if tt == utils.TemporalType.TIME:
             return f"CAST('{dttm.time().isoformat()}' AS TIME)"
         return None
