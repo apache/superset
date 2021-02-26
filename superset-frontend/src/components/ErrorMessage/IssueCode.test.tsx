@@ -19,34 +19,28 @@
 
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import ErrorMessageWithStackTrace from './ErrorMessageWithStackTrace';
-import { ErrorLevel, ErrorSource } from './types';
+import IssueCode from './IssueCode';
 
 const mockedProps = {
-  level: 'warning' as ErrorLevel,
-  link: 'https://sample.com',
-  source: 'dashboard' as ErrorSource,
-  stackTrace: 'Stacktrace',
+  code: 1,
+  message: 'Error message',
 };
 
 test('should render', () => {
-  const { container } = render(<ErrorMessageWithStackTrace {...mockedProps} />);
+  const { container } = render(<IssueCode {...mockedProps} />);
   expect(container).toBeInTheDocument();
 });
 
-test('should render the stacktrace', () => {
-  render(<ErrorMessageWithStackTrace {...mockedProps} />, { useRedux: true });
-  const button = screen.getByText('See more');
-  userEvent.click(button);
-  expect(screen.getByText('Stacktrace')).toBeInTheDocument();
+test('should render the message', () => {
+  render(<IssueCode {...mockedProps} />);
+  expect(screen.getByText('Error message')).toBeInTheDocument();
 });
 
 test('should render the link', () => {
-  render(<ErrorMessageWithStackTrace {...mockedProps} />, { useRedux: true });
-  const button = screen.getByText('See more');
-  userEvent.click(button);
+  render(<IssueCode {...mockedProps} />);
   const link = screen.getByRole('link');
-  expect(link).toHaveTextContent('(Request Access)');
-  expect(link).toHaveAttribute('href', mockedProps.link);
+  expect(link).toHaveAttribute(
+    'href',
+    `https://superset.apache.org/docs/miscellaneous/issue-codes#issue-${mockedProps.code}`,
+  );
 });
