@@ -27,8 +27,8 @@ import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import '../src/theme.ts';
 import './storybook.css';
 
-const themeDecorator = storyFn => (
-  <ThemeProvider theme={supersetTheme}>{storyFn()}</ThemeProvider>
+const themeDecorator = Story => (
+  <ThemeProvider theme={supersetTheme}>{<Story />}</ThemeProvider>
 );
 
 addDecorator(jsxDecorator);

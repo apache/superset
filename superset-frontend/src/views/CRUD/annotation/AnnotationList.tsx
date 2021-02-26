@@ -31,7 +31,6 @@ import ListView, { ListViewProps } from 'src/components/ListView';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
-import { IconName } from 'src/components/Icon';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 
@@ -179,14 +178,14 @@ function AnnotationList({
               label: 'edit-action',
               tooltip: t('Edit annotation'),
               placement: 'bottom',
-              icon: 'edit' as IconName,
+              icon: 'Edit',
               onClick: handleEdit,
             },
             {
               label: 'delete-action',
               tooltip: t('Delete annotation'),
               placement: 'bottom',
-              icon: 'trash' as IconName,
+              icon: 'Trash',
               onClick: handleDelete,
             },
           ];

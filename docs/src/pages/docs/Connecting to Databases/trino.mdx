@@ -1,0 +1,17 @@
+---
+name: Trino
+menu: Connecting to Databases
+route: /docs/databases/trino
+index: 28
+version: 1
+---
+
+## Trino
+
+The [sqlalchemy-trino](https://pypi.org/project/sqlalchemy-trino/) library is the recommended way to connect to Trino through SQLAlchemy.
+
+The expected connection string is formatted as follows:
+
+```
+trino://{username}:{password}@{hostname}:{port}/{catalog}
+```

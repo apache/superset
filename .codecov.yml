@@ -1,13 +1,18 @@
+codecov:
+    notify:
+        after_n_builds: 4
 ignore:
   - "superset/migrations/versions/*.py"
 coverage:
   status:
     project:
+      informational: true
       default:
         # Commits pushed to master should not make the overall
         # project coverage decrease:
         target: auto
         threshold: 0%
     patch:
+      informational: true
       default:
         threshold: 0%

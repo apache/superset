@@ -270,7 +270,7 @@ class AdhocFilterControl extends React.Component {
   optionsForSelect(props) {
     const options = [
       ...props.columns,
-      ...[...(props.formData.metrics || []), props.formData.metric].map(
+      ...[...(props.formData?.metrics || []), props.formData?.metric].map(
         metric =>
           metric &&
           (typeof metric === 'string'

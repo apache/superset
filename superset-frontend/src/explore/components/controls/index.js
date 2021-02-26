@@ -39,6 +39,7 @@ import VizTypeControl from './VizTypeControl';
 import MetricsControl from './MetricControl/MetricsControl';
 import AdhocFilterControl from './FilterControl/AdhocFilterControl';
 import FilterBoxItemControl from './FilterBoxItemControl';
+import DndColumnSelectControl from './DndColumnSelectControl';
 
 const controlMap = {
   AnnotationLayerControl,
@@ -50,6 +51,7 @@ const controlMap = {
   ColorSchemeControl,
   DatasourceControl,
   DateFilterControl,
+  DndColumnSelectControl,
   FixedOrMetricControl,
   HiddenControl,
   SelectAsyncControl,
