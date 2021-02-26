@@ -56,19 +56,21 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 impersonate_user=self._properties.get("impersonate_user", False),
                 encrypted_extra=self._properties.get("encrypted_extra", "{}"),
             )
-            if database is not None:
-                database.set_sqlalchemy_uri(uri)
-                database.db_engine_spec.mutate_db_for_connection_test(database)
-                username = self._actor.username if self._actor is not None else None
-                engine = database.get_sqla_engine(user_name=username)
-                with closing(engine.raw_connection()) as conn:
-                    if not engine.dialect.do_ping(conn):
-                        raise DBAPIError(None, None, None)
-                    else:
-                        with event_logger.log_context(
-                            action=f"test_connection_success.{make_url(uri).drivername}"
-                        ):
-                            return
+            if database is None:
+                raise DBAPIError(None, None, None)
+
+            database.set_sqlalchemy_uri(uri)
+            database.db_engine_spec.mutate_db_for_connection_test(database)
+            username = self._actor.username if self._actor is not None else None
+            engine = database.get_sqla_engine(user_name=username)
+            with closing(engine.raw_connection()) as conn:
+                if not engine.dialect.do_ping(conn):
+                    raise DBAPIError(None, None, None)
+
+                with event_logger.log_context(
+                    action="test_connection_success", engine=make_url(uri).drivername,
+                ):
+                    return
         except (NoSuchModuleError, ModuleNotFoundError):
             driver_name = make_url(uri).drivername
             raise DatabaseTestConnectionDriverError(
@@ -76,17 +78,20 @@ class TestConnectionDatabaseCommand(BaseCommand):
             )
         except DBAPIError as ex:
             with event_logger.log_context(
-                action=f"test_connection_error.{make_url(uri).drivername}.{ex.__class__.__name__}"
+                action=f"test_connection_error.{ex.__class__.__name__}",
+                engine=make_url(uri).drivername,
             ):
                 raise DatabaseTestConnectionFailedError()
         except SupersetSecurityException as ex:
             with event_logger.log_context(
-                action=f"test_connection_error.{make_url(uri).drivername}.{ex.__class__.__name__}"
+                action=f"test_connection_error.{ex.__class__.__name__}",
+                engine=make_url(uri).drivername,
             ):
                 raise DatabaseSecurityUnsafeError(message=str(ex))
-        except Exception as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             with event_logger.log_context(
-                action=f"test_connection_error.{make_url(uri).drivername}.{ex.__class__.__name__}"
+                action=f"test_connection_error.{ex.__class__.__name__}",
+                engine=make_url(uri).drivername,
             ):
                 raise DatabaseTestConnectionUnexpectedError()
 

@@ -32,9 +32,10 @@ from superset.databases.commands.exceptions import (
 )
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.dao import DatabaseDAO
-from superset.extensions import db, security_manager, event_logger
+from superset.extensions import db, event_logger, security_manager
 
 logger = logging.getLogger(__name__)
+
 
 class CreateDatabaseCommand(BaseCommand):
     def __init__(self, user: User, data: Dict[str, Any]):
@@ -50,7 +51,10 @@ class CreateDatabaseCommand(BaseCommand):
             try:
                 TestConnectionDatabaseCommand(self._actor, self._properties).run()
             except Exception:
-                with event_logger.log_context(action=f"db_connection_failed.{database.db_engine_spec.__name__}"):
+                with event_logger.log_context(
+                    action="db_connection_failed",
+                    engine=database.db_engine_spec.__name__,
+                ):
                     db.session.rollback()
 
                 raise DatabaseConnectionFailedError()
@@ -87,5 +91,5 @@ class CreateDatabaseCommand(BaseCommand):
             exception = DatabaseInvalidError()
             exception.add_list(exceptions)
 
-            with event_logger.log_context(action="db_connection_failed."):
+            with event_logger.log_context(action="db_connection_failed"):
                 raise exception
