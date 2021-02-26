@@ -86,12 +86,13 @@ class AbstractEventLogger(ABC):
         from superset.views.core import get_form_data
 
         start_time = time.time()
-        referrer = request.referrer[:1000] if request.referrer else None
-        user_id = g.user.get_id() if hasattr(g, "user") and g.user else None
         payload_override = {}
 
         # yield a helper to add additional payload
         yield lambda **kwargs: payload_override.update(kwargs)
+
+        referrer = request.referrer[:1000] if request.referrer else None
+        user_id = g.user.get_id() if hasattr(g, "user") and g.user else None
 
         payload = collect_request_payload()
         if object_ref:
