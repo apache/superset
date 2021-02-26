@@ -37,8 +37,8 @@
     "viewport-mercator-project": "^6.1.1"
   },
   "peerDependencies": {
-    "@superset-ui/chart-controls": "^0.17.11",
-    "@superset-ui/core": "^0.17.11",
+    "@superset-ui/chart-controls": "^0.17.12",
+    "@superset-ui/core": "^0.17.12",
     "react": "^15 || ^16"
   }
 }
