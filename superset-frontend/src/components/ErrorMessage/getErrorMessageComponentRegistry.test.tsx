@@ -30,37 +30,35 @@ const OVERRIDE_ERROR_MESSAGE_COMPONENT = (_: ErrorMessageComponentProps) => (
   <div>Custom error</div>
 );
 
-describe('getErrorMessageComponentRegistry', () => {
-  it('returns undefined for a non existent key', () => {
-    expect(getErrorMessageComponentRegistry().get('INVALID_KEY')).toEqual(
-      undefined,
-    );
-  });
+test('should return undefined for a non existent key', () => {
+  expect(getErrorMessageComponentRegistry().get('INVALID_KEY')).toEqual(
+    undefined,
+  );
+});
 
-  it('returns a component for a set key', () => {
-    getErrorMessageComponentRegistry().registerValue(
-      'VALID_KEY',
-      ERROR_MESSAGE_COMPONENT,
-    );
+test('should return a component for a set key', () => {
+  getErrorMessageComponentRegistry().registerValue(
+    'VALID_KEY',
+    ERROR_MESSAGE_COMPONENT,
+  );
 
-    expect(getErrorMessageComponentRegistry().get('VALID_KEY')).toEqual(
-      ERROR_MESSAGE_COMPONENT,
-    );
-  });
+  expect(getErrorMessageComponentRegistry().get('VALID_KEY')).toEqual(
+    ERROR_MESSAGE_COMPONENT,
+  );
+});
 
-  it('returns the correct component for an overridden key', () => {
-    getErrorMessageComponentRegistry().registerValue(
-      'OVERRIDE_KEY',
-      ERROR_MESSAGE_COMPONENT,
-    );
+test('should return the correct component for an overridden key', () => {
+  getErrorMessageComponentRegistry().registerValue(
+    'OVERRIDE_KEY',
+    ERROR_MESSAGE_COMPONENT,
+  );
 
-    getErrorMessageComponentRegistry().registerValue(
-      'OVERRIDE_KEY',
-      OVERRIDE_ERROR_MESSAGE_COMPONENT,
-    );
+  getErrorMessageComponentRegistry().registerValue(
+    'OVERRIDE_KEY',
+    OVERRIDE_ERROR_MESSAGE_COMPONENT,
+  );
 
-    expect(getErrorMessageComponentRegistry().get('OVERRIDE_KEY')).toEqual(
-      OVERRIDE_ERROR_MESSAGE_COMPONENT,
-    );
-  });
+  expect(getErrorMessageComponentRegistry().get('OVERRIDE_KEY')).toEqual(
+    OVERRIDE_ERROR_MESSAGE_COMPONENT,
+  );
 });
