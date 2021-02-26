@@ -155,6 +155,11 @@ class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps
     const { controls } = this.props;
     const { label, description } = section;
 
+    // Section label can be a ReactNode but in some places we want to
+    // have a string ID. Using forced type conversion for now,
+    // should probably add a `id` field to sections in the future.
+    const sectionId = String(label);
+
     const hasErrors = section.controlSetRows.some(rows =>
       rows.some(item => {
         const controlName =
@@ -175,10 +180,8 @@ class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps
       <span>
         <span>{label}</span>{' '}
         {description && (
-          <InfoTooltipWithTrigger
-            label={label as string}
-            tooltip={description as string}
-          />
+          // label is only used in tooltip id (should probably call this prop `id`)
+          <InfoTooltipWithTrigger label={sectionId} tooltip={description} />
         )}
         {hasErrors && (
           <InfoTooltipWithTrigger
@@ -194,7 +197,7 @@ class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps
       <Collapse.Panel
         className="control-panel-section"
         header={PanelHeader()}
-        key={String(section.label)}
+        key={sectionId}
       >
         {section.controlSetRows.map((controlSets, i) => {
           const renderedControls = controlSets
