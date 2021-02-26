@@ -54,6 +54,7 @@ import {
   SelectControlConfig,
 } from '../types';
 import { ColumnOption } from '../components/ColumnOption';
+import { dndColumnsControl, dndEntity, dndGroupByControl, dndSeries } from './dndControls';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
@@ -476,6 +477,13 @@ const label_colors: SharedControlConfig<'ColorMapControl'> = {
   }),
 };
 
+// A quick and dirty patch, should be moved to the main repo in the future
+export function isFeatureEnabled(feature: string) {
+  // @ts-ignore
+  return window && window.featureFlags && !!window.featureFlags[feature];
+}
+const enableExploreDnd = isFeatureEnabled('ENABLE_EXPLORE_DRAG_AND_DROP');
+
 const sharedControls = {
   metrics,
   metric,
@@ -485,8 +493,8 @@ const sharedControls = {
   metric_2,
   linear_color_scheme,
   secondary_metric,
-  groupby: groupByControl,
-  columns: columnsControl,
+  groupby: enableExploreDnd ? dndGroupByControl : groupByControl,
+  columns: enableExploreDnd ? dndColumnsControl : columnsControl,
   druid_time_origin,
   granularity,
   granularity_sqla,
@@ -495,8 +503,8 @@ const sharedControls = {
   row_limit,
   limit,
   timeseries_limit_metric,
-  series,
-  entity,
+  series: enableExploreDnd ? dndSeries : series,
+  entity: enableExploreDnd ? dndEntity : entity,
   x,
   y,
   size,
