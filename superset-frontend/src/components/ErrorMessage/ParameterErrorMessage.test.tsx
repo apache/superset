@@ -40,7 +40,7 @@ const mockedProps = {
         },
       ],
     },
-    level: 'warning' as ErrorLevel,
+    level: 'error' as ErrorLevel,
     message: 'Error message',
   },
   source: 'dashboard' as ErrorSource,
@@ -49,6 +49,11 @@ const mockedProps = {
 test('should render', () => {
   const { container } = render(<ParameterErrorMessage {...mockedProps} />);
   expect(container).toBeInTheDocument();
+});
+
+test('should render the default title', () => {
+  render(<ParameterErrorMessage {...mockedProps} />);
+  expect(screen.getByText('Parameter error')).toBeInTheDocument();
 });
 
 test('should render the error message', () => {

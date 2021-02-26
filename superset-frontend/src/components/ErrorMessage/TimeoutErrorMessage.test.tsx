@@ -17,17 +17,16 @@
  * under the License.
  */
 
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import DatabaseErrorMessage from './DatabaseErrorMessage';
+import TimeoutErrorMessage from './TimeoutErrorMessage';
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from './types';
 
 const mockedProps = {
   error: {
-    error_type: ErrorTypeEnum.DATABASE_SECURITY_ACCESS_ERROR,
+    error_type: ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR,
     extra: {
-      engine_name: 'Engine name',
       issue_codes: [
         {
           code: 1,
@@ -39,6 +38,7 @@ const mockedProps = {
         },
       ],
       owners: ['Owner A', 'Owner B'],
+      timeout: 30,
     },
     level: 'error' as ErrorLevel,
     message: 'Error message',
@@ -47,19 +47,17 @@ const mockedProps = {
 };
 
 test('should render', () => {
-  const { container } = render(<DatabaseErrorMessage {...mockedProps} />);
+  const { container } = render(<TimeoutErrorMessage {...mockedProps} />);
   expect(container).toBeInTheDocument();
 });
 
-test('should render the error message', () => {
-  render(<DatabaseErrorMessage {...mockedProps} />, { useRedux: true });
-  const button = screen.getByText('See more');
-  userEvent.click(button);
-  expect(screen.getByText('Error message')).toBeInTheDocument();
+test('should render the default title', () => {
+  render(<TimeoutErrorMessage {...mockedProps} />);
+  expect(screen.getByText('Timeout error')).toBeInTheDocument();
 });
 
 test('should render the issue codes', () => {
-  render(<DatabaseErrorMessage {...mockedProps} />, { useRedux: true });
+  render(<TimeoutErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
   userEvent.click(button);
   expect(screen.getByText(/This may be triggered by:/)).toBeInTheDocument();
@@ -67,13 +65,8 @@ test('should render the issue codes', () => {
   expect(screen.getByText(/Issue code message B/)).toBeInTheDocument();
 });
 
-test('should render the engine name', () => {
-  render(<DatabaseErrorMessage {...mockedProps} />);
-  expect(screen.getByText(/Engine name/)).toBeInTheDocument();
-});
-
 test('should render the owners', () => {
-  render(<DatabaseErrorMessage {...mockedProps} />, { useRedux: true });
+  render(<TimeoutErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
   userEvent.click(button);
   expect(
@@ -89,7 +82,7 @@ test('should NOT render the owners', () => {
     ...mockedProps,
     source: 'sqllab' as ErrorSource,
   };
-  render(<DatabaseErrorMessage {...noVisualizationProps} />, {
+  render(<TimeoutErrorMessage {...noVisualizationProps} />, {
     useRedux: true,
   });
   const button = screen.getByText('See more');
@@ -97,4 +90,15 @@ test('should NOT render the owners', () => {
   expect(
     screen.queryByText('Chart Owners: Owner A, Owner B'),
   ).not.toBeInTheDocument();
+});
+
+test('should render the timeout message', () => {
+  render(<TimeoutErrorMessage {...mockedProps} />, { useRedux: true });
+  const button = screen.getByText('See more');
+  userEvent.click(button);
+  expect(
+    screen.getByText(
+      /We’re having trouble loading this visualization. Queries are set to timeout after 30 seconds./,
+    ),
+  ).toBeInTheDocument();
 });
