@@ -28,7 +28,14 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ['metrics'],
         ['adhoc_filters'],
-        ['groupby'],
+        [
+          {
+            name: 'groupby',
+            override: {
+              validators: [validateNonEmpty],
+            },
+          },
+        ],
         ['limit', 'timeseries_limit_metric'],
         [
           {
@@ -47,13 +54,6 @@ const config: ControlPanelConfig = {
               label: t('Contribution'),
               default: false,
               description: t('Compute the contribution to the total'),
-            },
-          },
-
-          {
-            name: 'groupby',
-            override: {
-              validators: [validateNonEmpty],
             },
           },
         ],
