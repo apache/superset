@@ -28,7 +28,7 @@ import {
 import { debounce } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
 import { FAST_DEBOUNCE } from 'src/constants';
-import { ExploreActions } from '../actions/exploreActions';
+import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from './Control';
 import DatasourcePanelDragWrapper from './DatasourcePanel/DatasourcePanelDragWrapper';
 import { DatasourcePanelDndType } from './DatasourcePanel/types';

@@ -85,7 +85,7 @@ export default function DndColumnSelectLabel(props: LabelProps) {
     props.onChange(optionSelector.getValues());
   }
 
-  function placeHolderRenderer() {
+  function renderPlaceHolder() {
     return (
       <AddControlLabel cancelHover>
         <Icon name="plus-small" color={theme.colors.grayscale.light1} />
@@ -94,7 +94,7 @@ export default function DndColumnSelectLabel(props: LabelProps) {
     );
   }
 
-  function optionsRenderer() {
+  function renderOptions() {
     return groupByOptions.map((column, idx) => (
       <OptionWrapper
         key={idx}
@@ -112,7 +112,7 @@ export default function DndColumnSelectLabel(props: LabelProps) {
         <ControlHeader {...props} />
       </HeaderContainer>
       <DndLabelsContainer canDrop={canDrop} isOver={isOver}>
-        {isEmpty(groupByOptions) ? placeHolderRenderer() : optionsRenderer()}
+        {isEmpty(groupByOptions) ? renderPlaceHolder() : renderOptions()}
       </DndLabelsContainer>
     </div>
   );
