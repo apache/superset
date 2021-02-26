@@ -456,7 +456,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
             return database.compile_sqla_query(qry)
 
-        if LimitMethod.FORCE_LIMIT:
+        if cls.limit_method == LimitMethod.FORCE_LIMIT:
             parsed_query = sql_parse.ParsedQuery(sql)
             sql = parsed_query.set_or_update_query_limit(limit)
 
