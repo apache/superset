@@ -39,7 +39,7 @@ app = celery_app
 
 
 @worker_process_init.connect
-def reset_db_connection_pool(**kwargs: Any) -> None:
+def reset_db_connection_pool(**kwargs: Any) -> None:  # pylint: disable=unused-argument
     with flask_app.app_context():
         # https://docs.sqlalchemy.org/en/14/core/connections.html#engine-disposal
         db.engine.dispose()
