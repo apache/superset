@@ -22,7 +22,7 @@ from superset.utils import core as utils
 
 
 class FirebirdEngineSpec(BaseEngineSpec):
-    """Engine for Google spreadsheets"""
+    """Engine for Firebird"""
 
     engine = "firebird"
     engine_name = "Firebird"
@@ -75,7 +75,7 @@ class FirebirdEngineSpec(BaseEngineSpec):
         if tt == utils.TemporalType.TIMESTAMP:
             dttm_formatted = dttm.isoformat(sep=" ")
             dttm_valid_precision = dttm_formatted[: len("YYYY-MM-DD HH:MM:SS.MMMM")]
-            return f"CAST('{dttm_valid_precision}' AS TIMESTAMP )"
+            return f"CAST('{dttm_valid_precision}' AS TIMESTAMP)"
         if tt == utils.TemporalType.DATE:
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
         if tt == utils.TemporalType.TIME:
