@@ -46,8 +46,8 @@
     "xss": "^1.0.6"
   },
   "peerDependencies": {
-    "@superset-ui/chart-controls": "^0.17.11",
-    "@superset-ui/core": "^0.17.11",
+    "@superset-ui/chart-controls": "^0.17.12",
+    "@superset-ui/core": "^0.17.12",
     "react": "^15 || ^16"
   }
 }
