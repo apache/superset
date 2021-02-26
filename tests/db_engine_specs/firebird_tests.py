@@ -21,7 +21,6 @@ import pytest
 
 from superset.db_engine_specs.firebird import FirebirdEngineSpec
 
-
 grain_expressions = {
     None: "timestamp_column",
     "PT1S": (
