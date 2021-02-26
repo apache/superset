@@ -29,7 +29,9 @@ import { debounce } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
-import Control from 'src/explore/components/Control';
+import Control from './Control';
+import DatasourcePanelDragWrapper from './DatasourcePanel/DatasourcePanelDragWrapper';
+import { DatasourcePanelDndType } from './DatasourcePanel/types';
 
 interface DatasourceControl extends ControlConfig {
   datasource?: DatasourceMeta;
@@ -204,7 +206,12 @@ export default function DataSourcePanel({
             </div>
             {metricSlice.map(m => (
               <LabelContainer key={m.metric_name} className="column">
-                <MetricOption metric={m} showType />
+                <DatasourcePanelDragWrapper
+                  metricOrColumnName={m.metric_name}
+                  type={DatasourcePanelDndType.METRIC}
+                >
+                  <MetricOption metric={m} showType />
+                </DatasourcePanelDragWrapper>
               </LabelContainer>
             ))}
           </Collapse.Panel>
@@ -217,7 +224,12 @@ export default function DataSourcePanel({
             </div>
             {columnSlice.map(col => (
               <LabelContainer key={col.column_name} className="column">
-                <ColumnOption column={col} showType />
+                <DatasourcePanelDragWrapper
+                  metricOrColumnName={col.column_name}
+                  type={DatasourcePanelDndType.COLUMN}
+                >
+                  <ColumnOption column={col} showType />
+                </DatasourcePanelDragWrapper>
               </LabelContainer>
             ))}
           </Collapse.Panel>
