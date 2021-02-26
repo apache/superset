@@ -97,7 +97,6 @@
     "abortcontroller-polyfill": "^1.1.9",
     "antd": "^4.9.4",
     "array-move": "^2.2.1",
-    "await-to-js": "^2.1.1",
     "bootstrap": "^3.4.1",
     "bootstrap-slider": "^10.0.0",
     "brace": "^0.11.1",

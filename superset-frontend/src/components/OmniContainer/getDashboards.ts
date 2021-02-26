@@ -18,7 +18,6 @@
  */
 
 import { t, SupersetClient } from '@superset-ui/core';
-import to from 'await-to-js';
 
 interface DashboardItem {
   changed_by_name: string;
