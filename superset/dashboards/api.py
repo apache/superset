@@ -100,29 +100,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     class_permission_name = "Dashboard"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
 
-    show_columns = [
-        "id",
-        "charts",
-        "css",
-        "dashboard_title",
-        "json_metadata",
-        "owners.id",
-        "owners.username",
-        "owners.first_name",
-        "owners.last_name",
-        "roles.id",
-        "roles.name",
-        "changed_by_name",
-        "changed_by_url",
-        "changed_by.username",
-        "changed_on",
-        "position_json",
-        "published",
-        "url",
-        "slug",
-        "table_names",
-        "thumbnail_url",
-    ]
     list_columns = [
         "id",
         "published",
