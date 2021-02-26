@@ -47,27 +47,38 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     engine = ""
     engine_name = "PostgreSQL"
 
-    column_type_mappings = (
-        (re.compile(r"^smallint", re.IGNORECASE), types.SMALLINT),
-        (re.compile(r"^integer", re.IGNORECASE), types.INTEGER),
-        (re.compile(r"^bigint", re.IGNORECASE), types.BIGINT),
-        (re.compile(r"^decimal", re.IGNORECASE), types.DECIMAL),
-        (re.compile(r"^numeric", re.IGNORECASE), types.NUMERIC),
-        (re.compile(r"^real", re.IGNORECASE), types.REAL),
-        (re.compile(r"^double precision", re.IGNORECASE), DOUBLE_PRECISION),
-        (re.compile(r"^smallserial", re.IGNORECASE), types.SMALLINT),
-        (re.compile(r"^serial", re.IGNORECASE), types.INTEGER),
-        (re.compile(r"^bigserial", re.IGNORECASE), types.BIGINT),
-        (re.compile(r"^varchar", re.IGNORECASE), types.VARCHAR),
-        (re.compile(r"^char", re.IGNORECASE), types.CHAR),
-        (re.compile(r"^text", re.IGNORECASE), types.TEXT),
-        (re.compile(r"^date", re.IGNORECASE), types.DATE),
-        (re.compile(r"^time", re.IGNORECASE), types.TIME),
-        (re.compile(r"^timestamp", re.IGNORECASE), types.TIMESTAMP),
-        (re.compile(r"^timestamptz", re.IGNORECASE), types.TIMESTAMP(timezone=True)),
-        (re.compile(r"^interval", re.IGNORECASE), types.Interval),
-        (re.compile(r"^boolean", re.IGNORECASE), types.BOOLEAN),
-    )
+    column_type_mappings = {
+        utils.GenericDataType.NUMERIC: (
+            (re.compile(r"^smallint", re.IGNORECASE), types.SMALLINT),
+            (re.compile(r"^integer", re.IGNORECASE), types.INTEGER),
+            (re.compile(r"^bigint", re.IGNORECASE), types.BIGINT),
+            (re.compile(r"^decimal", re.IGNORECASE), types.DECIMAL),
+            (re.compile(r"^numeric", re.IGNORECASE), types.NUMERIC),
+            (re.compile(r"^real", re.IGNORECASE), types.REAL),
+            (re.compile(r"^double precision", re.IGNORECASE), DOUBLE_PRECISION),
+            (re.compile(r"^smallserial", re.IGNORECASE), types.SMALLINT),
+            (re.compile(r"^serial", re.IGNORECASE), types.INTEGER),
+            (re.compile(r"^bigserial", re.IGNORECASE), types.BIGINT),
+        ),
+        utils.GenericDataType.STRING: (
+            (re.compile(r"^varchar", re.IGNORECASE), types.VARCHAR),
+            (re.compile(r"^char", re.IGNORECASE), types.CHAR),
+            (re.compile(r"^text", re.IGNORECASE), types.TEXT),
+        ),
+        utils.GenericDataType.TEMPORAL: (
+            (re.compile(r"^date", re.IGNORECASE), types.DATE),
+            (re.compile(r"^time", re.IGNORECASE), types.TIME),
+            (re.compile(r"^timestamp", re.IGNORECASE), types.TIMESTAMP),
+            (
+                re.compile(r"^timestamptz", re.IGNORECASE),
+                types.TIMESTAMP(timezone=True),
+            ),
+            (re.compile(r"^interval", re.IGNORECASE), types.Interval),
+        ),
+        utils.GenericDataType.BOOLEAN: (
+            (re.compile(r"^boolean", re.IGNORECASE), types.BOOLEAN),
+        ),
+    }
 
     _time_grain_expressions = {
         None: "{col}",

@@ -147,6 +147,10 @@ class GenericDataType(IntEnum):
     STRING = 1
     TEMPORAL = 2
     BOOLEAN = 3
+    ARRAY = 4
+    JSON = 5
+    MAP = 6
+    ROW = 7
 
 
 class ChartDataResultFormat(str, Enum):

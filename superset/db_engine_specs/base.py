@@ -145,8 +145,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     ] = None  # used for user messages, overridden in child classes
     _date_trunc_functions: Dict[str, str] = {}
     _time_grain_expressions: Dict[Optional[str], str] = {}
-    column_type_mappings: Tuple[
-        Tuple[Pattern[str], Union[TypeEngine, Callable[[Match[str]], TypeEngine]]], ...,
+    column_type_mappings: Dict[
+        utils.GenericDataType,
+        Tuple[
+            Tuple[Pattern[str], Union[TypeEngine, Callable[[Match[str]], TypeEngine]]],
+            ...,
+        ],
     ] = ()
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
@@ -975,7 +979,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return label_mutated
 
     @classmethod
-    def get_sqla_column_type(cls, column_type: Optional[str]) -> Optional[TypeEngine]:
+    def get_sqla_column_type(
+        cls, column_type: Optional[str]
+    ) -> Tuple[Union[TypeEngine, utils.GenericDataType, None]]:
         """
         Return a sqlalchemy native column type that corresponds to the column type
         defined in the data source (return None to use default type inferred by
@@ -986,14 +992,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: SqlAlchemy column type
         """
         if not column_type:
-            return None
-        for regex, sqla_type in cls.column_type_mappings:
-            match = regex.match(column_type)
-            if match:
-                if callable(sqla_type):
-                    return sqla_type(match)
-                return sqla_type
-        return None
+            return None, None
+        for generic_type in cls.column_type_mappings:
+            for regex, sqla_type in cls.column_type_mappings[generic_type]:
+                match = regex.match(column_type)
+                if match:
+                    if callable(sqla_type):
+                        return sqla_type(match), generic_type
+                    return sqla_type, generic_type
+        return None, None
 
     @staticmethod
     def _mutate_label(label: str) -> str:
@@ -1106,10 +1113,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
         return parsed_query.is_select() or parsed_query.is_explain()
 
-    @classmethod
-    def type_is_dttm(cls, column_type: Optional[TypeEngine]) -> bool:
-        return column_type in cls.dttm_types
-
     def get_column_spec(
         self,
         column_name: Optional[str],
@@ -1117,8 +1120,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
     ) -> utils.ColumnSpec:
 
-        column_type = self.get_sqla_column_type(native_type)
-        is_dttm = self.type_is_dttm(column_type)
+        column_type, generic_type = self.get_sqla_column_type(native_type)
+        is_dttm = generic_type == utils.GenericDataType.TEMPORAL
 
         if column_name:  # Further logic to be implemented
             pass
