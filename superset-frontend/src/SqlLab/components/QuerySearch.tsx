@@ -32,7 +32,7 @@ import {
 import { STATUS_OPTIONS, TIME_OPTIONS } from '../constants';
 import AsyncSelect from '../../components/AsyncSelect';
 
-interface propTypes {
+interface QuerySearchProps {
   actions: {
     addDangerToast: (msg: string) => void;
     setDatabases: (data: Record<string, any>) => Record<string, any>;
@@ -43,6 +43,11 @@ interface propTypes {
 interface userMutatorProps {
   value: number;
   text: string;
+}
+
+interface dbMutatorProps {
+  id: number;
+  database_name: string;
 }
 
 const TableWrapper = styled.div`
@@ -67,8 +72,8 @@ const TableStyles = styled.div`
 const StyledTableStylesContainer = styled.div`
   overflow: auto;
 `;
-function QuerySearch({ actions, displayLimit }: propTypes) {
-  const [databaseId, setDatabaseId] = useState<any>('');
+function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
+  const [databaseId, setDatabaseId] = useState<string>('');
   const [userId, setUserId] = useState<string>('');
   const [searchText, setSearchText] = useState<string>('');
   const [from, setFrom] = useState<string>('28 days ago');
@@ -116,12 +121,11 @@ function QuerySearch({ actions, displayLimit }: propTypes) {
       to && `to=${getTimeFromSelection(to)}`,
     ];
 
-    // make into async method
     try {
-      const promise = await SupersetClient.get({
+      const response = await SupersetClient.get({
         endpoint: insertParams('/superset/search_queries', params),
       });
-      setQueriesArray(promise.json);
+      setQueriesArray(response.json);
     } catch (err) {
       actions.addDangerToast(t('An error occurred when refreshing queries'));
     } finally {
@@ -143,10 +147,18 @@ function QuerySearch({ actions, displayLimit }: propTypes) {
     refreshQueries();
   };
 
-  const onKeyDown = (event: any) => {
+  const onKeyDown = (event: React.KeyboardEvent) => {
     if (event.keyCode === 13) {
       refreshQueries();
     }
+  };
+
+  const onChange = (e: React.ChangeEvent) => {
+    e.persist();
+    const handleChange = debounce(e => {
+      setSearchText(e.target.value);
+    }, 200);
+    handleChange(e);
   };
 
   const userMutator = (data: any) =>
@@ -156,10 +168,12 @@ function QuerySearch({ actions, displayLimit }: propTypes) {
     }));
 
   const dbMutator = (data: any) => {
-    const options = data.result.map((db: any) => ({
-      value: db.id,
-      label: db.database_name,
-    }));
+    const options = data.result.map(
+      ({ id, database_name }: dbMutatorProps) => ({
+        value: id,
+        label: database_name,
+      }),
+    );
     actions.setDatabases(data.result);
     if (data.result.length === 0) {
       actions.addDangerToast(
