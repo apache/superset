@@ -106,11 +106,11 @@ const ReturnedRows = styled.div`
   .returnedRowsImage {
     color: #ff7f43;
     vertical-align: bottom;
-    margin-right: 8px;
+    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
   }
   .limitMessage {
-    color: #8e94b0;
-    margin-left: 8px;
+    color: ${({ theme }) => theme.colors.secondary.light1};
+    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
   }
 `;
 
