@@ -29,10 +29,10 @@ import { storeQuery } from 'src/utils/common';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 
-interface propTypes {
+interface ShareSqlLabQueryPropTypes {
   queryEditor: {
-    dbId: number;
-    title: string;
+    dbId?: number;
+    title?: string;
     schema: string;
     autorun: boolean;
     sql: string;
@@ -55,8 +55,11 @@ const Styles = styled.div`
   }
 `;
 
-function ShareSqlLabQuery({ queryEditor, addDangerToast }: propTypes) {
-  const getCopyUrlForKvStore = (callback: any) => {
+function ShareSqlLabQuery({
+  queryEditor,
+  addDangerToast,
+}: ShareSqlLabQueryPropTypes) {
+  const getCopyUrlForKvStore = (callback: Function) => {
     const { dbId, title, schema, autorun, sql } = queryEditor;
     const sharedQuery = { dbId, title, schema, autorun, sql };
 
@@ -71,7 +74,7 @@ function ShareSqlLabQuery({ queryEditor, addDangerToast }: propTypes) {
       });
   };
 
-  const getCopyUrlForSavedQuery = (callback: any) => {
+  const getCopyUrlForSavedQuery = (callback: Function) => {
     let savedQueryToastContent;
 
     if (queryEditor.remoteId) {
@@ -84,7 +87,7 @@ function ShareSqlLabQuery({ queryEditor, addDangerToast }: propTypes) {
       callback(savedQueryToastContent);
     }
   };
-  const getCopyUrl = (callback: any) => {
+  const getCopyUrl = (callback: Function) => {
     if (isFeatureEnabled(FeatureFlag.SHARE_QUERIES_VIA_KV_STORE)) {
       return getCopyUrlForKvStore(callback);
     }
