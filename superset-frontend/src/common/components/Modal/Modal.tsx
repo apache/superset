@@ -42,6 +42,7 @@ interface ModalProps {
   footer?: React.ReactNode;
   wrapProps?: object;
   height?: string;
+  closable?: boolean;
 }
 
 interface StyledModalProps extends SupersetThemeProps {

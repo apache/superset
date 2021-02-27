@@ -119,8 +119,7 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
     };
 
     const processEvents = async () => {
-      const state = store.getState();
-      const queuedComponents = getPendingComponents(state);
+      let queuedComponents = getPendingComponents(store.getState());
       const eventArgs = lastReceivedEventId
         ? { last_id: lastReceivedEventId }
         : {};
@@ -128,6 +127,9 @@ const initAsyncEvents = (options: AsyncEventOptions) => {
       if (queuedComponents && queuedComponents.length) {
         try {
           const { result: events } = await fetchEvents(eventArgs);
+          // refetch queuedComponents due to race condition where results are available
+          // before component state is updated with asyncJobId
+          queuedComponents = getPendingComponents(store.getState());
           if (events && events.length) {
             const componentsByJobId = queuedComponents.reduce((acc, item) => {
               acc[item.asyncJobId] = item;

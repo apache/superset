@@ -364,7 +364,6 @@ export default class Chart extends React.Component {
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={slice.viz_type}
-            owners={slice.owners}
           />
         </div>
       </div>

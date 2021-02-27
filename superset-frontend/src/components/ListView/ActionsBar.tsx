@@ -19,7 +19,8 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import { Tooltip } from 'src/common/components/Tooltip';
-import Icon, { IconName } from 'src/components/Icon';
+import { IconName } from 'src/components/Icon';
+import Icons from 'src/components/Icons';
 import { TooltipPlacement } from 'antd/lib/tooltip';
 
 export type ActionProps = {
@@ -37,7 +38,6 @@ interface ActionsBarProps {
 const StyledActions = styled.span`
   white-space: nowrap;
   min-width: 100px;
-
   svg,
   i {
     margin-right: 8px;
@@ -50,10 +50,15 @@ const StyledActions = styled.span`
   }
 `;
 
+const ActionWrapper = styled.span`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
+
 export default function ActionsBar({ actions }: ActionsBarProps) {
   return (
     <StyledActions className="actions">
       {actions.map((action, index) => {
+        const ActionIcon = Icons[action.icon];
         if (action.tooltip) {
           return (
             <Tooltip
@@ -62,21 +67,21 @@ export default function ActionsBar({ actions }: ActionsBarProps) {
               placement={action.placement}
               key={index}
             >
-              <span
+              <ActionWrapper
                 role="button"
                 tabIndex={0}
                 className="action-button"
                 data-test={action.label}
                 onClick={action.onClick}
               >
-                <Icon name={action.icon} />
-              </span>
+                <ActionIcon />
+              </ActionWrapper>
             </Tooltip>
           );
         }
 
         return (
-          <span
+          <ActionWrapper
             role="button"
             tabIndex={0}
             className="action-button"
@@ -84,8 +89,8 @@ export default function ActionsBar({ actions }: ActionsBarProps) {
             data-test={action.label}
             key={index}
           >
-            <Icon name={action.icon} />
-          </span>
+            <ActionIcon />
+          </ActionWrapper>
         );
       })}
     </StyledActions>

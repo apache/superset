@@ -18,9 +18,10 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Panel } from 'react-bootstrap';
-
+import { css } from '@emotion/core';
+import { t } from '@superset-ui/core';
 import Label from 'src/components/Label';
+import Collapse from 'src/common/components/Collapse';
 import TextControl from './TextControl';
 import MetricsControl from './MetricControl/MetricsControl';
 import ControlHeader from '../ControlHeader';
@@ -54,7 +55,6 @@ export default class FixedOrMetricControl extends React.Component {
     this.setType = this.setType.bind(this);
     this.setFixedValue = this.setFixedValue.bind(this);
     this.setMetric = this.setMetric.bind(this);
-    this.toggle = this.toggle.bind(this);
     const type =
       (props.value ? props.value.type : props.default.type) ||
       controlTypes.fixed;
@@ -89,12 +89,6 @@ export default class FixedOrMetricControl extends React.Component {
     this.setState({ metricValue }, this.onChange);
   }
 
-  toggle() {
-    this.setState(prevState => ({
-      expanded: !prevState.expanded,
-    }));
-  }
-
   render() {
     const value = this.props.value || this.props.default;
     const type = value.type || controlTypes.fixed;
@@ -107,67 +101,88 @@ export default class FixedOrMetricControl extends React.Component {
     return (
       <div>
         <ControlHeader {...this.props} />
-        <Label onClick={this.toggle}>
-          {this.state.type === controlTypes.fixed && (
-            <span>{this.state.fixedValue}</span>
-          )}
-          {this.state.type === controlTypes.metric && (
-            <span>
-              <span style={{ fontWeight: 'normal' }}>metric: </span>
-              <strong>
-                {this.state.metricValue ? this.state.metricValue.label : null}
-              </strong>
-            </span>
-          )}
-        </Label>
-        <Panel
-          className="panel-spreaded"
-          collapsible
-          expanded={this.state.expanded}
-          onToggle={this.toggle}
+        <Collapse
+          ghost
+          css={theme => css`
+            &.ant-collapse
+              > .ant-collapse-item.ant-collapse-no-arrow
+              > .ant-collapse-header {
+              border: 0px;
+              padding: 0px 0px ${theme.gridUnit * 2}px 0px;
+              display: inline-block;
+            }
+            &.ant-collapse-ghost
+              > .ant-collapse-item
+              > .ant-collapse-content
+              > .ant-collapse-content-box {
+              padding: 0px;
+
+              & .well {
+                margin-bottom: 0px;
+                padding: ${theme.gridUnit * 2}px;
+              }
+            }
+          `}
         >
-          <Panel.Collapse>
-            <Panel.Body>
-              <div className="well">
-                <PopoverSection
-                  title="Fixed"
-                  isSelected={type === controlTypes.fixed}
-                  onSelect={() => {
+          <Collapse.Panel
+            showArrow={false}
+            header={
+              <Label onClick={() => undefined}>
+                {this.state.type === controlTypes.fixed && (
+                  <span>{this.state.fixedValue}</span>
+                )}
+                {this.state.type === controlTypes.metric && (
+                  <span>
+                    <span>metric: </span>
+                    <strong>
+                      {this.state.metricValue
+                        ? this.state.metricValue.label
+                        : null}
+                    </strong>
+                  </span>
+                )}
+              </Label>
+            }
+          >
+            <div className="well">
+              <PopoverSection
+                title={t('Fixed')}
+                isSelected={type === controlTypes.fixed}
+                onSelect={() => {
+                  this.setType(controlTypes.fixed);
+                }}
+              >
+                <TextControl
+                  isFloat
+                  onChange={this.setFixedValue}
+                  onFocus={() => {
                     this.setType(controlTypes.fixed);
                   }}
-                >
-                  <TextControl
-                    isFloat
-                    onChange={this.setFixedValue}
-                    onFocus={() => {
-                      this.setType(controlTypes.fixed);
-                    }}
-                    value={this.state.fixedValue}
-                  />
-                </PopoverSection>
-                <PopoverSection
-                  title="Based on a metric"
-                  isSelected={type === controlTypes.metric}
-                  onSelect={() => {
+                  value={this.state.fixedValue}
+                />
+              </PopoverSection>
+              <PopoverSection
+                title={t('Based on a metric')}
+                isSelected={type === controlTypes.metric}
+                onSelect={() => {
+                  this.setType(controlTypes.metric);
+                }}
+              >
+                <MetricsControl
+                  name="metric"
+                  columns={columns}
+                  savedMetrics={metrics}
+                  multi={false}
+                  onFocus={() => {
                     this.setType(controlTypes.metric);
                   }}
-                >
-                  <MetricsControl
-                    name="metric"
-                    columns={columns}
-                    savedMetrics={metrics}
-                    multi={false}
-                    onFocus={() => {
-                      this.setType(controlTypes.metric);
-                    }}
-                    onChange={this.setMetric}
-                    value={this.state.metricValue}
-                  />
-                </PopoverSection>
-              </div>
-            </Panel.Body>
-          </Panel.Collapse>
-        </Panel>
+                  onChange={this.setMetric}
+                  value={this.state.metricValue}
+                />
+              </PopoverSection>
+            </div>
+          </Collapse.Panel>
+        </Collapse>
       </div>
     );
   }

@@ -100,6 +100,7 @@ const MonospaceDiv = styled.div`
   white-space: pre-wrap;
 `;
 
+<<<<<<< HEAD
 const ReturnedRows = styled.div`
   font-size: 13px;
   line-height: 24px;
@@ -112,6 +113,23 @@ const ReturnedRows = styled.div`
     color: ${({ theme }) => theme.colors.secondary.light1};
     margin-left: ${({ theme }) => theme.gridUnit * 2}px;
   }
+=======
+const ResultSetControls = styled.div`
+  display: flex;
+  justify-content: space-between;
+  padding: ${({ theme }) => 2 * theme.gridUnit}px 0;
+  position: fixed;
+`;
+
+const ResultSetButtons = styled.div`
+  display: grid;
+  grid-auto-flow: column;
+  padding-right: ${({ theme }) => 2 * theme.gridUnit}px;
+`;
+
+const ResultSetErrorMessage = styled.div`
+  padding-top: ${({ theme }) => 4 * theme.gridUnit}px;
+>>>>>>> master
 `;
 
 export default class ResultSet extends React.PureComponent<
@@ -430,7 +448,7 @@ export default class ResultSet extends React.PureComponent<
           saveModalAutocompleteValue.length === 0);
 
       return (
-        <div className="ResultSetControls">
+        <ResultSetControls>
           <SaveDatasetModal
             visible={showSaveDatasetModal}
             onOk={this.handleSaveInDataset}
@@ -449,7 +467,7 @@ export default class ResultSet extends React.PureComponent<
             filterAutocompleteOption={this.handleFilterAutocompleteOption}
             onChangeAutoComplete={this.handleOnChangeAutoComplete}
           />
-          <div className="ResultSetButtons">
+          <ResultSetButtons>
             {this.props.visualize &&
               this.props.database &&
               this.props.database.allows_virtual_table_explore && (
@@ -466,7 +484,11 @@ export default class ResultSet extends React.PureComponent<
                 buttonSize="small"
                 href={`/superset/csv/${this.props.query.id}`}
               >
+<<<<<<< HEAD
                 <i className="fa fa-file-text-o" /> {t('Download CSV')}
+=======
+                <i className="fa fa-file-text-o" /> {t('Download to CSV')}
+>>>>>>> master
               </Button>
             )}
 
@@ -479,7 +501,7 @@ export default class ResultSet extends React.PureComponent<
                 </Button>
               }
             />
-          </div>
+          </ResultSetButtons>
           {this.props.search && (
             <input
               type="text"
@@ -489,10 +511,10 @@ export default class ResultSet extends React.PureComponent<
               placeholder={t('Filter results')}
             />
           )}
-        </div>
+        </ResultSetControls>
       );
     }
-    return <div className="noControls" />;
+    return <div />;
   }
 
   renderRowsReturned() {
@@ -538,7 +560,7 @@ export default class ResultSet extends React.PureComponent<
     }
     if (query.state === 'failed') {
       return (
-        <div className="result-set-error-message">
+        <ResultSetErrorMessage>
           <ErrorMessageWithStackTrace
             title={t('Database error')}
             error={query?.errors?.[0]}
@@ -547,7 +569,7 @@ export default class ResultSet extends React.PureComponent<
             link={query.link}
             source="sqllab"
           />
-        </div>
+        </ResultSetErrorMessage>
       );
     }
     if (query.state === 'success' && query.ctas) {
@@ -629,7 +651,6 @@ export default class ResultSet extends React.PureComponent<
         return (
           <Button
             buttonSize="small"
-            className="fetch"
             buttonStyle="primary"
             onClick={() =>
               this.reFetchQueryResults({
@@ -646,7 +667,6 @@ export default class ResultSet extends React.PureComponent<
         return (
           <Button
             buttonSize="small"
-            className="fetch"
             buttonStyle="primary"
             onClick={() => this.fetchResults(query)}
           >
