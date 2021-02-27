@@ -22,6 +22,7 @@ import textwrap
 import time
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
+from datetime import timedelta
 from typing import Any, Callable, cast, Dict, Iterator, Optional, Type, Union
 
 from flask import current_app, g, request
@@ -72,9 +73,68 @@ class AbstractEventLogger(ABC):
     ) -> None:
         pass
 
+    def log_with_context(
+        self,
+        action: str,
+        duration: Optional[timedelta] = None,
+        object_ref: Optional[str] = None,
+        log_to_statsd: bool = True,
+    ) -> None:
+        from superset.views.core import get_form_data
+
+        referrer = request.referrer[:1000] if request.referrer else None
+        user_id = g.user.get_id() if hasattr(g, "user") and g.user else None
+
+        payload = collect_request_payload()
+        if object_ref:
+            payload["object_ref"] = object_ref
+
+        dashboard_id: Optional[int] = None
+        try:
+            dashboard_id = int(payload.get("dashboard_id"))  # type: ignore
+        except (TypeError, ValueError):
+            dashboard_id = None
+
+        if "form_data" in payload:
+            form_data, _ = get_form_data()
+            payload["form_data"] = form_data
+            slice_id = form_data.get("slice_id")
+        else:
+            slice_id = payload.get("slice_id")
+
+        try:
+            slice_id = int(slice_id)  # type: ignore
+        except (TypeError, ValueError):
+            slice_id = 0
+
+        if log_to_statsd:
+            self.stats_logger.incr(action)
+
+        try:
+            # bulk insert
+            explode_by = payload.get("explode")
+            records = json.loads(payload.get(explode_by))  # type: ignore
+        except Exception:  # pylint: disable=broad-except
+            records = [payload]
+
+        duration_ms = duration.total_seconds() * 1000 if duration else None
+
+        self.log(
+            user_id,
+            action,
+            records=records,
+            dashboard_id=dashboard_id,
+            slice_id=slice_id,
+            duration_ms=duration_ms,
+            referrer=referrer,
+        )
+
     @contextmanager
     def log_context(  # pylint: disable=too-many-locals
-        self, action: str, object_ref: Optional[str] = None, log_to_statsd: bool = True,
+        self,
+        action: str,
+        object_ref: Optional[str] = None,
+        log_to_statsd: bool = True,
     ) -> Iterator[Callable[..., None]]:
         """
         Log an event with additional information from the request context.
