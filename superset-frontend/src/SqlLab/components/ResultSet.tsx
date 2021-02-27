@@ -100,12 +100,11 @@ const MonospaceDiv = styled.div`
   white-space: pre-wrap;
 `;
 
-<<<<<<< HEAD
 const ReturnedRows = styled.div`
   font-size: 13px;
   line-height: 24px;
   .returnedRowsImage {
-    color: #ff7f43;
+    color: ${({ theme }) => theme.colors.warning.base};
     vertical-align: bottom;
     margin-right: ${({ theme }) => theme.gridUnit * 2}px;
   }
@@ -113,12 +112,11 @@ const ReturnedRows = styled.div`
     color: ${({ theme }) => theme.colors.secondary.light1};
     margin-left: ${({ theme }) => theme.gridUnit * 2}px;
   }
-=======
+`;
 const ResultSetControls = styled.div`
   display: flex;
   justify-content: space-between;
   padding: ${({ theme }) => 2 * theme.gridUnit}px 0;
-  position: fixed;
 `;
 
 const ResultSetButtons = styled.div`
@@ -129,7 +127,6 @@ const ResultSetButtons = styled.div`
 
 const ResultSetErrorMessage = styled.div`
   padding-top: ${({ theme }) => 4 * theme.gridUnit}px;
->>>>>>> master
 `;
 
 export default class ResultSet extends React.PureComponent<
@@ -484,11 +481,7 @@ export default class ResultSet extends React.PureComponent<
                 buttonSize="small"
                 href={`/superset/csv/${this.props.query.id}`}
               >
-<<<<<<< HEAD
-                <i className="fa fa-file-text-o" /> {t('Download CSV')}
-=======
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
->>>>>>> master
               </Button>
             )}
 
