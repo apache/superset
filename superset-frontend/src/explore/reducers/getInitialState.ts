@@ -23,6 +23,7 @@ import {
   JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
+import { ControlStateMapping } from '@superset-ui/chart-controls';
 import { Slice } from 'src/types/Chart';
 import { CommonBootstrapData } from 'src/types/bootstrapTypes';
 
@@ -33,7 +34,7 @@ import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
 } from 'src/explore/controlUtils';
-import { ControlStateMapping } from '@superset-ui/chart-controls';
+import { ChartState } from 'src/chart/chartReducer';
 
 export interface ExlorePageBootstrapData extends JsonObject {
   can_add: boolean;
@@ -91,22 +92,23 @@ export default function getInitialState(
     : null;
 
   const chartKey: number = getChartKey(bootstrapData);
+  const chart: ChartState = {
+    id: chartKey,
+    chartAlert: null,
+    chartStatus: null,
+    chartUpdateEndTime: null,
+    chartUpdateStartTime: 0,
+    latestQueryFormData: getFormDataFromControls(exploreState.controls),
+    sliceFormData,
+    queryController: null,
+    queriesResponse: null,
+    triggerQuery: false,
+    lastRendered: 0,
+  };
 
   return {
     charts: {
-      [chartKey]: {
-        id: chartKey,
-        chartAlert: null,
-        chartStatus: null,
-        chartUpdateEndTime: null,
-        chartUpdateStartTime: 0,
-        latestQueryFormData: getFormDataFromControls(exploreState.controls),
-        sliceFormData,
-        queryController: null,
-        queriesResponse: null,
-        triggerQuery: false,
-        lastRendered: 0,
-      },
+      [chartKey]: chart,
     },
     saveModal: {
       dashboards: [],
@@ -120,4 +122,4 @@ export default function getInitialState(
   };
 }
 
-export type ExploreState = ReturnType<typeof getInitialState>;
+export type ExplorePageState = ReturnType<typeof getInitialState>;

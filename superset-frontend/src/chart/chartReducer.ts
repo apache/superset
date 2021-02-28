@@ -17,12 +17,37 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { t } from '@superset-ui/core';
+import {
+  t,
+  QueryData,
+  QueryFormData,
+  AnnotationData,
+  QueryObject,
+} from '@superset-ui/core';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import { now } from '../modules/dates';
 import * as actions from './chartAction';
 
-export const chart = {
+export interface ChartState {
+  id: number;
+  annotationData: AnnotationData;
+  annotationError: Record<string, string>;
+  annotationQuery: Record<string, QueryObject>;
+  chartAlert: string | null;
+  chartStatus: string | null;
+  chartStackTrace: string | null;
+  chartUpdateEndTime: number | null;
+  chartUpdateStartTime: number;
+  lastRendered: number;
+  latestQueryFormData: Partial<QueryFormData>;
+  sliceFormData: QueryFormData | null;
+  queryController: AbortController | null;
+  queriesResponse: QueryData | null;
+  triggerQuery: boolean;
+  asyncJobId?: string;
+}
+
+export const chart: ChartState = {
   id: 0,
   chartAlert: null,
   chartStatus: 'loading',
@@ -30,14 +55,22 @@ export const chart = {
   chartUpdateEndTime: null,
   chartUpdateStartTime: 0,
   latestQueryFormData: {},
+  sliceFormData: null,
   queryController: null,
   queriesResponse: null,
   triggerQuery: true,
   lastRendered: 0,
 };
 
-export default function chartReducer(charts = {}, action) {
-  const actionHandlers = {
+type ChartActionHandler = (state: ChartState) => ChartState;
+
+type AnyChartAction = Record<string, any>;
+
+export default function chartReducer(
+  charts: Record<string, ChartState> = {},
+  action: AnyChartAction,
+) {
+  const actionHandlers: Record<string, ChartActionHandler> = {
     [actions.ADD_CHART]() {
       return {
         ...chart,
