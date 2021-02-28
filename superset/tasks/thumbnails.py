@@ -44,7 +44,7 @@ def cache_chart_thumbnail(
             logger.warning("No cache set, refusing to compute")
             return None
         logger.info("Caching chart: %s", url)
-        screenshot = ChartScreenshot(url, digest, (800, 600), (800, 600))
+        screenshot = ChartScreenshot(url, digest)
         with session_scope(nullpool=True) as session:
             user = security_manager.get_user_by_username(
                 current_app.config["THUMBNAIL_SELENIUM_USER"], session=session
@@ -68,7 +68,7 @@ def cache_dashboard_thumbnail(
             logging.warning("No cache set, refusing to compute")
             return
         logger.info("Caching dashboard: %s", url)
-        screenshot = DashboardScreenshot(url, digest, (1600, 1200), (800, 600))
+        screenshot = DashboardScreenshot(url, digest)
         with session_scope(nullpool=True) as session:
             user = security_manager.get_user_by_username(
                 current_app.config["THUMBNAIL_SELENIUM_USER"], session=session

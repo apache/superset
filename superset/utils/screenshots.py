@@ -204,9 +204,7 @@ class ChartScreenshot(BaseScreenshot):
         thumb_size: Optional[WindowSize] = None,
     ):
         super().__init__(url, digest)
-        self.window_size = (
-            window_size or current_app.config["WEBDRIVER_WINDOW"]["slice"]
-        )
+        self.window_size = window_size or (800, 600)
         self.thumb_size = thumb_size or (800, 600)
 
 
@@ -222,7 +220,5 @@ class DashboardScreenshot(BaseScreenshot):
         thumb_size: Optional[WindowSize] = None,
     ):
         super().__init__(url, digest)
-        self.window_size = (
-            window_size or current_app.config["WEBDRIVER_WINDOW"]["dashboard"]
-        )
+        self.window_size = window_size or (1600, 1200)
         self.thumb_size = thumb_size or (800, 600)
