@@ -179,10 +179,10 @@ class MetricsControl extends React.PureComponent {
     ) {
       this.setState({ options: this.optionsForSelect(nextProps) });
 
-      // Remove metrics if selected value no longer a column
-      const containsAllMetrics = columnsContainAllMetrics(value, nextProps);
-
-      if (!containsAllMetrics) {
+      // Remove all metrics if selected value no longer a valid column
+      // in the dataset. Must use `nextProps` here because Redux reducers may
+      // have already updated the value for this control.
+      if (!columnsContainAllMetrics(nextProps.value, nextProps)) {
         this.props.onChange([]);
       }
     }

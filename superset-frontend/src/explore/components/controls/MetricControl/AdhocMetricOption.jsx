@@ -60,7 +60,6 @@ class AdhocMetricOption extends React.PureComponent {
       onMoveLabel,
       onDropLabel,
       index,
-      datasource,
     } = this.props;
 
     return (
@@ -70,7 +69,6 @@ class AdhocMetricOption extends React.PureComponent {
         columns={columns}
         savedMetricsOptions={savedMetricsOptions}
         savedMetric={savedMetric}
-        datasource={datasource}
         datasourceType={datasourceType}
       >
         <OptionControlLabel

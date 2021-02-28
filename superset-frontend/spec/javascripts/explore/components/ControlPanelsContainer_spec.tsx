@@ -18,10 +18,17 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { getChartControlPanelRegistry, t } from '@superset-ui/core';
+import {
+  DatasourceType,
+  getChartControlPanelRegistry,
+  t,
+} from '@superset-ui/core';
 import { defaultControls } from 'src/explore/store';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
-import { ControlPanelsContainer } from 'src/explore/components/ControlPanelsContainer';
+import {
+  ControlPanelsContainer,
+  ControlPanelsContainerProps,
+} from 'src/explore/components/ControlPanelsContainer';
 import Collapse from 'src/common/components/Collapse';
 
 describe('ControlPanelsContainer', () => {
@@ -78,15 +85,15 @@ describe('ControlPanelsContainer', () => {
   });
 
   function getDefaultProps() {
+    const controls = defaultControls as ControlPanelsContainerProps['controls'];
     return {
-      datasource_type: 'table',
+      datasource_type: DatasourceType.Table,
       actions: {},
-      controls: defaultControls,
-      // Note: default viz_type is table
-      form_data: getFormDataFromControls(defaultControls),
+      controls,
+      form_data: getFormDataFromControls(controls),
       isDatasourceMetaLoading: false,
       exploreState: {},
-    };
+    } as ControlPanelsContainerProps;
   }
 
   it('renders ControlPanelSections', () => {

@@ -69,12 +69,6 @@ export default class CollectionControl extends React.Component {
     this.onAdd = this.onAdd.bind(this);
   }
 
-  componentDidUpdate(prevProps) {
-    if (prevProps.datasource.name !== this.props.datasource.name) {
-      this.props.onChange([]);
-    }
-  }
-
   onChange(i, value) {
     Object.assign(this.props.value[i], value);
     this.props.onChange(this.props.value);

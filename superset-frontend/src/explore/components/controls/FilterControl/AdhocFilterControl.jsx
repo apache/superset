@@ -18,7 +18,13 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, logging, SupersetClient, withTheme } from '@superset-ui/core';
+import {
+  t,
+  logging,
+  SupersetClient,
+  withTheme,
+  ensureIsArray,
+} from '@superset-ui/core';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
@@ -39,6 +45,11 @@ import AdhocFilterOption from './AdhocFilterOption';
 import AdhocFilter, { CLAUSES, EXPRESSION_TYPES } from './AdhocFilter';
 import adhocFilterType from './adhocFilterType';
 
+const selectedMetricType = PropTypes.oneOfType([
+  PropTypes.string,
+  adhocMetricType,
+]);
+
 const propTypes = {
   name: PropTypes.string,
   onChange: PropTypes.func,
@@ -46,12 +57,10 @@ const propTypes = {
   datasource: PropTypes.object,
   columns: PropTypes.arrayOf(columnType),
   savedMetrics: PropTypes.arrayOf(savedMetricType),
-  formData: PropTypes.shape({
-    metric: PropTypes.oneOfType([PropTypes.string, adhocMetricType]),
-    metrics: PropTypes.arrayOf(
-      PropTypes.oneOfType([PropTypes.string, adhocMetricType]),
-    ),
-  }),
+  selectedMetrics: PropTypes.oneOfType([
+    selectedMetricType,
+    PropTypes.arrayOf(selectedMetricType),
+  ]),
   isLoading: PropTypes.bool,
 };
 
@@ -60,7 +69,7 @@ const defaultProps = {
   onChange: () => {},
   columns: [],
   savedMetrics: [],
-  formData: {},
+  selectedMetrics: [],
 };
 
 function isDictionaryForAdhocFilter(value) {
@@ -141,10 +150,7 @@ class AdhocFilterControl extends React.Component {
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
-    if (
-      this.props.columns !== nextProps.columns ||
-      this.props.formData !== nextProps.formData
-    ) {
+    if (this.props.columns !== nextProps.columns) {
       this.setState({ options: this.optionsForSelect(nextProps) });
     }
     if (this.props.value !== nextProps.value) {
@@ -270,7 +276,7 @@ class AdhocFilterControl extends React.Component {
   optionsForSelect(props) {
     const options = [
       ...props.columns,
-      ...[...(props.formData?.metrics || []), props.formData?.metric].map(
+      ...ensureIsArray(props.selectedMetrics).map(
         metric =>
           metric &&
           (typeof metric === 'string'
