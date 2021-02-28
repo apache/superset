@@ -6,13 +6,13 @@ ignore:
 coverage:
   status:
     project:
-      informational: true
       default:
+        informational: true
         # Commits pushed to master should not make the overall
         # project coverage decrease:
         target: auto
         threshold: 0%
     patch:
-      informational: true
       default:
+        informational: true
         threshold: 0%
