@@ -19,16 +19,9 @@
 import memoizeOne from 'memoize-one';
 import { getChartControlPanelRegistry } from '@superset-ui/core';
 import { expandControlConfig } from '@superset-ui/chart-controls';
-import * as SECTIONS from './controlPanels/sections';
+import * as SECTIONS from '../controlPanels/sections';
 
-export function getFormDataFromControls(controlsState) {
-  const formData = {};
-  Object.keys(controlsState).forEach(controlName => {
-    const control = controlsState[controlName];
-    formData[controlName] = control.value;
-  });
-  return formData;
-}
+export * from './getFormDataFromControls';
 
 export function validateControl(control, processedState) {
   const { validators } = control;

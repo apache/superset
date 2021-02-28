@@ -17,41 +17,72 @@
  * under the License.
  */
 import shortid from 'shortid';
+import {
+  Datasource,
+  DatasourceType,
+  JsonObject,
+  QueryFormData,
+} from '@superset-ui/core';
+import { Slice } from 'src/types/Chart';
+import { CommonBootstrapData } from 'src/types/bootstrapTypes';
 
-import getToastsFromPyFlashMessages from '../../messageToasts/utils/getToastsFromPyFlashMessages';
-import { getChartKey } from '../exploreUtils';
-import { getControlsState } from '../store';
+import getToastsFromPyFlashMessages from 'src/messageToasts/utils/getToastsFromPyFlashMessages';
+import { getChartKey } from 'src/explore/exploreUtils';
+import { getControlsState } from 'src/explore/store';
 import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
-} from '../controlUtils';
+} from 'src/explore/controlUtils';
+import { ControlStateMapping } from '@superset-ui/chart-controls';
 
-export default function getInitialState(bootstrapData) {
-  const { form_data: rawFormData } = bootstrapData;
+export interface ExlorePageBootstrapData extends JsonObject {
+  can_add: boolean;
+  can_download: boolean;
+  can_overwrite: boolean;
+  datasource: Datasource;
+  form_data: QueryFormData;
+  datasource_id: number;
+  datasource_type: DatasourceType;
+  slice: Slice | null;
+  standalone: boolean;
+  user_id: number;
+  forced_height: string | null;
+  common: CommonBootstrapData;
+}
+
+export default function getInitialState(
+  bootstrapData: ExlorePageBootstrapData,
+) {
+  const { form_data: initialFormData } = bootstrapData;
   const { slice } = bootstrapData;
   const sliceName = slice ? slice.slice_name : null;
-  const bootstrappedState = {
+
+  const exploreState = {
+    // note this will add `form_data` to state,
+    // which will be manipulatable by future reducers.
     ...bootstrapData,
     sliceName,
     common: {
       flash_messages: bootstrapData.common.flash_messages,
       conf: bootstrapData.common.conf,
     },
-    rawFormData,
-    filterColumnOpts: [],
     isDatasourceMetaLoading: false,
     isStarred: false,
+    // Initial control state will skip `control.mapStateToProps`
+    // because `bootstrapData.controls` is undefined.
+    controls: getControlsState(
+      bootstrapData,
+      initialFormData,
+    ) as ControlStateMapping,
   };
-  const controls = getControlsState(bootstrappedState, rawFormData);
-  bootstrappedState.controls = controls;
 
   // apply initial mapStateToProps for all controls, must execute AFTER
-  // bootstrappedState has initialized `controls`. Order of execution is not
+  // bootstrapState has initialized `controls`. Order of execution is not
   // guaranteed, so controls shouldn't rely on the each other's mapped state.
-  Object.entries(controls).forEach(([key, controlState]) => {
-    controls[key] = applyMapStateToPropsToControl(
+  Object.entries(exploreState.controls).forEach(([key, controlState]) => {
+    exploreState.controls[key] = applyMapStateToPropsToControl(
       controlState,
-      bootstrappedState,
+      exploreState,
     );
   });
 
@@ -59,7 +90,7 @@ export default function getInitialState(bootstrapData) {
     ? getFormDataFromControls(getControlsState(bootstrapData, slice.form_data))
     : null;
 
-  const chartKey = getChartKey(bootstrappedState);
+  const chartKey: number = getChartKey(bootstrapData);
 
   return {
     charts: {
@@ -69,7 +100,7 @@ export default function getInitialState(bootstrapData) {
         chartStatus: null,
         chartUpdateEndTime: null,
         chartUpdateStartTime: 0,
-        latestQueryFormData: getFormDataFromControls(controls),
+        latestQueryFormData: getFormDataFromControls(exploreState.controls),
         sliceFormData,
         queryController: null,
         queriesResponse: null,
@@ -81,10 +112,12 @@ export default function getInitialState(bootstrapData) {
       dashboards: [],
       saveModalAlert: null,
     },
-    explore: bootstrappedState,
+    explore: exploreState,
     impressionId: shortid.generate(),
     messageToasts: getToastsFromPyFlashMessages(
       (bootstrapData.common || {}).flash_messages || [],
     ),
   };
 }
+
+export type ExploreState = ReturnType<typeof getInitialState>;

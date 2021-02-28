@@ -17,71 +17,55 @@
  * under the License.
  */
 import React from 'react';
-import { FormGroup, FormControl } from 'react-bootstrap';
+import { FormGroup, FormControl, FormControlProps } from 'react-bootstrap';
 import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
-import ControlHeader from '../ControlHeader';
+import { FAST_DEBOUNCE } from 'src/constants';
+import ControlHeader from 'src/explore/components/ControlHeader';
 
-interface TextControlProps {
+type InputValueType = string | number;
+
+export interface TextControlProps<T extends InputValueType = InputValueType> {
   disabled?: boolean;
   isFloat?: boolean;
   isInt?: boolean;
-  onChange?: (value: any, errors: any) => {};
+  onChange?: (value: T, errors: any) => {};
   onFocus?: () => {};
   placeholder?: string;
-  value?: string | number;
+  value?: T | null;
   controlId?: string;
   renderTrigger?: boolean;
-  datasource?: string;
 }
 
-interface TextControlState {
+export interface TextControlState {
   controlId: string;
-  currentDatasource?: string;
-  value?: string | number;
+  value: string;
 }
 
 const generateControlId = (controlId?: string) =>
   `formInlineName_${controlId ?? (Math.random() * 1000000).toFixed()}`;
 
-export default class TextControl extends React.Component<
-  TextControlProps,
-  TextControlState
-> {
-  debouncedOnChange = debounce((inputValue: string) => {
-    this.onChange(inputValue);
-  }, 500);
+const safeStringify = (value?: InputValueType | null) =>
+  value == null ? '' : String(value);
 
-  static getDerivedStateFromProps(
-    props: TextControlProps,
-    state: TextControlState,
-  ) {
-    // reset value when datasource changes
-    // props.datasource and props.value don't update in the same re-render,
-    // so we need to synchronize them to update the state with correct values
-    if (
-      props.value !== state.value &&
-      props.datasource !== state.currentDatasource
-    ) {
-      return { value: props.value, currentDatasource: props.datasource };
-    }
-    return null;
-  }
+export default class TextControl<
+  T extends InputValueType = InputValueType
+> extends React.Component<TextControlProps<T>, TextControlState> {
+  initialValue?: TextControlProps['value'];
 
-  constructor(props: TextControlProps) {
+  constructor(props: TextControlProps<T>) {
     super(props);
-
-    // if there's no control id provided, generate a random
-    // number to prevent rendering elements with same ids
+    this.initialValue = props.value;
     this.state = {
+      // if there's no control id provided, generate a random
+      // number to prevent rendering elements with same ids
       controlId: generateControlId(props.controlId),
-      value: props.value,
-      currentDatasource: props.datasource,
+      value: safeStringify(this.initialValue),
     };
   }
 
   onChange = (inputValue: string) => {
-    let parsedValue: string | number = inputValue;
+    let parsedValue: InputValueType = inputValue;
     // Validation & casting
     const errors = [];
     if (inputValue !== '' && this.props.isFloat) {
@@ -102,26 +86,26 @@ export default class TextControl extends React.Component<
         parsedValue = parseInt(inputValue, 10);
       }
     }
-    this.props.onChange?.(parsedValue, errors);
+    this.props.onChange?.(parsedValue as T, errors);
   };
 
-  onChangeWrapper = (event: any) => {
-    const { value } = event.target;
-    this.setState({ value });
+  debouncedOnChange = debounce((inputValue: string) => {
+    this.onChange(inputValue);
+  }, FAST_DEBOUNCE);
 
-    // use debounce when change takes effect immediately after user starts typing
-    const onChange = this.props.renderTrigger
-      ? this.debouncedOnChange
-      : this.onChange;
-    onChange(value);
+  onChangeWrapper: FormControlProps['onChange'] = event => {
+    const { value } = event.target as HTMLInputElement;
+    this.setState({ value }, () => {
+      this.debouncedOnChange(value);
+    });
   };
 
   render = () => {
-    const { value: rawValue } = this.state;
-    const value =
-      typeof rawValue !== 'undefined' && rawValue !== null
-        ? rawValue.toString()
-        : '';
+    let { value } = this.state;
+    if (this.initialValue !== this.props.value) {
+      this.initialValue = this.props.value;
+      value = safeStringify(this.props.value);
+    }
     return (
       <div>
         <ControlHeader {...this.props} />
