@@ -222,10 +222,7 @@ function ExploreViewContainer(props) {
   }
 
   function onQuery() {
-    // remove alerts when query
-    props.actions.removeControlPanelAlert();
     props.actions.triggerQuery(true, props.chart.id);
-
     addHistory();
   }
 

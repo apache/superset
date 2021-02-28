@@ -55,12 +55,7 @@ export const HAVING_OPERATORS = [
   OPERATORS['>='],
   OPERATORS['<='],
 ];
-export const MULTI_OPERATORS = new Set([
-  OPERATORS.in,
-  OPERATORS['not in'],
-  OPERATORS.IN,
-  OPERATORS['NOT IN'],
-]);
+export const MULTI_OPERATORS = new Set([OPERATORS.IN, OPERATORS['NOT IN']]);
 // CUSTOM_OPERATORS will show operator in simple mode,
 // but will generate customized sqlExpression
 export const CUSTOM_OPERATORS = new Set([OPERATORS['LATEST PARTITION']]);
@@ -103,3 +98,6 @@ export const TIME_FILTER_MAP = {
   druid_time_origin: '__time_origin',
   granularity: '__granularity',
 };
+
+// TODO: make this configurable per Superset installation
+export const DEFAULT_TIME_RANGE = 'Last week';

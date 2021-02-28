@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import rison from 'rison';
 import {
   SupersetClient,
@@ -25,6 +25,7 @@ import {
   t,
   TimeRangeEndpoints,
 } from '@superset-ui/core';
+import { DatasourceMeta } from '@superset-ui/chart-controls';
 import {
   buildTimeRangeString,
   formatTimeRange,
@@ -38,6 +39,8 @@ import { Divider } from 'src/common/components';
 import Icon from 'src/components/Icon';
 import { Select } from 'src/components/Select';
 import { Tooltip } from 'src/common/components/Tooltip';
+import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
+
 import { SelectOptionType, FrameType } from './types';
 import {
   COMMON_RANGE_VALUES_SET,
@@ -165,28 +168,27 @@ const IconWrapper = styled.span`
   }
 `;
 
-interface DateFilterLabelProps {
+interface DateFilterControlProps {
   name: string;
   onChange: (timeRange: string) => void;
   value?: string;
   endpoints?: TimeRangeEndpoints;
-  datasource?: string;
+  datasource?: DatasourceMeta;
 }
 
-export default function DateFilterControl(props: DateFilterLabelProps) {
-  const { value = 'Last week', endpoints, onChange, datasource } = props;
+export default function DateFilterControl(props: DateFilterControlProps) {
+  const { value = DEFAULT_TIME_RANGE, endpoints, onChange } = props;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
-  const [frame, setFrame] = useState<FrameType>(guessFrame(value));
-  const [isMounted, setIsMounted] = useState<boolean>(false);
+  const guessedFrame = useMemo(() => guessFrame(value), [value]);
+  const [frame, setFrame] = useState<FrameType>(guessedFrame);
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
   const [tooltipTitle, setTooltipTitle] = useState<string>(value);
 
   useEffect(() => {
-    if (!isMounted) setIsMounted(true);
     fetchTimeRange(value, endpoints).then(({ value: actualRange, error }) => {
       if (error) {
         setEvalResponse(error || '');
@@ -205,9 +207,9 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
           +--------------+------+----------+--------+----------+-----------+
         */
         if (
-          frame === 'Common' ||
-          frame === 'Calendar' ||
-          frame === 'No filter'
+          guessedFrame === 'Common' ||
+          guessedFrame === 'Calendar' ||
+          guessedFrame === 'No filter'
         ) {
           setActualTimeRange(value);
           setTooltipTitle(actualRange || '');
@@ -219,14 +221,6 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
       }
     });
   }, [value]);
-
-  useEffect(() => {
-    if (isMounted) {
-      onChange('Last week');
-      setTimeRangeValue('Last week');
-      setFrame(guessFrame('Last week'));
-    }
-  }, [datasource]);
 
   useEffect(() => {
     fetchTimeRange(timeRangeValue, endpoints).then(({ value, error }) => {
@@ -247,13 +241,13 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
 
   function onOpen() {
     setTimeRangeValue(value);
-    setFrame(guessFrame(value));
+    setFrame(guessedFrame);
     setShow(true);
   }
 
   function onHide() {
     setTimeRangeValue(value);
-    setFrame(guessFrame(value));
+    setFrame(guessedFrame);
     setShow(false);
   }
 
@@ -265,7 +259,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
     }
   };
 
-  function onFrame(option: SelectOptionType) {
+  function onChangeFrame(option: SelectOptionType) {
     if (option.value === 'No filter') {
       setTimeRangeValue('No filter');
     }
@@ -278,7 +272,7 @@ export default function DateFilterControl(props: DateFilterLabelProps) {
       <Select
         options={FRAME_OPTIONS}
         value={FRAME_OPTIONS.filter(({ value }) => value === frame)}
-        onChange={onFrame}
+        onChange={onChangeFrame}
         className="frame-dropdown"
       />
       {frame !== 'No filter' && <Divider />}

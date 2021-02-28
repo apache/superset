@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ExpandedControlItem } from '@superset-ui/chart-controls';
 import React from 'react';
-import PropTypes from 'prop-types';
 
 const NUM_COLUMNS = 12;
 
-const propTypes = {
-  controls: PropTypes.arrayOf(PropTypes.object).isRequired,
-};
-
-function ControlSetRow(props) {
-  const colSize = NUM_COLUMNS / props.controls.length;
+export default function ControlRow({
+  controls,
+}: {
+  controls: ExpandedControlItem[];
+}) {
+  const colSize = NUM_COLUMNS / controls.length;
   return (
     <div className="row space-1">
-      {props.controls.map((control, i) => (
+      {controls.map((control, i) => (
         <div className={`col-lg-${colSize} col-xs-12`} key={i}>
           {control}
         </div>
@@ -37,6 +37,3 @@ function ControlSetRow(props) {
     </div>
   );
 }
-
-ControlSetRow.propTypes = propTypes;
-export default ControlSetRow;
