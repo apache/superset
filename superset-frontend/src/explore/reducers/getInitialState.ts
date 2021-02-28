@@ -24,17 +24,16 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { ControlStateMapping } from '@superset-ui/chart-controls';
-import { Slice } from 'src/types/Chart';
 import { CommonBootstrapData } from 'src/types/bootstrapTypes';
-
 import getToastsFromPyFlashMessages from 'src/messageToasts/utils/getToastsFromPyFlashMessages';
+
+import { ChartState, Slice } from 'src/explore/types';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { getControlsState } from 'src/explore/store';
 import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
 } from 'src/explore/controlUtils';
-import { ChartState } from 'src/chart/chartReducer';
 
 export interface ExlorePageBootstrapData extends JsonObject {
   can_add: boolean;
@@ -96,6 +95,7 @@ export default function getInitialState(
     id: chartKey,
     chartAlert: null,
     chartStatus: null,
+    chartStackTrace: null,
     chartUpdateEndTime: null,
     chartUpdateStartTime: 0,
     latestQueryFormData: getFormDataFromControls(exploreState.controls),

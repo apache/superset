@@ -17,35 +17,11 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import {
-  t,
-  QueryData,
-  QueryFormData,
-  AnnotationData,
-  QueryObject,
-} from '@superset-ui/core';
+import { t } from '@superset-ui/core';
+import { ChartState } from 'src/explore/types';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import { now } from '../modules/dates';
 import * as actions from './chartAction';
-
-export interface ChartState {
-  id: number;
-  annotationData: AnnotationData;
-  annotationError: Record<string, string>;
-  annotationQuery: Record<string, QueryObject>;
-  chartAlert: string | null;
-  chartStatus: string | null;
-  chartStackTrace: string | null;
-  chartUpdateEndTime: number | null;
-  chartUpdateStartTime: number;
-  lastRendered: number;
-  latestQueryFormData: Partial<QueryFormData>;
-  sliceFormData: QueryFormData | null;
-  queryController: AbortController | null;
-  queriesResponse: QueryData | null;
-  triggerQuery: boolean;
-  asyncJobId?: string;
-}
 
 export const chart: ChartState = {
   id: 0,
@@ -167,7 +143,7 @@ export default function chartReducer(
       }
       const annotationQuery = {
         ...state.annotationQuery,
-        [action.annotation.name]: action.queryRequest,
+        [action.annotation.name]: action.queryController,
       };
       return {
         ...state,
