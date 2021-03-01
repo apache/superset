@@ -147,11 +147,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     width,
     data,
     isRawRecords,
+    showNextButton,
     columns: columnsMeta,
     alignPositiveNegative = false,
     colorPositiveNegative = false,
     includeSearch = false,
     pageSize = 0,
+    serverPagination = false,
+    currentPage,
+    setDataMask,
     showCellBars = true,
     emitFilter = false,
     sortDesc = false,
@@ -164,7 +168,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   // only take relevant page size options
   const pageSizeOptions = useMemo(
-    () => PAGE_SIZE_OPTIONS.filter(([n]) => n <= 2 * data.length) as SizeOption[],
+    () =>
+      PAGE_SIZE_OPTIONS.filter(([n]) => n <= 2 * data.length || serverPagination) as SizeOption[],
     [data.length],
   );
 
@@ -284,11 +289,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       <DataTable<D>
         columns={columns}
         data={data}
+        showNextButton={showNextButton}
         tableClassName="table table-striped table-condensed"
         pageSize={pageSize}
+        currentPage={currentPage}
         pageSizeOptions={pageSizeOptions}
         width={width}
         height={height}
+        serverPagination={serverPagination}
+        setDataMask={setDataMask}
         // 9 page items in > 340px works well even for 100+ pages
         maxPageItemCount={width > 340 ? 9 : 7}
         noResults={(filter: string) => t(filter ? 'No matching records found' : 'No records found')}

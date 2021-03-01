@@ -1,6 +1,6 @@
 import { createSelector } from 'reselect';
-import { convertKeysToCamelCase, Datasource } from '../..';
-import { HandlerFunction, PlainObject, SetExtraFormDataHook } from '../types/Base';
+import { Behavior, convertKeysToCamelCase, Datasource, JsonObject } from '../..';
+import { HandlerFunction, PlainObject, SetDataMaskHook } from '../types/Base';
 import { QueryData, DataRecordFilters } from '..';
 
 // TODO: more specific typing for these fields of ChartProps
@@ -23,8 +23,8 @@ type Hooks = {
   onError?: HandlerFunction;
   /** use the vis as control to update state */
   setControlValue?: HandlerFunction;
-  /** handle native filters */
-  setExtraFormData?: SetExtraFormDataHook;
+  /** handle external filters */
+  setDataMask?: SetDataMaskHook;
   /** handle tooltip */
   setTooltip?: HandlerFunction;
 } & PlainObject;
@@ -51,6 +51,10 @@ export interface ChartPropsConfig {
   queriesData?: QueryData[];
   /** Chart width */
   width?: number;
+  /** Own chart state of object that saved in dashboard */
+  ownCurrentState?: JsonObject;
+  /** Set of actual behaviors that this instance of chart should use */
+  behaviors?: Behavior[];
 }
 
 const DEFAULT_WIDTH = 800;
@@ -75,9 +79,13 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   hooks: Hooks;
 
+  ownCurrentState: JsonObject;
+
   queriesData: QueryData[];
 
   width: number;
+
+  behaviors: Behavior[];
 
   constructor(config: ChartPropsConfig & { formData?: FormData } = {}) {
     const {
@@ -85,8 +93,10 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
       datasource = {},
       formData = {} as FormData,
       hooks = {},
+      ownCurrentState = {},
       initialValues = {},
       queriesData = [],
+      behaviors = [],
       width = DEFAULT_WIDTH,
       height = DEFAULT_HEIGHT,
     } = config;
@@ -100,6 +110,8 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
     this.hooks = hooks;
     this.initialValues = initialValues;
     this.queriesData = queriesData;
+    this.ownCurrentState = ownCurrentState;
+    this.behaviors = behaviors;
   }
 }
 
@@ -114,7 +126,20 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
     input => input.initialValues,
     input => input.queriesData,
     input => input.width,
-    (annotationData, datasource, formData, height, hooks, initialValues, queriesData, width) =>
+    input => input.ownCurrentState,
+    input => input.behaviors,
+    (
+      annotationData,
+      datasource,
+      formData,
+      height,
+      hooks,
+      initialValues,
+      queriesData,
+      width,
+      ownCurrentState,
+      behaviors,
+    ) =>
       new ChartProps({
         annotationData,
         datasource,
@@ -123,7 +148,9 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         hooks,
         initialValues,
         queriesData,
+        ownCurrentState,
         width,
+        behaviors,
       }),
   );
 };
