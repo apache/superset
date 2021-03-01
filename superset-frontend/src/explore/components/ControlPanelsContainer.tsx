@@ -40,12 +40,13 @@ import Collapse from 'src/common/components/Collapse';
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
 
-import { sectionsToRender } from 'src/explore/controlUtils';
+import { getSectionsToRender } from 'src/explore/controlUtils';
 import {
   ExploreActions,
   exploreActions,
 } from 'src/explore/actions/exploreActions';
 import { ExplorePageState } from 'src/explore/reducers/getInitialState';
+import { ChartState } from 'src/explore/types';
 
 import ControlRow from './ControlRow';
 import Control from './Control';
@@ -53,7 +54,8 @@ import Control from './Control';
 export type ControlPanelsContainerProps = {
   actions: ExploreActions;
   datasource_type: DatasourceType;
-  exploreState: Record<string, any>;
+  exploreState: ExplorePageState['explore'];
+  chart: ChartState;
   controls: Record<string, ControlState>;
   form_data: QueryFormData;
   isDatasourceMetaLoading: boolean;
@@ -100,7 +102,7 @@ const ControlPanelsTabs = styled(Tabs)`
   }
 `;
 
-class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps> {
+export class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps> {
   // trigger updates to the component when async plugins load
   static contextType = PluginContext;
 
@@ -111,7 +113,7 @@ class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps
   }
 
   sectionsToRender(): ExpandedControlPanelSectionConfig[] {
-    return sectionsToRender(
+    return getSectionsToRender(
       this.props.form_data.viz_type,
       this.props.datasource_type,
     );
@@ -313,8 +315,6 @@ class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps
     );
   }
 }
-
-export { ControlPanelsContainer };
 
 export default connect(
   function mapStateToProps(state: ExplorePageState) {
