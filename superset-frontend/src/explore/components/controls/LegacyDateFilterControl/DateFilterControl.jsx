@@ -36,8 +36,8 @@ import {
 } from 'src/explore/dateFilterUtils';
 import Label from 'src/components/Label';
 import './DateFilterControl.less';
-import ControlHeader from '../ControlHeader';
-import PopoverSection from '../../../components/PopoverSection';
+import ControlHeader from 'src/explore/components/ControlHeader';
+import PopoverSection from 'src/components/PopoverSection';
 
 const TYPES = Object.freeze({
   DEFAULTS: 'defaults',

@@ -23,7 +23,7 @@ import {
   CustomRangeType,
   DateTimeGrainType,
   DateTimeModeType,
-} from './types';
+} from 'src/explore/components/controls/DateFilterControl/types';
 import { SEVEN_DAYS_AGO, MIDNIGHT, MOMENT_FORMAT } from './constants';
 
 /**

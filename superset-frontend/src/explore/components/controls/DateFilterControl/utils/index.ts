@@ -16,8 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../../../stylesheets/less/variables.less';
-
-.rdtPicker table {
-  font-size: @font-size-s;
-}
+export * from './dateParser';
+export * from './constants';
