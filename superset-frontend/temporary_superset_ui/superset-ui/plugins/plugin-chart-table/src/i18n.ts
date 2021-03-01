@@ -9,6 +9,8 @@ const en = {
   'page_size.show': ['Show'],
   'page_size.all': ['All'],
   'page_size.entries': ['entries'],
+  'table.previous_page': ['Previous'],
+  'table.next_page': ['Next'],
   'search.num_records': ['%s record', '%s records...'],
 };
 
@@ -23,6 +25,8 @@ const translations: Partial<Record<Locale, typeof en>> = {
     'page_size.show': ['Afficher'],
     'page_size.all': ['tous'],
     'page_size.entries': ['entrées'],
+    'table.previous_page': ['Précédent'],
+    'table.next_page': ['Suivante'],
     'search.num_records': ['%s enregistrement', '%s enregistrements...'],
   },
   zh: {
@@ -34,6 +38,8 @@ const translations: Partial<Record<Locale, typeof en>> = {
     'page_size.show': ['每页显示'],
     'page_size.all': ['全部'],
     'page_size.entries': ['条'],
+    'table.previous_page': ['以前的'],
+    'table.next_page': ['下一個'],
     'search.num_records': ['%s条记录...'],
   },
 };

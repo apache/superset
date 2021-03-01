@@ -29,6 +29,7 @@ import {
   QueryMode,
   ChartDataResponseResult,
   QueryFormData,
+  SetDataMaskHook,
 } from '@superset-ui/core';
 
 export type CustomFormatter = (value: DataRecordValue) => string;
@@ -69,6 +70,10 @@ export type TableChartFormData = QueryFormData & {
 };
 
 export interface TableChartProps extends ChartProps {
+  ownCurrentState: {
+    pageSize?: number;
+    currentPage?: number;
+  };
   rawFormData: TableChartFormData;
   queriesData: ChartDataResponseResult[];
 }
@@ -76,6 +81,10 @@ export interface TableChartProps extends ChartProps {
 export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   height: number;
   width: number;
+  showNextButton: boolean;
+  serverPagination: boolean;
+  currentPage?: number;
+  setDataMask: SetDataMaskHook;
   isRawRecords?: boolean;
   data: D[];
   columns: DataColumnMeta[];
@@ -93,6 +102,11 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   filters?: DataRecordFilters;
   emitFilter?: boolean;
   onChangeFilter?: ChartProps['hooks']['onAddFilter'];
+}
+
+export enum ServerPage {
+  NEXT = 'next',
+  PREVIOUS = 'previous',
 }
 
 export default {};

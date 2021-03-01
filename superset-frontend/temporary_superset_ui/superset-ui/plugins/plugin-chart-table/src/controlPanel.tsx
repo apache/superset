@@ -192,7 +192,39 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['row_limit'],
+        [
+          {
+            name: 'server_pagination',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Server pagination'),
+              description: t('Enable server side pagination of results (experimental feature)'),
+              default: false,
+            },
+          },
+        ],
+        [
+          {
+            name: 'row_limit',
+            override: {
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                !controls.server_pagination.value,
+            },
+          },
+          {
+            name: 'server_page_length',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Server Page Length'),
+              default: 10,
+              choices: PAGE_SIZE_OPTIONS,
+              description: t('Rows per page, 0 means no pagination'),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                controls.server_pagination.value,
+            },
+          },
+        ],
         [
           {
             name: 'include_time',
@@ -251,6 +283,8 @@ const config: ControlPanelConfig = {
               default: null,
               choices: PAGE_SIZE_OPTIONS,
               description: t('Rows per page, 0 means no pagination'),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                !controls.server_pagination.value,
             },
           },
           null,

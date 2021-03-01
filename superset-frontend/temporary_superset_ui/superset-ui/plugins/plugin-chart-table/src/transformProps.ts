@@ -175,7 +175,8 @@ export default function transformProps(chartProps: TableChartProps): TableChartT
     rawFormData: formData,
     queriesData,
     initialValues: filters = {},
-    hooks: { onAddFilter: onChangeFilter },
+    ownCurrentState: { currentPage, pageSize },
+    hooks: { onAddFilter: onChangeFilter, setDataMask = () => {} },
   } = chartProps;
 
   const {
@@ -183,14 +184,23 @@ export default function transformProps(chartProps: TableChartProps): TableChartT
     color_pn: colorPositiveNegative = true,
     show_cell_bars: showCellBars = true,
     include_search: includeSearch = false,
-    page_length: pageSize,
+    page_length: pageLength,
     table_filter: tableFilter,
+    server_pagination: serverPagination = false,
+    server_page_length: serverPageLength = 10,
     order_desc: sortDesc = false,
     query_mode: queryMode,
   } = formData;
 
   const [metrics, percentMetrics, columns] = processColumns(chartProps);
-  const data = processDataRecords(queriesData?.[0]?.data, columns);
+  let data = queriesData?.[0]?.data;
+  let showNextButton = false;
+  // We do request +1 items for BE pagination to know if how `next` button
+  if (serverPagination && data.length === (pageSize ?? serverPageLength) + 1) {
+    data.pop();
+    showNextButton = true;
+  }
+  data = processDataRecords(data, columns);
 
   return {
     height,
@@ -198,14 +208,20 @@ export default function transformProps(chartProps: TableChartProps): TableChartT
     isRawRecords: queryMode === QueryMode.raw,
     data,
     columns,
+    serverPagination,
     metrics,
     percentMetrics,
+    currentPage,
+    setDataMask,
     alignPositiveNegative,
     colorPositiveNegative,
     showCellBars,
     sortDesc,
     includeSearch,
-    pageSize: getPageSize(pageSize, data.length, columns.length),
+    showNextButton,
+    pageSize: serverPagination
+      ? serverPageLength
+      : getPageSize(pageLength, data.length, columns.length),
     filters,
     emitFilter: tableFilter === true,
     onChangeFilter,
