@@ -345,7 +345,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Enable experimental feature to search for other dashboards
     "OMNIBAR": False,
     "DASHBOARD_RBAC": False,
-    "ENABLE_EXPLORE_DRAG_AND_DROP": False,
+    "ENABLE_EXPLORE_DRAG_AND_DROP": True,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.
