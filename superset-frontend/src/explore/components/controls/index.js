@@ -41,7 +41,7 @@ import AdhocFilterControl from './FilterControl/AdhocFilterControl';
 import FilterBoxItemControl from './FilterBoxItemControl';
 import DndColumnSelectControl, {
   LabelColumnSelect,
-  FilterColumnSelect,
+  DndFilterSelect,
 } from './DndColumnSelectControl';
 
 const controlMap = {
@@ -56,7 +56,7 @@ const controlMap = {
   DateFilterControl,
   DndColumnSelectControl,
   LabelColumnSelect,
-  FilterColumnSelect,
+  DndFilterSelect,
   FixedOrMetricControl,
   HiddenControl,
   SelectAsyncControl,

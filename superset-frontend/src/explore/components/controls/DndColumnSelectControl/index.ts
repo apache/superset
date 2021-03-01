@@ -18,4 +18,4 @@
  */
 export { default } from './DndColumnSelectLabel';
 export * from './LabelColumnSelect';
-export * from './FilterColumnSelect';
+export * from './DndFilterSelect';

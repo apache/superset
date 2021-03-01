@@ -19,11 +19,7 @@
 import React, { useEffect, useState } from 'react';
 import { logging, SupersetClient } from '@superset-ui/core';
 import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
-import {
-  FilterColumnSelectProps,
-  FilterItemType,
-  OptionSortType,
-} from './types';
+import { DndFilterSelectProps, FilterItemType, OptionSortType } from './types';
 import AdhocFilterPopoverTrigger from '../FilterControl/AdhocFilterPopoverTrigger';
 import OptionWrapper from './components/OptionWrapper';
 import DndColumnSelectLabel from './DndColumnSelectLabel';
@@ -39,7 +35,7 @@ import { DatasourcePanelDndItem } from '../../DatasourcePanel/types';
 const isDictionaryForAdhocFilter = (value: Record<string, any> | AdhocFilter) =>
   value && !(value instanceof AdhocFilter) && value.expressionType;
 
-export const FilterColumnSelect = (props: FilterColumnSelectProps) => {
+export const DndFilterSelect = (props: DndFilterSelectProps) => {
   const propsValues = Array.from(props.value ?? []);
   const [values, setValues] = useState(
     propsValues.map((filter: Record<string, any> | AdhocFilter) =>
@@ -56,7 +52,7 @@ export const FilterColumnSelect = (props: FilterColumnSelectProps) => {
   ) => {
     const options: OptionSortType[] = [
       ...columns,
-      ...[...(formData.metrics || []), formData.metric].map(
+      ...[...(formData?.metrics || []), formData?.metric].map(
         metric =>
           metric &&
           (typeof metric === 'string'

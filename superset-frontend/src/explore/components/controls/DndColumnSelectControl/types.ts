@@ -56,7 +56,7 @@ export interface DndColumnSelectProps extends LabelProps {
   valuesRenderer: () => ReactNode;
 }
 
-export interface FilterColumnSelectProps {
+export interface DndFilterSelectProps {
   name: string;
   value: (Record<string, any> | AdhocFilter)[];
   columns: ColumnMeta[];
