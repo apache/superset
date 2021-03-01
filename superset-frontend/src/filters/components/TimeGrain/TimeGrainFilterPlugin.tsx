@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, Behavior, DataMask, t } from '@superset-ui/core';
+import { QueryObjectExtras, styled, t } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import { PluginFilterSelectProps } from './types';
 import { PluginFilterStylesProps } from '../types';
-import { getSelectExtraFormData } from '../../utils';
 
 const Styles = styled.div<PluginFilterStylesProps>`
   height: ${({ height }) => height};
@@ -30,62 +29,45 @@ const Styles = styled.div<PluginFilterStylesProps>`
 
 const { Option } = Select;
 
-export default function PluginFilterSelect(props: PluginFilterSelectProps) {
-  const { data, formData, height, width, behaviors, setDataMask } = props;
-  const {
-    defaultValue,
-    enableEmptyFilter,
-    multiSelect,
-    showSearch,
-    currentValue,
-    inverseSelection,
-    inputRef,
-  } = formData;
+export default function PluginFilterTimegrain(props: PluginFilterSelectProps) {
+  const { data, formData, height, width, setDataMask } = props;
+  const { defaultValue, currentValue, inputRef } = formData;
 
-  const [values, setValues] = useState<(string | number)[]>(defaultValue ?? []);
+  const [value, setValue] = useState<string[]>(defaultValue ?? []);
 
-  let { groupby = [] } = formData;
-  groupby = Array.isArray(groupby) ? groupby : [groupby];
-
-  const handleChange = (
-    value?: (number | string)[] | number | string | null,
-  ) => {
-    let resultValue: (number | string)[];
-    // Works only with arrays even for single select
-    if (!Array.isArray(value)) {
-      resultValue = value ? [value] : [];
+  const handleChange = (values: string[] | string | undefined | null) => {
+    let selectedValues: string[];
+    let timeGrain: string | null;
+    if (values === null || values === undefined) {
+      selectedValues = [];
+      timeGrain = null;
+    } else if (!Array.isArray(values)) {
+      selectedValues = [values];
+      timeGrain = values;
+    } else if (Array.isArray(values) && values.length > 0) {
+      selectedValues = values;
+      timeGrain = values[0];
     } else {
-      resultValue = value;
+      selectedValues = [];
+      timeGrain = null;
     }
-    setValues(resultValue);
-
-    const [col] = groupby;
-    const emptyFilter =
-      enableEmptyFilter && !inverseSelection && resultValue?.length === 0;
-
-    const dataMask = {
-      extraFormData: getSelectExtraFormData(
-        col,
-        resultValue,
-        emptyFilter,
-        inverseSelection,
-      ),
-      currentState: {
-        value: resultValue.length ? resultValue : null,
+    const extras: QueryObjectExtras = {};
+    if (timeGrain !== null) {
+      extras.time_grain_sqla = timeGrain;
+    }
+    setValue(selectedValues);
+    setDataMask({
+      nativeFilters: {
+        extraFormData: {
+          override_form_data: {
+            extras,
+          },
+        },
+        currentState: {
+          value: selectedValues,
+        },
       },
-    };
-    console.log(dataMask);
-
-    const dataMaskObject: DataMask = {};
-    if (behaviors.includes(Behavior.NATIVE_FILTER)) {
-      dataMaskObject.nativeFilters = dataMask;
-    }
-
-    if (behaviors.includes(Behavior.CROSS_FILTER)) {
-      dataMaskObject.crossFilters = dataMask;
-    }
-
-    setDataMask(dataMaskObject);
+    });
   };
 
   useEffect(() => {
@@ -106,20 +88,18 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     <Styles height={height} width={width}>
       <Select
         allowClear
-        value={values}
-        showSearch={showSearch}
+        value={value}
         style={{ width: '100%' }}
-        mode={multiSelect ? 'multiple' : undefined}
         placeholder={placeholderText}
         // @ts-ignore
         onChange={handleChange}
         ref={inputRef}
       >
-        {(data || []).map(row => {
-          const option = `${groupby.map(col => row[col])[0]}`;
+        {(data || []).map((row: { name: string; duration: string }) => {
+          const { name, duration } = row;
           return (
-            <Option key={option} value={option}>
-              {option}
+            <Option key={duration} value={duration}>
+              {name}
             </Option>
           );
         })}

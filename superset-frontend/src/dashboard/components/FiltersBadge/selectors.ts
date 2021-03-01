@@ -192,7 +192,7 @@ export const selectNativeIndicatorsForChart = (
     if (!isAffectedByScope) {
       return IndicatorStatus.Unset;
     }
-    if (!column) {
+    if (!column && value.length > 0) {
       // Filter without datasource
       return IndicatorStatus.Applied;
     }

@@ -77,7 +77,7 @@ QueryStatus = utils.QueryStatus
 config = app.config
 
 builtin_time_grains: Dict[Optional[str], str] = {
-    None: "Time Column",
+    None: "No time grain",
     "PT1S": "second",
     "PT1M": "minute",
     "PT5M": "5 minute",

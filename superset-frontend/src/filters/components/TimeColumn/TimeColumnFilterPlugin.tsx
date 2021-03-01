@@ -1,0 +1,117 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { QueryObject, styled, t } from '@superset-ui/core';
+import React, { useEffect, useState } from 'react';
+import { Select } from 'src/common/components';
+import { PluginFilterTimeColumnProps } from './types';
+import { PluginFilterStylesProps } from '../types';
+
+const Styles = styled.div<PluginFilterStylesProps>`
+  height: ${({ height }) => height};
+  width: ${({ width }) => width};
+`;
+
+const { Option } = Select;
+
+export default function PluginFilterTimeColumn(
+  props: PluginFilterTimeColumnProps,
+) {
+  const { data, formData, height, width, setDataMask } = props;
+  const { defaultValue, currentValue, inputRef } = formData;
+
+  const [value, setValue] = useState<string[]>(defaultValue ?? []);
+
+  const handleChange = (values: string[] | string | undefined | null) => {
+    let selectedValues: string[];
+    let timeColumn: string | null;
+    if (values === null || values === undefined) {
+      selectedValues = [];
+      timeColumn = null;
+    } else if (!Array.isArray(values)) {
+      selectedValues = [values];
+      timeColumn = values;
+    } else if (Array.isArray(values) && values.length > 0) {
+      selectedValues = values;
+      timeColumn = values[0];
+    } else {
+      selectedValues = [];
+      timeColumn = null;
+    }
+    const overrideFormData: Partial<QueryObject> = {};
+    if (timeColumn !== null) {
+      overrideFormData.granularity_sqla = timeColumn;
+    }
+    setValue(selectedValues);
+    setDataMask({
+      nativeFilters: {
+        extraFormData: {
+          override_form_data: overrideFormData,
+        },
+        currentState: {
+          value: selectedValues,
+        },
+      },
+    });
+  };
+
+  useEffect(() => {
+    handleChange(currentValue ?? []);
+  }, [JSON.stringify(currentValue)]);
+
+  useEffect(() => {
+    handleChange(defaultValue ?? []);
+    // I think after Config Modal update some filter it re-creates default value for all other filters
+    // so we can process it like this `JSON.stringify` or start to use `Immer`
+  }, [JSON.stringify(defaultValue)]);
+
+  const timeColumns = (data || []).filter(row => row.dtype === 2);
+
+  const placeholderText =
+    timeColumns.length === 0
+      ? t('No time columns')
+      : t(
+          `%d column%s`,
+          timeColumns.length,
+          timeColumns.length === 1 ? '' : 's',
+        );
+  return (
+    <Styles height={height} width={width}>
+      <Select
+        allowClear
+        value={value}
+        style={{ width: '100%' }}
+        placeholder={placeholderText}
+        // @ts-ignore
+        onChange={handleChange}
+        ref={inputRef}
+      >
+        {timeColumns.map(
+          (row: { column_name: string; verbose_name: string | null }) => {
+            const { column_name: columnName, verbose_name: verboseName } = row;
+            return (
+              <Option key={columnName} value={columnName}>
+                {verboseName ?? columnName}
+              </Option>
+            );
+          },
+        )}
+      </Select>
+    </Styles>
+  );
+}
