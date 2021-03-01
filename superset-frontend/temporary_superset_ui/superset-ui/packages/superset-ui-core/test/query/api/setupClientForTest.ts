@@ -19,10 +19,10 @@
 import fetchMock from 'fetch-mock';
 import { SupersetClient } from '@superset-ui/core/src/connection';
 
-const LOGIN_GLOB = 'glob:*superset/csrf_token/*';
+const LOGIN_GLOB = 'glob:*api/v1/security/csrf_token/*';
 
 export default function setupClientForTest() {
-  fetchMock.get(LOGIN_GLOB, { csrf_token: '1234' });
+  fetchMock.get(LOGIN_GLOB, { result: '1234' });
   SupersetClient.reset();
   SupersetClient.configure().init();
 }
