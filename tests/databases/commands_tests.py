@@ -29,6 +29,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.databases.commands.exceptions import (
     DatabaseNotFoundError,
     DatabaseTestConnectionDriverError,
+    DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.commands.export import ExportDatabasesCommand
 from superset.databases.commands.importers.v1 import ImportDatabasesCommand
@@ -518,16 +519,25 @@ class TestImportDatabasesCommand(SupersetTestCase):
 
 
 class TestTestConnectionDatabaseCommand(SupersetTestCase):
-    @mock.patch("superset.databases.commands.test_connection.stats_logger")
-    def test_connection_db_exception_dbapi(self, mock_stats_logger):
+    @mock.patch("superset.databases.dao.DatabaseDAO.build_db_for_connection_test")
+    @mock.patch("superset.databases.commands.test_connection.stats_logger.incr")
+    def test_connection_db_exception_dbapi(
+        self, mock_stats_logger, mock_build_db_for_connection_test
+    ):
         """Test that users can't export databases they don't have access to"""
-        json_payload = {"sqlalchemy_uri": "mssql+pymssql://test"}
-        test_item = DatabaseTestConnectionSchema().load(json_payload)
-        command = TestConnectionDatabaseCommand(
-            security_manager.find_user("admin"), test_item
+        database = get_example_database()
+        mock_build_db_for_connection_test.side_effect = Exception(
+            "An error has occurred!"
         )
-        with pytest.raises(DBAPIError) as excinfo:
-            command.run()
+        db_uri = database.sqlalchemy_uri_decrypted
+        json_payload = {"sqlalchemy_uri": db_uri}
+        command_without_db_name = TestConnectionDatabaseCommand(
+            security_manager.find_user("admin"), json_payload
+        )
+
+        # test with no db name
+        with self.assertRaises(DatabaseTestConnectionUnexpectedError):
+            command_without_db_name.run()
 
         mock_stats_logger.assert_called()
 
