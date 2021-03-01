@@ -25,7 +25,7 @@ import {
   PreviousCalendarYear,
   CommonRangeType,
   CalendarRangeType,
-} from './types';
+} from 'src/explore/components/controls/DateFilterControl/types';
 
 export const FRAME_OPTIONS: SelectOptionType[] = [
   { value: 'Common', label: t('Last') },

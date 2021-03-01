@@ -19,25 +19,34 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 import { Radio } from 'src/common/components/Radio';
-import { COMMON_RANGE_OPTIONS, COMMON_RANGE_SET } from '../constants';
-import { CommonRangeType, FrameComponentProps } from '../types';
+import {
+  CALENDAR_RANGE_OPTIONS,
+  CALENDAR_RANGE_SET,
+} from 'src/explore/components/controls/DateFilterControl/utils';
+import {
+  CalendarRangeType,
+  PreviousCalendarWeek,
+  FrameComponentProps,
+} from '../types';
 
-export function CommonFrame(props: FrameComponentProps) {
-  let commonRange = 'Last week';
-  if (COMMON_RANGE_SET.has(props.value as CommonRangeType)) {
-    commonRange = props.value;
+export function CalendarFrame(props: FrameComponentProps) {
+  let calendarRange = PreviousCalendarWeek;
+  if (CALENDAR_RANGE_SET.has(props.value as CalendarRangeType)) {
+    calendarRange = props.value;
   } else {
-    props.onChange(commonRange);
+    props.onChange(calendarRange);
   }
 
   return (
     <>
-      <div className="section-title">{t('Configure Time Range: Last...')}</div>
+      <div className="section-title">
+        {t('Configure Time Range: Previous...')}
+      </div>
       <Radio.Group
-        value={commonRange}
+        value={calendarRange}
         onChange={(e: any) => props.onChange(e.target.value)}
       >
-        {COMMON_RANGE_OPTIONS.map(({ value, label }) => (
+        {CALENDAR_RANGE_OPTIONS.map(({ value, label }) => (
           <Radio key={value} value={value} className="vertical-radio">
             {label}
           </Radio>
