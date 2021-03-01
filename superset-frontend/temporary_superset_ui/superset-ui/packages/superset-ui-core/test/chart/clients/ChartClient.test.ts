@@ -23,7 +23,7 @@ describe('ChartClient', () => {
   let chartClient: ChartClient;
 
   beforeAll(() => {
-    fetchMock.get(LOGIN_GLOB, { csrf_token: '1234' });
+    fetchMock.get(LOGIN_GLOB, { result: '1234' });
     SupersetClient.reset();
     SupersetClient.configure().init();
   });
