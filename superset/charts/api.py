@@ -75,11 +75,11 @@ from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.core import (
     ChartDataResultFormat,
     ChartDataResultType,
-    df_clear_timezone,
     json_int_dttm_ser,
 )
 from superset.utils.screenshots import ChartScreenshot
 from superset.utils.urls import get_url_path
+from superset.utils import core as utils
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -497,17 +497,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
             )
 
         if result_format == ChartDataResultFormat.XLSX:
+            xlsx = utils.chart_to_xlsx(
+                pd.DataFrame(result["queries"][0]["data"]),
+                command._query_context.image_data,
+                command._query_context.slice_id,
+                None
+            )
             filename = f'{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-            data = result["queries"][0]["data"]
-            df = pd.DataFrame(data)
-            xlsx = BytesIO()
-            # Remove TZ from datetime64[ns, *] fields b4 writing to XLSX
-            df_clear_timezone(df)
-
-            writer = pd.ExcelWriter(xlsx, engine='xlsxwriter')
-            df.to_excel(writer, index=False)
-            writer.close()
-            xlsx.seek(0)
             mimetype = mimetypes.guess_type(filename)[0]
             headers = {
                 "Content-Disposition": f'attachment; filename="{filename}"; '

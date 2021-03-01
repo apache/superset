@@ -32,8 +32,15 @@ import { SAVE_TYPE_NEWDASHBOARD } from '../util/constants';
 import URLShortLinkModal from '../../components/URLShortLinkModal';
 import FilterScopeModal from './filterscope/FilterScopeModal';
 import downloadAsImage from '../../utils/downloadAsImage';
+import domToImage, { Options } from 'dom-to-image';
+// import { safeStringify } from 'src/utils/safeStringify';
+// import { postForm } from 'src/explore/exploreUtils';
+
 import getDashboardUrl from '../util/getDashboardUrl';
 import { getActiveFilters } from '../util/activeDashboardFilters';
+
+const WHITE_BACKGROUND_COLOR = '#F8F8FF';
+const GRAY_BACKGROUND_COLOR = '#F5F5F5';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -80,6 +87,7 @@ const MENU_KEYS = {
   EDIT_PROPERTIES: 'edit-properties',
   EDIT_CSS: 'edit-css',
   DOWNLOAD_AS_IMAGE: 'download-as-image',
+  DOWNLOAD_AS_XLSX: 'download-as-xlsx',
   TOGGLE_FULLSCREEN: 'toggle-fullscreen',
 };
 
@@ -88,6 +96,54 @@ const DropdownButton = styled.div`
 `;
 
 const SCREENSHOT_NODE_SELECTOR = '.dashboard';
+
+function safeStringify(object) {
+  const cache = new Set();
+  return JSON.stringify(object, (key, value) => {
+    if (typeof value === 'object' && value !== null) {
+      if (cache.has(value)) {
+        // We've seen this object before
+        try {
+          // Quick deep copy to duplicate if this is a repeat rather than a circle.
+          return JSON.parse(JSON.stringify(value));
+        } catch (err) {
+          // Discard key if value cannot be duplicated.
+          return; // eslint-disable-line consistent-return
+        }
+      }
+      // Store the value in our cache.
+      cache.add(value);
+    }
+    return value;
+  });
+}
+
+function postForm(url, payload, target = '_blank') {
+  if (!url) {
+    return;
+  }
+
+  // console.log(url);
+  // console.log(payload);
+  const hiddenForm = document.createElement('form');
+  hiddenForm.action = url;
+  hiddenForm.method = 'POST';
+  hiddenForm.target = target;
+  const token = document.createElement('input');
+  token.type = 'hidden';
+  token.name = 'csrf_token';
+  token.value = (document.getElementById('csrf_token') || {}).value;
+  hiddenForm.appendChild(token);
+  const data = document.createElement('input');
+  data.type = 'hidden';
+  data.name = 'form_data';
+  data.value = safeStringify(payload);
+  hiddenForm.appendChild(data);
+
+  document.body.appendChild(hiddenForm);
+  hiddenForm.submit();
+  document.body.removeChild(hiddenForm);
+}
 
 class HeaderActionsDropdown extends React.PureComponent {
   static discardChanges() {
@@ -159,6 +215,53 @@ class HeaderActionsDropdown extends React.PureComponent {
         )(domEvent).then(() => {
           menu.style.visibility = 'visible';
         });
+        break;
+      }
+      case MENU_KEYS.DOWNLOAD_AS_XLSX: {
+        // menu closes with a delay, we need to hide it manually,
+        // so that we don't capture it on the screenshot
+        const menu = document.querySelector(
+          '.ant-dropdown:not(.ant-dropdown-hidden)',
+        );
+        menu.style.visibility = 'hidden';
+        const url = '/superset/export_dashboard_xlsx/';
+        let slices = [];
+        let payload = {
+            dashboardId: this.props.dashboardId,
+            slicesData: slices,
+            imageData: '',
+        };
+        // Get images of all dashboard's slices
+        const slicesDivs = document.querySelectorAll('[id^="chart-id-"');
+        // Array.from(slicesDivs).forEach((elementToPrint) => {
+        [...slicesDivs].forEach((elementToPrint) => {
+          const sliceData = {
+            slice_id: elementToPrint.id,
+            slice_type: elementToPrint.className,
+            image_data: '',
+          };
+          domToImage.toPng(elementToPrint, {
+            quality: 0.95,
+            bgcolor: WHITE_BACKGROUND_COLOR,
+            ...Options,
+          })
+          .then(function (data) {
+              sliceData['image_data'] = data;
+              payload['slicesData'].push(sliceData)
+            });
+        });
+        // Get dashboard img
+        const dashboardToPrint = domEvent.currentTarget.closest(SCREENSHOT_NODE_SELECTOR);
+        domToImage.toPng(dashboardToPrint, {
+            quality: 0.95,
+            bgcolor: GRAY_BACKGROUND_COLOR,
+            ...Options,
+          })
+          .then(function (data) {
+            payload['imageData'] = data;
+            menu.style.visibility = 'visible';
+            postForm(url, payload)
+          });
         break;
       }
       case MENU_KEYS.TOGGLE_FULLSCREEN: {
@@ -297,6 +400,12 @@ class HeaderActionsDropdown extends React.PureComponent {
         {!editMode && (
           <Menu.Item key={MENU_KEYS.DOWNLOAD_AS_IMAGE}>
             {t('Download as image')}
+          </Menu.Item>
+        )}
+
+        {!editMode && (
+          <Menu.Item key={MENU_KEYS.DOWNLOAD_AS_XLSX}>
+            {t('Download as XLSX')}
           </Menu.Item>
         )}
 

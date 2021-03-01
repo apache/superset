@@ -15,11 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 """Utility functions used across Superset"""
+import base64
 import collections
 import decimal
 import errno
 import functools
 import hashlib
+from io import BytesIO
 import json
 import logging
 import os
@@ -1521,6 +1523,58 @@ def df_clear_timezone(df: pd.DataFrame) -> pd.DataFrame:
             df[field_name] = df[field_name].dt.tz_localize(None)
 
     return df
+
+
+def chart_to_xlsx(df: pd.DataFrame, image_data: str, slice_id: int, table_id: int = None) -> BytesIO:
+    name = ""
+    if slice_id:
+        from superset import db
+        from superset.models.slice import Slice
+
+        slc = db.session.query(Slice).filter(
+            Slice.id == slice_id
+        ).one()
+        name = slc.slice_name
+
+    columns = {}
+    if table_id:
+        from superset import db
+        from superset.connectors.sqla.models import TableColumn
+
+        columns = db.session.query(TableColumn).filter(
+            TableColumn.table_id == table_id
+        ).all()
+        columns = {
+            c.column_name: c.verbose_name for c in columns if c.verbose_name
+        }
+
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine="xlsxwriter")
+
+    # Remove TZ from datetime64[ns, *] fields b4 writing to XLSX
+    df = df_clear_timezone(df)
+    df = df.rename(columns=columns)
+    logger.info("!D df columns {}".format(df.columns))
+    include_index = not isinstance(df.index, pd.RangeIndex)
+
+    if image_data:
+        sheet = writer.book.add_worksheet(f"{name}-image")
+        sheet.write("A1", name)
+        image_data = image_data.split(",")[1]
+        image_data = base64.b64decode(image_data)
+        sheet.insert_image(
+            "A2", "in-memory",
+            options={"image_data": BytesIO(image_data)}
+        )
+        df.to_excel(writer, index=include_index, sheet_name=f"{name}-data")
+    else:
+        df.to_excel(writer, index=include_index, startrow=1)
+        sheet = writer.book.worksheets()[0]
+        sheet.write("A1", name)
+
+    writer.close()
+    output.seek(0)
+    return output
 
   
 def find_duplicates(items: Iterable[InputType]) -> List[InputType]:

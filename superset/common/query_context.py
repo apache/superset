@@ -62,6 +62,8 @@ class QueryContext:
     custom_cache_timeout: Optional[int]
     result_type: utils.ChartDataResultType
     result_format: utils.ChartDataResultFormat
+    image_data: Optional[str]
+    slice_id: Optional[int]
 
     # TODO: Type datasource and query_object dictionary with TypedDict when it becomes
     #  a vanilla python type https://github.com/python/mypy/issues/5288
@@ -73,6 +75,8 @@ class QueryContext:
         custom_cache_timeout: Optional[int] = None,
         result_type: Optional[utils.ChartDataResultType] = None,
         result_format: Optional[utils.ChartDataResultFormat] = None,
+        image_data: Optional[str] = None,
+        slice_id: Optional[int] = None,
     ) -> None:
         self.datasource = ConnectorRegistry.get_datasource(
             str(datasource["type"]), int(datasource["id"]), db.session
@@ -88,6 +92,8 @@ class QueryContext:
             "result_type": self.result_type,
             "result_format": self.result_format,
         }
+        self.image_data = image_data
+        self.slice_id = slice_id
 
     def get_query_result(self, query_object: QueryObject) -> Dict[str, Any]:
         """Returns a pandas dataframe based on the query object"""

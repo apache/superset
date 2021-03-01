@@ -27,6 +27,7 @@ import {
 } from '@superset-ui/core';
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
+import domToImage, { Options } from 'dom-to-image';
 import { MULTI_OPERATORS } from './constants';
 
 const MAX_URL_LENGTH = 8000;
@@ -232,7 +233,6 @@ export function postForm(url, payload, target = '_blank') {
   if (!url) {
     return;
   }
-
   const hiddenForm = document.createElement('form');
   hiddenForm.action = url;
   hiddenForm.method = 'POST';
@@ -261,24 +261,43 @@ export const exportChart = ({
 }) => {
   let url;
   let payload;
-  if (shouldUseLegacyApi(formData)) {
-    const endpointType = getLegacyEndpointType({ resultFormat, resultType });
-    url = getExploreUrl({
-      formData,
-      endpointType,
-      allowDomainSharding: false,
-    });
-    payload = formData;
-  } else {
-    url = '/api/v1/chart/data';
-    payload = buildV1ChartDataPayload({
-      formData,
-      force,
-      resultFormat,
-      resultType,
-    });
+  const post = () => {
+    if (shouldUseLegacyApi(formData)) {
+      const endpointType = getLegacyEndpointType({ resultFormat, resultType });
+      url = getExploreUrl({
+        formData,
+        endpointType,
+        allowDomainSharding: false,
+      });
+      payload = formData;
+    } else {
+      url = '/api/v1/chart/data';
+      payload = buildV1ChartDataPayload({
+        formData,
+        force,
+        resultFormat,
+        resultType,
+      });
+      if (formData['image_data']) {
+        payload['image_data'] = formData['image_data'];
+        payload['slice_id'] = formData['slice_id'];
+      }
+    }
+    postForm(url, payload);
   }
-  postForm(url, payload);
+  if (formData['viz_type'].includes('table')) {
+    post()
+  } else {
+    const elementToPrint = document.getElementById('chart-id-' + formData['slice_id']);
+    domToImage.toPng(elementToPrint, {
+      quality: 0.95,
+      bgcolor: '#F8F8FF',
+    })
+      .then(function (data) {
+        formData['image_data'] = data;
+        post()
+      });
+  }
 };
 
 export const exploreChart = formData => {

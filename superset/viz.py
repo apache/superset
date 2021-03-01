@@ -20,6 +20,7 @@
 These objects represent the backend of all the visualizations that
 Superset can render.
 """
+import base64
 import copy
 import inspect
 import logging
@@ -640,20 +641,16 @@ class BaseViz:
         return df.to_csv(index=include_index, **config["CSV_EXPORT"])
 
     def get_xlsx(self) -> Optional[bytes]:
-        df = self.get_df_payload()["df"]  # leverage caching logic
-        # Remove TZ from datetime64[ns, *] fields b4 writing to XLSX
-        df_clear_timezone(df)
+        table_id, d_type = self.form_data.get("datasource").split('__')
+        if d_type != 'table':
+            table_id = None
 
-        include_index = not isinstance(df.index, pd.RangeIndex)
-        output = BytesIO()
-        writer = pd.ExcelWriter(
-            output, engine='xlsxwriter'
-            # options={'remove_timezone': True}  # This option seems broken
-        )
-        df.to_excel(writer, index=include_index)
-        writer.close()
-        output.seek(0)
-        return output.read()
+        return utils.chart_to_xlsx(
+            self.get_df_payload()["df"],
+            self.form_data.get("image_data"),
+            self.form_data.get("slice_id"),
+            table_id
+        ).read()
 
     def get_data(self, df: pd.DataFrame) -> VizData:
         return df.to_dict(orient="records")

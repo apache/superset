@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=comparison-with-callable, line-too-long, too-many-branches
+import base64
 import logging
 import re
 from contextlib import closing
@@ -60,6 +61,7 @@ from superset import (
     sql_lab,
     viz,
 )
+from superset.charts.commands.data import ChartDataCommand
 from superset.charts.dao import ChartDAO
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -1914,6 +1916,192 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             ),
         )
 
+    @has_access
+    @event_logger.log_this
+    @expose("/export_dashboard_xlsx/", methods=["POST"])
+    def export_dashboard_xlsx(self) -> FlaskResponse:  # pylint: disable=no-self-use
+        json_body = None
+        if request.is_json:
+            json_body = request.json
+        elif request.form.get("form_data"):
+            # XLSX export submits regular form data
+            try:
+                json_body = json.loads(request.form["form_data"])
+            except (TypeError, json.JSONDecodeError):
+                pass
+
+        if json_body is None:
+            return self.response_400(message=_("Request is not JSON"))
+
+        # Get dashboard data from json_body & DB
+        dashboard_id = int(json_body["dashboardId"])
+        dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one()
+        dashboard_title = dashboard.dashboard_title
+        dashboard_data = dashboard.data
+        dashboard_slices = dashboard_data['slices']
+
+        # Get image of dashboard from json_body
+        image_data = json_body.get("imageData")
+        if image_data:
+            image_data = image_data.split(",")[1]
+            image_data = base64.b64decode(image_data)
+
+        # Get slices images from json_body
+        slices_data = json_body.get("slicesData")
+        slices_data_dict = {}
+        if slices_data:
+            slices_data_dict = {
+                slc_data['slice_id'].lstrip('chart-id-'): {
+                    'image_data': slc_data['image_data'],
+                    'slice_type': slc_data['slice_type'],
+                } for slc_data in slices_data
+            }
+
+        # Build XLSX
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            wb = writer.book
+            bold_fmt = wb.add_format({'bold': True})
+            if image_data:
+                # First sheet is for dashboard img
+                sheet = writer.book.add_worksheet(dashboard_title)
+                sheet.write("A1", dashboard_title, bold_fmt)
+                sheet.insert_image(
+                    "A2", "in-memory",
+                    options={"image_data": BytesIO(image_data)}
+                )
+
+            # Get slices data & write result to XLSX in format:
+            # slice img sheet, slice data sheet
+            for slc in dashboard_slices:
+                slice_id = slc['slice_id']
+                slice_name = slc['slice_name']
+                slice_form_data = slc['form_data']
+                # viz_type = slice_form_data['viz_type']
+                datasource_id, datasource_type = slice_form_data[
+                    'datasource'
+                ].split('__')
+                form_data, slc_obj = get_form_data(
+                    slice_id, use_slice_data=True
+                )
+                # Prepare slice img if provided from front-end
+                img_data = None
+                slc_data = slices_data_dict.get(str(slice_id))
+                if slc_data:
+                    slc_img_data = slc_data['image_data']
+                    if slc_img_data:
+                        img_data = slc_img_data.split(",")[1]
+                        img_data = base64.b64decode(img_data)
+
+                # Get columns verbose names if slice is table type
+                columns = {}
+                if datasource_id and datasource_type == 'table':
+                    columns = db.session.query(TableColumn).filter(
+                        TableColumn.table_id == datasource_id
+                    ).all()
+                    columns = {
+                        c.column_name: c.verbose_name for c in columns if
+                    c.verbose_name
+                    }
+
+                # Prepare slice viz object to access DF
+                try:
+                    viz_obj = get_viz(
+                        datasource_type=datasource_type,
+                        datasource_id=int(datasource_id),
+                        form_data=form_data,
+                        force=False
+                    )
+                    df = viz_obj.get_df_payload()["df"]
+                except KeyError:
+                    # If viz_obj cannot be obtained we build chart_form_data
+                    # from scratch & run chart_cmd to access DF
+                    command = ChartDataCommand()
+                    chart_form_data = {
+                        'datasource': {
+                            'id': datasource_id,
+                            'type': datasource_type,
+                        },
+                        'force': False,
+                        'queries': [
+                            {
+                                'time_range': form_data['time_range'],
+                                'granularity': slice_form_data['granularity_sqla'],
+                                'filters': [
+                                    # {
+                                    #     'col': form_data['adhoc_filters']['subject'],
+                                    #     'op': form_data['adhoc_filters']['operator'],
+                                    #     'val': form_data['adhoc_filters']['comparator'],
+                                    # },
+                                ],
+                                'extras': {
+                                    'time_range_endpoints': slice_form_data['time_range_endpoints'],
+                                    'having': "",
+                                    'having_druid': [],
+                                },
+                                'applied_time_extras': {},
+                                # 'columns': [form_data['series']],
+                                'columns': form_data['groupby'],
+                                'metrics': form_data.get('metrics', [form_data.get('metric')]),
+                                'orderby': [
+                                    [form_data['metric'], False] if form_data.get('metric') else []
+                                ],
+                                'annotation_layers': [],
+                                'row_limit': form_data['row_limit'],
+                                'timeseries_limit': form_data['limit'],
+                                'order_desc': True,
+                                'url_params': {},
+                            },
+                        ],
+                        'result_format': 'xlsx', 'result_type': 'full', #'result_type': 'results'
+                    }
+                    command.set_query_context(chart_form_data)
+                    command.validate()
+                    result = command.run(force_cached=False)
+                    data = result["queries"][0]["data"]
+                    df = pd.DataFrame(data)
+
+                if img_data:
+                    # Write slice img to it's sheet(image)
+                    sheet = writer.book.add_worksheet(
+                        f"{slice_name}-image"
+                    )
+                    sheet.write("A1", slice_name, bold_fmt)
+                    sheet.insert_image(
+                        "A2", "in-memory",
+                        options={"image_data": BytesIO(img_data)}
+                    )
+
+                # Write slice DF to it's sheet(data)
+                # Remove TZ from datetime64[ns, *] fields b4 writing to XLSX
+                df = utils.df_clear_timezone(df)
+                # Rename columns with verbose names if they exists
+                if columns:
+                    df = df.rename(columns=columns)
+                    logger.info("!D df columns {}".format(df.columns))
+
+                include_index = not isinstance(df.index, pd.RangeIndex)
+                df.to_excel(
+                    writer,
+                    sheet_name=f"{slice_name}-data", index=include_index
+                )
+
+        # Response to client with XLSX via HTTP
+        output.seek(0)
+        filename = f"{dashboard_title}.xlsx"
+        mimetype = mimetypes.guess_type(filename)[0]
+        headers = {
+            "Content-Disposition": f'attachment; filename="{filename}"; '
+                                   f"filename*=UTF-8''{filename}",
+            'Content-Type': mimetype,
+        }
+        return XLSXResponse(
+            output.read(),
+            status=200,
+            headers=headers,
+            mimetype=mimetype,
+        )
+
     @api
     @has_access
     @event_logger.log_this
@@ -2702,11 +2890,21 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             # TODO(bkyryliuk): add compression=gzip for big files.
 
         xlsx = BytesIO()
-        # Remove TZ from datetime64[ns, *] fields b4 writing to XLSX
-        utils.df_clear_timezone(df)
-
         writer = pd.ExcelWriter(xlsx, engine='xlsxwriter')
-        df.to_excel(writer, index=False)
+
+        # Remove TZ from datetime64[ns, *] fields b4 writing to XLSX
+        df = utils.df_clear_timezone(df)
+        # columns = db.session.query(TableColumn).filter(
+        #     TableColumn.table_id == table_id
+        # ).all()
+        # columns = {
+        #     c.column_name: c.verbose_name for c in columns if c.verbose_name
+        # }
+        # df = df.rename(columns=columns)
+        # logger.info("!D df columns {}".format(df.columns))
+        include_index = not isinstance(df.index, pd.RangeIndex)
+
+        df.to_excel(writer, index=include_index)
         writer.close()
         xlsx.seek(0)
 
