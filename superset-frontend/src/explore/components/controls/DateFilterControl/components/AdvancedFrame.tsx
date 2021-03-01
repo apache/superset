@@ -21,7 +21,7 @@ import { t } from '@superset-ui/core';
 import { SEPARATOR } from 'src/explore/dateFilterUtils';
 import { Input } from 'src/common/components';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { FrameComponentProps } from '../types';
+import { FrameComponentProps } from 'src/explore/components/controls/DateFilterControl/types';
 import DateFunctionTooltip from './DateFunctionTooltip';
 
 export function AdvancedFrame(props: FrameComponentProps) {
