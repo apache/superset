@@ -206,6 +206,4 @@ export type AnyFilterAction =
   | SetFilterSetsConfigFail
   | SetFiltersState
   | SaveFilterSets
-  | UpdateExtraFormData
-  | SaveFilterSets;
-  | SetFilterState;
+  | UpdateExtraFormData;

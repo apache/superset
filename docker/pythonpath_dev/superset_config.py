@@ -66,7 +66,10 @@ REDIS_CELERY_DB = get_env_variable("REDIS_CELERY_DB", 0)
 REDIS_RESULTS_DB = get_env_variable("REDIS_CELERY_DB", 1)
 
 RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
-
+FEATURE_FLAGS = {
+    'DASHBOARD_NATIVE_FILTERS': True,
+    'DASHBOARD_CROSS_FILTERS': True,
+}
 
 class CeleryConfig(object):
     BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"

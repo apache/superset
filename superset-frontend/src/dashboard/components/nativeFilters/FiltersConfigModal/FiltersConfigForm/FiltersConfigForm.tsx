@@ -249,6 +249,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
         />
       </StyledFormItem>
       <DefaultValue
+        forceUpdate={forceUpdate}
         filterId={filterId}
         hasFilledDatasource={hasFilledDatasource}
         hasDatasource={hasDatasource}
