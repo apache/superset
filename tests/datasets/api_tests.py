@@ -658,6 +658,53 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
+    def test_update_dataset_delete_column(self):
+        """
+        Dataset API: Test update dataset delete column
+        """
+        # create example dataset by Command
+        dataset = self.insert_default_dataset()
+
+        new_column_data = {
+            "column_name": "new_col",
+            "description": "description",
+            "expression": "expression",
+            "type": "INTEGER",
+            "verbose_name": "New Col",
+        }
+        uri = f"api/v1/dataset/{dataset.id}"
+        # Get current cols and append the new column
+        self.login(username="admin")
+        rv = self.get_assert_metric(uri, "get")
+        data = json.loads(rv.data.decode("utf-8"))
+
+        for column in data["result"]["columns"]:
+            column.pop("changed_on", None)
+            column.pop("created_on", None)
+
+        data["result"]["columns"].append(new_column_data)
+        rv = self.client.put(uri, json={"columns": data["result"]["columns"]})
+
+        assert rv.status_code == 200
+
+        # Remove this new column
+        data["result"]["columns"].remove(new_column_data)
+        rv = self.client.put(uri, json={"columns": data["result"]["columns"]})
+        assert rv.status_code == 200
+
+        columns = (
+            db.session.query(TableColumn)
+            .filter_by(table_id=dataset.id)
+            .order_by("column_name")
+            .all()
+        )
+        assert columns[0].column_name == "id"
+        assert columns[1].column_name == "name"
+        assert len(columns) == 2
+
+        db.session.delete(dataset)
+        db.session.commit()
+
     def test_update_dataset_update_column(self):
         """
         Dataset API: Test update dataset columns
@@ -689,6 +736,50 @@ class TestDatasetApi(SupersetTestCase):
         if get_example_database().backend != "presto":
             assert columns[0].groupby is False
             assert columns[0].filterable is False
+
+        db.session.delete(dataset)
+        db.session.commit()
+
+    def test_update_dataset_delete_metric(self):
+        """
+        Dataset API: Test update dataset delete metric
+        """
+        dataset = self.insert_default_dataset()
+        metrics_query = (
+            db.session.query(SqlMetric)
+            .filter_by(table_id=dataset.id)
+            .order_by("metric_name")
+        )
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}"
+        # try to insert a new column ID that already exists
+        data = {
+            "metrics": [
+                {"metric_name": "metric1", "expression": "COUNT(*)"},
+                {"metric_name": "metric2", "expression": "DIFF_COUNT(*)"},
+            ]
+        }
+        rv = self.put_assert_metric(uri, data, "put")
+        assert rv.status_code == 200
+
+        metrics = metrics_query.all()
+        assert len(metrics) == 2
+
+        data = {
+            "metrics": [
+                {
+                    "id": metrics[0].id,
+                    "metric_name": "metric1",
+                    "expression": "COUNT(*)",
+                },
+            ]
+        }
+        rv = self.put_assert_metric(uri, data, "put")
+        assert rv.status_code == 200
+
+        metrics = metrics_query.all()
+        assert len(metrics) == 1
 
         db.session.delete(dataset)
         db.session.commit()
