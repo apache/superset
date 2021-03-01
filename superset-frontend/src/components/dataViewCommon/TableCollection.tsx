@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import cx from 'classnames';
+import React, { useMemo } from 'react';
 import { TableInstance } from 'react-table';
 import { styled } from '@superset-ui/core';
-import Icon from 'src/components/Icon';
+import { TableCollectionHead } from './TableCollectionHead';
+import { TableCollectionBody } from './TableCollectionBody';
 
 interface TableCollectionProps {
   getTableProps: (userProps?: any) => any;
@@ -208,114 +208,55 @@ export const Table = styled.table`
 
 Table.displayName = 'table';
 
-export default React.memo(
-  ({
-    getTableProps,
-    getTableBodyProps,
-    prepareRow,
-    headerGroups,
-    columns,
-    rows,
-    loading,
-    highlightRowId,
-  }: TableCollectionProps) => (
+const TableCollection = ({
+  getTableProps,
+  getTableBodyProps,
+  prepareRow,
+  headerGroups,
+  columns,
+  rows,
+  loading,
+  highlightRowId,
+}: TableCollectionProps) => {
+  const header = useMemo(
+    () => <TableCollectionHead headerGroups={headerGroups} />,
+    [headerGroups],
+  );
+
+  const body = useMemo(
+    () => (
+      <TableCollectionBody
+        getTableProps={getTableProps}
+        getTableBodyProps={getTableBodyProps}
+        columns={columns}
+        prepareRow={prepareRow}
+        headerGroups={headerGroups}
+        rows={rows}
+        loading={loading}
+        highlightRowId={highlightRowId}
+      />
+    ),
+    [
+      getTableProps,
+      getTableBodyProps,
+      prepareRow,
+      columns,
+      headerGroups,
+      rows,
+      loading,
+      highlightRowId,
+    ],
+  );
+  return (
     <Table
       {...getTableProps()}
       className="table table-hover"
       data-test="listview-table"
     >
-      <thead>
-        {headerGroups.map(headerGroup => (
-          <tr {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map(column => {
-              let sortIcon = <Icon name="sort" />;
-              if (column.isSorted && column.isSortedDesc) {
-                sortIcon = <Icon name="sort-desc" />;
-              } else if (column.isSorted && !column.isSortedDesc) {
-                sortIcon = <Icon name="sort-asc" />;
-              }
-              return column.hidden ? null : (
-                <th
-                  {...column.getHeaderProps(
-                    column.canSort ? column.getSortByToggleProps() : {},
-                  )}
-                  data-test="sort-header"
-                  className={cx({
-                    [column.size || '']: column.size,
-                  })}
-                >
-                  <span>
-                    {column.render('Header')}
-                    {column.canSort && sortIcon}
-                  </span>
-                </th>
-              );
-            })}
-          </tr>
-        ))}
-      </thead>
-      <tbody {...getTableBodyProps()}>
-        {loading &&
-          rows.length === 0 &&
-          [...new Array(25)].map((_, i) => (
-            <tr key={i}>
-              {columns.map((column, i2) => {
-                if (column.hidden) return null;
-                return (
-                  <td
-                    key={i2}
-                    className={cx('table-cell', {
-                      'table-cell-loader': loading,
-                      [column.size || '']: column.size,
-                    })}
-                  >
-                    <span className="loading-bar">
-                      <span>LOADING</span>
-                    </span>
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        {rows.length > 0 &&
-          rows.map(row => {
-            prepareRow(row);
-            // @ts-ignore
-            const rowId = row.original.id;
-            return (
-              <tr
-                data-test="table-row"
-                {...row.getRowProps()}
-                className={cx('table-row', {
-                  'table-row-selected':
-                    row.isSelected ||
-                    (typeof rowId !== 'undefined' && rowId === highlightRowId),
-                })}
-              >
-                {row.cells.map(cell => {
-                  if (cell.column.hidden) return null;
-
-                  const columnCellProps = cell.column.cellProps || {};
-                  return (
-                    <td
-                      data-test="table-row-cell"
-                      className={cx('table-cell', {
-                        'table-cell-loader': loading,
-                        [cell.column.size || '']: cell.column.size,
-                      })}
-                      {...cell.getCellProps()}
-                      {...columnCellProps}
-                    >
-                      <span className={cx({ 'loading-bar': loading })}>
-                        <span data-test="cell-text">{cell.render('Cell')}</span>
-                      </span>
-                    </td>
-                  );
-                })}
-              </tr>
-            );
-          })}
-      </tbody>
+      {header}
+      {body}
     </Table>
-  ),
-);
+  );
+};
+
+export default TableCollection;
