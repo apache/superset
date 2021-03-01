@@ -86,7 +86,7 @@ test('should render with error theme', () => {
   const errorProps = {
     ...mockedProps,
     level: 'error' as ErrorLevel,
-  }
+  };
   render(<BasicErrorAlert {...errorProps} />);
   expect(screen.getByRole('alert')).toHaveStyle(
     `
