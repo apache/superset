@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Alert } from 'react-bootstrap';
+import Alert from 'src/components/Alert';
 import { t } from '@superset-ui/core';
 
 import QueryTable from './QueryTable';
@@ -49,7 +49,7 @@ const QueryHistory = props => {
       />
     );
   }
-  return <Alert bsStyle="info">{t('No query history yet...')}</Alert>;
+  return <Alert type="info" message={t('No query history yet...')} />;
 };
 QueryHistory.propTypes = propTypes;
 

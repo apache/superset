@@ -17,6 +17,8 @@
  * under the License.
  */
 import React from 'react';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { DndProvider } from 'react-dnd';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import DatasourcePanel from 'src/explore/components/DatasourcePanel';
@@ -49,32 +51,38 @@ describe('datasourcepanel', () => {
     actions: {},
   };
 
+  const setup = props => (
+    <DndProvider backend={HTML5Backend}>
+      <DatasourcePanel {...props} />
+    </DndProvider>
+  );
+
   function search(value, input) {
     userEvent.clear(input);
     userEvent.type(input, value);
   }
 
   it('should render', () => {
-    const { container } = render(<DatasourcePanel {...props} />);
+    const { container } = render(setup(props));
     expect(container).toBeVisible();
   });
 
   it('should display items in controls', () => {
-    render(<DatasourcePanel {...props} />);
+    render(setup(props));
     expect(screen.getByText('birth_names')).toBeTruthy();
     expect(screen.getByText('Columns')).toBeTruthy();
     expect(screen.getByText('Metrics')).toBeTruthy();
   });
 
   it('should render search results', () => {
-    const { container } = render(<DatasourcePanel {...props} />);
+    const { container } = render(setup(props));
     const c = container.getElementsByClassName('option-label');
 
     expect(c).toHaveLength(5);
   });
 
   it('should render 0 search results', () => {
-    const { container } = render(<DatasourcePanel {...props} />);
+    const { container } = render(setup(props));
     const c = container.getElementsByClassName('option-label');
     const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
 
@@ -85,7 +93,7 @@ describe('datasourcepanel', () => {
   });
 
   it('should render and sort search results', () => {
-    const { container } = render(<DatasourcePanel {...props} />);
+    const { container } = render(setup(props));
     const c = container.getElementsByClassName('option-label');
     const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
 

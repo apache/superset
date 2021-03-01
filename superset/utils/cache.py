@@ -35,6 +35,7 @@ config = app.config  # type: ignore
 stats_logger: BaseStatsLogger = config["STATS_LOGGER"]
 logger = logging.getLogger(__name__)
 
+
 # TODO: DRY up cache key code
 def json_dumps(obj: Any, sort_keys: bool = False) -> str:
     return json.dumps(obj, default=json_int_dttm_ser, sort_keys=sort_keys)

@@ -199,7 +199,6 @@ const ExploreChartPanel = props => {
           errorMessage={props.errorMessage}
           formData={props.form_data}
           onQuery={props.onQuery}
-          owners={props?.slice?.owners}
           queriesResponse={chart.queriesResponse}
           refreshOverlayVisible={props.refreshOverlayVisible}
           setControlValue={props.actions.setControlValue}
@@ -241,7 +240,6 @@ const ExploreChartPanel = props => {
       addHistory={props.addHistory}
       can_overwrite={props.can_overwrite}
       can_download={props.can_download}
-      chartHeight={props.height}
       isStarred={props.isStarred}
       slice={props.slice}
       sliceName={props.sliceName}

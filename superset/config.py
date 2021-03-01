@@ -345,6 +345,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Enable experimental feature to search for other dashboards
     "OMNIBAR": False,
     "DASHBOARD_RBAC": False,
+    "ENABLE_EXPLORE_DRAG_AND_DROP": False,
 }
 
 # Set the default view to card/grid view if thumbnail support is enabled.
@@ -1092,6 +1093,10 @@ GLOBAL_ASYNC_QUERIES_POLLING_DELAY = 500
 # It's possible to add a dataset health check logic which is specific to your system.
 # It will get executed each time when user open a chart's explore view.
 DATASET_HEALTH_CHECK = None
+
+# SQLalchemy link doc reference
+SQLALCHEMY_DOCS_URL = "https://docs.sqlalchemy.org/en/13/core/engines.html"
+SQLALCHEMY_DISPLAY_TEXT = "SQLAlchemy docs"
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

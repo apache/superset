@@ -456,7 +456,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
             return database.compile_sqla_query(qry)
 
-        if LimitMethod.FORCE_LIMIT:
+        if cls.limit_method == LimitMethod.FORCE_LIMIT:
             parsed_query = sql_parse.ParsedQuery(sql)
             sql = parsed_query.set_or_update_query_limit(limit)
 
@@ -909,19 +909,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             url.username = username
 
     @classmethod
-    def get_configuration_for_impersonation(  # pylint: disable=invalid-name
-        cls, uri: str, impersonate_user: bool, username: Optional[str]
-    ) -> Dict[str, str]:
+    def update_impersonation_config(
+        cls, connect_args: Dict[str, Any], uri: str, username: Optional[str],
+    ) -> None:
         """
-        Return a configuration dictionary that can be merged with other configs
+        Update a configuration dictionary
         that can set the correct properties for impersonating users
 
+        :param connect_args: config to be updated
         :param uri: URI
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
-        :return: Configs required for impersonation
+        :return: None
         """
-        return {}
 
     @classmethod
     def execute(cls, cursor: Any, query: str, **kwargs: Any) -> None:

@@ -296,11 +296,7 @@ describe('ListView', () => {
   });
 
   it('allows disabling bulkSelect', () => {
-    wrapper
-      .find('[data-test="bulk-select-controls"]')
-      .at(0)
-      .props()
-      .onDismiss();
+    wrapper.find('[data-test="bulk-select-controls"]').at(0).props().onClose();
     expect(mockedProps.disableBulkSelect).toHaveBeenCalled();
   });
 
