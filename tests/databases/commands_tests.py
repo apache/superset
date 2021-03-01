@@ -28,6 +28,7 @@ from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.commands.exceptions import (
     DatabaseNotFoundError,
+    DatabaseSecurityUnsafeError,
     DatabaseTestConnectionDriverError,
     DatabaseTestConnectionUnexpectedError,
 )
@@ -35,6 +36,8 @@ from superset.databases.commands.export import ExportDatabasesCommand
 from superset.databases.commands.importers.v1 import ImportDatabasesCommand
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.schemas import DatabaseTestConnectionSchema
+from superset.errors import SupersetError
+from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_database
 from tests.base_tests import SupersetTestCase
@@ -537,6 +540,28 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
 
         # test with no db name
         with self.assertRaises(DatabaseTestConnectionUnexpectedError):
+            command_without_db_name.run()
+
+        mock_stats_logger.assert_called()
+
+    @mock.patch("superset.databases.dao.DatabaseDAO.build_db_for_connection_test")
+    @mock.patch("superset.databases.commands.test_connection.stats_logger.incr")
+    def test_connection_superset_security_connection(
+        self, mock_stats_logger, mock_build_db_for_connection_test
+    ):
+        """Test that users can't export databases they don't have access to"""
+        database = get_example_database()
+        mock_build_db_for_connection_test.side_effect = SupersetSecurityException(
+            SupersetError(error_type=500, message="test", level="info", extra={})
+        )
+        db_uri = database.sqlalchemy_uri_decrypted
+        json_payload = {"sqlalchemy_uri": db_uri}
+        command_without_db_name = TestConnectionDatabaseCommand(
+            security_manager.find_user("admin"), json_payload
+        )
+
+        # test with no db name
+        with self.assertRaises(DatabaseSecurityUnsafeError):
             command_without_db_name.run()
 
         mock_stats_logger.assert_called()
