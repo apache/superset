@@ -177,7 +177,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   directPathToChild,
 }) => {
   const [filterData, setFilterData] = useState<{
-    [filterId: string]: FilterState;
+    [filterId: string]: Omit<FilterState, 'id'>;
   }>({});
   const dispatch = useDispatch();
   const filtersStateNative = useFiltersStateNative();
@@ -234,7 +234,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     filter: Pick<Filter, 'id'> & Partial<Filter>,
     filtersState: DataMask,
   ) => {
-    // @ts-ignore
     setFilterData(prevFilterData => {
       const children = cascadeChildren[filter.id] || [];
       // force instant updating on initialization or for parent filters
@@ -242,6 +241,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         dispatch(updateExtraFormData(filter.id, filtersState));
       }
 
+      if (!filtersState.nativeFilters) {
+        return { ...prevFilterData };
+      }
       return {
         ...prevFilterData,
         [filter.id]: filtersState.nativeFilters,
