@@ -25,7 +25,6 @@ import {
   t,
   TimeRangeEndpoints,
 } from '@superset-ui/core';
-import { DatasourceMeta } from '@superset-ui/chart-controls';
 import {
   buildTimeRangeString,
   formatTimeRange,
@@ -173,7 +172,6 @@ interface DateFilterControlProps {
   onChange: (timeRange: string) => void;
   value?: string;
   endpoints?: TimeRangeEndpoints;
-  datasource?: DatasourceMeta;
 }
 
 export default function DateFilterLabel(props: DateFilterControlProps) {
