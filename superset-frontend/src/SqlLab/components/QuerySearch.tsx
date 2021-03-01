@@ -31,6 +31,7 @@ import {
 } from '../../modules/dates';
 import { STATUS_OPTIONS, TIME_OPTIONS } from '../constants';
 import AsyncSelect from '../../components/AsyncSelect';
+import { Query } from '../types';
 
 interface QuerySearchProps {
   actions: {
@@ -40,12 +41,12 @@ interface QuerySearchProps {
   displayLimit: number;
 }
 
-interface userMutatorProps {
+interface UserMutatorProps {
   value: number;
   text: string;
 }
 
-interface dbMutatorProps {
+interface DbMutatorProps {
   id: number;
   database_name: string;
 }
@@ -79,7 +80,7 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
   const [from, setFrom] = useState<string>('28 days ago');
   const [to, setTo] = useState<string>('now');
   const [status, setStatus] = useState<string>('success');
-  const [queriesArray, setQueriesArray] = useState<any>([]);
+  const [queriesArray, setQueriesArray] = useState<Query[]>([]);
   const [queriesLoading, setQueriesLoading] = useState<boolean>(true);
 
   const getTimeFromSelection = (selection: string) => {
@@ -161,21 +162,21 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
     handleChange(e);
   };
 
-  const userMutator = (data: any) =>
-    data.result.map(({ value, text }: userMutatorProps) => ({
+  const userMutator = ({result}: {result: UserMutatorProps[]}) =>
+    result.map(({ value, text }: UserMutatorProps) => ({
       label: text,
       value,
     }));
 
-  const dbMutator = (data: any) => {
-    const options = data.result.map(
-      ({ id, database_name }: dbMutatorProps) => ({
+  const dbMutator = ({result}: {result: DbMutatorProps[]}) => {
+    const options = result.map(
+      ({ id, database_name }: DbMutatorProps) => ({
         value: id,
         label: database_name,
       }),
     );
-    actions.setDatabases(data.result);
-    if (data.result.length === 0) {
+    actions.setDatabases(result);
+    if (result.length === 0) {
       actions.addDangerToast(
         t("It seems you don't have access to any database"),
       );
@@ -207,10 +208,7 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
         <div className="col-sm-4">
           <input
             type="text"
-            onChange={debounce(
-              (event: any) => setSearchText(event.target.value),
-              200,
-            )}
+            onChange={onChange}
             onKeyDown={onKeyDown}
             className="form-control input-sm"
             placeholder={t('Query search string')}
