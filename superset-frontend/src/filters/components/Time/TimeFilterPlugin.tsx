@@ -18,7 +18,7 @@
  */
 import { styled } from '@superset-ui/core';
 import React, { useState, useEffect } from 'react';
-import DateFilterControl from 'src/explore/components/controls/DateFilterControl/DateFilterControl';
+import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { PluginFilterStylesProps } from '../types';
 import { PluginFilterTimeProps } from './types';
 

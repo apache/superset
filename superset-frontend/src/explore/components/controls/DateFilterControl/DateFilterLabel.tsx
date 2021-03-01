@@ -25,7 +25,6 @@ import {
   t,
   TimeRangeEndpoints,
 } from '@superset-ui/core';
-import { DatasourceMeta } from '@superset-ui/chart-controls';
 import {
   buildTimeRangeString,
   formatTimeRange,
@@ -46,14 +45,14 @@ import {
   COMMON_RANGE_VALUES_SET,
   CALENDAR_RANGE_VALUES_SET,
   FRAME_OPTIONS,
-} from './constants';
-import { customTimeRangeDecode } from './utils';
+  customTimeRangeDecode,
+} from './utils';
 import {
   CommonFrame,
   CalendarFrame,
   CustomFrame,
   AdvancedFrame,
-} from './frame';
+} from './components';
 
 const guessFrame = (timeRange: string): FrameType => {
   if (COMMON_RANGE_VALUES_SET.has(timeRange)) {
@@ -173,10 +172,9 @@ interface DateFilterControlProps {
   onChange: (timeRange: string) => void;
   value?: string;
   endpoints?: TimeRangeEndpoints;
-  datasource?: DatasourceMeta;
 }
 
-export default function DateFilterControl(props: DateFilterControlProps) {
+export default function DateFilterLabel(props: DateFilterControlProps) {
   const { value = DEFAULT_TIME_RANGE, endpoints, onChange } = props;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
