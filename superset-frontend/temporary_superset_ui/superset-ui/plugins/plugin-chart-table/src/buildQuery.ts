@@ -22,6 +22,7 @@ import {
   QueryMode,
   removeDuplicates,
   ensureIsArray,
+  QueryObject,
 } from '@superset-ui/core';
 import { PostProcessingRule } from '@superset-ui/core/src/query/types/PostProcessing';
 import { TableChartFormData } from './types';
@@ -47,7 +48,6 @@ export default function buildQuery(formData: TableChartFormData) {
   const queryMode = getQueryMode(formData);
   const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
   let formDataCopy = formData;
-
   // never include time in raw records mode
   if (queryMode === QueryMode.raw) {
     formDataCopy = {
@@ -85,12 +85,23 @@ export default function buildQuery(formData: TableChartFormData) {
       }
     }
 
+    const moreProps: Partial<QueryObject> = {};
+    if (formDataCopy.server_pagination) {
+      const rowLimit = formDataCopy.extra_form_data?.custom_form_data?.row_limit;
+      // 1 - means all data
+      if (rowLimit !== 1) {
+        moreProps.row_limit = rowLimit ?? formDataCopy.server_page_length + 1; // +1 to determine if exists next page
+      }
+      moreProps.row_offset = formDataCopy?.extra_form_data?.custom_form_data?.row_offset ?? 0;
+    }
+
     return [
       {
         ...baseQueryObject,
         orderby,
         metrics,
         post_processing: postProcessing,
+        ...moreProps,
       },
     ];
   });
