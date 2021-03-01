@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useRef, ReactNode, HTMLProps, MutableRefObject } from 'react';
+import React, {
+  useCallback,
+  useRef,
+  ReactNode,
+  HTMLProps,
+  MutableRefObject,
+  CSSProperties,
+} from 'react';
 import {
   useTable,
   usePagination,
@@ -29,10 +36,14 @@ import {
   Row,
 } from 'react-table';
 import { matchSorter, rankings } from 'match-sorter';
+import { SetDataMaskHook } from '@superset-ui/core';
 import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';
 import SelectPageSize, { SelectPageSizeProps, SizeOption } from './components/SelectPageSize';
 import SimplePagination from './components/Pagination';
 import useSticky from './hooks/useSticky';
+import { updateExternalFormData } from './utils/externalAPIs';
+import ServerPagination from './components/ServerPagination';
+import { ServerPage } from '../types';
 
 export interface DataTableProps<D extends object> extends TableOptions<D> {
   tableClassName?: string;
@@ -43,9 +54,13 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   hooks?: PluginHook<D>[]; // any additional hooks
   width?: string | number;
   height?: string | number;
+  serverPagination?: boolean;
+  setDataMask: SetDataMaskHook;
+  currentPage?: number;
   pageSize?: number;
   noResults?: string | ((filterString: string) => ReactNode);
   sticky?: boolean;
+  showNextButton: boolean;
   wrapperRef?: MutableRefObject<HTMLDivElement>;
 }
 
@@ -58,6 +73,7 @@ export default function DataTable<D extends object>({
   tableClassName,
   columns,
   data,
+  currentPage = 0,
   width: initialWidth = '100%',
   height: initialHeight = 300,
   pageSize: initialPageSize = 0,
@@ -66,9 +82,12 @@ export default function DataTable<D extends object>({
   maxPageItemCount = 9,
   sticky: doSticky,
   searchInput = true,
+  setDataMask,
+  showNextButton,
   selectPageSize,
   noResults: noResultsText = 'No data found',
   hooks,
+  serverPagination,
   wrapperRef: userWrapperRef,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
@@ -79,16 +98,17 @@ export default function DataTable<D extends object>({
     doSticky ? useSticky : [],
     hooks || [],
   ].flat();
+  const resultsSize = data.length;
   const sortByRef = useRef([]); // cache initial `sortby` so sorting doesn't trigger page reset
-  const pageSizeRef = useRef([initialPageSize, data.length]);
-  const hasPagination = initialPageSize > 0 && data.length > 0; // pageSize == 0 means no pagination
+  const pageSizeRef = useRef([initialPageSize, resultsSize]);
+  const hasPagination = initialPageSize > 0 && resultsSize > 0; // pageSize == 0 means no pagination
   const hasGlobalControl = hasPagination || !!searchInput;
   const initialState = {
     ...initialState_,
     // zero length means all pages, the `usePagination` plugin does not
     // understand pageSize = 0
     sortBy: sortByRef.current,
-    pageSize: initialPageSize > 0 ? initialPageSize : data.length || 10,
+    pageSize: initialPageSize > 0 ? initialPageSize : resultsSize || 10,
   };
 
   const defaultWrapperRef = useRef<HTMLDivElement>(null);
@@ -109,7 +129,7 @@ export default function DataTable<D extends object>({
     }
     return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialHeight, initialWidth, wrapperRef, hasPagination, hasGlobalControl]);
+  }, [initialHeight, initialWidth, wrapperRef, hasPagination, hasGlobalControl, showNextButton]);
 
   const defaultGlobalFilter: FilterType<D> = useCallback(
     (rows: Row<D>[], columnIds: IdType<D>[], filterValue: string) => {
@@ -149,9 +169,12 @@ export default function DataTable<D extends object>({
   );
   // make setPageSize accept 0
   const setPageSize = (size: number) => {
+    if (serverPagination) {
+      updateExternalFormData(setDataMask, 0, size);
+    }
     // keep the original size if data is empty
-    if (size || data.length !== 0) {
-      setPageSize_(size === 0 ? data.length : size);
+    if (size || resultsSize !== 0) {
+      setPageSize_(size === 0 ? resultsSize : size);
     }
   };
 
@@ -206,11 +229,21 @@ export default function DataTable<D extends object>({
     pageSizeRef.current[0] !== initialPageSize ||
     // when initialPageSize stays as zero, but total number of records changed,
     // we'd also need to update page size
-    (initialPageSize === 0 && pageSizeRef.current[1] !== data.length)
+    (initialPageSize === 0 && pageSizeRef.current[1] !== resultsSize)
   ) {
-    pageSizeRef.current = [initialPageSize, data.length];
+    pageSizeRef.current = [initialPageSize, resultsSize];
     setPageSize(initialPageSize);
   }
+
+  const goToBEPage = (direction: ServerPage) => {
+    updateExternalFormData(
+      setDataMask,
+      direction === ServerPage.NEXT ? currentPage + 1 : currentPage - 1,
+      pageSize,
+    );
+  };
+
+  const paginationStyle: CSSProperties = sticky.height ? {} : { visibility: 'hidden' };
 
   return (
     <div ref={wrapperRef} style={{ width: initialWidth, height: initialHeight }}>
@@ -220,7 +253,7 @@ export default function DataTable<D extends object>({
             <div className="col-sm-6">
               {hasPagination ? (
                 <SelectPageSize
-                  total={data.length}
+                  total={resultsSize}
                   current={pageSize}
                   options={pageSizeOptions}
                   selectRenderer={typeof selectPageSize === 'boolean' ? undefined : selectPageSize}
@@ -242,10 +275,19 @@ export default function DataTable<D extends object>({
         </div>
       ) : null}
       {wrapStickyTable ? wrapStickyTable(renderTable) : renderTable()}
-      {hasPagination ? (
+      {serverPagination && (
+        <ServerPagination
+          ref={paginationRef}
+          style={paginationStyle}
+          showNext={showNextButton}
+          showPrevious={currentPage !== 0}
+          onPageChange={goToBEPage}
+        />
+      )}
+      {!serverPagination && hasPagination ? (
         <SimplePagination
           ref={paginationRef}
-          style={sticky.height ? undefined : { visibility: 'hidden' }}
+          style={paginationStyle}
           maxPageItemCount={maxPageItemCount}
           pageCount={pageCount}
           currentPage={pageIndex}
