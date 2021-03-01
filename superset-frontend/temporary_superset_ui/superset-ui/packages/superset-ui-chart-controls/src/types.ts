@@ -140,6 +140,7 @@ export type InternalControlType =
   | 'AdhocFilterControl'
   | 'FilterBoxItemControl'
   | 'DndColumnSelectControl'
+  | 'DndFilterSelect'
   | keyof SharedControlComponents; // expanded in `expandControlConfig`
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

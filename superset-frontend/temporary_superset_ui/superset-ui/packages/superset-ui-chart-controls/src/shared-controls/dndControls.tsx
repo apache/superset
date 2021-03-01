@@ -70,3 +70,18 @@ export const dndEntity: typeof dndGroupByControl = {
   validators: [validateNonEmpty],
   description: t('This defines the element to be plotted on the chart'),
 };
+
+export const dnd_adhoc_filters: SharedControlConfig<'DndFilterSelect'> = {
+  type: 'DndFilterSelect',
+  label: t('Filters'),
+  default: null,
+  description: '',
+  mapStateToProps: ({ datasource, form_data }) => ({
+    columns: datasource?.columns.filter(c => c.filterable) || [],
+    savedMetrics: datasource?.metrics || [],
+    // current active adhoc metrics
+    selectedMetrics: form_data.metrics || (form_data.metric ? [form_data.metric] : []),
+    datasource,
+  }),
+  provideFormDataToProps: true,
+};
