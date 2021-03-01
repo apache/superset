@@ -26,7 +26,7 @@ import { Tooltip } from 'src/common/components/Tooltip';
 import Popover from 'src/common/components/Popover';
 import Tabs from 'src/common/components/Tabs';
 import Label from 'src/components/Label';
-import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
+import DateFilterControl from 'src/explore/components/controls/LegacyDateFilterControl/DateFilterControl';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 // Mock moment.js to use a specific date
