@@ -34,6 +34,7 @@ import AdhocFilter, {
 import AdhocMetric from '../MetricControl/AdhocMetric';
 import { Tooltip } from '../../../../common/components/Tooltip';
 import { OPERATORS } from '../../../constants';
+import { DatasourcePanelDndItem } from '../../DatasourcePanel/types';
 
 const isDictionaryForAdhocFilter = (value: Record<string, any> | AdhocFilter) =>
   value && !(value instanceof AdhocFilter) && value.expressionType;
@@ -53,7 +54,7 @@ export const FilterColumnSelect = (props: FilterColumnSelectProps) => {
     columns: ColumnMeta[],
     formData: Record<string, any>,
   ) => {
-    const options = [
+    const options: OptionSortType[] = [
       ...columns,
       ...[...(formData.metrics || []), formData.metric].map(
         metric =>
@@ -65,25 +66,31 @@ export const FilterColumnSelect = (props: FilterColumnSelectProps) => {
     ].filter(option => option);
 
     return options
-      .reduce((results, option) => {
-        if (option.saved_metric_name) {
-          results.push({
-            ...option,
-            filterOptionName: option.saved_metric_name,
-          });
-        } else if (option.column_name) {
-          results.push({
-            ...option,
-            filterOptionName: `_col_${option.column_name}`,
-          });
-        } else if (option instanceof AdhocMetric) {
-          results.push({
-            ...option,
-            filterOptionName: `_adhocmetric_${option.label}`,
-          });
-        }
-        return results;
-      }, [])
+      .reduce(
+        (
+          results: (OptionSortType & { filterOptionName: string })[],
+          option,
+        ) => {
+          if (option.saved_metric_name) {
+            results.push({
+              ...option,
+              filterOptionName: option.saved_metric_name,
+            });
+          } else if (option.column_name) {
+            results.push({
+              ...option,
+              filterOptionName: `_col_${option.column_name}`,
+            });
+          } else if (option instanceof AdhocMetric) {
+            results.push({
+              ...option,
+              filterOptionName: `_adhocmetric_${option.label}`,
+            });
+          }
+          return results;
+        },
+        [],
+      )
       .sort((a: OptionSortType, b: OptionSortType) =>
         (a.saved_metric_name || a.column_name || a.label).localeCompare(
           b.saved_metric_name || b.column_name || b.label,
@@ -108,7 +115,7 @@ export const FilterColumnSelect = (props: FilterColumnSelectProps) => {
         SupersetClient.get({
           endpoint: `/superset/extra_table_metadata/${dbId}/${name}/${schema}/`,
         })
-          .then(({ json }) => {
+          .then(({ json }: { json: Record<string, any> }) => {
             if (json && json.partitions) {
               const { partitions } = json;
               // for now only show latest_partition option
@@ -122,7 +129,7 @@ export const FilterColumnSelect = (props: FilterColumnSelectProps) => {
               }
             }
           })
-          .catch(error => {
+          .catch((error: Record<string, any>) => {
             logging.error('fetch extra_table_metadata:', error.statusText);
           });
       }
@@ -160,7 +167,7 @@ export const FilterColumnSelect = (props: FilterColumnSelectProps) => {
   const getMetricExpression = (savedMetricName: string) =>
     props.savedMetrics.find(
       (savedMetric: Metric) => savedMetric.metric_name === savedMetricName,
-    ).expression;
+    )?.expression;
 
   const mapOption = (option: AdhocFilter | Record<string, any>) => {
     // already a AdhocFilter, skip
@@ -271,7 +278,7 @@ export const FilterColumnSelect = (props: FilterColumnSelectProps) => {
     <>
       <DndColumnSelectLabel
         values={values}
-        onDrop={item => {
+        onDrop={(item: DatasourcePanelDndItem) => {
           setDroppedItem(item.metricOrColumnName);
           togglePopover(true);
         }}
