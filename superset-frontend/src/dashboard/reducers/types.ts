@@ -87,15 +87,15 @@ export type FilterSets = {
 export type FilterStates = { [filterId: string]: FilterState };
 
 export enum FilterStateType {
-  nativeFilters = 'nativeFilters',
-  crossFilters = 'crossFilters',
-  ownFilters = 'ownFilters',
+  NativeFilters = 'nativeFilters',
+  CrossFilters = 'crossFilters',
+  OwnFilters = 'ownFilters',
 }
 
 export type FiltersState = {
-  [FilterStateType.nativeFilters]: FilterStates;
-  [FilterStateType.crossFilters]: FilterStates;
-  [FilterStateType.ownFilters]: FilterStates;
+  [FilterStateType.NativeFilters]: FilterStates;
+  [FilterStateType.CrossFilters]: FilterStates;
+  [FilterStateType.OwnFilters]: FilterStates;
 };
 
 export type Filters = {

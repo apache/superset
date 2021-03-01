@@ -54,9 +54,9 @@ export function getInitialState({
   const state: Partial<NativeFiltersState> = {};
 
   const emptyFiltersState = {
-    [FilterStateType.nativeFilters]: {},
-    [FilterStateType.crossFilters]: {},
-    [FilterStateType.ownFilters]: {},
+    [FilterStateType.NativeFilters]: {},
+    [FilterStateType.CrossFilters]: {},
+    [FilterStateType.OwnFilters]: {},
   };
 
   const filters = {};
@@ -113,9 +113,9 @@ export default function nativeFilterReducer(
     filters: {},
     filterSets: {},
     filtersState: {
-      [FilterStateType.nativeFilters]: {},
-      [FilterStateType.crossFilters]: {},
-      [FilterStateType.ownFilters]: {},
+      [FilterStateType.NativeFilters]: {},
+      [FilterStateType.CrossFilters]: {},
+      [FilterStateType.OwnFilters]: {},
     },
   },
   action: AnyFilterAction,
@@ -128,18 +128,18 @@ export default function nativeFilterReducer(
         filters,
         filtersState: {
           ...filtersState,
-          [FilterStateType.nativeFilters]: getUnitState(
-            FilterStateType.nativeFilters,
+          [FilterStateType.NativeFilters]: getUnitState(
+            FilterStateType.NativeFilters,
             action,
             filtersState,
           ),
-          [FilterStateType.crossFilters]: getUnitState(
-            FilterStateType.crossFilters,
+          [FilterStateType.CrossFilters]: getUnitState(
+            FilterStateType.CrossFilters,
             action,
             filtersState,
           ),
-          [FilterStateType.ownFilters]: getUnitState(
-            FilterStateType.ownFilters,
+          [FilterStateType.OwnFilters]: getUnitState(
+            FilterStateType.OwnFilters,
             action,
             filtersState,
           ),

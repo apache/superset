@@ -156,7 +156,7 @@ export const SAVE_FILTER_SETS = 'SAVE_FILTER_SETS';
 export interface SaveFilterSets {
   type: typeof SAVE_FILTER_SETS;
   name: string;
-  filtersState: Pick<FiltersState, FilterStateType.nativeFilters>;
+  filtersState: Pick<FiltersState, FilterStateType.NativeFilters>;
   filtersSetId: string;
 }
 
@@ -185,7 +185,7 @@ export function updateExtraFormData(
 export function saveFilterSets(
   name: string,
   filtersSetId: string,
-  filtersState: Pick<FiltersState, FilterStateType.nativeFilters>,
+  filtersState: Pick<FiltersState, FilterStateType.NativeFilters>,
 ): SaveFilterSets {
   return {
     type: SAVE_FILTER_SETS,
