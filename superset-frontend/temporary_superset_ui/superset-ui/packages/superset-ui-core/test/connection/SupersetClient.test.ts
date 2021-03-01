@@ -23,7 +23,7 @@ import { LOGIN_GLOB } from './fixtures/constants';
 
 describe('SupersetClient', () => {
   beforeAll(() => {
-    fetchMock.get(LOGIN_GLOB, { csrf_token: '' });
+    fetchMock.get(LOGIN_GLOB, { result: '' });
   });
 
   afterAll(fetchMock.restore);

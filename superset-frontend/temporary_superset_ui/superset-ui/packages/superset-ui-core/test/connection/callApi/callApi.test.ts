@@ -26,7 +26,7 @@ import { LOGIN_GLOB } from '../fixtures/constants';
 
 describe('callApi()', () => {
   beforeAll(() => {
-    fetchMock.get(LOGIN_GLOB, { csrf_token: '1234' });
+    fetchMock.get(LOGIN_GLOB, { result: '1234' });
   });
 
   afterAll(fetchMock.restore);
