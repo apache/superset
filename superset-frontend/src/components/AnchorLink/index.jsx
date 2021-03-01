@@ -20,9 +20,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 
-import URLShortLinkButton from './URLShortLinkButton';
-import getDashboardUrl from '../dashboard/util/getDashboardUrl';
-import getLocationHash from '../dashboard/util/getLocationHash';
+import URLShortLinkButton from 'src/components/URLShortLinkButton';
+import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
+import getLocationHash from 'src/dashboard/util/getLocationHash';
 
 const propTypes = {
   anchorLinkId: PropTypes.string.isRequired,
