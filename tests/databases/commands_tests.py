@@ -539,7 +539,6 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             security_manager.find_user("admin"), json_payload
         )
 
-        # test with no db name
         with self.assertRaises(DatabaseTestConnectionUnexpectedError):
             command_without_db_name.run()
 
@@ -561,7 +560,6 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             security_manager.find_user("admin"), json_payload
         )
 
-        # test with no db name
         with self.assertRaises(DatabaseSecurityUnsafeError):
             command_without_db_name.run()
 
@@ -583,7 +581,6 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             security_manager.find_user("admin"), json_payload
         )
 
-        # test with no db name
         with self.assertRaises(DatabaseTestConnectionFailedError):
             command_without_db_name.run()
 
