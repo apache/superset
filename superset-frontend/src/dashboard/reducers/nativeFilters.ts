@@ -17,19 +17,20 @@
  * under the License.
  */
 import {
-  UPDATE_EXTRA_FORM_DATA,
   AnyFilterAction,
   SAVE_FILTER_SETS,
   SET_FILTER_CONFIG_COMPLETE,
-  UpdateExtraFormData,
   SET_FILTER_SETS_CONFIG_COMPLETE,
   SET_FILTERS_STATE,
+  UPDATE_EXTRA_FORM_DATA,
+  UpdateExtraFormData,
 } from 'src/dashboard/actions/nativeFilters';
 import {
-  NativeFiltersState,
-  FilterState,
-  FiltersState,
   FiltersSet,
+  FiltersState,
+  FilterState,
+  FilterStateType,
+  NativeFiltersState,
 } from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
 
@@ -53,9 +54,9 @@ export function getInitialState({
   const state: Partial<NativeFiltersState> = {};
 
   const emptyFiltersState = {
-    nativeFilters: {},
-    crossFilters: {},
-    ownFilters: {},
+    [FilterStateType.nativeFilters]: {},
+    [FilterStateType.crossFilters]: {},
+    [FilterStateType.ownFilters]: {},
   };
 
   const filters = {};
@@ -92,7 +93,7 @@ export function getInitialState({
 }
 
 const getUnitState = (
-  unitName: string,
+  unitName: FilterStateType,
   action: UpdateExtraFormData,
   filtersState: FiltersState,
 ) => {
@@ -111,7 +112,11 @@ export default function nativeFilterReducer(
   state: NativeFiltersState = {
     filters: {},
     filterSets: {},
-    filtersState: { nativeFilters: {}, crossFilters: {}, ownFilters: {} },
+    filtersState: {
+      [FilterStateType.nativeFilters]: {},
+      [FilterStateType.crossFilters]: {},
+      [FilterStateType.ownFilters]: {},
+    },
   },
   action: AnyFilterAction,
 ) {
@@ -123,9 +128,21 @@ export default function nativeFilterReducer(
         filters,
         filtersState: {
           ...filtersState,
-          nativeFilters: getUnitState('nativeFilters', action, filtersState),
-          crossFilters: getUnitState('crossFilters', action, filtersState),
-          ownFilters: getUnitState('ownFilters', action, filtersState),
+          [FilterStateType.nativeFilters]: getUnitState(
+            FilterStateType.nativeFilters,
+            action,
+            filtersState,
+          ),
+          [FilterStateType.crossFilters]: getUnitState(
+            FilterStateType.crossFilters,
+            action,
+            filtersState,
+          ),
+          [FilterStateType.ownFilters]: getUnitState(
+            FilterStateType.ownFilters,
+            action,
+            filtersState,
+          ),
         },
       };
     case SAVE_FILTER_SETS:

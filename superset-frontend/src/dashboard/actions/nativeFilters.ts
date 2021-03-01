@@ -21,7 +21,12 @@ import { makeApi, DataMask } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import { FilterConfiguration } from 'src/dashboard/components/nativeFilters/types';
 import { dashboardInfoChanged } from './dashboardInfo';
-import { FiltersState, FilterState, FiltersSet } from '../reducers/types';
+import {
+  FiltersState,
+  FilterState,
+  FiltersSet,
+  FilterStateType,
+} from '../reducers/types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
 export interface SetFilterConfigBegin {
@@ -151,7 +156,7 @@ export const SAVE_FILTER_SETS = 'SAVE_FILTER_SETS';
 export interface SaveFilterSets {
   type: typeof SAVE_FILTER_SETS;
   name: string;
-  filtersState: Pick<FiltersState, 'nativeFilters'>;
+  filtersState: Pick<FiltersState, FilterStateType.nativeFilters>;
   filtersSetId: string;
 }
 
@@ -180,7 +185,7 @@ export function updateExtraFormData(
 export function saveFilterSets(
   name: string,
   filtersSetId: string,
-  filtersState: Pick<FiltersState, 'nativeFilters'>,
+  filtersState: Pick<FiltersState, FilterStateType.nativeFilters>,
 ): SaveFilterSets {
   return {
     type: SAVE_FILTER_SETS,
