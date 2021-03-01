@@ -133,11 +133,13 @@ export const singleNativeFiltersState = {
     },
   },
   filtersState: {
-    [NATIVE_FILTER_ID]: {
-      id: NATIVE_FILTER_ID,
-      extraFormData,
-      currentState: {
-        value: ['No, not an ethnic minority'],
+    nativeFilters: {
+      [NATIVE_FILTER_ID]: {
+        id: NATIVE_FILTER_ID,
+        extraFormData,
+        currentState: {
+          value: ['No, not an ethnic minority'],
+        },
       },
     },
   },
