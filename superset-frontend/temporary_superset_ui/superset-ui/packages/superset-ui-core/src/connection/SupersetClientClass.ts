@@ -165,11 +165,11 @@ export default class SupersetClientClass {
       method: 'GET',
       mode: this.mode,
       timeout: this.timeout,
-      url: this.getUrl({ endpoint: 'superset/csrf_token/' }),
+      url: this.getUrl({ endpoint: 'api/v1/security/csrf_token/' }),
       parseMethod: 'json',
     }).then(({ json }) => {
       if (typeof json === 'object') {
-        this.csrfToken = json.csrf_token as string;
+        this.csrfToken = json.result as string;
         if (typeof this.csrfToken === 'string') {
           this.headers = { ...this.headers, 'X-CSRFToken': this.csrfToken };
         }
