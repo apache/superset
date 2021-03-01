@@ -25,7 +25,7 @@ import {
 import { FormInstance } from 'antd/lib/form';
 import React, { useCallback } from 'react';
 import { Checkbox, Form, Input, Typography } from 'src/common/components';
-import { Select } from 'src/components/Select/SupersetStyledSelect';
+import { Select } from 'src/components/Select';
 import SupersetResourceSelect from 'src/components/SupersetResourceSelect';
 import { addDangerToast } from 'src/messageToasts/actions';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
