@@ -20,7 +20,11 @@ from unittest import mock
 import pytest
 
 from superset.db_engine_specs import engines
-from superset.db_engine_specs.base import BaseEngineSpec, builtin_time_grains
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    builtin_time_grains,
+    LimitMethod,
+)
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.sql_parse import ParsedQuery
 from superset.utils.core import get_example_database
@@ -152,6 +156,14 @@ class TestDbEngineSpecs(TestDbEngineSpec):
     def test_limit_with_non_token_limit(self):
         self.sql_limit_regex(
             """SELECT 'LIMIT 777'""", """SELECT 'LIMIT 777'\nLIMIT 1000"""
+        )
+
+    def test_limit_with_fetch_many(self):
+        class DummyEngineSpec(BaseEngineSpec):
+            limit_method = LimitMethod.FETCH_MANY
+
+        self.sql_limit_regex(
+            "SELECT * FROM table", "SELECT * FROM table", DummyEngineSpec
         )
 
     def test_time_grain_denylist(self):
