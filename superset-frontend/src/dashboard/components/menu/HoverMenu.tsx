@@ -20,9 +20,9 @@ import React, { RefObject } from 'react';
 import cx from 'classnames';
 
 interface HoverMenuProps {
-  position?: 'left' | 'top',
-  innerRef?: RefObject<any>,
-  children?: React.ReactNode,
+  position: 'left' | 'top',
+  innerRef: RefObject<HTMLDivElement>,
+  children: React.ReactNode,
 };
 
 export default class HoverMenu extends React.PureComponent<HoverMenuProps> {

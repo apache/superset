@@ -20,12 +20,12 @@ import React from 'react';
 import cx from 'classnames';
 
 import backgroundStyleOptions from '../../util/backgroundStyleOptions';
-import PopoverDropdown, { OptionProps } from './PopoverDropdown';
+import PopoverDropdown, { OptionProps, OnChangeHandler } from './PopoverDropdown';
 
 interface BackgroundStyleDropdownProps {
   id: string,
   value: string,
-  onChange: Function,
+  onChange: OnChangeHandler
 };
 
 function renderButton(option: OptionProps) {

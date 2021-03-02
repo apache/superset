@@ -19,12 +19,12 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 
-import PopoverDropdown from './PopoverDropdown';
+import PopoverDropdown, { OnChangeHandler } from './PopoverDropdown';
 
 interface MarkdownModeDropdownProps {
   id: string,
   value: string,
-  onChange: Function,
+  onChange: OnChangeHandler
 };
 
 const dropdownOptions = [

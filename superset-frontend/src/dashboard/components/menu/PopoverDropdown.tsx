@@ -23,22 +23,22 @@ import { Dropdown, Menu } from 'src/common/components';
 import Icon from 'src/components/Icon';
 
 export interface OptionProps {
+  value: string,
   label: string,
-  className: string,
+  className?: string,
 };
+
+export type OnChangeHandler = (key: React.Key) => void;
+export type RenderElementHandler = (option: OptionProps) => JSX.Element;
 
 interface PopoverDropdownProps {
   id: string,
-  options: {
-    value: string,
-    label: string,
-    className?: string,
-  }[],
-  onChange: Function,
+  options: OptionProps[],
+  onChange: OnChangeHandler,
   value: string,
   theme: SupersetThemeProps['theme'],
-  renderButton?: Function,
-  renderOption?: Function,
+  renderButton: RenderElementHandler,
+  renderOption: RenderElementHandler,
 };
 
 const MenuItem = styled(Menu.Item)`
@@ -72,7 +72,7 @@ const MenuItem = styled(Menu.Item)`
 `;
 
 interface HandleSelectProps {
-  key: any;
+  key: React.Key;
 };
 
 class PopoverDropdown extends React.PureComponent<PopoverDropdownProps> {
@@ -116,14 +116,14 @@ class PopoverDropdown extends React.PureComponent<PopoverDropdownProps> {
                   active: option.value === value,
                 })}
               >
-                {renderOption!(option)}
+                {renderOption(option)}
               </MenuItem>
             ))}
           </Menu>
         }
       >
         <div role="button" css={{ display: 'flex', alignItems: 'center' }}>
-          {renderButton!(selected)}
+          {selected && renderButton(selected)}
           <Icon name="caret-down" css={{ marginTop: 4 }} />
         </div>
       </Dropdown>
