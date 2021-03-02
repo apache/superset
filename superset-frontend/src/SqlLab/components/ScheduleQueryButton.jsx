@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import Form from 'react-jsonschema-form';
 import chrono from 'chrono-node';
@@ -74,7 +74,7 @@ function getValidator() {
 const propTypes = {
   defaultLabel: PropTypes.string,
   sql: PropTypes.string.isRequired,
-  schema: PropTypes.string.isRequired,
+  schema: PropTypes.string,
   dbId: PropTypes.number.isRequired,
   animation: PropTypes.bool,
   onSchedule: PropTypes.func,
@@ -95,126 +95,107 @@ const StyledRow = styled(Row)`
   padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
-class ScheduleQueryButton extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      description: '',
-      label: props.defaultLabel,
-      showSchedule: false,
-    };
-    this.toggleSchedule = this.toggleSchedule.bind(this);
-    this.onSchedule = this.onSchedule.bind(this);
-    this.onCancel = this.onCancel.bind(this);
-    this.onLabelChange = this.onLabelChange.bind(this);
-    this.onDescriptionChange = this.onDescriptionChange.bind(this);
-  }
+function ScheduleQueryButton({
+  defaultLabel,
+  sql,
+  schema,
+  dbId,
+  onSchedule,
+  scheduleQueryWarning,
+  disabled,
+  tooltip,
+}) {
+  const [description, setDescription] = useState('');
+  const [label, setLabel] = useState(defaultLabel);
+  const [showSchedule, setShowSchedule] = useState(false);
+  let saveModal;
+  // this is for the ref that is created in the modal trigger. the modal is created in order to use the .close() function on it.
 
-  onSchedule({ formData }) {
+  const onScheduleSubmit = ({ formData }) => {
     const query = {
-      label: this.state.label,
-      description: this.state.description,
-      db_id: this.props.dbId,
-      schema: this.props.schema,
-      sql: this.props.sql,
+      label,
+      description,
+      db_id: dbId,
+      schema,
+      sql,
       extra_json: JSON.stringify({ schedule_info: formData }),
     };
-    this.props.onSchedule(query);
-    this.saveModal.close();
-  }
+    onSchedule(query);
+    saveModal.close();
+  };
 
-  onCancel() {
-    this.saveModal.close();
-  }
-
-  onLabelChange(e) {
-    this.setState({ label: e.target.value });
-  }
-
-  onDescriptionChange(e) {
-    this.setState({ description: e.target.value });
-  }
-
-  toggleSchedule() {
-    this.setState(prevState => ({ showSchedule: !prevState.showSchedule }));
-  }
-
-  renderModalBody() {
-    return (
-      <FormGroup>
-        <StyledRow>
-          <Col md={12}>
-            <FormLabel className="control-label" htmlFor="embed-height">
-              {t('Label')}
-            </FormLabel>
-            <FormControl
-              type="text"
-              placeholder={t('Label for your query')}
-              value={this.state.label}
-              onChange={this.onLabelChange}
+  const renderModalBody = () => (
+    <FormGroup>
+      <StyledRow>
+        <Col md={12}>
+          <FormLabel className="control-label" htmlFor="embed-height">
+            {t('Label')}
+          </FormLabel>
+          <FormControl
+            type="text"
+            placeholder={t('Label for your query')}
+            value={label}
+            onChange={event => setLabel(event.target.value)}
+          />
+        </Col>
+      </StyledRow>
+      <StyledRow>
+        <Col md={12}>
+          <FormLabel className="control-label" htmlFor="embed-height">
+            {t('Description')}
+          </FormLabel>
+          <FormControl
+            componentClass="textarea"
+            placeholder={t('Write a description for your query')}
+            value={description}
+            onChange={event => setDescription(event.target.value)}
+          />
+        </Col>
+      </StyledRow>
+      <Row>
+        <Col md={12}>
+          <div className="json-schema">
+            <Form
+              schema={getJSONSchema()}
+              uiSchema={getUISchema()}
+              onSubmit={onScheduleSubmit}
+              validate={getValidator()}
             />
-          </Col>
-        </StyledRow>
-        <StyledRow>
-          <Col md={12}>
-            <FormLabel className="control-label" htmlFor="embed-height">
-              {t('Description')}
-            </FormLabel>
-            <FormControl
-              componentClass="textarea"
-              placeholder={t('Write a description for your query')}
-              value={this.state.description}
-              onChange={this.onDescriptionChange}
-            />
-          </Col>
-        </StyledRow>
+          </div>
+        </Col>
+      </Row>
+      {scheduleQueryWarning && (
         <Row>
           <Col md={12}>
-            <div className="json-schema">
-              <Form
-                schema={getJSONSchema()}
-                uiSchema={getUISchema()}
-                onSubmit={this.onSchedule}
-                validate={getValidator()}
-              />
-            </div>
+            <small>{scheduleQueryWarning}</small>
           </Col>
         </Row>
-        {this.props.scheduleQueryWarning && (
-          <Row>
-            <Col md={12}>
-              <small>{this.props.scheduleQueryWarning}</small>
-            </Col>
-          </Row>
-        )}
-      </FormGroup>
-    );
-  }
+      )}
+    </FormGroup>
+  );
 
-  render() {
-    return (
-      <span className="ScheduleQueryButton">
-        <ModalTrigger
-          ref={ref => {
-            this.saveModal = ref;
-          }}
-          modalTitle={t('Schedule query')}
-          modalBody={this.renderModalBody()}
-          triggerNode={
-            <div
-              role="button"
-              buttonSize="small"
-              onClick={this.toggleSchedule}
-              disabled={this.props.disabled}
-              tooltip={this.props.tooltip}
-            >
-              {t('Schedule')}
-            </div>
-          }
-        />
-      </span>
-    );
-  }
+  return (
+    <span className="ScheduleQueryButton">
+      <ModalTrigger
+        ref={ref => {
+          saveModal = ref;
+        }}
+        modalTitle={t('Schedule query')}
+        modalBody={renderModalBody}
+        triggerNode={
+          <div
+            role="button"
+            buttonSize="small"
+            onClick={setShowSchedule(!showSchedule)}
+            disabled={disabled}
+            tooltip={tooltip}
+          >
+            {t('Schedule')}
+          </div>
+        }
+      />
+    </span>
+  );
 }
 ScheduleQueryButton.propTypes = propTypes;
 ScheduleQueryButton.defaultProps = defaultProps;
