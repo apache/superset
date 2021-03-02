@@ -156,11 +156,19 @@ class BaseReportState:
         screenshot: Optional[BaseScreenshot] = None
         if self._report_schedule.chart:
             url = self._get_url(standalone="true")
-            screenshot = ChartScreenshot(url, self._report_schedule.chart.digest)
+            screenshot = ChartScreenshot(
+                url,
+                self._report_schedule.chart.digest,
+                window_size=app.config["WEBDRIVER_WINDOW"]["slice"],
+                thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
+            )
         else:
             url = self._get_url()
             screenshot = DashboardScreenshot(
-                url, self._report_schedule.dashboard.digest
+                url,
+                self._report_schedule.dashboard.digest,
+                window_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+                thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
             )
         image_url = self._get_url(user_friendly=True)
         user = self._get_screenshot_user()
