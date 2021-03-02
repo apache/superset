@@ -1,5 +1,5 @@
 ---
-name: SQL Server
+name: Microsoft SQL Server
 menu: Connecting to Databases
 route: /docs/databases/sql-server
 index: 24
@@ -13,5 +13,5 @@ The recommended connector library for SQL Server is [pymssql](https://github.com
 The connection string for SQL Server looks like this:
 
 ```
-mssql+pymssql://UserName@DB:Password@DB_Host:1433/TestSchema
+mssql+pymssql://<Username>:<Password>@<Host>:<Port-default:1433>/<Database Name>/?Encrypt=yes
 ```
