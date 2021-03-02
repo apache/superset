@@ -19,7 +19,7 @@
 import { snakeCase } from 'lodash';
 import PropTypes from 'prop-types';
 import React from 'react';
-import { SuperChart, logging } from '@superset-ui/core';
+import { SuperChart, logging, Behavior } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger/LogUtils';
 
 const propTypes = {
@@ -42,9 +42,10 @@ const propTypes = {
   refreshOverlayVisible: PropTypes.bool,
   // dashboard callbacks
   addFilter: PropTypes.func,
-  setExtraFormData: PropTypes.func,
+  setDataMask: PropTypes.func,
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
+  ownCurrentState: PropTypes.object,
 };
 
 const BLANK = {};
@@ -74,12 +75,12 @@ class ChartRenderer extends React.Component {
       setControlValue: this.handleSetControlValue,
       onFilterMenuOpen: this.props.onFilterMenuOpen,
       onFilterMenuClose: this.props.onFilterMenuClose,
-      setExtraFormData: ({ extraFormData, currentState }) =>
-        this.props.actions?.setExtraFormData(
+      setDataMask: filtersState => {
+        this.props.actions?.updateExtraFormData(
           this.props.chartId,
-          extraFormData,
-          currentState,
-        ),
+          filtersState,
+        );
+      },
     };
   }
 
@@ -185,6 +186,7 @@ class ChartRenderer extends React.Component {
       annotationData,
       datasource,
       initialValues,
+      ownCurrentState,
       formData,
       queriesResponse,
     } = this.props;
@@ -224,7 +226,9 @@ class ChartRenderer extends React.Component {
         datasource={datasource}
         initialValues={initialValues}
         formData={formData}
+        ownCurrentState={ownCurrentState}
         hooks={this.hooks}
+        behaviors={[Behavior.CROSS_FILTER]}
         queriesData={queriesResponse}
         onRenderSuccess={this.handleRenderSuccess}
         onRenderFailure={this.handleRenderFailure}
