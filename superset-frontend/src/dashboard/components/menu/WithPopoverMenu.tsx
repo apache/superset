@@ -21,29 +21,27 @@ import cx from 'classnames';
 
 type ShouldFocusContainer = HTMLDivElement & {
   contains: (event_target: EventTarget & HTMLElement) => Boolean;
-}
+};
 
 interface WithPopoverMenuProps {
-  children: React.ReactNode,
-  disableClick: Boolean,
-  menuItems: React.ReactNode[],
-  onChangeFocus: (focus: Boolean) => void,
-  isFocused: Boolean,
-  shouldFocus: (event: any, container: ShouldFocusContainer) => Boolean,
-  editMode: Boolean,
-  style: React.CSSProperties,
-};
+  children: React.ReactNode;
+  disableClick: Boolean;
+  menuItems: React.ReactNode[];
+  onChangeFocus: (focus: Boolean) => void;
+  isFocused: Boolean;
+  shouldFocus: (event: any, container: ShouldFocusContainer) => Boolean;
+  editMode: Boolean;
+  style: React.CSSProperties;
+}
 
 interface WithPopoverMenuState {
-  isFocused: Boolean
-};
-
+  isFocused: Boolean;
+}
 
 export default class WithPopoverMenu extends React.PureComponent<
   WithPopoverMenuProps,
   WithPopoverMenuState
-  > {
-
+> {
   container: ShouldFocusContainer;
 
   static defaultProps = {
@@ -137,14 +135,14 @@ export default class WithPopoverMenu extends React.PureComponent<
       >
         {children}
         {editMode && isFocused && (menuItems?.length ?? 0) > 0 && (
-            <div className="popover-menu">
-              {menuItems.map((node: React.ReactNode, i: Number) => (
-                <div className="menu-item" key={`menu-item-${i}`}>
-                  {node}
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="popover-menu">
+            {menuItems.map((node: React.ReactNode, i: Number) => (
+              <div className="menu-item" key={`menu-item-${i}`}>
+                {node}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }

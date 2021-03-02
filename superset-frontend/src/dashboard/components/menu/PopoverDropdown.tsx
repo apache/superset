@@ -23,23 +23,23 @@ import { Dropdown, Menu } from 'src/common/components';
 import Icon from 'src/components/Icon';
 
 export interface OptionProps {
-  value: string,
-  label: string,
-  className?: string,
-};
+  value: string;
+  label: string;
+  className?: string;
+}
 
 export type OnChangeHandler = (key: React.Key) => void;
 export type RenderElementHandler = (option: OptionProps) => JSX.Element;
 
 interface PopoverDropdownProps {
-  id: string,
-  options: OptionProps[],
-  onChange: OnChangeHandler,
-  value: string,
-  theme: SupersetThemeProps['theme'],
-  renderButton: RenderElementHandler,
-  renderOption: RenderElementHandler,
-};
+  id: string;
+  options: OptionProps[];
+  onChange: OnChangeHandler;
+  value: string;
+  theme: SupersetThemeProps['theme'];
+  renderButton: RenderElementHandler;
+  renderOption: RenderElementHandler;
+}
 
 const MenuItem = styled(Menu.Item)`
   &.ant-menu-item {
@@ -73,7 +73,7 @@ const MenuItem = styled(Menu.Item)`
 
 interface HandleSelectProps {
   key: React.Key;
-};
+}
 
 class PopoverDropdown extends React.PureComponent<PopoverDropdownProps> {
   constructor(props: PopoverDropdownProps) {
@@ -94,17 +94,11 @@ class PopoverDropdown extends React.PureComponent<PopoverDropdownProps> {
   };
 
   render() {
-    const {
-      value,
-      options,
-      renderButton,
-      renderOption,
-      theme,
-    } = this.props;
+    const { value, options, renderButton, renderOption, theme } = this.props;
     const selected = options.find(opt => opt.value === value);
     return (
       <Dropdown
-        trigger={["click"]}
+        trigger={['click']}
         overlayStyle={{ zIndex: theme.zIndex.max }}
         overlay={
           <Menu onClick={this.handleSelect}>

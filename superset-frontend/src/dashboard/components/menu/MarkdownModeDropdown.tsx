@@ -22,10 +22,10 @@ import { t } from '@superset-ui/core';
 import PopoverDropdown, { OnChangeHandler } from './PopoverDropdown';
 
 interface MarkdownModeDropdownProps {
-  id: string,
-  value: string,
-  onChange: OnChangeHandler
-};
+  id: string;
+  value: string;
+  onChange: OnChangeHandler;
+}
 
 const dropdownOptions = [
   {
