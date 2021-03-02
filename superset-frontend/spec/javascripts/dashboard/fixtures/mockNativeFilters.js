@@ -42,9 +42,13 @@ export const nativeFiltersInfo = {
     },
   },
   filtersState: {
-    DefaultsID: {
-      id: 'DefaultId',
-      selectedValues: [],
+    nativeFilters: {
+      DefaultsID: {
+        id: 'DefaultId',
+        currentState: {
+          value: [],
+        },
+      },
     },
   },
 };
