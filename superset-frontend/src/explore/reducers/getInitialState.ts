@@ -23,17 +23,17 @@ import {
   JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
-import { Slice } from 'src/types/Chart';
+import { ControlStateMapping } from '@superset-ui/chart-controls';
 import { CommonBootstrapData } from 'src/types/bootstrapTypes';
-
 import getToastsFromPyFlashMessages from 'src/messageToasts/utils/getToastsFromPyFlashMessages';
+
+import { ChartState, Slice } from 'src/explore/types';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { getControlsState } from 'src/explore/store';
 import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
 } from 'src/explore/controlUtils';
-import { ControlStateMapping } from '@superset-ui/chart-controls';
 
 export interface ExlorePageBootstrapData extends JsonObject {
   can_add: boolean;
@@ -91,22 +91,24 @@ export default function getInitialState(
     : null;
 
   const chartKey: number = getChartKey(bootstrapData);
+  const chart: ChartState = {
+    id: chartKey,
+    chartAlert: null,
+    chartStatus: null,
+    chartStackTrace: null,
+    chartUpdateEndTime: null,
+    chartUpdateStartTime: 0,
+    latestQueryFormData: getFormDataFromControls(exploreState.controls),
+    sliceFormData,
+    queryController: null,
+    queriesResponse: null,
+    triggerQuery: false,
+    lastRendered: 0,
+  };
 
   return {
     charts: {
-      [chartKey]: {
-        id: chartKey,
-        chartAlert: null,
-        chartStatus: null,
-        chartUpdateEndTime: null,
-        chartUpdateStartTime: 0,
-        latestQueryFormData: getFormDataFromControls(exploreState.controls),
-        sliceFormData,
-        queryController: null,
-        queriesResponse: null,
-        triggerQuery: false,
-        lastRendered: 0,
-      },
+      [chartKey]: chart,
     },
     saveModal: {
       dashboards: [],
@@ -120,4 +122,4 @@ export default function getInitialState(
   };
 }
 
-export type ExploreState = ReturnType<typeof getInitialState>;
+export type ExplorePageState = ReturnType<typeof getInitialState>;
