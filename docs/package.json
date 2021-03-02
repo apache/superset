@@ -39,7 +39,7 @@
     "react-helmet": "^6.1.0",
     "swagger-ui-react": "^3.36.2",
     "theme-ui": "^0.3.1",
-    "three": "^0.68.0"
+    "three": "^0.125.0"
   },
   "devDependencies": {
     "eslint-config-airbnb": "^18.2.1",
