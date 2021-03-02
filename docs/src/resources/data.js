@@ -221,6 +221,11 @@ export const Databases = [
     imgName: 'trino2.jpg',
   },
   {
+    title: 'Rockset',
+    href: 'https://rockset.com/',
+    imgName: 'rockset.png',
+  },
+  {
     title: 'Vertica',
     href: 'https://www.vertica.com/',
     imgName: 'vertica.png',
