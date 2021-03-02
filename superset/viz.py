@@ -284,7 +284,7 @@ class BaseViz:
         # If the datetime format is unix, the parse will use the corresponding
         # parsing logic.
         if not df.empty:
-            df = utils.normalize_dttm_col(
+            utils.normalize_dttm_col(
                 df=df,
                 timestamp_format=timestamp_format,
                 offset=self.datasource.offset,
