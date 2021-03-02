@@ -18,11 +18,12 @@
  */
 /* eslint camelcase: 0 */
 import { t } from '@superset-ui/core';
+import { ChartState } from 'src/explore/types';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import { now } from '../modules/dates';
 import * as actions from './chartAction';
 
-export const chart = {
+export const chart: ChartState = {
   id: 0,
   chartAlert: null,
   chartStatus: 'loading',
@@ -30,14 +31,22 @@ export const chart = {
   chartUpdateEndTime: null,
   chartUpdateStartTime: 0,
   latestQueryFormData: {},
+  sliceFormData: null,
   queryController: null,
   queriesResponse: null,
   triggerQuery: true,
   lastRendered: 0,
 };
 
-export default function chartReducer(charts = {}, action) {
-  const actionHandlers = {
+type ChartActionHandler = (state: ChartState) => ChartState;
+
+type AnyChartAction = Record<string, any>;
+
+export default function chartReducer(
+  charts: Record<string, ChartState> = {},
+  action: AnyChartAction,
+) {
+  const actionHandlers: Record<string, ChartActionHandler> = {
     [actions.ADD_CHART]() {
       return {
         ...chart,
@@ -134,7 +143,7 @@ export default function chartReducer(charts = {}, action) {
       }
       const annotationQuery = {
         ...state.annotationQuery,
-        [action.annotation.name]: action.queryRequest,
+        [action.annotation.name]: action.queryController,
       };
       return {
         ...state,

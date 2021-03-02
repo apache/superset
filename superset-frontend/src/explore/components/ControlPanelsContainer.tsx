@@ -27,11 +27,6 @@ import {
   QueryFormData,
   DatasourceType,
 } from '@superset-ui/core';
-
-import Tabs from 'src/common/components/Tabs';
-import Collapse from 'src/common/components/Collapse';
-import { PluginContext } from 'src/components/DynamicPlugins';
-import Loading from 'src/components/Loading';
 import {
   ControlPanelSectionConfig,
   ControlState,
@@ -39,11 +34,21 @@ import {
   ExpandedControlItem,
   InfoTooltipWithTrigger,
 } from '@superset-ui/chart-controls';
+
+import Tabs from 'src/common/components/Tabs';
+import Collapse from 'src/common/components/Collapse';
+import { PluginContext } from 'src/components/DynamicPlugins';
+import Loading from 'src/components/Loading';
+
+import { sectionsToRender } from 'src/explore/controlUtils';
+import {
+  ExploreActions,
+  exploreActions,
+} from 'src/explore/actions/exploreActions';
+import { ExplorePageState } from 'src/explore/reducers/getInitialState';
+
 import ControlRow from './ControlRow';
 import Control from './Control';
-import { sectionsToRender } from '../controlUtils';
-import { ExploreActions, exploreActions } from '../actions/exploreActions';
-import { ExploreState } from '../reducers/getInitialState';
 
 export type ControlPanelsContainerProps = {
   actions: ExploreActions;
@@ -312,8 +317,12 @@ class ControlPanelsContainer extends React.Component<ControlPanelsContainerProps
 export { ControlPanelsContainer };
 
 export default connect(
-  function mapStateToProps({ explore }: ExploreState) {
+  function mapStateToProps(state: ExplorePageState) {
+    const { explore, charts } = state;
+    const chartKey = Object.keys(charts)[0];
+    const chart = charts[chartKey];
     return {
+      chart,
       isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
       controls: explore.controls,
       exploreState: explore,
