@@ -78,31 +78,32 @@ export const getActiveNativeFilters = ({
   layout: { [key: string]: LayoutItem };
 }): ActiveFilters => {
   const activeNativeFilters = {};
-  if (!nativeFilters?.filtersState) {
+  if (!nativeFilters?.filtersState?.nativeFilters) {
     return activeNativeFilters;
   }
-  Object.values(nativeFilters.filtersState).forEach(
-    ({ id: filterId, extraFormData }) => {
-      // TODO: for a case of a cross filters (should be updated will be added scope there)
-      const scope = nativeFilters?.filters?.[filterId]?.scope ?? {
-        rootPath: [DASHBOARD_ROOT_ID],
-        excluded: [],
-      };
-      // Iterate over all roots to find all affected charts
-      scope.rootPath.forEach(layoutItemId => {
-        layout[layoutItemId].children.forEach((child: string) => {
-          // Need exclude from affected charts, charts that located in scope `excluded`
-          findAffectedCharts({
-            child,
-            layout,
-            scope,
-            activeNativeFilters,
-            filterId,
-            extraFormData,
-          });
+  Object.values({
+    ...nativeFilters.filtersState.nativeFilters,
+    ...nativeFilters.filtersState.crossFilters,
+  }).forEach(({ id: filterId, extraFormData }) => {
+    // TODO: for a case of a cross filters (should be updated will be added scope there)
+    const scope = nativeFilters?.filters?.[filterId]?.scope ?? {
+      rootPath: [DASHBOARD_ROOT_ID],
+      excluded: [],
+    };
+    // Iterate over all roots to find all affected charts
+    scope.rootPath.forEach(layoutItemId => {
+      layout[layoutItemId].children.forEach((child: string) => {
+        // Need exclude from affected charts, charts that located in scope `excluded`
+        findAffectedCharts({
+          child,
+          layout,
+          scope,
+          activeNativeFilters,
+          filterId,
+          extraFormData,
         });
       });
-    },
-  );
+    });
+  });
   return activeNativeFilters;
 };

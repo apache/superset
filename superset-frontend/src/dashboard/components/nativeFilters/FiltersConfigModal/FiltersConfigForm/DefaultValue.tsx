@@ -17,9 +17,9 @@
  * under the License.
  */
 import React, { FC } from 'react';
-import { t, SuperChart } from '@superset-ui/core';
+import { t, SuperChart, Behavior } from '@superset-ui/core';
 import { FormInstance } from 'antd/lib/form';
-import { setFilterFieldValues, useForceUpdate } from './utils';
+import { setFilterFieldValues } from './utils';
 import { StyledFormItem, StyledLabel } from './FiltersConfigForm';
 import { Filter } from '../../types';
 import { NativeFiltersForm } from '../types';
@@ -27,6 +27,7 @@ import { getFormData } from '../../utils';
 
 type DefaultValueProps = {
   filterId: string;
+  forceUpdate: Function;
   hasFilledDatasource: boolean;
   hasDatasource: boolean;
   filterToEdit?: Filter;
@@ -40,9 +41,9 @@ const DefaultValue: FC<DefaultValueProps> = ({
   hasDatasource,
   filterToEdit,
   form,
+  forceUpdate,
   formData,
 }) => {
-  const forceUpdate = useForceUpdate();
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
   return (
     <StyledFormItem
@@ -56,6 +57,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
         <SuperChart
           height={25}
           width={250}
+          behaviors={[Behavior.NATIVE_FILTER]}
           formData={formData}
           // For charts that don't have datasource we need workaround for empty placeholder
           queriesData={
@@ -65,10 +67,9 @@ const DefaultValue: FC<DefaultValueProps> = ({
           }
           chartType={formFilter?.filterType}
           hooks={{
-            // @ts-ignore (fixed in other PR)
-            setExtraFormData: ({ currentState }) => {
+            setDataMask: ({ nativeFilters }) => {
               setFilterFieldValues(form, filterId, {
-                defaultValue: currentState?.value,
+                defaultValue: nativeFilters?.currentState?.value,
               });
               forceUpdate();
             },
