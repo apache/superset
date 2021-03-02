@@ -22,14 +22,14 @@ import { bindActionCreators } from 'redux';
 import * as actions from './chartAction';
 import { logEvent } from '../logger/actions';
 import Chart from './Chart';
-import { setExtraFormData } from '../dashboard/actions/nativeFilters';
+import { updateExtraFormData } from '../dashboard/actions/nativeFilters';
 
 function mapDispatchToProps(dispatch) {
   return {
     actions: bindActionCreators(
       {
         ...actions,
-        setExtraFormData,
+        updateExtraFormData,
         logEvent,
       },
       dispatch,

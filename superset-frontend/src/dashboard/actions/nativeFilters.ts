@@ -17,14 +17,15 @@
  * under the License.
  */
 
-import { ExtraFormData, makeApi } from '@superset-ui/core';
+import { makeApi, DataMask } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import { FilterConfiguration } from 'src/dashboard/components/nativeFilters/types';
 import { dashboardInfoChanged } from './dashboardInfo';
 import {
-  CurrentFilterState,
+  FiltersState,
+  FilterState,
   FiltersSet,
-  NativeFilterState,
+  FilterStateType,
 } from '../reducers/types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
@@ -142,51 +143,49 @@ export const setFilterSetsConfiguration = (
   }
 };
 
-export const SET_EXTRA_FORM_DATA = 'SET_EXTRA_FORM_DATA';
-export interface SetExtraFormData {
-  type: typeof SET_EXTRA_FORM_DATA;
+export const UPDATE_EXTRA_FORM_DATA = 'UPDATE_EXTRA_FORM_DATA';
+export interface UpdateExtraFormData {
+  type: typeof UPDATE_EXTRA_FORM_DATA;
   filterId: string;
-  extraFormData: ExtraFormData;
-  currentState: CurrentFilterState;
+  nativeFilters?: Omit<FilterState, 'id'>;
+  crossFilters?: Omit<FilterState, 'id'>;
+  ownFilters?: Omit<FilterState, 'id'>;
 }
 
 export const SAVE_FILTER_SETS = 'SAVE_FILTER_SETS';
 export interface SaveFilterSets {
   type: typeof SAVE_FILTER_SETS;
   name: string;
-  filtersState: NativeFilterState;
+  filtersState: Pick<FiltersState, FilterStateType.NativeFilters>;
   filtersSetId: string;
 }
 
 export const SET_FILTERS_STATE = 'SET_FILTERS_STATE';
 export interface SetFiltersState {
   type: typeof SET_FILTERS_STATE;
-  filtersState: NativeFilterState;
+  filtersState: FiltersState;
 }
 
 /**
  * Sets the selected option(s) for a given filter
- * @param filterId the id of the native filter
- * @param extraFormData the selection translated into extra form data
- * @param currentState
+ * @param filterId the id of the nativeFilters filter
+ * @param filterState
  */
-export function setExtraFormData(
+export function updateExtraFormData(
   filterId: string,
-  extraFormData: ExtraFormData,
-  currentState: CurrentFilterState,
-): SetExtraFormData {
+  filterState: DataMask,
+): UpdateExtraFormData {
   return {
-    type: SET_EXTRA_FORM_DATA,
+    type: UPDATE_EXTRA_FORM_DATA,
     filterId,
-    extraFormData,
-    currentState,
+    ...filterState,
   };
 }
 
 export function saveFilterSets(
   name: string,
   filtersSetId: string,
-  filtersState: NativeFilterState,
+  filtersState: Pick<FiltersState, FilterStateType.NativeFilters>,
 ): SaveFilterSets {
   return {
     type: SAVE_FILTER_SETS,
@@ -196,9 +195,7 @@ export function saveFilterSets(
   };
 }
 
-export function setFiltersState(
-  filtersState: NativeFilterState,
-): SetFiltersState {
+export function setFiltersState(filtersState: FiltersState): SetFiltersState {
   return {
     type: SET_FILTERS_STATE,
     filtersState,
@@ -213,5 +210,5 @@ export type AnyFilterAction =
   | SetFilterSetsConfigComplete
   | SetFilterSetsConfigFail
   | SetFiltersState
-  | SetExtraFormData
-  | SaveFilterSets;
+  | SaveFilterSets
+  | UpdateExtraFormData;
