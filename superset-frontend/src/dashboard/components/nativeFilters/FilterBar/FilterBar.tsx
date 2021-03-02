@@ -16,27 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t, tn, ExtraFormData } from '@superset-ui/core';
+import { styled, t, tn, DataMask } from '@superset-ui/core';
 import React, { useState, useEffect, useMemo, ChangeEvent } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import cx from 'classnames';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
-import {
-  CurrentFilterState,
-  FiltersSet,
-  NativeFilterState,
-} from 'src/dashboard/reducers/types';
+import { FiltersSet, FilterState } from 'src/dashboard/reducers/types';
 import { Input, Select } from 'src/common/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
-import FilterConfigurationLink from './FilterConfigurationLink';
 import {
-  useFilters,
-  useFilterSets,
-  useFiltersState,
-  useSetExtraFormData,
-} from './state';
+  setFilterSetsConfiguration,
+  updateExtraFormData,
+} from 'src/dashboard/actions/nativeFilters';
+import FilterConfigurationLink from './FilterConfigurationLink';
+import { useFilters, useFilterSets, useFiltersStateNative } from './state';
 import { useFilterConfiguration } from '../state';
 import { Filter } from '../types';
 import {
@@ -183,14 +177,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   directPathToChild,
 }) => {
   const [filterData, setFilterData] = useState<{
-    [id: string]: {
-      extraFormData: ExtraFormData;
-      currentState: CurrentFilterState;
-    };
+    [filterId: string]: Omit<FilterState, 'id'>;
   }>({});
   const dispatch = useDispatch();
-  const setExtraFormData = useSetExtraFormData();
-  const filtersState = useFiltersState();
+  const filtersStateNative = useFiltersStateNative();
   const filterSets = useFilterSets();
   const filterConfigs = useFilterConfiguration();
   const filterSetsConfigs = useSelector<any, FiltersSet[]>(
@@ -242,22 +232,21 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const handleFilterSelectionChange = (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
-    extraFormData: ExtraFormData,
-    currentState: CurrentFilterState,
+    filtersState: DataMask,
   ) => {
     setFilterData(prevFilterData => {
       const children = cascadeChildren[filter.id] || [];
       // force instant updating on initialization or for parent filters
       if (filter.isInstant || children.length > 0) {
-        setExtraFormData(filter.id, extraFormData, currentState);
+        dispatch(updateExtraFormData(filter.id, filtersState));
       }
 
+      if (!filtersState.nativeFilters) {
+        return { ...prevFilterData };
+      }
       return {
         ...prevFilterData,
-        [filter.id]: {
-          extraFormData,
-          currentState,
-        },
+        [filter.id]: filtersState.nativeFilters,
       };
     });
   };
@@ -268,24 +257,25 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       return;
     }
     const filtersSet = filterSets[value];
-    Object.values(filtersSet.filtersState).forEach(filterState => {
-      const {
-        extraFormData,
-        currentState,
-        id,
-      } = filterState as NativeFilterState;
-      handleFilterSelectionChange({ id }, extraFormData, currentState);
-    });
+    Object.values(filtersSet.filtersState?.nativeFilters ?? []).forEach(
+      filterState => {
+        const { extraFormData, currentState, id } = filterState as FilterState;
+        handleFilterSelectionChange(
+          { id },
+          { nativeFilters: { extraFormData, currentState } },
+        );
+      },
+    );
   };
 
   const handleApply = () => {
     const filterIds = Object.keys(filterData);
     filterIds.forEach(filterId => {
       if (filterData[filterId]) {
-        setExtraFormData(
-          filterId,
-          filterData[filterId]?.extraFormData,
-          filterData[filterId]?.currentState,
+        dispatch(
+          updateExtraFormData(filterId, {
+            nativeFilters: filterData[filterId],
+          }),
         );
       }
     });
@@ -304,8 +294,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           {
             name: filtersSetName.trim(),
             id: generateFiltersSetId(),
-            // TODO: After merge https://github.com/apache/superset/pull/13137, compare if data changed (meantime save only clicking `apply`)
-            filtersState,
+            filtersState: {
+              nativeFilters: filtersStateNative,
+            },
           },
         ]),
       ),
@@ -327,10 +318,16 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const handleResetAll = () => {
     filterConfigs.forEach(filter => {
-      setExtraFormData(filter.id, filterData[filter.id]?.extraFormData, {
-        ...filterData[filter.id]?.currentState,
-        value: filters[filter.id]?.defaultValue,
-      });
+      dispatch(
+        updateExtraFormData(filter.id, {
+          nativeFilters: {
+            currentState: {
+              ...filterData[filter.id]?.currentState,
+              value: filters[filter.id]?.defaultValue,
+            },
+          },
+        }),
+      );
     });
   };
 

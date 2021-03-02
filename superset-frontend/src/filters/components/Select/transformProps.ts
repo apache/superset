@@ -20,17 +20,18 @@ import { ChartProps } from '@superset-ui/core';
 import { DEFAULT_FORM_DATA } from './types';
 
 export default function transformProps(chartProps: ChartProps) {
-  const { formData, height, hooks, queriesData, width } = chartProps;
+  const { formData, height, hooks, queriesData, width, behaviors } = chartProps;
   const newFormData = { ...DEFAULT_FORM_DATA, ...formData };
-  const { setExtraFormData = () => {} } = hooks;
+  const { setDataMask = () => {} } = hooks;
 
   const { data } = queriesData[0];
 
   return {
     width,
+    behaviors,
     height,
     data,
     formData: newFormData,
-    setExtraFormData,
+    setDataMask,
   };
 }

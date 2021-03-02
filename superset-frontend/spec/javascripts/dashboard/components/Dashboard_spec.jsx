@@ -53,6 +53,7 @@ describe('Dashboard', () => {
     dashboardInfo,
     charts: chartQueries,
     activeFilters: {},
+    ownDataCharts: {},
     slices: sliceEntities.slices,
     datasources,
     layout: dashboardLayout.present,
