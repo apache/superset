@@ -185,13 +185,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ),
     }
 
-    dttm_types = [
-        types.TIME,
-        types.TIMESTAMP,
-        types.TIMESTAMP(timezone=True),
-        types.Interval,
-    ]
-
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
         """
@@ -1115,20 +1108,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     def get_column_spec(
         self,
-        column_name: Optional[str],
         native_type: str,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
     ) -> utils.ColumnSpec:
 
         column_type, generic_type = self.get_sqla_column_type(native_type)
         is_dttm = generic_type == utils.GenericDataType.TEMPORAL
-
-        if column_name:  # Further logic to be implemented
-            pass
-        if (
-            source == utils.ColumnTypeSource.CURSOR_DESCRIPION
-        ):  # Further logic to be implemented
-            pass
 
         column_spec = ColumnSpec(
             sqla_type=column_type, generic_type=generic_type, is_dttm=is_dttm

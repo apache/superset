@@ -414,7 +414,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         (
             re.compile(r"^json.*", re.IGNORECASE),
             types.JSON(),
-            utils.GenericDataType.JSON,
+            utils.GenericDataType.STRING,
         ),
         (
             re.compile(r"^date.*", re.IGNORECASE),
@@ -436,9 +436,9 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             Interval(),
             utils.GenericDataType.TEMPORAL,
         ),
-        (re.compile(r"^array.*", re.IGNORECASE), Array(), utils.GenericDataType.ARRAY),
-        (re.compile(r"^map.*", re.IGNORECASE), Map(), utils.GenericDataType.MAP),
-        (re.compile(r"^row.*", re.IGNORECASE), Row(), utils.GenericDataType.ROW),
+        (re.compile(r"^array.*", re.IGNORECASE), Array(), utils.GenericDataType.STRING),
+        (re.compile(r"^map.*", re.IGNORECASE), Map(), utils.GenericDataType.STRING),
+        (re.compile(r"^row.*", re.IGNORECASE), Row(), utils.GenericDataType.STRING),
     )
 
     @classmethod

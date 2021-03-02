@@ -148,10 +148,10 @@ class GenericDataType(IntEnum):
     STRING = 1
     TEMPORAL = 2
     BOOLEAN = 3
-    ARRAY = 4
-    JSON = 5
-    MAP = 6
-    ROW = 7
+    # ARRAY = 4     # Mapping all the complex data types to STRING for now
+    # JSON = 5      # and leaving these as a reminder.
+    # MAP = 6
+    # ROW = 7
 
 
 class ChartDataResultFormat(str, Enum):
@@ -319,7 +319,6 @@ class ColumnSpec(NamedTuple):
     sqla_type: Union[TypeEngine, str]
     generic_type: GenericDataType
     is_dttm: bool
-    normalized_column_name: Optional[str] = None
     python_date_format: Optional[str] = None
 
 
