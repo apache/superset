@@ -75,7 +75,7 @@ describe('QuerySearch', () => {
     expect(screen.getByText(/success/i)).toBeInTheDocument();
   });
 
-  it('updates fromTime on user selects from time', async () => {
+  it('updates fromTime on user selects from time', () => {
     const role = screen.getByText(/28 days ago/i);
     fireEvent.keyDown(role, { key: 'ArrowDown', keyCode: 40 });
     userEvent.click(screen.getByText(/1 hour ago/i));

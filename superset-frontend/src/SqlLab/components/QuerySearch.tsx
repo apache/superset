@@ -126,7 +126,8 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
       const response = await SupersetClient.get({
         endpoint: insertParams('/superset/search_queries', params),
       });
-      setQueriesArray(response.json);
+      const queries = Object.values(response.json);
+      setQueriesArray(queries);
     } catch (err) {
       actions.addDangerToast(t('An error occurred when refreshing queries'));
     } finally {
@@ -162,19 +163,17 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
     handleChange(e);
   };
 
-  const userMutator = ({result}: {result: UserMutatorProps[]}) =>
+  const userMutator = ({ result }: { result: UserMutatorProps[] }) =>
     result.map(({ value, text }: UserMutatorProps) => ({
       label: text,
       value,
     }));
 
-  const dbMutator = ({result}: {result: DbMutatorProps[]}) => {
-    const options = result.map(
-      ({ id, database_name }: DbMutatorProps) => ({
-        value: id,
-        label: database_name,
-      }),
-    );
+  const dbMutator = ({ result }: { result: DbMutatorProps[] }) => {
+    const options = result.map(({ id, database_name }: DbMutatorProps) => ({
+      value: id,
+      label: database_name,
+    }));
     actions.setDatabases(result);
     if (result.length === 0) {
       actions.addDangerToast(
