@@ -216,6 +216,11 @@ export const Databases = [
     imgName: 'sqllite.png',
   },
   {
+    title: 'Trino',
+    href: 'https://trino.io/',
+    imgName: 'trino2.jpg',
+  },
+  {
     title: 'Vertica',
     href: 'https://www.vertica.com/',
     imgName: 'vertica.png',
