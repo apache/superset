@@ -1200,6 +1200,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if column_type:
             column_spec = ColumnSpec(
                 sqla_type=column_type, generic_type=generic_type, is_dttm=is_dttm
-            ) 
+            )
 
         return column_spec

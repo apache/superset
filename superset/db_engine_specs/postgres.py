@@ -158,7 +158,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
             extra["engine_params"] = engine_params
         return extra
 
-    def get_column_spec(self,) -> Union[GenericDataType, None]:
+    def get_column_spec(self):
 
         column_spec = super().get_column_spec()
         if column_spec:
