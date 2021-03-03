@@ -20,6 +20,8 @@ from operator import eq, ge, gt, le, lt, ne
 from typing import Optional
 
 import numpy as np
+import pandas as pd
+from celery.exceptions import SoftTimeLimitExceeded
 from flask_babel import lazy_gettext as _
 
 from superset import jinja_context
@@ -30,6 +32,7 @@ from superset.reports.commands.exceptions import (
     AlertQueryInvalidTypeError,
     AlertQueryMultipleColumnsError,
     AlertQueryMultipleRowsError,
+    AlertQueryTimeout,
     AlertValidatorConfigError,
 )
 
@@ -48,6 +51,19 @@ class AlertCommand(BaseCommand):
         self._result: Optional[float] = None
 
     def run(self) -> bool:
+        """
+        Executes an alert SQL query and validates it.
+        Will set the report_schedule.last_value or last_value_row_json
+        with the query result
+
+        :return: bool, if the alert triggered or not
+        :raises: AlertQueryError,
+                AlertQueryInvalidTypeError,
+                AlertQueryMultipleColumnsError,
+                AlertQueryMultipleRowsError,
+                AlertQueryTimeout,
+                AlertValidatorConfigError
+        """
         self.validate()
 
         if self._is_validator_not_null:
@@ -112,9 +128,12 @@ class AlertCommand(BaseCommand):
             self._report_schedule.validator_type == ReportScheduleValidatorType.OPERATOR
         )
 
-    def validate(self) -> None:
+    def _execute_query(self) -> pd.DataFrame:
         """
-        Validate the query result as a Pandas DataFrame
+        Executes the actual alert SQL query template
+
+        :return: A pandas dataframe
+        :raises: AlertQueryTimeout, AlertQueryError
         """
         sql_template = jinja_context.get_template_processor(
             database=self._report_schedule.database
@@ -124,9 +143,17 @@ class AlertCommand(BaseCommand):
             limited_rendered_sql = self._report_schedule.database.apply_limit_to_sql(
                 rendered_sql, ALERT_SQL_LIMIT
             )
-            df = self._report_schedule.database.get_df(limited_rendered_sql)
+            return self._report_schedule.database.get_df(limited_rendered_sql)
+        except SoftTimeLimitExceeded:
+            raise AlertQueryTimeout()
         except Exception as ex:
             raise AlertQueryError(message=str(ex))
+
+    def validate(self) -> None:
+        """
+        Validate the query result as a Pandas DataFrame
+        """
+        df = self._execute_query()
 
         if df.empty and self._is_validator_not_null:
             self._result = None

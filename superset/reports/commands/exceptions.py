@@ -155,6 +155,10 @@ class AlertQueryError(CommandException):
     message = _("Alert found an error while executing a query.")
 
 
+class AlertQueryTimeout(CommandException):
+    message = _("A timeout occurred while executing the query.")
+
+
 class ReportScheduleAlertGracePeriodError(CommandException):
     message = _("Alert fired during grace period.")
 
