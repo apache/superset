@@ -181,8 +181,10 @@ class QueryObject:
         self.order_desc = order_desc
         self.extras = extras
 
-        if config["SIP_15_ENABLED"] and "time_range_endpoints" not in self.extras:
-            self.extras["time_range_endpoints"] = get_time_range_endpoints(form_data={})
+        if config["SIP_15_ENABLED"]:
+            self.extras["time_range_endpoints"] = get_time_range_endpoints(
+                form_data=self.extras
+            )
 
         self.columns = columns
         self.groupby = groupby or []

@@ -17,53 +17,49 @@
  * under the License.
  */
 import React from 'react';
-import { useTheme } from '@superset-ui/core';
-import Collapse, { CollapseProps } from '.';
+import Icon from 'src/components/Icon';
+import { IconTooltip, Props } from '.';
 
 export default {
-  title: 'Collapse',
-  component: Collapse,
+  title: 'IconTooltip',
 };
 
-export const InteractiveCollapse = (args: CollapseProps) => {
-  const theme = useTheme();
-  return (
-    <Collapse
-      defaultActiveKey={['1']}
-      style={
-        args.light ? { background: theme.colors.grayscale.light2 } : undefined
-      }
-      {...args}
-    >
-      <Collapse.Panel header="Header 1" key="1">
-        Content 1
-      </Collapse.Panel>
-      <Collapse.Panel header="Header 2" key="2">
-        Content 2
-      </Collapse.Panel>
-    </Collapse>
-  );
+const PLACEMENTS = [
+  'bottom',
+  'bottomLeft',
+  'bottomRight',
+  'left',
+  'leftBottom',
+  'leftTop',
+  'right',
+  'rightBottom',
+  'rightTop',
+  'top',
+  'topLeft',
+  'topRight',
+];
+
+export const InteractiveIconTooltip = (args: Props) => (
+  <div css={{ margin: '40px 70px' }}>
+    <IconTooltip {...args}>
+      <Icon name="info" />
+    </IconTooltip>
+  </div>
+);
+
+InteractiveIconTooltip.args = {
+  tooltip: 'Tooltip',
 };
 
-InteractiveCollapse.args = {
-  ghost: false,
-  bordered: true,
-  accordion: false,
-};
-
-InteractiveCollapse.argTypes = {
-  theme: {
-    table: {
-      disable: true,
-    },
+InteractiveIconTooltip.argTypes = {
+  placement: {
+    defaultValue: 'top',
+    control: { type: 'select', options: PLACEMENTS },
   },
 };
 
-InteractiveCollapse.story = {
+InteractiveIconTooltip.story = {
   parameters: {
-    actions: {
-      disable: true,
-    },
     knobs: {
       disable: true,
     },

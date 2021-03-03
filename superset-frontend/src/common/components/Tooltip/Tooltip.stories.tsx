@@ -52,7 +52,7 @@ export const InteractiveTooltip = (args: TooltipProps) => (
 InteractiveTooltip.story = {
   parameters: {
     knobs: {
-      disabled: true,
+      disable: true,
     },
   },
 };

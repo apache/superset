@@ -17,17 +17,34 @@
  * under the License.
  */
 import React from 'react';
+import AnchorLink from '.';
 
-import CopyToClipboard from 'src/components/CopyToClipboard';
+export default {
+  title: 'AnchorLink',
+  component: AnchorLink,
+};
 
-describe('CopyToClipboard', () => {
-  const defaultProps = {
-    text: 'some text to copy',
-  };
+export const InteractiveAnchorLink = (args: any) => (
+  <AnchorLink anchorLinkId="link" {...args} />
+);
 
-  it('renders', () => {
-    expect(React.isValidElement(<CopyToClipboard {...defaultProps} />)).toBe(
-      true,
-    );
-  });
-});
+const PLACEMENTS = ['right', 'left', 'top', 'bottom'];
+
+InteractiveAnchorLink.args = {
+  showShortLinkButton: true,
+  placement: PLACEMENTS[0],
+};
+
+InteractiveAnchorLink.argTypes = {
+  type: {
+    placement: { type: 'select', options: PLACEMENTS },
+  },
+};
+
+InteractiveAnchorLink.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};

@@ -17,53 +17,45 @@
  * under the License.
  */
 import React from 'react';
-import { useTheme } from '@superset-ui/core';
-import Collapse, { CollapseProps } from '.';
+import TextControl from 'src/explore/components/controls/TextControl';
+import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
+import FormRow from '.';
 
 export default {
-  title: 'Collapse',
-  component: Collapse,
+  title: 'FormRow',
 };
 
-export const InteractiveCollapse = (args: CollapseProps) => {
-  const theme = useTheme();
+export const InteractiveFormRow = ({ isCheckbox, ...rest }: any) => {
+  const control = isCheckbox ? (
+    <CheckboxControl label="Checkbox" />
+  ) : (
+    <TextControl />
+  );
   return (
-    <Collapse
-      defaultActiveKey={['1']}
-      style={
-        args.light ? { background: theme.colors.grayscale.light2 } : undefined
-      }
-      {...args}
-    >
-      <Collapse.Panel header="Header 1" key="1">
-        Content 1
-      </Collapse.Panel>
-      <Collapse.Panel header="Header 2" key="2">
-        Content 2
-      </Collapse.Panel>
-    </Collapse>
+    <div style={{ width: 300 }}>
+      <FormRow {...rest} control={control} isCheckbox={isCheckbox} />
+    </div>
   );
 };
 
-InteractiveCollapse.args = {
-  ghost: false,
-  bordered: true,
-  accordion: false,
+InteractiveFormRow.args = {
+  label: 'Label',
+  tooltip: 'Tooltip',
+  control: <TextControl />,
+  isCheckbox: false,
 };
 
-InteractiveCollapse.argTypes = {
-  theme: {
+InteractiveFormRow.argTypes = {
+  control: {
+    defaultValue: <TextControl />,
     table: {
       disable: true,
     },
   },
 };
 
-InteractiveCollapse.story = {
+InteractiveFormRow.story = {
   parameters: {
-    actions: {
-      disable: true,
-    },
     knobs: {
       disable: true,
     },

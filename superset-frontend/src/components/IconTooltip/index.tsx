@@ -20,7 +20,7 @@ import React, { ReactNode } from 'react';
 import { Tooltip } from 'src/common/components/Tooltip';
 import { styled } from '@superset-ui/core';
 
-interface Props {
+export interface Props {
   children?: ReactNode;
   className?: string;
   onClick?: () => void;

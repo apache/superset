@@ -56,6 +56,7 @@ const mockDashboards = [...new Array(3)].map((_, i) => ({
   changed_on_utc: new Date().toISOString(),
   changed_on_delta_humanized: '5 minutes ago',
   owners: [{ id: 1, first_name: 'admin', last_name: 'admin_user' }],
+  roles: [{ id: 1, name: 'adminUser' }],
   thumbnail_url: '/thumbnail',
 }));
 

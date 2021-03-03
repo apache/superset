@@ -119,7 +119,7 @@ class QueryContext:
         # If the datetime format is unix, the parse will use the corresponding
         # parsing logic
         if not df.empty:
-            df = normalize_dttm_col(
+            normalize_dttm_col(
                 df=df,
                 timestamp_format=timestamp_format,
                 offset=self.datasource.offset,

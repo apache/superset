@@ -17,53 +17,35 @@
  * under the License.
  */
 import React from 'react';
-import { useTheme } from '@superset-ui/core';
-import Collapse, { CollapseProps } from '.';
+import EditableTitle, { EditableTitleProps } from '.';
 
 export default {
-  title: 'Collapse',
-  component: Collapse,
+  title: 'EditableTitle',
+  component: EditableTitle,
 };
 
-export const InteractiveCollapse = (args: CollapseProps) => {
-  const theme = useTheme();
-  return (
-    <Collapse
-      defaultActiveKey={['1']}
-      style={
-        args.light ? { background: theme.colors.grayscale.light2 } : undefined
-      }
-      {...args}
-    >
-      <Collapse.Panel header="Header 1" key="1">
-        Content 1
-      </Collapse.Panel>
-      <Collapse.Panel header="Header 2" key="2">
-        Content 2
-      </Collapse.Panel>
-    </Collapse>
-  );
+export const InteractiveEditableTitle = (props: EditableTitleProps) => (
+  <EditableTitle {...props} />
+);
+
+InteractiveEditableTitle.args = {
+  canEdit: true,
+  editing: false,
+  emptyText: 'Empty text',
+  multiLine: true,
+  noPermitTooltip: 'Not permitted',
+  showTooltip: true,
+  title: 'Title',
+  defaultTitle: 'Default title',
+  placeholder: 'Placeholder',
 };
 
-InteractiveCollapse.args = {
-  ghost: false,
-  bordered: true,
-  accordion: false,
+InteractiveEditableTitle.argTypes = {
+  onSaveTitle: { action: 'onSaveTitle' },
 };
 
-InteractiveCollapse.argTypes = {
-  theme: {
-    table: {
-      disable: true,
-    },
-  },
-};
-
-InteractiveCollapse.story = {
+InteractiveEditableTitle.story = {
   parameters: {
-    actions: {
-      disable: true,
-    },
     knobs: {
       disable: true,
     },
