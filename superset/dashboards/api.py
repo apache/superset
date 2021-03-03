@@ -244,7 +244,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
         """
         try:
-            dash = Dashboard.get(id_or_slug)
+            dash = DashboardDAO.get_dashboard(id_or_slug)
             result = self.dashboard_response_schema.dump(dash)
             return self.response(200, result=result)
         except DashboardNotFoundError:
