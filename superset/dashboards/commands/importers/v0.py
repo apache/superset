@@ -317,6 +317,7 @@ class ImportDashboardsCommand(BaseCommand):
     in Superset.
     """
 
+    # pylint: disable=unused-argument
     def __init__(
         self, contents: Dict[str, str], database_id: Optional[int] = None, **kwargs: Any
     ):
