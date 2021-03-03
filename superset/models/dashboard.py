@@ -58,6 +58,8 @@ from superset.utils import core as utils
 from superset.utils.decorators import debounce
 from superset.utils.urls import get_url_path
 
+# pylint: disable=too-many-public-methods
+
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
 logger = logging.getLogger(__name__)
@@ -153,8 +155,6 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         "css",
         "slug",
     ]
-
-    # pylint: disable=too-many-public-methods
 
     def __repr__(self) -> str:
         return f"Dashboard<{self.id or self.slug}>"
@@ -362,16 +362,16 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         )
 
     @classmethod
-    def id_or_slug_filter(cls, id_or_slug: str) -> BinaryExpression:
-        if id_or_slug.isdigit():
-            return Dashboard.id == int(id_or_slug)
-        return Dashboard.slug == id_or_slug
-
-    @classmethod
     def get(cls, id_or_slug: str) -> Dashboard:
         session = db.session()
-        qry = session.query(Dashboard).filter(Dashboard.id_or_slug_filter(id_or_slug))
+        qry = session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
+
+
+def id_or_slug_filter(id_or_slug: str) -> BinaryExpression:
+    if id_or_slug.isdigit():
+        return Dashboard.id == int(id_or_slug)
+    return Dashboard.slug == id_or_slug
 
 
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]
