@@ -243,6 +243,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
+        # pylint: disable=arguments-differ
         try:
             dash = DashboardDAO.get_dashboard(id_or_slug)
             result = self.dashboard_response_schema.dump(dash)

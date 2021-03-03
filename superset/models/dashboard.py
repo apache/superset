@@ -154,6 +154,8 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         "slug",
     ]
 
+    # pylint: disable=too-many-public-methods
+
     def __repr__(self) -> str:
         return f"Dashboard<{self.id or self.slug}>"
 
@@ -363,8 +365,7 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     def id_or_slug_filter(cls, id_or_slug: str) -> BinaryExpression:
         if id_or_slug.isdigit():
             return Dashboard.id == int(id_or_slug)
-        else:
-            return Dashboard.slug == id_or_slug
+        return Dashboard.slug == id_or_slug
 
     @classmethod
     def get(cls, id_or_slug: str) -> Dashboard:

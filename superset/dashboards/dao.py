@@ -25,9 +25,9 @@ from sqlalchemy.orm import contains_eager
 from superset.dao.base import BaseDAO
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.filters import DashboardFilter
-from superset.extensions import db, security_manager
+from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.dashboard import Dashboard, dashboard_user
+from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 
