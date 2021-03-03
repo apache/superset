@@ -21,6 +21,7 @@ import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
+import { act } from 'react-dom/test-utils';
 import AlertReportModal from 'src/views/CRUD/alert/AlertReportModal';
 import Modal from 'src/common/components/Modal';
 import { AsyncSelect } from 'src/components/Select';
@@ -32,11 +33,13 @@ import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
 
 const mockData = {
+  active: true,
   id: 1,
   name: 'test report',
   description: 'test report description',
   chart: { id: 1, slice_name: 'test chart' },
   database: { id: 1, database_name: 'test database' },
+  sql: 'SELECT NaN',
 };
 const FETCH_REPORT_ENDPOINT = 'glob:*/api/v1/report/*';
 const REPORT_PAYLOAD = { result: mockData };
@@ -211,6 +214,19 @@ describe('AlertReportModal', () => {
     expect(addWrapper.find(TextAreaControl)).toExist();
   });
 
+  it('renders input element for sql with NaN', async () => {
+    const props = {
+      ...mockedProps,
+      alert: mockData,
+      isReport: false,
+    };
+
+    const editWrapper = await mountAndWait(props);
+    const input = editWrapper.find(TextAreaControl);
+    expect(input).toExist();
+    expect(input.props().value).toEqual('SELECT NaN');
+  });
+
   it('renders one select element when in report mode', () => {
     expect(wrapper.find(Select)).toExist();
     expect(wrapper.find(Select)).toHaveLength(1);
@@ -294,5 +310,26 @@ describe('AlertReportModal', () => {
       target: { name: 'working_timeout', value: -1 },
     });
     expect(input.instance().value).toEqual('1');
+  });
+
+  it('allows to add notification method', async () => {
+    const button = wrapper.find('[data-test="notification-add"]');
+    act(() => {
+      button.props().onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+
+    expect(
+      wrapper.find('[data-test="notification-add"]').props().status,
+    ).toEqual('disabled');
+    act(() => {
+      wrapper
+        .find('[data-test="select-delivery-method"]')
+        .last()
+        .props()
+        .onChange('Email');
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find('textarea[name="recipients"]')).toHaveLength(1);
   });
 });
