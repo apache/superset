@@ -17,13 +17,16 @@
 import copy
 from typing import Any, Dict, List
 
-from superset.utils.core import AnnotationType, DTTM_ALIAS
+from superset.utils.core import AnnotationType, DTTM_ALIAS, TimeRangeEndpoint
 from tests.base_tests import get_table_by_name
 
 query_birth_names = {
     "extras": {
         "where": "",
-        "time_range_endpoints": ["inclusive", "exclusive"],
+        "time_range_endpoints": (
+            TimeRangeEndpoint.INCLUSIVE,
+            TimeRangeEndpoint.EXCLUSIVE,
+        ),
         "time_grain_sqla": "P1D",
     },
     "groupby": ["name"],

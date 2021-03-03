@@ -30,6 +30,7 @@ from superset.utils.core import (
     FilterOperator,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
+    TimeRangeEndpoint,
 )
 
 #
@@ -769,13 +770,7 @@ class ChartDataFilterSchema(Schema):
 
 class ChartDataExtrasSchema(Schema):
 
-    time_range_endpoints = fields.List(
-        fields.String(
-            validate=validate.OneOf(choices=("unknown", "inclusive", "exclusive")),
-            description="A list with two values, stating if start/end should be "
-            "inclusive/exclusive.",
-        )
-    )
+    time_range_endpoints = fields.List(EnumField(TimeRangeEndpoint, by_value=True))
     relative_start = fields.String(
         description="Start time for relative time deltas. "
         'Default: `config["DEFAULT_RELATIVE_START_TIME"]`',
