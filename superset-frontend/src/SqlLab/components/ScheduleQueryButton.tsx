@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { FunctionComponent, useState } from 'react';
+<<<<<<< HEAD
 import Form, { FormProps, FormValidation } from 'react-jsonschema-form';
 import { Col, FormControl, FormGroup, Row } from 'react-bootstrap';
 import { t, styled } from '@superset-ui/core';
@@ -25,6 +26,15 @@ import ModalTrigger from 'src/components/ModalTrigger';
 import FormLabel from 'src/components/FormLabel';
 import './ScheduleQueryButton.less';
 import Button from 'src/components/Button';
+=======
+import Form, { FormValidation } from 'react-jsonschema-form';
+import { Col, FormControl, FormGroup, Row } from 'react-bootstrap';
+import { t, styled } from '@superset-ui/core';
+import chrono from 'chrono-node';
+import ModalTrigger from 'src/components/ModalTrigger';
+import FormLabel from 'src/components/FormLabel';
+import './ScheduleQueryButton.less';
+>>>>>>> changed into TypeScript
 
 const validators = {
   greater: (a: number, b: number) => a > b,
@@ -33,6 +43,7 @@ const validators = {
   less_equal: (a: number, b: number) => a <= b,
 };
 
+<<<<<<< HEAD
 const getJSONSchema = () => {
   const jsonSchema = window.featureFlags.SCHEDULED_QUERIES?.JSONSCHEMA;
   // parse date-time into usable value (eg, 'today' => `new Date()`)
@@ -59,6 +70,34 @@ const getValidationRules = () =>
 
 const getValidator = () => {
   const rules: any = getValidationRules();
+=======
+function getJSONSchema() {
+  const jsonSchema = window.featureFlags.SCHEDULED_QUERIES.JSONSCHEMA;
+  // parse date-time into usable value (eg, 'today' => `new Date()`)
+  Object.entries(jsonSchema.properties).forEach(
+    ([key, properties]: [string, any]) => {
+      if (properties.default && properties.format === 'date-time') {
+        jsonSchema.properties[key] = {
+          ...properties,
+          default: chrono.parseDate(properties.default).toISOString(),
+        };
+      }
+    },
+  );
+  return jsonSchema;
+}
+
+function getUISchema() {
+  return window.featureFlags.SCHEDULED_QUERIES.UISCHEMA;
+}
+
+function getValidationRules() {
+  return window.featureFlags.SCHEDULED_QUERIES.VALIDATION || [];
+}
+
+function getValidator() {
+  const rules = getValidationRules();
+>>>>>>> changed into TypeScript
   return (formData: Record<string, any>, errors: FormValidation) => {
     rules.forEach((rule: any) => {
       const test = validators[rule.name];
@@ -70,7 +109,11 @@ const getValidator = () => {
     });
     return errors;
   };
+<<<<<<< HEAD
 };
+=======
+}
+>>>>>>> changed into TypeScript
 
 interface ScheduleQueryButtonProps {
   defaultLabel?: string;
@@ -81,13 +124,18 @@ interface ScheduleQueryButtonProps {
   onSchedule?: Function;
   scheduleQueryWarning: string | null;
   disabled: boolean;
+<<<<<<< HEAD
   tooltip: string;
+=======
+  tooltip: string | null;
+>>>>>>> changed into TypeScript
 }
 
 const StyledRow = styled(Row)`
   padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
+<<<<<<< HEAD
 export const StyledButtonComponent = styled(Button)`
   background: none;
   text-transform: none;
@@ -105,19 +153,28 @@ export const StyledButtonComponent = styled(Button)`
   }
 `;
 
+=======
+>>>>>>> changed into TypeScript
 const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
   defaultLabel = t('Undefined'),
   sql,
   schema,
   dbId,
   onSchedule = () => {},
+<<<<<<< HEAD
   scheduleQueryWarning,
   tooltip,
   disabled = false,
+=======
+  scheduleQueryWarning = null,
+  disabled = false,
+  tooltip = null,
+>>>>>>> changed into TypeScript
 }) => {
   const [description, setDescription] = useState('');
   const [label, setLabel] = useState(defaultLabel);
   const [showSchedule, setShowSchedule] = useState(false);
+<<<<<<< HEAD
   let saveModal: ModalTrigger | null;
 
   const onScheduleSubmit = ({
@@ -125,6 +182,12 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
   }: {
     formData: Omit<FormProps<Record<string, any>>, 'schema'>;
   }) => {
+=======
+  let saveModal: any;
+  // this is for the ref that is created in the modal trigger. the modal is created in order to use the .close() function on it.
+
+  const onScheduleSubmit = ({ formData }: Record<string, any>) => {
+>>>>>>> changed into TypeScript
     const query = {
       label,
       description,
@@ -134,7 +197,11 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
       extra_json: JSON.stringify({ schedule_info: formData }),
     };
     onSchedule(query);
+<<<<<<< HEAD
     saveModal?.close();
+=======
+    saveModal.close();
+>>>>>>> changed into TypeScript
   };
 
   const renderModalBody = () => (
@@ -170,7 +237,11 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
           <div className="json-schema">
             <Form
               schema={getJSONSchema()}
+<<<<<<< HEAD
               uiSchema={getUISchema}
+=======
+              uiSchema={getUISchema()}
+>>>>>>> changed into TypeScript
               onSubmit={onScheduleSubmit}
               validate={getValidator()}
             />
@@ -196,6 +267,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
         modalTitle={t('Schedule query')}
         modalBody={renderModalBody()}
         triggerNode={
+<<<<<<< HEAD
           <StyledButtonComponent
             onClick={() => setShowSchedule(!showSchedule)}
             buttonSize="small"
@@ -205,6 +277,17 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
           >
             {t('Schedule')}
           </StyledButtonComponent>
+=======
+          <div
+            role="button"
+            buttonSize="small"
+            onClick={() => setShowSchedule(!showSchedule)}
+            disabled={disabled}
+            tooltip={tooltip}
+          >
+            {t('Schedule')}
+          </div>
+>>>>>>> changed into TypeScript
         }
       />
     </span>
