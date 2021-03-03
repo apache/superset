@@ -540,7 +540,7 @@ function ExploreViewContainer(props) {
 ExploreViewContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
-  const { explore, charts, impressionId } = state;
+  const { explore, charts, impressionId, dataMask } = state;
   const form_data = getFormDataFromControls(explore.controls);
   const chartKey = Object.keys(charts)[0];
   const chart = charts[chartKey];
@@ -571,6 +571,8 @@ function mapStateToProps(state) {
     forcedHeight: explore.forced_height,
     chart,
     timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
+    ownCurrentState:
+      dataMask.ownFilters?.[explore.form_data.slice_id]?.currentState,
     impressionId,
   };
 }
