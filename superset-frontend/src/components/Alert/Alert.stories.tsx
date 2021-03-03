@@ -63,13 +63,13 @@ export const AlertGallery = () => (
 AlertGallery.story = {
   parameters: {
     actions: {
-      disabled: true,
+      disable: true,
     },
     controls: {
-      disabled: true,
+      disable: true,
     },
     knobs: {
-      disabled: true,
+      disable: true,
     },
   },
 };
@@ -94,7 +94,7 @@ InteractiveAlert.argTypes = {
 InteractiveAlert.story = {
   parameters: {
     knobs: {
-      disabled: true,
+      disable: true,
     },
   },
 };
