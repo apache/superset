@@ -29,7 +29,7 @@ import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 
 import DatabaseSelector from 'src/components/DatabaseSelector';
 import TableSelector from 'src/components/TableSelector';
-import { initialState, tables } from '../sqllab/fixtures';
+import { initialState, tables } from 'spec/javascripts/sqllab/fixtures';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore(initialState);

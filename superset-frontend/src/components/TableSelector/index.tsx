@@ -27,9 +27,9 @@ import { AsyncSelect, CreatableSelect, Select } from 'src/components/Select';
 
 import FormLabel from 'src/components/FormLabel';
 
-import DatabaseSelector from './DatabaseSelector';
-import RefreshLabel from './RefreshLabel';
-import CertifiedIconWithTooltip from './CertifiedIconWithTooltip';
+import DatabaseSelector from 'src/components/DatabaseSelector';
+import RefreshLabel from 'src/components/RefreshLabel';
+import CertifiedIconWithTooltip from 'src/components/CertifiedIconWithTooltip';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
