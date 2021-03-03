@@ -180,10 +180,8 @@ class SupersetResultSet:
     def first_nonempty(items: List[Any]) -> Any:
         return next((i for i in items if i), None)
 
-    def is_temporal(self, db_type_str: Optional[str]) -> bool:
-        return self.db_engine_spec.is_db_column_type_match(
-            db_type_str, utils.GenericDataType.TEMPORAL
-        )
+    def is_temporal(self) -> bool:
+        return self.db_engine_spec.get_column_spec.is_dttm
 
     def data_type(self, col_name: str, pa_dtype: pa.DataType) -> Optional[str]:
         """Given a pyarrow data type, Returns a generic database type"""

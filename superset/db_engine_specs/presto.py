@@ -358,7 +358,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
     column_type_mappings = (
         (
             re.compile(r"^boolean.*", re.IGNORECASE),
-            types.Boolean(),
+            types.BOOLEAN,
             utils.GenericDataType.BOOLEAN,
         ),
         (
@@ -368,32 +368,32 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         ),
         (
             re.compile(r"^smallint.*", re.IGNORECASE),
-            types.SmallInteger(),
+            types.SMALLINT,
             utils.GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^integer.*", re.IGNORECASE),
-            types.Integer(),
+            types.INTEGER,
             utils.GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^bigint.*", re.IGNORECASE),
-            types.BigInteger(),
+            types.BIGINT,
             utils.GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^real.*", re.IGNORECASE),
-            types.Float(),
+            types.FLOAT,
             utils.GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^double.*", re.IGNORECASE),
-            types.Float(),
+            types.FLOAT,
             utils.GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^decimal.*", re.IGNORECASE),
-            types.DECIMAL(),
+            types.DECIMAL,
             utils.GenericDataType.NUMERIC,
         ),
         (

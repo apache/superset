@@ -57,7 +57,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, Table
 from superset.utils import core as utils
-from superset.utils.core import ColumnSpec
+from superset.utils.core import ColumnSpec, GenericDataType
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -149,10 +149,77 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Tuple[
             Pattern[str],
             Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
-            utils.GenericDataType,
+            GenericDataType,
         ],
         ...,
-    ] = ()
+    ] = (
+        (
+            re.compile(r"^smallint", re.IGNORECASE),
+            types.SMALLINT,
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^integer", re.IGNORECASE),
+            types.INTEGER,
+            GenericDataType.NUMERIC,
+        ),
+        (re.compile(r"^bigint", re.IGNORECASE), types.BIGINT, GenericDataType.NUMERIC,),
+        (
+            re.compile(r"^decimal", re.IGNORECASE),
+            types.DECIMAL,
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^numeric", re.IGNORECASE),
+            types.NUMERIC,
+            GenericDataType.NUMERIC,
+        ),
+        (re.compile(r"^real", re.IGNORECASE), types.REAL, GenericDataType.NUMERIC,),
+        (
+            re.compile(r"^smallserial", re.IGNORECASE),
+            types.SMALLINT,
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^serial", re.IGNORECASE),
+            types.INTEGER,
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^bigserial", re.IGNORECASE),
+            types.BIGINT,
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^varchar", re.IGNORECASE),
+            types.VARCHAR,
+            GenericDataType.STRING,
+        ),
+        (re.compile(r"^char", re.IGNORECASE), types.CHAR, GenericDataType.STRING),
+        (re.compile(r"^text", re.IGNORECASE), types.TEXT, GenericDataType.STRING),
+        (re.compile(r"^date", re.IGNORECASE), types.DATE, GenericDataType.TEMPORAL,),
+        (re.compile(r"^time", re.IGNORECASE), types.TIME, GenericDataType.TEMPORAL,),
+        (
+            re.compile(r"^timestamp", re.IGNORECASE),
+            types.TIMESTAMP,
+            GenericDataType.TEMPORAL,
+        ),
+        (
+            re.compile(r"^timestamptz", re.IGNORECASE),
+            types.TIMESTAMP(timezone=True),
+            GenericDataType.TEMPORAL,
+        ),
+        (
+            re.compile(r"^interval", re.IGNORECASE),
+            types.Interval,
+            GenericDataType.TEMPORAL,
+        ),
+        (
+            re.compile(r"^boolean", re.IGNORECASE),
+            types.BOOLEAN,
+            GenericDataType.BOOLEAN,
+        ),
+    )
     time_groupby_inline = False
     limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
@@ -168,8 +235,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     # default matching patterns to convert database specific column types to
     # more generic types
-    db_column_types: Dict[utils.GenericDataType, Tuple[Pattern[str], ...]] = {
-        utils.GenericDataType.NUMERIC: (
+    db_column_types: Dict[GenericDataType, Tuple[Pattern[str], ...]] = {
+        GenericDataType.NUMERIC: (
             re.compile(r"BIT", re.IGNORECASE),
             re.compile(
                 r".*(DOUBLE|FLOAT|INT|NUMBER|REAL|NUMERIC|DECIMAL|MONEY).*",
@@ -177,12 +244,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             ),
             re.compile(r".*LONG$", re.IGNORECASE),
         ),
-        utils.GenericDataType.STRING: (
-            re.compile(r".*(CHAR|STRING|TEXT).*", re.IGNORECASE),
-        ),
-        utils.GenericDataType.TEMPORAL: (
-            re.compile(r".*(DATE|TIME).*", re.IGNORECASE),
-        ),
+        GenericDataType.STRING: (re.compile(r".*(CHAR|STRING|TEXT).*", re.IGNORECASE),),
+        GenericDataType.TEMPORAL: (re.compile(r".*(DATE|TIME).*", re.IGNORECASE),),
     }
 
     @classmethod
@@ -216,7 +279,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def is_db_column_type_match(
-        cls, db_column_type: Optional[str], target_column_type: utils.GenericDataType
+        cls, db_column_type: Optional[str], target_column_type: GenericDataType
     ) -> bool:
         """
         Check if a column type satisfies a pattern in a collection of regexes found in
@@ -974,8 +1037,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def get_sqla_column_type(
-        cls, column_type: Optional[str]
-    ) -> Tuple[Union[TypeEngine, utils.GenericDataType, None]]:
+        cls,
+        column_type: Optional[str],
+        column_type_mappings: Tuple[
+            Tuple[
+                Pattern[str],
+                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
+                GenericDataType,
+            ],
+            ...,
+        ] = column_type_mappings,
+    ) -> Tuple[Union[TypeEngine, GenericDataType, None]]:
         """
         Return a sqlalchemy native column type that corresponds to the column type
         defined in the data source (return None to use default type inferred by
@@ -987,7 +1059,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         if not column_type:
             return None, None
-        for regex, sqla_type, generic_type in cls.column_type_mappings:
+        for regex, sqla_type, generic_type in column_type_mappings:
             match = regex.match(column_type)
             if match:
                 if callable(sqla_type):
@@ -1110,13 +1182,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         self,
         native_type: str,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-    ) -> utils.ColumnSpec:
-
+    ) -> Union[utils.ColumnSpec, None]:
+        """
+        Converts native database type to sqlalchemy column type.
+        :param native_type: Native database typee
+        :param source: Type coming from the database table or cursor description
+        :return: ColumnSpec object
+        """
+        column_spec = None
         column_type, generic_type = self.get_sqla_column_type(native_type)
-        is_dttm = generic_type == utils.GenericDataType.TEMPORAL
+        is_dttm = generic_type == GenericDataType.TEMPORAL
 
-        column_spec = ColumnSpec(
-            sqla_type=column_type, generic_type=generic_type, is_dttm=is_dttm
-        )
+        if column_type:
+            column_spec = ColumnSpec(
+                sqla_type=column_type, generic_type=generic_type, is_dttm=is_dttm
+            )
 
         return column_spec

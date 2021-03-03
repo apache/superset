@@ -18,16 +18,16 @@ import json
 import logging
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
 from pytz import _FixedOffset  # type: ignore
-from sqlalchemy import types
-from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION
+from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
+from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
@@ -49,92 +49,13 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     column_type_mappings = (
         (
-            re.compile(r"^smallint", re.IGNORECASE),
-            types.SMALLINT,
-            utils.GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^integer", re.IGNORECASE),
-            types.INTEGER,
-            utils.GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^bigint", re.IGNORECASE),
-            types.BIGINT,
-            utils.GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^decimal", re.IGNORECASE),
-            types.DECIMAL,
-            utils.GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^numeric", re.IGNORECASE),
-            types.NUMERIC,
-            utils.GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^real", re.IGNORECASE),
-            types.REAL,
-            utils.GenericDataType.NUMERIC,
-        ),
-        (
             re.compile(r"^double precision", re.IGNORECASE),
             DOUBLE_PRECISION,
-            utils.GenericDataType.NUMERIC,
+            GenericDataType.NUMERIC,
         ),
-        (
-            re.compile(r"^smallserial", re.IGNORECASE),
-            types.SMALLINT,
-            utils.GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^serial", re.IGNORECASE),
-            types.INTEGER,
-            utils.GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^bigserial", re.IGNORECASE),
-            types.BIGINT,
-            utils.GenericDataType.NUMERIC,
-        ),
-        (
-            re.compile(r"^varchar", re.IGNORECASE),
-            types.VARCHAR,
-            utils.GenericDataType.STRING,
-        ),
-        (re.compile(r"^char", re.IGNORECASE), types.CHAR, utils.GenericDataType.STRING),
-        (re.compile(r"^text", re.IGNORECASE), types.TEXT, utils.GenericDataType.STRING),
-        (
-            re.compile(r"^date", re.IGNORECASE),
-            types.DATE,
-            utils.GenericDataType.TEMPORAL,
-        ),
-        (
-            re.compile(r"^time", re.IGNORECASE),
-            types.TIME,
-            utils.GenericDataType.TEMPORAL,
-        ),
-        (
-            re.compile(r"^timestamp", re.IGNORECASE),
-            types.TIMESTAMP,
-            utils.GenericDataType.TEMPORAL,
-        ),
-        (
-            re.compile(r"^timestamptz", re.IGNORECASE),
-            types.TIMESTAMP(timezone=True),
-            utils.GenericDataType.TEMPORAL,
-        ),
-        (
-            re.compile(r"^interval", re.IGNORECASE),
-            types.Interval,
-            utils.GenericDataType.TEMPORAL,
-        ),
-        (
-            re.compile(r"^boolean", re.IGNORECASE),
-            types.BOOLEAN,
-            utils.GenericDataType.BOOLEAN,
-        ),
+        (re.compile(r"^array.*", re.IGNORECASE), ARRAY, utils.GenericDataType.STRING),
+        (re.compile(r"^json.*", re.IGNORECASE), JSON, utils.GenericDataType.STRING,),
+        (re.compile(r"^enum.*", re.IGNORECASE), ENUM, utils.GenericDataType.STRING,),
     )
 
     _time_grain_expressions = {
@@ -236,3 +157,11 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
             engine_params["connect_args"] = connect_args
             extra["engine_params"] = engine_params
         return extra
+
+    def get_column_spec(self,) -> Union[GenericDataType, None]:
+
+        column_spec = super().get_column_spec()
+        if column_spec:
+            return column_spec
+
+        return super().get_column_spec(column_type_mappings=self.column_type_mappings)
