@@ -48,6 +48,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
+from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom, TextClause
 from sqlalchemy.types import TypeEngine
 
@@ -74,6 +75,8 @@ from superset.utils.core import GenericDataType
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
+
+VIRTUAL_TABLE_ALIAS = "expr_qry"
 
 
 class SqlaQuery(NamedTuple):
@@ -378,7 +381,7 @@ class SqlMetric(Model, BaseMetric):
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.metric_name
-        sqla_col = literal_column(self.expression)
+        sqla_col: ColumnClause = literal_column(self.expression)
         return self.table.make_sqla_column_compatible(sqla_col, label)
 
     @property
@@ -797,7 +800,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         self, template_processor: Optional[BaseTemplateProcessor] = None
     ) -> Union[table, TextAsFrom]:
         # Supporting arbitrary SQL statements in place of tables
-        if self.sql:
+        if self.is_virtual:
             from_sql = self.sql
             if template_processor:
                 try:
@@ -824,8 +827,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 raise QueryObjectValidationError(
                     _("Virtual dataset query must be read-only")
                 )
-            return TextAsFrom(sa.text(from_sql), []).alias("expr_qry")
-        return self.get_sqla_table()
+            return TextAsFrom(sa.text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
+        else:
+            return self.get_sqla_table()
 
     def adhoc_metric_to_sqla(
         self, metric: Dict[str, Any], columns_by_name: Dict[str, Any]
@@ -899,7 +903,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         row_offset: Optional[int] = None,
         inner_from_dttm: Optional[datetime] = None,
         inner_to_dttm: Optional[datetime] = None,
-        orderby: Optional[List[Tuple[ColumnElement, bool]]] = None,
+        orderby: Optional[List[Tuple[Metric, bool]]] = None,
         extras: Optional[Dict[str, Any]] = None,
         order_desc: bool = True,
         is_rowcount: bool = False,
@@ -922,8 +926,9 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
         prequeries: List[str] = []
-
         orderby = orderby or []
+        extras = extras or {}
+        need_groupby = bool(metrics or groupby)
 
         # For backward compatibility
         if granularity not in self.dttm_cols:
@@ -965,16 +970,47 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             main_metric_expr, label = literal_column("COUNT(*)"), "ccount"
             main_metric_expr = self.make_sqla_column_compatible(main_metric_expr, label)
 
+        # To ensure correct handling of the ORDER BY labeling we need to reference the
+        # metric instance if defined in the SELECT clause.
+        metrics_exprs_by_label = {
+            m.name: m for m in metrics_exprs  # pylint: disable=protected-access
+        }
+
+        # Since orderby may use adhoc metrics, too; we need to process them first
+        orderby_cols: List[ColumnElement] = []
+        for col, ascending in orderby:
+            orig_col = col
+
+            # Convert SQLA `Label` to actual the column/metric name it
+            # is supposed to reference
+            if isinstance(col, Label):
+                col = col.name
+
+            if utils.is_adhoc_metric(col):
+                # add adhoc sort by column to columns_by_name if not exists
+                col = self.adhoc_metric_to_sqla(col, columns_by_name)
+                need_groupby = True
+            elif col in columns_by_name:
+                col = columns_by_name[col].get_sqla_col()
+            elif col in metrics_by_name:
+                col = metrics_by_name[col].get_sqla_col()
+                need_groupby = True
+            elif col in metrics_exprs_by_label:
+                col = metrics_exprs_by_label.get(col)
+            else:
+                raise QueryObjectValidationError(
+                    _("Unknown column used in orderby: %(col)", col=orig_col)
+                )
+            orderby_cols.append(col)
+
         select_exprs: List[Column] = []
         groupby_exprs_sans_timestamp = OrderedDict()
-
-        assert extras is not None
 
         # filter out the pseudo column  __timestamp from columns
         columns = columns or []
         columns = [col for col in columns if col != utils.DTTM_ALIAS]
 
-        if metrics or groupby:
+        if need_groupby:
             # dedup columns while preserving order
             columns = groupby or columns
             select_exprs = []
@@ -1030,8 +1066,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 dttm_col.get_time_filter(from_dttm, to_dttm, time_range_endpoints)
             )
 
-        select_exprs += metrics_exprs
-
+        select_exprs += orderby_cols
         labels_expected = [
             c._df_label_expected  # pylint: disable=protected-access
             for c in select_exprs
@@ -1149,26 +1184,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             qry = qry.where(and_(*where_clause_and))
         qry = qry.having(and_(*having_clause_and))
 
-        # To ensure correct handling of the ORDER BY labeling we need to reference the
-        # metric instance if defined in the SELECT clause.
-        metrics_exprs_by_label = {
-            m._label: m for m in metrics_exprs  # pylint: disable=protected-access
-        }
-
-        for col, ascending in orderby:
+        for col, (orig_col, ascending) in zip(orderby_cols, orderby):
             direction = asc if ascending else desc
-            if utils.is_adhoc_metric(col):
-                col = self.adhoc_metric_to_sqla(col, columns_by_name)
-            elif col in columns_by_name:
-                col = columns_by_name[col].get_sqla_col()
-            elif col in metrics_by_name:
-                col = metrics_by_name[col].get_sqla_col()
-
-            if isinstance(col, Label):
-                label = col._label  # pylint: disable=protected-access
-                if label in metrics_exprs_by_label:
-                    col = metrics_exprs_by_label[label]
-
             qry = qry.order_by(direction(col))
 
         if row_limit:
