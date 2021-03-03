@@ -1341,12 +1341,10 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         )
         chart = dashboard.slices[0]
         dataset = chart.table
-        database = dataset.database
 
         db.session.delete(dashboard)
         db.session.delete(chart)
         db.session.delete(dataset)
-        db.session.delete(database)
         db.session.commit()
 
     def test_import_dashboard_overwrite(self):
