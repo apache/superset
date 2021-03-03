@@ -71,7 +71,7 @@ const getMemoizedSectionsToRender = memoizeOne(
               row
                 .filter(
                   control =>
-                    typeof control === 'string' &&
+                    typeof control !== 'string' ||
                     !invalidControls.includes(control),
                 )
                 .map(item => expandControlConfig(item, controlOverrides)),
