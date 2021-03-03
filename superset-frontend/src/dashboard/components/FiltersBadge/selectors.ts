@@ -21,6 +21,7 @@ import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilt
 import { NativeFiltersState } from 'src/dashboard/reducers/types';
 import { Layout } from '../../types';
 import { getTreeCheckedItems } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils';
+import { MultipleDataMaskState } from '../../../dataMask/types';
 
 export enum IndicatorStatus {
   Unset = 'UNSET',
@@ -173,6 +174,7 @@ export const selectIndicatorsForChart = (
 
 export const selectNativeIndicatorsForChart = (
   nativeFilters: NativeFiltersState,
+  dataMask: MultipleDataMaskState,
   chartId: number,
   charts: any,
   dashboardLayout: Layout,
@@ -210,9 +212,8 @@ export const selectNativeIndicatorsForChart = (
       layoutItem => dashboardLayout[layoutItem]?.meta?.chartId === chartId,
     );
     const column = nativeFilter.targets[0]?.column?.name;
-    const filterState =
-      nativeFilters.filtersState.nativeFilters?.[nativeFilter.id];
-    let value = filterState?.currentState?.value ?? [];
+    const dataMaskNativeFilters = dataMask.nativeFilters?.[nativeFilter.id];
+    let value = dataMaskNativeFilters?.currentState?.value ?? [];
     if (!Array.isArray(value)) {
       value = [value];
     }

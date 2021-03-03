@@ -75,11 +75,8 @@ class ChartRenderer extends React.Component {
       setControlValue: this.handleSetControlValue,
       onFilterMenuOpen: this.props.onFilterMenuOpen,
       onFilterMenuClose: this.props.onFilterMenuClose,
-      setDataMask: filtersState => {
-        this.props.actions?.updateExtraFormData(
-          this.props.chartId,
-          filtersState,
-        );
+      setDataMask: dataMask => {
+        this.props.actions?.updateDataMask(this.props.chartId, dataMask);
       },
     };
   }

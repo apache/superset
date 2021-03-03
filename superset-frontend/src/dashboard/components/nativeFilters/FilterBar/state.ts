@@ -17,24 +17,13 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import { getInitialFilterState } from 'src/dashboard/reducers/nativeFilters';
-import {
-  NativeFiltersState,
-  FilterState,
-  FilterSets,
-  FilterStates,
-} from 'src/dashboard/reducers/types';
+import { NativeFiltersState, FilterSets } from 'src/dashboard/reducers/types';
+import { MultipleDataMaskState } from 'src/dataMask/types';
 import { mergeExtraFormData } from '../utils';
 import { Filter } from '../types';
 
 export function useFilters() {
   return useSelector<any, Filter>(state => state.nativeFilters.filters);
-}
-
-export function useFiltersStateNative() {
-  return useSelector<any, FilterStates>(
-    state => state.nativeFilters.filtersState.nativeFilters ?? {},
-  );
 }
 
 export function useFilterSets() {
@@ -44,10 +33,12 @@ export function useFilterSets() {
 }
 
 export function useCascadingFilters(id: string) {
-  const {
-    filters,
-    filtersState: { nativeFilters },
-  } = useSelector<any, NativeFiltersState>(state => state.nativeFilters);
+  const { filters } = useSelector<any, NativeFiltersState>(
+    state => state.nativeFilters,
+  );
+  const { nativeFilters } = useSelector<any, MultipleDataMaskState>(
+    state => state.dataMask,
+  );
   const filter = filters[id];
   const cascadeParentIds: string[] = filter?.cascadeParentIds ?? [];
   let cascadedFilters = {};
@@ -59,12 +50,4 @@ export function useCascadingFilters(id: string) {
     };
   });
   return cascadedFilters;
-}
-
-export function useFilterStateNative(id: string) {
-  return useSelector<any, FilterState>(
-    state =>
-      state.nativeFilters.filtersState.nativeFilters[id] ??
-      getInitialFilterState(id),
-  );
 }

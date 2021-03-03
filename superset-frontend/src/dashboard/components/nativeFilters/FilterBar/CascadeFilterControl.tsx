@@ -26,7 +26,7 @@ import { CascadeFilter } from './types';
 interface CascadeFilterControlProps {
   filter: CascadeFilter;
   directPathToChild?: string[];
-  onFilterSelectionChange: (filter: Filter, filterState: DataMask) => void;
+  onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
 }
 
 const StyledCascadeChildrenList = styled.ul`
