@@ -30,9 +30,6 @@ import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 import StyledModal from 'src/common/components/Modal';
 import Mousetrap from 'mousetrap';
-
-import { Tooltip } from 'src/common/components/Tooltip';
-import Label from 'src/components/Label';
 import Button from 'src/components/Button';
 import Timer from 'src/components/Timer';
 import {
@@ -563,23 +560,6 @@ class SqlEditor extends React.PureComponent {
 
   renderEditorBottomBar() {
     const { queryEditor: qe } = this.props;
-    let limitWarning = null;
-    if (this.props.latestQuery?.results?.displayLimitReached) {
-      limitWarning = (
-        <Tooltip
-          id="tooltip"
-          placement="left"
-          title={t(
-            `It appears that the number of rows in the query results displayed
-           was limited on the server side to
-           the %s limit.`,
-            this.props.latestQuery.rows,
-          )}
-        >
-          <Label type="warning">LIMIT</Label>
-        </Tooltip>
-      );
-    }
 
     const { allow_ctas: allowCTAS, allow_cvas: allowCVAS } =
       this.props.database || {};
@@ -650,7 +630,6 @@ class SqlEditor extends React.PureComponent {
                   />
                 </span>
               )}
-            {limitWarning}
             <span>
               <LimitSelectStyled>
                 <Dropdown overlay={this.renderQueryLimit()} trigger="click">
@@ -690,7 +669,6 @@ class SqlEditor extends React.PureComponent {
           <span>
             <ShareSqlLabQuery queryEditor={qe} />
           </span>
-          {limitWarning}
           <Dropdown overlay={this.renderDropdown()} trigger="click">
             <Icon name="more-horiz" />
           </Dropdown>
