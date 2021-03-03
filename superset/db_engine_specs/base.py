@@ -1058,14 +1058,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: SqlAlchemy column type
         """
         if not column_type:
-            return None, None
+            return None
         for regex, sqla_type, generic_type in column_type_mappings:
             match = regex.match(column_type)
             if match:
                 if callable(sqla_type):
                     return sqla_type(match), generic_type
                 return sqla_type, generic_type
-        return None, None
+        return None
 
     @staticmethod
     def _mutate_label(label: str) -> str:
@@ -1190,6 +1190,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: ColumnSpec object
         """
         column_spec = None
+
+        if not self.get_sqla_column_type(native_type):
+            return column_spec
+
         column_type, generic_type = self.get_sqla_column_type(native_type)
         is_dttm = generic_type == GenericDataType.TEMPORAL
 
