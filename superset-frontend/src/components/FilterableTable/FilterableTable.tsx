@@ -84,7 +84,7 @@ const JSON_TREE_THEME = {
 
 const StyledFilterableTable = styled.div`
   overflow-x: auto;
-  margin-top: ${({ theme }) => theme.gridUnit * 12}px;
+  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 // when more than MAX_COLUMNS_FOR_TABLE are returned, switch from table to grid view

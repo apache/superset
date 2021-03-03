@@ -111,9 +111,24 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
     addDangerToast,
   );
 
+  const resetAnnotation = () => {
+    // Reset annotation
+    setCurrentAnnotation({
+      short_descr: '',
+      start_dttm: '',
+      end_dttm: '',
+      json_metadata: '',
+      long_descr: '',
+    });
+  };
+
   // Functions
   const hide = () => {
     setIsHidden(true);
+
+    // Reset annotation
+    resetAnnotation();
+
     onHide();
   };
 
@@ -127,7 +142,12 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
         delete currentAnnotation.changed_by;
         delete currentAnnotation.changed_on_delta_humanized;
         delete currentAnnotation.layer;
-        updateResource(update_id, currentAnnotation).then(() => {
+        updateResource(update_id, currentAnnotation).then(response => {
+          // No response on error
+          if (!response) {
+            return;
+          }
+
           if (onAnnotationAdd) {
             onAnnotationAdd();
           }
@@ -137,7 +157,11 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       }
     } else if (currentAnnotation) {
       // Create
-      createResource(currentAnnotation).then(() => {
+      createResource(currentAnnotation).then(response => {
+        if (!response) {
+          return;
+        }
+
         if (onAnnotationAdd) {
           onAnnotationAdd();
         }
@@ -206,32 +230,32 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   };
 
   // Initialize
-  if (
-    isEditMode &&
-    (!currentAnnotation ||
-      !currentAnnotation.id ||
-      (annotation && annotation.id !== currentAnnotation.id) ||
-      (isHidden && show))
-  ) {
-    if (annotation && annotation.id !== null && !loading) {
-      const id = annotation.id || 0;
+  useEffect(() => {
+    if (
+      isEditMode &&
+      (!currentAnnotation ||
+        !currentAnnotation.id ||
+        (annotation && annotation.id !== currentAnnotation.id) ||
+        (isHidden && show))
+    ) {
+      if (annotation && annotation.id !== null && !loading) {
+        const id = annotation.id || 0;
 
-      fetchResource(id).then(() => {
-        setCurrentAnnotation(resource);
-      });
+        fetchResource(id);
+      }
+    } else if (
+      !isEditMode &&
+      (!currentAnnotation || currentAnnotation.id || (isHidden && show))
+    ) {
+      resetAnnotation();
     }
-  } else if (
-    !isEditMode &&
-    (!currentAnnotation || currentAnnotation.id || (isHidden && show))
-  ) {
-    setCurrentAnnotation({
-      short_descr: '',
-      start_dttm: '',
-      end_dttm: '',
-      json_metadata: '',
-      long_descr: '',
-    });
-  }
+  }, [annotation]);
+
+  useEffect(() => {
+    if (resource) {
+      setCurrentAnnotation(resource);
+    }
+  }, [resource]);
 
   // Validation
   useEffect(() => {
