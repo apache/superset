@@ -102,7 +102,7 @@ class CopyToClipboard extends React.Component {
 
   renderLink() {
     return (
-      <span>
+      <span css={{ display: 'inline-flex', alignItems: 'center' }}>
         {this.props.shouldShowText && this.props.text && (
           <span className="m-r-5" data-test="short-url">
             {this.props.text}

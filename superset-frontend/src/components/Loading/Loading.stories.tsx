@@ -49,13 +49,13 @@ export const LoadingGallery = () => (
 LoadingGallery.story = {
   parameters: {
     actions: {
-      disabled: true,
+      disable: true,
     },
     controls: {
-      disabled: true,
+      disable: true,
     },
     knobs: {
-      disabled: true,
+      disable: true,
     },
   },
 };
@@ -65,7 +65,7 @@ export const InteractiveLoading = (args: Props) => <Loading {...args} />;
 InteractiveLoading.story = {
   parameters: {
     knobs: {
-      disabled: true,
+      disable: true,
     },
   },
 };
