@@ -18,16 +18,17 @@
  */
 import React from 'react';
 import { t } from '@superset-ui/core';
+import { ControlPanelSectionConfig } from '@superset-ui/chart-controls';
 import { formatSelectOptions } from 'src/modules/utils';
 
-export const druidTimeSeries = {
+export const druidTimeSeries: ControlPanelSectionConfig = {
   label: t('Time'),
   expanded: true,
   description: t('Time related form attributes'),
   controlSetRows: [['time_range']],
 };
 
-export const datasourceAndVizType = {
+export const datasourceAndVizType: ControlPanelSectionConfig = {
   label: t('Chart type'),
   expanded: true,
   controlSetRows: [
@@ -74,19 +75,19 @@ export const datasourceAndVizType = {
   ],
 };
 
-export const colorScheme = {
+export const colorScheme: ControlPanelSectionConfig = {
   label: t('Color scheme'),
   controlSetRows: [['color_scheme', 'label_colors']],
 };
 
-export const sqlaTimeSeries = {
+export const sqlaTimeSeries: ControlPanelSectionConfig = {
   label: t('Time'),
   description: t('Time related form attributes'),
   expanded: true,
   controlSetRows: [['granularity_sqla'], ['time_range']],
 };
 
-export const annotations = {
+export const annotations: ControlPanelSectionConfig = {
   label: t('Annotations and layers'),
   tabOverride: 'data',
   expanded: true,
@@ -107,7 +108,7 @@ export const annotations = {
   ],
 };
 
-export const NVD3TimeSeries = [
+export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
   {
     label: t('Query'),
     expanded: true,
