@@ -39,8 +39,15 @@ class DashboardDAO(BaseDAO):
     base_filter = DashboardFilter
 
     @staticmethod
-    def get_dashboard(id_or_slug: str) -> Dashboard:
-        query = db.session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
+    def get_by_id_or_slug(id_or_slug: str) -> Dashboard:
+        query = (
+            db.session.query(Dashboard)
+            .filter(id_or_slug_filter(id_or_slug))
+            .outerjoin(Slice, Dashboard.slices)
+            .outerjoin(Slice.table)
+            .outerjoin(Dashboard.owners)
+            .outerjoin(Dashboard.roles)
+        )
         # Apply dashboard base filters
         query = DashboardFilter("id", SQLAInterface(Dashboard, db.session)).apply(
             query, None

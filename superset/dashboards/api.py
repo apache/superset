@@ -58,9 +58,9 @@ from superset.dashboards.filters import (
     FilterRelatedRoles,
 )
 from superset.dashboards.schemas import (
+    DashboardGetResponseSchema,
     DashboardPostSchema,
     DashboardPutSchema,
-    DashboardResponseSchema,
     get_delete_ids_schema,
     get_export_ids_schema,
     get_fav_star_ids_schema,
@@ -168,7 +168,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     add_model_schema = DashboardPostSchema()
     edit_model_schema = DashboardPutSchema()
     chart_entity_response_schema = ChartEntityResponseSchema()
-    dashboard_response_schema = DashboardResponseSchema()
+    dashboard_response_schema = DashboardGetResponseSchema()
 
     base_filters = [["slice", DashboardFilter, lambda: []]]
 
@@ -188,7 +188,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     """ Override the name set for this collection of endpoints """
     openapi_spec_component_schemas = (
         ChartEntityResponseSchema,
-        DashboardResponseSchema,
+        DashboardGetResponseSchema,
         GetFavStarIdsSchema,
     )
     apispec_parameter_schemas = {
@@ -224,6 +224,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             schema:
               type: string
             name: id_or_slug
+            description: Either the id of the dashboard, or its slug
           responses:
             200:
               description: Dashboard
@@ -245,7 +246,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """
         # pylint: disable=arguments-differ
         try:
-            dash = DashboardDAO.get_dashboard(id_or_slug)
+            dash = DashboardDAO.get_by_id_or_slug(id_or_slug)
             result = self.dashboard_response_schema.dump(dash)
             return self.response(200, result=result)
         except DashboardNotFoundError:

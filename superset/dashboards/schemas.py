@@ -135,13 +135,7 @@ class RolesSchema(Schema):
     name = fields.String()
 
 
-class DatasourceSchema(Schema):
-    id = fields.Int()
-    name = fields.String()
-    description = fields.String()
-
-
-class DashboardResponseSchema(Schema):
+class DashboardGetResponseSchema(Schema):
     id = fields.Int()
     slug = fields.String()
     url = fields.String()
@@ -158,7 +152,6 @@ class DashboardResponseSchema(Schema):
     charts = fields.List(fields.String(description=charts_description))
     owners = fields.List(fields.Nested(UserSchema))
     roles = fields.List(fields.Nested(RolesSchema))
-    datasources = fields.List(fields.Nested(DatasourceSchema))
     table_names = fields.String()  # legacy nonsense
 
 
