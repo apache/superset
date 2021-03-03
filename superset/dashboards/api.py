@@ -19,7 +19,7 @@ import logging
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Dict
-from zipfile import ZipFile
+from zipfile import is_zipfile, ZipFile
 
 from flask import g, make_response, redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -787,8 +787,12 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         upload = request.files.get("formData")
         if not upload:
             return self.response_400()
-        with ZipFile(upload) as bundle:
-            contents = get_contents_from_bundle(bundle)
+        if is_zipfile(upload):
+            with ZipFile(upload) as bundle:
+                contents = get_contents_from_bundle(bundle)
+        else:
+            upload.seek(0)
+            contents = {upload.filename: upload.read()}
 
         passwords = (
             json.loads(request.form["passwords"])

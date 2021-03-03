@@ -317,7 +317,9 @@ class ImportDashboardsCommand(BaseCommand):
     in Superset.
     """
 
-    def __init__(self, contents: Dict[str, str], database_id: Optional[int] = None):
+    def __init__(
+        self, contents: Dict[str, str], database_id: Optional[int] = None, **kwargs: Any
+    ):
         self.contents = contents
         self.database_id = database_id
 
