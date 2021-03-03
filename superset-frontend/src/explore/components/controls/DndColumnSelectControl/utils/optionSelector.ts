@@ -27,7 +27,7 @@ export class OptionSelector {
 
   constructor(
     options: { string: ColumnMeta },
-    initialValues: string[] | string | null,
+    initialValues?: string[] | string,
   ) {
     this.options = options;
     let values: string[];
@@ -72,9 +72,9 @@ export class OptionSelector {
     return !!this.getValues()?.includes(groupBy);
   }
 
-  getValues(): string[] | string | null {
+  getValues(): string[] | string | undefined {
     if (!this.isArray) {
-      return this.values.length > 0 ? this.values[0].column_name : null;
+      return this.values.length > 0 ? this.values[0].column_name : undefined;
     }
     return this.values.map(option => option.column_name);
   }

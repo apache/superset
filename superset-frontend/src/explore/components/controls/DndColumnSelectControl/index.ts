@@ -16,6 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default } from './DndColumnSelectLabel';
-export * from './LabelColumnSelect';
+export { default } from './DndSelectLabel';
+export * from './DndColumnSelect';
 export * from './DndFilterSelect';

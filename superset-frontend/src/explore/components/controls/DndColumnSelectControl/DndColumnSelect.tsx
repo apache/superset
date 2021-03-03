@@ -17,31 +17,33 @@
  * under the License.
  */
 import React, { useState } from 'react';
-import { ColumnOption, ColumnMeta } from '@superset-ui/chart-controls';
+import { ColumnMeta, ColumnOption } from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
-import { GroupByItemType, LabelProps } from './types';
-import DndColumnSelectLabel from './DndColumnSelectLabel';
+import { LabelProps } from './types';
+import DndSelectLabel from './DndSelectLabel';
 import OptionWrapper from './components/OptionWrapper';
 import { OptionSelector } from './utils';
 import { DatasourcePanelDndItem } from '../../DatasourcePanel/types';
+import { DndItemType } from '../../DndItemType';
 
-export const LabelColumnSelect = (props: LabelProps) => {
+export const DndColumnSelect = (props: LabelProps) => {
   const { value, options } = props;
   const optionSelector = new OptionSelector(options, value);
   const [values, setValues] = useState<ColumnMeta[]>(optionSelector.values);
 
   const onDrop = (item: DatasourcePanelDndItem) => {
+    const column = item.value as ColumnMeta;
     if (!optionSelector.isArray && !isEmpty(optionSelector.values)) {
-      optionSelector.replace(0, item.metricOrColumnName);
+      optionSelector.replace(0, column.column_name);
     } else {
-      optionSelector.add(item.metricOrColumnName);
+      optionSelector.add(column.column_name);
     }
     setValues(optionSelector.values);
     props.onChange(optionSelector.getValues());
   };
 
   const canDrop = (item: DatasourcePanelDndItem) =>
-    !optionSelector.has(item.metricOrColumnName);
+    !optionSelector.has((item.value as ColumnMeta).column_name);
 
   const onClickClose = (index: number) => {
     optionSelector.del(index);
@@ -62,18 +64,19 @@ export const LabelColumnSelect = (props: LabelProps) => {
         index={idx}
         clickClose={onClickClose}
         onShiftOptions={onShiftOptions}
-        type={GroupByItemType}
+        type={DndItemType.column}
       >
         <ColumnOption column={column} showType />
       </OptionWrapper>
     ));
 
   return (
-    <DndColumnSelectLabel
+    <DndSelectLabel<string | string[], ColumnMeta[]>
       values={values}
       onDrop={onDrop}
       canDrop={canDrop}
       valuesRenderer={valuesRenderer}
+      accept={DndItemType.column}
       {...props}
     />
   );

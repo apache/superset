@@ -16,7 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const OPTION_TYPES = {
-  metric: 'metric',
-  filter: 'filter',
-};
+
+/**
+ * All possible draggable items for the chart controls.
+ */
+export enum DndItemType {
+  // an existing column in table
+  column = 'column',
+  // a selected column option in ColumnSelectControl
+  columnOption = 'columnOption',
+  // an adhoc column option in ColumnSelectControl
+  adhocColumnOption = 'adhocColumn',
+
+  // a saved metric
+  metric = 'metric',
+  // a selected saved metric in MetricsControl
+  metricOption = 'metricOption',
+  // an adhoc metric option in MetricsControl
+  adhocMetricOption = 'adhocMetric',
+
+  // an adhoc filter option
+  filterOption = 'filterOption',
+}

@@ -16,13 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { logging, SupersetClient } from '@superset-ui/core';
 import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
-import { DndFilterSelectProps, FilterItemType, OptionSortType } from './types';
+import {
+  DndFilterSelectProps,
+  FilterOptionValueType,
+  OptionSortType,
+} from './types';
 import AdhocFilterPopoverTrigger from '../FilterControl/AdhocFilterPopoverTrigger';
 import OptionWrapper from './components/OptionWrapper';
-import DndColumnSelectLabel from './DndColumnSelectLabel';
+import DndSelectLabel from './DndSelectLabel';
 import AdhocFilter, {
   CLAUSES,
   EXPRESSION_TYPES,
@@ -30,21 +34,25 @@ import AdhocFilter, {
 import AdhocMetric from '../MetricControl/AdhocMetric';
 import { Tooltip } from '../../../../common/components/Tooltip';
 import { OPERATORS } from '../../../constants';
-import { DatasourcePanelDndItem } from '../../DatasourcePanel/types';
+import {
+  DatasourcePanelDndItem,
+  DndItemValue,
+} from '../../DatasourcePanel/types';
+import { DndItemType } from '../../DndItemType';
 
-const isDictionaryForAdhocFilter = (value: Record<string, any> | AdhocFilter) =>
+const isDictionaryForAdhocFilter = (value: FilterOptionValueType) =>
   value && !(value instanceof AdhocFilter) && value.expressionType;
 
 export const DndFilterSelect = (props: DndFilterSelectProps) => {
   const propsValues = Array.from(props.value ?? []);
   const [values, setValues] = useState(
-    propsValues.map((filter: Record<string, any> | AdhocFilter) =>
+    propsValues.map((filter: FilterOptionValueType) =>
       isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter,
     ),
   );
   const [partitionColumn, setPartitionColumn] = useState(undefined);
   const [newFilterPopoverVisible, setNewFilterPopoverVisible] = useState(false);
-  const [droppedItem, setDroppedItem] = useState<string | null>(null);
+  const [droppedItem, setDroppedItem] = useState<DndItemValue | null>(null);
 
   const optionsForSelect = (
     columns: ColumnMeta[],
@@ -138,7 +146,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
 
   useEffect(() => {
     setValues(
-      (props.value || []).map((filter: Record<string, any> | AdhocFilter) =>
+      (props.value || []).map((filter: FilterOptionValueType) =>
         isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter,
       ),
     );
@@ -165,13 +173,14 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
       (savedMetric: Metric) => savedMetric.metric_name === savedMetricName,
     )?.expression;
 
-  const mapOption = (option: AdhocFilter | Record<string, any>) => {
+  const mapOption = (option: FilterOptionValueType) => {
     // already a AdhocFilter, skip
     if (option instanceof AdhocFilter) {
       return option;
     }
+    const filterOptions = option as Record<string, any>;
     // via datasource saved metric
-    if (option.saved_metric_name) {
+    if (filterOptions.saved_metric_name) {
       return new AdhocFilter({
         expressionType:
           props.datasource.type === 'druid'
@@ -179,15 +188,15 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
             : EXPRESSION_TYPES.SQL,
         subject:
           props.datasource.type === 'druid'
-            ? option.saved_metric_name
-            : getMetricExpression(option.saved_metric_name),
+            ? filterOptions.saved_metric_name
+            : getMetricExpression(filterOptions.saved_metric_name),
         operator: OPERATORS['>'],
         comparator: 0,
         clause: CLAUSES.HAVING,
       });
     }
     // has a custom label, meaning it's custom column
-    if (option.label) {
+    if (filterOptions.label) {
       return new AdhocFilter({
         expressionType:
           props.datasource.type === 'druid'
@@ -195,7 +204,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
             : EXPRESSION_TYPES.SQL,
         subject:
           props.datasource.type === 'druid'
-            ? option.label
+            ? filterOptions.label
             : new AdhocMetric(option).translateToSql(),
         operator: OPERATORS['>'],
         comparator: 0,
@@ -203,10 +212,10 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
       });
     }
     // add a new filter item
-    if (option.column_name) {
+    if (filterOptions.column_name) {
       return new AdhocFilter({
         expressionType: EXPRESSION_TYPES.SIMPLE,
-        subject: option.column_name,
+        subject: filterOptions.column_name,
         operator: OPERATORS['=='],
         comparator: '',
         clause: CLAUSES.WHERE,
@@ -261,7 +270,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
             index={index}
             clickClose={onClickClose}
             onShiftOptions={onShiftOptions}
-            type={FilterItemType}
+            type={DndItemType.filterOption}
             withCaret
           >
             <Tooltip title={label}>{label}</Tooltip>
@@ -270,20 +279,46 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
       );
     });
 
+  const adhocFilter = useMemo(() => {
+    if (droppedItem?.metric_name) {
+      return new AdhocFilter({
+        expressionType: EXPRESSION_TYPES.SQL,
+        clause: CLAUSES.HAVING,
+        sqlExpression: droppedItem?.expression,
+      });
+    }
+    if (droppedItem instanceof AdhocMetric) {
+      return new AdhocFilter({
+        expressionType: EXPRESSION_TYPES.SQL,
+        clause: CLAUSES.HAVING,
+        sqlExpression: (droppedItem as AdhocMetric)?.translateToSql(),
+      });
+    }
+    return new AdhocFilter({
+      subject: (droppedItem as ColumnMeta)?.column_name,
+    });
+  }, [droppedItem]);
+
   return (
     <>
-      <DndColumnSelectLabel
+      <DndSelectLabel<FilterOptionValueType, FilterOptionValueType[]>
         values={values}
         onDrop={(item: DatasourcePanelDndItem) => {
-          setDroppedItem(item.metricOrColumnName);
+          setDroppedItem(item.value);
           togglePopover(true);
         }}
         canDrop={() => true}
         valuesRenderer={valuesRenderer}
+        accept={[
+          DndItemType.column,
+          DndItemType.metric,
+          DndItemType.metricOption,
+          DndItemType.adhocMetricOption,
+        ]}
         {...props}
       />
       <AdhocFilterPopoverTrigger
-        adhocFilter={new AdhocFilter({ subject: droppedItem })}
+        adhocFilter={adhocFilter}
         options={options}
         datasource={props.datasource}
         onFilterEdit={onNewFilter}

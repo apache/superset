@@ -25,14 +25,17 @@ import {
 } from 'react-dnd';
 import { DragContainer } from 'src/explore/components/OptionControls';
 import Option from './Option';
-import { OptionProps, OptionItemInterface, GroupByItemType } from '../types';
+import { OptionProps, OptionItemInterface } from '../types';
+import { DndItemType } from '../../../DndItemType';
 
-export default function OptionWrapper(props: OptionProps) {
+export default function OptionWrapper(
+  props: OptionProps & { type: DndItemType },
+) {
   const {
     index,
+    type,
     onShiftOptions,
     clickClose,
-    type,
     withCaret,
     children,
   } = props;
@@ -40,7 +43,7 @@ export default function OptionWrapper(props: OptionProps) {
 
   const item: OptionItemInterface = {
     dragIndex: index,
-    type: GroupByItemType,
+    type,
   };
   const [, drag] = useDrag({
     item,
@@ -50,7 +53,7 @@ export default function OptionWrapper(props: OptionProps) {
   });
 
   const [, drop] = useDrop({
-    accept: GroupByItemType,
+    accept: type,
 
     hover: (item: OptionItemInterface, monitor: DropTargetMonitor) => {
       if (!ref.current) {
@@ -101,7 +104,6 @@ export default function OptionWrapper(props: OptionProps) {
         index={index}
         clickClose={clickClose}
         onShiftOptions={onShiftOptions}
-        type={type}
         withCaret={withCaret}
       >
         {children}

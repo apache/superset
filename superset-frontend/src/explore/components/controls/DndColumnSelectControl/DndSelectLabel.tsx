@@ -26,18 +26,17 @@ import {
   DndLabelsContainer,
   HeaderContainer,
 } from 'src/explore/components/OptionControls';
-import {
-  DatasourcePanelDndItem,
-  DatasourcePanelDndType,
-} from 'src/explore/components/DatasourcePanel/types';
+import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
 import Icon from 'src/components/Icon';
 import { DndColumnSelectProps } from './types';
 
-export default function DndColumnSelectLabel(props: DndColumnSelectProps) {
+export default function DndSelectLabel<T, O>(
+  props: DndColumnSelectProps<T, O>,
+) {
   const theme = useTheme();
 
   const [{ isOver, canDrop }, datasourcePanelDrop] = useDrop({
-    accept: DatasourcePanelDndType.COLUMN,
+    accept: props.accept,
 
     drop: (item: DatasourcePanelDndItem) => {
       props.onDrop(item);

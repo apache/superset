@@ -26,6 +26,7 @@ import {
 import { Tooltip } from 'src/common/components/Tooltip';
 import Icon from 'src/components/Icon';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
+import AdhocMetric from './controls/MetricControl/AdhocMetric';
 
 export const DragContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit}px;
@@ -159,6 +160,7 @@ interface DragItem {
 export const OptionControlLabel = ({
   label,
   savedMetric,
+  adhocMetric,
   onRemove,
   onMoveLabel,
   onDropLabel,
@@ -171,6 +173,7 @@ export const OptionControlLabel = ({
 }: {
   label: string | React.ReactNode;
   savedMetric?: savedMetricType;
+  adhocMetric?: AdhocMetric;
   onRemove: () => void;
   onMoveLabel: (dragIndex: number, hoverIndex: number) => void;
   onDropLabel: () => void;
@@ -231,7 +234,11 @@ export const OptionControlLabel = ({
     },
   });
   const [, drag] = useDrag({
-    item: { type, index },
+    item: {
+      type,
+      index,
+      value: savedMetric?.metric_name ? savedMetric : adhocMetric,
+    },
     collect: monitor => ({
       isDragging: monitor.isDragging(),
     }),
