@@ -21,7 +21,7 @@ Superset
 =========
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/apache/superset)
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/apache/superset?sort=semver)
 [![Build Status](https://github.com/apache/superset/workflows/Python/badge.svg)](https://github.com/apache/superset/actions)
 [![PyPI version](https://badge.fury.io/py/apache-superset.svg)](https://badge.fury.io/py/apache-superset)
 [![Coverage Status](https://codecov.io/github/apache/superset/coverage.svg?branch=master)](https://codecov.io/github/apache/superset)
