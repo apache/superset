@@ -22,6 +22,7 @@ import textwrap
 import time
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
+from datetime import datetime, timedelta
 from typing import Any, Callable, cast, Dict, Iterator, Optional, Type, Union
 
 from flask import current_app, g, request
@@ -58,6 +59,34 @@ def collect_request_payload() -> Dict[str, Any]:
 
 
 class AbstractEventLogger(ABC):
+    def __call__(
+        self,
+        action: str,
+        object_ref: Optional[str] = None,
+        log_to_statsd: bool = True,
+        duration: Optional[timedelta] = None,
+        **payload_override: Dict[str, Any],
+    ):
+        self.action = action
+        self.object_ref = object_ref
+        self.log_to_statsd = log_to_statsd
+        self.payload_override = payload_override
+        return self
+
+    def __enter__(self):
+        self.start = datetime.now()
+        return None
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
+        # Log data w/ arguments being passed in
+        self.log_with_context(
+            action=self.action,
+            object_ref=self.object_ref,
+            log_to_statsd=self.log_to_statsd,
+            duration=datetime.now() - self.start,
+            payload_override=self.payload_override,
+        )
+
     @abstractmethod
     def log(  # pylint: disable=too-many-arguments
         self,
@@ -72,32 +101,25 @@ class AbstractEventLogger(ABC):
     ) -> None:
         pass
 
-    @contextmanager
-    def log_context(  # pylint: disable=too-many-locals
-        self, action: str, object_ref: Optional[str] = None, log_to_statsd: bool = True,
-    ) -> Iterator[Callable[..., None]]:
-        """
-        Log an event with additional information from the request context.
-
-        :param action: a name to identify the event
-        :param object_ref: reference to the Python object that triggered this action
-        :param log_to_statsd: whether to update statsd counter for the action
-        """
+    def log_with_context(
+        self,
+        action: str,
+        object_ref: Optional[str] = None,
+        log_to_statsd: bool = True,
+        duration: Optional[timedelta] = None,
+        payload_override: Dict[str, Any] = None,
+        **kwargs: Any,
+    ) -> None:
         from superset.views.core import get_form_data
 
-        start_time = time.time()
         referrer = request.referrer[:1000] if request.referrer else None
         user_id = g.user.get_id() if hasattr(g, "user") and g.user else None
-        payload_override = {}
-
-        # yield a helper to add additional payload
-        yield lambda **kwargs: payload_override.update(kwargs)
 
         payload = collect_request_payload()
         if object_ref:
             payload["object_ref"] = object_ref
-        # manual updates from context comes the last
-        payload.update(payload_override)
+        if payload_override:
+            payload.update(payload_override)
 
         dashboard_id: Optional[int] = None
         try:
@@ -133,8 +155,29 @@ class AbstractEventLogger(ABC):
             records=records,
             dashboard_id=dashboard_id,
             slice_id=slice_id,
-            duration_ms=round((time.time() - start_time) * 1000),
+            duration_ms=duration,
             referrer=referrer,
+            **kwargs,
+        )
+
+    @contextmanager
+    def log_context(  # pylint: disable=too-many-locals
+        self, action: str, object_ref: Optional[str] = None, log_to_statsd: bool = True,
+    ) -> Iterator[Callable[..., None]]:
+        """
+        Log an event with additional information from the request context.
+        :param action: a name to identify the event
+        :param object_ref: reference to the Python object that triggered this action
+        :param log_to_statsd: whether to update statsd counter for the action
+        """
+        payload_override = {}
+        start = datetime.now()
+        # yield a helper to add additional payload
+        yield lambda **kwargs: payload_override.update(kwargs)
+        duration = datetime.now() - start
+
+        self.log_with_context(
+            action, object_ref, log_to_statsd, duration, payload_override
         )
 
     def _wrapper(
@@ -232,26 +275,6 @@ def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:
 
 class DBEventLogger(AbstractEventLogger):
     """Event logger that commits logs to Superset DB"""
-
-    def __init__(self):
-        self._args = {
-            "user_id": None,
-            "dashboard_id": None,
-            "duration_ms": None,
-            "slice_id": None,
-            "referrer": None,
-        }
-
-    def __call__(self, **kwargs: Any):
-        self._args.update(kwargs)
-        return self
-
-    def __enter__(self, **kwargs: Any):
-        return None
-
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
-        # Log data w/ arguments being passed in
-        self.log(**self._args)
 
     def log(  # pylint: disable=too-many-arguments,too-many-locals
         self,

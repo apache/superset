@@ -17,9 +17,14 @@
 import logging
 import time
 import unittest
+from typing import Any, Callable, cast, Dict, Iterator, Optional, Type, Union
 from unittest.mock import patch
 
-from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
+from superset.utils.log import (
+    AbstractEventLogger,
+    DBEventLogger,
+    get_event_logger_from_cfg_value,
+)
 from tests.test_app import app
 
 
@@ -101,3 +106,29 @@ class TestEventLogger(unittest.TestCase):
                 ],
             )
             self.assertGreaterEqual(payload["duration_ms"], 100)
+
+    def test_context_manager_log(self):
+        class DummyEventLogger(AbstractEventLogger):
+            def __init__(self):
+                self.records = []
+
+            def log(
+                self,
+                user_id: Optional[int],
+                action: str,
+                dashboard_id: Optional[int],
+                duration_ms: Optional[int],
+                slice_id: Optional[int],
+                referrer: Optional[str],
+                *args: Any,
+                **kwargs: Any,
+            ):
+                self.records.append(kwargs)
+
+        logger = DummyEventLogger()
+
+        with app.test_request_context():
+            with logger(action="foo", engine="bar"):
+                pass
+
+        assert logger.records == [{"records": [{"path": "/", "engine": "bar"}]}]
