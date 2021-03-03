@@ -103,7 +103,7 @@ export default function ErrorAlert({
   const isExpandable = ['explore', 'sqllab'].includes(source);
 
   return (
-    <ErrorAlertDiv level={level}>
+    <ErrorAlertDiv level={level} role="alert">
       <div className="top-row">
         <LeftSideContent>
           <Icon
