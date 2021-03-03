@@ -16,35 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
-import PropTypes from 'prop-types';
-import Form from 'react-jsonschema-form';
-import chrono from 'chrono-node';
+import React, { FunctionComponent, useState } from 'react';
+import Form, { FormValidation } from 'react-jsonschema-form';
 import { Col, FormControl, FormGroup, Row } from 'react-bootstrap';
 import { t, styled } from '@superset-ui/core';
-
+import chrono from 'chrono-node';
 import ModalTrigger from 'src/components/ModalTrigger';
 import FormLabel from 'src/components/FormLabel';
 import './ScheduleQueryButton.less';
 
 const validators = {
-  greater: (a, b) => a > b,
-  greater_equal: (a, b) => a >= b,
-  less: (a, b) => a < b,
-  less_equal: (a, b) => a <= b,
+  greater: (a: number, b: number) => a > b,
+  greater_equal: (a: number, b: number) => a >= b,
+  less: (a: number, b: number) => a < b,
+  less_equal: (a: number, b: number) => a <= b,
 };
 
 function getJSONSchema() {
   const jsonSchema = window.featureFlags.SCHEDULED_QUERIES.JSONSCHEMA;
   // parse date-time into usable value (eg, 'today' => `new Date()`)
-  Object.entries(jsonSchema.properties).forEach(([key, properties]) => {
-    if (properties.default && properties.format === 'date-time') {
-      jsonSchema.properties[key] = {
-        ...properties,
-        default: chrono.parseDate(properties.default).toISOString(),
-      };
-    }
-  });
+  Object.entries(jsonSchema.properties).forEach(
+    ([key, properties]: [string, any]) => {
+      if (properties.default && properties.format === 'date-time') {
+        jsonSchema.properties[key] = {
+          ...properties,
+          default: chrono.parseDate(properties.default).toISOString(),
+        };
+      }
+    },
+  );
   return jsonSchema;
 }
 
@@ -58,10 +58,10 @@ function getValidationRules() {
 
 function getValidator() {
   const rules = getValidationRules();
-  return (formData, errors) => {
-    rules.forEach(rule => {
+  return (formData: Record<string, any>, errors: FormValidation) => {
+    rules.forEach((rule: any) => {
       const test = validators[rule.name];
-      const args = rule.arguments.map(name => formData[name]);
+      const args = rule.arguments.map((name: string) => formData[name]);
       const container = rule.container || rule.arguments.slice(-1)[0];
       if (!test(...args)) {
         errors[container].addError(rule.message);
@@ -71,47 +71,39 @@ function getValidator() {
   };
 }
 
-const propTypes = {
-  defaultLabel: PropTypes.string,
-  sql: PropTypes.string.isRequired,
-  schema: PropTypes.string,
-  dbId: PropTypes.number.isRequired,
-  animation: PropTypes.bool,
-  onSchedule: PropTypes.func,
-  scheduleQueryWarning: PropTypes.string,
-  disabled: PropTypes.bool,
-  tooltip: PropTypes.string,
-};
-const defaultProps = {
-  defaultLabel: t('Undefined'),
-  animation: true,
-  onSchedule: () => {},
-  scheduleQueryWarning: null,
-  disabled: false,
-  tooltip: null,
-};
+interface ScheduleQueryButtonProps {
+  defaultLabel?: string;
+  sql: string;
+  schema?: string;
+  dbId: number;
+  animation?: boolean;
+  onSchedule?: Function;
+  scheduleQueryWarning: string | null;
+  disabled: boolean;
+  tooltip: string | null;
+}
 
 const StyledRow = styled(Row)`
   padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
-function ScheduleQueryButton({
-  defaultLabel,
+const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
+  defaultLabel = t('Undefined'),
   sql,
   schema,
   dbId,
-  onSchedule,
-  scheduleQueryWarning,
-  disabled,
-  tooltip,
-}) {
+  onSchedule = () => {},
+  scheduleQueryWarning = null,
+  disabled = false,
+  tooltip = null,
+}) => {
   const [description, setDescription] = useState('');
   const [label, setLabel] = useState(defaultLabel);
   const [showSchedule, setShowSchedule] = useState(false);
-  let saveModal;
+  let saveModal: any;
   // this is for the ref that is created in the modal trigger. the modal is created in order to use the .close() function on it.
 
-  const onScheduleSubmit = ({ formData }) => {
+  const onScheduleSubmit = ({ formData }: Record<string, any>) => {
     const query = {
       label,
       description,
@@ -135,7 +127,7 @@ function ScheduleQueryButton({
             type="text"
             placeholder={t('Label for your query')}
             value={label}
-            onChange={event => setLabel(event.target.value)}
+            onChange={(event: any) => setLabel(event.target?.value)}
           />
         </Col>
       </StyledRow>
@@ -148,7 +140,7 @@ function ScheduleQueryButton({
             componentClass="textarea"
             placeholder={t('Write a description for your query')}
             value={description}
-            onChange={event => setDescription(event.target.value)}
+            onChange={(event: any) => setDescription(event.target?.value)}
           />
         </Col>
       </StyledRow>
@@ -181,12 +173,12 @@ function ScheduleQueryButton({
           saveModal = ref;
         }}
         modalTitle={t('Schedule query')}
-        modalBody={renderModalBody}
+        modalBody={renderModalBody()}
         triggerNode={
           <div
             role="button"
             buttonSize="small"
-            onClick={setShowSchedule(!showSchedule)}
+            onClick={() => setShowSchedule(!showSchedule)}
             disabled={disabled}
             tooltip={tooltip}
           >
@@ -196,8 +188,6 @@ function ScheduleQueryButton({
       />
     </span>
   );
-}
-ScheduleQueryButton.propTypes = propTypes;
-ScheduleQueryButton.defaultProps = defaultProps;
+};
 
 export default ScheduleQueryButton;
