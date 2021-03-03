@@ -16,11 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  MultipleMask,
-  SingleDataMaskState,
-  MultipleDataMaskState,
-} from './types';
+import { MultipleMask, MultipleDataMaskState } from './types';
 import { FilterConfiguration } from '../dashboard/components/nativeFilters/types';
 
 export const SET_DATA_MASK = 'SET_DATA_MASK';

@@ -30,7 +30,7 @@ import {
 import { MultipleDataMaskState } from 'src/dataMask/types';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getActiveNativeFilters } from '../activeDashboardNativeFilters';
-import { Filters } from '../../reducers/types';
+import { NativeFiltersState } from '../../reducers/types';
 
 // We cache formData objects so that our connected container components don't always trigger
 // render cascades. we cannot leverage the reselect library because our cache size is >1
@@ -46,7 +46,7 @@ export interface GetFormDataWithExtraFiltersArguments {
   colorNamespace?: string;
   sliceId: number;
   dataMask: MultipleDataMaskState;
-  nativeFilters: Filters;
+  nativeFilters: NativeFiltersState;
 }
 
 // this function merge chart's formData with dashboard filters value,
@@ -84,7 +84,7 @@ export default function getFormDataWithExtraFilters({
   const activeNativeFilters = getActiveNativeFilters({
     dataMask,
     layout,
-    filters: nativeFilters,
+    filters: nativeFilters.filters,
   });
   const filterIdsAppliedOnChart = Object.entries(activeNativeFilters)
     .filter(([, { scope }]) => scope.includes(chart.id))

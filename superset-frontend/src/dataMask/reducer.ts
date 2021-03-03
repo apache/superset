@@ -45,19 +45,13 @@ const setUnitDataMask = (
     dataMaskState[unitName][action.filterId] = {
       ...dataMaskState[unitName][action.filterId],
       ...action[unitName],
+      id: action.filterId,
     };
   }
 };
 
 const dataMaskReducer = produce(
-  (
-    draft: MultipleDataMaskState = {
-      [DataMaskType.NativeFilters]: {},
-      [DataMaskType.CrossFilters]: {},
-      [DataMaskType.OwnFilters]: {},
-    },
-    action: AnyDataMaskAction,
-  ) => {
+  (draft: MultipleDataMaskState, action: AnyDataMaskAction) => {
     switch (action.type) {
       case UPDATE_DATA_MASK:
         Object.values(DataMaskType).forEach(unitName =>
@@ -78,6 +72,11 @@ const dataMaskReducer = produce(
 
       default:
     }
+  },
+  {
+    [DataMaskType.NativeFilters]: {},
+    [DataMaskType.CrossFilters]: {},
+    [DataMaskType.OwnFilters]: {},
   },
 );
 

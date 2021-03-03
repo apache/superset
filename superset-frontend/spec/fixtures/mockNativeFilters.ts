@@ -17,6 +17,7 @@
  * under the License.
  */
 import { NativeFiltersState } from 'src/dashboard/reducers/types';
+import { MultipleDataMaskState } from '../../src/dataMask/types';
 
 export const nativeFilters: NativeFiltersState = {
   filterSets: {},
@@ -72,32 +73,33 @@ export const nativeFilters: NativeFiltersState = {
       isInstant: true,
     },
   },
-  filtersState: {
-    crossFilters: {},
-    ownFilters: {},
-    nativeFilters: {
-      'NATIVE_FILTER-e7Q8zKixx': {
-        id: 'NATIVE_FILTER-e7Q8zKixx',
-        extraFormData: {
-          append_form_data: {
-            filters: [
-              {
-                col: 'region',
-                op: 'IN',
-                val: ['East Asia & Pacific'],
-              },
-            ],
-          },
-        },
-        currentState: {
-          value: ['East Asia & Pacific'],
+};
+
+export const datMask: MultipleDataMaskState = {
+  crossFilters: {},
+  ownFilters: {},
+  nativeFilters: {
+    'NATIVE_FILTER-e7Q8zKixx': {
+      id: 'NATIVE_FILTER-e7Q8zKixx',
+      extraFormData: {
+        append_form_data: {
+          filters: [
+            {
+              col: 'region',
+              op: 'IN',
+              val: ['East Asia & Pacific'],
+            },
+          ],
         },
       },
-      'NATIVE_FILTER-x9QPw0so1': {
-        id: 'NATIVE_FILTER-x9QPw0so1',
-        extraFormData: {},
-        currentState: {},
+      currentState: {
+        value: ['East Asia & Pacific'],
       },
+    },
+    'NATIVE_FILTER-x9QPw0so1': {
+      id: 'NATIVE_FILTER-x9QPw0so1',
+      extraFormData: {},
+      currentState: {},
     },
   },
 };
