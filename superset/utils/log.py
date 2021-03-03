@@ -233,6 +233,26 @@ def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:
 class DBEventLogger(AbstractEventLogger):
     """Event logger that commits logs to Superset DB"""
 
+    def __init__(self):
+        self._args = {
+            "user_id": None,
+            "dashboard_id": None,
+            "duration_ms": None,
+            "slice_id": None,
+            "referrer": None,
+        }
+
+    def __call__(self, **kwargs: Any):
+        self._args.update(kwargs)
+        return self
+
+    def __enter__(self, **kwargs: Any):
+        return None
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
+        # Log data w/ arguments being passed in
+        self.log(**self._args)
+
     def log(  # pylint: disable=too-many-arguments,too-many-locals
         self,
         user_id: Optional[int],
