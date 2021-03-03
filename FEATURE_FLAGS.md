@@ -23,39 +23,39 @@ under the License.
 *These features are considered **unfinished** and should only be used on development environments.*
 
 - **CLIENT_CACHE** *Introduces a client (browser) cache*
+- **DASHBOARD_CACHE**
+- **DASHBOARD_NATIVE_FILTERS_SET**
+- **DASHBOARD_RBAC**
 - **DISABLE_DATASET_SOURCE_EDIT**
-- **DYNAMIC_PLUGINS**
 - **ENABLE_EXPLORE_JSON_CSRF_PROTECTION**
-- **ENABLE_TEMPLATE_PROCESSING**
 - **KV_STORE**
 - **PRESTO_EXPAND_DATA**
-- **DASHBOARD_CACHE**
 - **REMOVE_SLICE_LEVEL_LABEL_COLORS**
 - **SHARE_QUERIES_VIA_KV_STORE**
 - **TAGGING_SYSTEM**
-- **LISTVIEWS_DEFAULT_CARD_VIEW** *Enables the replacement React views for all the FAB views (list, edit, show) with designs introduced in https://github.com/apache/superset/issues/8976 (SIP-34).*
-- **ESCAPE_MARKDOWN_HTML**
-- **DASHBOARD_NATIVE_FILTERS**
-- **DASHBOARD_CROSS_FILTERS**
-- **DASHBOARD_NATIVE_FILTERS_SET**
-- **GLOBAL_ASYNC_QUERIES**
-- **VERSIONED_EXPORT**
-- **ROW_LEVEL_SECURITY**
-- **DASHBOARD_RBAC**
 
 ## In Testing
 *These features are **finished** but currently being tested. They are usable, but may still contain some bugs.*
 
 - **ALERT_REPORTS** *Alerts and reports*
+- **DASHBOARD_CROSS_FILTERS**
+- **DYNAMIC_PLUGINS** *Enables the dynamic plugin interface and can be used when developing and testing new charts*
+- **DASHBOARD_NATIVE_FILTERS** (may collide with GLOBAL_ASYNC_QUERIES)
+- **GLOBAL_ASYNC_QUERIES**
 - **OMNIBAR** *Feature to search for other dashboards*
+- **VERSIONED_EXPORT**
 
 ## Stable
 *These features flags are **safe for production** and have been tested.*
 
+- **ESCAPE_MARKDOWN_HTML**
+- **ENABLE_TEMPLATE_PROCESSING**
+- **LISTVIEWS_DEFAULT_CARD_VIEW** *Enables the replacement React views for all the FAB views (list, edit, show) with designs introduced in https://github.com/apache/superset/issues/8976 (SIP-34).*
+- **ROW_LEVEL_SECURITY**
 - **SQLLAB_BACKEND_PERSISTENCE**
 - **THUMBNAILS** *Exposes API endpoint to compute thumbnails*
 
-## Deprecated
+## Deprecated Flags
 *These features flags currently default to True and **will be removed in a future major release**. For this current release you can turn them off by setting your config to False, but it is advised to remove or set these flags in your local configuration to **True** so that you do not experience any unexpected changes in a future release.*
 
 - **ALLOW_DASHBOARD_DOMAIN_SHARDING** *Allow dashboard to use sub-domains to send chart request*
