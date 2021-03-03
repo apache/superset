@@ -21,14 +21,14 @@ import cx from 'classnames';
 import { t } from '@superset-ui/core';
 import { Tooltip } from 'src/common/components/Tooltip';
 
-interface EditableTitleProps {
+export interface EditableTitleProps {
   canEdit?: boolean;
   editing?: boolean;
   emptyText?: string;
   extraClasses?: Array<string> | string;
   multiLine?: boolean;
   noPermitTooltip?: string;
-  onSaveTitle: (arg0: string) => {};
+  onSaveTitle: (arg0: string) => void;
   showTooltip?: boolean;
   style?: object;
   title?: string;
