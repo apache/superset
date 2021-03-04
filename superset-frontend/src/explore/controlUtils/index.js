@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import memoizeOne from 'memoize-one';
-import { getChartControlPanelRegistry } from '@superset-ui/core';
-import { expandControlConfig } from '@superset-ui/chart-controls';
-import * as SECTIONS from '../controlPanels/sections';
+import { getSectionsToRender } from './getSectionsToRender';
+import { getControlConfig } from './getControlConfig';
 
 export * from './getFormDataFromControls';
+export * from './getControlConfig';
+export * from './getSectionsToRender';
 
 export function validateControl(control, processedState) {
   const { validators } = control;
@@ -37,44 +37,6 @@ export function validateControl(control, processedState) {
   // always reset validation errors even when there is no validator
   return { ...control, validationErrors };
 }
-
-/**
- * Find control item from control panel config.
- */
-export function findControlItem(controlPanelSections, controlKey) {
-  return (
-    controlPanelSections
-      .map(section => section.controlSetRows)
-      .flat(2)
-      .find(
-        control =>
-          controlKey === control ||
-          (control !== null &&
-            typeof control === 'object' &&
-            control.name === controlKey),
-      ) ?? null
-  );
-}
-
-const getMemoizedControlConfig = memoizeOne(
-  (controlKey, controlPanelConfig) => {
-    const {
-      controlOverrides = {},
-      controlPanelSections = [],
-    } = controlPanelConfig;
-
-    const control = expandControlConfig(
-      findControlItem(controlPanelSections, controlKey),
-      controlOverrides,
-    );
-    return control?.config || control;
-  },
-);
-
-export const getControlConfig = function getControlConfig(controlKey, vizType) {
-  const controlPanelConfig = getChartControlPanelRegistry().get(vizType) || {};
-  return getMemoizedControlConfig(controlKey, controlPanelConfig);
-};
 
 function handleMissingChoice(control) {
   // If the value is not valid anymore based on choices, clear it
@@ -160,68 +122,9 @@ export function getControlState(controlKey, vizType, state, value) {
   );
 }
 
-const getMemoizedSectionsToRender = memoizeOne(
-  (datasourceType, controlPanelConfig) => {
-    const {
-      sectionOverrides = {},
-      controlOverrides,
-      controlPanelSections = [],
-    } = controlPanelConfig;
-
-    // default control panel sections
-    const sections = { ...SECTIONS };
-
-    // apply section overrides
-    Object.entries(sectionOverrides).forEach(([section, overrides]) => {
-      if (typeof overrides === 'object' && overrides.constructor === Object) {
-        sections[section] = {
-          ...sections[section],
-          ...overrides,
-        };
-      } else {
-        sections[section] = overrides;
-      }
-    });
-
-    const { datasourceAndVizType } = sections;
-    // list of datasource-specific controls that should be removed
-    const invalidControls =
-      datasourceType === 'table'
-        ? ['granularity', 'druid_time_origin']
-        : ['granularity_sqla', 'time_grain_sqla'];
-
-    return []
-      .concat(datasourceAndVizType, controlPanelSections)
-      .filter(section => !!section)
-      .map(section => {
-        const { controlSetRows } = section;
-        return {
-          ...section,
-          controlSetRows:
-            controlSetRows?.map(row =>
-              row
-                .filter(control => !invalidControls.includes(control))
-                .map(item => expandControlConfig(item, controlOverrides)),
-            ) || [],
-        };
-      });
-  },
-);
-
-/**
- * Get the clean and processed control panel sections
- */
-export const sectionsToRender = function sectionsToRender(
-  vizType,
-  datasourceType,
-) {
-  const controlPanelConfig = getChartControlPanelRegistry().get(vizType) || {};
-  return getMemoizedSectionsToRender(datasourceType, controlPanelConfig);
-};
-
 export function getAllControlsState(vizType, datasourceType, state, formData) {
   const controlsState = {};
-  sectionsToRender(vizType, datasourceType).forEach(section =>
+  getSectionsToRender(vizType, datasourceType).forEach(section =>
     section.controlSetRows.forEach(fieldsetRow =>
       fieldsetRow.forEach(field => {
         if (field && field.config && field.name) {

@@ -19,7 +19,6 @@ import inspect
 import json
 import logging
 import textwrap
-import time
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from datetime import datetime, timedelta
@@ -67,6 +66,7 @@ class AbstractEventLogger(ABC):
         duration: Optional[timedelta] = None,
         **payload_override: Dict[str, Any],
     ) -> object:
+        # pylint: disable=W0201
         self.action = action
         self.object_ref = object_ref
         self.log_to_statsd = log_to_statsd
@@ -100,7 +100,7 @@ class AbstractEventLogger(ABC):
     ) -> None:
         pass
 
-    def log_with_context(
+    def log_with_context(  # pylint: disable=too-many-locals
         self,
         action: str,
         duration: timedelta,
