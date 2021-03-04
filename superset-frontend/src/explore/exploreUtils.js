@@ -207,6 +207,7 @@ export const buildV1ChartDataPayload = ({
   force,
   resultFormat,
   resultType,
+  setDataMask,
 }) => {
   const buildQuery =
     getChartBuildQueryRegistry().get(formData.viz_type) ??
@@ -216,12 +217,19 @@ export const buildV1ChartDataPayload = ({
           ...baseQueryObject,
         },
       ]));
-  return buildQuery({
-    ...formData,
-    force,
-    result_format: resultFormat,
-    result_type: resultType,
-  });
+  return buildQuery(
+    {
+      ...formData,
+      force,
+      result_format: resultFormat,
+      result_type: resultType,
+    },
+    {
+      hooks: {
+        setDataMask,
+      },
+    },
+  );
 };
 
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
