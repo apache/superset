@@ -18,6 +18,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, List, Optional
 
+from celery.exceptions import SoftTimeLimitExceeded
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
@@ -39,6 +40,7 @@ from superset.reports.commands.exceptions import (
     ReportScheduleNotificationError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
+    ReportScheduleScreenshotTimeout,
     ReportScheduleSelleniumUserNotFoundError,
     ReportScheduleStateNotFoundError,
     ReportScheduleUnexpectedError,
@@ -174,6 +176,8 @@ class BaseReportState:
         user = self._get_screenshot_user()
         try:
             image_data = screenshot.get_screenshot(user=user)
+        except SoftTimeLimitExceeded as ex:
+            raise ReportScheduleScreenshotTimeout()
         except Exception as ex:
             raise ReportScheduleScreenshotFailedError(
                 f"Failed taking a screenshot {str(ex)}"

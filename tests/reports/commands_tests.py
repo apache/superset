@@ -17,7 +17,7 @@
 import json
 from datetime import datetime, timedelta
 from typing import List, Optional
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 from contextlib2 import contextmanager
@@ -46,6 +46,7 @@ from superset.reports.commands.exceptions import (
     ReportScheduleNotFoundError,
     ReportScheduleNotificationError,
     ReportSchedulePreviousWorkingError,
+    ReportScheduleScreenshotTimeout,
     ReportScheduleWorkingTimeoutError,
 )
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
@@ -820,6 +821,33 @@ def test_soft_timeout_alert(email_mock, create_alert_email_chart):
 
     assert_log(
         ReportState.ERROR, error_message="A timeout occurred while executing the query."
+    )
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_alert_email_chart"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_soft_timeout_screenshot(screenshot_mock, email_mock, create_alert_email_chart):
+    """
+    ExecuteReport Command: Test soft timeout on screenshot
+    """
+    from celery.exceptions import SoftTimeLimitExceeded
+    from superset.reports.commands.exceptions import AlertQueryTimeout
+
+    screenshot_mock.side_effect = SoftTimeLimitExceeded()
+    with pytest.raises(ReportScheduleScreenshotTimeout):
+        AsyncExecuteReportScheduleCommand(
+            create_alert_email_chart.id, datetime.utcnow()
+        ).run()
+
+    notification_targets = get_target_from_report_schedule(create_alert_email_chart)
+    # Assert the email smtp address, asserts a notification was sent with the error
+    assert email_mock.call_args[0][0] == notification_targets[0]
+
+    assert_log(
+        ReportState.ERROR, error_message="A timeout occurred while taking a screenshot."
     )
 
 
