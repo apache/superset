@@ -64,7 +64,7 @@ export const DndColumnSelect = (props: LabelProps) => {
         index={idx}
         clickClose={onClickClose}
         onShiftOptions={onShiftOptions}
-        type={DndItemType.column}
+        type={DndItemType.columnOption}
       >
         <ColumnOption column={column} showType />
       </OptionWrapper>
