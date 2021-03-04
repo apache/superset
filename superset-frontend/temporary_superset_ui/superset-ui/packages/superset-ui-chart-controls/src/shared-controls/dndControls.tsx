@@ -26,8 +26,8 @@ const timeColumnOption = {
   description: t('A reference to the [Time] configuration, taking granularity into account'),
 };
 
-export const dndGroupByControl: SharedControlConfig<'DndColumnSelectControl'> = {
-  type: 'DndColumnSelectControl',
+export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
+  type: 'DndColumnSelect',
   label: t('Group by'),
   default: [],
   description: t('One or many columns to group by'),
