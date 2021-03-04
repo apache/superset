@@ -164,10 +164,6 @@ function ExploreViewContainer(props) {
   const wasDynamicPluginLoading = usePrevious(isDynamicPluginLoading);
 
   const previousControls = usePrevious(props.controls);
-  const [
-    chartIsStaleByOwnCurrentState,
-    setChartIsStaleByOwnCurrentState,
-  ] = useState(false);
   const windowSize = useWindowSize();
 
   const [showingModal, setShowingModal] = useState(false);
@@ -227,7 +223,6 @@ function ExploreViewContainer(props) {
   }
 
   function onQuery() {
-    setChartIsStaleByOwnCurrentState(false);
     props.actions.triggerQuery(true, props.chart.id);
     addHistory();
   }
@@ -340,7 +335,7 @@ function ExploreViewContainer(props) {
     }
   }, [props.controls, props.ownCurrentState]);
 
-  const chartIsStaleByControls = useMemo(() => {
+  const chartIsStale = useMemo(() => {
     if (previousControls) {
       const changedControlKeys = Object.keys(props.controls).filter(
         key =>
@@ -358,16 +353,14 @@ function ExploreViewContainer(props) {
       );
     }
     return false;
-  }, [previousControls, props.controls]);
+  }, [previousControls, props.controls, JSON.stringify(props.ownCurrentState)]);
 
   useEffect(() => {
     if (props.ownCurrentState !== undefined) {
-      setChartIsStaleByOwnCurrentState(true);
+      onQuery();
       reRenderChart();
     }
   }, [JSON.stringify(props.ownCurrentState)]);
-
-  const chartIsStale = chartIsStaleByControls || chartIsStaleByOwnCurrentState;
 
   if (chartIsStale) {
     props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS);
