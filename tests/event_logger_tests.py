@@ -20,6 +20,7 @@ import unittest
 from typing import Any, Callable, cast, Dict, Iterator, Optional, Type, Union
 from unittest.mock import patch
 
+from superset import security_manager
 from superset.utils.log import (
     AbstractEventLogger,
     DBEventLogger,
@@ -107,7 +108,8 @@ class TestEventLogger(unittest.TestCase):
             )
             self.assertGreaterEqual(payload["duration_ms"], 100)
 
-    def test_context_manager_log(self):
+    @patch("superset.utils.log.g", spec={})
+    def test_context_manager_log(self, mock_g):
         class DummyEventLogger(AbstractEventLogger):
             def __init__(self):
                 self.records = []
@@ -123,12 +125,15 @@ class TestEventLogger(unittest.TestCase):
                 *args: Any,
                 **kwargs: Any,
             ):
-                self.records.append(kwargs)
+                self.records.append({**kwargs, "user_id": user_id})
 
         logger = DummyEventLogger()
 
         with app.test_request_context():
+            mock_g.user = security_manager.find_user("gamma")
             with logger(action="foo", engine="bar"):
                 pass
 
-        assert logger.records == [{"records": [{"path": "/", "engine": "bar"}]}]
+        assert logger.records == [
+            {"records": [{"path": "/", "engine": "bar"}], "user_id": "2"}
+        ]
