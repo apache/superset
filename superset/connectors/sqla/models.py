@@ -829,11 +829,13 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             except TemplateError as ex:
                 raise QueryObjectValidationError(
                     _(
-                        "Error in jinja expression in FROM clause: %(msg)s",
+                        "Error while rendering virtual dataset query with Jinja: %(msg)s",
                         msg=ex.message,
                     )
                 )
         sql = sqlparse.format(sql, strip_comments=True)
+        if not sql:
+            raise QueryObjectValidationError(_("Virtual dataset query cannot be empty"))
         if len(sqlparse.split(sql)) > 1:
             raise QueryObjectValidationError(
                 _("Virtual dataset query cannot consist of multiple statements")
