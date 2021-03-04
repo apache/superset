@@ -16,23 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
+import React, { RefObject } from 'react';
 import cx from 'classnames';
 
-const propTypes = {
-  position: PropTypes.oneOf(['left', 'top']),
-  innerRef: PropTypes.func,
-  children: PropTypes.node,
-};
+interface HoverMenuProps {
+  position: 'left' | 'top';
+  innerRef: RefObject<HTMLDivElement>;
+  children: React.ReactNode;
+}
 
-const defaultProps = {
-  position: 'left',
-  innerRef: null,
-  children: null,
-};
+export default class HoverMenu extends React.PureComponent<HoverMenuProps> {
+  static defaultProps = {
+    position: 'left',
+    innerRef: null,
+    children: null,
+  };
 
-export default class HoverMenu extends React.PureComponent {
   render() {
     const { innerRef, position, children } = this.props;
     return (
@@ -49,6 +48,3 @@ export default class HoverMenu extends React.PureComponent {
     );
   }
 }
-
-HoverMenu.propTypes = propTypes;
-HoverMenu.defaultProps = defaultProps;
