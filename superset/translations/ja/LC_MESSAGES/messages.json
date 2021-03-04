@@ -7,31 +7,31 @@
         "plural_forms": "nplurals=1; plural=0",
         "lang": "ja"
       },
-      "Home": [""],
-      "Annotation Layers": [""],
+      "Home": ["ホーム"],
+      "Annotation Layers": ["注釈レイヤー"],
       "Manage": ["管理"],
       "Databases": ["データベース"],
-      "Data": ["データベース"],
-      "Datasets": ["データベース"],
-      "Charts": ["グラフ様式"],
+      "Data": ["データ"],
+      "Datasets": ["データセット"],
+      "Charts": ["チャート"],
       "Dashboards": ["ダッシュボード"],
-      "Plugins": [""],
+      "Plugins": ["プラグイン"],
       "CSS Templates": ["CSSテンプレート"],
-      "Row level security": [""],
-      "Security": ["セキュリティー"],
-      "Import Dashboards": [""],
+      "Row level security": ["行レベルセキュリティ"],
+      "Security": ["セキュリティ"],
+      "Import Dashboards": ["ダッシュボードをインポート"],
       "SQL Editor": ["SQLエディタ"],
-      "SQL Lab": ["SQLツール"],
+      "SQL Lab": ["SQLラボ"],
       "Saved Queries": ["保存されたクエリ"],
       "Query History": ["クエリ履歴"],
-      "Upload a CSV": [""],
-      "Upload Excel": [""],
+      "Upload a CSV": ["CSVをアップロード"],
+      "Upload Excel": ["Excelをアップロード"],
       "Action Log": ["アクション履歴"],
-      "Dashboard Emails": ["ダッシュボード"],
-      "Chart Email Schedules": [""],
-      "Alerts": [""],
-      "Alerts & Reports": [""],
-      "Access requests": [""],
+      "Dashboard Emails": ["ダッシュボードメール"],
+      "Chart Email Schedules": ["チャートメールスケジュール"],
+      "Alerts": ["アラート"],
+      "Alerts & Reports": ["アラートとレポート"],
+      "Access requests": ["アクセス要求"],
       "Druid Datasources": [""],
       "Druid Clusters": [""],
       "Scan New Datasources": [""],
@@ -59,7 +59,7 @@
       "CVAS (create view as select) can only be run with a query with a single SELECT statement. Please make sure your query has only a SELECT statement. Then, try running your query again.": [
         ""
       ],
-      "Viz is missing a datasource": ["データソースは見つかりません"],
+      "Viz is missing a datasource": [""],
       "Applied rolling window did not return any data. Please make sure the source query satisfies the minimum periods defined in the rolling window.": [
         ""
       ],
@@ -68,13 +68,11 @@
       ],
       "Cached value not found": [""],
       "Columns missing in datasource: %(invalid_columns)s": [""],
-      "Table View": ["テーブルビュー"],
+      "Table View": [""],
       "You cannot use [Columns] in combination with [Group By]/[Metrics]/[Percentage Metrics]. Please choose one or the other.": [
         ""
       ],
-      "Pick a granularity in the Time section or uncheck 'Include Time'": [
-        "任意の時間精度を選択してください or uncheck ‘Include Time’"
-      ],
+      "Pick a granularity in the Time section or uncheck 'Include Time'": [""],
       "Time Table View": [""],
       "Pick at least one metric": ["少なくとも1つの指標を選択してください"],
       "When using 'Group By' you are limited to use a single metric": [""],
@@ -88,14 +86,14 @@
       "Group By' and 'Columns' can't overlap": [
         "‘Group by’ と ‘Columns’ は重複できません"
       ],
-      "Treemap": ["ツリーマップ"],
-      "Calendar Heatmap": ["カレンダーヒートマップ"],
-      "Bubble Chart": ["バブル図"],
+      "Treemap": [""],
+      "Calendar Heatmap": [""],
+      "Bubble Chart": ["バブルチャート"],
       "Please use 3 different metric labels": [""],
       "Pick a metric for x, y and size": [""],
       "Bullet Chart": [""],
       "Pick a metric to display": [""],
-      "Big Number with Trendline": ["トレンド付き数字"],
+      "Big Number with Trendline": [""],
       "Pick a metric!": ["指標を選んでください!"],
       "Big Number": ["数値"],
       "Time Series - Line Chart": ["時系列 - 折れ線グラフ"],
@@ -103,15 +101,15 @@
       "An enclosed time range (both start and end) must be specified when using a Time Comparison.": [
         ""
       ],
-      "Time Series - Multiple Line Charts": ["時系列 - 折れ線グラフ"],
+      "Time Series - Multiple Line Charts": [""],
       "Time Series - Dual Axis Line Chart": [""],
       "Pick a metric for left axis!": [""],
       "Pick a metric for right axis!": [""],
       "Please choose different metrics on left and right axis": [""],
       "Time Series - Bar Chart": ["時系列 - 棒グラフ"],
-      "Time Series - Period Pivot": ["時系列 - 棒グラフ"],
-      "Time Series - Percent Change": ["時系列 - 変化率"],
-      "Time Series - Stacked": ["時系列 - 積み上げ線グラフ"],
+      "Time Series - Period Pivot": [""],
+      "Time Series - Percent Change": [""],
+      "Time Series - Stacked": [""],
       "Histogram": ["ヒストグラム"],
       "Must have at least one numeric column specified": [""],
       "Distribution - Bar Chart": ["棒グラフ"],
@@ -125,9 +123,9 @@
       ],
       "Directed Force Layout": [""],
       "Pick exactly 2 columns to 'Group By'": [""],
-      "Country Map": ["国地図"],
-      "World Map": ["世界地図"],
-      "Filters": ["フィルター"],
+      "Country Map": [""],
+      "World Map": [""],
+      "Filters": ["フィルタ"],
       "Invalid filter configuration, please select a column": [""],
       "Parallel Coordinates": [""],
       "Heatmap": ["ヒートマップ"],
@@ -154,7 +152,7 @@
       "Deck.gl - Arc": [""],
       "Event flow": [""],
       "Time Series - Paired t-test": [""],
-      "Time Series - Nightingale Rose Chart": ["時系列 - 折れ線グラフ"],
+      "Time Series - Nightingale Rose Chart": [""],
       "Partition Diagram": [""],
       "Choose either fields to [Group By] and [Metrics] and/or [Percentage Metrics], or [Columns], not both": [
         "[Group By]と[Metrics]または[列]のいずれかを選択します"
@@ -177,12 +175,8 @@
       "Annotation delete failed.": [""],
       "Annotation layer parameters are invalid.": [""],
       "Annotation layer could not be deleted.": [""],
-      "Annotation layer could not be created.": [
-        "クエリを保存できませんでした"
-      ],
-      "Annotation layer could not be updated.": [
-        "クエリを保存できませんでした"
-      ],
+      "Annotation layer could not be created.": [""],
+      "Annotation layer could not be updated.": [""],
       "Annotation layer not found.": [""],
       "Annotation layer delete failed.": [""],
       "Annotation layer has associated annotations.": [""],
@@ -202,18 +196,18 @@
       "`row_offset` must be greater than or equal to 0": [""],
       "There are associated alerts or reports: %s,": [""],
       "Database does not exist": [""],
-      "Dashboards do not exist": ["ダッシュボード"],
+      "Dashboards do not exist": ["ダッシュボードは存在しません"],
       "Datasource type is required when datasource_id is given": [""],
       "Chart parameters are invalid.": [""],
-      "Chart could not be created.": ["クエリを保存できませんでした"],
-      "Chart could not be updated.": ["クエリを保存できませんでした"],
-      "Chart could not be deleted.": ["クエリを保存できませんでした"],
+      "Chart could not be created.": ["チャートを作成できませんでした"],
+      "Chart could not be updated.": ["チャートをアップロードできませんでした"],
+      "Chart could not be deleted.": ["チャートを削除できませんでした"],
       "There are associated alerts or reports": [""],
       "Changing this chart is forbidden": [""],
       "Charts could not be deleted.": [""],
       "Import chart failed for an unknown reason": [""],
       "Owners are invalid": [""],
-      "Dataset does not exist": ["データソース"],
+      "Dataset does not exist": ["データセットが存在しません"],
       "`operation` property of post processing object undefined": [""],
       "Unsupported post processing operation: %(operation)s": [""],
       "Adding new datasource [{}]": [""],
@@ -245,7 +239,7 @@
       "Show Druid Cluster": [""],
       "Add Druid Cluster": [""],
       "Edit Druid Cluster": [""],
-      "Cluster Name": ["テンプレート名"],
+      "Cluster Name": [""],
       "Broker Host": [""],
       "Broker Port": [""],
       "Broker Username": [""],
@@ -286,7 +280,7 @@
       "Enable Filter Select": [""],
       "Default Endpoint": [""],
       "Time Offset": [""],
-      "Datasource Name": ["データソース"],
+      "Datasource Name": ["データソース名"],
       "Fetch Values From": [""],
       "Changed By": ["更新者"],
       "Modified": ["最終更新日"],
@@ -318,8 +312,10 @@
       "Table": ["テーブル"],
       "Expression": [""],
       "Is temporal": [""],
-      "Datetime Format": [""],
-      "Invalid date/timestamp format": ["タンムスダンプの様式"],
+      "Datetime Format": ["日時フォーマット"],
+      "Invalid date/timestamp format": [
+        "無効な日付/タイムスタンプのフォーマット"
+      ],
       "Show Metric": [""],
       "Add Metric": [""],
       "Edit Metric": [""],
@@ -372,15 +368,15 @@
       "Duration (in seconds) of the caching timeout for this table. A timeout of 0 indicates that the cache never expires. Note this defaults to the database timeout if undefined.": [
         ""
       ],
-      "Database": [""],
+      "Database": ["データベース"],
       "Last Changed": ["最終更新日"],
       "Schema": ["スキーマ"],
-      "Offset": [""],
+      "Offset": ["オフセット"],
       "Table Name": ["テーブル名"],
       "Fetch Values Predicate": [""],
       "Main Datetime Column": [""],
-      "SQL Lab View": ["SQLツール"],
-      "Template parameters": ["テンプレート名"],
+      "SQL Lab View": ["SQLラボビュー"],
+      "Template parameters": ["テンプレートパラメータ"],
       "The table was created. As part of this two-phase configuration process, you should now click the edit button by the new table to configure it.": [
         ""
       ],
@@ -393,20 +389,34 @@
       "Unable to refresh metadata for the following table(s): %(tables)s": [""],
       "Deleted %(num)d css template": [""],
       "CSS template could not be deleted.": [""],
-      "CSS template not found.": ["CSSテンプレート"],
-      "Deleted %(num)d dashboard": ["ダッシュボードを選択してください"],
-      "Title or Slug": [""],
-      "Must be unique": [""],
-      "Dashboard parameters are invalid.": [""],
-      "Dashboard not found.": ["ダッシュボード"],
-      "Dashboard could not be created.": ["クエリを保存できませんでした"],
-      "Dashboards could not be deleted.": [""],
-      "Dashboard could not be updated.": ["クエリを保存できませんでした"],
-      "Dashboard could not be deleted.": ["クエリを保存できませんでした"],
-      "Changing this Dashboard is forbidden": [""],
-      "Import dashboard failed for an unknown reason": [""],
-      "No data in file": [""],
-      "Table name undefined": ["テーブル名"],
+      "CSS template not found.": [""],
+      "Deleted %(num)d dashboard": [" %(num)d ダッシュボードを削除しました"],
+      "Title or Slug": ["タイトルまたはスラッグ"],
+      "Must be unique": ["一意である必要があります"],
+      "Dashboard parameters are invalid.": [
+        "ダッシュボードパラメータが無効です。"
+      ],
+      "Dashboard not found.": ["ダッシュボードが見つかりません。"],
+      "Dashboard could not be created.": [
+        "ダッシュボードを作成できませんでした。"
+      ],
+      "Dashboards could not be deleted.": [
+        "ダッシュボードを削除できませんでした。"
+      ],
+      "Dashboard could not be updated.": [
+        "ダッシュボードを更新できませんでした。"
+      ],
+      "Dashboard could not be deleted.": [
+        "ダッシュボードを削除できませんでした。"
+      ],
+      "Changing this Dashboard is forbidden": [
+        "このダッシュボードの変更は禁止されています"
+      ],
+      "Import dashboard failed for an unknown reason": [
+        "不明な理由でダッシュボードのインポートに失敗しました"
+      ],
+      "No data in file": ["ファイルにデータがありません"],
+      "Table name undefined": [""],
       "Invalid connection string, a valid string usually follows: driver://user:password@database-host/database-name": [
         ""
       ],
@@ -425,16 +435,16 @@
         ""
       ],
       "Database not found.": [""],
-      "Database could not be created.": ["クエリを保存できませんでした"],
-      "Database could not be updated.": ["クエリを保存できませんでした"],
+      "Database could not be created.": [""],
+      "Database could not be updated.": [""],
       "Connection failed, please check your connection settings": [""],
       "Cannot delete a database that has tables attached": [""],
       "Database could not be deleted.": [""],
       "Stopped an unsafe database connection": [""],
-      "Could not load database driver": ["サーバーに接続できませんでした"],
+      "Could not load database driver": [""],
       "Unexpected error occurred, please check your logs for details": [""],
       "Import database failed for an unknown reason": [""],
-      "Could not load database driver: {}": ["サーバーに接続できませんでした"],
+      "Could not load database driver: {}": [""],
       "Deleted %(num)d dataset": [""],
       "Null or Empty": [""],
       "Database not allowed to change": [""],
@@ -448,8 +458,8 @@
         ""
       ],
       "Dataset parameters are invalid.": [""],
-      "Dataset could not be created.": ["クエリを保存できませんでした"],
-      "Dataset could not be updated.": ["クエリを保存できませんでした"],
+      "Dataset could not be created.": [""],
+      "Dataset could not be updated.": [""],
       "Dataset could not be deleted.": [""],
       "Dataset(s) could not be bulk deleted.": [""],
       "Changing this dataset is forbidden": [""],
@@ -462,42 +472,88 @@
         ""
       ],
       "Deleted %(num)d saved query": [""],
-      "Saved queries could not be deleted.": ["クエリを保存できませんでした"],
+      "Saved queries could not be deleted.": [""],
       "Saved query not found.": [""],
-      "Deleted %(num)d report schedule": [""],
-      "Alert query returned more then one row. %s rows returned": [""],
-      "Alert query returned more then one column. %s columns returned": [""],
-      "Dashboard does not exist": [""],
-      "Chart does not exist": [""],
-      "Database is required for alerts": [""],
-      "Type is required": [""],
-      "Choose a chart or dashboard not both": [
-        "ダッシュボードからチャートを削除"
+      "Deleted %(num)d report schedule": [
+        " %(num)d のレポートスケジュールを削除しました"
       ],
-      "Report Schedule parameters are invalid.": [""],
-      "Report Schedule could not be deleted.": ["クエリを保存できませんでした"],
-      "Report Schedule could not be created.": ["クエリを保存できませんでした"],
-      "Report Schedule could not be updated.": ["クエリを保存できませんでした"],
-      "Report Schedule not found.": [""],
-      "Report Schedule delete failed.": [""],
-      "Report Schedule log prune failed.": [""],
-      "Report Schedule execution failed when generating a screenshot.": [""],
-      "Report Schedule execution got an unexpected error.": [""],
-      "Report Schedule is still working, refusing to re-compute.": [""],
-      "Report Schedule reached a working timeout.": [""],
-      "Alert query returned more then one row.": [""],
-      "Alert validator config error.": [""],
-      "Alert query returned more then one column.": [""],
-      "Alert query returned a non-number value.": [""],
-      "Alert found an error while executing a query.": [""],
-      "Alert fired during grace period.": [""],
-      "Alert ended grace period.": [""],
-      "Alert on grace period": [""],
-      "Report Schedule sellenium user not found": [""],
-      "Report Schedule state not found": [""],
-      "Report schedule unexpected error": [""],
-      "Changing this report is forbidden": [""],
-      "An error occurred while pruning logs ": [""],
+      "Alert query returned more then one row. %s rows returned": [
+        "アラートクエリが複数の行を返しました。 %s 行が返されました"
+      ],
+      "Alert query returned more then one column. %s columns returned": [
+        "アラートクエリが複数の列を返しました。%s 列が返されました"
+      ],
+      "Dashboard does not exist": ["ダッシュボードが存在しません"],
+      "Chart does not exist": ["チャートが存在しません"],
+      "Database is required for alerts": ["アラートにはデータベースが必要です"],
+      "Type is required": ["タイプが必要です"],
+      "Choose a chart or dashboard not both": [
+        "両方ではなくチャートまたはダッシュボードを選択してください"
+      ],
+      "Report Schedule parameters are invalid.": [
+        "レポートスケジュールパラメータが無効です。"
+      ],
+      "Report Schedule could not be deleted.": [
+        "レポートスケジュールを削除できませんでした。"
+      ],
+      "Report Schedule could not be created.": [
+        "レポートスケジュールを作成できませんでした。"
+      ],
+      "Report Schedule could not be updated.": [
+        "レポートスケジュールを更新できませんでした。"
+      ],
+      "Report Schedule not found.": ["レポートスケジュールが見つかりません。"],
+      "Report Schedule delete failed.": [
+        "レポートスケジュールの削除に失敗しました。"
+      ],
+      "Report Schedule log prune failed.": [
+        "レポートスケジュールログの整理に失敗しました。"
+      ],
+      "Report Schedule execution failed when generating a screenshot.": [
+        "スクリーンショットの生成時にレポートスケジュールの実行に失敗しました。"
+      ],
+      "Report Schedule execution got an unexpected error.": [
+        "レポートスケジュールの実行で予期しないエラーが発生しました。"
+      ],
+      "Report Schedule is still working, refusing to re-compute.": [
+        "レポートスケジュールはまだ機能しており、再計算を拒否しています。"
+      ],
+      "Report Schedule reached a working timeout.": [
+        "レポートスケジュールが作業タイムアウトに達しました。"
+      ],
+      "Alert query returned more then one row.": [
+        "アラートクエリが複数の行を返しました。"
+      ],
+      "Alert validator config error.": ["アラートバリデーター設定エラー"],
+      "Alert query returned more then one column.": [
+        "アラートクエリが複数の列を返しました。"
+      ],
+      "Alert query returned a non-number value.": [
+        "アラートクエリが数値以外の値を返しました。"
+      ],
+      "Alert found an error while executing a query.": [
+        "クエリの実行中にアラートがエラーを検出しました。"
+      ],
+      "Alert fired during grace period.": [
+        "猶予期間中にアラートが発生しました。"
+      ],
+      "Alert ended grace period.": ["アラートは猶予期間を終了しました。"],
+      "Alert on grace period": ["猶予期間に関するアラート"],
+      "Report Schedule sellenium user not found": [
+        "レポートスケジュールselleniumユーザーが見つかりません"
+      ],
+      "Report Schedule state not found": [
+        "レポートスケジュールの状態が見つかりません"
+      ],
+      "Report schedule unexpected error": [
+        "レポートスケジュールの予期せぬエラー"
+      ],
+      "Changing this report is forbidden": [
+        "このレポートの変更は禁止されています"
+      ],
+      "An error occurred while pruning logs ": [
+        "ログのプルーニング中にエラーが発生しました"
+      ],
       "\n            <b><a href=\"%(url)s\">Explore in Superset</a></b><p></p>\n            <img src=\"cid:%(msgid)s\">\n            ": [
         ""
       ],
@@ -515,31 +571,33 @@
       ],
       "[Alert] %(label)s": [""],
       "New": [""],
-      "SQL Query": ["クエリを保存"],
-      "Chart": ["グラフ様式"],
+      "SQL Query": ["SQLクエリ"],
+      "Chart": ["チャート"],
       "Dashboard": ["ダッシュボード"],
       "Profile": ["プロファイル"],
-      "Info": [""],
+      "Info": ["情報"],
       "Logout": ["ログアウト"],
       "Login": ["ログイン"],
-      "Record Count": ["単語の雲"],
-      "No records found": [""],
-      "Filter List": ["フィルター"],
+      "Record Count": ["レコード数"],
+      "No records found": ["レコードが見つかりません"],
+      "Filter List": ["フィルタリスト"],
       "Search": ["検索"],
-      "Refresh": [""],
-      "Import dashboards": ["ダッシュボード"],
-      "Import Dashboard(s)": ["ダッシュボード"],
-      "File": [""],
-      "Choose File": ["ソースを選択"],
-      "Upload": [""],
-      "No Access!": [""],
+      "Refresh": ["更新"],
+      "Import dashboards": ["ダッシュボードをインポート"],
+      "Import Dashboard(s)": ["ダッシュボードをインポート"],
+      "File": ["ファイル"],
+      "Choose File": ["ファイルを選択"],
+      "Upload": ["アップロード"],
+      "No Access!": ["アクセスなし"],
       "You do not have permissions to access the datasource(s): %(name)s.": [
-        ""
+        "データソースにアクセスするためのアクセス許可がありません: %(name)s."
       ],
-      "Request Permissions": [""],
+      "Request Permissions": ["権限のリクエスト"],
       "Cancel": ["キャンセル"],
-      "Use the edit buttom to change this field": [""],
-      "Test Connection": [""],
+      "Use the edit buttom to change this field": [
+        "このフィールドを変更するには、編集ボタンを使用します"
+      ],
+      "Test Connection": ["テスト接続"],
       "[Superset] Access to the datasource %(name)s was granted": [
         "[Superset]　データソース　%(name)s へのアクセスは許可されました"
       ],
@@ -558,7 +616,7 @@
       "Invalid longitude/latitude": [""],
       "Invalid geodetic string": [""],
       "`fbprophet` package not installed": [""],
-      "Time grain missing": ["時間単位"],
+      "Time grain missing": ["時間単位がありません"],
       "Unsupported time grain: %(time_grain)s": [""],
       "Periods must be a positive integer value": [""],
       "Confidence interval must be between 0 and 1 (exclusive)": [""],
@@ -570,13 +628,13 @@
         ""
       ],
       "User": ["ユーザー"],
-      "User Roles": [""],
-      "Database URL": [""],
-      "Roles to grant": [""],
+      "User Roles": ["ユーザーの役割"],
+      "Database URL": ["データベースURL"],
+      "Roles to grant": ["付与する役割"],
       "Created On": ["作成日"],
-      "List Observations": [""],
-      "Show Observation": [""],
-      "Error Message": [""],
+      "List Observations": ["観測値のリスト"],
+      "Show Observation": ["観測値を表示"],
+      "Error Message": ["エラーメッセージ"],
       "Log Retentions (days)": [""],
       "A semicolon ';' delimited list of email addresses": [""],
       "How long to keep the logs around for this alert": [""],
@@ -588,26 +646,26 @@
       ],
       "annotation start time or end time is required.": [""],
       "Annotation end time must be no earlier than start time.": [""],
-      "Annotations": [""],
-      "Show Annotation": ["回転"],
-      "Add Annotation": ["回転"],
-      "Edit Annotation": ["回転"],
-      "Layer": [""],
-      "Label": [""],
+      "Annotations": ["注釈"],
+      "Show Annotation": ["注釈を表示"],
+      "Add Annotation": ["注釈を追加"],
+      "Edit Annotation": ["注釈を編集"],
+      "Layer": ["レイヤー"],
+      "Label": ["ラベル"],
       "Start": ["開始時間"],
-      "End": [""],
-      "JSON Metadata": [""],
-      "Show Annotation Layer": [""],
-      "Add Annotation Layer": [""],
-      "Edit Annotation Layer": [""],
+      "End": ["終了時間"],
+      "JSON Metadata": ["JSONメタデータ"],
+      "Show Annotation Layer": ["注釈レイヤーを表示"],
+      "Add Annotation Layer": ["注釈レイヤーを追加"],
+      "Edit Annotation Layer": ["注釈レイヤーを編集"],
       "Name": ["名前"],
       "Dataset %(name)s already exists": [""],
       "Table [%{table}s] could not be found, please double check your database connection, schema, and table name, error: {}": [
         ""
       ],
       "json isn't valid": [""],
-      "Export to YAML": ["jsonで出力"],
-      "Export to YAML?": ["jsonで出力"],
+      "Export to YAML": ["YAMLで出力"],
+      "Export to YAML?": ["YAMLで出力しますか？"],
       "Delete": ["削除"],
       "Delete all Really?": ["本当に全部削除しますか？"],
       "Is favorite": ["お気に入り"],
@@ -631,25 +689,31 @@
       "Error occurred when opening the chart: %(error)s": [""],
       "You don't have the rights to ": [""],
       "alter this ": [""],
-      "chart": ["チャートを移動"],
+      "chart": ["チャート"],
       "create a ": ["作成日"],
       "Explore - %(table)s": [""],
       "Chart [{}] has been saved": [""],
       "Chart [{}] has been overwritten": [""],
       "dashboard": ["ダッシュボード"],
-      "Chart [{}] was added to dashboard [{}]": [""],
-      "Dashboard [{}] just got created and chart [{}] was added to it": [""],
-      "This dashboard was changed recently. Please reload dashboard to get latest version.": [
-        ""
+      "Chart [{}] was added to dashboard [{}]": [
+        "チャート [{}] はダッシュボード [{}] に追加されました"
       ],
-      "Could not load database driver: %(driver_name)s": [""],
+      "Dashboard [{}] just got created and chart [{}] was added to it": [
+        "ダッシュボード [{}] が作成されチャート [{}] が追加されました"
+      ],
+      "This dashboard was changed recently. Please reload dashboard to get latest version.": [
+        "このダッシュボードは最近変更されました。最新の情報を入手するにはダッシュボードをリロードしてください"
+      ],
+      "Could not load database driver: %(driver_name)s": [
+        "データベースドライバ: %(driver_name)s 読み込めませんでした"
+      ],
       "Invalid connection string, a valid string usually follows:\n'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'": [
         ""
       ],
       "Malformed request. slice_id or table_name and db_name arguments are expected": [
-        ""
+        "不正なリクエスト。 slice_idまたはtable_nameおよびdb_name引数が必要です"
       ],
-      "Chart %(id)s not found": ["スライス %(id)s が見つかりません"],
+      "Chart %(id)s not found": ["チャート %(id)s が見つかりません"],
       "Table %(table)s wasn't found in the database %(db)s": [
         "テーブル %(t)s はデータベース %(d)s　にありません"
       ],
@@ -666,10 +730,10 @@
       ],
       "Query record was not created as expected.": [""],
       "The parameter %(parameters)s in your query is undefined.": [""],
-      "%(user)s's profile": [""],
-      "Show CSS Template": ["CSSテンプレート"],
-      "Add CSS Template": ["CSSテンプレート"],
-      "Edit CSS Template": ["CSSテンプレート"],
+      "%(user)s's profile": ["%(user)s' のプロファイル"],
+      "Show CSS Template": ["CSSテンプレートを表示"],
+      "Add CSS Template": ["CSSテンプレートを追加"],
+      "Edit CSS Template": ["CSSテンプレートを編集"],
       "Template Name": ["テンプレート名"],
       "A human-friendly name": [""],
       "Used internally to identify the plugin. Should be set to the package name from the pluginʼs package.json": [
@@ -685,7 +749,7 @@
       "Schedule Email Reports for Dashboards": [""],
       "Manage Email Reports for Dashboards": [""],
       "Changed On": ["変更日"],
-      "Active": ["アクション"],
+      "Active": [""],
       "Crontab": [""],
       "Recipients": [""],
       "Slack Channel": [""],
@@ -693,18 +757,18 @@
       "Delivery Type": [""],
       "Schedule Email Reports for Charts": [""],
       "Manage Email Reports for Charts": [""],
-      "Email Format": ["タンムスダンプの様式"],
+      "Email Format": ["メールフォーマット"],
       "List Saved Query": ["保存されたクエリのリスト"],
       "Show Saved Query": ["保存されたクエリを表示"],
       "Add Saved Query": ["保存されたクエリを追加"],
       "Edit Saved Query": ["保存されたクエリの編集"],
       "End Time": ["終了時間"],
-      "Pop Tab Link": ["新しいタブでクエリ"],
+      "Pop Tab Link": [""],
       "Changed on": ["変更日"],
       "Could not determine datasource type": [""],
       "Could not find viz object": [""],
-      "Show Chart": ["データベースを表示"],
-      "Add Chart": ["チャートを編集"],
+      "Show Chart": ["チャートを表示"],
+      "Add Chart": ["チャートを追加"],
       "Edit Chart": ["チャートを編集"],
       "These parameters are generated dynamically when clicking the save or overwrite button in the explore view. This JSON object is exposed here for reference and for power users who may want to alter specific parameters.": [
         ""
@@ -714,32 +778,36 @@
       ],
       "Last Modified": ["最終更新日"],
       "Parameters": ["パラメータ"],
-      "Visualization Type": ["グラフ様式"],
-      "Show Dashboard": [""],
-      "Add Dashboard": [""],
-      "Edit Dashboard": [""],
+      "Visualization Type": ["可視化方式"],
+      "Show Dashboard": ["ダッシュボードを表示"],
+      "Add Dashboard": ["ダッシュボードを追加"],
+      "Edit Dashboard": ["ダッシュボードを編集"],
       "This json object describes the positioning of the widgets in the dashboard. It is dynamically generated when adjusting the widgets size and positions by using drag & drop in the dashboard view": [
         ""
       ],
       "The CSS for individual dashboards can be altered here, or in the dashboard view where changes are immediately visible": [
-        ""
+        "個々のダッシュボードのCSSは、ここもしくは変更がすぐに表示されるダッシュボードビューで変更できます"
       ],
-      "To get a readable URL for your dashboard": [""],
+      "To get a readable URL for your dashboard": [
+        "ダッシュボードの読み取り可能なURLを取得するには"
+      ],
       "This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter specific parameters.": [
         ""
       ],
-      "Owners is a list of users who can alter the dashboard.": [""],
+      "Owners is a list of users who can alter the dashboard.": [
+        "所有者は、ダッシュボードを変更できるユーザーのリストです"
+      ],
       "Determines whether or not this dashboard is visible in the list of all dashboards": [
-        ""
+        "このダッシュボードがすべてのダッシュボードのリストに表示されるかどうかを決定します"
       ],
       "Title": ["タイトル"],
-      "Slug": [""],
-      "Published": [""],
+      "Slug": ["スラッグ"],
+      "Published": ["公開"],
       "Position JSON": [""],
       "CSS": [""],
       "Underlying Tables": [""],
       "Export": ["エクスポート"],
-      "Export dashboards?": [""],
+      "Export dashboards?": ["ダッシュボードをエクスポートしますか？"],
       "Name of table to be created from csv data.": [""],
       "CSV File": [""],
       "Select a CSV file to be uploaded to a database.": [""],
@@ -749,7 +817,7 @@
       "Specify a schema (if database flavor supports this).": [""],
       "Delimiter": [""],
       "Delimiter used by CSV file (for whitespace use \\s+).": [""],
-      "Table Exists": ["テーブル"],
+      "Table Exists": [""],
       "If table exists do one of the following: Fail (do nothing), Replace (drop and recreate table) or Append (insert data).": [
         ""
       ],
@@ -760,7 +828,7 @@
       "Row containing the headers to use as column names (0 is first line of data). Leave empty if there is no header row.": [
         ""
       ],
-      "Index Column": ["時間列"],
+      "Index Column": [""],
       "Column to use as the row labels of the dataframe. Leave empty if no index column.": [
         ""
       ],
@@ -786,18 +854,18 @@
       "Column label for index column(s). If None is given and Dataframe Index is True, Index Names are used.": [
         ""
       ],
-      "Null values": ["フィルタ値"],
+      "Null values": [""],
       "Json list of the values that should be treated as null. Examples: [\"\"], [\"None\", \"N/A\"], [\"nan\", \"null\"]. Warning: Hive database supports only single value. Use [\"\"] for empty string.": [
         ""
       ],
       "Name of table to be created from excel data.": [""],
       "Excel File": [""],
       "Select a Excel file to be uploaded to a database.": [""],
-      "Sheet Name": ["テンプレート名"],
+      "Sheet Name": [""],
       "Strings used for sheet names (default is the first sheet).": [""],
       "Show Database": ["データベースを表示"],
       "Add Database": ["データベースを追加"],
-      "Edit Database": ["データベースリンクを編集"],
+      "Edit Database": ["データベースを編集"],
       "Expose this DB in SQL Lab": [""],
       "Operate the database in asynchronous mode, meaning  that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.": [
         ""
@@ -829,7 +897,7 @@
       "CTAS Schema": [""],
       "SQLAlchemy URI": [""],
       "Chart Cache Timeout": [""],
-      "Secure Extra": ["セキュリティー"],
+      "Secure Extra": [""],
       "Root certificate": [""],
       "Async Execution": [""],
       "Impersonate the logged on user": [""],
@@ -840,7 +908,7 @@
       "Invalid connection string, a valid string usually follows:'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'<p>Example:'postgresql://user:password@your-postgres-db/database'</p>": [
         ""
       ],
-      "CSV to Database configuration": ["データソースの設定を編集"],
+      "CSV to Database configuration": [""],
       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for csv uploads. Please contact your Superset Admin.": [
         ""
       ],
@@ -853,7 +921,7 @@
       "CSV file \"%(csv_filename)s\" uploaded to table \"%(table_name)s\" in database \"%(db_name)s\"": [
         ""
       ],
-      "Excel to Database configuration": ["データソースの設定を編集"],
+      "Excel to Database configuration": [""],
       "Database \"%(database_name)s\" schema \"%(schema_name)s\" is not allowed for excel uploads. Please contact your Superset Admin.": [
         ""
       ],
@@ -866,18 +934,18 @@
       "Excel file \"%(excel_filename)s\" uploaded to table \"%(table_name)s\" in database \"%(db_name)s\"": [
         ""
       ],
-      "Logs": [""],
-      "Show Log": [""],
-      "Add Log": [""],
-      "Edit Log": [""],
+      "Logs": ["ログ"],
+      "Show Log": ["ログを表示"],
+      "Add Log": ["ログを追加"],
+      "Edit Log": ["ログを編集"],
       "Action": ["アクション"],
       "dttm": [""],
-      "Add item": ["フィルターを追加"],
+      "Add item": [""],
       "The query couldn't be loaded": [""],
       "Your query has been scheduled. To see details of your query, navigate to Saved queries": [
         ""
       ],
-      "Your query could not be scheduled": ["クエリを保存できませんでした"],
+      "Your query could not be scheduled": [""],
       "Failed at retrieving results": [""],
       "An error occurred while storing the latest query id in the backend. Please contact your administrator if this problem persists.": [
         ""
@@ -900,9 +968,7 @@
       "An error occurred while setting the active tab. Please contact your administrator.": [
         ""
       ],
-      "An error occurred while fetching tab state": [
-        "データの取得中にエラーが発生しました"
-      ],
+      "An error occurred while fetching tab state": [""],
       "An error occurred while removing tab. Please contact your administrator.": [
         ""
       ],
@@ -921,19 +987,17 @@
       "An error occurred while setting the tab title. Please contact your administrator.": [
         ""
       ],
-      "Your query was saved": ["クエリは保存されました"],
-      "Your query could not be saved": ["クエリを保存できませんでした"],
-      "Your query was updated": ["クエリは保存されました"],
-      "Your query could not be updated": ["クエリを保存できませんでした"],
+      "Your query was saved": [""],
+      "Your query could not be saved": [""],
+      "Your query was updated": [""],
+      "Your query could not be updated": [""],
       "An error occurred while storing your query in the backend. To avoid losing your changes, please save your query using the \"Save Query\" button.": [
         ""
       ],
       "An error occurred while setting the tab template parameters. Please contact your administrator.": [
         ""
       ],
-      "An error occurred while fetching table metadata": [
-        "データの取得中にエラーが発生しました"
-      ],
+      "An error occurred while fetching table metadata": [""],
       "An error occurred while fetching table metadata. Please contact your administrator.": [
         ""
       ],
@@ -947,18 +1011,18 @@
         ""
       ],
       "Shared query": ["クエリを共有"],
-      "The datasource couldn't be loaded": ["クエリを保存できませんでした"],
+      "The datasource couldn't be loaded": [""],
       "An error occurred while creating the data source": [""],
       "SQL Lab uses your browser's local storage to store queries and results.\n Currently, you are using ${currentUsage.toFixed(\n            2,\n          )} KB out of ${LOCALSTORAGE_MAX_USAGE_KB} KB. storage space.\n To keep SQL Lab from crashing, please delete some query tabs.\n You can re-access these queries by using the Save feature before you delete the tab. Note that you will need to close other SQL Lab windows before you do this.": [
         ""
       ],
-      "Estimate selected query cost": ["選択したクエリを実行"],
-      "Estimate cost": ["選択したクエリを実行"],
+      "Estimate selected query cost": [""],
+      "Estimate cost": [""],
       "Cost estimate": [""],
       "Creating a data source and creating a new tab": [""],
       "An error occurred": [""],
       "Explore the result set in the data exploration view": [""],
-      "Explore": ["チャートを見る"],
+      "Explore": [""],
       "This query took %s seconds to run, ": [""],
       "and the explore view times out at %s seconds ": [""],
       "following this flow will most likely lead to your query timing out. ": [
@@ -979,13 +1043,13 @@
       "No query history yet...": [""],
       "It seems you don't have access to any database": [""],
       "An error occurred when refreshing queries": [""],
-      "Filter by user": ["フィルタ値"],
-      "Filter by database": ["データベースリンクを編集"],
-      "Query search string": ["クエリを検索"],
+      "Filter by user": [""],
+      "Filter by database": [""],
+      "Query search string": [""],
       "[From]-": [""],
       "[To]-": [""],
-      "Filter by status": ["フィルタ値"],
-      "Edit": [""],
+      "Filter by status": [""],
+      "Edit": ["編集"],
       "View results": ["結果を見る"],
       "Data preview": ["データプレビュー"],
       "Overwrite text in the editor with a query on this table": [""],
@@ -994,45 +1058,45 @@
       "An error occurred saving dataset": [""],
       ".CSV": [""],
       "Clipboard": [""],
-      "Filter results": ["検索結果"],
-      "Database error": ["データベース"],
+      "Filter results": [""],
+      "Database error": ["データベースエラー"],
       "was created": ["作成されました"],
-      "Query in a new tab": ["新しいタブでクエリ"],
+      "Query in a new tab": [""],
       "The query returned no data": [""],
-      "Fetch data preview": ["データプレビューを取得"],
-      "Refetch results": ["検索結果"],
+      "Fetch data preview": ["データプレビューを読み込み"],
+      "Refetch results": [""],
       "Track job": ["ジョブ履歴"],
       "Stop": ["中止"],
-      "Run selection": ["選択したクエリを実行"],
+      "Run selection": [""],
       "Run": [""],
       "Stop running (Ctrl + x)": [""],
       "Run query (Ctrl + Return)": [""],
-      "Save & Explore": ["スライスを保存"],
-      "Overwrite & Explore": ["上書き スライス [%s]"],
-      "Undefined": ["未定義"],
+      "Save & Explore": [""],
+      "Overwrite & Explore": [""],
+      "Undefined": [""],
       "Save": ["保存"],
       "Save as": ["別名で保存"],
       "Save query": ["クエリを保存"],
-      "Save as new": ["スライスを保存"],
-      "Update": [""],
+      "Save as new": ["新規保存"],
+      "Update": ["更新"],
       "Label for your query": [""],
       "Write a description for your query": [""],
-      "Schedule query": ["クエリを保存"],
+      "Schedule query": [""],
       "Schedule": [""],
       "There was an error with your request": [""],
       "Please save the query to enable sharing": [""],
       "Copy link": [""],
-      "Copy query link to your clipboard": ["URL をクリップボードにコピー"],
+      "Copy query link to your clipboard": [""],
       "Save the query to copy the link": [""],
       "No stored results found, you need to re-run your query": [""],
       "Run a query to display results here": [""],
       "Preview: `%s`": [""],
-      "Results": ["クエリ結果"],
+      "Results": ["結果"],
       "Query history": ["クエリ履歴"],
       "Run query": ["クエリ実行"],
       "New tab": [""],
-      "Untitled query": ["クエリを共有"],
-      "Stop query": ["クエリを保存"],
+      "Untitled query": [""],
+      "Stop query": ["クエリを中止"],
       "Schedule the query periodically": [""],
       "You must run the query successfully first": [""],
       "It appears that the number of rows in the query results displayed\n           was limited on the server side to\n           the %s limit.": [
@@ -1056,9 +1120,7 @@
       "View keys & indexes (%s)": [""],
       "Sort columns alphabetically": [""],
       "Original table column order": [""],
-      "Copy SELECT statement to the clipboard": [
-        "URL をクリップボードにコピー"
-      ],
+      "Copy SELECT statement to the clipboard": [""],
       "Show CREATE VIEW statement": [""],
       "CREATE VIEW statement": [""],
       "Remove table preview": [""],
@@ -1068,19 +1130,19 @@
       ") by using": [""],
       "Edit template parameters": [""],
       "Invalid JSON": [""],
-      "Create a new chart": ["作成したもの"],
-      "Choose a dataset": ["ターゲットを選択"],
+      "Create a new chart": ["新しいチャートを作成"],
+      "Choose a dataset": ["データセットを選択"],
       "If the dataset you are looking for is not available in the list, follow the instructions on how to add it in the Superset tutorial.": [
-        ""
+        "探しているデータセットがリストにない場合は、Supersetチュートリアルでデータセットを追加する方法についての説明に従ってください。"
       ],
-      "Choose a visualization type": ["可視化タイプを選んでください"],
-      "Create new chart": ["作成したもの"],
+      "Choose a visualization type": ["チャートの可視化形式を選んでください"],
+      "Create new chart": ["新しいチャートを作成"],
       "An error occurred while loading the SQL": [""],
       "Updating chart was stopped": [""],
       "An error occurred while rendering the visualization: %s": [""],
       "Network error.": [""],
       "every": [""],
-      "every month": ["月"],
+      "every month": [""],
       "every day of the month": [""],
       "day of the month": [""],
       "every day of the week": [""],
@@ -1095,60 +1157,58 @@
       "minute": ["分"],
       "reboot": [""],
       "Every": [""],
-      "in": ["最小値"],
+      "in": [""],
       "on": [""],
       "and": [""],
       "at": [""],
       ":": [""],
-      "minute(s) UTC": ["分"],
+      "minute(s) UTC": [""],
       "Invalid cron expression": [""],
       "Clear": [""],
-      "Sunday": [""],
-      "Monday": [""],
-      "Tuesday": [""],
-      "Wednesday": [""],
-      "Thursday": [""],
-      "Friday": [""],
-      "Saturday": [""],
-      "January": [""],
-      "February": [""],
-      "March": ["検索"],
-      "April": [""],
-      "May": ["日"],
-      "June": [""],
-      "July": [""],
-      "August": [""],
-      "September": [""],
-      "October": [""],
-      "November": [""],
-      "December": [""],
-      "SUN": [""],
-      "MON": [""],
-      "TUE": [""],
-      "WED": [""],
-      "THU": [""],
-      "FRI": [""],
-      "SAT": [""],
-      "JAN": [""],
-      "FEB": [""],
-      "MAR": [""],
-      "APR": [""],
-      "MAY": [""],
-      "JUN": [""],
-      "JUL": [""],
-      "AUG": [""],
-      "SEP": [""],
-      "OCT": [""],
-      "NOV": [""],
-      "DEC": [""],
+      "Sunday": ["日曜日"],
+      "Monday": ["月曜日"],
+      "Tuesday": ["火曜日"],
+      "Wednesday": ["水曜日"],
+      "Thursday": ["木曜日"],
+      "Friday": ["金曜日"],
+      "Saturday": ["土曜日"],
+      "January": ["1月"],
+      "February": ["2月"],
+      "March": ["3月"],
+      "April": ["4月"],
+      "May": ["5月"],
+      "June": ["6月"],
+      "July": ["7月"],
+      "August": ["8月"],
+      "September": ["9月"],
+      "October": ["10月"],
+      "November": ["11月"],
+      "December": ["12月"],
+      "SUN": ["日"],
+      "MON": ["月"],
+      "TUE": ["火"],
+      "WED": ["水"],
+      "THU": ["木"],
+      "FRI": ["金"],
+      "SAT": ["土"],
+      "JAN": ["1月"],
+      "FEB": ["2月"],
+      "MAR": ["3月"],
+      "APR": ["4月"],
+      "MAY": ["5月"],
+      "JUN": ["6月"],
+      "JUL": ["7月"],
+      "AUG": ["8月"],
+      "SEP": ["9月"],
+      "OCT": ["10月"],
+      "NOV": ["11月"],
+      "DEC": ["12月"],
       "OK": [""],
       "Click to see difference": [""],
       "Altered": [""],
-      "Chart changes": ["最終更新日"],
-      "Superset chart": ["チャートを見る"],
-      "Check out this chart in dashboard:": [
-        "ダッシュボードからチャートを削除"
-      ],
+      "Chart changes": [""],
+      "Superset chart": [""],
+      "Check out this chart in dashboard:": [""],
       "Select ...": [""],
       "Loaded data cached": [""],
       "Loaded from cache": [""],
@@ -1174,9 +1234,7 @@
       "You don't have the rights to alter this title.": [""],
       "Unexpected error": [""],
       "Click to favorite/unfavorite": [""],
-      "An error occurred while fetching dashboards": [
-        "データの取得中にエラーが発生しました"
-      ],
+      "An error occurred while fetching dashboards": [""],
       "Error while fetching table list": [""],
       "Select table or type table name": [""],
       "Type to search ...": [""],
@@ -1184,7 +1242,7 @@
       "Force refresh table list": [""],
       "See table schema": [""],
       "%s%s": [""],
-      "Share dashboard": ["ダッシュボードを保存"],
+      "Share dashboard": ["ダッシュボードを共有"],
       "This may be triggered by:": [""],
       "Please reach out to the Chart Owner for assistance.": [""],
       "Chart Owner: %s": [""],
@@ -1196,180 +1254,221 @@
       "This was triggered by:": [""],
       "Did you mean:": [""],
       "%(suggestion)s instead of \"%(undefinedParameter)s?\"": [""],
-      "Parameter error": ["パラメータ"],
+      "Parameter error": ["パラメータエラー"],
       "We’re having trouble loading this visualization. Queries are set to timeout after %s second.": [
         ""
       ],
       "We’re having trouble loading these results. Queries are set to timeout after %s second.": [
         ""
       ],
-      "Timeout error": [""],
-      "Cell content": ["作成したもの"],
+      "Timeout error": ["タイムアウトエラー"],
+      "Cell content": [""],
       "The import was successful": [""],
-      "OVERWRITE": [""],
-      "Overwrite": ["上書き スライス [%s]"],
+      "OVERWRITE": ["上書き"],
+      "Overwrite": ["上書き"],
       "Import": [""],
       "Import %s": [""],
       "Last Updated %s": [""],
-      "%s Selected": ["選択したクエリを実行"],
-      "Deselect all": ["データソースを選択"],
+      "%s Selected": [""],
+      "Deselect all": [""],
       "%s-%s of %s": [""],
-      "Settings": [""],
-      "About": [""],
-      "SQL query": ["クエリを保存"],
+      "Settings": ["設定"],
+      "About": ["概要"],
+      "SQL query": ["SQLクエリ"],
       "There is not enough space for this component. Try decreasing its width, or increasing the destination width.": [
-        ""
+        "このコンポーネント用の十分なスペースがありません。幅を狭くするか、移動先の幅を大きくしてみてください。"
       ],
-      "Can not move top level tab into nested tabs": [""],
-      "This chart has been moved to a different filter scope.": [""],
+      "Can not move top level tab into nested tabs": [
+        "トップレベルのタブをネストされたタブに移動できません"
+      ],
+      "This chart has been moved to a different filter scope.": [
+        "このチャートは別のフィルタスコープに移動されました。"
+      ],
       "There was an issue fetching the favorite status of this dashboard.": [
-        ""
+        "このダッシュボードのお気に入りのステータスを取得する際に問題が発生しました。"
       ],
-      "There was an issue favoriting this dashboard.": [""],
-      "This dashboard is now ${nowPublished}": [""],
-      "You do not have permissions to edit this dashboard.": [""],
-      "This dashboard was saved successfully.": [""],
-      "Could not fetch all saved charts": ["サーバーに接続できませんでした"],
-      "Sorry there was an error fetching saved charts: ": [""],
-      "Visualization": ["グラフ様式"],
+      "There was an issue favoriting this dashboard.": [
+        "このダッシュボードのお気に入りする際に問題が発生しました。"
+      ],
+      "This dashboard is now ${nowPublished}": [
+        "このダッシュボードは現在 ${nowPublished}"
+      ],
+      "You do not have permissions to edit this dashboard.": [
+        "このダッシュボードを編集する権限がありません"
+      ],
+      "This dashboard was saved successfully.": [
+        "このダッシュボードは正常に保存されました"
+      ],
+      "Could not fetch all saved charts": [
+        "保存されたすべてのチャートを取得できませんでした"
+      ],
+      "Sorry there was an error fetching saved charts: ": [
+        "保存したグラフの取得中にエラーが発生しました。:"
+      ],
+      "Visualization": ["可視化"],
       "Data source": ["データソース"],
-      "Added": [""],
-      "Components": [""],
+      "Added": ["追加済み"],
+      "Components": ["構成要素"],
       "Any color palette selected here will override the colors applied to this dashboard's individual charts": [
-        ""
+        "ここで選択したカラーパレットは、このダッシュボードの個々のグラフに適用される色を上書きします"
       ],
-      "Color scheme": [""],
-      "Load a template": [""],
-      "Load a CSS template": [""],
+      "Color scheme": ["配色"],
+      "Load a template": ["テンプレートの読み込み"],
+      "Load a CSS template": ["CSSテンプレートの読み込み"],
       "Live CSS editor": [""],
       "You have unsaved changes.": ["未保存の変更があります."],
       "This dashboard is currently force refreshing; the next force refresh will be in %s.": [
-        ""
+        "このダッシュボードは現在強制的に更新されています。次の強制更新は %s。"
       ],
       "Your dashboard is too large. Please reduce the size before save it.": [
-        ""
+        "ダッシュボードが大きすぎます。保存する前にサイズを小さくしてください"
       ],
-      "Discard changes": ["最終更新日"],
-      "An error occurred while fetching available CSS templates": [""],
-      "Superset dashboard": ["ダッシュボードを保存"],
-      "Check out this dashboard: ": ["保存してダッシュボードに移動"],
-      "Refresh dashboard": ["ダッシュボードを保存"],
-      "Set auto-refresh interval": [""],
-      "Set filter mapping": [""],
-      "Edit dashboard properties": [""],
-      "Edit CSS": [""],
-      "Download as image": [""],
-      "Toggle fullscreen": [""],
+      "Discard changes": ["変更を破棄"],
+      "An error occurred while fetching available CSS templates": [
+        "利用可能なCSSテンプレートの取得中にエラーが発生しました"
+      ],
+      "Superset dashboard": ["Supersetダッシュボード"],
+      "Check out this dashboard: ": ["このダッシュボードを確認してください: "],
+      "Refresh dashboard": ["ダッシュボードを更新"],
+      "Set auto-refresh interval": ["自動更新間隔を設定"],
+      "Set filter mapping": ["フィルタマッピングを設定"],
+      "Edit dashboard properties": ["ダッシュボードのプロパティを編集"],
+      "Edit CSS": ["CSSを編集"],
+      "Download as image": ["画像としてダウンロード"],
+      "Toggle fullscreen": ["フルスクリーン切り替え"],
       "There is no chart definition associated with this component, could it have been deleted?": [
-        ""
+        "このコンポーネントに関連付けられているチャート定義はありません。削除された可能性がありますか？"
       ],
-      "Delete this container and save to remove this message.": [""],
-      "An error has occurred": [""],
-      "You do not have permission to edit this dashboard": [""],
-      "A valid color scheme is required": [""],
-      "The dashboard has been saved": [""],
-      "Apply": [""],
-      "Dashboard properties": ["ダッシュボード"],
-      "Basic information": [""],
-      "URL slug": [""],
-      "A readable URL for your dashboard": ["保存してダッシュボードに移動"],
-      "Access": [""],
+      "Delete this container and save to remove this message.": [
+        "このコンテナを削除し、保存してこのメ​​ッセージを削除します。"
+      ],
+      "An error has occurred": ["エラーが発生しました"],
+      "You do not have permission to edit this dashboard": [
+        "このダッシュボードを編集する権限がありません"
+      ],
+      "A valid color scheme is required": ["有効な配色が必要です"],
+      "The dashboard has been saved": ["ダッシュボードが保存されました"],
+      "Apply": ["適用"],
+      "Dashboard properties": ["ダッシュボードのプロパティ"],
+      "Basic information": ["基本情報"],
+      "URL slug": ["URLスラッグ"],
+      "A readable URL for your dashboard": [
+        "ダッシュボードの読み取り可能なURL"
+      ],
+      "Access": ["アクセス"],
       "Owners is a list of users who can alter the dashboard. Searchable by name or username.": [
-        ""
+        "所有者は、ダッシュボードを変更できるユーザーのリストです。名前またはユーザー名で検索可能"
       ],
-      "Colors": [""],
+      "Colors": ["色"],
       "Advanced": [""],
       "JSON metadata": [""],
       "This dashboard is not published, it will not show up in the list of dashboards. Click here to publish this dashboard.": [
-        ""
+        "このダッシュボードは公開されていないため、ダッシュボードのリストには表示されません。このダッシュボードを公開するには、ここをクリックしてください。"
       ],
       "This dashboard is not published which means it will not show up in the list of dashboards. Favorite it to see it there or access it by using the URL directly.": [
-        ""
+        "このダッシュボードは公開されていないため、ダッシュボードのリストには表示されません。お気に入りに追加して表示するか、URLを直接使用してアクセスします"
       ],
-      "This dashboard is published. Click to make it a draft.": [""],
-      "Draft": [""],
-      "Don't refresh": [""],
-      "10 seconds": [""],
-      "30 seconds": [""],
-      "1 minute": [""],
-      "5 minutes": [""],
-      "30 minutes": ["１０分"],
-      "1 hour": ["時間"],
-      "6 hours": ["時間"],
-      "12 hours": ["時間"],
-      "24 hours": ["時間"],
-      "Refresh interval": [""],
-      "Refresh frequency": [""],
-      "Are you sure you want to proceed?": [""],
-      "Save for this session": [""],
-      "You must pick a name for the new dashboard": [""],
+      "This dashboard is published. Click to make it a draft.": [
+        "このダッシュボードは公開されています。クリックして下書きにします"
+      ],
+      "Draft": ["下書き"],
+      "Don't refresh": ["更新しないでください"],
+      "10 seconds": ["10秒"],
+      "30 seconds": ["30秒"],
+      "1 minute": ["1分"],
+      "5 minutes": ["5分"],
+      "30 minutes": ["30分"],
+      "1 hour": ["1時間"],
+      "6 hours": ["6時間"],
+      "12 hours": ["12時間"],
+      "24 hours": ["24時間"],
+      "Refresh interval": ["更新間隔"],
+      "Refresh frequency": ["更新頻度"],
+      "Are you sure you want to proceed?": ["続行してもよろしいですか？"],
+      "Save for this session": ["このセッションのために保存"],
+      "You must pick a name for the new dashboard": [
+        "新しいダッシュボードの名前を選択する必要があります"
+      ],
       "Save dashboard": ["ダッシュボードを保存"],
-      "Overwrite Dashboard [%s]": ["上書き ダッシュボード [%s]"],
-      "Save as:": [""],
+      "Overwrite Dashboard [%s]": ["ダッシュボード [%s] を上書き"],
+      "Save as:": ["別名で保存:"],
       "[dashboard name]": [""],
-      "also copy (duplicate) charts": [""],
-      "Filter your charts": ["フィルタ項目"],
-      "Annotation layers are still loading.": [""],
-      "One ore more annotation layers failed loading.": [""],
+      "also copy (duplicate) charts": ["チャートも複製する"],
+      "Filter your charts": ["チャートを検索"],
+      "Annotation layers are still loading.": [
+        "注釈レイヤーはまだ読み込み中です"
+      ],
+      "One ore more annotation layers failed loading.": [
+        "1つ以上の注釈レイヤーの読み込みに失敗しました"
+      ],
       "Cached %s": [""],
       "Fetched %s": [""],
-      "Minimize chart": ["チャートを移動"],
-      "Maximize chart": ["チャートを見る"],
-      "Force refresh": [""],
-      "Toggle chart description": ["グラフの説明を切り替え"],
-      "View chart in Explore": ["上書き スライス [%s]"],
-      "Share chart": ["チャートを見る"],
+      "Minimize chart": ["チャートを最小化"],
+      "Maximize chart": ["チャートを最大化"],
+      "Force refresh": ["強制更新"],
+      "Toggle chart description": ["チャートの説明を切り替え"],
+      "View chart in Explore": ["チャートを表示"],
+      "Share chart": ["チャートを共有"],
       "Export CSV": ["CSVで出力"],
-      "Applied Filters (%d)": ["フィルターを追加"],
-      "Incompatible Filters (%d)": [""],
-      "Unset Filters (%d)": [""],
+      "Applied Filters (%d)": ["適用されたフィルタ (%d)"],
+      "Incompatible Filters (%d)": ["互換性のないフィルタ (%d)"],
+      "Unset Filters (%d)": ["フィルタ (%d) の設定を解除"],
       "Search...": ["検索"],
-      "No filter is selected.": [""],
-      "Editing 1 filter:": [""],
-      "Batch editing %d filters:": [""],
-      "Configure filter scopes": [""],
-      "There are no filters in this dashboard.": [""],
-      "Expand all": [""],
-      "Collapse all": [""],
-      "This markdown component has an error.": [""],
-      "This markdown component has an error. Please revert your recent changes.": [
-        ""
+      "No filter is selected.": ["フィルタは選択されていません"],
+      "Editing 1 filter:": ["1つのフィルタを編集する:"],
+      "Batch editing %d filters:": [" ％d フィルタのバッチ編集:"],
+      "Configure filter scopes": ["フィルタスコープを構成する"],
+      "There are no filters in this dashboard.": [
+        "このダッシュボードにはフィルターはありません"
       ],
-      "Delete dashboard tab?": ["ダッシュボード名を入力してください"],
-      "Divider": [""],
-      "Header": [""],
-      "Row": [""],
-      "Tabs": [""],
-      "Preview": ["データプレビュー"],
-      "Yes, cancel": [""],
-      "Keep editing": [""],
-      "Select parent filters": ["検索/フィルタ"],
-      "Reset all": [""],
-      "You have removed this filter.": [""],
-      "Restore filter": ["検索/フィルタ"],
-      "Filter name": ["フィルタ値"],
-      "Name is required": [""],
-      "Datasource is required": ["データソース"],
-      "Field": [""],
-      "Parent filter": ["検索/フィルタ"],
-      "None": [""],
-      "Apply changes instantly": [""],
-      "Allow multiple selections": [""],
-      "Inverse selection": [""],
-      "Required": [""],
-      "Are you sure you want to cancel?": [""],
-      "will not be saved.": [""],
-      "Filter configuration and scoping": ["フィルタ項目"],
-      "Add filter": ["フィルターを追加"],
-      "(Removed)": [""],
-      "Undo?": [""],
-      "Scoping": [""],
-      "Apply to all panels": [""],
-      "Apply to specific panels": [""],
-      "Only selected panels will be affected by this filter": [""],
-      "All panels with this column will be affected by this filter": [""],
-      "All filters": ["フィルター"],
-      "All charts": ["チャートを見る"],
+      "Expand all": ["すべて展開"],
+      "Collapse all": ["すべて折りたたむ"],
+      "This markdown component has an error.": [
+        "このマークダウンコンポーネントにエラーがあります"
+      ],
+      "This markdown component has an error. Please revert your recent changes.": [
+        "このマークダウンコンポーネントにエラーがあります。最近の変更を元に戻してください。"
+      ],
+      "Delete dashboard tab?": ["ダッシュボードタブを削除しますか？"],
+      "Divider": ["区切り線"],
+      "Header": ["見出し"],
+      "Row": ["行"],
+      "Tabs": ["タブ"],
+      "Markdown": ["マークダウン"],
+      "Preview": ["プレビュー"],
+      "Yes, cancel": ["はい、キャンセルします"],
+      "Keep editing": ["編集を続ける"],
+      "Select parent filters": ["親フィルタを選択する"],
+      "Reset all": ["すべてリセット"],
+      "You have removed this filter.": ["このフィルタを削除しました。"],
+      "Restore filter": ["フィルタを復元"],
+      "Filter name": ["フィルタ名"],
+      "Name is required": ["名前が必要です"],
+      "Datasource is required": ["データソースが必要です"],
+      "Field": ["フィールド"],
+      "Parent filter": ["親フィルタ"],
+      "None": ["なし"],
+      "Apply changes instantly": ["変更を即座に適用する"],
+      "Allow multiple selections": ["複数の選択を許可する"],
+      "Inverse selection": ["逆選択"],
+      "Required": ["必須"],
+      "Are you sure you want to cancel?": ["キャンセルしてもよろしいですか？"],
+      "will not be saved.": ["保存されません"],
+      "Filter configuration and scoping": ["フィルタの構成とスコープ"],
+      "Add filter": ["フィルタを追加"],
+      "(Removed)": ["(削除)"],
+      "Undo?": ["元に戻しますか？"],
+      "Scoping": ["スコープ"],
+      "Apply to all panels": ["すべてのパネルに適用"],
+      "Apply to specific panels": ["特定のパネルに適用"],
+      "Only selected panels will be affected by this filter": [
+        "選択したパネルのみがこのフィルターの影響を受けます"
+      ],
+      "All panels with this column will be affected by this filter": [
+        "この列のすべてのパネルは、このフィルターの影響を受けます"
+      ],
+      "All filters": ["すべてのフィルタ"],
+      "All charts": ["すべてのチャート"],
       "Warning! Changing the dataset may break the chart if the metadata does not exist.": [
         ""
       ],
@@ -1377,14 +1476,14 @@
         ""
       ],
       "dataset": [""],
-      "Change dataset": ["ターゲットを選択"],
+      "Change dataset": [""],
       "Warning!": [""],
-      "Search / Filter": ["検索/フィルタ"],
+      "Search / Filter": [""],
       "Physical (table or view)": [""],
       "Virtual (SQL)": [""],
       "SQL expression": [""],
-      "Data type": ["グラフ様式"],
-      "Datetime format": ["タンムスダンプの様式"],
+      "Data type": [""],
+      "Datetime format": [""],
       "The pattern of timestamp format. For strings use ": [""],
       "Python datetime string pattern": [""],
       " expression which needs to adhere to the ": [""],
@@ -1393,7 +1492,7 @@
         ""
       ],
       "Is dimension": [""],
-      "Is filterable": ["フィルタ可能"],
+      "Is filterable": [""],
       "Modified columns: %s": [""],
       "Removed columns: %s": [""],
       "New columns added: %s": [""],
@@ -1421,7 +1520,7 @@
       "Hours offset": [""],
       "Spatial": [""],
       "virtual": [""],
-      "Dataset name": ["データソース"],
+      "Dataset name": [""],
       "When specifying SQL, the datasource acts as a view. Superset will use this statement as a subquery while grouping and filtering on the generated parent queries.": [
         ""
       ],
@@ -1435,7 +1534,7 @@
       "D3 format": [""],
       "Warning message": [""],
       "Warning message to display in the metric selector": [""],
-      "Certified by": ["最終更新日"],
+      "Certified by": [""],
       "Person or group that has certified this metric": [""],
       "Certification details": [""],
       "Details of the certification": [""],
@@ -1443,18 +1542,18 @@
       "Changing these settings will affect all charts using this dataset, including charts owned by other people.": [
         ""
       ],
-      "Source": ["ソース"],
+      "Source": [""],
       "Sync columns from source": [""],
-      "Calculated columns": ["フィルタ項目"],
+      "Calculated columns": [""],
       "The dataset has been saved": [""],
       "The dataset configuration exposed here\n                affects all the charts using this dataset.\n                Be mindful that changing settings\n                here may affect other charts\n                in undesirable ways.": [
         ""
       ],
       "Are you sure you want to save and apply changes?": [""],
       "Confirm save": [""],
-      "Edit Dataset ": ["データベースリンクを編集"],
+      "Edit Dataset ": [""],
       "Use legacy datasource editor": [""],
-      "Time range": ["時間単位"],
+      "Time range": ["時間範囲"],
       "Time column": ["時間列"],
       "Time grain": ["時間単位"],
       "Origin": [""],
@@ -1465,16 +1564,18 @@
       "Group by": [""],
       "One or many controls to group by": [""],
       "One or many metrics to display": [""],
-      "Dataset": ["データベース"],
-      "Visualization type": ["グラフ様式"],
-      "The type of visualization to display": [""],
-      "Fixed color": [""],
-      "Use this to define a static color for all circles": [""],
-      "Right axis metric": ["指標を選んでください!"],
-      "Choose a metric for right axis": [""],
-      "Linear color scheme": [""],
-      "Color metric": ["指標を選んでください"],
-      "A metric to use for color": [""],
+      "Dataset": ["データセット"],
+      "Visualization type": ["可視化タイプ"],
+      "The type of visualization to display": ["表示する可視化のタイプ"],
+      "Fixed color": ["固定の色"],
+      "Use this to define a static color for all circles": [
+        "これを使用して、すべての円の静的な色を定義します"
+      ],
+      "Right axis metric": ["右軸の指標"],
+      "Choose a metric for right axis": ["右軸の指標を選択"],
+      "Linear color scheme": ["線形配色"],
+      "Color metric": ["色の指標"],
+      "A metric to use for color": ["色に使用する指標"],
       "One or many controls to pivot as columns": [""],
       "Defines the origin where time buckets start, accepts natural dates as in `now`, `sunday` or `1970-01-01`": [
         ""
@@ -1488,16 +1589,16 @@
       "The time granularity for the visualization. This applies a date transformation to alter your time column and defines a new time granularity. The options here are defined on a per database engine basis in the Superset source code.": [
         ""
       ],
-      "Last week": ["週"],
+      "Last week": [""],
       "The time range for the visualization. All relative times, e.g. \"Last month\", \"Last 7 days\", \"now\", etc. are evaluated on the server using the server's local time (sans timezone). All tooltips and placeholder times are expressed in UTC (sans timezone). The timestamps are then evaluated by the database using the engine's local timezone. Note one can explicitly set the timezone per the ISO 8601 format if specifying either the start and/or end time.": [
         ""
       ],
-      "Row limit": ["行数制限"],
+      "Row limit": [""],
       "Series limit": [""],
       "Limits the number of time series that get displayed. A sub query (or an extra phase where sub queries are not supported) is applied to limit the number of time series that get fetched and displayed. This feature is useful when grouping by high cardinality dimension(s).": [
         ""
       ],
-      "Sort by": [""],
+      "Sort by": ["並び替え"],
       "Metric used to define the top series": [""],
       "Series": [""],
       "Defines the grouping of entities. Each series is shown as a specific color on the chart and has a legend toggle": [
@@ -1519,26 +1620,28 @@
       "description": [""],
       "bolt": [""],
       "Changing this control takes effect instantly": [""],
-      "Customize": [""],
+      "Customize": ["カスタマイズ"],
       "rows retrieved": [""],
       "Sorry, An error occurred": [""],
       "No data": [""],
       "View samples": [""],
       "Search Metrics & Columns": [""],
       "Showing %s of %s": [""],
-      "New chart": ["チャートを移動"],
+      "New chart": [""],
       "Edit properties": [""],
-      "View query": ["クエリを共有"],
-      "Run in SQL Lab": ["SQLツール"],
+      "View query": ["クエリを見る"],
+      "Run in SQL Lab": ["SQLラボで実行"],
       "Height": ["高さ"],
       "Width": ["幅"],
       "Export to .json": ["jsonで出力"],
       "Export to .csv format": ["csvで出力"],
       "%s - untitled": [""],
-      "Edit chart properties": ["チャートを編集"],
+      "Edit chart properties": ["チャートのプロパティを編集"],
       "Control labeled ": [""],
-      "Open Datasource tab": ["データソース"],
-      "You do not have permission to edit this chart": [""],
+      "Open Datasource tab": ["データソースタブを開く"],
+      "You do not have permission to edit this chart": [
+        "このチャートを編集する権限がありません"
+      ],
       "The description can be displayed as widget headers in the dashboard view. Supports markdown.": [
         ""
       ],
@@ -1549,38 +1652,40 @@
       "A list of users who can alter the chart. Searchable by name or username.": [
         ""
       ],
-      "rows": [""],
+      "rows": ["行"],
       "Limit reached": [""],
       "**Select** a dashboard OR **create** a new one": [""],
-      "Please enter a chart name": ["ダッシュボード名を入力してください"],
-      "Save chart": ["別名で保存"],
+      "Please enter a chart name": ["チャート名を入力してください"],
+      "Save chart": ["チャートを保存"],
       "Save & go to dashboard": ["保存してダッシュボードに移動"],
-      "Save as new chart": ["ダッシュボードを保存"],
-      "Save (Overwrite)": ["保存されたクエリ"],
+      "Save as new chart": ["新しいチャートとして保存"],
+      "Save (Overwrite)": ["上書き保存"],
       "Save as ...": ["別名で保存"],
-      "Chart name": ["グラフ様式"],
+      "Chart name": ["チャート名"],
       "Add to dashboard": ["新しいダッシュボードに追加"],
       "Display configuration": [""],
       "Configure your how you overlay is displayed here.": [""],
       "Style": [""],
       "Opacity": [""],
       "Color": [""],
-      "Line width": ["幅"],
-      "Layer configuration": ["フィルタ項目"],
+      "Line width": ["線の幅"],
+      "Layer configuration": ["レイヤー構成"],
       "Configure the basics of your Annotation Layer.": [""],
       "Mandatory": [""],
-      "Hide layer": [""],
-      "Choose the annotation layer type": ["可視化タイプを選んでください"],
-      "Annotation layer type": ["クエリを保存できませんでした"],
-      "Remove": [""],
-      "Edit annotation layer": ["回転"],
-      "Add annotation layer": ["回転"],
+      "Hide layer": ["レイヤーを隠す"],
+      "Choose the annotation layer type": [
+        "注釈レイヤーのタイプを選んでください"
+      ],
+      "Annotation layer type": ["注釈レイヤーのタイプ"],
+      "Remove": ["削除"],
+      "Edit annotation layer": ["注釈レイヤーを編集"],
+      "Add annotation layer": ["注釈レイヤーを追加"],
       "`Min` value should be numeric or empty": [""],
       "`Max` value should be numeric or empty": [""],
       "Min": ["最小値"],
       "Max": ["最大値"],
-      "Edit dataset": ["データベースリンクを編集"],
-      "View in SQL Lab": ["SQLツール"],
+      "Edit dataset": ["データセットを編集"],
+      "View in SQL Lab": ["SQLラボで表示"],
       "More dataset related options": [""],
       "Superset supports smart date parsing. Strings like `3 weeks ago`, `last sunday`, or `2 weeks from now` can be used.": [
         ""
@@ -1589,19 +1694,19 @@
       "(optional) default value for the filter, when using the multiple option, you can use a semicolon-delimited list of options.": [
         ""
       ],
-      "Sort metric": ["指標"],
+      "Sort metric": [""],
       "Metric to sort the results by": [""],
       "Sort ascending": [""],
       "Check for sorting ascending": [""],
       "Multiple selections allowed, otherwise filter is limited to a single value": [
         ""
       ],
-      "Search all filter options": ["検索/フィルタ"],
+      "Search all filter options": [""],
       "By default, each filter loads at most 1000 choices at the initial page load. Check this box if you have more than 1000 filter values and want to enable dynamically searching that loads filter values as users type (may add stress to your database).": [
         ""
       ],
       "User must select a value for this filter": [""],
-      "Filter configuration": ["フィルタ項目"],
+      "Filter configuration": ["フィルタ構成"],
       "Error while fetching data": ["データの取得中にエラーが発生しました"],
       "No results found": [""],
       "%s option(s)": [""],
@@ -1615,16 +1720,18 @@
       "Geohash": [""],
       "textarea": [""],
       "in modal": [""],
-      "Time series columns": ["時間列"],
+      "Time series columns": [""],
       "This visualization type is not supported.": [""],
-      "Click to change visualization type": ["可視化タイプを選んでください"],
-      "Select a visualization type": ["可視化タイプを選んでください"],
+      "Click to change visualization type": [
+        "クリックして可視化のタイプを変更"
+      ],
+      "Select a visualization type": ["可視化のタイプを選んでください"],
       "Failed to verify select options: %s": [""],
-      "RANGE TYPE": [""],
+      "RANGE TYPE": ["範囲のタイプ"],
       "Actual time range": [""],
-      "CANCEL": [""],
-      "APPLY": [""],
-      "Edit time range": [""],
+      "CANCEL": ["キャンセル"],
+      "APPLY": ["適用"],
+      "Edit time range": ["時間範囲を編集"],
       "Configure advanced time range": [""],
       "START": [""],
       "END": [""],
@@ -1634,7 +1741,7 @@
       "Relative quantity": [""],
       "Anchor to": [""],
       "NOW": [""],
-      "Date/Time": ["開始時間"],
+      "Date/Time": [""],
       "Simple": [""],
       "Custom SQL": [""],
       "No such column found. To filter on a metric, try the Custom SQL tab.": [
@@ -1643,23 +1750,23 @@
       "%s column(s) and metric(s)": [""],
       "%s column(s)": [""],
       "To filter on a metric, use Custom SQL tab.": [""],
-      "%s operator(s)": ["オペレータを選択"],
+      "%s operator(s)": [""],
       "Type a value here": [""],
       "Filter value (case sensitive)": [""],
       "choose WHERE or HAVING...": [""],
-      "Filters by columns": ["フィルタ項目"],
-      "Filters by metrics": ["フィルタ値"],
+      "Filters by columns": [""],
+      "Filters by metrics": [""],
       "\n                This filter was inherited from the dashboard's context.\n                It won't be saved when saving the chart.\n              ": [
         ""
       ],
       "%s aggregates(s)": [""],
       "%s saved metric(s)": [""],
-      "Saved": ["保存"],
-      "Saved metric": ["指標を選択"],
-      "column": ["列"],
+      "Saved": [""],
+      "Saved metric": [""],
+      "column": [""],
       "aggregate": [""],
-      "My metric": ["指標"],
-      "Add metric": ["指標"],
+      "My metric": [""],
+      "Add metric": [""],
       "Code": [""],
       "Markup type": [""],
       "Pick your favorite markup language": [""],
@@ -1669,18 +1776,18 @@
       "Templated link, it's possible to include {{ metric }} or other values coming from the controls.": [
         ""
       ],
-      "Time": [""],
+      "Time": ["時間"],
       "Time related form attributes": [""],
-      "Chart type": ["グラフ様式"],
-      "Chart ID": ["グラフ様式"],
+      "Chart type": ["チャートタイプ"],
+      "Chart ID": ["チャートID"],
       "The id of the active chart": [""],
       "Cache Timeout (seconds)": [""],
       "The number of seconds before expiring the cache": [""],
-      "URL parameters": ["パラメータ"],
+      "URL parameters": ["URLパラメータ"],
       "Extra parameters for use in jinja templated queries": [""],
-      "Time range endpoints": ["時間単位"],
+      "Time range endpoints": [""],
       "Time range endpoints (SIP-15)": [""],
-      "Annotations and layers": ["回転"],
+      "Annotations and layers": [""],
       "Sort descending": [""],
       "Whether to sort descending or ascending": [""],
       "Contribution": [""],
@@ -1690,7 +1797,7 @@
         ""
       ],
       "Rolling window": [""],
-      "Rolling function": ["アクション"],
+      "Rolling function": [""],
       "Defines a rolling window function to apply, works along with the [Periods] text box": [
         ""
       ],
@@ -1702,47 +1809,55 @@
       "The minimum number of rolling periods required to show a value. For instance if you do a cumulative sum on 7 days you may want your \"Min Period\" to be 7, so that all data points shown are the total of 7 periods. This will hide the \"ramp up\" taking place over the first 7 periods": [
         ""
       ],
-      "Time comparison": ["時間列"],
-      "Time shift": ["時間単位"],
+      "Time comparison": [""],
+      "Time shift": [""],
       "Overlay one or more timeseries from a relative time period. Expects relative time deltas in natural language (example:  24 hours, 7 days, 52 weeks, 365 days). Free text is supported.": [
         ""
       ],
-      "Calculation type": ["可視化タイプを選んでください"],
+      "Calculation type": [""],
       "How to display time shifts: as individual lines; as the absolute difference between the main time series and each time shift; as the percentage change; or as the ratio between series and time shifts.": [
         ""
       ],
-      "Python functions": ["アクション"],
+      "Python functions": [""],
       "Rule": [""],
       "Pandas resample rule": [""],
       "Method": [""],
       "Pandas resample method": [""],
       "Favorites": ["お気に入り"],
-      "Created content": ["作成したもの"],
-      "Recent activity": ["近況"],
-      "Security & Access": ["セキュリティー"],
-      "No charts": ["チャートを移動"],
-      "No dashboards": [""],
-      "No favorite charts yet, go click on stars!": [""],
-      "No favorite dashboards yet, go click on stars!": [""],
-      "Profile picture provided by Gravatar": [""],
-      "joined": [""],
+      "Created content": ["作成したコンテンツ"],
+      "Recent activity": ["最近のアクティビティ"],
+      "Security & Access": ["セキュリティとアクセス"],
+      "No charts": ["チャートなし"],
+      "No dashboards": ["ダッシュボードなし"],
+      "No favorite charts yet, go click on stars!": [
+        "お気に入りのチャートはまだありません。星をクリックしてください！"
+      ],
+      "No favorite dashboards yet, go click on stars!": [
+        "お気に入りのダッシュボードはまだありません。星をクリックしてください！"
+      ],
+      "Profile picture provided by Gravatar": [
+        "Gravatarが提供するプロフィール写真"
+      ],
+      "joined": ["参加しました"],
       "id:": [""],
-      "There was an error fetching your recent activity:": [""],
-      "Deleted: %s": ["削除"],
-      "There was an issue deleting: %s": [""],
-      "There was an issue deleting %s: %s": [""],
-      "report": ["エクスポート"],
-      "alert": [""],
-      "reports": ["エクスポート"],
-      "alerts": [""],
+      "There was an error fetching your recent activity:": [
+        "最近のアクティビティの取得中にエラーが発生しました:"
+      ],
+      "Deleted: %s": ["削除: %s"],
+      "There was an issue deleting: %s": ["削除中に問題が発生しました: %s"],
+      "There was an issue deleting %s: %s": ["削除中に問題が発生しました: %s"],
+      "report": ["レポート"],
+      "alert": ["アラート"],
+      "reports": ["レポート"],
+      "alerts": ["アラート"],
       "There was an issue deleting the selected %s: %s": [""],
-      "Last run": ["最終更新日"],
+      "Last run": ["前回の実行"],
       "Notification method": [""],
-      "Execution log": ["アクション履歴"],
+      "Execution log": ["実行ログ"],
       "Actions": ["アクション"],
-      "Bulk select": [""],
+      "Bulk select": ["一括選択"],
       "No %s yet": [""],
-      "Created by": ["作成日"],
+      "Created by": ["作成者"],
       "An error occurred while fetching created by values: %s": [""],
       "Status": ["状態"],
       "${AlertState.success}": [""],
@@ -1750,11 +1865,11 @@
       "${AlertState.error}": [""],
       "${AlertState.noop}": [""],
       "${AlertState.grace}": [""],
-      "Alerts & reports": ["エクスポート"],
-      "Reports": ["エクスポート"],
+      "Alerts & reports": ["アラートとレポート"],
+      "Reports": ["レポート"],
       "This action will permanently delete %s.": [""],
       "Delete %s?": ["削除"],
-      "Please confirm": [""],
+      "Please confirm": ["確認してください"],
       "Are you sure you want to delete the selected %s?": [""],
       "< (Smaller than)": [""],
       "> (Larger than)": [""],
@@ -1763,82 +1878,98 @@
       "== (Is equal)": [""],
       "!= (Is not equal)": [""],
       "Not null": [""],
-      "30 days": [""],
-      "60 days": [""],
-      "90 days": [""],
+      "30 days": ["30日"],
+      "60 days": ["60日"],
+      "90 days": ["90日"],
       "Add notification method": [""],
       "Add delivery method": [""],
       "Recipients are separated by \",\" or \";\"": [""],
-      "Add": [""],
+      "Add": ["追加"],
       "Edit ${isReport ? 'Report' : 'Alert'}": [""],
       "Add ${isReport ? 'Report' : 'Alert'}": [""],
-      "Report name": ["テンプレート名"],
-      "Alert name": ["テーブル名"],
-      "Alert condition": ["フィルタ項目"],
+      "Report name": ["レポート名"],
+      "Alert name": ["アラート名"],
+      "Alert condition": ["アラート状態"],
       "Trigger Alert If...": [""],
       "Value": [""],
-      "Report schedule": ["エクスポート"],
-      "Alert condition schedule": [""],
-      "Schedule settings": ["クエリを保存"],
-      "Log retention": [""],
-      "Working timeout": [""],
-      "Time in seconds": [""],
-      "Grace period": [""],
-      "Message content": ["作成したもの"],
-      "log": [""],
+      "Report schedule": ["レポートスケジュール"],
+      "Alert condition schedule": ["アラート状態スケジュール"],
+      "Schedule settings": ["スケジュール設定"],
+      "Log retention": ["ログの保持"],
+      "Working timeout": ["作業タイムアウト"],
+      "Time in seconds": ["秒単位の時間"],
+      "Grace period": ["猶予期間"],
+      "Message content": ["メッセージ内容"],
+      "log": ["ログ"],
       "State": ["状態"],
       "Scheduled at": [""],
       "Start at": ["開始時間"],
-      "Duration": ["回転"],
-      "Error message": [""],
+      "Duration": ["期限"],
+      "Error message": ["エラーメッセージ"],
       "${alertResource?.type}": [""],
       "CRON expression": [""],
-      "Report sent": ["エクスポート"],
-      "Alert triggered, notification sent": [""],
-      "Report sending": ["エクスポート"],
-      "Alert running": [""],
-      "Report failed": ["テンプレート名"],
-      "Alert failed": ["テーブル名"],
+      "Report sent": ["レポートが送信されました"],
+      "Alert triggered, notification sent": [
+        "アラートが発動し、通知が送信されました"
+      ],
+      "Report sending": ["レポート送信"],
+      "Alert running": ["アラート発動中"],
+      "Report failed": ["レポートに失敗しました"],
+      "Alert failed": ["アラートに失敗しました"],
       "Nothing triggered": [""],
-      "Alert Triggered, In Grace Period": [""],
+      "Alert Triggered, In Grace Period": ["アラート発動、猶予期間中"],
       "${RecipientIconName.email}": [""],
       "${RecipientIconName.slack}": [""],
-      "annotation": ["回転"],
-      "There was an issue deleting the selected annotations: %s": [""],
-      "Edit annotation": ["回転"],
-      "Delete annotation": ["回転"],
-      "Annotation": ["回転"],
-      "No annotation yet": [""],
-      "Annotation Layer ${annotationLayerName}": [""],
-      "Are you sure you want to delete ${annotationCurrentlyDeleting?.short_descr}?": [
-        ""
+      "annotation": ["注釈"],
+      "There was an issue deleting the selected annotations: %s": [
+        "選択した注釈の削除で問題が発生しました: %s"
       ],
-      "Delete Annotation?": [""],
-      "Are you sure you want to delete the selected annotations?": [""],
-      "Add annotation": ["回転"],
-      "Annotation name": ["回転"],
-      "date": [""],
-      "Additional information": ["回転"],
-      "Description (this can be seen in the list)": [""],
+      "Edit annotation": ["注釈を編集する"],
+      "Delete annotation": ["注釈を削除する"],
+      "Annotation": ["注釈"],
+      "No annotation yet": ["注釈はまだありません"],
+      "Annotation Layer ${annotationLayerName}": [
+        "注釈レイヤー ${annotationLayerName}"
+      ],
+      "Are you sure you want to delete ${annotationCurrentlyDeleting?.short_descr}?": [
+        " ${annotationCurrentlyDeleting?.short_descr} を削除してもよろしいですか？"
+      ],
+      "Delete Annotation?": ["注釈を削除しますか？"],
+      "Are you sure you want to delete the selected annotations?": [
+        "選択した注釈を削除してもよろしいですか？"
+      ],
+      "Add annotation": ["注釈を追加"],
+      "Annotation name": ["注釈名"],
+      "date": ["日付"],
+      "Additional information": ["追加情報"],
+      "Description (this can be seen in the list)": [
+        "説明(これはリストで見ることができます)"
+      ],
       "annotation_layer": [""],
-      "Edit annotation layer properties": ["チャートを編集"],
-      "Annotation layer name": ["回転"],
-      "Annotation layers": ["回転"],
-      "There was an issue deleting the selected layers: %s": [""],
+      "Edit annotation layer properties": ["注釈レイヤーのプロパティを編集"],
+      "Annotation layer name": ["注釈レイヤー名"],
+      "Annotation layers": ["注釈レイヤー"],
+      "There was an issue deleting the selected layers: %s": [
+        "選択したレイヤーの削除で問題が発生しました: %s"
+      ],
       "Last modified": ["最終更新日"],
       "Created on": ["作成日"],
-      "Edit template": ["CSSテンプレート"],
-      "Delete template": [""],
-      "Annotation layer": ["回転"],
+      "Edit template": ["テンプレートを編集"],
+      "Delete template": ["テンプレートを削除"],
+      "Annotation layer": ["注釈レイヤー"],
       "An error occurred while fetching dataset datasource values: %s": [
-        "データソースリストを取得中に何か問題が発生しました"
+        "データセット・データソース値の取得中にエラーが発生しました"
       ],
-      "No annotation layers yet": [""],
-      "This action will permanently delete the layer.": [""],
-      "Delete Layer?": ["本当に全部削除しますか？"],
-      "Are you sure you want to delete the selected layers?": [""],
-      "Are you sure you want to delete": [""],
-      "Last modified %s": ["最終更新日"],
+      "No annotation layers yet": ["注釈レイヤーはまだありません"],
+      "This action will permanently delete the layer.": [
+        "このアクションにより、レイヤーが完全に削除されます"
+      ],
+      "Delete Layer?": ["本当にレイヤーを削除しますか？"],
+      "Are you sure you want to delete the selected layers?": [
+        "選択されたレイヤーを削除してもよろしいですか？"
+      ],
+      "Are you sure you want to delete": ["削除してもよろしいですか"],
+      "Last modified %s": ["最終更新日 %s"],
       "The passwords for the databases below are needed in order to import them together with the charts. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
         ""
       ],
@@ -1846,28 +1977,34 @@
         ""
       ],
       "There was an issue deleting the selected charts: %s": [""],
-      "Modified by": ["最終更新日"],
-      "Owner": [""],
+      "Modified by": ["更新者"],
+      "Owner": ["所有者"],
       "An error occurred while fetching chart owners values: %s": [""],
       "An error occurred while fetching chart created by values: %s": [""],
-      "Viz type": ["タイプ"],
+      "Viz type": ["可視化タイプ"],
       "An error occurred while fetching chart dataset values: %s": [""],
       "Favorite": ["お気に入り"],
       "Yes": [""],
       "No": [""],
-      "Are you sure you want to delete the selected charts?": [""],
+      "Are you sure you want to delete the selected charts?": [
+        "選択したチャートを削除してもよろしいですか？"
+      ],
       "css_template": [""],
-      "Edit CSS template properties": ["CSSテンプレート"],
-      "Add CSS template": ["CSSテンプレート"],
+      "Edit CSS template properties": ["CSSテンプレートのプロパティを編集する"],
+      "Add CSS template": ["CSSテンプレートを追加する"],
       "CSS template name": ["テンプレート名"],
       "css": [""],
       "CSS templates": ["CSSテンプレート"],
       "There was an issue deleting the selected templates: %s": [""],
-      "Last modified by %s": ["最終更新日"],
+      "Last modified by %s": ["最終更新者 %s"],
       "CSS template": ["CSSテンプレート"],
-      "This action will permanently delete the template.": [""],
+      "This action will permanently delete the template.": [
+        "このアクションにより、テンプレートが完全に削除されます。"
+      ],
       "Delete Template?": ["CSSテンプレート"],
-      "Are you sure you want to delete the selected templates?": [""],
+      "Are you sure you want to delete the selected templates?": [
+        "選択したテンプレートを削除してもよろしいですか？"
+      ],
       "The passwords for the databases below are needed in order to import them together with the dashboards. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
         ""
       ],
@@ -1875,13 +2012,21 @@
         ""
       ],
       "An error occurred while fetching dashboards: %s": [
-        "データの取得中にエラーが発生しました"
+        "ダッシュボードの取得中にエラーが発生しました: %s"
       ],
-      "There was an issue deleting the selected dashboards: ": [""],
-      "An error occurred while fetching dashboard owner values: %s": [""],
-      "An error occurred while fetching dashboard created by values: %s": [""],
-      "Unpublished": [""],
-      "Are you sure you want to delete the selected dashboards?": [""],
+      "There was an issue deleting the selected dashboards: ": [
+        "選択したダッシュボードの削除で問題が発生しました。:"
+      ],
+      "An error occurred while fetching dashboard owner values: %s": [
+        "ダッシュボードの所有者の値の取得中にエラーが発生しました: %s"
+      ],
+      "An error occurred while fetching dashboard created by values: %s": [
+        "値によって作成されたダッシュボードの取得中にエラーが発生しました: %s"
+      ],
+      "Unpublished": ["未公開"],
+      "Are you sure you want to delete the selected dashboards?": [
+        "選択したダッシュボードを削除してもよろしいですか？"
+      ],
       "Sorry, your browser does not support copying.": [""],
       "SQL Copied!": [""],
       "The passwords for the databases below are needed in order to import them. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
@@ -1897,40 +2042,40 @@
       "Allow data manipulation language": [""],
       "DML": [""],
       "CSV upload": [""],
-      "Delete database": ["データベース"],
+      "Delete database": ["データベースを削除"],
       "The database %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the database will break those objects.": [
         ""
       ],
-      "Delete Database?": ["データベースリンクを編集"],
-      "Please enter a SQLAlchemy URI to test": ["スライス名を入力してください"],
+      "Delete Database?": ["データベースを削除しますか？"],
+      "Please enter a SQLAlchemy URI to test": [""],
       "Connection looks good!": [""],
       "ERROR: Connection failed. ": [""],
       "Sorry there was an error fetching database information: %s": [""],
-      "Edit database": ["データベースリンクを編集"],
+      "Edit database": ["データベースを編集"],
       "Add database": ["データベースを追加"],
-      "Connection": ["アクション"],
-      "Database name": ["データソース"],
+      "Connection": [""],
+      "Database name": ["データベース名"],
       "Name your dataset": [""],
       "dialect+driver://username:password@host:port/database": [""],
-      "Test connection": ["アクション"],
+      "Test connection": [""],
       "Refer to the ": [""],
       "SQLAlchemy docs": [""],
       " for more information on how to structure your URI.": [""],
       "Performance": [""],
-      "Chart cache timeout": ["グラフ様式"],
+      "Chart cache timeout": [""],
       "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.": [
         ""
       ],
-      "SQL Lab settings": ["SQLツール"],
+      "SQL Lab settings": ["SQLラボ設定"],
       "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...)": [
         ""
       ],
       "Allow multi schema metadata fetch": [""],
-      "CTAS schema": ["スキーマ"],
+      "CTAS schema": ["CTASスキーマ"],
       "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema.": [
         ""
       ],
-      "Secure extra": ["セキュリティー"],
+      "Secure extra": [""],
       "JSON string containing additional connection configuration.": [""],
       "This is used to provide connection information for systems like Hive, Presto, and BigQuery, which do not conform to the username:password syntax normally used by SQLAlchemy.": [
         ""
@@ -1962,34 +2107,28 @@
       "5. The allows_virtual_table_explore field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.": [
         ""
       ],
-      "Error while saving dataset: %s": [
-        "データの取得中にエラーが発生しました"
-      ],
-      "Add dataset": ["データベースを追加"],
+      "Error while saving dataset: %s": [""],
+      "Add dataset": ["データセットを追加"],
       "The passwords for the databases below are needed in order to import them together with the datasets. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed.": [
         ""
       ],
       "You are importing one or more datasets that already exist. Overwriting might cause you to lose some of your work. Are you sure you want to overwrite?": [
         ""
       ],
-      "An error occurred while fetching dataset related data": [
-        "データの取得中にエラーが発生しました"
-      ],
+      "An error occurred while fetching dataset related data": [""],
       "An error occurred while fetching dataset related data: %s": [""],
-      "Physical dataset": ["ターゲットを選択"],
-      "Virtual dataset": ["データベースリンクを編集"],
+      "Physical dataset": [""],
+      "Virtual dataset": [""],
       "An error occurred while fetching dataset owner values: %s": [""],
-      "An error occurred while fetching datasets: %s": [
-        "データの取得中にエラーが発生しました"
-      ],
+      "An error occurred while fetching datasets: %s": [""],
       "An error occurred while fetching schema values: %s": [""],
       "There was an issue deleting the selected datasets: %s": [""],
       "The dataset %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.": [
         ""
       ],
-      "Delete Dataset?": ["本当に全部削除しますか？"],
+      "Delete Dataset?": ["本当にデータセットを削除しますか？"],
       "Are you sure you want to delete the selected datasets?": [""],
-      "0 Selected": ["選択したクエリを実行"],
+      "0 Selected": [""],
       "%s Selected (Virtual)": [""],
       "%s Selected (Physical)": [""],
       "%s Selected (%s Physical, %s Virtual)": [""],
@@ -2000,72 +2139,70 @@
       "Offline": [""],
       "Scheduled": [""],
       "Duration: %s": [""],
-      "Tab name": ["テーブル名"],
+      "Tab name": [""],
       "TABLES": [""],
       "Rows": [""],
-      "Open query in SQL Lab": ["新しいタブでクエリを実行"],
-      "An error occurred while fetching database values: %s": [
-        "データの取得中にエラーが発生しました"
-      ],
+      "Open query in SQL Lab": ["SQLラボでクエリを開く"],
+      "An error occurred while fetching database values: %s": [""],
       "Search by query text": [""],
-      "Query preview": ["データプレビュー"],
+      "Query preview": [""],
       "Previous": [""],
       "Next": [""],
-      "Open in SQL Lab": ["SQLエディタで開く"],
-      "User query": ["クエリを共有"],
-      "Executed query": ["選択したクエリを実行"],
+      "Open in SQL Lab": ["SQLラボで開く"],
+      "User query": ["ユーザークエリ"],
+      "Executed query": ["実行されたクエリ"],
       "Saved queries": ["保存されたクエリ"],
       "There was an issue previewing the selected query %s": [""],
       "Link Copied!": [""],
       "There was an issue deleting the selected queries: %s": [""],
-      "Edit query": ["保存されたクエリの編集"],
+      "Edit query": ["クエリを編集"],
       "Copy query URL": [""],
-      "Delete query": ["削除"],
+      "Delete query": ["クエリを削除"],
       "This action will permanently delete the saved query.": [""],
-      "Delete Query?": ["選択したクエリを実行"],
+      "Delete Query?": ["クエリを削除しますか？"],
       "Are you sure you want to delete the selected queries?": [""],
-      "Query name": ["クエリ"],
-      "Edited": [""],
-      "Created": ["作成日"],
-      "Viewed": [""],
-      "Examples": [""],
-      "Mine": [""],
+      "Query name": ["クエリ名"],
+      "Edited": ["編集したもの"],
+      "Created": ["作成したもの"],
+      "Viewed": ["表示したもの"],
+      "Examples": ["例"],
+      "Mine": ["私のもの"],
       "Recently viewed charts, dashboards, and saved queries will appear here": [
-        ""
+        "最近表示したグラフ、ダッシュボード、保存したクエリがここに表示されます"
       ],
       "Recently created charts, dashboards, and saved queries will appear here": [
-        ""
+        "最近作成したグラフ、ダッシュボード、保存したクエリがここに表示されます"
       ],
       "Recent example charts, dashboards, and saved queries will appear here": [
-        ""
+        "最近のチャート、ダッシュボード、保存されたクエリの例がここに表示されます"
       ],
       "Recently edited charts, dashboards, and saved queries will appear here": [
-        ""
+        "最近編集したグラフ、ダッシュボード、保存したクエリがここに表示されます"
       ],
       "${tableName\n                        .split('')\n                        .slice(0, tableName.length - 1)\n                        .join('')}\n                    ": [
         ""
       ],
-      "You don't have any favorites yet!": [""],
-      "SQL Lab queries": ["SQLツール"],
+      "You don't have any favorites yet!": ["まだお気に入りはありません！"],
+      "SQL Lab queries": ["SQLラボクエリ"],
       "${tableName}": ["テーブル名"],
       "query": ["クエリ"],
-      "Share": [""],
-      "Last run %s": [""],
-      "Recents": [""],
-      "Select start and end date": [""],
-      "Type or Select [%s]": [""],
+      "Share": ["共有"],
+      "Last run %s": ["前回の実行 %s"],
+      "Recents": ["最近"],
+      "Select start and end date": ["開始日と終了日を選択"],
+      "Type or Select [%s]": ["入力または選択 [%s]"],
       "Filter box": ["フィルタボックス"],
-      "Filters configuration": ["データソースの設定を編集"],
+      "Filters configuration": ["フィルタ構成"],
       "Filter configuration for the filter box": [""],
-      "Date filter": ["フィルターを追加"],
+      "Date filter": [""],
       "Whether to include a time filter": [""],
-      "Instant filtering": ["検索/フィルタ"],
+      "Instant filtering": [""],
       "Check to apply filters instantly as they change instead of displaying [Apply] button": [
         ""
       ],
       "Show SQL granularity dropdown": [""],
       "Check to include SQL granularity dropdown": [""],
-      "Show SQL time column": ["時間列"],
+      "Show SQL time column": [""],
       "Check to include time column dropdown": [""],
       "Show Druid granularity dropdown": [""],
       "Check to include Druid granularity dropdown": [""],
@@ -2073,7 +2210,7 @@
       "Check to include time origin dropdown": [""],
       "Limit selector values": [""],
       "These filters apply to the values available in the dropdowns": [""],
-      "Time-series Table": ["時系列 - 積み上げ線グラフ"]
+      "Time-series Table": ["時系列 - 表"]
     }
   }
 }
