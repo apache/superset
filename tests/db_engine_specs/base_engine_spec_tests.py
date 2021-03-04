@@ -263,7 +263,7 @@ def test_is_readonly():
     def is_readonly(sql: str) -> bool:
         return BaseEngineSpec.is_readonly_query(ParsedQuery(sql))
 
-    assert not is_readonly("SHOW LOCKS test EXTENDED")
+    assert is_readonly("SHOW LOCKS test EXTENDED")
     assert not is_readonly("SET hivevar:desc='Legislators'")
     assert not is_readonly("UPDATE t1 SET col1 = NULL")
     assert is_readonly("EXPLAIN SELECT 1")
