@@ -24,7 +24,7 @@ from sqlalchemy.sql import select
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.sql_parse import ParsedQuery
-from superset.utils.core import DatasourceName
+from superset.utils.core import DatasourceName, GenericDataType
 from tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
@@ -535,33 +535,41 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         self.assertEqual(actual_expanded_cols, expected_expanded_cols)
 
     def test_get_sqla_column_type(self):
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("varchar(255)")
+        sqla_type, generic_type = PrestoEngineSpec.get_sqla_column_type("varchar(255)")
         assert isinstance(sqla_type, types.VARCHAR)
         assert sqla_type.length == 255
+        assert isinstance(generic_type, GenericDataType.STRING)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("varchar")
+        sqla_type, generic_type = PrestoEngineSpec.get_sqla_column_type("varchar")
         assert isinstance(sqla_type, types.String)
         assert sqla_type.length is None
+        assert isinstance(generic_type, GenericDataType.STRING)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("char(10)")
+        sqla_type, generic_type = PrestoEngineSpec.get_sqla_column_type("char(10)")
         assert isinstance(sqla_type, types.CHAR)
         assert sqla_type.length == 10
+        assert isinstance(generic_type, GenericDataType.STRING)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("char")
+        sqla_type, generic_type = PrestoEngineSpec.get_sqla_column_type("char")
         assert isinstance(sqla_type, types.CHAR)
         assert sqla_type.length is None
+        assert isinstance(generic_type, GenericDataType.STRING)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("integer")
+        sqla_type, generic_type = PrestoEngineSpec.get_sqla_column_type("integer")
         assert isinstance(sqla_type, types.Integer)
+        assert isinstance(generic_type, GenericDataType.NUMERIC)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("time")
+        sqla_type, generic_type = PrestoEngineSpec.get_sqla_column_type("time")
         assert isinstance(sqla_type, types.Time)
+        assert isinstance(generic_type, GenericDataType.TEMPORAL)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type("timestamp")
+        sqla_type, generic_type = PrestoEngineSpec.get_sqla_column_type("timestamp")
         assert isinstance(sqla_type, types.TIMESTAMP)
+        assert isinstance(generic_type, GenericDataType.TEMPORAL)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type(None)
+        sqla_type, generic_type = PrestoEngineSpec.get_sqla_column_type(None)
         assert sqla_type is None
+        assert generic_type is None
 
     @mock.patch(
         "superset.utils.feature_flag_manager.FeatureFlagManager.is_feature_enabled"
