@@ -27,7 +27,7 @@ import shortid from 'shortid';
 import rison from 'rison';
 import { styled, t, makeApi } from '@superset-ui/core';
 import { debounce } from 'lodash';
-
+import Icon from 'src/components/Icon';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { put as updateDatset } from 'src/api/dataset';
@@ -100,11 +100,23 @@ const MonospaceDiv = styled.div`
   white-space: pre-wrap;
 `;
 
+const ReturnedRows = styled.div`
+  font-size: 13px;
+  line-height: 24px;
+  .returnedRowsImage {
+    color: ${({ theme }) => theme.colors.warning.base};
+    vertical-align: bottom;
+    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+  .limitMessage {
+    color: ${({ theme }) => theme.colors.secondary.light1};
+    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+`;
 const ResultSetControls = styled.div`
   display: flex;
   justify-content: space-between;
   padding: ${({ theme }) => 2 * theme.gridUnit}px 0;
-  position: fixed;
 `;
 
 const ResultSetButtons = styled.div`
@@ -498,6 +510,28 @@ export default class ResultSet extends React.PureComponent<
     return <div />;
   }
 
+  renderRowsReturned() {
+    const { results, rows } = this.props.query;
+    const limitReached = results?.displayLimitReached;
+    const limitWarning = <Icon className="returnedRowsImage" name="warning" />;
+    return (
+      <ReturnedRows>
+        {limitReached && limitWarning}
+        <span>{t(`%s rows returned`, rows)}</span>
+        {limitReached && (
+          <span className="limitMessage">
+            {t(
+              `It appears that the number of rows in the query results displayed
+           was limited on the server side to
+           the %s limit.`,
+              rows,
+            )}
+          </span>
+        )}
+      </ReturnedRows>
+    );
+  }
+
   render() {
     const { query } = this.props;
     const height = Math.max(
@@ -587,6 +621,7 @@ export default class ResultSet extends React.PureComponent<
         return (
           <>
             {this.renderControls()}
+            {this.renderRowsReturned()}
             {sql}
             <FilterableTable
               data={data}
