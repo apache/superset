@@ -139,7 +139,7 @@ export type InternalControlType =
   | 'MetricsControl'
   | 'AdhocFilterControl'
   | 'FilterBoxItemControl'
-  | 'DndColumnSelectControl'
+  | 'DndColumnSelect'
   | 'DndFilterSelect'
   | keyof SharedControlComponents; // expanded in `expandControlConfig`
 
