@@ -66,18 +66,17 @@ class AbstractEventLogger(ABC):
         log_to_statsd: bool = True,
         duration: Optional[timedelta] = None,
         **payload_override: Dict[str, Any],
-    ):
+    ) -> object:
         self.action = action
         self.object_ref = object_ref
         self.log_to_statsd = log_to_statsd
         self.payload_override = payload_override
         return self
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         self.start = datetime.now()
-        return None
 
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         # Log data w/ arguments being passed in
         self.log_with_context(
             action=self.action,
@@ -104,10 +103,10 @@ class AbstractEventLogger(ABC):
     def log_with_context(
         self,
         action: str,
+        duration: timedelta,
         object_ref: Optional[str] = None,
         log_to_statsd: bool = True,
-        duration: Optional[timedelta] = None,
-        payload_override: Dict[str, Any] = None,
+        payload_override: Optional[Dict[str, Any]] = None,
         **kwargs: Any,
     ) -> None:
         from superset.views.core import get_form_data
@@ -155,7 +154,7 @@ class AbstractEventLogger(ABC):
             records=records,
             dashboard_id=dashboard_id,
             slice_id=slice_id,
-            duration_ms=duration.total_seconds() * 1000,
+            duration_ms=int(duration.total_seconds() * 1000),
             referrer=referrer,
             **kwargs,
         )
@@ -177,7 +176,7 @@ class AbstractEventLogger(ABC):
         duration = datetime.now() - start
 
         self.log_with_context(
-            action, object_ref, log_to_statsd, duration, payload_override
+            action, duration, object_ref, log_to_statsd, payload_override
         )
 
     def _wrapper(
