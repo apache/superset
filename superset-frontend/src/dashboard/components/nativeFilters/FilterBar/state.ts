@@ -45,9 +45,7 @@ export function useCascadingFilters(id: string) {
   cascadeParentIds.forEach(parentId => {
     const parentState = nativeFilters[parentId] || {};
     const { extraFormData: parentExtra = {} } = parentState;
-    cascadedFilters = {
-      nativeFilters: mergeExtraFormData(cascadedFilters, parentExtra),
-    };
+    cascadedFilters = mergeExtraFormData(cascadedFilters, parentExtra);
   });
   return cascadedFilters;
 }
