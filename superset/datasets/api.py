@@ -659,11 +659,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                   type: object
                   properties:
                     formData:
+                      description: upload file (ZIP or YAML)
                       type: string
                       format: binary
                     passwords:
+                      description: JSON map of passwords for each file
                       type: string
                     overwrite:
+                      description: overwrite existing databases?
                       type: bool
           responses:
             200:
