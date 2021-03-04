@@ -141,7 +141,7 @@ const TitleArea = styled.h4`
   flex-direction: row;
   justify-content: space-between;
   margin: 0;
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
+  padding: ${({ theme }) => theme.gridUnit * 2}px;
   & > span {
     flex-grow: 1;
   }
@@ -154,14 +154,14 @@ const TitleArea = styled.h4`
 `;
 
 const ActionButtons = styled.div`
-  display: flex;
+  display: grid;
   flex-direction: row;
-  justify-content: space-around;
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
-  padding-top: 0;
+  grid-template-columns: 1fr 1fr;
+  ${({ theme }) =>
+    `padding: 0 ${theme.gridUnit * 2}px ${theme.gridUnit * 2}px`};
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   .btn {
-    flex: 1 1 50%;
+    flex: 1;
   }
 `;
 
@@ -181,6 +181,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   directPathToChild,
 }) => {
   const [filterData, setFilterData] = useState<SingleDataMask>({});
+  const [isFiltersChanged, setIsFilterChanged] = useState(false);
   const dispatch = useDispatch();
   const dataMaskState = useSelector<any, MultipleDataMask>(
     state => state.dataMask.nativeFilters ?? {},
@@ -360,14 +361,15 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         </TitleArea>
         <ActionButtons>
           <Button
-            buttonStyle="secondary"
+            buttonStyle="tertiary"
             buttonSize="small"
             onClick={handleResetAll}
             data-test="filter-reset-button"
           >
-            {t('Reset all')}
+            {t('Clear all')}
           </Button>
           <Button
+            disabled={isFiltersChanged}
             buttonStyle="primary"
             htmlType="submit"
             buttonSize="small"
