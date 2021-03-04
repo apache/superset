@@ -32,6 +32,7 @@ const validators = {
   less_equal: (a: number, b: number) => a <= b,
 };
 
+<<<<<<< HEAD
 function getJSONSchema() {
   const jsonSchema = window.featureFlags.SCHEDULED_QUERIES.JSONSCHEMA;
   // parse date-time into usable value (eg, 'today' => `new Date()`)
@@ -58,6 +59,34 @@ function getValidationRules() {
 
 function getValidator() {
   const rules = getValidationRules();
+=======
+const getJSONSchema = () => {
+  const jsonSchema = window.featureFlags.SCHEDULED_QUERIES?.JSONSCHEMA;
+  // parse date-time into usable value (eg, 'today' => `new Date()`)
+  if (jsonSchema) {
+    Object.entries(jsonSchema.properties).forEach(
+      ([key, value]: [string, any]) => {
+        if (value.default && value.format === 'date-time') {
+          jsonSchema.properties[key] = {
+            ...value,
+            default: chrono.parseDate(value.default).toISOString(),
+          };
+        }
+      },
+    );
+    return jsonSchema;
+  }
+  return {};
+};
+
+const getUISchema = () => window.featureFlags.SCHEDULED_QUERIES?.UISCHEMA;
+
+const getValidationRules = () =>
+  window.featureFlags.SCHEDULED_QUERIES?.VALIDATION || [];
+
+const getValidator = () => {
+  const rules: any = getValidationRules();
+>>>>>>> changed file configs
   return (formData: Record<string, any>, errors: FormValidation) => {
     rules.forEach((rule: any) => {
       const test = validators[rule.name];
@@ -69,7 +98,7 @@ function getValidator() {
     });
     return errors;
   };
-}
+};
 
 interface ScheduleQueryButtonProps {
   defaultLabel?: string;
@@ -87,6 +116,25 @@ const StyledRow = styled(Row)`
   padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
+<<<<<<< HEAD
+=======
+const ButtonComponent = styled.div`
+  background-color: none;
+  .ant-btn.superset-button {
+    color: rgba(0, 0, 0, 0.85);
+    text-transform: none;
+    padding-right: 0px;
+    padding: 0px;
+    font-size: 14px;
+    height: 22px;
+    font-weight: ${({ theme }) => theme.typography.weights.normal};
+    &:first-child {
+      background: none;
+    }
+  }
+`;
+
+>>>>>>> changed file configs
 const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
   defaultLabel = t('Undefined'),
   sql,
@@ -101,7 +149,6 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
   const [label, setLabel] = useState(defaultLabel);
   const [showSchedule, setShowSchedule] = useState(false);
   let saveModal: any;
-  // this is for the ref that is created in the modal trigger. the modal is created in order to use the .close() function on it.
 
   const onScheduleSubmit = ({ formData }: Record<string, any>) => {
     const query = {
