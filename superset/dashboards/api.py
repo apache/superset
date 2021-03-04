@@ -168,7 +168,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     add_model_schema = DashboardPostSchema()
     edit_model_schema = DashboardPutSchema()
     chart_entity_response_schema = ChartEntityResponseSchema()
-    dashboard_response_schema = DashboardGetResponseSchema()
+    dashboard_get_response_schema = DashboardGetResponseSchema()
 
     base_filters = [["slice", DashboardFilter, lambda: []]]
 
@@ -234,7 +234,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     type: object
                     properties:
                       result:
-                        $ref: '#/components/schemas/DashboardResponseSchema'
+                        $ref: '#/components/schemas/DashboardGetResponseSchema'
             302:
               description: Redirects to the current digest
             400:
@@ -247,7 +247,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         # pylint: disable=arguments-differ
         try:
             dash = DashboardDAO.get_by_id_or_slug(id_or_slug)
-            result = self.dashboard_response_schema.dump(dash)
+            result = self.dashboard_get_response_schema.dump(dash)
             return self.response(200, result=result)
         except DashboardNotFoundError:
             return self.response_404()
