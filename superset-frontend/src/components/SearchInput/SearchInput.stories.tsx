@@ -43,7 +43,7 @@ export const InteractiveSearchInput = ({
 
 InteractiveSearchInput.args = {
   value: 'Test',
-  placeholder: 'Enter a text',
+  placeholder: 'Enter some text',
   name: 'search-input',
 };
 
