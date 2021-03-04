@@ -17,33 +17,29 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
 import cx from 'classnames';
-import { styled, withTheme } from '@superset-ui/core';
+import { styled, withTheme, SupersetThemeProps } from '@superset-ui/core';
 import { Dropdown, Menu } from 'src/common/components';
 import Icon from 'src/components/Icon';
 
-const propTypes = {
-  id: PropTypes.string.isRequired,
-  options: PropTypes.arrayOf(
-    PropTypes.shape({
-      value: PropTypes.string.isRequired,
-      label: PropTypes.string.isRequired,
-      className: PropTypes.string,
-    }),
-  ).isRequired,
-  onChange: PropTypes.func.isRequired,
-  value: PropTypes.string.isRequired,
-  renderButton: PropTypes.func,
-  renderOption: PropTypes.func,
-};
+export interface OptionProps {
+  value: string;
+  label: string;
+  className?: string;
+}
 
-const defaultProps = {
-  renderButton: option => option.label,
-  renderOption: option => (
-    <div className={option.className}>{option.label}</div>
-  ),
-};
+export type OnChangeHandler = (key: React.Key) => void;
+export type RenderElementHandler = (option: OptionProps) => JSX.Element;
+
+interface PopoverDropdownProps {
+  id: string;
+  options: OptionProps[];
+  onChange: OnChangeHandler;
+  value: string;
+  theme: SupersetThemeProps['theme'];
+  renderButton: RenderElementHandler;
+  renderOption: RenderElementHandler;
+}
 
 const MenuItem = styled(Menu.Item)`
   &.ant-menu-item {
@@ -75,31 +71,34 @@ const MenuItem = styled(Menu.Item)`
   }
 `;
 
-class PopoverDropdown extends React.PureComponent {
-  constructor(props) {
+interface HandleSelectProps {
+  key: React.Key;
+}
+
+class PopoverDropdown extends React.PureComponent<PopoverDropdownProps> {
+  constructor(props: PopoverDropdownProps) {
     super(props);
 
     this.handleSelect = this.handleSelect.bind(this);
   }
 
-  handleSelect({ key }) {
+  handleSelect({ key }: HandleSelectProps) {
     this.props.onChange(key);
   }
 
+  static defaultProps = {
+    renderButton: (option: OptionProps) => option.label,
+    renderOption: (option: OptionProps) => (
+      <div className={option.className}>{option.label}</div>
+    ),
+  };
+
   render() {
-    const {
-      id,
-      value,
-      options,
-      renderButton,
-      renderOption,
-      theme,
-    } = this.props;
+    const { value, options, renderButton, renderOption, theme } = this.props;
     const selected = options.find(opt => opt.value === value);
     return (
       <Dropdown
-        id={id}
-        trigger="click"
+        trigger={['click']}
         overlayStyle={{ zIndex: theme.zIndex.max }}
         overlay={
           <Menu onClick={this.handleSelect}>
@@ -118,15 +117,12 @@ class PopoverDropdown extends React.PureComponent {
         }
       >
         <div role="button" css={{ display: 'flex', alignItems: 'center' }}>
-          {renderButton(selected)}
+          {selected && renderButton(selected)}
           <Icon name="caret-down" css={{ marginTop: 4 }} />
         </div>
       </Dropdown>
     );
   }
 }
-
-PopoverDropdown.propTypes = propTypes;
-PopoverDropdown.defaultProps = defaultProps;
 
 export default withTheme(PopoverDropdown);
