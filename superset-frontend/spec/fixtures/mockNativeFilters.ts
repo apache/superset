@@ -134,14 +134,15 @@ export const singleNativeFiltersState = {
       isRequired: false,
     },
   },
-  filtersState: {
-    nativeFilters: {
-      [NATIVE_FILTER_ID]: {
-        id: NATIVE_FILTER_ID,
-        extraFormData,
-        currentState: {
-          value: ['No, not an ethnic minority'],
-        },
+};
+
+export const singleDataMask = {
+  nativeFilters: {
+    [NATIVE_FILTER_ID]: {
+      id: NATIVE_FILTER_ID,
+      extraFormData,
+      currentState: {
+        value: ['No, not an ethnic minority'],
       },
     },
   },

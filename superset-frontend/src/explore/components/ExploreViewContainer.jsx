@@ -54,6 +54,7 @@ import {
   LOG_ACTIONS_MOUNT_EXPLORER,
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
 } from '../../logger/LogUtils';
+import { mergeExtraFormData } from '../../dashboard/components/nativeFilters/utils';
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,
@@ -163,6 +164,10 @@ function ExploreViewContainer(props) {
   const wasDynamicPluginLoading = usePrevious(isDynamicPluginLoading);
 
   const previousControls = usePrevious(props.controls);
+  const [
+    chartIsStaleByOwnCurrentState,
+    setChartIsStaleByOwnCurrentState,
+  ] = useState(false);
   const windowSize = useWindowSize();
 
   const [showingModal, setShowingModal] = useState(false);
@@ -222,6 +227,7 @@ function ExploreViewContainer(props) {
   }
 
   function onQuery() {
+    setChartIsStaleByOwnCurrentState(false);
     props.actions.triggerQuery(true, props.chart.id);
     addHistory();
   }
@@ -294,6 +300,15 @@ function ExploreViewContainer(props) {
     }
   }, []);
 
+  const reRenderChart = () => {
+    props.actions.updateQueryFormData(
+      getFormDataFromControls(props.controls),
+      props.chart.id,
+    );
+    props.actions.renderTriggered(new Date().getTime(), props.chart.id);
+    addHistory();
+  };
+
   // effect to run when controls change
   useEffect(() => {
     if (previousControls) {
@@ -320,17 +335,12 @@ function ExploreViewContainer(props) {
         key => props.controls[key].renderTrigger,
       );
       if (hasDisplayControlChanged) {
-        props.actions.updateQueryFormData(
-          getFormDataFromControls(props.controls),
-          props.chart.id,
-        );
-        props.actions.renderTriggered(new Date().getTime(), props.chart.id);
-        addHistory();
+        reRenderChart();
       }
     }
-  }, [props.controls]);
+  }, [props.controls, props.ownCurrentState]);
 
-  const chartIsStale = useMemo(() => {
+  const chartIsStaleByControls = useMemo(() => {
     if (previousControls) {
       const changedControlKeys = Object.keys(props.controls).filter(
         key =>
@@ -349,6 +359,15 @@ function ExploreViewContainer(props) {
     }
     return false;
   }, [previousControls, props.controls]);
+
+  useEffect(() => {
+    if (props.ownCurrentState !== undefined) {
+      setChartIsStaleByOwnCurrentState(true);
+      reRenderChart();
+    }
+  }, [JSON.stringify(props.ownCurrentState)]);
+
+  const chartIsStale = chartIsStaleByControls || chartIsStaleByOwnCurrentState;
 
   if (chartIsStale) {
     props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS);
@@ -542,6 +561,12 @@ ExploreViewContainer.propTypes = propTypes;
 function mapStateToProps(state) {
   const { explore, charts, impressionId, dataMask } = state;
   const form_data = getFormDataFromControls(explore.controls);
+  form_data.extra_form_data = mergeExtraFormData(
+    { ...form_data.extra_form_data },
+    {
+      ...dataMask.ownFilters[explore.slice.slice_id]?.extraFormData,
+    },
+  );
   const chartKey = Object.keys(charts)[0];
   const chart = charts[chartKey];
   return {
@@ -571,8 +596,7 @@ function mapStateToProps(state) {
     forcedHeight: explore.forced_height,
     chart,
     timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    ownCurrentState:
-      dataMask.ownFilters?.[explore.form_data.slice_id]?.currentState,
+    ownCurrentState: dataMask.ownFilters[explore.slice.slice_id]?.currentState,
     impressionId,
   };
 }

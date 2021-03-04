@@ -33,6 +33,7 @@ import {
   NATIVE_FILTER_ID,
   layoutForSingleNativeFilter,
   singleNativeFiltersState,
+  singleDataMask,
 } from 'spec/fixtures/mockNativeFilters';
 import dashboardInfo from 'spec/fixtures/mockDashboardInfo';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
@@ -154,7 +155,8 @@ describe('Dashboard', () => {
         activeFilters: {
           ...OVERRIDE_FILTERS,
           ...getActiveNativeFilters({
-            nativeFilters: singleNativeFiltersState,
+            dataMask: singleDataMask,
+            filters: singleNativeFiltersState.filters,
             layout: layoutForSingleNativeFilter,
           }),
         },

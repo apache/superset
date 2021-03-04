@@ -41,13 +41,14 @@ export const nativeFiltersInfo = {
       isRequired: false,
     },
   },
-  filtersState: {
-    nativeFilters: {
-      DefaultsID: {
-        id: 'DefaultId',
-        currentState: {
-          value: [],
-        },
+};
+
+export const mockDataMaskInfo = {
+  nativeFilters: {
+    DefaultsID: {
+      id: 'DefaultId',
+      currentState: {
+        value: [],
       },
     },
   },
