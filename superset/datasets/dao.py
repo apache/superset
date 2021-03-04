@@ -201,9 +201,7 @@ class DatasetDAO(BaseDAO):
             new_columns.append(column_obj)
         # Checks if an exiting column is missing from properties and delete it
         for existing_column in model.columns:
-            if existing_column.column_name not in [
-                column["column_name"] for column in property_columns
-            ]:
+            if existing_column.id not in [column.id for column in new_columns]:
                 DatasetDAO.delete_column(existing_column)
         return new_columns
 
@@ -235,9 +233,7 @@ class DatasetDAO(BaseDAO):
 
         # Checks if an exiting column is missing from properties and delete it
         for existing_metric in model.metrics:
-            if existing_metric.metric_name not in [
-                metric["metric_name"] for metric in property_metrics
-            ]:
+            if existing_metric.id not in [metric.id for metric in new_metrics]:
                 DatasetDAO.delete_metric(existing_metric)
         return new_metrics
 

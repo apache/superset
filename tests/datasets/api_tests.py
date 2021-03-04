@@ -753,7 +753,6 @@ class TestDatasetApi(SupersetTestCase):
 
         self.login(username="admin")
         uri = f"api/v1/dataset/{dataset.id}"
-        # try to insert a new column ID that already exists
         data = {
             "metrics": [
                 {"metric_name": "metric1", "expression": "COUNT(*)"},
