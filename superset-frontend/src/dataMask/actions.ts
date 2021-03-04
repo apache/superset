@@ -16,14 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MultipleMask, MultipleDataMaskState } from './types';
+import { MultipleMask } from './types';
 import { FilterConfiguration } from '../dashboard/components/nativeFilters/types';
-
-export const SET_DATA_MASK = 'SET_DATA_MASK';
-export interface SetDataMask {
-  type: typeof SET_DATA_MASK;
-  dataMask: MultipleDataMaskState;
-}
 
 export const UPDATE_DATA_MASK = 'UPDATE_DATA_MASK';
 export interface UpdateDataMask {
@@ -62,15 +56,7 @@ export function updateDataMask(
   };
 }
 
-export function setDataMask(dataMask: MultipleDataMaskState): SetDataMask {
-  return {
-    type: SET_DATA_MASK,
-    dataMask,
-  };
-}
-
 export type AnyDataMaskAction =
-  | SetDataMask
   | UpdateDataMask
   | SetDataMaskForFilterConfigFail
   | SetDataMaskForFilterConfigComplete;

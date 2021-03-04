@@ -22,7 +22,6 @@ import produce from 'immer';
 import { MultipleMask, DataMaskType, MultipleDataMaskState } from './types';
 import {
   AnyDataMaskAction,
-  SET_DATA_MASK,
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
   UPDATE_DATA_MASK,
   UpdateDataMask,
@@ -50,6 +49,12 @@ const setUnitDataMask = (
   }
 };
 
+const emptyDataMask = {
+  [DataMaskType.NativeFilters]: {},
+  [DataMaskType.CrossFilters]: {},
+  [DataMaskType.OwnFilters]: {},
+};
+
 const dataMaskReducer = produce(
   (draft: MultipleDataMaskState, action: AnyDataMaskAction) => {
     switch (action.type) {
@@ -59,25 +64,21 @@ const dataMaskReducer = produce(
         );
         break;
 
-      case SET_DATA_MASK:
-        draft = action.dataMask;
-        break;
-
       case SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE:
-        (action.filterConfig ?? []).forEach(({ id }) => {
-          draft[DataMaskType.NativeFilters][id] =
-            draft[DataMaskType.NativeFilters][id] ?? getInitialMask(id);
+        Object.values(DataMaskType).forEach(unitName => {
+          draft[unitName] = emptyDataMask[unitName];
+        });
+        (action.filterConfig ?? []).forEach(filter => {
+          draft[DataMaskType.NativeFilters][filter.id] =
+            draft[DataMaskType.NativeFilters][filter.id] ??
+            getInitialMask(filter.id);
         });
         break;
 
       default:
     }
   },
-  {
-    [DataMaskType.NativeFilters]: {},
-    [DataMaskType.CrossFilters]: {},
-    [DataMaskType.OwnFilters]: {},
-  },
+  emptyDataMask,
 );
 
 export default dataMaskReducer;
