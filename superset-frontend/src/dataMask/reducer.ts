@@ -18,6 +18,7 @@
  */
 
 /* eslint-disable no-param-reassign */
+// <- When we work with Immer, we need reassign, so disabling lint
 import produce from 'immer';
 import { MultipleMask, DataMaskType, MultipleDataMaskState } from './types';
 import {
