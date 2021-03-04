@@ -18,16 +18,28 @@ import json
 import logging
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Match,
+    Optional,
+    Pattern,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 
 from pytz import _FixedOffset  # type: ignore
 from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
+from sqlalchemy.types import TypeEngine
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
-from superset.utils.core import GenericDataType
+from superset.utils.core import ColumnSpec, GenericDataType
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
@@ -50,12 +62,12 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     column_type_mappings = (
         (
             re.compile(r"^double precision", re.IGNORECASE),
-            DOUBLE_PRECISION,
+            DOUBLE_PRECISION(),
             GenericDataType.NUMERIC,
         ),
-        (re.compile(r"^array.*", re.IGNORECASE), ARRAY, utils.GenericDataType.STRING),
-        (re.compile(r"^json.*", re.IGNORECASE), JSON, utils.GenericDataType.STRING,),
-        (re.compile(r"^enum.*", re.IGNORECASE), ENUM, utils.GenericDataType.STRING,),
+        (re.compile(r"^array.*", re.IGNORECASE), ARRAY(), utils.GenericDataType.STRING),
+        (re.compile(r"^json.*", re.IGNORECASE), JSON(), utils.GenericDataType.STRING,),
+        (re.compile(r"^enum.*", re.IGNORECASE), ENUM(), utils.GenericDataType.STRING,),
     )
 
     _time_grain_expressions = {
@@ -158,10 +170,25 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
             extra["engine_params"] = engine_params
         return extra
 
-    def get_column_spec(self):
+    @classmethod
+    def get_column_spec(  # type: ignore
+        cls,
+        native_type: Optional[str],
+        column_type_mappings: Tuple[
+            Tuple[
+                Pattern[str],
+                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
+                GenericDataType,
+            ],
+            ...,
+        ],
+        source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
+    ) -> Union[ColumnSpec, None]:
 
-        column_spec = super().get_column_spec()
+        column_spec = super().get_column_spec(native_type)
         if column_spec:
             return column_spec
 
-        return super().get_column_spec(column_type_mappings=self.column_type_mappings)
+        return super().get_column_spec(
+            native_type, column_type_mappings=cls.column_type_mappings
+        )

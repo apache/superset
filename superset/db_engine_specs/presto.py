@@ -293,7 +293,8 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
                         field_info = cls._split_data_type(single_field, r"\s")
                         # check if there is a structural data type within
                         # overall structural data type
-                        column_type = cls.get_sqla_column_type(field_info[1])
+                        column_spec = cls.get_column_spec(field_info[1])
+                        column_type = column_spec.sqla_type if column_spec else None
                         if column_type is None:
                             column_type = types.String()
                             logger.info(
@@ -470,7 +471,8 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
                 continue
 
             # otherwise column is a basic data type
-            column_type = cls.get_sqla_column_type(column.Type)
+            column_spec = cls.get_column_spec(column.Type)
+            column_type = column_spec.sqla_type if column_spec else None
             if column_type is None:
                 column_type = types.String()
                 logger.info(

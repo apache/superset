@@ -19,7 +19,7 @@
 import datetime
 import json
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -181,7 +181,9 @@ class SupersetResultSet:
         return next((i for i in items if i), None)
 
     def is_temporal(self, db_type_str: Optional[str]) -> bool:
-        return self.db_engine_spec.get_column_spec(db_type_str).is_dttm
+        column_spec = self.db_engine_spec.get_column_spec(db_type_str)
+        is_dttm = column_spec.is_dttm if column_spec else False
+        return is_dttm
 
     def data_type(self, col_name: str, pa_dtype: pa.DataType) -> Optional[str]:
         """Given a pyarrow data type, Returns a generic database type"""
