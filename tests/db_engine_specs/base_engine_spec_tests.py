@@ -269,3 +269,5 @@ def test_is_readonly():
     assert is_readonly("EXPLAIN SELECT 1")
     assert is_readonly("SELECT 1")
     assert is_readonly("WITH (SELECT 1) bla SELECT * from bla")
+    assert is_readonly("SHOW CATALOGS")
+    assert is_readonly("SHOW TABLES")
