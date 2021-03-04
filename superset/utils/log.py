@@ -155,7 +155,6 @@ class AbstractEventLogger(ABC):
             slice_id=slice_id,
             duration_ms=int(duration.total_seconds() * 1000),
             referrer=referrer,
-            **kwargs,
         )
 
     @contextmanager

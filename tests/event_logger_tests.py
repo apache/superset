@@ -147,3 +147,50 @@ class TestEventLogger(unittest.TestCase):
                 "duration": 15000.0,
             }
         ]
+
+    @patch("superset.utils.log.g", spec={})
+    def test_context_manager_log_with_context(self, mock_g):
+        class DummyEventLogger(AbstractEventLogger):
+            def __init__(self):
+                self.records = []
+
+            def log(
+                self,
+                user_id: Optional[int],
+                action: str,
+                dashboard_id: Optional[int],
+                duration_ms: Optional[int],
+                slice_id: Optional[int],
+                referrer: Optional[str],
+                *args: Any,
+                **kwargs: Any,
+            ):
+                self.records.append(
+                    {**kwargs, "user_id": user_id, "duration": duration_ms}
+                )
+
+        logger = DummyEventLogger()
+
+        with app.test_request_context():
+            mock_g.user = security_manager.find_user("gamma")
+            logger.log_with_context(
+                action="foo",
+                duration=timedelta(days=64, seconds=29156, microseconds=10),
+                object_ref={"baz": "food"},
+                log_to_statsd=False,
+                payload_override={"engine": "sqllite"},
+            )
+
+        assert logger.records == [
+            {
+                "records": [
+                    {
+                        "path": "/",
+                        "object_ref": {"baz": "food"},
+                        "payload_override": {"engine": "sqllite"},
+                    }
+                ],
+                "user_id": "2",
+                "duration": 5558756000,
+            }
+        ]
