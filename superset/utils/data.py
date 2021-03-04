@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 import random
 import string
 import sys
@@ -5,7 +21,6 @@ from datetime import date, datetime, time, timedelta
 from typing import Any, Callable, cast, Dict, List, Optional
 
 import sqlalchemy.sql.sqltypes
-from flask_appbuilder import Model
 from sqlalchemy import Column, inspect, MetaData, Table
 from sqlalchemy.sql.visitors import VisitableType
 from typing_extensions import TypedDict
@@ -83,7 +98,7 @@ def add_data(
     columns: Optional[List[ColumnInfo]],
     num_rows: int,
     table_name: str,
-    append: bool = False,
+    append: bool = True,
 ) -> None:
     """
     Generate synthetic data for testing migrations and features.
@@ -104,8 +119,8 @@ def add_data(
     if columns is None:
         if not table_exists:
             raise Exception(
-                f"The table {table_name} does not exist. To create it you need to pass a "
-                "list of column names and types."
+                f"The table {table_name} does not exist. To create it you need to "
+                "pass a list of column names and types."
             )
 
         inspector = inspect(engine)
@@ -117,7 +132,12 @@ def add_data(
     table = Table(table_name, metadata, *column_objects)
     metadata.create_all(engine)
 
+    if not append:
+        # pylint: disable=no-value-for-parameter (sqlalchemy/issues/4656)
+        engine.execute(table.delete())
+
     data = generate_data(columns, num_rows)
+    # pylint: disable=no-value-for-parameter (sqlalchemy/issues/4656)
     engine.execute(table.insert(), data)
 
 
