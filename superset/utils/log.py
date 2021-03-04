@@ -155,7 +155,7 @@ class AbstractEventLogger(ABC):
             records=records,
             dashboard_id=dashboard_id,
             slice_id=slice_id,
-            duration_ms=duration,
+            duration_ms=duration.total_seconds() * 1000,
             referrer=referrer,
             **kwargs,
         )
