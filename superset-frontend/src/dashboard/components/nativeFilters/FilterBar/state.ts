@@ -18,7 +18,7 @@
  */
 import { useSelector } from 'react-redux';
 import { NativeFiltersState, FilterSets } from 'src/dashboard/reducers/types';
-import { MultipleDataMaskState } from 'src/dataMask/types';
+import { DataMaskStateWithId } from 'src/dataMask/types';
 import { mergeExtraFormData } from '../utils';
 import { Filter } from '../types';
 
@@ -36,7 +36,7 @@ export function useCascadingFilters(id: string) {
   const { filters } = useSelector<any, NativeFiltersState>(
     state => state.nativeFilters,
   );
-  const { nativeFilters } = useSelector<any, MultipleDataMaskState>(
+  const { nativeFilters } = useSelector<any, DataMaskStateWithId>(
     state => state.dataMask,
   );
   const filter = filters[id];

@@ -27,7 +27,7 @@ import CascadeFilterControl from './CascadeFilterControl';
 import { CascadeFilter } from './types';
 import { Filter } from '../types';
 import { getInitialMask } from '../../../../dataMask/reducer';
-import { MultipleMask } from '../../../../dataMask/types';
+import { MaskWithId } from '../../../../dataMask/types';
 
 interface CascadePopoverProps {
   filter: CascadeFilter;
@@ -82,7 +82,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   directPathToChild,
 }) => {
   const [currentPathToChild, setCurrentPathToChild] = useState<string[]>();
-  const filterStateNative = useSelector<any, MultipleMask>(
+  const filterStateNative = useSelector<any, MaskWithId>(
     state =>
       state.dataMask.nativeFilters[filter.id] ?? getInitialMask(filter.id),
   );

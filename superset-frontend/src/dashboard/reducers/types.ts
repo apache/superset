@@ -19,7 +19,7 @@
 
 import componentTypes from 'src/dashboard/util/componentTypes';
 import { Filter } from '../components/nativeFilters/types';
-import { MultipleDataMaskState } from '../../dataMask/types';
+import { DataMaskStateWithId } from '../../dataMask/types';
 
 export enum Scoping {
   all,
@@ -70,7 +70,7 @@ export type LayoutItem = {
 export type FiltersSet = {
   id: string;
   name: string;
-  dataMask: Partial<MultipleDataMaskState>;
+  dataMask: Partial<DataMaskStateWithId>;
 };
 
 export type FilterSets = {

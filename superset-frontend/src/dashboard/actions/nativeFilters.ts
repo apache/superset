@@ -22,7 +22,7 @@ import { Dispatch } from 'redux';
 import { FilterConfiguration } from 'src/dashboard/components/nativeFilters/types';
 import { dashboardInfoChanged } from './dashboardInfo';
 import { FiltersSet } from '../reducers/types';
-import { DataMaskType, MultipleDataMaskState } from '../../dataMask/types';
+import { DataMaskType, DataMaskStateWithId } from '../../dataMask/types';
 import {
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
   SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL,
@@ -152,14 +152,14 @@ export const SAVE_FILTER_SETS = 'SAVE_FILTER_SETS';
 export interface SaveFilterSets {
   type: typeof SAVE_FILTER_SETS;
   name: string;
-  dataMask: Pick<MultipleDataMaskState, DataMaskType.NativeFilters>;
+  dataMask: Pick<DataMaskStateWithId, DataMaskType.NativeFilters>;
   filtersSetId: string;
 }
 
 export function saveFilterSets(
   name: string,
   filtersSetId: string,
-  dataMask: Pick<MultipleDataMaskState, DataMaskType.NativeFilters>,
+  dataMask: Pick<DataMaskStateWithId, DataMaskType.NativeFilters>,
 ): SaveFilterSets {
   return {
     type: SAVE_FILTER_SETS,

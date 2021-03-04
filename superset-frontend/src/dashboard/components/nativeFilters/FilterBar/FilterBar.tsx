@@ -28,10 +28,10 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
 import { updateDataMask } from 'src/dataMask/actions';
 import {
-  MultipleDataMask,
-  MultipleMask,
-  SingleDataMask,
-  SingleDataMaskState,
+  DataMaskUnitWithId,
+  MaskWithId,
+  DataMaskUnit,
+  DataMaskState,
 } from 'src/dataMask/types';
 import FilterConfigurationLink from './FilterConfigurationLink';
 import { useFilters, useFilterSets } from './state';
@@ -180,9 +180,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   toggleFiltersBar,
   directPathToChild,
 }) => {
-  const [filterData, setFilterData] = useState<SingleDataMask>({});
+  const [filterData, setFilterData] = useState<DataMaskUnit>({});
   const dispatch = useDispatch();
-  const dataMaskState = useSelector<any, MultipleDataMask>(
+  const dataMaskState = useSelector<any, DataMaskUnitWithId>(
     state => state.dataMask.nativeFilters ?? {},
   );
   const filterSets = useFilterSets();
@@ -236,7 +236,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const handleFilterSelectionChange = (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
-    dataMask: Partial<SingleDataMaskState>,
+    dataMask: Partial<DataMaskState>,
   ) => {
     setFilterData(prevFilterData => {
       const children = cascadeChildren[filter.id] || [];
@@ -263,7 +263,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     const filtersSet = filterSets[value];
     Object.values(filtersSet.dataMask?.nativeFilters ?? []).forEach(
       dataMask => {
-        const { extraFormData, currentState, id } = dataMask as MultipleMask;
+        const { extraFormData, currentState, id } = dataMask as MaskWithId;
         handleFilterSelectionChange(
           { id },
           { nativeFilters: { extraFormData, currentState } },

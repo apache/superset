@@ -20,7 +20,7 @@
 /* eslint-disable no-param-reassign */
 // <- When we work with Immer, we need reassign, so disabling lint
 import produce from 'immer';
-import { MultipleMask, DataMaskType, MultipleDataMaskState } from './types';
+import { MaskWithId, DataMaskType, DataMaskStateWithId } from './types';
 import {
   AnyDataMaskAction,
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
@@ -28,7 +28,7 @@ import {
   UpdateDataMask,
 } from './actions';
 
-export function getInitialMask(id: string): MultipleMask {
+export function getInitialMask(id: string): MaskWithId {
   return {
     id,
     extraFormData: {},
@@ -39,7 +39,7 @@ export function getInitialMask(id: string): MultipleMask {
 const setUnitDataMask = (
   unitName: DataMaskType,
   action: UpdateDataMask,
-  dataMaskState: MultipleDataMaskState,
+  dataMaskState: DataMaskStateWithId,
 ) => {
   if (action[unitName]) {
     dataMaskState[unitName][action.filterId] = {
@@ -57,7 +57,7 @@ const emptyDataMask = {
 };
 
 const dataMaskReducer = produce(
-  (draft: MultipleDataMaskState, action: AnyDataMaskAction) => {
+  (draft: DataMaskStateWithId, action: AnyDataMaskAction) => {
     switch (action.type) {
       case UPDATE_DATA_MASK:
         Object.values(DataMaskType).forEach(unitName =>

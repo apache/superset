@@ -17,7 +17,7 @@
  * under the License.
  */
 import { NativeFiltersState } from 'src/dashboard/reducers/types';
-import { MultipleDataMaskState } from '../../src/dataMask/types';
+import { DataMaskStateWithId } from '../../src/dataMask/types';
 
 export const nativeFilters: NativeFiltersState = {
   filterSets: {},
@@ -75,7 +75,7 @@ export const nativeFilters: NativeFiltersState = {
   },
 };
 
-export const datMask: MultipleDataMaskState = {
+export const dataMask: DataMaskStateWithId = {
   crossFilters: {},
   ownFilters: {},
   nativeFilters: {

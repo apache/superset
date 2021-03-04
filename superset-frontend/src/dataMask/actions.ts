@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MultipleMask } from './types';
+import { MaskWithId } from './types';
 import { FilterConfiguration } from '../dashboard/components/nativeFilters/types';
 
 export const UPDATE_DATA_MASK = 'UPDATE_DATA_MASK';
 export interface UpdateDataMask {
   type: typeof UPDATE_DATA_MASK;
   filterId: string;
-  nativeFilters?: Omit<MultipleMask, 'id'>;
-  crossFilters?: Omit<MultipleMask, 'id'>;
-  ownFilters?: Omit<MultipleMask, 'id'>;
+  nativeFilters?: Omit<MaskWithId, 'id'>;
+  crossFilters?: Omit<MaskWithId, 'id'>;
+  ownFilters?: Omit<MaskWithId, 'id'>;
 }
 
 export const SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE =
@@ -44,9 +44,9 @@ export interface SetDataMaskForFilterConfigFail {
 export function updateDataMask(
   filterId: string,
   dataMask: {
-    nativeFilters?: Omit<MultipleMask, 'id'>;
-    crossFilters?: Omit<MultipleMask, 'id'>;
-    ownFilters?: Omit<MultipleMask, 'id'>;
+    nativeFilters?: Omit<MaskWithId, 'id'>;
+    crossFilters?: Omit<MaskWithId, 'id'>;
+    ownFilters?: Omit<MaskWithId, 'id'>;
   },
 ): UpdateDataMask {
   return {

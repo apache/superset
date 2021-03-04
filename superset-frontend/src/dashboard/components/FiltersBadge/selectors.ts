@@ -21,7 +21,7 @@ import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilt
 import { NativeFiltersState } from 'src/dashboard/reducers/types';
 import { Layout } from '../../types';
 import { getTreeCheckedItems } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils';
-import { MultipleDataMaskState } from '../../../dataMask/types';
+import { DataMaskStateWithId } from '../../../dataMask/types';
 
 export enum IndicatorStatus {
   Unset = 'UNSET',
@@ -174,7 +174,7 @@ export const selectIndicatorsForChart = (
 
 export const selectNativeIndicatorsForChart = (
   nativeFilters: NativeFiltersState,
-  dataMask: MultipleDataMaskState,
+  dataMask: DataMaskStateWithId,
   chartId: number,
   charts: any,
   dashboardLayout: Layout,
