@@ -28,10 +28,11 @@ import {
 import { debounce } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
 import { FAST_DEBOUNCE } from 'src/constants';
+import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
-import Control from './Control';
-import DatasourcePanelDragWrapper from './DatasourcePanel/DatasourcePanelDragWrapper';
-import { DatasourcePanelDndType } from './DatasourcePanel/types';
+import Control from 'src/explore/components/Control';
+import DatasourcePanelDragWrapper from './DatasourcePanelDragWrapper';
+import { DatasourcePanelDndType } from './types';
 
 interface DatasourceControl extends ControlConfig {
   datasource?: DatasourceMeta;
@@ -100,6 +101,10 @@ const LabelContainer = styled.div`
     }
   }
 `;
+
+const enableExploreDnd = isFeatureEnabled(
+  FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
+);
 
 export default function DataSourcePanel({
   datasource,
@@ -206,12 +211,16 @@ export default function DataSourcePanel({
             </div>
             {metricSlice.map(m => (
               <LabelContainer key={m.metric_name} className="column">
-                <DatasourcePanelDragWrapper
-                  metricOrColumnName={m.metric_name}
-                  type={DatasourcePanelDndType.METRIC}
-                >
+                {enableExploreDnd ? (
+                  <DatasourcePanelDragWrapper
+                    metricOrColumnName={m.metric_name}
+                    type={DatasourcePanelDndType.METRIC}
+                  >
+                    <MetricOption metric={m} showType />
+                  </DatasourcePanelDragWrapper>
+                ) : (
                   <MetricOption metric={m} showType />
-                </DatasourcePanelDragWrapper>
+                )}
               </LabelContainer>
             ))}
           </Collapse.Panel>
@@ -224,12 +233,16 @@ export default function DataSourcePanel({
             </div>
             {columnSlice.map(col => (
               <LabelContainer key={col.column_name} className="column">
-                <DatasourcePanelDragWrapper
-                  metricOrColumnName={col.column_name}
-                  type={DatasourcePanelDndType.COLUMN}
-                >
+                {enableExploreDnd ? (
+                  <DatasourcePanelDragWrapper
+                    metricOrColumnName={col.column_name}
+                    type={DatasourcePanelDndType.COLUMN}
+                  >
+                    <ColumnOption column={col} showType />
+                  </DatasourcePanelDragWrapper>
+                ) : (
                   <ColumnOption column={col} showType />
-                </DatasourcePanelDragWrapper>
+                )}
               </LabelContainer>
             ))}
           </Collapse.Panel>
