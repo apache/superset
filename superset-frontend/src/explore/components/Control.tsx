@@ -71,12 +71,12 @@ export default class Control extends React.PureComponent<
     const { type, hidden } = this.props;
     if (!type) return null;
     const ControlComponent = typeof type === 'string' ? controlMap[type] : type;
-    let options: any;
-    if (this.props.options) {
-      options = Array.isArray(this.props.options)
-        ? this.props.options
-        : Object.values(this.props.options);
+
+    let { options } = this.props;
+    if (type === 'SelectControl' && !!options && !Array.isArray(options)) {
+      options = Object.values(options);
     }
+
     return (
       <div
         className="Control"
