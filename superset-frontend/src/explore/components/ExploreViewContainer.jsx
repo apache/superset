@@ -353,14 +353,14 @@ function ExploreViewContainer(props) {
       );
     }
     return false;
-  }, [previousControls, props.controls, JSON.stringify(props.ownCurrentState)]);
+  }, [previousControls, props.controls]);
 
   useEffect(() => {
     if (props.ownCurrentState !== undefined) {
       onQuery();
       reRenderChart();
     }
-  }, [JSON.stringify(props.ownCurrentState)]);
+  }, [props.ownCurrentState]);
 
   if (chartIsStale) {
     props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS);
