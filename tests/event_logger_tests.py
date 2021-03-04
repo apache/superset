@@ -17,8 +17,11 @@
 import logging
 import time
 import unittest
+from datetime import datetime, timedelta
 from typing import Any, Callable, cast, Dict, Iterator, Optional, Type, Union
 from unittest.mock import patch
+
+from freezegun import freeze_time
 
 from superset import security_manager
 from superset.utils.log import (
@@ -109,6 +112,7 @@ class TestEventLogger(unittest.TestCase):
             self.assertGreaterEqual(payload["duration_ms"], 100)
 
     @patch("superset.utils.log.g", spec={})
+    @freeze_time("Jan 14th, 2020", auto_tick_seconds=15)
     def test_context_manager_log(self, mock_g):
         class DummyEventLogger(AbstractEventLogger):
             def __init__(self):
@@ -125,7 +129,9 @@ class TestEventLogger(unittest.TestCase):
                 *args: Any,
                 **kwargs: Any,
             ):
-                self.records.append({**kwargs, "user_id": user_id})
+                self.records.append(
+                    {**kwargs, "user_id": user_id, "duration": duration_ms}
+                )
 
         logger = DummyEventLogger()
 
@@ -135,5 +141,9 @@ class TestEventLogger(unittest.TestCase):
                 pass
 
         assert logger.records == [
-            {"records": [{"path": "/", "engine": "bar"}], "user_id": "2"}
+            {
+                "records": [{"path": "/", "engine": "bar"}],
+                "user_id": "2",
+                "duration": 15000.0,
+            }
         ]
