@@ -24,23 +24,21 @@ export enum DataMaskType {
   OwnFilters = 'ownFilters',
 }
 
-export type SingleMask = {
+export type Mask = {
   extraFormData?: ExtraFormData;
   currentState: DataMaskCurrentState;
 };
-
-export type MultipleMask = SingleMask & { id: string };
-
-export type MultipleDataMask = { [filterId: string]: MultipleMask };
-export type MultipleDataMaskState = {
-  [DataMaskType.NativeFilters]: MultipleDataMask;
-  [DataMaskType.CrossFilters]: MultipleDataMask;
-  [DataMaskType.OwnFilters]: MultipleDataMask;
+export type DataMaskUnit = { [filterId: string]: Mask };
+export type DataMaskState = {
+  [DataMaskType.NativeFilters]: Mask;
+  [DataMaskType.CrossFilters]: Mask;
+  [DataMaskType.OwnFilters]: Mask;
 };
 
-export type SingleDataMask = { [filterId: string]: SingleMask };
-export type SingleDataMaskState = {
-  [DataMaskType.NativeFilters]: SingleMask;
-  [DataMaskType.CrossFilters]: SingleMask;
-  [DataMaskType.OwnFilters]: SingleMask;
+export type MaskWithId = Mask & { id: string };
+export type DataMaskUnitWithId = { [filterId: string]: MaskWithId };
+export type DataMaskStateWithId = {
+  [DataMaskType.NativeFilters]: DataMaskUnitWithId;
+  [DataMaskType.CrossFilters]: DataMaskUnitWithId;
+  [DataMaskType.OwnFilters]: DataMaskUnitWithId;
 };

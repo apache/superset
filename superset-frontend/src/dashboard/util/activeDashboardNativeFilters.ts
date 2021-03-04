@@ -21,7 +21,7 @@ import { Scope } from '../components/nativeFilters/types';
 import { ActiveFilters, LayoutItem } from '../types';
 import { Filters } from '../reducers/types';
 import { DASHBOARD_ROOT_ID } from './constants';
-import { MultipleDataMaskState } from '../../dataMask/types';
+import { DataMaskStateWithId } from '../../dataMask/types';
 
 // Looking for affected chart scopes and values
 export const findAffectedCharts = ({
@@ -76,7 +76,7 @@ export const getActiveNativeFilters = ({
   dataMask,
   layout,
 }: {
-  dataMask: MultipleDataMaskState;
+  dataMask: DataMaskStateWithId;
   filters: Filters;
   layout: { [key: string]: LayoutItem };
 }): ActiveFilters => {

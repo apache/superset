@@ -27,7 +27,7 @@ import { Charts } from 'src/dashboard/types';
 import { RefObject } from 'react';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { Filter } from './types';
-import { MultipleDataMaskState } from '../../../dataMask/types';
+import { DataMaskStateWithId } from '../../../dataMask/types';
 
 export const getFormData = ({
   datasetId,
@@ -117,7 +117,7 @@ export function isCrossFilter(vizType: string) {
 }
 
 export function getExtraFormData(
-  dataMask: MultipleDataMaskState,
+  dataMask: DataMaskStateWithId,
   charts: Charts,
   filterIdsAppliedOnChart: string[],
 ): ExtraFormData {

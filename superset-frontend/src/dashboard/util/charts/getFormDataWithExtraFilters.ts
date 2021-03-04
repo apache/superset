@@ -27,7 +27,7 @@ import {
   getExtraFormData,
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
-import { MultipleDataMaskState } from 'src/dataMask/types';
+import { DataMaskStateWithId } from 'src/dataMask/types';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getActiveNativeFilters } from '../activeDashboardNativeFilters';
 import { NativeFiltersState } from '../../reducers/types';
@@ -45,7 +45,7 @@ export interface GetFormDataWithExtraFiltersArguments {
   colorScheme?: string;
   colorNamespace?: string;
   sliceId: number;
-  dataMask: MultipleDataMaskState;
+  dataMask: DataMaskStateWithId;
   nativeFilters: NativeFiltersState;
 }
 
