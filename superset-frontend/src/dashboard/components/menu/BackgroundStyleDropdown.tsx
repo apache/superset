@@ -17,41 +17,48 @@
  * under the License.
  */
 import React from 'react';
-import PropTypes from 'prop-types';
-import { t } from '@superset-ui/core';
+import cx from 'classnames';
 
-import PopoverDropdown from './PopoverDropdown';
+import backgroundStyleOptions from '../../util/backgroundStyleOptions';
+import PopoverDropdown, {
+  OptionProps,
+  OnChangeHandler,
+} from './PopoverDropdown';
 
-const propTypes = {
-  id: PropTypes.string.isRequired,
-  value: PropTypes.string.isRequired,
-  onChange: PropTypes.func.isRequired,
-};
+interface BackgroundStyleDropdownProps {
+  id: string;
+  value: string;
+  onChange: OnChangeHandler;
+}
 
-const dropdownOptions = [
-  {
-    value: 'edit',
-    label: t('Edit'),
-  },
-  {
-    value: 'preview',
-    label: t('Preview'),
-  },
-];
+function renderButton(option: OptionProps) {
+  return (
+    <div className={cx('background-style-option', option.className)}>
+      {`${option.label} background`}
+    </div>
+  );
+}
 
-export default class MarkdownModeDropdown extends React.PureComponent {
+function renderOption(option: OptionProps) {
+  return (
+    <div className={cx('background-style-option', option.className)}>
+      {option.label}
+    </div>
+  );
+}
+
+export default class BackgroundStyleDropdown extends React.PureComponent<BackgroundStyleDropdownProps> {
   render() {
     const { id, value, onChange } = this.props;
-
     return (
       <PopoverDropdown
         id={id}
-        options={dropdownOptions}
+        options={backgroundStyleOptions}
         value={value}
         onChange={onChange}
+        renderButton={renderButton}
+        renderOption={renderOption}
       />
     );
   }
 }
-
-MarkdownModeDropdown.propTypes = propTypes;
