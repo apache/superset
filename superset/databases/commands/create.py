@@ -32,7 +32,7 @@ from superset.databases.commands.exceptions import (
 )
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.dao import DatabaseDAO
-from superset.extensions import db, security_manager
+from superset.extensions import db, event_logger, security_manager
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +51,12 @@ class CreateDatabaseCommand(BaseCommand):
             try:
                 TestConnectionDatabaseCommand(self._actor, self._properties).run()
             except Exception:
-                db.session.rollback()
-                raise DatabaseConnectionFailedError()
+                with event_logger.log_context(
+                    action="db_connection_failed",
+                    engine=database.db_engine_spec.__name__,
+                ):
+                    db.session.rollback()
+                    raise DatabaseConnectionFailedError()
 
             # adding a new database we always want to force refresh schema list
             schemas = database.get_all_schema_names(cache=False)
@@ -63,8 +67,11 @@ class CreateDatabaseCommand(BaseCommand):
             security_manager.add_permission_view_menu("database_access", database.perm)
             db.session.commit()
         except DAOCreateFailedError as ex:
-            logger.exception(ex.exception)
-            raise DatabaseCreateFailedError()
+            with event_logger.log_context(
+                action=f"db_creation_failed.{ex.exception}",
+                engine=database.db_engine_spec.__name__,
+            ):
+                raise DatabaseCreateFailedError()
         return database
 
     def validate(self) -> None:
@@ -84,4 +91,5 @@ class CreateDatabaseCommand(BaseCommand):
         if exceptions:
             exception = DatabaseInvalidError()
             exception.add_list(exceptions)
-            raise exception
+            with event_logger.log_context(action="db_connection_failed"):
+                raise exception
