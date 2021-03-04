@@ -615,8 +615,18 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
     CELERY_ACKS_LATE = False
     CELERY_ANNOTATIONS = {
         "sql_lab.get_sql_results": {"rate_limit": "100/s"},
+        "email_reports.send": {
+            "rate_limit": "1/s",
+            "time_limit": 120,
+            "soft_time_limit": 150,
+            "ignore_result": True,
+        },
     }
     CELERYBEAT_SCHEDULE = {
+        "email_reports.schedule_hourly": {
+            "task": "email_reports.schedule_hourly",
+            "schedule": crontab(minute=1, hour="*"),
+        },
         "reports.scheduler": {
             "task": "reports.scheduler",
             "schedule": crontab(minute="*", hour="*"),
