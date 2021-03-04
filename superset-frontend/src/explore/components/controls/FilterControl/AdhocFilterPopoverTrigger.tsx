@@ -18,17 +18,13 @@
  */
 import React from 'react';
 import Popover from 'src/common/components/Popover';
-import columnType from 'src/explore/propTypes/columnType';
-import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
+import { OptionSortType } from 'src/explore/types';
 import AdhocFilterEditPopover from './AdhocFilterEditPopover';
 import AdhocFilter from './AdhocFilter';
 
 interface AdhocFilterPopoverTriggerProps {
   adhocFilter: AdhocFilter;
-  options:
-    | typeof columnType[]
-    | { saved_metric_name: string }[]
-    | typeof adhocMetricType[];
+  options: OptionSortType[];
   datasource: Record<string, any>;
   onFilterEdit: (editedFilter: AdhocFilter) => void;
   partitionColumn?: string;

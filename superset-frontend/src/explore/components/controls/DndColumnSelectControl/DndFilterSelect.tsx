@@ -19,11 +19,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { logging, SupersetClient } from '@superset-ui/core';
 import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
-import {
-  DndFilterSelectProps,
-  FilterOptionValueType,
-  OptionSortType,
-} from './types';
+import { Tooltip } from 'src/common/components/Tooltip';
+import { OPERATORS } from 'src/explore/constants';
+import { OptionSortType } from 'src/explore/types';
+import { DndFilterSelectProps, FilterOptionValueType } from './types';
 import AdhocFilterPopoverTrigger from '../FilterControl/AdhocFilterPopoverTrigger';
 import OptionWrapper from './components/OptionWrapper';
 import DndSelectLabel from './DndSelectLabel';
@@ -32,8 +31,6 @@ import AdhocFilter, {
   EXPRESSION_TYPES,
 } from '../FilterControl/AdhocFilter';
 import AdhocMetric from '../MetricControl/AdhocMetric';
-import { Tooltip } from '../../../../common/components/Tooltip';
-import { OPERATORS } from '../../../constants';
 import {
   DatasourcePanelDndItem,
   DndItemValue,
@@ -75,12 +72,12 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
           results: (OptionSortType & { filterOptionName: string })[],
           option,
         ) => {
-          if (option.saved_metric_name) {
+          if ('saved_metric_name' in option && option.saved_metric_name) {
             results.push({
               ...option,
               filterOptionName: option.saved_metric_name,
             });
-          } else if (option.column_name) {
+          } else if ('column_name' in option && option.column_name) {
             results.push({
               ...option,
               filterOptionName: `_col_${option.column_name}`,
@@ -95,10 +92,11 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
         },
         [],
       )
-      .sort((a: OptionSortType, b: OptionSortType) =>
-        (a.saved_metric_name || a.column_name || a.label).localeCompare(
-          b.saved_metric_name || b.column_name || b.label,
-        ),
+      .sort(
+        (a: OptionSortType, b: OptionSortType) =>
+          (a.saved_metric_name || a.column_name || a.label)?.localeCompare(
+            b.saved_metric_name || b.column_name || b.label || '',
+          ) ?? 0,
       );
   };
   const [options, setOptions] = useState(

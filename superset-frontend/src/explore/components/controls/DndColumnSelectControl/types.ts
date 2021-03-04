@@ -64,9 +64,3 @@ export interface DndFilterSelectProps {
   onChange: (filters: FilterOptionValueType[]) => void;
   options: { string: ColumnMeta };
 }
-
-export type OptionSortType = {
-  label: string;
-  saved_metric_name: string;
-  column_name: string;
-};
