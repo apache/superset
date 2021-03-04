@@ -40,6 +40,7 @@ export type ControlProps = {
   validationErrors?: any[];
   hidden?: boolean;
   renderTrigger?: boolean;
+  options?: any;
 };
 
 export default class Control extends React.PureComponent<
@@ -70,6 +71,12 @@ export default class Control extends React.PureComponent<
     const { type, hidden } = this.props;
     if (!type) return null;
     const ControlComponent = typeof type === 'string' ? controlMap[type] : type;
+
+    let { options } = this.props;
+    if (type === 'SelectControl' && !!options && !Array.isArray(options)) {
+      options = Object.values(options);
+    }
+
     return (
       <div
         className="Control"
@@ -82,6 +89,7 @@ export default class Control extends React.PureComponent<
           onChange={this.onChange}
           hovered={this.state.hovered}
           {...this.props}
+          options={options}
         />
       </div>
     );
