@@ -567,9 +567,8 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         assert isinstance(sqla_type, types.TIMESTAMP)
         assert isinstance(generic_type, GenericDataType.TEMPORAL)
 
-        sqla_type, generic_type = PrestoEngineSpec.get_sqla_column_type(None)
+        sqla_type = PrestoEngineSpec.get_sqla_column_type(None)
         assert sqla_type is None
-        assert generic_type is None
 
     @mock.patch(
         "superset.utils.feature_flag_manager.FeatureFlagManager.is_feature_enabled"
