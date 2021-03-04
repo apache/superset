@@ -36,6 +36,7 @@ from superset.utils.core import (
     DTTM_ALIAS,
     find_duplicates,
     get_metric_names,
+    is_adhoc_metric,
     json_int_dttm_ser,
 )
 from superset.utils.date_parser import get_since_until, parse_human_timedelta
@@ -171,7 +172,7 @@ class QueryObject:
         #   3. { expressionType: 'SIMPLE' | 'SQL', ... } - adhoc metric
         self.metrics = [
             metric
-            if isinstance(metric, str) or "expressionType" in metric
+            if isinstance(metric, str) or is_adhoc_metric(metric)
             else metric["label"]  # type: ignore
             for metric in metrics
         ]
