@@ -29,6 +29,9 @@ interface WithPopoverMenuProps {
   menuItems: React.ReactNode[];
   onChangeFocus: (focus: Boolean) => void;
   isFocused: Boolean;
+  // Event argument is left as "any" because of the clash. In defaultProps it seems
+  // like it should be React.FocusEvent<>, however from handleClick() we can also
+  // derive that type is EventListenerOrEventListenerObject.
   shouldFocus: (event: any, container: ShouldFocusContainer) => Boolean;
   editMode: Boolean;
   style: React.CSSProperties;
