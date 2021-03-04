@@ -119,6 +119,9 @@ class DashboardJSONMetadataSchema(Schema):
     stagger_time = fields.Integer()
     color_scheme = fields.Str(allow_none=True)
     label_colors = fields.Dict()
+    # used for v0 import/export
+    import_time = fields.Integer()
+    remote_id = fields.Integer()
 
 
 class BaseDashboardSchema(Schema):
