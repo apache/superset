@@ -83,7 +83,7 @@ class AbstractEventLogger(ABC):
             object_ref=self.object_ref,
             log_to_statsd=self.log_to_statsd,
             duration=datetime.now() - self.start,
-            payload_override=self.payload_override,
+            **self.payload_override,
         )
 
     @abstractmethod
@@ -106,8 +106,7 @@ class AbstractEventLogger(ABC):
         duration: timedelta,
         object_ref: Optional[str] = None,
         log_to_statsd: bool = True,
-        payload_override: Optional[Dict[str, Any]] = None,
-        **kwargs: Any,
+        **payload_override: Optional[Dict[str, Any]],
     ) -> None:
         from superset.views.core import get_form_data
 
@@ -176,7 +175,7 @@ class AbstractEventLogger(ABC):
         duration = datetime.now() - start
 
         self.log_with_context(
-            action, duration, object_ref, log_to_statsd, payload_override
+            action, duration, object_ref, log_to_statsd, **payload_override
         )
 
     def _wrapper(
