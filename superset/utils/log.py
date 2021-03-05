@@ -114,7 +114,7 @@ class AbstractEventLogger(ABC):
         referrer = request.referrer[:1000] if request.referrer else None
         try:
             user_id = g.user.get_id()
-        except Exception as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             logging.warning(ex)
             user_id = None
 
