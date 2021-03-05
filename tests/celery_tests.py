@@ -186,14 +186,17 @@ def test_run_sync_query_cta(
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-def test_run_sync_query_cta_no_data(setup_sqllab):
-    sql_empty_result = "SELECT * FROM birth_names WHERE name='random'"
-    result = run_sql(sql_empty_result)
-    assert QueryStatus.SUCCESS == result["query"]["state"]
-    assert ([], []) == (result["data"], result["columns"])
+@mock.patch("superset.utils.log.g", spec={})
+def test_run_sync_query_cta_no_data(mock_g, setup_sqllab):
+    with app.test_request_context():
+        mock_g.return_value = 123
+        sql_empty_result = "SELECT * FROM birth_names WHERE name='random'"
+        result = run_sql(sql_empty_result)
+        assert QueryStatus.SUCCESS == result["query"]["state"]
+        assert ([], []) == (result["data"], result["columns"])
 
-    query = get_query_by_id(result["query"]["serverId"])
-    assert QueryStatus.SUCCESS == query.status
+        query = get_query_by_id(result["query"]["serverId"])
+        assert QueryStatus.SUCCESS == query.status
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -201,26 +204,34 @@ def test_run_sync_query_cta_no_data(setup_sqllab):
 @mock.patch(
     "superset.views.core.get_cta_schema_name", lambda d, u, s, sql: CTAS_SCHEMA_NAME
 )
-def test_run_sync_query_cta_config(setup_sqllab, ctas_method):
+@mock.patch("superset.utils.log.g", spec={})
+def test_run_sync_query_cta_config(mock_g, setup_sqllab, ctas_method):
     if backend() == "sqlite":
         # sqlite doesn't support schemas
         return
-    tmp_table_name = f"{TEST_SYNC_CTA}_{ctas_method.lower()}"
-    result = run_sql(QUERY, cta=True, ctas_method=ctas_method, tmp_table=tmp_table_name)
-    assert QueryStatus.SUCCESS == result["query"]["state"], result
-    assert cta_result(ctas_method) == (result["data"], result["columns"])
 
-    query = get_query_by_id(result["query"]["serverId"])
-    assert (
-        f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
-        == query.executed_sql
-    )
+    with app.test_request_context():
+        mock_g.return_value = 123
+        tmp_table_name = f"{TEST_SYNC_CTA}_{ctas_method.lower()}"
+        result = run_sql(
+            QUERY, cta=True, ctas_method=ctas_method, tmp_table=tmp_table_name
+        )
+        assert QueryStatus.SUCCESS == result["query"]["state"], result
+        assert cta_result(ctas_method) == (result["data"], result["columns"])
 
-    assert query.select_sql == get_select_star(tmp_table_name, schema=CTAS_SCHEMA_NAME)
-    results = run_sql(query.select_sql)
-    assert QueryStatus.SUCCESS == results["status"], result
+        query = get_query_by_id(result["query"]["serverId"])
+        assert (
+            f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
+            == query.executed_sql
+        )
 
-    delete_tmp_view_or_table(f"{CTAS_SCHEMA_NAME}.{tmp_table_name}", ctas_method)
+        assert query.select_sql == get_select_star(
+            tmp_table_name, schema=CTAS_SCHEMA_NAME
+        )
+        results = run_sql(query.select_sql)
+        assert QueryStatus.SUCCESS == results["status"], result
+
+        delete_tmp_view_or_table(f"{CTAS_SCHEMA_NAME}.{tmp_table_name}", ctas_method)
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
