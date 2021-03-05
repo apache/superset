@@ -24,6 +24,7 @@ import Label from 'src/components/Label';
 
 import SupersetAsyncSelect from '../AsyncSelect';
 import RefreshLabel from '../RefreshLabel';
+import { useFetchSchemas } from './fetchSchemas';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
@@ -102,43 +103,20 @@ export default function DatabaseSelector({
     schema,
   );
   const [schemaLoading, setSchemaLoading] = useState(false);
-  const [schemaOptions, setSchemaOptions] = useState([]);
+  const [schemaOptions, setSchemaOptions] = useState<any[]>([]);
 
-  function fetchSchemas(databaseId: number, forceRefresh = false) {
-    const actualDbId = databaseId || dbId;
-    if (actualDbId) {
-      setSchemaLoading(true);
-      const queryParams = rison.encode({
-        force: Boolean(forceRefresh),
-      });
-      const endpoint = `/api/v1/database/${actualDbId}/schemas/?q=${queryParams}`;
-      return SupersetClient.get({ endpoint })
-        .then(({ json }) => {
-          const options = json.result.map((s: string) => ({
-            value: s,
-            label: s,
-            title: s,
-          }));
-          setSchemaOptions(options);
-          setSchemaLoading(false);
-          if (onSchemasLoad) {
-            onSchemasLoad(options);
-          }
-        })
-        .catch(() => {
-          setSchemaOptions([]);
-          setSchemaLoading(false);
-          handleError(t('Error while fetching schema list'));
-        });
-    }
-    return Promise.resolve();
-  }
+  const fetchSchemas = useFetchSchemas({
+    setSchemaOptions,
+    onSchemasLoad,
+    setSchemaLoading,
+    handleError,
+  });
 
   useEffect(() => {
     if (currentDbId) {
-      fetchSchemas(currentDbId);
+      fetchSchemas.current({ databaseId: currentDbId });
     }
-  }, [currentDbId]);
+  }, [currentDbId, fetchSchemas]);
 
   function onSelectChange({ dbId, schema }: { dbId: number; schema?: string }) {
     setCurrentDbId(dbId);
@@ -171,7 +149,7 @@ export default function DatabaseSelector({
     if (onDbChange) {
       onDbChange(db);
     }
-    fetchSchemas(dbId, force);
+    fetchSchemas.current({ databaseId: dbId, forceRefresh: force });
     onSelectChange({ dbId, schema: undefined });
   }
 
