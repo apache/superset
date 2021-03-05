@@ -1074,9 +1074,12 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 dttm_col.get_time_filter(from_dttm, to_dttm, time_range_endpoints)
             )
 
-        select_exprs += metrics_exprs + orderby_exprs
-        select_exprs = utils.remove_duplicates(select_exprs, key=lambda x: x.name)
+        select_exprs += metrics_exprs
         labels_expected = [c.name for c in select_exprs]
+        # labels_expected should not include `orderby` columns
+        # so we add them only after `labels_expected` is collected.
+        select_exprs += orderby_exprs
+        select_exprs = utils.remove_duplicates(select_exprs, key=lambda x: x.name)
 
         select_exprs = db_engine_spec.make_select_compatible(
             groupby_exprs_with_timestamp.values(), select_exprs
@@ -1348,27 +1351,33 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         errors = None
         error_message = None
 
-        def mutator(df: pd.DataFrame) -> None:
+        def assign_column_label(df: pd.DataFrame) -> None:
             """
             Some engines change the case or generate bespoke column names, either by
             default or due to lack of support for aliasing. This function ensures that
             the column names in the DataFrame correspond to what is expected by
             the viz components.
 
-            :param df: Original DataFrame returned by the engine
-            """
+            Sometimes a query may also contain only order by columns that are not used
+            as metrics or groupby columns, but need to present in the SQL `select`,
+            filtering by `labels_expected` make sure we only return columns users want.
 
+            :param df: Rriginal DataFrame returned by the engine
+            :return: Mutated DataFrame
+            """
             labels_expected = query_str_ext.labels_expected
             if df is not None and not df.empty:
-                if len(df.columns) != len(labels_expected):
+                if len(df.columns) < len(labels_expected):
                     raise QueryObjectValidationError(
-                        f"For {sql}, df.columns: {df.columns}"
-                        f" differs from {labels_expected}"
+                        _("Db engine did not return all queried columns")
                     )
+                if len(df.columns) > len(labels_expected):
+                    df = df.iloc[:, 0 : len(labels_expected)]
                 df.columns = labels_expected
+            return df
 
         try:
-            df = self.database.get_df(sql, self.schema, mutator)
+            df = self.database.get_df(sql, self.schema, mutator=assign_column_label)
         except Exception as ex:  # pylint: disable=broad-except
             df = pd.DataFrame()
             status = utils.QueryStatus.FAILED
