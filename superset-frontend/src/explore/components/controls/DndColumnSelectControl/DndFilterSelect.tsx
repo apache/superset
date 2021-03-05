@@ -38,7 +38,7 @@ import {
 import { DndItemType } from '../../DndItemType';
 
 const isDictionaryForAdhocFilter = (value: FilterOptionValueType) =>
-  value && !(value instanceof AdhocFilter) && value.expressionType;
+  !(value instanceof AdhocFilter) && value?.expressionType;
 
 export const DndFilterSelect = (props: DndFilterSelectProps) => {
   const propsValues = Array.from(props.value ?? []);
