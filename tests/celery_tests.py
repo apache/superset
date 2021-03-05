@@ -28,12 +28,12 @@ from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with
 import pytest
 
 import flask
-from flask import current_app
+from flask import current_app, g
 
 from tests.base_tests import login
 from tests.conftest import CTAS_SCHEMA_NAME
 from tests.test_app import app
-from superset import db, sql_lab
+from superset import db, sql_lab, security_manager
 from superset.result_set import SupersetResultSet
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetErrorType
@@ -163,19 +163,26 @@ def test_run_sync_query_dont_exist(setup_sqllab, ctas_method):
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
-def test_run_sync_query_cta(setup_sqllab, ctas_method):
+@mock.patch("superset.utils.log.g", spec={})
+def test_run_sync_query_cta(
+    mock_g, setup_sqllab, ctas_method,
+):
     tmp_table_name = f"{TEST_SYNC}_{ctas_method.lower()}"
-    result = run_sql(QUERY, tmp_table=tmp_table_name, cta=True, ctas_method=ctas_method)
-    assert QueryStatus.SUCCESS == result["query"]["state"], result
-    assert cta_result(ctas_method) == (result["data"], result["columns"])
+    with app.test_request_context():
+        mock_g.return_value = 123
+        result = run_sql(
+            QUERY, tmp_table=tmp_table_name, cta=True, ctas_method=ctas_method
+        )
+        assert QueryStatus.SUCCESS == result["query"]["state"], result
+        assert cta_result(ctas_method) == (result["data"], result["columns"])
 
-    # Check the data in the tmp table.
-    select_query = get_query_by_id(result["query"]["serverId"])
-    results = run_sql(select_query.select_sql)
-    assert QueryStatus.SUCCESS == results["status"], results
-    assert len(results["data"]) > 0
+        # Check the data in the tmp table.
+        select_query = get_query_by_id(result["query"]["serverId"])
+        results = run_sql(select_query.select_sql)
+        assert QueryStatus.SUCCESS == results["status"], results
+        assert len(results["data"]) > 0
 
-    delete_tmp_view_or_table(tmp_table_name, ctas_method)
+        delete_tmp_view_or_table(tmp_table_name, ctas_method)
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
