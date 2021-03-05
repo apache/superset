@@ -51,7 +51,7 @@ class CreateDatabaseCommand(BaseCommand):
             try:
                 TestConnectionDatabaseCommand(self._actor, self._properties).run()
             except Exception:
-                with event_logger.log_context(
+                with event_logger(
                     action="db_connection_failed",
                     engine=database.db_engine_spec.__name__,
                 ):
@@ -67,7 +67,7 @@ class CreateDatabaseCommand(BaseCommand):
             security_manager.add_permission_view_menu("database_access", database.perm)
             db.session.commit()
         except DAOCreateFailedError as ex:
-            with event_logger.log_context(
+            with event_logger(
                 action=f"db_creation_failed.{ex.exception}",
                 engine=database.db_engine_spec.__name__,
             ):
@@ -91,5 +91,5 @@ class CreateDatabaseCommand(BaseCommand):
         if exceptions:
             exception = DatabaseInvalidError()
             exception.add_list(exceptions)
-            with event_logger.log_context(action="db_connection_failed"):
+            with event_logger(action="db_connection_failed"):
                 raise exception
