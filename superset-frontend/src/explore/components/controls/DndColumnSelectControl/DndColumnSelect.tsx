@@ -26,17 +26,14 @@ import { OptionSelector } from './utils';
 import { DatasourcePanelDndItem } from '../../DatasourcePanel/types';
 import { DndItemType } from '../../DndItemType';
 
-export const DndColumnSelect = (props: LabelProps<ColumnMeta[]>) => {
+export const DndColumnSelect = (props: LabelProps) => {
   const { value, options } = props;
-  const optionSelector = new OptionSelector<ColumnMeta>({
-    options,
-    selected: value,
-  });
-  const [values, setValues] = useState<ColumnMeta[]>(optionSelector.selected);
+  const optionSelector = new OptionSelector(options, value);
+  const [values, setValues] = useState<ColumnMeta[]>(optionSelector.values);
 
   const onDrop = (item: DatasourcePanelDndItem) => {
     const column = item.value as ColumnMeta;
-    if (!optionSelector.isArray && !isEmpty(optionSelector.selected)) {
+    if (!optionSelector.isArray && !isEmpty(optionSelector.values)) {
       optionSelector.replace(0, column.column_name);
     } else {
       optionSelector.add(column.column_name);
