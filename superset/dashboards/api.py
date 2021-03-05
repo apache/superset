@@ -58,6 +58,7 @@ from superset.dashboards.filters import (
     FilterRelatedRoles,
 )
 from superset.dashboards.schemas import (
+    DashboardGetResponseSchema,
     DashboardPostSchema,
     DashboardPutSchema,
     get_delete_ids_schema,
@@ -99,29 +100,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     class_permission_name = "Dashboard"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
 
-    show_columns = [
-        "id",
-        "charts",
-        "css",
-        "dashboard_title",
-        "json_metadata",
-        "owners.id",
-        "owners.username",
-        "owners.first_name",
-        "owners.last_name",
-        "roles.id",
-        "roles.name",
-        "changed_by_name",
-        "changed_by_url",
-        "changed_by.username",
-        "changed_on",
-        "position_json",
-        "published",
-        "url",
-        "slug",
-        "table_names",
-        "thumbnail_url",
-    ]
     list_columns = [
         "id",
         "published",
@@ -190,6 +168,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     add_model_schema = DashboardPostSchema()
     edit_model_schema = DashboardPutSchema()
     chart_entity_response_schema = ChartEntityResponseSchema()
+    dashboard_get_response_schema = DashboardGetResponseSchema()
 
     base_filters = [["slice", DashboardFilter, lambda: []]]
 
@@ -207,7 +186,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Dashboards"
     """ Override the name set for this collection of endpoints """
-    openapi_spec_component_schemas = (ChartEntityResponseSchema, GetFavStarIdsSchema)
+    openapi_spec_component_schemas = (
+        ChartEntityResponseSchema,
+        DashboardGetResponseSchema,
+        GetFavStarIdsSchema,
+    )
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
         "get_export_ids_schema": get_export_ids_schema,
@@ -221,6 +204,53 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         if is_feature_enabled("THUMBNAILS"):
             self.include_route_methods = self.include_route_methods | {"thumbnail"}
         super().__init__()
+
+    @expose("/<id_or_slug>", methods=["GET"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
+        log_to_statsd=False,
+    )
+    def get(self, id_or_slug: str) -> Response:
+        """Gets a dashboard
+        ---
+        get:
+          description: >-
+            Get a dashboard
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: Either the id of the dashboard, or its slug
+          responses:
+            200:
+              description: Dashboard
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/DashboardGetResponseSchema'
+            302:
+              description: Redirects to the current digest
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        # pylint: disable=arguments-differ
+        try:
+            dash = DashboardDAO.get_by_id_or_slug(id_or_slug)
+            result = self.dashboard_get_response_schema.dump(dash)
+            return self.response(200, result=result)
+        except DashboardNotFoundError:
+            return self.response_404()
 
     @expose("/<pk>/charts", methods=["GET"])
     @protect()
