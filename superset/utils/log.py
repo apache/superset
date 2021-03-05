@@ -178,8 +178,10 @@ class AbstractEventLogger(ABC):
         yield lambda **kwargs: payload_override.update(kwargs)
         duration = datetime.now() - start
 
+        # take the action from payload_override else take the function param action
+        action_str = payload_override.pop("action", action)
         self.log_with_context(
-            action, duration, object_ref, log_to_statsd, **payload_override
+            action_str, duration, object_ref, log_to_statsd, **payload_override
         )
 
     def _wrapper(
