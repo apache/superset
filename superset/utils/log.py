@@ -74,6 +74,7 @@ class AbstractEventLogger(ABC):
         return self
 
     def __enter__(self) -> None:
+        # pylint: disable=W0201
         self.start = datetime.now()
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
