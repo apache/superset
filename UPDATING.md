@@ -26,6 +26,13 @@ assists people when migrating to a new version.
 ### Breaking Changes
 ### Potential Downtime
 ### Deprecations
+- [11509](https://github.com/apache/superset/pull/12491): Dashboard/Charts reports and old Alerts is deprecated. The following config keys are deprecated:
+    - ENABLE_ALERTS
+    - SCHEDULED_EMAIL_DEBUG_MODE
+    - EMAIL_REPORTS_CRON_RESOLUTION
+    - EMAIL_ASYNC_TIME_LIMIT_SEC
+    - EMAIL_REPORT_BCC_ADDRESS
+    - EMAIL_REPORTS_USER
 ### Other
 
 [shillelagh](https://github.com/betodealmeida/shillelagh/) is now the recommended module to connect Superset to Google Spreadsheets, since it's more robust and has extensive test coverage. You should uninstall the `gsheetsdb` module and install the `shillelagh` module in its place. Shillelagh is a drop-in replacement, so no modifications are needed to be done on existing queries, datasets or charts.
