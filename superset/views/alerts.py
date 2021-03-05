@@ -220,7 +220,8 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
                 _(
                     "This feature is deprecated and will be removed on 2.0. "
                     "Take a look at the replacement feature "
-                    "<a href='https://superset.apache.org/docs/installation/alerts-reports'>"
+                    "<a href="
+                    "'https://superset.apache.org/docs/installation/alerts-reports'>"
                     "Alerts & Reports documentation</a>"
                 )
             ),
