@@ -112,7 +112,11 @@ class AbstractEventLogger(ABC):
         from superset.views.core import get_form_data
 
         referrer = request.referrer[:1000] if request.referrer else None
-        user_id = g.user.get_id() if hasattr(g, "user") and g.user else None
+        try:
+            user_id = g.user.get_id()
+        except Exception as ex:
+            logging.warning(ex)
+            user_id = None
 
         payload = collect_request_payload()
         if object_ref:
