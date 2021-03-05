@@ -1213,8 +1213,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             column_type, generic_type = cls.get_sqla_column_type(  # type: ignore
                 native_type, column_type_mappings=column_type_mappings
             )
-
-        is_dttm = generic_type == GenericDataType.TEMPORAL
+            is_dttm = generic_type == GenericDataType.TEMPORAL
 
         if column_type:
             return ColumnSpec(
