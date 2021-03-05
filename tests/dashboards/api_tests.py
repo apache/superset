@@ -45,6 +45,7 @@ from tests.fixtures.importexport import (
     chart_config,
     database_config,
     dashboard_config,
+    dashboard_export,
     dashboard_metadata_config,
     dataset_config,
     dataset_metadata_config,
@@ -1314,6 +1315,36 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         db.session.delete(chart)
         db.session.delete(dataset)
         db.session.delete(database)
+        db.session.commit()
+
+    def test_import_dashboard_v0_export(self):
+        num_dashboards = db.session.query(Dashboard).count()
+
+        self.login(username="admin")
+        uri = "api/v1/dashboard/import/"
+
+        buf = BytesIO()
+        buf.write(json.dumps(dashboard_export).encode())
+        buf.seek(0)
+        form_data = {
+            "formData": (buf, "20201119_181105.json"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+        assert db.session.query(Dashboard).count() == num_dashboards + 1
+
+        dashboard = (
+            db.session.query(Dashboard).filter_by(dashboard_title="Births 2").one()
+        )
+        chart = dashboard.slices[0]
+        dataset = chart.table
+
+        db.session.delete(dashboard)
+        db.session.delete(chart)
+        db.session.delete(dataset)
         db.session.commit()
 
     def test_import_dashboard_overwrite(self):
