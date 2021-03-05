@@ -27,6 +27,7 @@ import RefreshLabel from '../RefreshLabel';
 import { useFetchSchemas } from './fetchSchemas';
 import { useOnSelectChange } from './onSelectChange';
 import { useDbMutator } from './dbMutator';
+import { useChangeDataBase } from './changeDataBase';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
@@ -122,24 +123,19 @@ export default function DatabaseSelector({
 
   const dbMutator = useDbMutator({ getDbList, handleError });
 
+  const changeDataBase = useChangeDataBase({
+    fetchSchemas,
+    onSelectChange,
+    setSchemaOptions,
+    onDbChange,
+    onSchemaChange,
+  });
+
   useEffect(() => {
     if (currentDbId) {
       fetchSchemas.current({ databaseId: currentDbId });
     }
   }, [currentDbId, fetchSchemas]);
-
-  function changeDataBase(db: any, force = false) {
-    const dbId = db ? db.id : null;
-    setSchemaOptions([]);
-    if (onSchemaChange) {
-      onSchemaChange(null);
-    }
-    if (onDbChange) {
-      onDbChange(db);
-    }
-    fetchSchemas.current({ databaseId: dbId, forceRefresh: force });
-    onSelectChange.current({ dbId, schema: undefined });
-  }
 
   function changeSchema(schemaOpt: any, force = false) {
     const schema = schemaOpt ? schemaOpt.value : null;
@@ -193,7 +189,7 @@ export default function DatabaseSelector({
       <SupersetAsyncSelect
         data-test="select-database"
         dataEndpoint={`/api/v1/database/?q=${queryParams}`}
-        onChange={(db: any) => changeDataBase(db)}
+        onChange={(db: any) => changeDataBase.current(db)}
         onAsyncError={() =>
           handleError(t('Error while fetching database list'))
         }
@@ -220,7 +216,7 @@ export default function DatabaseSelector({
     const value = schemaOptions.filter(({ value }) => currentSchema === value);
     const refresh = !formMode && !readOnly && (
       <RefreshLabel
-        onClick={() => changeDataBase({ id: dbId }, true)}
+        onClick={() => changeDataBase.current({ id: dbId }, true)}
         tooltipContent={t('Force refresh schema list')}
       />
     );
