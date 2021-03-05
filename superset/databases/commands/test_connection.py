@@ -93,7 +93,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=make_url(uri).drivername,
             ):
                 raise DatabaseSecurityUnsafeError(message=str(ex))
-        except Exception as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             with event_logger(
                 action=f"test_connection_error.{ex.__class__.__name__}",
                 engine=make_url(uri).drivername,

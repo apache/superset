@@ -50,7 +50,7 @@ class CreateDatabaseCommand(BaseCommand):
 
             try:
                 TestConnectionDatabaseCommand(self._actor, self._properties).run()
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 with event_logger(
                     action="db_connection_failed",
                     engine=database.db_engine_spec.__name__,
