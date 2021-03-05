@@ -42,6 +42,7 @@ from sqlalchemy.orm import relationship, sessionmaker, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.session import object_session
 from sqlalchemy.sql import join, select
+from sqlalchemy.sql.elements import BinaryExpression
 
 from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseDatasource
@@ -56,6 +57,8 @@ from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.utils import core as utils
 from superset.utils.decorators import debounce
 from superset.utils.urls import get_url_path
+
+# pylint: disable=too-many-public-methods
 
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
@@ -361,13 +364,14 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
     @classmethod
     def get(cls, id_or_slug: str) -> Dashboard:
         session = db.session()
-        qry = session.query(Dashboard)
-        if id_or_slug.isdigit():
-            qry = qry.filter_by(id=int(id_or_slug))
-        else:
-            qry = qry.filter_by(slug=id_or_slug)
-
+        qry = session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
+
+
+def id_or_slug_filter(id_or_slug: str) -> BinaryExpression:
+    if id_or_slug.isdigit():
+        return Dashboard.id == int(id_or_slug)
+    return Dashboard.slug == id_or_slug
 
 
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]
