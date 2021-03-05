@@ -20,7 +20,11 @@ from unittest import mock
 import pytest
 
 from superset.db_engine_specs import engines
-from superset.db_engine_specs.base import BaseEngineSpec, builtin_time_grains
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    builtin_time_grains,
+    LimitMethod,
+)
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.sql_parse import ParsedQuery
 from superset.utils.core import get_example_database
@@ -154,6 +158,14 @@ class TestDbEngineSpecs(TestDbEngineSpec):
             """SELECT 'LIMIT 777'""", """SELECT 'LIMIT 777'\nLIMIT 1000"""
         )
 
+    def test_limit_with_fetch_many(self):
+        class DummyEngineSpec(BaseEngineSpec):
+            limit_method = LimitMethod.FETCH_MANY
+
+        self.sql_limit_regex(
+            "SELECT * FROM table", "SELECT * FROM table", DummyEngineSpec
+        )
+
     def test_time_grain_denylist(self):
         with app.app_context():
             app.config["TIME_GRAIN_DENYLIST"] = ["PT1M"]
@@ -251,9 +263,11 @@ def test_is_readonly():
     def is_readonly(sql: str) -> bool:
         return BaseEngineSpec.is_readonly_query(ParsedQuery(sql))
 
-    assert not is_readonly("SHOW LOCKS test EXTENDED")
+    assert is_readonly("SHOW LOCKS test EXTENDED")
     assert not is_readonly("SET hivevar:desc='Legislators'")
     assert not is_readonly("UPDATE t1 SET col1 = NULL")
     assert is_readonly("EXPLAIN SELECT 1")
     assert is_readonly("SELECT 1")
     assert is_readonly("WITH (SELECT 1) bla SELECT * from bla")
+    assert is_readonly("SHOW CATALOGS")
+    assert is_readonly("SHOW TABLES")

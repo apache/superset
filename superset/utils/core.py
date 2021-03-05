@@ -1620,10 +1620,9 @@ def normalize_dttm_col(
     timestamp_format: Optional[str],
     offset: int,
     time_shift: Optional[timedelta],
-) -> pd.DataFrame:
+) -> None:
     if DTTM_ALIAS not in df.columns:
-        return df
-    df = df.copy()
+        return
     if timestamp_format in ("epoch_s", "epoch_ms"):
         dttm_col = df[DTTM_ALIAS]
         if is_numeric_dtype(dttm_col):
@@ -1643,4 +1642,3 @@ def normalize_dttm_col(
         df[DTTM_ALIAS] += timedelta(hours=offset)
     if time_shift is not None:
         df[DTTM_ALIAS] += time_shift
-    return df

@@ -529,7 +529,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
             return database.compile_sqla_query(qry)
 
-        if LimitMethod.FORCE_LIMIT:
+        if cls.limit_method == LimitMethod.FORCE_LIMIT:
             parsed_query = sql_parse.ParsedQuery(sql)
             sql = parsed_query.set_or_update_query_limit(limit)
 
@@ -1180,7 +1180,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
-        return parsed_query.is_select() or parsed_query.is_explain()
+        return (
+            parsed_query.is_select()
+            or parsed_query.is_explain()
+            or parsed_query.is_show()
+        )
 
     @classmethod
     def get_column_spec(

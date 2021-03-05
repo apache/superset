@@ -17,77 +17,121 @@
  * under the License.
  */
 import React from 'react';
-import Button from 'src/components/Button';
-import { shallow } from 'enzyme';
-import sinon from 'sinon';
+import thunk from 'redux-thunk';
+import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import Select from 'src/components/Select';
 import QuerySearch from 'src/SqlLab/components/QuerySearch';
+import { Provider } from 'react-redux';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import { fireEvent, render, screen, act } from '@testing-library/react';
+import '@testing-library/jest-dom/extend-expect';
+import userEvent from '@testing-library/user-event';
+
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
 
 const SEARCH_ENDPOINT = 'glob:*/superset/search_queries?*';
+const USER_ENDPOINT = 'glob:*/api/v1/query/related/user';
+const DATABASE_ENDPOINT = 'glob:*/api/v1/database/?*';
 
 fetchMock.get(SEARCH_ENDPOINT, []);
+fetchMock.get(USER_ENDPOINT, []);
+fetchMock.get(DATABASE_ENDPOINT, []);
 
 describe('QuerySearch', () => {
-  const search = sinon.spy(QuerySearch.prototype, 'refreshQueries');
   const mockedProps = {
     actions: { addDangerToast: jest.fn() },
-    height: 0,
     displayLimit: 50,
   };
+
   it('is valid', () => {
-    expect(React.isValidElement(<QuerySearch {...mockedProps} />)).toBe(true);
-  });
-  let wrapper;
-  beforeEach(() => {
-    wrapper = shallow(<QuerySearch {...mockedProps} />);
+    expect(
+      React.isValidElement(
+        <ThemeProvider theme={supersetTheme}>
+          <Provider store={store}>
+            <QuerySearch {...mockedProps} />
+          </Provider>
+        </ThemeProvider>,
+      ),
+    ).toBe(true);
   });
 
-  it('should have three Select', () => {
-    expect(wrapper.findWhere(x => x.type() === Select)).toHaveLength(3);
+  beforeEach(async () => {
+    // You need this await function in order to change state in the app. In fact you need it everytime you re-render.
+    await act(async () => {
+      render(
+        <ThemeProvider theme={supersetTheme}>
+          <Provider store={store}>
+            <QuerySearch {...mockedProps} />
+          </Provider>
+        </ThemeProvider>,
+      );
+    });
+  });
+
+  it('should have three Selects', () => {
+    expect(screen.getByText(/28 days ago/i)).toBeInTheDocument();
+    expect(screen.getByText(/now/i)).toBeInTheDocument();
+    expect(screen.getByText(/success/i)).toBeInTheDocument();
   });
 
   it('updates fromTime on user selects from time', () => {
-    wrapper.find('[name="select-from"]').simulate('change', { value: 0 });
-    expect(wrapper.state().from).toBe(0);
+    const role = screen.getByText(/28 days ago/i);
+    fireEvent.keyDown(role, { key: 'ArrowDown', keyCode: 40 });
+    userEvent.click(screen.getByText(/1 hour ago/i));
+    expect(screen.getByText(/1 hour ago/i)).toBeInTheDocument();
   });
 
-  it('updates toTime on user selects to time', () => {
-    wrapper.find('[name="select-to"]').simulate('change', { value: 0 });
-    expect(wrapper.state().to).toBe(0);
+  it('updates toTime on user selects on time', () => {
+    const role = screen.getByText(/now/i);
+    fireEvent.keyDown(role, { key: 'ArrowDown', keyCode: 40 });
+    userEvent.click(screen.getByText(/1 hour ago/i));
+    expect(screen.getByText(/1 hour ago/i)).toBeInTheDocument();
   });
 
   it('updates status on user selects status', () => {
-    wrapper
-      .find('[name="select-status"]')
-      .simulate('change', { value: 'success' });
-    expect(wrapper.state().status).toBe('success');
+    const role = screen.getByText(/success/i);
+    fireEvent.keyDown(role, { key: 'ArrowDown', keyCode: 40 });
+    userEvent.click(screen.getByText(/failed/i));
+    expect(screen.getByText(/failed/i)).toBeInTheDocument();
   });
 
   it('should have one input for searchText', () => {
-    expect(wrapper.find('input')).toExist();
+    expect(
+      screen.getByPlaceholderText(/Query search string/i),
+    ).toBeInTheDocument();
   });
 
   it('updates search text on user inputs search text', () => {
-    wrapper.find('input').simulate('change', { target: { value: 'text' } });
-    expect(wrapper.state().searchText).toBe('text');
-  });
-
-  it('refreshes queries when enter (only) is pressed on the input', () => {
-    const { callCount } = search;
-    wrapper.find('input').simulate('keyDown', { keyCode: 'a'.charCodeAt(0) });
-    expect(search.callCount).toBe(callCount);
-    wrapper.find('input').simulate('keyDown', { keyCode: '\r'.charCodeAt(0) });
-    expect(search.callCount).toBe(callCount + 1);
+    const search = screen.getByPlaceholderText(/Query search string/i);
+    userEvent.type(search, 'text');
+    expect(search.value).toBe('text');
   });
 
   it('should have one Button', () => {
-    expect(wrapper.find(Button)).toExist();
+    const button = screen.getAllByRole('button');
+    expect(button.length).toEqual(1);
   });
 
-  it('refreshes queries when clicked', () => {
-    const { callCount } = search;
-    wrapper.find(Button).simulate('click');
-    expect(search.callCount).toBe(callCount + 1);
+  it('should call API when search button is pressed', async () => {
+    fetchMock.resetHistory();
+    const button = screen.getByRole('button');
+    await act(async () => {
+      userEvent.click(button);
+    });
+    expect(fetchMock.calls(SEARCH_ENDPOINT)).toHaveLength(1);
+  });
+
+  it('should call API when (only)enter key is pressed', async () => {
+    fetchMock.resetHistory();
+    const search = screen.getByPlaceholderText(/Query search string/i);
+    await act(async () => {
+      userEvent.type(search, 'a');
+    });
+    expect(fetchMock.calls(SEARCH_ENDPOINT)).toHaveLength(0);
+    await act(async () => {
+      userEvent.type(search, '{enter}');
+    });
+    expect(fetchMock.calls(SEARCH_ENDPOINT)).toHaveLength(1);
   });
 });

@@ -26,7 +26,7 @@ import { Radio } from 'src/common/components/Radio';
 import Modal from 'src/common/components/Modal';
 import Button from 'src/components/Button';
 import FormLabel from 'src/components/FormLabel';
-import { CreatableSelect } from 'src/components/Select/SupersetStyledSelect';
+import { CreatableSelect } from 'src/components/Select';
 import { connect } from 'react-redux';
 
 // Session storage key for recent dashboard

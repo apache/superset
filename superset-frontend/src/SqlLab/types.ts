@@ -38,6 +38,7 @@ export type Query = {
   link?: string;
   progress: number;
   results: {
+    displayLimitReached: boolean;
     columns: Column[];
     data: Record<string, unknown>[];
     expanded_columns: Column[];
@@ -60,4 +61,6 @@ export type Query = {
   tempTable: string;
   trackingUrl: string | null;
   templateParams: any;
+  rows: number;
+  queryLimit: number;
 };

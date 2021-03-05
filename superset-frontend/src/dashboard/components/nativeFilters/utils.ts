@@ -72,7 +72,7 @@ export const getFormData = ({
 };
 
 export function mergeExtraFormData(
-  originalExtra: ExtraFormData,
+  originalExtra: ExtraFormData = {},
   newExtra: ExtraFormData,
 ): ExtraFormData {
   const {
@@ -82,6 +82,7 @@ export function mergeExtraFormData(
   const {
     override_form_data: newOverride = {},
     append_form_data: newAppend = {},
+    custom_form_data: newCustom = {},
   } = newExtra;
 
   const appendKeys = new Set([
@@ -99,6 +100,7 @@ export function mergeExtraFormData(
   });
 
   return {
+    custom_form_data: newCustom,
     override_form_data: {
       ...originalOverride,
       ...newOverride,
@@ -121,14 +123,14 @@ export function getExtraFormData(
 ): ExtraFormData {
   let extraFormData: ExtraFormData = {};
   filterIdsAppliedOnChart.forEach(key => {
-    const filterState = nativeFilters.filtersState[key] || {};
+    const filterState = nativeFilters.filtersState.nativeFilters[key] || {};
     const { extraFormData: newExtra = {} } = filterState;
     extraFormData = mergeExtraFormData(extraFormData, newExtra);
   });
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     Object.entries(charts).forEach(([key, chart]) => {
       if (isCrossFilter(chart?.formData?.viz_type)) {
-        const filterState = nativeFilters.filtersState[key] || {};
+        const filterState = nativeFilters.filtersState.crossFilters[key] || {};
         const { extraFormData: newExtra = {} } = filterState;
         extraFormData = mergeExtraFormData(extraFormData, newExtra);
       }
