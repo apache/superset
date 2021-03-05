@@ -27,7 +27,7 @@ from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.filters import DashboardFilter
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.dashboard import Dashboard
+from superset.models.dashboard import Dashboard, id_or_slug_filter
 from superset.models.slice import Slice
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 
@@ -37,6 +37,25 @@ logger = logging.getLogger(__name__)
 class DashboardDAO(BaseDAO):
     model_cls = Dashboard
     base_filter = DashboardFilter
+
+    @staticmethod
+    def get_by_id_or_slug(id_or_slug: str) -> Dashboard:
+        query = (
+            db.session.query(Dashboard)
+            .filter(id_or_slug_filter(id_or_slug))
+            .outerjoin(Slice, Dashboard.slices)
+            .outerjoin(Slice.table)
+            .outerjoin(Dashboard.owners)
+            .outerjoin(Dashboard.roles)
+        )
+        # Apply dashboard base filters
+        query = DashboardFilter("id", SQLAInterface(Dashboard, db.session)).apply(
+            query, None
+        )
+        dashboard = query.one_or_none()
+        if not dashboard:
+            raise DashboardNotFoundError()
+        return dashboard
 
     @staticmethod
     def get_charts_for_dashboard(dashboard_id: int) -> List[Slice]:

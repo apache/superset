@@ -688,6 +688,9 @@ class SqlEditor extends React.PureComponent {
         ? 'Specify name to CREATE VIEW AS schema in: public'
         : 'Specify name to CREATE TABLE AS schema in: public';
 
+    const leftBarStateClass = this.props.hideLeftBar
+      ? 'schemaPane-exit-done'
+      : 'schemaPane-enter-done';
     return (
       <div ref={this.sqlEditorRef} className="SqlEditor">
         <CSSTransition
@@ -695,7 +698,7 @@ class SqlEditor extends React.PureComponent {
           in={!this.props.hideLeftBar}
           timeout={300}
         >
-          <div className="schemaPane">
+          <div className={`schemaPane ${leftBarStateClass}`}>
             <SqlEditorLeftBar
               database={this.props.database}
               queryEditor={this.props.queryEditor}

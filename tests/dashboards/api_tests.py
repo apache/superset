@@ -171,6 +171,32 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             db.session.commit()
 
     @pytest.mark.usefixtures("create_dashboards")
+    def get_dashboard_by_slug(self):
+        self.login(username="admin")
+        dashboard = self.dashboards[0]
+        uri = f"api/v1/dashboard/{dashboard.slug}"
+        response = self.get_assert_metric(uri, "get")
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data.decode("utf-8"))
+        self.assertEqual(data["id"], dashboard.id)
+
+    @pytest.mark.usefixtures("create_dashboards")
+    def get_dashboard_by_bad_slug(self):
+        self.login(username="admin")
+        dashboard = self.dashboards[0]
+        uri = f"api/v1/dashboard/{dashboard.slug}-bad-slug"
+        response = self.get_assert_metric(uri, "get")
+        self.assertEqual(response.status_code, 404)
+
+    @pytest.mark.usefixtures("create_dashboards")
+    def get_dashboard_by_slug_not_allowed(self):
+        self.login(username="gamma")
+        dashboard = self.dashboards[0]
+        uri = f"api/v1/dashboard/{dashboard.slug}"
+        response = self.get_assert_metric(uri, "get")
+        self.assertEqual(response.status_code, 404)
+
+    @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts(self):
         """
         Dashboard API: Test getting charts belonging to a dashboard
@@ -242,6 +268,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "id": dashboard.id,
             "css": "",
             "dashboard_title": "title",
+            "datasources": [],
             "json_metadata": "",
             "owners": [
                 {
