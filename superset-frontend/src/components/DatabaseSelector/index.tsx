@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import rison from 'rison';
 import { Select } from 'src/components/Select';
@@ -28,6 +28,7 @@ import { useDbMutator } from './dbMutator';
 import { useChangeDataBase } from './changeDataBase';
 import { useChangeSchema } from './changeSchema';
 import { DatabaseOption } from './DatabaseOption';
+import { SelectRow } from './SelectRow';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
@@ -139,15 +140,6 @@ export default function DatabaseSelector({
     }
   }, [currentDbId, fetchSchemas]);
 
-  function renderSelectRow(select: ReactNode, refreshBtn: ReactNode) {
-    return (
-      <div className="section">
-        <span className="select">{select}</span>
-        <span className="refresh-col">{refreshBtn}</span>
-      </div>
-    );
-  }
-
   function renderDatabaseSelect() {
     const queryParams = rison.encode({
       order_columns: 'database_name',
@@ -167,7 +159,7 @@ export default function DatabaseSelector({
           }),
     });
 
-    return renderSelectRow(
+    const select = (
       <SupersetAsyncSelect
         data-test="select-database"
         dataEndpoint={`/api/v1/database/?q=${queryParams}`}
@@ -197,21 +189,22 @@ export default function DatabaseSelector({
         placeholder={t('Select a database')}
         autoSelect
         isDisabled={!isDatabaseSelectEnabled || readOnly}
-      />,
-      null,
+      />
     );
+    return <SelectRow select={select} />;
   }
 
   function renderSchemaSelect() {
     const value = schemaOptions.filter(({ value }) => currentSchema === value);
-    const refresh = !formMode && !readOnly && (
-      <RefreshLabel
-        onClick={() => changeDataBase.current({ id: dbId }, true)}
-        tooltipContent={t('Force refresh schema list')}
-      />
-    );
+    const refresh =
+      !formMode && !readOnly ? (
+        <RefreshLabel
+          onClick={() => changeDataBase.current({ id: dbId }, true)}
+          tooltipContent={t('Force refresh schema list')}
+        />
+      ) : undefined;
 
-    return renderSelectRow(
+    const select = (
       <Select
         name="select-schema"
         placeholder={t('Select a schema (%s)', schemaOptions.length)}
@@ -235,9 +228,10 @@ export default function DatabaseSelector({
           changeSchema.current({ currentDbId, selectedSchema });
         }}
         isDisabled={readOnly}
-      />,
-      refresh,
+      />
     );
+
+    return <SelectRow select={select} refreshBtn={refresh} />;
   }
 
   return (
