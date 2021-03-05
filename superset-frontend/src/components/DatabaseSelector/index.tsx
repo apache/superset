@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { ReactNode, useEffect, useState } from 'react';
-import { styled, SupersetClient, t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import rison from 'rison';
 import { Select } from 'src/components/Select';
 import Label from 'src/components/Label';
@@ -28,6 +28,7 @@ import { useFetchSchemas } from './fetchSchemas';
 import { useOnSelectChange } from './onSelectChange';
 import { useDbMutator } from './dbMutator';
 import { useChangeDataBase } from './changeDataBase';
+import { useChangeSchema } from './changeSchema';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
@@ -102,7 +103,7 @@ export default function DatabaseSelector({
   sqlLabMode = false,
 }: DatabaseSelectorProps) {
   const [currentDbId, setCurrentDbId] = useState(dbId);
-  const [currentSchema, setCurrentSchema] = useState<string | undefined>(
+  const [currentSchema, setCurrentSchema] = useState<string | null | undefined>(
     schema,
   );
   const [schemaLoading, setSchemaLoading] = useState(false);
@@ -131,23 +132,18 @@ export default function DatabaseSelector({
     onSchemaChange,
   });
 
+  const changeSchema = useChangeSchema({
+    onSelectChange,
+    onSchemaChange,
+    setCurrentSchema,
+    getTableList,
+  });
+
   useEffect(() => {
     if (currentDbId) {
       fetchSchemas.current({ databaseId: currentDbId });
     }
   }, [currentDbId, fetchSchemas]);
-
-  function changeSchema(schemaOpt: any, force = false) {
-    const schema = schemaOpt ? schemaOpt.value : null;
-    if (onSchemaChange) {
-      onSchemaChange(schema);
-    }
-    setCurrentSchema(schema);
-    onSelectChange.current({ dbId: currentDbId, schema });
-    if (getTableList) {
-      getTableList(currentDbId, schema, force);
-    }
-  }
 
   function renderDatabaseOption(db: any) {
     return (
@@ -234,7 +230,16 @@ export default function DatabaseSelector({
         )}
         isLoading={schemaLoading}
         autosize={false}
-        onChange={item => changeSchema(item)}
+        onChange={selectedSchema => {
+          /**
+           * Attention: The type defined in the <Select> component is incorrect.
+           * The value of selectedSchema corresponds to another interface: { value: string; label: string; title: string }
+           *
+           * @ts-ignore is here to make it easier to find this error in the future
+           */
+          // @ts-ignore
+          changeSchema.current({ currentDbId, selectedSchema });
+        }}
         isDisabled={readOnly}
       />,
       refresh,

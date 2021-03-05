@@ -3,7 +3,7 @@ export type OnSelectChange = ({
   schema,
 }: {
   dbId: number | null;
-  schema?: string;
+  schema?: string | null;
 }) => void;
 
 export const factoryOnSelectChange = ({
@@ -11,14 +11,14 @@ export const factoryOnSelectChange = ({
   setCurrentSchema,
   onChange,
 }: {
-  setCurrentDbId: (dbId: number) => void;
-  setCurrentSchema: (schema: string | undefined) => void;
+  setCurrentDbId: (dbId: number | null) => void;
+  setCurrentSchema: (schema: string | undefined | null) => void;
   onChange?: ({
     dbId,
     schema,
   }: {
     dbId: number | null;
-    schema?: string;
+    schema?: string | null;
     tableName?: string;
   }) => void;
 }): OnSelectChange => ({ dbId, schema }) => {
