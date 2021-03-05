@@ -19,7 +19,7 @@
 import datetime
 import json
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 import numpy as np
 import pandas as pd

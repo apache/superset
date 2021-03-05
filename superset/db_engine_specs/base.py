@@ -163,7 +163,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             types.Integer(),
             GenericDataType.NUMERIC,
         ),
-        (re.compile(r"^bigint", re.IGNORECASE), types.BIGINT, GenericDataType.NUMERIC,),
+        (
+            re.compile(r"^bigint", re.IGNORECASE),
+            types.BigInteger(),
+            GenericDataType.NUMERIC,
+        ),
         (
             re.compile(r"^decimal", re.IGNORECASE),
             types.Numeric(),

@@ -34,7 +34,7 @@ from typing import (
 from pytz import _FixedOffset  # type: ignore
 from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
-from sqlalchemy.types import TypeEngine
+from sqlalchemy.types import String, TypeEngine
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import SupersetException
@@ -58,17 +58,6 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     engine = ""
     engine_name = "PostgreSQL"
-
-    column_type_mappings = (
-        (
-            re.compile(r"^double precision", re.IGNORECASE),
-            DOUBLE_PRECISION(),
-            GenericDataType.NUMERIC,
-        ),
-        (re.compile(r"^array.*", re.IGNORECASE), ARRAY(), utils.GenericDataType.STRING),
-        (re.compile(r"^json.*", re.IGNORECASE), JSON(), utils.GenericDataType.STRING,),
-        (re.compile(r"^enum.*", re.IGNORECASE), ENUM(), utils.GenericDataType.STRING,),
-    )
 
     _time_grain_expressions = {
         None: "{col}",
@@ -101,6 +90,21 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
     engine_aliases = ("postgres",)
     max_column_name_length = 63
     try_remove_schema_from_table_name = False
+
+    column_type_mappings = (
+        (
+            re.compile(r"^double precision", re.IGNORECASE),
+            DOUBLE_PRECISION(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^array.*", re.IGNORECASE),
+            lambda match: ARRAY(int(match[2])) if match[2] else String(),
+            utils.GenericDataType.STRING,
+        ),
+        (re.compile(r"^json.*", re.IGNORECASE), JSON(), utils.GenericDataType.STRING,),
+        (re.compile(r"^enum.*", re.IGNORECASE), ENUM(), utils.GenericDataType.STRING,),
+    )
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
@@ -172,7 +176,17 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
 
     @classmethod
     def get_column_spec(  # type: ignore
-        cls, native_type: Optional[str],
+        cls,
+        native_type: Optional[str],
+        source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
+        column_type_mappings: Tuple[
+            Tuple[
+                Pattern[str],
+                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
+                GenericDataType,
+            ],
+            ...,
+        ] = column_type_mappings,
     ) -> Union[ColumnSpec, None]:
 
         column_spec = super().get_column_spec(native_type)
@@ -180,5 +194,5 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
             return column_spec
 
         return super().get_column_spec(
-            native_type, column_type_mappings=cls.column_type_mappings
+            native_type, column_type_mappings=column_type_mappings
         )
