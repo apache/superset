@@ -16,7 +16,7 @@
 # under the License.
 import copy
 import math
-from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING, Union
 
 from flask_babel import _
 
@@ -80,8 +80,15 @@ def _get_query(
     query_context: "QueryContext", query_obj: "QueryObject", _: bool,
 ) -> Dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
+    error: Union[str, None] = None
+    query: Union[str, None] = None
+    try:
+        query = datasource.get_query_str(query_obj.to_dict())
+    except QueryObjectValidationError as err:
+        error = err.message
     return {
-        "query": datasource.get_query_str(query_obj.to_dict()),
+        "query": query,
+        "error": error,
         "language": datasource.query_language,
     }
 
@@ -118,7 +125,7 @@ def _get_full(
     ] + rejected_time_columns
 
     if result_type == ChartDataResultType.RESULTS and status != QueryStatus.FAILED:
-        return {"data": payload["data"]}
+        return {"data": payload.get("data")}
     return payload
 
 
@@ -143,7 +150,7 @@ def _get_results(
     query_context: "QueryContext", query_obj: "QueryObject", force_cached: bool = False
 ) -> Dict[str, Any]:
     payload = _get_full(query_context, query_obj, force_cached)
-    return {"data": payload["data"]}
+    return {"data": payload.get("data"), "error": payload.get("error")}
 
 
 _result_type_functions: Dict[

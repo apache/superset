@@ -68,7 +68,7 @@ from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import ParsedQuery
-from superset.typing import Metric, QueryObjectDict
+from superset.typing import Metric, OrderBy, QueryObjectDict
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType
 
@@ -829,7 +829,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             except TemplateError as ex:
                 raise QueryObjectValidationError(
                     _(
-                        "Error while rendering virtual dataset query with Jinja: %(msg)s",
+                        "Error while rendering virtual dataset query: %(msg)s",
                         msg=ex.message,
                     )
                 )
@@ -914,7 +914,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         row_offset: Optional[int] = None,
         inner_from_dttm: Optional[datetime] = None,
         inner_to_dttm: Optional[datetime] = None,
-        orderby: Optional[List[Tuple[Metric, bool]]] = None,
+        orderby: Optional[List[OrderBy]] = None,
         extras: Optional[Dict[str, Any]] = None,
         order_desc: bool = True,
         is_rowcount: bool = False,
@@ -1049,6 +1049,13 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         groupby_exprs_with_timestamp = OrderedDict(groupby_exprs_sans_timestamp.items())
 
         if granularity:
+            if not granularity in columns_by_name:
+                raise QueryObjectValidationError(
+                    _(
+                        'Time column "%(col)s" does not exist in dataset',
+                        col=granularity,
+                    )
+                )
             dttm_col = columns_by_name[granularity]
             time_grain = extras.get("time_grain_sqla")
             time_filters = []

@@ -151,6 +151,21 @@ describe('Visualization > Table', () => {
     cy.verifySliceSuccess({ waitAlias: '@chartData', chartSelector: 'table' });
   });
 
+  it('Test table with groupby + order by + no metric', () => {
+    cy.visitChartByParams({
+      ...VIZ_DEFAULTS,
+      metrics: [],
+      groupby: ['name'],
+      timeseries_limit_metric: NUM_METRIC,
+      order_desc: true,
+    });
+    // should contain only the group by column
+    cy.get('.chart-container th').its('length').should('eq', 1);
+    // should order correctly
+    cy.get('.chart-container td:eq(0)').contains('Michael');
+    cy.verifySliceSuccess({ waitAlias: '@chartData', chartSelector: 'table' });
+  });
+
   it('Test table with groupby and limit', () => {
     const limit = 10;
     const formData = {

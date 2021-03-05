@@ -28,7 +28,7 @@ from superset import app, db
 from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.exceptions import QueryObjectValidationError
-from superset.typing import Metric
+from superset.typing import Metric, OrderBy
 from superset.utils import pandas_postprocessing
 from superset.utils.core import (
     ChartDataResultType,
@@ -90,7 +90,7 @@ class QueryObject:
     order_desc: bool
     extras: Dict[str, Any]
     columns: List[str]
-    orderby: List[List[str]]
+    orderby: List[OrderBy]
     post_processing: List[Dict[str, Any]]
     datasource: Optional[BaseDatasource]
     result_type: Optional[ChartDataResultType]
@@ -117,7 +117,7 @@ class QueryObject:
         order_desc: bool = True,
         extras: Optional[Dict[str, Any]] = None,
         columns: Optional[List[str]] = None,
-        orderby: Optional[List[List[str]]] = None,
+        orderby: Optional[List[OrderBy]] = None,
         post_processing: Optional[List[Optional[Dict[str, Any]]]] = None,
         is_rowcount: bool = False,
         **kwargs: Any,
