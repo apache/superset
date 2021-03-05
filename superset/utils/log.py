@@ -81,7 +81,7 @@ class AbstractEventLogger(ABC):
 
         :param action: a name to identify the event
         :param object_ref: reference to the Python object that triggered this action
-        :param log_to_statsd: whether to update statsd counter for the action
+        :param log_to_statsd: whether to update statsd counter for the actions
         """
         from superset.views.core import get_form_data
 
