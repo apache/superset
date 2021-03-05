@@ -19,7 +19,7 @@
 import { QueryObjectExtras, styled, t } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
-import { PluginFilterSelectProps } from './types';
+import { PluginFilterTimeGrainProps } from './types';
 import { PluginFilterStylesProps } from '../types';
 
 const Styles = styled.div<PluginFilterStylesProps>`
@@ -29,7 +29,9 @@ const Styles = styled.div<PluginFilterStylesProps>`
 
 const { Option } = Select;
 
-export default function PluginFilterTimegrain(props: PluginFilterSelectProps) {
+export default function PluginFilterTimegrain(
+  props: PluginFilterTimeGrainProps,
+) {
   const { data, formData, height, width, setDataMask } = props;
   const { defaultValue, currentValue, inputRef } = formData;
 

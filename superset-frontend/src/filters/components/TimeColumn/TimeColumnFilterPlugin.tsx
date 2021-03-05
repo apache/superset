@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObject, styled, t } from '@superset-ui/core';
+import { Behavior, DataMask, styled, t } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import { PluginFilterTimeColumnProps } from './types';
@@ -32,50 +32,49 @@ const { Option } = Select;
 export default function PluginFilterTimeColumn(
   props: PluginFilterTimeColumnProps,
 ) {
-  const { data, formData, height, width, setDataMask } = props;
+  const { behaviors, data, formData, height, width, setDataMask } = props;
   const { defaultValue, currentValue, inputRef } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
 
-  const handleChange = (values: string[] | string | undefined | null) => {
-    let selectedValues: string[];
-    let timeColumn: string | null;
-    if (values === null || values === undefined) {
-      selectedValues = [];
-      timeColumn = null;
-    } else if (!Array.isArray(values)) {
-      selectedValues = [values];
-      timeColumn = values;
-    } else if (Array.isArray(values) && values.length > 0) {
-      selectedValues = values;
-      timeColumn = values[0];
+  const handleChange = (value?: string[] | string | null) => {
+    let resultValue: string[];
+    if (Array.isArray(value)) {
+      resultValue = value;
     } else {
-      selectedValues = [];
-      timeColumn = null;
+      resultValue = value ? [value] : [];
     }
-    const overrideFormData: Partial<QueryObject> = {};
-    if (timeColumn !== null) {
-      overrideFormData.granularity_sqla = timeColumn;
-    }
-    setValue(selectedValues);
-    setDataMask({
-      nativeFilters: {
-        extraFormData: {
-          override_form_data: overrideFormData,
-        },
-        currentState: {
-          value: selectedValues,
+    setValue(resultValue);
+
+    const dataMask = {
+      extraFormData: {
+        override_form_data: {
+          granularity_sqla: resultValue.length ? resultValue[0] : null,
         },
       },
-    });
+      currentState: {
+        value: resultValue.length ? resultValue : null,
+      },
+    };
+
+    const dataMaskObject: DataMask = {};
+    if (behaviors.includes(Behavior.NATIVE_FILTER)) {
+      dataMaskObject.nativeFilters = dataMask;
+    }
+
+    if (behaviors.includes(Behavior.CROSS_FILTER)) {
+      dataMaskObject.crossFilters = dataMask;
+    }
+
+    setDataMask(dataMaskObject);
   };
 
   useEffect(() => {
-    handleChange(currentValue ?? []);
+    handleChange(currentValue ?? null);
   }, [JSON.stringify(currentValue)]);
 
   useEffect(() => {
-    handleChange(defaultValue ?? []);
+    handleChange(defaultValue ?? null);
     // I think after Config Modal update some filter it re-creates default value for all other filters
     // so we can process it like this `JSON.stringify` or start to use `Immer`
   }, [JSON.stringify(defaultValue)]);

@@ -1042,9 +1042,9 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     and add applied time extras to the payload.
     """
     time_extras = {
-        "time_range": "__time_range",
         "granularity": "__granularity",
         "granularity_sqla": "__granularity",
+        "time_range": "__time_range",
     }
     allowed_extra_overrides: Dict[str, Optional[str]] = {
         "time_grain_sqla": "__time_grain",
@@ -1077,7 +1077,7 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     adhoc_filters.extend({"isExtra": True, **fltr} for fltr in append_adhoc_filters)
     if append_filters:
         adhoc_filters.extend(
-            [to_adhoc({"isExtra": True, **fltr}) for fltr in append_filters if fltr]
+            to_adhoc({"isExtra": True, **fltr}) for fltr in append_filters if fltr
         )
 
 

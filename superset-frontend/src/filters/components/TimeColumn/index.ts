@@ -22,7 +22,7 @@ import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 
-export default class FilterTimegrainPlugin extends ChartPlugin {
+export default class FilterTimeColumnPlugin extends ChartPlugin {
   constructor() {
     const metadata = new ChartMetadata({
       name: t('Time column'),

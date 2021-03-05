@@ -50,7 +50,7 @@ export const useBackendFormUpdate = (
       });
       return;
     }
-    if (!formFilter?.dataset) {
+    if (!formFilter?.dataset?.value) {
       // no need to make chart data request if no dataset is defined
       return;
     }

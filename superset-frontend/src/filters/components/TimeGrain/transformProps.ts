@@ -29,7 +29,7 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     height,
     data,
-    formData: { ...DEFAULT_FORM_DATA, formData },
+    formData: { ...DEFAULT_FORM_DATA, ...formData },
     setDataMask,
   };
 }

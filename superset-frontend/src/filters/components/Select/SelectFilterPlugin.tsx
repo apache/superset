@@ -74,7 +74,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         value: resultValue.length ? resultValue : null,
       },
     };
-    console.log(dataMask);
 
     const dataMaskObject: DataMask = {};
     if (behaviors.includes(Behavior.NATIVE_FILTER)) {
