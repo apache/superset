@@ -26,14 +26,17 @@ import { OptionSelector } from './utils';
 import { DatasourcePanelDndItem } from '../../DatasourcePanel/types';
 import { DndItemType } from '../../DndItemType';
 
-export const DndColumnSelect = (props: LabelProps) => {
+export const DndColumnSelect = (props: LabelProps<ColumnMeta[]>) => {
   const { value, options } = props;
-  const optionSelector = new OptionSelector(options, value);
-  const [values, setValues] = useState<ColumnMeta[]>(optionSelector.values);
+  const optionSelector = new OptionSelector<ColumnMeta>({
+    options,
+    selected: value,
+  });
+  const [values, setValues] = useState<ColumnMeta[]>(optionSelector.selected);
 
   const onDrop = (item: DatasourcePanelDndItem) => {
     const column = item.value as ColumnMeta;
-    if (!optionSelector.isArray && !isEmpty(optionSelector.values)) {
+    if (!optionSelector.isArray && !isEmpty(optionSelector.selected)) {
       optionSelector.replace(0, column.column_name);
     } else {
       optionSelector.add(column.column_name);
@@ -64,7 +67,7 @@ export const DndColumnSelect = (props: LabelProps) => {
         index={idx}
         clickClose={onClickClose}
         onShiftOptions={onShiftOptions}
-        type={DndItemType.columnOption}
+        type={DndItemType.ColumnOption}
       >
         <ColumnOption column={column} showType />
       </OptionWrapper>
@@ -76,7 +79,7 @@ export const DndColumnSelect = (props: LabelProps) => {
       onDrop={onDrop}
       canDrop={canDrop}
       valuesRenderer={valuesRenderer}
-      accept={DndItemType.column}
+      accept={DndItemType.Column}
       {...props}
     />
   );

@@ -268,7 +268,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
             index={index}
             clickClose={onClickClose}
             onShiftOptions={onShiftOptions}
-            type={DndItemType.filterOption}
+            type={DndItemType.FilterOption}
             withCaret
           >
             <Tooltip title={label}>{label}</Tooltip>
@@ -308,10 +308,10 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
         canDrop={() => true}
         valuesRenderer={valuesRenderer}
         accept={[
-          DndItemType.column,
-          DndItemType.metric,
-          DndItemType.metricOption,
-          DndItemType.adhocMetricOption,
+          DndItemType.Column,
+          DndItemType.Metric,
+          DndItemType.MetricOption,
+          DndItemType.AdhocMetricOption,
         ]}
         {...props}
       />

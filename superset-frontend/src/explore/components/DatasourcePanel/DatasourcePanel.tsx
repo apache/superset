@@ -214,7 +214,7 @@ export default function DataSourcePanel({
                 {enableExploreDnd ? (
                   <DatasourcePanelDragWrapper
                     value={m}
-                    type={DndItemType.metric}
+                    type={DndItemType.Metric}
                   >
                     <MetricOption metric={m} showType />
                   </DatasourcePanelDragWrapper>
@@ -236,7 +236,7 @@ export default function DataSourcePanel({
                 {enableExploreDnd ? (
                   <DatasourcePanelDragWrapper
                     value={col}
-                    type={DndItemType.column}
+                    type={DndItemType.Column}
                   >
                     <ColumnOption column={col} showType />
                   </DatasourcePanelDragWrapper>

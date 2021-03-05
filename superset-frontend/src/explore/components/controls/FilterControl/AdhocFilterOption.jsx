@@ -67,7 +67,7 @@ const AdhocFilterOption = ({
       onMoveLabel={onMoveLabel}
       onDropLabel={onDropLabel}
       index={index}
-      type={DndItemType.filterOption}
+      type={DndItemType.FilterOption}
       withCaret
       isExtra={adhocFilter.isExtra}
     />

@@ -88,7 +88,7 @@ export default function MetricDefinitionValue({
         onRemove={onRemoveMetric}
         onMoveLabel={onMoveLabel}
         onDropLabel={onDropLabel}
-        type={DndItemType.filterOption}
+        type={DndItemType.FilterOption}
         index={index}
         isFunction
       />

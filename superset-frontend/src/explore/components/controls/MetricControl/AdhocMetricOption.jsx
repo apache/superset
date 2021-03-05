@@ -79,7 +79,7 @@ class AdhocMetricOption extends React.PureComponent {
           onMoveLabel={onMoveLabel}
           onDropLabel={onDropLabel}
           index={index}
-          type={DndItemType.adhocMetricOption}
+          type={DndItemType.AdhocMetricOption}
           withCaret
           isFunction
         />

@@ -22,19 +22,19 @@
  */
 export enum DndItemType {
   // an existing column in table
-  column = 'column',
+  Column = 'column',
   // a selected column option in ColumnSelectControl
-  columnOption = 'columnOption',
+  ColumnOption = 'columnOption',
   // an adhoc column option in ColumnSelectControl
-  adhocColumnOption = 'adhocColumn',
+  AdhocColumnOption = 'adhocColumn',
 
   // a saved metric
-  metric = 'metric',
+  Metric = 'metric',
   // a selected saved metric in MetricsControl
-  metricOption = 'metricOption',
+  MetricOption = 'metricOption',
   // an adhoc metric option in MetricsControl
-  adhocMetricOption = 'adhocMetric',
+  AdhocMetricOption = 'adhocMetric',
 
   // an adhoc filter option
-  filterOption = 'filterOption',
+  FilterOption = 'filterOption',
 }
