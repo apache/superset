@@ -14,8 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""
+DEPRECATION NOTICE: this module is deprecated and will be removed on 2.0.
+"""
+
 from croniter import croniter
-from flask import abort
+from flask import abort, flash, Markup
 from flask_appbuilder import CompactCRUDMixin, permission_name
 from flask_appbuilder.api import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -81,7 +85,6 @@ class BaseAlertReportView(BaseSupersetView):
             and is_feature_enabled("ALERT_REPORTS")
         ):
             return abort(404)
-
         return super().render_app_template()
 
     @expose("/<pk>/log/", methods=["GET"])
@@ -208,6 +211,23 @@ class AlertModelView(SupersetModelView):  # pylint: disable=too-many-ancestors
         AlertObservationModelView,
         AlertLogModelView,
     ]
+
+    @expose("/list/")
+    @has_access
+    def list(self) -> FlaskResponse:
+        flash(
+            Markup(
+                _(
+                    "This feature is deprecated and will be removed on 2.0. "
+                    "Take a look at the replacement feature "
+                    "<a href="
+                    "'https://superset.apache.org/docs/installation/alerts-reports'>"
+                    "Alerts & Reports documentation</a>"
+                )
+            ),
+            "warning",
+        )
+        return super().list()
 
     def pre_add(self, item: "AlertModelView") -> None:
         item.recipients = get_email_address_str(item.recipients)
