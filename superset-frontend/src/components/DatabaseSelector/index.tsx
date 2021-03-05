@@ -25,6 +25,7 @@ import Label from 'src/components/Label';
 import SupersetAsyncSelect from '../AsyncSelect';
 import RefreshLabel from '../RefreshLabel';
 import { useFetchSchemas } from './fetchSchemas';
+import { useOnSelectChange } from './onSelectChange';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
@@ -112,19 +113,17 @@ export default function DatabaseSelector({
     handleError,
   });
 
+  const onSelectChange = useOnSelectChange({
+    setCurrentDbId,
+    setCurrentSchema,
+    onChange,
+  });
+
   useEffect(() => {
     if (currentDbId) {
       fetchSchemas.current({ databaseId: currentDbId });
     }
   }, [currentDbId, fetchSchemas]);
-
-  function onSelectChange({ dbId, schema }: { dbId: number; schema?: string }) {
-    setCurrentDbId(dbId);
-    setCurrentSchema(schema);
-    if (onChange) {
-      onChange({ dbId, schema, tableName: undefined });
-    }
-  }
 
   function dbMutator(data: any) {
     if (getDbList) {
@@ -150,7 +149,7 @@ export default function DatabaseSelector({
       onDbChange(db);
     }
     fetchSchemas.current({ databaseId: dbId, forceRefresh: force });
-    onSelectChange({ dbId, schema: undefined });
+    onSelectChange.current({ dbId, schema: undefined });
   }
 
   function changeSchema(schemaOpt: any, force = false) {
@@ -159,7 +158,7 @@ export default function DatabaseSelector({
       onSchemaChange(schema);
     }
     setCurrentSchema(schema);
-    onSelectChange({ dbId: currentDbId, schema });
+    onSelectChange.current({ dbId: currentDbId, schema });
     if (getTableList) {
       getTableList(currentDbId, schema, force);
     }
