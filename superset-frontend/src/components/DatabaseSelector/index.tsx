@@ -26,6 +26,7 @@ import SupersetAsyncSelect from '../AsyncSelect';
 import RefreshLabel from '../RefreshLabel';
 import { useFetchSchemas } from './fetchSchemas';
 import { useOnSelectChange } from './onSelectChange';
+import { useDbMutator } from './dbMutator';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
@@ -119,25 +120,13 @@ export default function DatabaseSelector({
     onChange,
   });
 
+  const dbMutator = useDbMutator({ getDbList, handleError });
+
   useEffect(() => {
     if (currentDbId) {
       fetchSchemas.current({ databaseId: currentDbId });
     }
   }, [currentDbId, fetchSchemas]);
-
-  function dbMutator(data: any) {
-    if (getDbList) {
-      getDbList(data.result);
-    }
-    if (data.result.length === 0) {
-      handleError(t("It seems you don't have access to any database"));
-    }
-    return data.result.map((row: any) => ({
-      ...row,
-      // label is used for the typeahead
-      label: `${row.backend} ${row.database_name}`,
-    }));
-  }
 
   function changeDataBase(db: any, force = false) {
     const dbId = db ? db.id : null;
@@ -218,7 +207,7 @@ export default function DatabaseSelector({
           </div>
         )}
         optionRenderer={renderDatabaseOption}
-        mutator={dbMutator}
+        mutator={dbMutator.current}
         placeholder={t('Select a database')}
         autoSelect
         isDisabled={!isDatabaseSelectEnabled || readOnly}
