@@ -52,3 +52,13 @@ export type DatabaseObject = {
   allow_csv_upload?: boolean;
   extra?: string;
 };
+
+export interface RootState {
+  common: {
+    conf: {
+      SQLALCHEMY_DOCS_URL: string;
+      SQLALCHEMY_DISPLAY_TEXT: string;
+    };
+  };
+  messageToast: Array<Object>;
+}
