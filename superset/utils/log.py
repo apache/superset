@@ -112,7 +112,11 @@ class AbstractEventLogger(ABC):
         from superset.views.core import get_form_data
 
         referrer = request.referrer[:1000] if request.referrer else None
-        user_id = g.user.get_id() if hasattr(g, "user") and g.user else None
+        try:
+            user_id = g.user.get_id()
+        except Exception as ex:  # pylint: disable=broad-except
+            logging.warning(ex)
+            user_id = None
 
         payload = collect_request_payload()
         if object_ref:
@@ -174,8 +178,10 @@ class AbstractEventLogger(ABC):
         yield lambda **kwargs: payload_override.update(kwargs)
         duration = datetime.now() - start
 
+        # take the action from payload_override else take the function param action
+        action_str = payload_override.pop("action", action)
         self.log_with_context(
-            action, duration, object_ref, log_to_statsd, **payload_override
+            action_str, duration, object_ref, log_to_statsd, **payload_override
         )
 
     def _wrapper(

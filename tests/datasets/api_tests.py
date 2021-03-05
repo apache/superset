@@ -47,6 +47,7 @@ from tests.fixtures.importexport import (
     database_metadata_config,
     dataset_config,
     dataset_metadata_config,
+    dataset_ui_export,
 )
 
 
@@ -1273,6 +1274,31 @@ class TestDatasetApi(SupersetTestCase):
 
         db.session.delete(dataset)
         db.session.delete(database)
+        db.session.commit()
+
+    def test_import_dataset_v0_export(self):
+        num_datasets = db.session.query(SqlaTable).count()
+
+        self.login(username="admin")
+        uri = "api/v1/dataset/import/"
+
+        buf = BytesIO()
+        buf.write(json.dumps(dataset_ui_export).encode())
+        buf.seek(0)
+        form_data = {
+            "formData": (buf, "dataset_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+        assert db.session.query(SqlaTable).count() == num_datasets + 1
+
+        dataset = (
+            db.session.query(SqlaTable).filter_by(table_name="birth_names_2").one()
+        )
+        db.session.delete(dataset)
         db.session.commit()
 
     def test_import_dataset_overwrite(self):
