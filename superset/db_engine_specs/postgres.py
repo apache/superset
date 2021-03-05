@@ -170,8 +170,9 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
             extra["engine_params"] = engine_params
         return extra
 
+    @classmethod
     def get_column_spec(  # type: ignore
-        self, native_type: Optional[str],
+        cls, native_type: Optional[str],
     ) -> Union[ColumnSpec, None]:
 
         column_spec = super().get_column_spec(native_type)
@@ -179,5 +180,5 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
             return column_spec
 
         return super().get_column_spec(
-            native_type, column_type_mappings=self.column_type_mappings
+            native_type, column_type_mappings=cls.column_type_mappings
         )
