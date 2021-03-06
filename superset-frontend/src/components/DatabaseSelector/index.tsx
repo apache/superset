@@ -19,9 +19,7 @@
 import React, { useEffect, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
 import rison from 'rison';
-import { Select } from 'src/components/Select';
 import SupersetAsyncSelect from '../AsyncSelect';
-import RefreshLabel from '../RefreshLabel';
 import { useFetchSchemas } from './fetchSchemas';
 import { useOnSelectChange } from './onSelectChange';
 import { useDbMutator } from './dbMutator';
@@ -29,6 +27,7 @@ import { useChangeDataBase } from './changeDataBase';
 import { useChangeSchema } from './changeSchema';
 import { DatabaseOption } from './DatabaseOption';
 import { SelectRow } from './SelectRow';
+import { SchemaSelect } from './SchemaSelect';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
@@ -194,52 +193,22 @@ export default function DatabaseSelector({
     return <SelectRow select={select} />;
   }
 
-  function renderSchemaSelect() {
-    const value = schemaOptions.filter(({ value }) => currentSchema === value);
-    const refresh =
-      !formMode && !readOnly ? (
-        <RefreshLabel
-          onClick={() => changeDataBase.current({ id: dbId }, true)}
-          tooltipContent={t('Force refresh schema list')}
-        />
-      ) : undefined;
-
-    const select = (
-      <Select
-        name="select-schema"
-        placeholder={t('Select a schema (%s)', schemaOptions.length)}
-        options={schemaOptions}
-        value={value}
-        valueRenderer={o => (
-          <div>
-            <span className="text-muted">{t('Schema:')}</span> {o.label}
-          </div>
-        )}
-        isLoading={schemaLoading}
-        autosize={false}
-        onChange={selectedSchema => {
-          /**
-           * Attention: The type defined in the <Select> component is incorrect.
-           * The value of selectedSchema corresponds to another interface: { value: string; label: string; title: string }
-           *
-           * @ts-ignore is here to make it easier to find this error in the future
-           */
-          // @ts-ignore
-          changeSchema.current({ currentDbId, selectedSchema });
-        }}
-        isDisabled={readOnly}
-      />
-    );
-
-    return <SelectRow select={select} refreshBtn={refresh} />;
-  }
-
   return (
     <DatabaseSelectorWrapper>
       {formMode && <FieldTitle>{t('datasource')}</FieldTitle>}
       {renderDatabaseSelect()}
       {formMode && <FieldTitle>{t('schema')}</FieldTitle>}
-      {renderSchemaSelect()}
+      <SchemaSelect
+        schemaOptions={schemaOptions}
+        currentSchema={currentSchema}
+        hasRefresh={!formMode && !readOnly}
+        refresh={() => changeDataBase.current({ id: dbId }, true)}
+        onChange={selectedSchema =>
+          changeSchema.current({ currentDbId, selectedSchema })
+        }
+        loading={schemaLoading}
+        readOnly={readOnly}
+      />
     </DatabaseSelectorWrapper>
   );
 }
