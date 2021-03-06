@@ -50,10 +50,11 @@ jobs:
                   repo: context.repo.repo,
                   issue_number: pull.number,
                   body:
-                    `@${pull.user.login} Your base branch just also updated \`superset/migrations\`.` +
-                    'It may cause db migration conflicts with your current changes.' +
+                    `⚠️ @${pull.user.login} Your base branch just also updated \`superset/migrations\`.\n` +
                     '\n' +
-                    '**Please consider rebasing your branch.**',
+                    'It may cause db migration conflicts with your current changes.\n' +
+                    '\n' +
+                    '**❗ Please consider rebasing your branch.**',
                 });
               }
             }
