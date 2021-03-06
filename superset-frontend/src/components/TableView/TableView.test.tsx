@@ -82,7 +82,20 @@ test('should render the pagination', () => {
   expect(screen.getAllByRole('button')).toHaveLength(4);
   expect(screen.getByText('«')).toBeInTheDocument();
   expect(screen.getByText('»')).toBeInTheDocument();
+});
+
+test('should show the row count by default', () => {
+  render(<TableView {...mockedProps} />);
   expect(screen.getByText('1-1 of 2')).toBeInTheDocument();
+});
+
+test('should NOT show the row count', () => {
+  const noRowCountProps = {
+    ...mockedProps,
+    showRowCount: false,
+  };
+  render(<TableView {...noRowCountProps} />);
+  expect(screen.queryByText('1-1 of 2')).not.toBeInTheDocument();
 });
 
 test('should NOT render the pagination when disabled', () => {
@@ -154,4 +167,28 @@ test('should sort by initialSortBy ASC', () => {
 
   expect(screen.getByText('Emily')).toBeInTheDocument();
   expect(screen.queryByText('Kate')).not.toBeInTheDocument();
+});
+
+test('should show empty', () => {
+  const noDataProps = {
+    ...mockedProps,
+    data: [],
+    noDataText: 'No data here',
+  };
+  render(<TableView {...noDataProps} />);
+
+  expect(screen.getByText('No data here')).toBeInTheDocument();
+});
+
+test('should render the right page', () => {
+  const pageIndexProps = {
+    ...mockedProps,
+    initialPageIndex: 1,
+  };
+  render(<TableView {...pageIndexProps} />);
+
+  expect(screen.getByText('321')).toBeInTheDocument();
+  expect(screen.getByText('10')).toBeInTheDocument();
+  expect(screen.getByText('Kate')).toBeInTheDocument();
+  expect(screen.queryByText('Emily')).not.toBeInTheDocument();
 });
