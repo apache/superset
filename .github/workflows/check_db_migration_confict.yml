@@ -33,8 +33,7 @@ jobs:
               console.log(`Found ${pulls.length} open PRs for base branch "${currentBranch}"`)
             }
 
-            for (const pull in pulls) {
-              console.log(pull);
+            for (const pull of pulls) {
               const listFilesOpts = await github.pulls.listFiles.endpoint.merge({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
