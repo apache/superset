@@ -17,14 +17,42 @@
  * under the License.
  */
 import React from 'react';
-import { styled } from '@superset-ui/core';
-import { Switch as BaseSwitch } from 'src/common/components';
-import { SwitchProps } from 'antd/lib/switch';
+import { useArgs } from '@storybook/client-api';
+import { Switch, SwitchProps } from '.';
 
-const StyledSwitch = styled(BaseSwitch)`
-  .ant-switch-checked {
-    background-color: ${({ theme }) => theme.colors.primary.base};
-  }
-`;
+export default {
+  title: 'Switch',
+};
 
-export const Switch = (props: SwitchProps) => <StyledSwitch {...props} />;
+export const InteractiveSwitch = ({ checked, ...rest }: SwitchProps) => {
+  const [, updateArgs] = useArgs();
+  return (
+    <Switch
+      {...rest}
+      checked={checked}
+      onChange={value => updateArgs({ checked: value })}
+    />
+  );
+};
+
+InteractiveSwitch.args = {
+  checked: false,
+  disabled: false,
+  loading: false,
+  title: 'Switch',
+};
+
+InteractiveSwitch.argTypes = {
+  size: {
+    defaultValue: 'default',
+    control: { type: 'radio', options: ['small', 'default'] },
+  },
+};
+
+InteractiveSwitch.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};
