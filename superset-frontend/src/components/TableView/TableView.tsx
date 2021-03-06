@@ -26,8 +26,8 @@ import { SortColumns } from './types';
 const DEFAULT_PAGE_SIZE = 10;
 
 export enum EmptyWrapperType {
-  Default,
-  Small,
+  Default = 'Default',
+  Small = 'Small',
 }
 
 export interface TableViewProps {

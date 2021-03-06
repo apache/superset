@@ -19,8 +19,7 @@
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { TableViewProps } from 'src/components/TableView/TableView';
-import TableView from '.';
+import TableView, { TableViewProps } from '.';
 
 const mockedProps: TableViewProps = {
   columns: [
