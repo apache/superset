@@ -1,0 +1,58 @@
+name: Check DB migration conflict
+on:
+  push:
+    paths:
+      - "superset/migrations/**"
+
+jobs:
+  check_db_migration_conflict:
+    name: Check potential DB migration conflict
+    runs-on: ubuntu-20.04
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Check and notify
+        uses: actions/github-script@v3
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // API reference: https://octokit.github.io/rest.js
+
+            // Find all pull requests to current branch
+            const opts = github.pulls.list.endpoint.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              base: contect.ref,
+              state: 'open',
+              sort: 'updated',
+              per_page: 100,
+            });
+            const pulls = await github.paginate(opts);
+
+            for (const pull in pulls) {
+              const listFilesOpts = await github.pulls.listFiles.endpoint.merge({
+                owner: context.repo.owner,
+                repo: contet.repo.repo,
+                pull_number: pull.number,
+              });
+              const files = await github.paginate(listFilesOpts);
+              if (
+                files.some(x => x.contents_url.includes('/contents/superset/migrations'))
+              ) {
+                await github.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pull.number,
+                  body:
+                    `@${pull.user.login} Your base branch just also updated \`superset/migrations\`.` +
+                    'It may cause db migration conflicts with your current changes.' +
+                    '\n' +
+                    '**Please consider rebasing your branch.**',
+                });
+                break;
+              }
+            }
