@@ -74,9 +74,6 @@ InteractiveTableView.argTypes = {
       min: 0,
     },
   },
-  columns: {
-    control: { type: 'object' },
-  },
 };
 
 InteractiveTableView.story = {
