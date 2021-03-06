@@ -20,7 +20,7 @@ import { styled } from '@superset-ui/core';
 import React from 'react';
 import Icon from 'src/components/Icon';
 
-interface SearchInputProps {
+export interface SearchInputProps {
   onSubmit: () => void;
   onClear: () => void;
   value: string;
