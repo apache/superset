@@ -1065,22 +1065,19 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     target_column_is_numeric=col_obj.is_numeric,
                     is_list_target=is_list_target,
                 )
-                if op in (
-                    utils.FilterOperator.IN.value,
-                    utils.FilterOperator.NOT_IN.value,
-                ):
+                if is_list_target:
                     cond = col_obj.get_sqla_col().in_(eq)
-                    if isinstance(eq, str) and NULL_STRING in eq:
-                        cond = or_(
-                            cond,
-                            col_obj.get_sqla_col()  # pylint: disable=singleton-comparison
-                            == None,
-                        )
+                    if None in eq:
+                        cond = or_(cond, col_obj.get_sqla_col().is_(None))
                     if op == utils.FilterOperator.NOT_IN.value:
                         cond = ~cond
                     where_clause_and.append(cond)
+                elif op == utils.FilterOperator.IS_NULL.value:
+                    where_clause_and.append(col_obj.get_sqla_col().is_(None))
+                elif op == utils.FilterOperator.IS_NOT_NULL.value:
+                    where_clause_and.append(col_obj.get_sqla_col().isnot(None))
                 else:
-                    if col_obj.is_numeric:
+                    if col_obj.is_numeric and "val" in flt:
                         eq = utils.cast_to_num(flt["val"])
                     if op == utils.FilterOperator.EQUALS.value:
                         where_clause_and.append(col_obj.get_sqla_col() == eq)
@@ -1096,16 +1093,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         where_clause_and.append(col_obj.get_sqla_col() <= eq)
                     elif op == utils.FilterOperator.LIKE.value:
                         where_clause_and.append(col_obj.get_sqla_col().like(eq))
-                    elif op == utils.FilterOperator.IS_NULL.value:
-                        where_clause_and.append(
-                            col_obj.get_sqla_col()  # pylint: disable=singleton-comparison
-                            == None
-                        )
-                    elif op == utils.FilterOperator.IS_NOT_NULL.value:
-                        where_clause_and.append(
-                            col_obj.get_sqla_col()  # pylint: disable=singleton-comparison
-                            != None
-                        )
                     else:
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
