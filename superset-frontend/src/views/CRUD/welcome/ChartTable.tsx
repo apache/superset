@@ -65,6 +65,7 @@ function ChartTable({
     true,
     mine,
   );
+
   const chartIds = useMemo(() => charts.map(c => c.id), [charts]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'chart',

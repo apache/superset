@@ -16,17 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useReducer } from 'react';
 import { styled, t } from '@superset-ui/core';
 import Collapse from 'src/common/components/Collapse';
 import { User } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash';
 import withToasts from 'src/messageToasts/enhancers/withToasts';
+import { useListViewResource } from 'src/views/CRUD/hooks';
 import Loading from 'src/components/Loading';
 import {
   createErrorHandler,
   getRecentAcitivtyObjs,
   mq,
+  getMineObjs,
 } from 'src/views/CRUD/utils';
 
 import ActivityTable from './ActivityTable';
@@ -89,21 +91,17 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   const recent = `/superset/recent_activity/${user.userId}/?limit=6`;
   const [activeChild, setActiveChild] = useState('Viewed');
   const [activityData, setActivityData] = useState<ActivityData>({});
+  const [chartData, setChartData] = useState(null);
+  const [queryData, setQueryData] = useState(null);
+  const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [chartLoading, setChartLoading] = useState(true);
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [queryLoading, setQueryLoading] = useState(true);
   useEffect(() => {
     getRecentAcitivtyObjs(user.userId, recent, addDangerToast)
       .then(res => {
-        const data: any = {
-          Created: [
-            ...res.createdByChart,
-            ...res.createdByDash,
-            ...res.createdByQuery,
-          ],
-          myChart: res.createdByChart,
-          myDash: res.createdByDash,
-          myQuery: res.createdByQuery,
-          Edited: [...res.editedChart, ...res.editedDash],
-        };
+        const data: any = {};
         if (res.viewed) {
           const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
           data.Viewed = filtered;
@@ -123,7 +121,32 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           );
         }),
       );
+
+    // Sets activity data in parallel with recents api call
+    getMineObjs(user.userId, 'dashboard').then(r => {
+      setDashboardData(r);
+      setDashboardLoading(false);
+    });
+    getMineObjs(user.userId, 'chart').then(r => {
+      setChartData(r);
+      setChartLoading(false);
+    });
+    getMineObjs(user.userId, 'saved_query').then(r => {
+      setQueryData(r);
+      setQueryLoading(false);
+    });
   }, []);
+
+  useEffect(() => {
+    setActivityData(activityData => ({
+      ...activityData,
+      Created: [
+        ...(chartData || []),
+        ...(dashboardData || []),
+        ...(queryData || []),
+      ],
+    }));
+  }, [chartData, queryData, dashboardData]);
 
   return (
     <WelcomeContainer>
@@ -133,33 +156,35 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
             user={user}
             activeChild={activeChild}
             setActiveChild={setActiveChild}
-            loading={loading}
+            loading={
+              loading && chartLoading && queryLoading && dashboardLoading
+            }
             activityData={activityData}
           />
         </Collapse.Panel>
         <Collapse.Panel header={t('Dashboards')} key="2">
-          {loading ? (
+          {dashboardLoading ? (
             <Loading position="inline" />
           ) : (
             <DashboardTable
               user={user}
-              mine={activityData.myDash}
+              mine={dashboardData}
               isLoading={loading}
             />
           )}
         </Collapse.Panel>
         <Collapse.Panel header={t('Saved queries')} key="3">
-          {loading ? (
+          {queryLoading ? (
             <Loading position="inline" />
           ) : (
-            <SavedQueries user={user} mine={activityData.myQuery} />
+            <SavedQueries user={user} mine={queryData} />
           )}
         </Collapse.Panel>
         <Collapse.Panel header={t('Charts')} key="4">
-          {loading ? (
+          {chartLoading && !chartData ? (
             <Loading position="inline" />
           ) : (
-            <ChartTable user={user} mine={activityData.myChart} />
+            <ChartTable user={user} mine={chartData} />
           )}
         </Collapse.Panel>
       </Collapse>

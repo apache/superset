@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import moment from 'moment';
 import { styled, t } from '@superset-ui/core';
 
@@ -25,7 +25,12 @@ import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/components/Menu/SubMenu';
 import { Chart } from 'src/types/Chart';
 import { Dashboard, SavedQueryObject } from 'src/views/CRUD/types';
-import { mq, CardStyles } from 'src/views/CRUD/utils';
+import {
+  mq,
+  CardStyles,
+  getEditedObjs,
+  getMineObjs,
+} from 'src/views/CRUD/utils';
 
 import { ActivityData } from './Welcome';
 import EmptyState from './EmptyState';
@@ -160,13 +165,27 @@ export default function ActivityTable({
   activeChild,
   setActiveChild,
   activityData,
+  user,
 }: ActivityProps) {
+  console.log('loading acitivty', loading);
+  const [editedObjs, setEditedObjs] = useState<any>();
+  const [loadingState, setLoadingState] = useState(false);
+
+  const getEditedCards = () => {
+    setLoadingState(true);
+    getEditedObjs(user.userId).then(r => {
+      console.log('editobjs', r);
+      setEditedObjs([...r.editedChart, ...r.editedDash]);
+      setLoadingState(false);
+    });
+  };
   const tabs = [
     {
       name: 'Edited',
       label: t('Edited'),
       onClick: () => {
         setActiveChild('Edited');
+        getEditedCards();
       },
     },
     {
@@ -196,8 +215,13 @@ export default function ActivityTable({
     });
   }
 
-  const renderActivity = () =>
-    activityData[activeChild].map((entity: ActivityObject) => {
+  const renderActivity = () => {
+    console.log('editedObjs', editedObjs);
+    return (activeChild !== 'Edited'
+      ? activityData[activeChild]
+      : editedObjs
+    ).map((entity: ActivityObject) => {
+      console.log('entity', entity);
       const url = getEntityUrl(entity);
       const lastActionOn = getEntityLastActionOn(entity);
       return (
@@ -219,8 +243,11 @@ export default function ActivityTable({
         </CardStyles>
       );
     });
-
-  if (loading) return <Loading position="inline" />;
+  };
+  if (loading || (loadingState && !editedObjs)) {
+    return <Loading position="inline" />;
+  }
+  console.log('activityData *&*&*&*&', editedObjs);
   return (
     <>
       <SubMenu
@@ -229,7 +256,8 @@ export default function ActivityTable({
         tabs={tabs}
       />
       <>
-        {activityData[activeChild]?.length > 0 ? (
+        {activityData[activeChild]?.length > 0 ||
+        (activeChild === 'Edited' && editedObjs) ? (
           <ActivityContainer>{renderActivity()}</ActivityContainer>
         ) : (
           <EmptyState tableName="RECENTS" tab={activeChild} />
