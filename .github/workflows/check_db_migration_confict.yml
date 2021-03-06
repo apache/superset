@@ -6,7 +6,7 @@ on:
 
 jobs:
   check_db_migration_conflict:
-    name: Check potential DB migration conflict
+    name: Check DB migration conflict
     runs-on: ubuntu-20.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
@@ -17,13 +17,13 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             // API reference: https://octokit.github.io/rest.js
-            const currentBranch = context.ref.replace('ref/heads', '');
+            const currentBranch = context.ref.replace('refs/heads/', '');
 
             // Find all pull requests to current branch
             const opts = github.pulls.list.endpoint.merge({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              base: currentBranch,
+              base: context.ref,
               state: 'open',
               sort: 'updated',
               per_page: 100,
@@ -34,6 +34,7 @@ jobs:
             }
 
             for (const pull in pulls) {
+              console.log(pull);
               const listFilesOpts = await github.pulls.listFiles.endpoint.merge({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -43,7 +44,7 @@ jobs:
               if (
                 files.some(x => x.contents_url.includes('/contents/superset/migrations'))
               ) {
-                console.log(`Found open PR #${pull.number} that has also added db migration`)
+                console.log(`PR #${pull.number} "${pull.title}" also added db migration`)
                 await github.issues.createComment({
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
