@@ -17,14 +17,14 @@
 """add hide_left_bar to tabstate
 
 Revision ID: 67da9ef1ef9c
-Revises: c501b7c653a3
+Revises: 1412ec1e5a7b
 Create Date: 2021-02-22 11:22:10.156942
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "67da9ef1ef9c"
-down_revision = "c501b7c653a3"
+down_revision = "1412ec1e5a7b"
 
 import sqlalchemy as sa
 from alembic import op
