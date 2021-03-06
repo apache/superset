@@ -405,7 +405,7 @@ export const iconsRegistry: Record<
   warning: WarningIcon,
 };
 
-interface IconProps extends SVGProps<SVGSVGElement> {
+export interface IconProps extends SVGProps<SVGSVGElement> {
   name: IconName;
 }
 

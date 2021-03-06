@@ -16,12 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../stylesheets/less/variables.less';
+import React from 'react';
+import RefreshLabel, { RefreshLabelProps } from '.';
 
-.RefreshLabel {
-  color: @bs-gray-light;
+export default {
+  title: 'RefreshLabel',
+};
 
-  &:hover {
-    color: @brand-primary;
-  }
-}
+export const InteractiveRefreshLabel = (args: RefreshLabelProps) => (
+  <RefreshLabel {...args} />
+);
+
+InteractiveRefreshLabel.args = {
+  tooltipContent: 'Tooltip',
+};
+
+InteractiveRefreshLabel.argTypes = {
+  onClick: { action: 'onClick' },
+};
+
+InteractiveRefreshLabel.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};

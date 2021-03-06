@@ -16,32 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import PropTypes from 'prop-types';
+import React, { MouseEventHandler } from 'react';
+import { SupersetTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/common/components/Tooltip';
+import Icon, { IconProps } from 'src/components/Icon';
 
-import './RefreshLabel.less';
-
-const propTypes = {
-  onClick: PropTypes.func,
-  tooltipContent: PropTypes.string.isRequired,
-};
-
-class RefreshLabel extends React.PureComponent {
-  render() {
-    return (
-      <Tooltip title={this.props.tooltipContent} id="cache-desc-tooltip">
-        <i
-          aria-label="Icon"
-          role="button"
-          tabIndex={0}
-          className="RefreshLabel fa fa-refresh pointer"
-          onClick={this.props.onClick}
-        />
-      </Tooltip>
-    );
-  }
+export interface RefreshLabelProps {
+  onClick: MouseEventHandler<SVGSVGElement>;
+  tooltipContent: string;
 }
-RefreshLabel.propTypes = propTypes;
+
+const RefreshLabel = ({ onClick, tooltipContent }: RefreshLabelProps) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const IconWithoutRef = React.forwardRef((props: IconProps, ref: any) => (
+    <Icon {...props} />
+  ));
+
+  return (
+    <Tooltip title={tooltipContent}>
+      <IconWithoutRef
+        role="button"
+        onClick={onClick}
+        name="refresh"
+        css={(theme: SupersetTheme) => ({
+          cursor: 'pointer',
+          color: theme.colors.grayscale.base,
+          '&:hover': { color: theme.colors.primary.base },
+        })}
+      />
+    </Tooltip>
+  );
+};
 
 export default RefreshLabel;
