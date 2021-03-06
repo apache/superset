@@ -227,9 +227,10 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
         sql = parsed_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
     if parsed_query.is_select():
-        if SQL_MAX_ROWS and (not query.limit or query.limit > SQL_MAX_ROWS):
+        if SQL_MAX_ROWS and (query.limit > SQL_MAX_ROWS):
             query.limit = SQL_MAX_ROWS
         if query.limit:
+            logging.info("Query Limit to run async query: {}".format(query.limit))
             sql = database.apply_limit_to_sql(sql, query.limit)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
@@ -238,6 +239,7 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
         sql = SQL_QUERY_MUTATOR(sql, user_name, security_manager, database)
 
     try:
+        logging.info("Parsed SQL: {}".format(sql))
         if log_query:
             log_query(
                 query.database.sqlalchemy_uri,
@@ -261,12 +263,19 @@ def execute_sql_statement(sql_statement, query, user_name, session, cursor):
                     query_id, query.to_dict()
                 )
             )
+
             descr = cursor.description
-            # logging.info("Hello I am printing cursor: {}".format(result))
-            if cursor.description != None:
+
+            if not query.limit:
+                logging.info("Set maximum limit to fetch data for redis {}:".format(SQL_MAX_ROWS))
+                query.limit = SQL_MAX_ROWS
+                db_engine_spec.limit_method = "fetch_many"
+
+            if cursor.description is not None:
                 data = db_engine_spec.fetch_data(cursor, query.limit)
             else:
                 data = None
+
             db_engine_spec.execute(cursor, "commit;")
             db_engine_spec.handle_cursor(cursor, query, session)
 
@@ -413,6 +422,7 @@ def execute_sql_statements(
 
     # Success, updating the query entry in database
     query.rows = cdf.size
+    logging.info("Number of fetched rows to store in redis cache {}:".format(query.rows))
     query.progress = 100
     query.set_extra_json_key("progress", None)
     if query.select_as_cta:

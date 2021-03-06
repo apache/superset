@@ -19,10 +19,13 @@ from contextlib import closing
 from datetime import datetime, timedelta
 import logging
 import re
+import os
 from typing import Dict, List, Optional, Union  # noqa: F401
 from urllib import parse
 
 from superset.custom_auth import use_ip_auth
+from ais_service_discovery import call
+from json import loads
 
 import backoff
 from flask import (
@@ -109,6 +112,8 @@ from .utils import (
     get_viz,
 )
 
+STAGE = os.environ['STAGE']
+TENANT = os.environ['TENANT']
 config = app.config
 CACHE_DEFAULT_TIMEOUT = config.get("CACHE_DEFAULT_TIMEOUT", 0)
 stats_logger = config.get("STATS_LOGGER")
@@ -2791,7 +2796,6 @@ class Superset(BaseSupersetView):
                 "Invalid limit of {} specified. Defaulting to max limit.".format(limit)
             )
             limit = 0
-        limit = limit or app.config.get("SQL_MAX_ROW")
 
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).first()
@@ -2853,6 +2857,8 @@ class Superset(BaseSupersetView):
         # set LIMIT after template processing
         limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
         query.limit = min(lim for lim in limits if lim is not None)
+
+        logging.info("Query Limit to run async query: {}".format(query.limit))
         logging.info("Triggering async: {}".format(async_))
         # Async request.
         if async_:
@@ -2868,15 +2874,30 @@ class Superset(BaseSupersetView):
                     start_time=now_as_float(),
                 )
             except Exception as e:
-                logging.exception(f"Query {query_id}: {e}")
-                msg = _(
-                    "Failed to start remote query on a worker. "
-                    "Tell your administrator to verify the availability of "
-                    "the message queue."
-                )
+                logging.info(f"Query {query_id}: {e}")
+                msg = "Failed to run Query. Contact support to verify the availability of the message queue"
                 query.status = QueryStatus.FAILED
                 query.error_message = msg
                 session.commit()
+
+                logging.info(
+                 f"calling service disovery function for query_id: {query_id}"
+                )
+                loads(call(
+                    'ais-{}'.format(STAGE),
+                    'sql-editor',
+                    'superset-async-response',
+                    {
+                      'error': msg,
+                      'status': 'failed',
+                      'queryId': query_id,
+                      'tenant': TENANT,
+                      },
+                    {'InvocationType': 'Event'}))
+                logging.info(
+                  f"service disovery function called successfully for query_id: {query_id}"
+                )
+
                 return json_error_response("{}".format(msg))
 
             resp = json_success(
