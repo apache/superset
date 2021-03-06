@@ -19,7 +19,6 @@
 
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import { supersetTheme } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import IndeterminateCheckbox from '.';
 
