@@ -544,26 +544,26 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
 
         mock_event_logger.assert_called()
 
-    # @mock.patch("superset.databases.dao.DatabaseDAO.build_db_for_connection_test")
-    # @mock.patch("superset.databases.commands.test_connection.stats_logger.incr")
-    # def test_connection_superset_security_connection(
-    #     self, mock_stats_logger, mock_build_db_for_connection_test
-    # ):
-    #     """Test that users can't export databases they don't have access to"""
-    #     database = get_example_database()
-    #     mock_build_db_for_connection_test.side_effect = SupersetSecurityException(
-    #         SupersetError(error_type=500, message="test", level="info", extra={})
-    #     )
-    #     db_uri = database.sqlalchemy_uri_decrypted
-    #     json_payload = {"sqlalchemy_uri": db_uri}
-    #     command_without_db_name = TestConnectionDatabaseCommand(
-    #         security_manager.find_user("admin"), json_payload
-    #     )
+    @mock.patch("superset.databases.dao.DatabaseDAO.build_db_for_connection_test")
+    @mock.patch("superset.databases.commands.test_connection.event_logger")
+    def test_connection_superset_security_connection(
+        self, mock_event_logger, mock_build_db_for_connection_test
+    ):
+        """Test that users can't export databases they don't have access to"""
+        database = get_example_database()
+        mock_build_db_for_connection_test.side_effect = SupersetSecurityException(
+            SupersetError(error_type=500, message="test", level="info", extra={})
+        )
+        db_uri = database.sqlalchemy_uri_decrypted
+        json_payload = {"sqlalchemy_uri": db_uri}
+        command_without_db_name = TestConnectionDatabaseCommand(
+            security_manager.find_user("admin"), json_payload
+        )
 
-    #     with self.assertRaises(DatabaseSecurityUnsafeError):
-    #         command_without_db_name.run()
+        with self.assertRaises(DatabaseSecurityUnsafeError):
+            command_without_db_name.run()
 
-    #     mock_stats_logger.assert_called()
+        mock_event_logger.assert_called()
 
     # @mock.patch("superset.databases.dao.DatabaseDAO.build_db_for_connection_test")
     # @mock.patch("superset.databases.commands.test_connection.stats_logger.incr")
