@@ -16,25 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { formatSelectOptions } from '@superset-ui/chart-controls';
+import { addLocaleData, t } from '@superset-ui/core';
+import i18n from './i18n';
 
-import { SetDataMaskHook } from '@superset-ui/core';
+addLocaleData(i18n);
 
-export const updateExternalFormData = (
-  setDataMask: SetDataMaskHook = () => {},
-  pageNumber: number,
-  pageSize: number,
-) =>
-  setDataMask({
-    ownFilters: {
-      extraFormData: {
-        custom_form_data: {
-          row_offset: pageNumber * pageSize,
-          row_limit: pageSize,
-        },
-      },
-      currentState: {
-        currentPage: pageNumber,
-        pageSize,
-      },
-    },
-  });
+export const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
+  [0, t('page_size.all')],
+  10,
+  20,
+  50,
+  100,
+  200,
+]);

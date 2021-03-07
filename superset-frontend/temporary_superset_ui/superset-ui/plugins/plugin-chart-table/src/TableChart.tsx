@@ -32,7 +32,8 @@ import DataTable, {
 
 import Styles from './Styles';
 import formatValue from './utils/formatValue';
-import { PAGE_SIZE_OPTIONS } from './controlPanel';
+import { PAGE_SIZE_OPTIONS } from './consts';
+import { updateExternalFormData } from './DataTable/utils/externalAPIs';
 
 type ValueRange = [number, number];
 
@@ -147,14 +148,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     width,
     data,
     isRawRecords,
-    showNextButton,
+    rowCount = 0,
     columns: columnsMeta,
     alignPositiveNegative = false,
     colorPositiveNegative = false,
     includeSearch = false,
     pageSize = 0,
     serverPagination = false,
-    currentPage,
+    serverPaginationData,
     setDataMask,
     showCellBars = true,
     emitFilter = false,
@@ -167,11 +168,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const [filters, setFilters] = useState(initialFilters);
 
   // only take relevant page size options
-  const pageSizeOptions = useMemo(
-    () =>
-      PAGE_SIZE_OPTIONS.filter(([n]) => n <= 2 * data.length || serverPagination) as SizeOption[],
-    [data.length],
-  );
+  const pageSizeOptions = useMemo(() => {
+    const getServerPagination = (n: number) => n <= rowCount;
+    return PAGE_SIZE_OPTIONS.filter(([n]) =>
+      serverPagination ? getServerPagination(n) : n <= 2 * data.length,
+    ) as SizeOption[];
+  }, [data.length, rowCount]);
 
   const getValueRange = useCallback(
     function getValueRange(key: string) {
@@ -284,20 +286,24 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const columns = useMemo(() => columnsMeta.map(getColumnConfigs), [columnsMeta, getColumnConfigs]);
 
+  const handleServerPaginationChange = (pageNumber: number, pageSize: number) => {
+    updateExternalFormData(setDataMask, pageNumber, pageSize);
+  };
+
   return (
     <Styles>
       <DataTable<D>
         columns={columns}
         data={data}
-        showNextButton={showNextButton}
+        rowCount={rowCount}
         tableClassName="table table-striped table-condensed"
         pageSize={pageSize}
-        currentPage={currentPage}
+        serverPaginationData={serverPaginationData}
         pageSizeOptions={pageSizeOptions}
         width={width}
         height={height}
         serverPagination={serverPagination}
-        setDataMask={setDataMask}
+        onServerPaginationChange={handleServerPaginationChange}
         // 9 page items in > 340px works well even for 100+ pages
         maxPageItemCount={width > 340 ? 9 : 7}
         noResults={(filter: string) => t(filter ? 'No matching records found' : 'No records found')}

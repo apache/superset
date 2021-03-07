@@ -25,7 +25,9 @@ import {
   QueryObject,
 } from '@superset-ui/core';
 import { PostProcessingRule } from '@superset-ui/core/src/query/types/PostProcessing';
+import { BuildQuery } from '@superset-ui/core/src/chart/registries/ChartBuildQueryRegistrySingleton';
 import { TableChartFormData } from './types';
+import { updateExternalFormData } from './DataTable/utils/externalAPIs';
 
 /**
  * Infer query mode from form data. If `all_columns` is set, then raw records mode,
@@ -43,7 +45,7 @@ export function getQueryMode(formData: TableChartFormData) {
   return hasRawColumns ? QueryMode.raw : QueryMode.aggregate;
 }
 
-export default function buildQuery(formData: TableChartFormData) {
+const buildQuery: BuildQuery<TableChartFormData> = (formData: TableChartFormData, options) => {
   const { percent_metrics: percentMetrics, order_desc: orderDesc = false } = formData;
   const queryMode = getQueryMode(formData);
   const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
@@ -88,21 +90,60 @@ export default function buildQuery(formData: TableChartFormData) {
     const moreProps: Partial<QueryObject> = {};
     if (formDataCopy.server_pagination) {
       const rowLimit = formDataCopy.extra_form_data?.custom_form_data?.row_limit;
-      // 1 - means all data
-      if (rowLimit !== 1) {
-        moreProps.row_limit = rowLimit ?? formDataCopy.server_page_length + 1; // +1 to determine if exists next page
-      }
+      moreProps.row_limit = rowLimit ?? formDataCopy.server_page_length;
       moreProps.row_offset = formDataCopy?.extra_form_data?.custom_form_data?.row_offset ?? 0;
     }
 
-    return [
-      {
-        ...baseQueryObject,
-        orderby,
-        metrics,
-        post_processing: postProcessing,
-        ...moreProps,
-      },
-    ];
+    let queryObject = {
+      ...baseQueryObject,
+      orderby,
+      metrics,
+      post_processing: postProcessing,
+      ...moreProps,
+    };
+
+    if (
+      formData.server_pagination &&
+      options?.extras?.cachedChanges?.[formData.slice_id] &&
+      JSON.stringify(options?.extras?.cachedChanges?.[formData.slice_id]) !==
+        JSON.stringify(queryObject.filters)
+    ) {
+      queryObject = { ...queryObject, row_offset: 0 };
+      updateExternalFormData(options?.hooks?.setDataMask, 0, queryObject.row_limit ?? 0);
+    }
+    // Because we use same buildQuery for all table on the page we need split them by id
+    options?.hooks?.setCachedChanges({ [formData.slice_id]: queryObject.filters });
+
+    if (formData.server_pagination) {
+      return [
+        { ...queryObject },
+        { ...queryObject, row_limit: 0, row_offset: 0, post_processing: [], is_rowcount: true },
+      ];
+    }
+    return [queryObject];
   });
-}
+};
+
+// Use this closure to cache changing of external filters, if we have server pagination we need reset page to 0, after
+// external filter changed
+const cachedBuildQuery = (): BuildQuery<TableChartFormData> => {
+  let cachedChanges: any = {};
+  const setCachedChanges = (newChanges: any) => {
+    cachedChanges = { ...cachedChanges, ...newChanges };
+  };
+
+  return (formData, options) =>
+    buildQuery(
+      { ...formData },
+      {
+        extras: { cachedChanges },
+        hooks: {
+          ...options?.hooks,
+          setDataMask: () => {},
+          setCachedChanges,
+        },
+      },
+    );
+};
+
+export default cachedBuildQuery;

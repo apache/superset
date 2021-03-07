@@ -17,7 +17,7 @@
  * under the License.
  */
 import { QueryMode } from '@superset-ui/core';
-import buildQuery from '../src/buildQuery';
+import buildQueryCached from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
 
 const basicFormData: TableChartFormData = {
@@ -28,7 +28,7 @@ const basicFormData: TableChartFormData = {
 describe('plugin-chart-table', () => {
   describe('buildQuery', () => {
     it('should add post-processing in aggregate mode', () => {
-      const query = buildQuery({
+      const query = buildQueryCached()({
         ...basicFormData,
         query_mode: QueryMode.aggregate,
         metrics: ['aaa'],
@@ -47,7 +47,7 @@ describe('plugin-chart-table', () => {
     });
 
     it('should not add post-processing when there is not percent metric', () => {
-      const query = buildQuery({
+      const query = buildQueryCached()({
         ...basicFormData,
         query_mode: QueryMode.aggregate,
         metrics: ['aaa'],
@@ -58,7 +58,7 @@ describe('plugin-chart-table', () => {
     });
 
     it('should not add post-processing in raw records mode', () => {
-      const query = buildQuery({
+      const query = buildQueryCached()({
         ...basicFormData,
         query_mode: QueryMode.raw,
         metrics: ['aaa'],

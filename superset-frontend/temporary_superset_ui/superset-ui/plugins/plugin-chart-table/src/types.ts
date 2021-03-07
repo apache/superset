@@ -81,9 +81,9 @@ export interface TableChartProps extends ChartProps {
 export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   height: number;
   width: number;
-  showNextButton: boolean;
+  rowCount?: number;
   serverPagination: boolean;
-  currentPage?: number;
+  serverPaginationData: { pageSize?: number; currentPage?: number };
   setDataMask: SetDataMaskHook;
   isRawRecords?: boolean;
   data: D[];
@@ -102,11 +102,6 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   filters?: DataRecordFilters;
   emitFilter?: boolean;
   onChangeFilter?: ChartProps['hooks']['onAddFilter'];
-}
-
-export enum ServerPage {
-  NEXT = 'next',
-  PREVIOUS = 'previous',
 }
 
 export default {};
