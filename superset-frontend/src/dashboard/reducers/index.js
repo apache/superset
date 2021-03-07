@@ -18,7 +18,8 @@
  */
 import { combineReducers } from 'redux';
 
-import charts from '../../chart/chartReducer';
+import charts from 'src/chart/chartReducer';
+import dataMask from 'src/dataMask/reducer';
 import dashboardInfo from './dashboardInfo';
 import dashboardState from './dashboardState';
 import dashboardFilters from './dashboardFilters';
@@ -35,6 +36,7 @@ export default combineReducers({
   datasources,
   dashboardInfo,
   dashboardFilters,
+  dataMask,
   nativeFilters,
   dashboardState,
   dashboardLayout,

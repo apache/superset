@@ -44,6 +44,7 @@ function mapStateToProps(
     dashboardInfo,
     dashboardState,
     dashboardLayout,
+    dataMask,
     datasources,
     sliceEntities,
     nativeFilters,
@@ -65,7 +66,8 @@ function mapStateToProps(
     colorScheme,
     colorNamespace,
     sliceId: id,
-    nativeFilters,
+    nativeFilters: nativeFilters.filters,
+    dataMask,
   });
 
   formData.dashboardId = dashboardInfo.id;
@@ -82,7 +84,7 @@ function mapStateToProps(
     supersetCanExplore: !!dashboardInfo.superset_can_explore,
     supersetCanCSV: !!dashboardInfo.superset_can_csv,
     sliceCanEdit: !!dashboardInfo.slice_can_edit,
-    ownCurrentState: nativeFilters.filtersState.ownFilters?.[id]?.currentState,
+    ownCurrentState: dataMask.ownFilters?.[id]?.currentState,
   };
 }
 
