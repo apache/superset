@@ -4,13 +4,10 @@ import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import SupersetResourceSelect from '.';
 
-const onChange = jest.fn();
 const mockedProps = {
   resource: 'dataset',
   searchColumn: 'table_name',
-  isMulti: false,
   onError: () => {},
-  onChange,
 };
 
 fetchMock.get('glob:*/api/v1/dataset/?q=*', {});
