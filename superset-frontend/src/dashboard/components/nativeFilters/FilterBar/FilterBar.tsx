@@ -16,21 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t, tn, DataMask } from '@superset-ui/core';
+import { styled, t, tn } from '@superset-ui/core';
 import React, { useState, useEffect, useMemo, ChangeEvent } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import cx from 'classnames';
 import Button from 'src/components/Button';
 import Icon from 'src/components/Icon';
-import { FiltersSet, FilterState } from 'src/dashboard/reducers/types';
+import { FiltersSet } from 'src/dashboard/reducers/types';
 import { Input, Select } from 'src/common/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
+import { updateDataMask } from 'src/dataMask/actions';
 import {
-  setFilterSetsConfiguration,
-  updateExtraFormData,
-} from 'src/dashboard/actions/nativeFilters';
+  DataMaskUnitWithId,
+  MaskWithId,
+  DataMaskUnit,
+  DataMaskState,
+} from 'src/dataMask/types';
 import FilterConfigurationLink from './FilterConfigurationLink';
-import { useFilters, useFilterSets, useFiltersStateNative } from './state';
+import { useFilters, useFilterSets } from './state';
 import { useFilterConfiguration } from '../state';
 import { Filter } from '../types';
 import {
@@ -176,11 +180,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   toggleFiltersBar,
   directPathToChild,
 }) => {
-  const [filterData, setFilterData] = useState<{
-    [filterId: string]: Omit<FilterState, 'id'>;
-  }>({});
+  const [filterData, setFilterData] = useState<DataMaskUnit>({});
   const dispatch = useDispatch();
-  const filtersStateNative = useFiltersStateNative();
+  const dataMaskState = useSelector<any, DataMaskUnitWithId>(
+    state => state.dataMask.nativeFilters ?? {},
+  );
   const filterSets = useFilterSets();
   const filterConfigs = useFilterConfiguration();
   const filterSetsConfigs = useSelector<any, FiltersSet[]>(
@@ -232,21 +236,21 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const handleFilterSelectionChange = (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
-    filtersState: DataMask,
+    dataMask: Partial<DataMaskState>,
   ) => {
     setFilterData(prevFilterData => {
       const children = cascadeChildren[filter.id] || [];
       // force instant updating on initialization or for parent filters
       if (filter.isInstant || children.length > 0) {
-        dispatch(updateExtraFormData(filter.id, filtersState));
+        dispatch(updateDataMask(filter.id, dataMask));
       }
 
-      if (!filtersState.nativeFilters) {
+      if (!dataMask.nativeFilters) {
         return { ...prevFilterData };
       }
       return {
         ...prevFilterData,
-        [filter.id]: filtersState.nativeFilters,
+        [filter.id]: dataMask.nativeFilters,
       };
     });
   };
@@ -257,9 +261,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       return;
     }
     const filtersSet = filterSets[value];
-    Object.values(filtersSet.filtersState?.nativeFilters ?? []).forEach(
-      filterState => {
-        const { extraFormData, currentState, id } = filterState as FilterState;
+    Object.values(filtersSet.dataMask?.nativeFilters ?? []).forEach(
+      dataMask => {
+        const { extraFormData, currentState, id } = dataMask as MaskWithId;
         handleFilterSelectionChange(
           { id },
           { nativeFilters: { extraFormData, currentState } },
@@ -273,7 +277,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     filterIds.forEach(filterId => {
       if (filterData[filterId]) {
         dispatch(
-          updateExtraFormData(filterId, {
+          updateDataMask(filterId, {
             nativeFilters: filterData[filterId],
           }),
         );
@@ -294,8 +298,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           {
             name: filtersSetName.trim(),
             id: generateFiltersSetId(),
-            filtersState: {
-              nativeFilters: filtersStateNative,
+            dataMask: {
+              nativeFilters: dataMaskState,
             },
           },
         ]),
@@ -319,7 +323,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const handleResetAll = () => {
     filterConfigs.forEach(filter => {
       dispatch(
-        updateExtraFormData(filter.id, {
+        updateDataMask(filter.id, {
           nativeFilters: {
             currentState: {
               ...filterData[filter.id]?.currentState,

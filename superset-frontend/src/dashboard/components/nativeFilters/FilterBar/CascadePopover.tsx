@@ -21,7 +21,9 @@ import { styled, t, DataMask } from '@superset-ui/core';
 import Popover from 'src/common/components/Popover';
 import Icon from 'src/components/Icon';
 import { Pill } from 'src/dashboard/components/FiltersBadge/Styles';
-import { useFilterStateNative } from './state';
+import { useSelector } from 'react-redux';
+import { getInitialMask } from 'src/dataMask/reducer';
+import { MaskWithId } from 'src/dataMask/types';
 import FilterControl from './FilterControl';
 import CascadeFilterControl from './CascadeFilterControl';
 import { CascadeFilter } from './types';
@@ -32,7 +34,7 @@ interface CascadePopoverProps {
   visible: boolean;
   directPathToChild?: string[];
   onVisibleChange: (visible: boolean) => void;
-  onFilterSelectionChange: (filter: Filter, filterState: DataMask) => void;
+  onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
 }
 
 const StyledTitleBox = styled.div`
@@ -80,7 +82,10 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   directPathToChild,
 }) => {
   const [currentPathToChild, setCurrentPathToChild] = useState<string[]>();
-  const filterStateNative = useFilterStateNative(filter.id);
+  const dataMask = useSelector<any, MaskWithId>(
+    state =>
+      state.dataMask.nativeFilters[filter.id] ?? getInitialMask(filter.id),
+  );
 
   useEffect(() => {
     setCurrentPathToChild(directPathToChild);
@@ -93,7 +98,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
   const getActiveChildren = useCallback(
     (filter: CascadeFilter): CascadeFilter[] | null => {
       const children = filter.cascadeChildren || [];
-      const currentValue = filterStateNative.currentState?.value;
+      const currentValue = dataMask.currentState?.value;
 
       const activeChildren = children.flatMap(
         childFilter => getActiveChildren(childFilter) || [],
@@ -109,7 +114,7 @@ const CascadePopover: React.FC<CascadePopoverProps> = ({
 
       return null;
     },
-    [filterStateNative],
+    [dataMask],
   );
 
   const getAllFilters = (filter: CascadeFilter): CascadeFilter[] => {
