@@ -26,6 +26,7 @@ import {
 import { Tooltip } from 'src/common/components/Tooltip';
 import Icon from 'src/components/Icon';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
+import AdhocMetric from './controls/MetricControl/AdhocMetric';
 
 export const DragContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit}px;
@@ -35,7 +36,7 @@ export const DragContainer = styled.div`
 `;
 
 export const OptionControlContainer = styled.div<{
-  isAdhoc?: boolean;
+  withCaret?: boolean;
 }>`
   display: flex;
   align-items: center;
@@ -44,7 +45,7 @@ export const OptionControlContainer = styled.div<{
   height: ${({ theme }) => theme.gridUnit * 6}px;
   background-color: ${({ theme }) => theme.colors.grayscale.light3};
   border-radius: 3px;
-  cursor: ${({ isAdhoc }) => (isAdhoc ? 'pointer' : 'default')};
+  cursor: ${({ withCaret }) => (withCaret ? 'pointer' : 'default')};
 `;
 
 export const Label = styled.div`
@@ -159,10 +160,11 @@ interface DragItem {
 export const OptionControlLabel = ({
   label,
   savedMetric,
+  adhocMetric,
   onRemove,
   onMoveLabel,
   onDropLabel,
-  isAdhoc,
+  withCaret,
   isFunction,
   type,
   index,
@@ -171,10 +173,11 @@ export const OptionControlLabel = ({
 }: {
   label: string | React.ReactNode;
   savedMetric?: savedMetricType;
+  adhocMetric?: AdhocMetric;
   onRemove: () => void;
   onMoveLabel: (dragIndex: number, hoverIndex: number) => void;
   onDropLabel: () => void;
-  isAdhoc?: boolean;
+  withCaret?: boolean;
   isFunction?: boolean;
   isDraggable?: boolean;
   type: string;
@@ -231,7 +234,11 @@ export const OptionControlLabel = ({
     },
   });
   const [, drag] = useDrag({
-    item: { type, index },
+    item: {
+      type,
+      index,
+      value: savedMetric?.metric_name ? savedMetric : adhocMetric,
+    },
     collect: monitor => ({
       isDragging: monitor.isDragging(),
     }),
@@ -246,7 +253,7 @@ export const OptionControlLabel = ({
 
   const getOptionControlContent = () => (
     <OptionControlContainer
-      isAdhoc={isAdhoc}
+      withCaret={withCaret}
       data-test="option-label"
       {...props}
     >
@@ -272,7 +279,7 @@ export const OptionControlLabel = ({
               `)}
         />
       )}
-      {isAdhoc && (
+      {withCaret && (
         <CaretContainer>
           <Icon name="caret-right" color={theme.colors.grayscale.light1} />
         </CaretContainer>
