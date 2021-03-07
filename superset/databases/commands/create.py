@@ -68,7 +68,7 @@ class CreateDatabaseCommand(BaseCommand):
             db.session.commit()
         except DAOCreateFailedError as ex:
             with event_logger(
-                action=f"db_creation_failed.{ex.exception}",
+                action=f"db_creation_failed.{ex.__class__.__name__}",
                 engine=database.db_engine_spec.__name__,
             ):
                 raise DatabaseCreateFailedError()
@@ -91,5 +91,7 @@ class CreateDatabaseCommand(BaseCommand):
         if exceptions:
             exception = DatabaseInvalidError()
             exception.add_list(exceptions)
-            with event_logger(action="db_connection_failed"):
+            with event_logger(
+                action=f"db_connection_failed.{exception.__class__.__name__}"
+            ):
                 raise exception
