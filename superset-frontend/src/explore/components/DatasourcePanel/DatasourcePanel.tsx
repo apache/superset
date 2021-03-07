@@ -32,7 +32,7 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import Control from 'src/explore/components/Control';
 import DatasourcePanelDragWrapper from './DatasourcePanelDragWrapper';
-import { DatasourcePanelDndType } from './types';
+import { DndItemType } from '../DndItemType';
 
 interface DatasourceControl extends ControlConfig {
   datasource?: DatasourceMeta;
@@ -213,8 +213,8 @@ export default function DataSourcePanel({
               <LabelContainer key={m.metric_name} className="column">
                 {enableExploreDnd ? (
                   <DatasourcePanelDragWrapper
-                    metricOrColumnName={m.metric_name}
-                    type={DatasourcePanelDndType.METRIC}
+                    value={m}
+                    type={DndItemType.Metric}
                   >
                     <MetricOption metric={m} showType />
                   </DatasourcePanelDragWrapper>
@@ -235,8 +235,8 @@ export default function DataSourcePanel({
               <LabelContainer key={col.column_name} className="column">
                 {enableExploreDnd ? (
                   <DatasourcePanelDragWrapper
-                    metricOrColumnName={col.column_name}
-                    type={DatasourcePanelDndType.COLUMN}
+                    value={col}
+                    type={DndItemType.Column}
                   >
                     <ColumnOption column={col} showType />
                   </DatasourcePanelDragWrapper>
