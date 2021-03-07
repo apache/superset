@@ -19,9 +19,9 @@
 import { TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import { NativeFiltersState } from 'src/dashboard/reducers/types';
+import { DataMaskStateWithId } from 'src/dataMask/types';
 import { Layout } from '../../types';
 import { getTreeCheckedItems } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils';
-import { DataMaskStateWithId } from '../../../dataMask/types';
 
 export enum IndicatorStatus {
   Unset = 'UNSET',
