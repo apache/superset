@@ -19,8 +19,9 @@
 import { CHART_TYPE } from './componentTypes';
 import { Scope } from '../components/nativeFilters/types';
 import { ActiveFilters, LayoutItem } from '../types';
-import { NativeFiltersState } from '../reducers/types';
+import { Filters } from '../reducers/types';
 import { DASHBOARD_ROOT_ID } from './constants';
+import { DataMaskStateWithId } from '../../dataMask/types';
 
 // Looking for affected chart scopes and values
 export const findAffectedCharts = ({
@@ -71,22 +72,24 @@ export const findAffectedCharts = ({
 };
 
 export const getActiveNativeFilters = ({
-  nativeFilters,
+  filters,
+  dataMask,
   layout,
 }: {
-  nativeFilters: NativeFiltersState;
+  dataMask: DataMaskStateWithId;
+  filters: Filters;
   layout: { [key: string]: LayoutItem };
 }): ActiveFilters => {
   const activeNativeFilters = {};
-  if (!nativeFilters?.filtersState?.nativeFilters) {
+  if (!dataMask?.nativeFilters) {
     return activeNativeFilters;
   }
   Object.values({
-    ...nativeFilters.filtersState.nativeFilters,
-    ...nativeFilters.filtersState.crossFilters,
+    ...dataMask.nativeFilters,
+    ...dataMask.crossFilters,
   }).forEach(({ id: filterId, extraFormData }) => {
     // TODO: for a case of a cross filters (should be updated will be added scope there)
-    const scope = nativeFilters?.filters?.[filterId]?.scope ?? {
+    const scope = filters?.[filterId]?.scope ?? {
       rootPath: [DASHBOARD_ROOT_ID],
       excluded: [],
     };
