@@ -27,7 +27,6 @@ import {
   QueryFormColumn,
 } from '@superset-ui/core';
 import {
-  formatSelectOptions,
   D3_TIME_FORMAT_OPTIONS,
   ControlConfig,
   ColumnOption,
@@ -39,17 +38,9 @@ import {
 } from '@superset-ui/chart-controls';
 
 import i18n from './i18n';
+import { PAGE_SIZE_OPTIONS } from './consts';
 
 addLocaleData(i18n);
-
-export const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
-  [0, t('page_size.all')],
-  10,
-  20,
-  50,
-  100,
-  200,
-]);
 
 const QueryModeLabel = {
   [QueryMode.aggregate]: t('Aggregate'),
