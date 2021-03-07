@@ -16,15 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export enum DatasourcePanelDndType {
-  // todo: The new `metric` conflicts with the existing metric type
-  METRIC = 'datasource-panel-metric',
-  COLUMN = 'column',
-}
+import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
+import { DndItemType } from '../DndItemType';
+
+export type DndItemValue = ColumnMeta | Metric;
 
 export interface DatasourcePanelDndItem {
-  metricOrColumnName: string;
-  type:
-    | typeof DatasourcePanelDndType.METRIC
-    | typeof DatasourcePanelDndType.COLUMN;
+  value: DndItemValue;
+  type: DndItemType;
 }
