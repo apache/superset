@@ -37,6 +37,7 @@ import {
 } from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
 import { getInitialMask } from 'src/dataMask/reducer';
+import { areObjectsEqual } from 'src/reduxUtils';
 import FilterConfigurationLink from './FilterConfigurationLink';
 import { useFilterSets } from './state';
 import { useFilterConfiguration } from '../state';
@@ -47,7 +48,6 @@ import {
   mapParentFiltersToChildren,
 } from './utils';
 import CascadePopover from './CascadePopover';
-import { areObjectsEqual } from '../../../../reduxUtils';
 
 const barWidth = `250px`;
 
