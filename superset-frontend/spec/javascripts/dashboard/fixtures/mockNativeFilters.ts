@@ -16,12 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const nativeFiltersInfo = {
+import { DataMaskStateWithId } from 'src/dataMask/types';
+import { NativeFiltersState } from 'src/dashboard/reducers/types';
+
+export const nativeFiltersInfo: NativeFiltersState = {
   filters: {
     DefaultsID: {
+      cascadeParentIds: [],
       id: 'DefaultsID',
       name: 'test',
-      type: 'filter_select',
+      filterType: 'filter_select',
       targets: [
         {
           datasetId: 0,
@@ -37,13 +41,15 @@ export const nativeFiltersInfo = {
         excluded: [],
       },
       isInstant: true,
-      allowsMultipleValues: true,
-      isRequired: false,
+      controlValues: {
+        allowsMultipleValues: true,
+        isRequired: false,
+      },
     },
   },
 };
 
-export const mockDataMaskInfo = {
+export const mockDataMaskInfo: DataMaskStateWithId = {
   nativeFilters: {
     DefaultsID: {
       id: 'DefaultId',

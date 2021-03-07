@@ -20,13 +20,13 @@
 import { makeApi } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import { FilterConfiguration } from 'src/dashboard/components/nativeFilters/types';
-import { dashboardInfoChanged } from './dashboardInfo';
-import { FiltersSet } from '../reducers/types';
-import { DataMaskType, DataMaskStateWithId } from '../../dataMask/types';
+import { DataMaskType, DataMaskStateWithId } from 'src/dataMask/types';
 import {
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
   SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL,
-} from '../../dataMask/actions';
+} from 'src/dataMask/actions';
+import { dashboardInfoChanged } from './dashboardInfo';
+import { FiltersSet } from '../reducers/types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
 export interface SetFilterConfigBegin {

@@ -18,8 +18,8 @@
  */
 
 import componentTypes from 'src/dashboard/util/componentTypes';
+import { DataMaskStateWithId } from 'src/dataMask/types';
 import { Filter } from '../components/nativeFilters/types';
-import { DataMaskStateWithId } from '../../dataMask/types';
 
 export enum Scoping {
   all,

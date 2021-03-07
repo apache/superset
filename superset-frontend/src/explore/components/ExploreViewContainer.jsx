@@ -36,6 +36,9 @@ import {
 } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import cx from 'classnames';
+import * as chartActions from 'src/chart/chartAction';
+import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
+import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
@@ -44,11 +47,8 @@ import DataSourcePanel from './DatasourcePanel';
 import { getExploreLongUrl } from '../exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 import { getFormDataFromControls } from '../controlUtils';
-import { chartPropShape } from '../../dashboard/util/propShapes';
 import * as exploreActions from '../actions/exploreActions';
 import * as saveModalActions from '../actions/saveModalActions';
-import * as chartActions from '../../chart/chartAction';
-import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import * as logActions from '../../logger/actions';
 import {
   LOG_ACTIONS_MOUNT_EXPLORER,

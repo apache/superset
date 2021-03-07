@@ -75,7 +75,7 @@ export const nativeFilters: NativeFiltersState = {
   },
 };
 
-export const dataMask: DataMaskStateWithId = {
+export const dataMaskWith2Filters: DataMaskStateWithId = {
   crossFilters: {},
   ownFilters: {},
   nativeFilters: {
@@ -136,7 +136,7 @@ export const singleNativeFiltersState = {
   },
 };
 
-export const singleDataMask = {
+export const dataMaskWith1Filter = {
   nativeFilters: {
     [NATIVE_FILTER_ID]: {
       id: NATIVE_FILTER_ID,
