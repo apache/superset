@@ -202,14 +202,12 @@ class ExtraCache:
         :param add_to_cache_keys: Whether the value should be included in the cache key
         :returns: The URL parameters
         """
-
         from superset.views.utils import get_form_data
 
         if request.args.get(param):
             return request.args.get(param, default)
         form_data, _ = get_form_data()
         url_params = form_data.get("url_params") or {}
-        result = url_params.get(param, default)
 
         ##Parsing Referer to get query params
         if request.headers.get("Referer", None):
@@ -217,6 +215,8 @@ class ExtraCache:
                 parse.parse_qsl(parse.urlsplit(request.headers["Referer"]).query))
             if len(referer_query_param):
                 url_params.update(referer_query_param)
+
+        result = url_params.get(param, default)
 
         if add_to_cache_keys:
             self.cache_key_wrapper(result)
