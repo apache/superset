@@ -28,7 +28,7 @@ import {
 } from './mockDashboardLayout';
 import { sliceId } from './mockChartQueries';
 import { dashboardFilters } from './mockDashboardFilters';
-import { nativeFilters } from './mockNativeFilters';
+import { nativeFilters, dataMaskWith2Filters } from './mockNativeFilters';
 
 export const storeWithState = state =>
   createStore(rootReducer, state, compose(applyMiddleware(thunk)));
@@ -77,6 +77,7 @@ export const getMockStoreWithFilters = () =>
   createStore(rootReducer, {
     ...mockState,
     dashboardFilters,
+    dataMask: dataMaskWith2Filters,
     charts: {
       ...mockState.charts,
       [sliceIdWithAppliedFilter]: {
@@ -102,6 +103,7 @@ export const getMockStoreWithNativeFilters = () =>
   createStore(rootReducer, {
     ...mockState,
     nativeFilters,
+    dataMask: dataMaskWith2Filters,
     charts: {
       ...mockState.charts,
       [sliceIdWithAppliedFilter]: {

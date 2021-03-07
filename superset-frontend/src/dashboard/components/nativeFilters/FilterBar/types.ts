@@ -24,7 +24,7 @@ export interface FilterProps {
   filter: Filter;
   icon?: React.ReactElement;
   directPathToChild?: string[];
-  onFilterSelectionChange: (filter: Filter, filterState: DataMask) => void;
+  onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
 }
 
 export interface CascadeFilter extends Filter {

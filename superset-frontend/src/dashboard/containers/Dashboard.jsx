@@ -35,6 +35,7 @@ function mapStateToProps(state) {
     datasources,
     sliceEntities,
     charts,
+    dataMask,
     dashboardInfo,
     dashboardState,
     dashboardLayout,
@@ -58,11 +59,12 @@ function mapStateToProps(state) {
     activeFilters: {
       ...getActiveFilters(),
       ...getActiveNativeFilters({
-        nativeFilters,
+        filters: nativeFilters.filters,
+        dataMask,
         layout: dashboardLayout.present,
       }),
     },
-    ownDataCharts: nativeFilters.filtersState.ownFilters ?? {},
+    ownDataCharts: dataMask.ownFilters ?? {},
     slices: sliceEntities.slices,
     layout: dashboardLayout.present,
     impressionId,
