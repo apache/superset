@@ -20,6 +20,7 @@ import { DataMaskStateWithId } from 'src/dataMask/types';
 import { NativeFiltersState } from 'src/dashboard/reducers/types';
 
 export const nativeFiltersInfo: NativeFiltersState = {
+  filterSets: {},
   filters: {
     DefaultsID: {
       cascadeParentIds: [],

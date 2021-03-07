@@ -39,6 +39,7 @@ import cx from 'classnames';
 import * as chartActions from 'src/chart/chartAction';
 import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
+import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import ExploreChartPanel from './ExploreChartPanel';
 import ConnectedControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
@@ -54,7 +55,6 @@ import {
   LOG_ACTIONS_MOUNT_EXPLORER,
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
 } from '../../logger/LogUtils';
-import { mergeExtraFormData } from '../../dashboard/components/nativeFilters/utils';
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,
