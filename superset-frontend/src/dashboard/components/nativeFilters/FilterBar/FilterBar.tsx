@@ -36,8 +36,9 @@ import {
   DataMaskState,
 } from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
+import { getInitialMask } from 'src/dataMask/reducer';
 import FilterConfigurationLink from './FilterConfigurationLink';
-import { useFilters, useFilterSets } from './state';
+import { useFilterSets } from './state';
 import { useFilterConfiguration } from '../state';
 import { Filter } from '../types';
 import {
@@ -46,7 +47,7 @@ import {
   mapParentFiltersToChildren,
 } from './utils';
 import CascadePopover from './CascadePopover';
-import { getInitialMask } from '../../../../dataMask/reducer';
+import { areObjectsEqual } from '../../../../reduxUtils';
 
 const barWidth = `250px`;
 
@@ -198,7 +199,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   directPathToChild,
 }) => {
   const [filterData, setFilterData] = useImmer<DataMaskUnit>({});
-  const [isFiltersChanged, setIsFilterChanged] = useState(false);
+  const [
+    lastAppliedFilterData,
+    setLastAppliedFilterData,
+  ] = useImmer<DataMaskUnit>({});
   const dispatch = useDispatch();
   const dataMaskState = useSelector<any, DataMaskUnitWithId>(
     state => state.dataMask.nativeFilters ?? {},
@@ -296,7 +300,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         );
       }
     });
-    setIsFilterChanged(false);
+    setLastAppliedFilterData(() => filterData);
   };
 
   useEffect(() => {
@@ -304,14 +308,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       handleApply();
     }
   }, [isInitialized]);
-
-  useEffect(() => {
-    if (isInitialized) {
-      setIsFilterChanged(true);
-    }
-    // !need ignore isInitialized
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(filterData)]);
 
   const handleSaveFilterSets = () => {
     dispatch(
@@ -390,7 +386,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             {t('Clear all')}
           </Button>
           <Button
-            disabled={!isFiltersChanged}
+            disabled={
+              !isInitialized ||
+              areObjectsEqual(filterData, lastAppliedFilterData)
+            }
             buttonStyle="primary"
             htmlType="submit"
             buttonSize="small"
