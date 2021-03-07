@@ -67,11 +67,6 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 if not engine.dialect.do_ping(conn):
                     raise DBAPIError(None, None, None)
 
-            with event_logger(
-                action="test_connection_success", engine=make_url(uri).drivername
-            ):
-                pass
-
         except (NoSuchModuleError, ModuleNotFoundError) as ex:
             driver_name = make_url(uri).drivername
             with event_logger(
