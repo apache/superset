@@ -19,6 +19,7 @@ import json
 import re
 from functools import partial
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple, TYPE_CHECKING
+from urllib import parse
 
 from flask import current_app, g, request
 from flask_babel import gettext as _
@@ -209,6 +210,14 @@ class ExtraCache:
         form_data, _ = get_form_data()
         url_params = form_data.get("url_params") or {}
         result = url_params.get(param, default)
+
+        ## Parsing Referer to get query params
+        if request.headers.get("Referer", None):
+            referer_query_param = dict(
+                parse.parse_qsl(parse.urlsplit(request.headers["Referer"]).query))
+            if len(referer_query_param):
+                url_params.update(referer_query_param)
+
         if add_to_cache_keys:
             self.cache_key_wrapper(result)
         return result
