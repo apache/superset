@@ -111,7 +111,9 @@ class TestJinja2Context(SupersetTestCase):
             self.assertEqual(ExtraCache().url_param("foo"), "bar")
 
     def test_referer_url_param_query(self) -> None:
-        with app.test_request_context(environ_base={'HTTP_REFERER': "http://test.com?foo=bar"}):
+        with app.test_request_context(
+            environ_base={"HTTP_REFERER": "http://test.com?foo=bar"}
+        ):
             self.assertEqual(ExtraCache().url_param("foo"), "bar")
 
     def test_safe_proxy_primitive(self) -> None:

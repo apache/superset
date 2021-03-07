@@ -212,7 +212,8 @@ class ExtraCache:
         ##Parsing Referer to get query params
         if request.headers.get("Referer", None):
             referer_query_param = dict(
-                parse.parse_qsl(parse.urlsplit(request.headers["Referer"]).query))
+                parse.parse_qsl(parse.urlsplit(request.headers["Referer"]).query)
+            )
             if len(referer_query_param):
                 url_params.update(referer_query_param)
 
@@ -239,7 +240,10 @@ def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
             return_value = json.loads(json.dumps(return_value))
         except TypeError:
             raise SupersetTemplateException(
-                _("Unsupported return value for method %(name)s", name=func.__name__,)
+                _(
+                    "Unsupported return value for method %(name)s",
+                    name=func.__name__,
+                )
             )
 
     return return_value
