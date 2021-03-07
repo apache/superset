@@ -105,7 +105,7 @@ const LayoutFooter = () => (
       {new Date().getFullYear()}
       ,
       <a href="http://www.apache.org/" target="_blank" rel="noreferrer">
-        &nbsp;The Apache Software Fountation
+        &nbsp;The Apache Software Foundation
       </a>
       , &nbsp;Licensed under the Apache
       <a

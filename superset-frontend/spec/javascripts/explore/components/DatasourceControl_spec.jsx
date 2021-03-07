@@ -93,6 +93,28 @@ describe('DatasourceControl', () => {
       </div>,
     );
     expect(menuWrapper.find(Menu.Item)).toHaveLength(2);
+
+    wrapper = setup({
+      datasource: {
+        name: 'birth_names',
+        type: 'druid',
+        uid: '1__druid',
+        id: 1,
+        columns: [],
+        metrics: [],
+        database: {
+          backend: 'druid',
+          name: 'main',
+        },
+      },
+    });
+    expect(wrapper.find('[data-test="datasource-menu"]')).toExist();
+    menuWrapper = shallow(
+      <div>
+        {wrapper.find('[data-test="datasource-menu"]').prop('overlay')}
+      </div>,
+    );
+    expect(menuWrapper.find(Menu.Item)).toHaveLength(2);
   });
 
   it('should render health check message', () => {

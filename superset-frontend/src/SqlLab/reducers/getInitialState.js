@@ -60,6 +60,7 @@ export default function getInitialState({
       completed: false,
       error: null,
     },
+    hideLeftBar: false,
   };
 
   /**
@@ -89,6 +90,7 @@ export default function getInitialState({
           errors: [],
           completed: false,
         },
+        hideLeftBar: activeTab.hide_left_bar,
       };
     } else {
       // dummy state, actual state will be loaded on tab switch
