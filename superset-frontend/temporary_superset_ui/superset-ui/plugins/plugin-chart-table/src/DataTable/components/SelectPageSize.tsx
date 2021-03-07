@@ -17,8 +17,9 @@
  * under the License.
  */
 import React from 'react';
+import { formatSelectOptions } from '@superset-ui/chart-controls';
 
-export type SizeOption = number | [number, string];
+export type SizeOption = [number, string];
 
 export interface SelectPageSizeRendererProps {
   current: number;
@@ -81,7 +82,7 @@ export default React.memo(function SelectPageSize({
     options.splice(
       sizeOptionValues.findIndex(x => x > currentSize),
       0,
-      currentSize,
+      formatSelectOptions([currentSize])[0],
     );
   }
   const current = currentSize === undefined ? sizeOptionValues[0] : currentSize;

@@ -19,21 +19,21 @@
 import memoizeOne from 'memoize-one';
 import {
   DataRecord,
-  getNumberFormatter,
-  NumberFormats,
-  getTimeFormatter,
-  smartDateFormatter,
-  getTimeFormatterForGranularity,
-  TimeFormatter,
-  TimeFormats,
   GenericDataType,
   getMetricLabel,
+  getNumberFormatter,
+  getTimeFormatter,
+  getTimeFormatterForGranularity,
+  NumberFormats,
   QueryMode,
+  smartDateFormatter,
+  TimeFormats,
+  TimeFormatter,
 } from '@superset-ui/core';
 
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
-import { TableChartProps, TableChartTransformedProps, DataColumnMeta } from './types';
+import { DataColumnMeta, TableChartProps, TableChartTransformedProps } from './types';
 
 const { PERCENT_3_POINT } = NumberFormats;
 const { DATABASE_DATETIME } = TimeFormats;
@@ -168,14 +168,14 @@ const getPageSize = (
   return numRecords * numColumns > 5000 ? 200 : 0;
 };
 
-export default function transformProps(chartProps: TableChartProps): TableChartTransformedProps {
+const transformProps = (chartProps: TableChartProps): TableChartTransformedProps => {
   const {
     height,
     width,
     rawFormData: formData,
     queriesData,
     initialValues: filters = {},
-    ownCurrentState: { currentPage, pageSize },
+    ownCurrentState: serverPaginationData = {},
     hooks: { onAddFilter: onChangeFilter, setDataMask = () => {} },
   } = chartProps;
 
@@ -193,14 +193,8 @@ export default function transformProps(chartProps: TableChartProps): TableChartT
   } = formData;
 
   const [metrics, percentMetrics, columns] = processColumns(chartProps);
-  let data = queriesData?.[0]?.data;
-  let showNextButton = false;
-  // We do request +1 items for BE pagination to know if how `next` button
-  if (serverPagination && data.length === (pageSize ?? serverPageLength) + 1) {
-    data.pop();
-    showNextButton = true;
-  }
-  data = processDataRecords(data, columns);
+  const data = processDataRecords(queriesData?.[0]?.data, columns);
+  const rowCount = queriesData?.[1]?.data?.[0]?.rowcount as number;
 
   return {
     height,
@@ -211,14 +205,14 @@ export default function transformProps(chartProps: TableChartProps): TableChartT
     serverPagination,
     metrics,
     percentMetrics,
-    currentPage,
+    serverPaginationData,
     setDataMask,
     alignPositiveNegative,
     colorPositiveNegative,
     showCellBars,
     sortDesc,
     includeSearch,
-    showNextButton,
+    rowCount,
     pageSize: serverPagination
       ? serverPageLength
       : getPageSize(pageLength, data.length, columns.length),
@@ -226,4 +220,6 @@ export default function transformProps(chartProps: TableChartProps): TableChartT
     emitFilter: tableFilter === true,
     onChangeFilter,
   };
-}
+};
+
+export default transformProps;
