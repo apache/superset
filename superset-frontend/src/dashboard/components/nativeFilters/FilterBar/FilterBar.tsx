@@ -40,7 +40,8 @@ import { useFilterConfiguration } from '../state';
 import { Filter } from '../types';
 import { buildCascadeFiltersTree, mapParentFiltersToChildren } from './utils';
 import CascadePopover from './CascadePopover';
-import FilterSets from './FilterSets';
+import FilterSets from './FilterSets/FilterSets';
+import { useFilterSets } from './state';
 
 const barWidth = `250px`;
 
@@ -128,14 +129,6 @@ const TitleArea = styled.h4`
   & > span {
     flex-grow: 1;
   }
-
-  & :not(:first-child) {
-    margin-left: ${({ theme }) => theme.gridUnit}px;
-
-    &:hover {
-      cursor: pointer;
-    }
-  }
 `;
 
 const StyledTabs = styled(Tabs)`
@@ -153,6 +146,9 @@ const StyledTabs = styled(Tabs)`
 const ActionButtons = styled.div`
   display: grid;
   flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  grid-gap: 10px;
   grid-template-columns: 1fr 1fr;
   ${({ theme }) =>
     `padding: 0 ${theme.gridUnit * 2}px ${theme.gridUnit * 2}px`};
@@ -164,6 +160,9 @@ const ActionButtons = styled.div`
 
 const FilterControls = styled.div`
   padding: 0 ${({ theme }) => theme.gridUnit * 4}px;
+  &:hover {
+    cursor: pointer;
+  }
 `;
 
 interface FiltersBarProps {
@@ -183,6 +182,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     setLastAppliedFilterData,
   ] = useImmer<DataMaskUnit>({});
   const dispatch = useDispatch();
+  const filterSets = useFilterSets();
   const dataMaskState = useSelector<any, DataMaskUnitWithId>(
     state => state.dataMask.nativeFilters ?? {},
   );
@@ -271,7 +271,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     });
   };
 
-  const isClearAllDisabled = !Object.values(dataMaskState).every(
+  const isClearAllDisabled = Object.values(dataMaskState).every(
     filter =>
       filterData[filter.id]?.currentState?.value === null ||
       (!filterData[filter.id] && filter.currentState?.value === null),
@@ -294,6 +294,9 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       ))}
     </FilterControls>
   );
+
+  const isApplyDisabled =
+    !isInitialized || areObjectsEqual(filterData, lastAppliedFilterData);
 
   return (
     <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>
@@ -318,7 +321,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         </TitleArea>
         <ActionButtons>
           <Button
-            disabled={!isClearAllDisabled}
+            disabled={isClearAllDisabled}
             buttonStyle="tertiary"
             buttonSize="small"
             onClick={handleClearAll}
@@ -327,10 +330,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             {t('Clear all')}
           </Button>
           <Button
-            disabled={
-              !isInitialized ||
-              areObjectsEqual(filterData, lastAppliedFilterData)
-            }
+            disabled={isApplyDisabled}
             buttonStyle="primary"
             htmlType="submit"
             buttonSize="small"
@@ -352,8 +352,12 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             >
               {getFilterControls()}
             </Tabs.TabPane>
-            <Tabs.TabPane tab={t('Filter Sets')} key="filterSets">
+            <Tabs.TabPane
+              tab={t(`Filter Sets (${filterSets.length})`)}
+              key="filterSets"
+            >
               <FilterSets
+                disabled={!isApplyDisabled}
                 dataMaskState={dataMaskState}
                 onFilterSelectionChange={handleFilterSelectionChange}
               />

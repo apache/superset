@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import { NativeFiltersState } from 'src/dashboard/reducers/types';
+import { FiltersSet, NativeFiltersState } from 'src/dashboard/reducers/types';
 import { DataMaskStateWithId } from 'src/dataMask/types';
 import { mergeExtraFormData } from '../utils';
 import { Filter } from '../types';
@@ -43,3 +43,8 @@ export function useCascadingFilters(id: string) {
   });
   return cascadedFilters;
 }
+
+export const useFilterSets = () =>
+  useSelector<any, FiltersSet[]>(
+    state => state.dashboardInfo?.metadata?.filter_sets_configuration || [],
+  );
