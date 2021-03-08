@@ -22,7 +22,7 @@ import { styled } from '@superset-ui/core';
 import { Badge as AntdBadge } from 'antd';
 import { BadgeProps as AntdBadgeProps } from 'antd/lib/badge';
 
-interface BadgeProps extends AntdBadgeProps {
+export interface BadgeProps extends AntdBadgeProps {
   textColor?: string;
 }
 
