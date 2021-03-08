@@ -138,7 +138,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
             window.location = favRedirects[tableName];
           }}
         >
-          See all{' '}
+          {t('See all')}{' '}
           {tableName === 'SAVED_QUERIES'
             ? t('SQL Lab queries')
             : t(`${tableName}`)}

@@ -26,6 +26,7 @@ import Icon from 'src/components/Icon';
 import Icons from 'src/components/Icons';
 import FaveStar from 'src/components/FaveStar';
 import ListViewCard from '.';
+import { t } from '@superset-ui/core';
 
 export default {
   title: 'ListViewCard',
@@ -68,10 +69,10 @@ export const SupersetListViewCard = () => (
           overlay={
             <Menu>
               <Menu.Item role="button" tabIndex={0} onClick={action('Delete')}>
-                <Icons.Trash /> Delete
+                <Icons.Trash /> {t('Delete')}
               </Menu.Item>
               <Menu.Item role="button" tabIndex={0} onClick={action('Edit')}>
-                <Icons.EditAlt /> Edit
+                <Icons.EditAlt /> {t('Edit')}
               </Menu.Item>
             </Menu>
           }

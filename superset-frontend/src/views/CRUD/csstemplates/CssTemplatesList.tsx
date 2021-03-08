@@ -273,7 +273,7 @@ function CssTemplatesList({
         id: 'created_by',
         input: 'select',
         operator: 'rel_o_m',
-        unfilteredLabel: 'All',
+        unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'css_template',
           'created_by',

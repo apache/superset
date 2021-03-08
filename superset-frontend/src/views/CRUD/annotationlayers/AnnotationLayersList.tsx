@@ -287,7 +287,7 @@ function AnnotationLayersList({
         id: 'created_by',
         input: 'select',
         operator: 'rel_o_m',
-        unfilteredLabel: 'All',
+        unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'annotation_layer',
           'created_by',
