@@ -898,10 +898,10 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
-        metrics: List[Metric],
-        granularity: str,
-        from_dttm: Optional[datetime],
-        to_dttm: Optional[datetime],
+        metrics: Optional[List[Metric]] = None,
+        granularity: Optional[str] = None,
+        from_dttm: Optional[datetime] = None,
+        to_dttm: Optional[datetime] = None,
         columns: Optional[List[str]] = None,
         groupby: Optional[List[str]] = None,
         filter: Optional[  # pylint: disable=redefined-builtin
@@ -939,7 +939,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         prequeries: List[str] = []
         orderby = orderby or []
         extras = extras or {}
-        need_groupby = bool(metrics or groupby)
+        need_groupby = bool(metrics is not None or groupby)
+        metrics = metrics or []
 
         # For backward compatibility
         if granularity not in self.dttm_cols:

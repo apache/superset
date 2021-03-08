@@ -81,7 +81,7 @@ class QueryObject:
     is_timeseries: bool
     time_shift: Optional[timedelta]
     groupby: List[str]
-    metrics: List[Union[Dict[str, Any], str]]
+    metrics: Optional[List[Metric]]
     row_limit: int
     row_offset: int
     filter: List[Dict[str, Any]]
@@ -122,6 +122,12 @@ class QueryObject:
         is_rowcount: bool = False,
         **kwargs: Any,
     ):
+        metrics = metrics or []
+        columns = columns or []
+        groupby = groupby or []
+        extras = extras or {}
+        annotation_layers = annotation_layers or []
+
         self.is_rowcount = is_rowcount
         self.datasource = None
         if datasource:
@@ -129,12 +135,7 @@ class QueryObject:
                 str(datasource["type"]), int(datasource["id"]), db.session
             )
         self.result_type = result_type
-        annotation_layers = annotation_layers or []
         self.apply_fetch_values_predicate = apply_fetch_values_predicate or False
-        metrics = metrics or []
-        columns = columns or []
-        groupby = groupby or []
-        extras = extras or {}
         self.annotation_layers = [
             layer
             for layer in annotation_layers
@@ -170,11 +171,11 @@ class QueryObject:
         #   1. 'metric_name'   - name of predefined metric
         #   2. { label: 'label_name' }  - legacy format for a predefined metric
         #   3. { expressionType: 'SIMPLE' | 'SQL', ... } - adhoc metric
-        self.metrics = [
-            metric
-            if isinstance(metric, str) or is_adhoc_metric(metric)
-            else metric["label"]  # type: ignore
-            for metric in metrics
+        self.metrics = metrics and [
+            x
+            if isinstance(x, str) or is_adhoc_metric(x)
+            else x["label"]  # type: ignore
+            for x in metrics
         ]
 
         self.row_limit = config["ROW_LIMIT"] if row_limit is None else row_limit
@@ -237,7 +238,7 @@ class QueryObject:
     @property
     def metric_names(self) -> List[str]:
         """Return metrics names (labels), coerce adhoc metrics to strings."""
-        return get_metric_names(self.metrics)
+        return get_metric_names(self.metrics or [])
 
     @property
     def column_names(self) -> List[str]:
