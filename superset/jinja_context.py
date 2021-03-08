@@ -239,10 +239,7 @@ def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
             return_value = json.loads(json.dumps(return_value))
         except TypeError:
             raise SupersetTemplateException(
-                _(
-                    "Unsupported return value for method %(name)s",
-                    name=func.__name__,
-                )
+                _("Unsupported return value for method %(name)s", name=func.__name__,)
             )
 
     return return_value
