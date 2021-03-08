@@ -25,7 +25,7 @@
 }
 
 .superset-legacy-chart-heatmap .axis text {
-  font: 12px sans-serif;
+  font: 10px sans-serif;
   text-rendering: optimizeLegibility;
   fill: #555;
 }
