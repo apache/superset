@@ -1083,11 +1083,6 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         select_exprs += metrics_exprs
         labels_expected = [c.name for c in select_exprs]
-        # labels_expected should not include `orderby` columns
-        # so we add them only after `labels_expected` is collected.
-        select_exprs += orderby_exprs
-        select_exprs = utils.remove_duplicates(select_exprs, key=lambda x: x.name)
-
         select_exprs = db_engine_spec.make_select_compatible(
             groupby_exprs_with_timestamp.values(), select_exprs
         )
