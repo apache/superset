@@ -5,7 +5,7 @@ import { isSimpleAdhocFilter } from './types/Filter';
 import convertFilter from './convertFilter';
 
 /** Logic formerly in viz.py's process_query_filters */
-export default function processFilters(formData: QueryFormData): Partial<QueryFormData> {
+export default function processFilters(formData: Partial<QueryFormData>): Partial<QueryFormData> {
   // Split adhoc_filters into four fields according to
   // (1) clause (WHERE or HAVING)
   // (2) expressionType

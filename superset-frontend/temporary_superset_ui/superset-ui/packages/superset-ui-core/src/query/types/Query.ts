@@ -76,6 +76,9 @@ export interface QueryObject extends QueryFields, TimeRange, ResidualQueryObject
   /** Time filters that have been applied to the query object */
   applied_time_extras?: AppliedTimeExtras;
 
+  /** add fetch value predicate to query if defined in datasource */
+  apply_fetch_values_predicate?: boolean;
+
   /**
    * Extra form data. Current stores information about time granularity, may be
    * cleaned up in the future.
@@ -85,11 +88,14 @@ export interface QueryObject extends QueryFields, TimeRange, ResidualQueryObject
   /** SIMPLE where filters */
   filters?: QueryObjectFilterClause[];
 
-  /** Time column. */
+  /** Time column for SQL, time-grain for Druid (deprecated) */
   granularity?: string;
 
   /** If set, will group by timestamp */
   is_timeseries?: boolean;
+
+  /** Should the rowcount of the query be fetched */
+  is_rowcount?: boolean;
 
   /** Free-form HAVING SQL, multiple clauses are concatenated by AND */
   having?: string;
@@ -104,6 +110,12 @@ export interface QueryObject extends QueryFields, TimeRange, ResidualQueryObject
 
   /** Number of rows to skip */
   row_offset?: number;
+
+  /** The column to which direct temporal filters (forthcoming) */
+  time_column?: string;
+
+  /** The size of bucket by which to group timeseries data (forthcoming) */
+  time_grain?: string;
 
   /** Maximum number of series */
   timeseries_limit?: number;
