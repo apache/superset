@@ -53,8 +53,8 @@ test('Should render the column correctly - minimal props', () => {
       </thead>
     </table>,
   );
-  expect(screen.getByTestId('sort-header')).toBeInTheDocument();
-  expect(screen.getByTestId('sort-header')).not.toHaveClass();
+  expect(screen.getByRole('columnheader')).toBeInTheDocument();
+  expect(screen.getByRole('columnheader')).not.toHaveClass();
 
   expect(column.getHeaderProps).toBeCalledTimes(1);
   expect(column.getHeaderProps).toBeCalledWith({});
@@ -82,7 +82,8 @@ test('Should render the column correctly - sortable column', () => {
       </thead>
     </table>,
   );
-  expect(screen.getByTestId('sort-header')).toBeInTheDocument();
+
+  expect(screen.getByRole('columnheader')).toBeInTheDocument();
   expect(screen.getByTestId('sort')).toBeInTheDocument();
 
   expect(column.getSortByToggleProps).toBeCalledTimes(1);
@@ -157,5 +158,5 @@ test('Should use size as class', async () => {
       </thead>
     </table>,
   );
-  expect(screen.getByTestId('sort-header')).toHaveClass('xs');
+  expect(screen.getByRole('columnheader')).toHaveClass('xs');
 });

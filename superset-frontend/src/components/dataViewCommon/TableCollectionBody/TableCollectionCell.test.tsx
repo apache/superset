@@ -41,7 +41,6 @@ test('Should render the <td> correctly - minimal props', () => {
 test('Should render the <td> with additional attributes', () => {
   const props = {
     column: {},
-    'data-test': 'td-test',
     'data-custom': 'custom',
     'data-attr': 'attr-test',
   };
@@ -57,20 +56,21 @@ test('Should render the <td> with additional attributes', () => {
       </tbody>
     </table>,
   );
-  expect(screen.getByTestId('td-test')).toBeInTheDocument();
-  expect(screen.getByTestId('td-test')).toHaveAttribute(
+
+  expect(screen.getByRole('cell', { name: 'Test' })).toBeInTheDocument();
+  expect(screen.getByRole('cell', { name: 'Test' })).toHaveAttribute(
     'data-custom',
     'custom',
   );
-  expect(screen.getByTestId('td-test')).toHaveAttribute(
+  expect(screen.getByRole('cell', { name: 'Test' })).toHaveAttribute(
     'data-attr',
     'attr-test',
   );
-  expect(screen.getByTestId('td-test')).toHaveClass('table-cell');
+  expect(screen.getByRole('cell', { name: 'Test' })).toHaveClass('table-cell');
 });
 
 test('Should use size as class', () => {
-  const props = { column: { size: 'my-custom-size' }, 'data-test': 'td-test' };
+  const props = { column: { size: 'my-custom-size' } };
 
   render(
     <table>
@@ -84,14 +84,14 @@ test('Should use size as class', () => {
     </table>,
   );
   expect(screen.getByTestId('content')).toBeInTheDocument();
-  expect(screen.getByTestId('td-test')).toHaveClass(
+  expect(screen.getByRole('cell', { name: 'Test' })).toHaveClass(
     'table-cell',
     'my-custom-size',
   );
 });
 
 test('Should has correct class on loading state', () => {
-  const props = { column: {}, loading: true, 'data-test': 'td-test' };
+  const props = { column: {}, loading: true };
 
   render(
     <table>
@@ -105,7 +105,7 @@ test('Should has correct class on loading state', () => {
     </table>,
   );
   expect(screen.getByTestId('content')).toBeInTheDocument();
-  expect(screen.getByTestId('td-test')).toHaveClass(
+  expect(screen.getByRole('cell', { name: 'Test' })).toHaveClass(
     'table-cell',
     'table-cell-loader',
   );
