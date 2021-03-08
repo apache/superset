@@ -75,11 +75,6 @@ class CeleryConfig(object):
     CELERY_ANNOTATIONS = {"tasks.add": {"rate_limit": "10/s"}}
     CELERY_TASK_PROTOCOL = 1
 
-FEATURE_FLAGS = {
-    'DASHBOARD_NATIVE_FILTERS': True,
-    'DASHBOARD_NATIVE_FILTERS_SET': True,
-    'DASHBOARD_CROSS_FILTERS': True,
-}
 
 CELERY_CONFIG = CeleryConfig
 SQLLAB_CTAS_NO_LIMIT = True
