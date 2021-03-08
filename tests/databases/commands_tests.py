@@ -530,7 +530,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
     def test_connection_db_exception(
         self, mock_event_logger, mock_build_db_for_connection_test
     ):
-        """Test that users can't export databases they don't have access to"""
+        """Test to make sure event_logger is called when an exception is raised"""
         database = get_example_database()
         mock_build_db_for_connection_test.side_effect = Exception(
             "An error has occurred!"
@@ -553,7 +553,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
     def test_connection_superset_security_connection(
         self, mock_event_logger, mock_build_db_for_connection_test
     ):
-        """Test that users can't export databases they don't have access to"""
+        """Test to make sure event_logger is called when security connection exc is raised"""
         database = get_example_database()
         mock_build_db_for_connection_test.side_effect = SupersetSecurityException(
             SupersetError(error_type=500, message="test", level="info", extra={})
@@ -576,7 +576,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
     def test_connection_db_api_exc(
         self, mock_event_logger, mock_build_db_for_connection_test
     ):
-        """Test that users can't export databases they don't have access to"""
+        """Test to make sure event_logger is called when security connection DBAPIError exc is raised"""
         database = get_example_database()
         mock_build_db_for_connection_test.side_effect = DBAPIError(
             statement="error", params={}, orig={}
