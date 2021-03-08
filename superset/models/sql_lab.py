@@ -92,14 +92,9 @@ class Query(Model, ExtraJSONMixin):
     executed_sql = Column(Text)
     # Could be configured in the superset config.
     limit = Column(Integer)
-<<<<<<< HEAD
     limiting_factor = Column(
         Enum(LimitingFactor), server_default=LimitingFactor.UNKNOWN
     )
-=======
-    limiting_factor = Column(Enum(LimitMethod), server_default=LimitMethod.UNKNOWN)
-    was_limited = Column(Boolean, default=False)
->>>>>>> Set default values
     select_as_cta = Column(Boolean)
     select_as_cta_used = Column(Boolean, default=False)
     ctas_method = Column(String(16), default=CtasMethod.TABLE)
@@ -144,10 +139,6 @@ class Query(Model, ExtraJSONMixin):
             "id": self.client_id,
             "queryId": self.id,
             "limit": self.limit,
-<<<<<<< HEAD
-=======
-            "wasLimited": self.was_limited,
->>>>>>> Set default values
             "limitingFactor": self.limiting_factor,
             "progress": self.progress,
             "rows": self.rows,

@@ -29,17 +29,21 @@ down_revision = "070c043f2fdb"
 from enum import Enum
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import mysql
-from superset.models.sql_lab import LimitMethod
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.dialects.postgresql.base import PGDialect
+from superset.models.sql_lab import LimitingFactor
 
 def upgrade():
+    bind = op.get_bind()
+    if isinstance(bind.dialect, PGDialect):
+        limiting_factor = postgresql.ENUM("DROPDOWN", "QUERY", "NOT_LIMITED", "QUERY_AND_DROPDOWN", "UNKNOWN", name="limitingfactor")
+        limiting_factor.create(bind)
     with op.batch_alter_table("query") as batch_op:
-        batch_op.add_column(sa.Column("was_limited", sa.Boolean(), nullable=True))
         batch_op.add_column(
-            sa.Column("limiting_factor", sa.Enum("DROPDOWN", "QUERY", "UNKNOWN", name="limitingfactor"))
-        )
+            sa.Column("limiting_factor", sa.Enum("DROPDOWN", "QUERY", "NOT_LIMITED", "QUERY_AND_DROPDOWN", "UNKNOWN", name="limitingfactor"))
+       )
+
 
 def downgrade():
     with op.batch_alter_table("query") as batch_op:
-        batch_op.drop_column("was_limited")
         batch_op.drop_column("limiting_factor")
