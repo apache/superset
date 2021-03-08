@@ -182,8 +182,9 @@ class SupersetResultSet:
 
     def is_temporal(self, db_type_str: Optional[str]) -> bool:
         column_spec = self.db_engine_spec.get_column_spec(db_type_str)
-        is_dttm = column_spec.is_dttm if column_spec else False
-        return is_dttm
+        if column_spec is None:
+            return False
+        return column_spec.is_dttm
 
     def data_type(self, col_name: str, pa_dtype: pa.DataType) -> Optional[str]:
         """Given a pyarrow data type, Returns a generic database type"""

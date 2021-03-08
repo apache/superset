@@ -188,26 +188,20 @@ class TableColumn(Model, BaseColumn):
         """
         Check if the column has a numeric datatype.
         """
-        db_engine_spec = self.table.database.db_engine_spec
-        if db_engine_spec is None:
+        column_spec = self.table.database.db_engine_spec.get_column_spec(self.type)
+        if column_spec is None:
             return False
-        return (
-            db_engine_spec.get_column_spec(self.type).generic_type
-            == GenericDataType.NUMERIC
-        )
+        return column_spec.generic_type == GenericDataType.NUMERIC
 
     @property
     def is_string(self) -> bool:
         """
         Check if the column has a string datatype.
         """
-        db_engine_spec = self.table.database.db_engine_spec
-        if db_engine_spec is None:
+        column_spec = self.table.database.db_engine_spec.get_column_spec(self.type)
+        if column_spec is None:
             return False
-        return (
-            db_engine_spec.get_column_spec(self.type).generic_type
-            == GenericDataType.STRING
-        )
+        return column_spec.generic_type == GenericDataType.STRING
 
     @property
     def is_temporal(self) -> bool:
@@ -219,10 +213,10 @@ class TableColumn(Model, BaseColumn):
         """
         if self.is_dttm is not None:
             return self.is_dttm
-        db_engine_spec = self.table.database.db_engine_spec
-        if db_engine_spec is None:
+        column_spec = self.table.database.db_engine_spec.get_column_spec(self.type)
+        if column_spec is None:
             return False
-        return db_engine_spec.is_dttm
+        return column_spec.is_dttm
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.column_name
