@@ -16,21 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ReactNode } from 'react';
+import {
+  DatasourceType,
+  ensureIsArray,
+  JsonValue,
+  QueryFormData,
+} from '@superset-ui/core';
+import {
+  ControlConfig,
+  ControlPanelState,
+  ControlState,
+  ControlType,
+  ControlValueValidator,
+} from '@superset-ui/chart-controls';
 import { getSectionsToRender } from './getSectionsToRender';
 import { getControlConfig } from './getControlConfig';
 
-export * from './getFormDataFromControls';
-export * from './getControlConfig';
-export * from './getSectionsToRender';
+type ValidationError = JsonValue;
 
-export function validateControl(control, processedState) {
-  const { validators } = control;
-  const validationErrors = [];
+function execControlValidator<T = ControlType>(
+  control: ControlState<T>,
+  processedState: ControlState<T>,
+) {
+  const validators = control.validators as ControlValueValidator[] | undefined;
+  const validationErrors: ValidationError[] = [];
   if (validators && validators.length > 0) {
-    validators.forEach(f => {
-      const v = f.call(control, control.value, processedState);
-      if (v) {
-        validationErrors.push(v);
+    validators.forEach(validator => {
+      const error = validator.call(control, control.value, processedState);
+      if (error) {
+        validationErrors.push(error);
       }
     });
   }
@@ -38,22 +53,26 @@ export function validateControl(control, processedState) {
   return { ...control, validationErrors };
 }
 
-function handleMissingChoice(control) {
+/**
+ * Clear control values that are no longer in the `choices` list.
+ */
+function handleMissingChoice<T = ControlType>(control: ControlState<T>) {
   // If the value is not valid anymore based on choices, clear it
-  const { value } = control;
   if (
     control.type === 'SelectControl' &&
     !control.freeForm &&
     control.choices &&
-    value
+    control.value
   ) {
     const alteredControl = { ...control };
-    const choiceValues = control.choices.map(c => c[0]);
+    const choices = control.choices as [JsonValue, ReactNode][];
+    const value = ensureIsArray(control.value);
+    const choiceValues = choices.map(c => c[0]);
     if (control.multi && value.length > 0) {
-      alteredControl.value = value.filter(el => choiceValues.indexOf(el) > -1);
+      alteredControl.value = value.filter(el => choiceValues.includes(el));
       return alteredControl;
     }
-    if (!control.multi && choiceValues.indexOf(value) < 0) {
+    if (!control.multi && !choiceValues.includes(value[0])) {
       alteredControl.value = null;
       return alteredControl;
     }
@@ -61,14 +80,17 @@ function handleMissingChoice(control) {
   return control;
 }
 
-export function applyMapStateToPropsToControl(controlState, controlPanelState) {
+export function applyMapStateToPropsToControl<T = ControlType>(
+  controlState: ControlState<T>,
+  controlPanelState: Partial<ControlPanelState>,
+) {
   const { mapStateToProps } = controlState;
   let state = { ...controlState };
   let { value } = state; // value is current user-input value
   if (mapStateToProps && controlPanelState) {
     state = {
       ...controlState,
-      ...mapStateToProps(controlPanelState, controlState),
+      ...mapStateToProps.call(controlState, controlPanelState, controlState),
     };
     // `mapStateToProps` may also provide a value
     value = value || state.value;
@@ -90,19 +112,19 @@ export function applyMapStateToPropsToControl(controlState, controlPanelState) {
     value = [value];
   }
   state.value = value;
-  return validateControl(handleMissingChoice(state), state);
+  return execControlValidator(handleMissingChoice(state), state);
 }
 
-export function getControlStateFromControlConfig(
-  controlConfig,
-  controlPanelState,
-  value,
+export function getControlStateFromControlConfig<T = ControlType>(
+  controlConfig: ControlConfig<T> | null,
+  controlPanelState: Partial<ControlPanelState>,
+  value?: JsonValue,
 ) {
   // skip invalid config values
   if (!controlConfig) {
     return null;
   }
-  const controlState = { ...controlConfig, value };
+  const controlState = { ...controlConfig, value } as ControlState<T>;
   // only apply mapStateToProps when control states have been initialized
   // or when explicitly didn't provide control panel state (mostly for testing)
   if (
@@ -114,7 +136,12 @@ export function getControlStateFromControlConfig(
   return controlState;
 }
 
-export function getControlState(controlKey, vizType, state, value) {
+export function getControlState(
+  controlKey: string,
+  vizType: string,
+  state: Partial<ControlPanelState>,
+  value?: JsonValue,
+) {
   return getControlStateFromControlConfig(
     getControlConfig(controlKey, vizType),
     state,
@@ -122,12 +149,17 @@ export function getControlState(controlKey, vizType, state, value) {
   );
 }
 
-export function getAllControlsState(vizType, datasourceType, state, formData) {
+export function getAllControlsState(
+  vizType: string,
+  datasourceType: DatasourceType,
+  state: ControlPanelState,
+  formData: QueryFormData,
+) {
   const controlsState = {};
   getSectionsToRender(vizType, datasourceType).forEach(section =>
     section.controlSetRows.forEach(fieldsetRow =>
       fieldsetRow.forEach(field => {
-        if (field && field.config && field.name) {
+        if (field && 'config' in field && field.config && field.name) {
           const { config, name } = field;
           controlsState[name] = getControlStateFromControlConfig(
             config,
