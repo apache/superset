@@ -213,8 +213,7 @@ class ExtraCache:
             referer_query_param = dict(
                 parse.parse_qsl(parse.urlsplit(request.headers["Referer"]).query)
             )
-            if len(referer_query_param):
-                url_params.update(referer_query_param)
+            url_params.update(referer_query_param)
 
         result = url_params.get(param, default)
 
