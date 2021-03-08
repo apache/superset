@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
 import { styled, t, SupersetClient } from '@superset-ui/core';
 import InfoTooltip from 'src/common/components/InfoTooltip';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -133,7 +132,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useState<DatabaseObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
-  const dispatch = useDispatch();
   const conf = useCommonConf();
 
   const isEditMode = database !== null;
@@ -216,7 +214,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
 
       if (db && db.id) {
-        dispatch(updateResource(db.id, update)).then(result => {
+        updateResource(db.id, update).then(result => {
           if (result) {
             if (onDatabaseAdd) {
               onDatabaseAdd();
@@ -227,7 +225,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     } else if (db) {
       // Create
-      dispatch(createResource(db)).then(dbId => {
+      createResource(db).then(dbId => {
         if (dbId) {
           if (onDatabaseAdd) {
             onDatabaseAdd();
@@ -301,7 +299,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const id = database.id || 0;
       setTabKey(DEFAULT_TAB_KEY);
 
-      dispatch(fetchResource(id))
+      fetchResource(id)
         .then(() => {
           setDB(dbFetched);
         })

@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { useSelector } from 'react-redux';
-import { ViewState } from 'src/views/types';
-
-export function useCommonConf() {
-  return useSelector((state: ViewState) => state.common.conf);
+export interface ViewState {
+  common: {
+    conf: {
+      SQLALCHEMY_DOCS_URL: string;
+      SQLALCHEMY_DISPLAY_TEXT: string;
+    };
+  };
+  messageToast: Array<Object>;
 }
