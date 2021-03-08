@@ -147,8 +147,8 @@ test('Should call refresh when you click the button', () => {
 
   render(<SchemaSelect {...props} />);
 
-  expect(screen.getByRole('button', { name: 'Icon' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: '' })).toBeInTheDocument();
   expect(props.refresh).toBeCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'Icon' }));
+  userEvent.click(screen.getByRole('button', { name: '' }));
   expect(props.refresh).toBeCalledTimes(1);
 });
