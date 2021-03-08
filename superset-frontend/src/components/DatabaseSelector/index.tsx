@@ -43,6 +43,7 @@ const DatabaseSelectorWrapper = styled.div`
     display: flex;
     align-items: center;
     width: 30px;
+    margin-left: ${({ theme }) => theme.gridUnit}px;
   }
 
   .section {
