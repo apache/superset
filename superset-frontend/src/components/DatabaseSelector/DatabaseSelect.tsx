@@ -26,7 +26,7 @@ import { DbMutator } from './dbMutator';
 
 interface Props {
   disableFilters?: boolean;
-  isDisabled: boolean;
+  isDisabled?: boolean;
   currentDbId: number | null;
   mutator: React.MutableRefObject<DbMutator>;
   onChange: (db: any) => void;
@@ -67,7 +67,7 @@ export function DatabaseSelect({
       mutator={mutator.current}
       placeholder={t('Select a database')}
       autoSelect
-      isDisabled={isDisabled}
+      isDisabled={!!isDisabled}
     />
   );
   return <SelectRow select={select} />;

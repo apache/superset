@@ -81,18 +81,18 @@ interface DatabaseSelectorProps {
 
 export default function DatabaseSelector({
   dbId,
-  formMode = false,
+  formMode,
+  readOnly,
+  schema,
+  sqlLabMode,
+  isDatabaseSelectEnabled = true,
   getDbList,
   getTableList,
   handleError,
-  isDatabaseSelectEnabled = true,
   onChange,
   onDbChange,
   onSchemaChange,
   onSchemasLoad,
-  readOnly = false,
-  schema,
-  sqlLabMode = false,
 }: DatabaseSelectorProps) {
   const [currentDbId, setCurrentDbId] = useState(dbId);
   const [currentSchema, setCurrentSchema] = useState<string | null | undefined>(
