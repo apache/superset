@@ -18,5 +18,24 @@
  */
 
 import shortid from 'shortid';
+import { t } from '@superset-ui/core';
 
 export const generateFiltersSetId = () => `FILTERS_SET-${shortid.generate()}`;
+
+export const getFilterValueForDisplay = (
+  value?: string[] | null | string | number | object,
+): string => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    return `${value}`;
+  }
+  if (Array.isArray(value)) {
+    return value.join(', ');
+  }
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+  return t('Unknown value');
+};

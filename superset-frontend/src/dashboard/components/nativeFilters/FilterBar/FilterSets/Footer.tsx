@@ -30,9 +30,11 @@ type FooterProps = {
   onCreate: () => void;
 };
 
-const ActionButton = styled.div`
+const ActionButton = styled.div<{ disabled: boolean }>`
   display: flex;
+  padding: 1px;
   & button {
+    ${({ disabled }) => `pointer-events: ${disabled ? 'none' : 'all'}`};
     flex: 1;
   }
 `;
@@ -44,6 +46,8 @@ const ActionButtons = styled.div`
   grid-gap: 10px;
   grid-template-columns: 1fr 1fr;
 `;
+
+const APPLY_FILTERS = t('Please apply filter changes');
 
 const Footer: FC<FooterProps> = ({
   onCancel,
@@ -63,23 +67,27 @@ const Footer: FC<FooterProps> = ({
       >
         {t('Cancel')}
       </Button>
-      <Button
-        disabled={isApplyDisabled}
-        buttonStyle="primary"
-        htmlType="submit"
-        buttonSize="small"
-        onClick={onCreate}
-        data-test="filter-set-create-button"
+      <Tooltip
+        placement="bottom"
+        title={(isApplyDisabled || disabled) && APPLY_FILTERS}
       >
-        {t('Create')}
-      </Button>
+        <ActionButton disabled={disabled}>
+          <Button
+            disabled={isApplyDisabled || disabled}
+            buttonStyle="primary"
+            htmlType="submit"
+            buttonSize="small"
+            onClick={onCreate}
+            data-test="filter-set-create-button"
+          >
+            {t('Create')}
+          </Button>
+        </ActionButton>
+      </Tooltip>
     </ActionButtons>
   ) : (
-    <Tooltip
-      placement="bottom"
-      title={disabled && t('Please apply filter changes')}
-    >
-      <ActionButton>
+    <Tooltip placement="bottom" title={disabled && APPLY_FILTERS}>
+      <ActionButton disabled={disabled}>
         <Button
           disabled={disabled}
           buttonStyle="tertiary"

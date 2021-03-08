@@ -16,47 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Select } from 'src/common/components';
+import { Select, Typography } from 'src/common/components';
 import Button from 'src/components/Button';
 import React, { useState } from 'react';
 import { styled, t, tn } from '@superset-ui/core';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import {
   DataMaskState,
   DataMaskUnitWithId,
   MaskWithId,
 } from 'src/dataMask/types';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { FiltersSet } from 'src/dashboard/reducers/types';
-import EditableTitle from 'src/components/EditableTitle';
 import { generateFiltersSetId } from './utils';
 import { Filter } from '../../types';
-import { useFilterSets } from '../state';
+import { useFilters, useDataMask, useFilterSets } from '../state';
 import Footer from './Footer';
+import FiltersHeader from './FiltersHeader';
 
 const FilterSet = styled.div`
   display: grid;
   align-items: center;
   justify-content: center;
   grid-template-columns: 1fr;
-  grid-gap: 10px;
+  grid-gap: ${({ theme }) => theme.gridUnit}px;
   ${({ theme }) =>
-    `padding: 0 ${theme.gridUnit * 2}px ${theme.gridUnit * 4}px`};
+    `padding: 0 ${theme.gridUnit * 4}px ${theme.gridUnit * 4}px`};
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   & button.superset-button {
     margin-left: 0;
   }
-`;
-
-const StyledTitle = styled.h4`
-  width: 100%;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-  margin: 0;
-  overflow-wrap: break-word;
-
-  & > .ant-select {
+  & input {
     width: 100%;
+  }
+  & .ant-typography-edit-content {
+    left: 0;
+    margin-top: 0;
   }
 `;
 
@@ -80,14 +74,14 @@ const FilterSets: React.FC<FilterSetsProps> = ({
   const [filterSetName, setFilterSetName] = useState(DEFAULT_FILTER_SET_NAME);
   const [editMode, setEditMode] = useState(false);
   const filterSets = useFilterSets();
-  const filterSetsConfigs = useSelector<any, FiltersSet[]>(
-    state => state.dashboardInfo?.metadata?.filter_sets_configuration || [],
-  );
+  const filterSetsArray = Object.values(filterSets);
+  const dataMask = useDataMask();
+  const filters = Object.values(useFilters());
   const [selectedFiltersSetId, setSelectedFiltersSetId] = useState<
     string | null
   >(null);
 
-  const takeFiltersSet = (value: string) => {
+  const takeFilterSet = (value: string) => {
     setSelectedFiltersSetId(value);
     if (!value) {
       return;
@@ -107,7 +101,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
   const handleDeleteFilterSets = () => {
     dispatch(
       setFilterSetsConfiguration(
-        filterSetsConfigs.filter(
+        filterSetsArray.filter(
           filtersSet => filtersSet.id !== selectedFiltersSetId,
         ),
       ),
@@ -124,7 +118,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
   const handleCreateFilterSet = () => {
     dispatch(
       setFilterSetsConfiguration(
-        filterSetsConfigs.concat([
+        filterSetsArray.concat([
           {
             name: filterSetName.trim(),
             id: generateFiltersSetId(),
@@ -135,31 +129,42 @@ const FilterSets: React.FC<FilterSetsProps> = ({
         ]),
       ),
     );
+    setEditMode(false);
     setFilterSetName(DEFAULT_FILTER_SET_NAME);
   };
 
   return (
     <FilterSet>
-      <EditableTitle
-        title={filterSetName}
-        canEdit={editMode}
-        onSaveTitle={setFilterSetName}
-        showTooltip={false}
+      <Typography.Text
+        strong
+        editable={{
+          editing: editMode,
+          icon: <span />,
+          onChange: setFilterSetName,
+        }}
+      >
+        {filterSetName}
+      </Typography.Text>
+      <FiltersHeader dataMask={dataMask} filters={filters} />
+      <Footer
+        isApplyDisabled={!filterSetName.trim()}
+        disabled={disabled}
+        onCancel={handleCancel}
+        editMode={editMode}
+        onEdit={() => setEditMode(true)}
+        onCreate={handleCreateFilterSet}
       />
-      <StyledTitle>
-        <div>{t('Choose filters set')}</div>
-        <Select
-          size="small"
-          allowClear
-          value={selectedFiltersSetId as string}
-          placeholder={tn('Available %d sets', Object.keys(filterSets).length)}
-          onChange={takeFiltersSet}
-        >
-          {Object.values(filterSets).map(({ name, id }) => (
-            <Select.Option value={id}>{name}</Select.Option>
-          ))}
-        </Select>
-      </StyledTitle>
+      <Select
+        size="small"
+        allowClear
+        value={selectedFiltersSetId as string}
+        placeholder={tn('Available %d sets', filterSetsArray.length)}
+        onChange={takeFilterSet}
+      >
+        {filterSetsArray.map(({ name, id }) => (
+          <Select.Option value={id}>{name}</Select.Option>
+        ))}
+      </Select>
       <Button
         buttonStyle="warning"
         buttonSize="small"
@@ -169,14 +174,6 @@ const FilterSets: React.FC<FilterSetsProps> = ({
       >
         {t('Delete Filters Set')}
       </Button>
-      <Footer
-        isApplyDisabled={!filterSetName.trim()}
-        disabled={disabled}
-        onCancel={handleCancel}
-        editMode={editMode}
-        onEdit={() => setEditMode(true)}
-        onCreate={handleCreateFilterSet}
-      />
     </FilterSet>
   );
 };

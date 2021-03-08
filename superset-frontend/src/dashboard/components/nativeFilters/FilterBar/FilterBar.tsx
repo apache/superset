@@ -36,12 +36,11 @@ import { useImmer } from 'use-immer';
 import { getInitialMask } from 'src/dataMask/reducer';
 import { areObjectsEqual } from 'src/reduxUtils';
 import FilterConfigurationLink from './FilterConfigurationLink';
-import { useFilterConfiguration } from '../state';
 import { Filter } from '../types';
 import { buildCascadeFiltersTree, mapParentFiltersToChildren } from './utils';
 import CascadePopover from './CascadePopover';
 import FilterSets from './FilterSets/FilterSets';
-import { useFilterSets } from './state';
+import { useFilters, useFilterSets } from './state';
 
 const barWidth = `250px`;
 
@@ -183,48 +182,65 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   ] = useImmer<DataMaskUnit>({});
   const dispatch = useDispatch();
   const filterSets = useFilterSets();
+  const filterSetsArray = Object.values(filterSets);
+  const filters = useFilters();
+  const filtersArray = Object.values(filters);
   const dataMaskState = useSelector<any, DataMaskUnitWithId>(
     state => state.dataMask.nativeFilters ?? {},
   );
-  const filterConfigs = useFilterConfiguration();
   const canEdit = useSelector<any, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
   const [visiblePopoverId, setVisiblePopoverId] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
+  const handleApply = () => {
+    const filterIds = Object.keys(filterData);
+    filterIds.forEach(filterId => {
+      if (filterData[filterId]) {
+        dispatch(
+          updateDataMask(filterId, {
+            nativeFilters: filterData[filterId],
+          }),
+        );
+      }
+    });
+    setLastAppliedFilterData(() => filterData);
+  };
+
   useEffect(() => {
     if (isInitialized) {
       return;
     }
-    const areFiltersInitialized = filterConfigs.every(
+    const areFiltersInitialized = filtersArray.every(
       filterConfig =>
         filterConfig.defaultValue ===
         filterData[filterConfig.id]?.currentState?.value,
     );
     if (areFiltersInitialized) {
+      handleApply();
       setIsInitialized(true);
     }
-  }, [filterConfigs, filterData, isInitialized]);
+  }, [filtersArray, filterData, isInitialized]);
 
   useEffect(() => {
-    if (filterConfigs.length === 0 && filtersOpen) {
+    if (filtersArray.length === 0 && filtersOpen) {
       toggleFiltersBar(false);
     }
-  }, [filterConfigs]);
+  }, [filtersArray]);
 
   const cascadeChildren = useMemo(
-    () => mapParentFiltersToChildren(filterConfigs),
-    [filterConfigs],
+    () => mapParentFiltersToChildren(filtersArray),
+    [filtersArray],
   );
 
   const cascadeFilters = useMemo(() => {
-    const filtersWithValue = filterConfigs.map(filter => ({
+    const filtersWithValue = filtersArray.map(filter => ({
       ...filter,
       currentValue: filterData[filter.id]?.currentState?.value,
     }));
     return buildCascadeFiltersTree(filtersWithValue);
-  }, [filterConfigs, filterData]);
+  }, [filtersArray, filterData]);
 
   const handleFilterSelectionChange = (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
@@ -243,28 +259,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     });
   };
 
-  const handleApply = () => {
-    const filterIds = Object.keys(filterData);
-    filterIds.forEach(filterId => {
-      if (filterData[filterId]) {
-        dispatch(
-          updateDataMask(filterId, {
-            nativeFilters: filterData[filterId],
-          }),
-        );
-      }
-    });
-    setLastAppliedFilterData(() => filterData);
-  };
-
-  useEffect(() => {
-    if (isInitialized) {
-      handleApply();
-    }
-  }, [isInitialized]);
-
   const handleClearAll = () => {
-    filterConfigs.forEach(filter => {
+    filtersArray.forEach(filter => {
       setFilterData(draft => {
         draft[filter.id] = getInitialMask(filter.id);
       });
@@ -297,7 +293,10 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const isApplyDisabled =
     !isInitialized || areObjectsEqual(filterData, lastAppliedFilterData);
-
+  console.log(
+    isInitialized,
+    areObjectsEqual(filterData, lastAppliedFilterData),
+  );
   return (
     <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>
       <CollapsedBar
@@ -312,7 +311,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           <span>{t('Filters')}</span>
           {canEdit && (
             <FilterConfigurationLink
-              createNewOnOpen={filterConfigs.length === 0}
+              createNewOnOpen={filtersArray.length === 0}
             >
               <Icon name="edit" data-test="create-filter" />
             </FilterConfigurationLink>
@@ -347,13 +346,13 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             onChange={() => {}}
           >
             <Tabs.TabPane
-              tab={t(`All Filters (${filterConfigs.length})`)}
+              tab={t(`All Filters (${filtersArray.length})`)}
               key="allFilters"
             >
               {getFilterControls()}
             </Tabs.TabPane>
             <Tabs.TabPane
-              tab={t(`Filter Sets (${filterSets.length})`)}
+              tab={t(`Filter Sets (${filterSetsArray.length})`)}
               key="filterSets"
             >
               <FilterSets
