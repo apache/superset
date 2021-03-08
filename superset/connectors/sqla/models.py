@@ -1066,6 +1066,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     is_list_target=is_list_target,
                 )
                 if is_list_target:
+                    assert isinstance(eq, (tuple, list))
                     if len(eq) == 0:
                         raise QueryObjectValidationError(
                             _("Filter value list cannot be empty")
