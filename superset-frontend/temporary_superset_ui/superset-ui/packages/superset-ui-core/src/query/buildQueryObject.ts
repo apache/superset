@@ -1,10 +1,11 @@
 /* eslint-disable camelcase */
-import { QueryObject } from './types/Query';
+import { QueryObject, QueryObjectFilterClause } from './types/Query';
 import { QueryFieldAliases, QueryFormData } from './types/QueryFormData';
 import processFilters from './processFilters';
 import extractExtras from './extractExtras';
 import extractQueryFields from './extractQueryFields';
-import { appendExtraFormData, overrideExtraFormData } from './processExtraFormData';
+import { overrideExtraFormData } from './processExtraFormData';
+import { AdhocFilter } from './types';
 
 export const DTTM_ALIAS = '__timestamp';
 
@@ -41,10 +42,21 @@ export default function buildQueryObject<T extends QueryFormData>(
   const numericRowOffset = Number(row_offset);
   const { metrics, columns, orderby } = extractQueryFields(residualFormData, queryFields);
 
+  // collect all filters for conversion to simple filters/freeform clauses
   const extras = extractExtras(formData);
+  const { filters: extraFilters } = extras;
+  const { adhoc_filters: appendAdhocFilters = [], filters: appendFilters = [] } = append_form_data;
+  const filterFormData: {
+    filters: QueryObjectFilterClause[];
+    adhoc_filters: AdhocFilter[];
+  } = {
+    filters: [...extraFilters, ...appendFilters],
+    adhoc_filters: [...(formData.adhoc_filters || []), ...appendAdhocFilters],
+  };
   const extrasAndfilters = processFilters({
     ...formData,
     ...extras,
+    ...filterFormData,
   });
 
   let queryObject: QueryObject = {
@@ -68,8 +80,8 @@ export default function buildQueryObject<T extends QueryFormData>(
     url_params: url_params || undefined,
     custom_params,
   };
-  // append and override extra form data used by native filters
-  queryObject = appendExtraFormData(queryObject, append_form_data);
+  // override extra form data used by native and cross filters
   queryObject = overrideExtraFormData(queryObject, override_form_data);
+
   return { ...queryObject, custom_form_data };
 }

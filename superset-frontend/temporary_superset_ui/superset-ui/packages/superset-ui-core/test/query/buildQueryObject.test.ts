@@ -58,6 +58,41 @@ describe('buildQueryObject', () => {
     expect(query.metrics).toEqual(['sum__num', 'avg__num']);
   });
 
+  it('should merge original and append filters', () => {
+    query = buildQueryObject({
+      datasource: '5__table',
+      granularity_sqla: 'ds',
+      viz_type: 'table',
+      extra_filters: [{ col: 'abc', op: '==', val: 'qwerty' }],
+      adhoc_filters: [
+        {
+          expressionType: 'SIMPLE',
+          clause: 'WHERE',
+          subject: 'foo',
+          operator: '!=',
+          comparator: 'bar',
+        },
+      ],
+      where: 'a = b',
+      extra_form_data: {
+        append_form_data: {
+          adhoc_filters: [
+            {
+              expressionType: 'SQL',
+              clause: 'WHERE',
+              sqlExpression: '(1 = 1)',
+            },
+          ],
+        },
+      },
+    });
+    expect(query.filters).toEqual([
+      { col: 'abc', op: '==', val: 'qwerty' },
+      { col: 'foo', op: '!=', val: 'bar' },
+    ]);
+    expect(query.extras?.where).toEqual('(a = b) AND ((1 = 1))');
+  });
+
   it('should group custom metric control', () => {
     query = buildQueryObject(
       {
