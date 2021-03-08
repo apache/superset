@@ -580,8 +580,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
     def test_connection_db_api_exc(
         self, mock_event_logger, mock_build_db_for_connection_test
     ):
-        """Test to make sure event_logger is called when security connection
-         DBAPIError is raised"""
+        """Test to make sure event_logger is called when DBAPIError is raised"""
         database = get_example_database()
         mock_build_db_for_connection_test.side_effect = DBAPIError(
             statement="error", params={}, orig={}
@@ -592,7 +591,10 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             security_manager.find_user("admin"), json_payload
         )
 
-        with self.assertRaises(DatabaseTestConnectionFailedError):
+        with pytest.raises(DatabaseTestConnectionFailedError) as excinfo:
             command_without_db_name.run()
+            assert str(excinfo.value) == (
+                "Connection failed, please check your connection settings"
+            )
 
         mock_event_logger.assert_called()
