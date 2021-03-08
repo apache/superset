@@ -189,6 +189,8 @@ class TableColumn(Model, BaseColumn):
         Check if the column has a numeric datatype.
         """
         db_engine_spec = self.table.database.db_engine_spec
+        if db_engine_spec is None:
+            return False
         return (
             db_engine_spec.get_column_spec(self.type).generic_type
             == GenericDataType.NUMERIC
@@ -200,6 +202,8 @@ class TableColumn(Model, BaseColumn):
         Check if the column has a string datatype.
         """
         db_engine_spec = self.table.database.db_engine_spec
+        if db_engine_spec is None:
+            return False
         return (
             db_engine_spec.get_column_spec(self.type).generic_type
             == GenericDataType.STRING
@@ -216,7 +220,9 @@ class TableColumn(Model, BaseColumn):
         if self.is_dttm is not None:
             return self.is_dttm
         db_engine_spec = self.table.database.db_engine_spec
-        return db_engine_spec.get_column_spec(self.type).is_dttm
+        if db_engine_spec is None:
+            return False
+        return db_engine_spec.is_dttm
 
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.column_name
