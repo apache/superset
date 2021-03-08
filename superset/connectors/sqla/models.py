@@ -1066,9 +1066,19 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     is_list_target=is_list_target,
                 )
                 if is_list_target:
-                    cond = col_obj.get_sqla_col().in_(eq)
+                    if len(eq) == 0:
+                        raise QueryObjectValidationError(
+                            _("Filter value list cannot be empty")
+                        )
                     if None in eq:
-                        cond = or_(cond, col_obj.get_sqla_col().is_(None))
+                        eq = [x for x in eq if x is not None]
+                        is_null_cond = col_obj.get_sqla_col().is_(None)
+                        if eq:
+                            cond = or_(is_null_cond, col_obj.get_sqla_col().in_(eq))
+                        else:
+                            cond = is_null_cond
+                    else:
+                        cond = col_obj.get_sqla_col().in_(eq)
                     if op == utils.FilterOperator.NOT_IN.value:
                         cond = ~cond
                     where_clause_and.append(cond)
@@ -1077,8 +1087,12 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                 elif op == utils.FilterOperator.IS_NOT_NULL.value:
                     where_clause_and.append(col_obj.get_sqla_col().isnot(None))
                 else:
-                    if col_obj.is_numeric and "val" in flt:
-                        eq = utils.cast_to_num(flt["val"])
+                    if eq is None:
+                        raise QueryObjectValidationError(
+                            _(
+                                "Must specify a value for filters with comparison operators"
+                            )
+                        )
                     if op == utils.FilterOperator.EQUALS.value:
                         where_clause_and.append(col_obj.get_sqla_col() == eq)
                     elif op == utils.FilterOperator.NOT_EQUALS.value:
