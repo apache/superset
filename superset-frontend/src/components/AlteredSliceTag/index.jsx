@@ -23,8 +23,8 @@ import { t } from '@superset-ui/core';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import { safeStringify } from 'src/utils/safeStringify';
 import { Tooltip } from 'src/common/components/Tooltip';
-import ModalTrigger from './ModalTrigger';
-import TableView from './TableView';
+import ModalTrigger from '../ModalTrigger';
+import TableView from '../TableView';
 
 const propTypes = {
   origFormData: PropTypes.object.isRequired,
