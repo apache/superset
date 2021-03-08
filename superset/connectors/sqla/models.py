@@ -225,7 +225,7 @@ class TableColumn(Model, BaseColumn):
         else:
             db_engine_spec = self.table.database.db_engine_spec
             column_spec = db_engine_spec.get_column_spec(self.type)
-            type_ = column_spec.sqla_type
+            type_ = column_spec.sqla_type if column_spec else None
             col = column(self.column_name, type_=type_)
         col = self.table.make_sqla_column_compatible(col, label)
         return col
