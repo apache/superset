@@ -53,9 +53,14 @@ const StyledCollapse = styled(Collapse)`
 type FiltersHeaderProps = {
   filters: Filter[];
   dataMask: DataMaskUnitWithId;
+  expanded: boolean;
 };
 
-const FiltersHeader: FC<FiltersHeaderProps> = ({ filters, dataMask }) => {
+const FiltersHeader: FC<FiltersHeaderProps> = ({
+  filters,
+  dataMask,
+  expanded,
+}) => {
   const getFiltersHeader = () => (
     <FilterHeader>
       <Typography.Text type="secondary">
@@ -67,7 +72,7 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ filters, dataMask }) => {
     <StyledCollapse
       ghost
       expandIconPosition="right"
-      defaultActiveKey={['filters']}
+      defaultActiveKey={expanded && ['filters']}
     >
       <Collapse.Panel header={getFiltersHeader()} key="filters">
         {filters.map(({ id, name }) => (

@@ -27,6 +27,7 @@ import {
   MaskWithId,
 } from 'src/dataMask/types';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
+import { FilterSet } from 'src/dashboard/reducers/types';
 import { generateFiltersSetId } from './utils';
 import { Filter } from '../../types';
 import { useFilters, useDataMask, useFilterSets } from '../state';
@@ -39,9 +40,6 @@ const FilterSet = styled.div`
   justify-content: center;
   grid-template-columns: 1fr;
   grid-gap: ${({ theme }) => theme.gridUnit}px;
-  ${({ theme }) =>
-    `padding: 0 ${theme.gridUnit * 4}px ${theme.gridUnit * 4}px`};
-  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   & button.superset-button {
     margin-left: 0;
   }
@@ -52,6 +50,18 @@ const FilterSet = styled.div`
     left: 0;
     margin-top: 0;
   }
+`;
+
+const FilterSetUnit = styled.div`
+  display: grid;
+  align-items: center;
+  justify-content: center;
+  grid-template-columns: 1fr;
+  grid-gap: ${({ theme }) => theme.gridUnit}px;
+  ${({ theme }) =>
+    `padding: 0 ${theme.gridUnit * 4}px ${theme.gridUnit * 4}px`};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
 type FilterSetsProps = {
@@ -75,7 +85,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
   const [editMode, setEditMode] = useState(false);
   const filterSets = useFilterSets();
   const filterSetsArray = Object.values(filterSets);
-  const dataMask = useDataMask();
+  const currentDataMask = useDataMask();
   const filters = Object.values(useFilters());
   const [selectedFiltersSetId, setSelectedFiltersSetId] = useState<
     string | null
@@ -133,8 +143,8 @@ const FilterSets: React.FC<FilterSetsProps> = ({
     setFilterSetName(DEFAULT_FILTER_SET_NAME);
   };
 
-  return (
-    <FilterSet>
+  const getFilterSetUnit = (filterSet?: FilterSet) => (
+    <>
       <Typography.Text
         strong
         editable={{
@@ -145,15 +155,30 @@ const FilterSets: React.FC<FilterSetsProps> = ({
       >
         {filterSetName}
       </Typography.Text>
-      <FiltersHeader dataMask={dataMask} filters={filters} />
-      <Footer
-        isApplyDisabled={!filterSetName.trim()}
-        disabled={disabled}
-        onCancel={handleCancel}
-        editMode={editMode}
-        onEdit={() => setEditMode(true)}
-        onCreate={handleCreateFilterSet}
+      <FiltersHeader
+        expanded={!filterSet}
+        dataMask={filterSet?.dataMask?.nativeFilters ?? currentDataMask}
+        filters={filters}
       />
+    </>
+  );
+
+  return (
+    <FilterSet>
+      <FilterSetUnit>
+        {getFilterSetUnit()}
+        <Footer
+          isApplyDisabled={!filterSetName.trim()}
+          disabled={disabled}
+          onCancel={handleCancel}
+          editMode={editMode}
+          onEdit={() => setEditMode(true)}
+          onCreate={handleCreateFilterSet}
+        />
+      </FilterSetUnit>
+      {filterSetsArray.map(filterSet => (
+        <FilterSetUnit>{getFilterSetUnit(filterSet)}</FilterSetUnit>
+      ))}
       <Select
         size="small"
         allowClear
