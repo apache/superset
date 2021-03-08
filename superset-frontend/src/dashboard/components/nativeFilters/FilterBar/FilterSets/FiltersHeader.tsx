@@ -20,6 +20,7 @@ import React, { FC } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Collapse, Typography } from 'src/common/components';
 import { DataMaskUnitWithId } from 'src/dataMask/types';
+import { CaretDownOutlined } from '@ant-design/icons';
 import { getFilterValueForDisplay } from './utils';
 import { Filter } from '../../types';
 
@@ -73,6 +74,7 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({
       ghost
       expandIconPosition="right"
       defaultActiveKey={expanded && ['filters']}
+      expandIcon={() => <CaretDownOutlined />}
     >
       <Collapse.Panel header={getFiltersHeader()} key="filters">
         {filters.map(({ id, name }) => (
