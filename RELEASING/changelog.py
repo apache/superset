@@ -69,7 +69,9 @@ class GitChangeLog:
     ) -> None:
         self._version = version
         self._logs = logs
+        self._pr_logs_with_details: Dict[str, Dict[str, str]] = {}
         self._github_login_cache: Dict[str, Optional[str]] = {}
+        self._github_prs: Dict[str, Any] = {}
         self._wait = 10
         github_token = access_token or os.environ.get("GITHUB_TOKEN")
         self._github = Github(github_token)
@@ -81,6 +83,11 @@ class GitChangeLog:
         """
         try:
             github_repo = self._github.get_repo(SUPERSET_REPO)
+            self._superset_repo = github_repo
+            pull_request = self._github_prs.get(pr_number)
+            if not pull_request:
+                pull_request = github_repo.get_pull(pr_number)
+                self._github_prs[pr_number] = pull_request
         except BadCredentialsException as ex:
             print(
                 f"Bad credentials to github provided"
@@ -88,7 +95,7 @@ class GitChangeLog:
             )
             sys.exit(1)
 
-        return github_repo.get_pull(pr_number)
+        return pull_request
 
     def _get_github_login(self, git_log: GitLog) -> Optional[str]:
         """
@@ -108,21 +115,77 @@ class GitChangeLog:
         self._github_login_cache[author_name] = github_login
         return github_login
 
+    def _has_commit_migrations(self, git_sha: str) -> bool:
+        commit = self._superset_repo.get_commit(sha=git_sha)
+        for file in commit.files:
+            if "superset/migrations/versions/" in file.filename:
+                return True
+        return False
+
+    def _get_pull_request_details(self, git_log: GitLog) -> Dict[str, Any]:
+        pr_number = git_log.pr_number
+        detail = self._pr_logs_with_details.get(pr_number)
+        if detail:
+            return detail
+
+        pr_info = self._fetch_github_pr(pr_number)
+        has_migrations = self._has_commit_migrations(git_log.sha)
+        title = pr_info.title if pr_info else git_log.message
+        pr_type = re.match(r"^(fix|feat|chore|refactor|docs|build|ci|/gmi)", title)
+        if pr_type:
+            pr_type = pr_type.group().strip('"')
+        else:
+            pr_type = ""
+
+        labels = (", ").join([label.name for label in pr_info.labels])
+        detail = {
+            "id": pr_number,
+            "has_migrations": has_migrations,
+            "labels": labels,
+            "title": title,
+            "type": pr_type,
+        }
+
+        self._pr_logs_with_details[pr_number] = detail
+
+        return detail
+
     def _get_changelog_version_head(self) -> str:
         return f"### {self._version} ({self._logs[0].time})"
 
     def __repr__(self) -> str:
         result = f"\n{self._get_changelog_version_head()}\n"
+        changelog = {
+            "Database Migrations": "\n",
+            "Features": "\n",
+            "Fixes": "\n",
+            "Others": "\n",
+        }
         for i, log in enumerate(self._logs):
             github_login = self._get_github_login(log)
+
             if not github_login:
                 github_login = log.author
-            result = result + (
+
+            pr_info = self._get_pull_request_details(log)
+            commit_type = pr_info.get("type")
+            formatted_pr = (
                 f"- [#{log.pr_number}]"
                 f"(https://github.com/{SUPERSET_REPO}/pull/{log.pr_number}) "
-                f"{log.message} (@{github_login})\n"
+                f"{pr_info.get('title')} (@{github_login}) {pr_info.get('labels')} \n"
             )
+            if pr_info["has_migrations"]:
+                changelog["Database Migrations"] += formatted_pr
+            elif commit_type == "fix":
+                changelog["Fixes"] += formatted_pr
+            elif commit_type == "feat":
+                changelog["Features"] += formatted_pr
+            else:
+                changelog["Others"] += formatted_pr
             print(f"\r {i}/{len(self._logs)}", end="", flush=True)
+
+        for key in changelog:
+            result += f"**{key}** {changelog[key]}\n"
         return result
 
     def __iter__(self) -> Iterator[Dict[str, Any]]:
