@@ -145,7 +145,7 @@ setup(
         "prophet": ["fbprophet>=0.6, <0.7"],
         "redshift": ["sqlalchemy-redshift>=0.8.1, < 0.9"],
         "snowflake": ["snowflake-sqlalchemy>=1.2.3, <1.3"],
-        "teradata": ["sqlalchemy-teradata==0.9.0.dev0"],
+        "teradata": ["teradatasql>=16.20.0.53"],
         "thumbnails": ["Pillow>=7.0.0, <8.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
     },

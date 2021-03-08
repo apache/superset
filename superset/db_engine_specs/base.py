@@ -32,7 +32,6 @@ from typing import (
     Optional,
     Pattern,
     Tuple,
-    Type,
     TYPE_CHECKING,
     Union,
 )
@@ -153,64 +152,40 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_joins = True
     allows_subqueries = True
     allows_column_aliases = True
-    allows_sql_comments = True
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length = 0
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
 
-    # default matching patterns to convert database specific column types to
-    # more generic types
-    db_column_types: Dict[utils.GenericDataType, Tuple[Pattern[str], ...]] = {
-        utils.GenericDataType.NUMERIC: (
+    # default matching patterns for identifying column types
+    db_column_types: Dict[utils.DbColumnType, Tuple[Pattern[Any], ...]] = {
+        utils.DbColumnType.NUMERIC: (
             re.compile(r"BIT", re.IGNORECASE),
-            re.compile(
-                r".*(DOUBLE|FLOAT|INT|NUMBER|REAL|NUMERIC|DECIMAL|MONEY).*",
-                re.IGNORECASE,
-            ),
+            re.compile(r".*DOUBLE.*", re.IGNORECASE),
+            re.compile(r".*FLOAT.*", re.IGNORECASE),
+            re.compile(r".*INT.*", re.IGNORECASE),
+            re.compile(r".*NUMBER.*", re.IGNORECASE),
             re.compile(r".*LONG$", re.IGNORECASE),
+            re.compile(r".*REAL.*", re.IGNORECASE),
+            re.compile(r".*NUMERIC.*", re.IGNORECASE),
+            re.compile(r".*DECIMAL.*", re.IGNORECASE),
+            re.compile(r".*MONEY.*", re.IGNORECASE),
         ),
-        utils.GenericDataType.STRING: (
-            re.compile(r".*(CHAR|STRING|TEXT).*", re.IGNORECASE),
+        utils.DbColumnType.STRING: (
+            re.compile(r".*CHAR.*", re.IGNORECASE),
+            re.compile(r".*STRING.*", re.IGNORECASE),
+            re.compile(r".*TEXT.*", re.IGNORECASE),
         ),
-        utils.GenericDataType.TEMPORAL: (
-            re.compile(r".*(DATE|TIME).*", re.IGNORECASE),
+        utils.DbColumnType.TEMPORAL: (
+            re.compile(r".*DATE.*", re.IGNORECASE),
+            re.compile(r".*TIME.*", re.IGNORECASE),
         ),
     }
 
     @classmethod
-    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
-        """
-        Each engine can implement and converge its own specific exceptions into
-        Superset DBAPI exceptions
-
-        Note: On python 3.9 this method can be changed to a classmethod property
-        without the need of implementing a metaclass type
-
-        :return: A map of driver specific exception to superset custom exceptions
-        """
-        return {}
-
-    @classmethod
-    def get_dbapi_mapped_exception(cls, exception: Exception) -> Exception:
-        """
-        Get a superset custom DBAPI exception from the driver specific exception.
-
-        Override if the engine needs to perform extra changes to the exception, for
-        example change the exception message or implement custom more complex logic
-
-        :param exception: The driver specific exception
-        :return: Superset custom DBAPI exception
-        """
-        new_exception = cls.get_dbapi_exception_mapping().get(type(exception))
-        if not new_exception:
-            return exception
-        return new_exception(str(exception))
-
-    @classmethod
     def is_db_column_type_match(
-        cls, db_column_type: Optional[str], target_column_type: utils.GenericDataType
+        cls, db_column_type: Optional[str], target_column_type: utils.DbColumnType
     ) -> bool:
         """
         Check if a column type satisfies a pattern in a collection of regexes found in
@@ -270,10 +245,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 date_trunc_function = cls._date_trunc_functions.get(type_)
                 if date_trunc_function:
                     time_expr = time_expr.replace("{func}", date_trunc_function)
-            if type_ and "{type}" in time_expr:
-                date_trunc_function = cls._date_trunc_functions.get(type_)
-                if date_trunc_function:
-                    time_expr = time_expr.replace("{type}", type_)
         else:
             time_expr = "{col}"
 
@@ -345,12 +316,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
-        try:
-            if cls.limit_method == LimitMethod.FETCH_MANY and limit:
-                return cursor.fetchmany(limit)
-            return cursor.fetchall()
-        except Exception as ex:
-            raise cls.get_dbapi_mapped_exception(ex)
+        if cls.limit_method == LimitMethod.FETCH_MANY and limit:
+            return cursor.fetchmany(limit)
+        return cursor.fetchall()
 
     @classmethod
     def expand_data(
@@ -456,9 +424,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
             return database.compile_sqla_query(qry)
 
-        if cls.limit_method == LimitMethod.FORCE_LIMIT:
-            parsed_query = sql_parse.ParsedQuery(sql)
-            sql = parsed_query.set_or_update_query_limit(limit)
+        if LimitMethod.FORCE_LIMIT:
+            engine = cls.get_engine(database)
+            url_type = str(engine.url).split(':')[0]
+            parsed_query = sql_parse.ParsedQuery(sql, uri_type = url_type)
+            print(dir(engine.url))
+            if url_type in ['teradatasql','teradata']:
+                sql = parsed_query.set_or_update_query_limit_td(limit)
+            else:
+                sql = parsed_query.set_or_update_query_limit(limit)
 
         return sql
 
@@ -858,6 +832,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         parsed_query = ParsedQuery(statement)
         sql = parsed_query.stripped()
+
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
         if sql_query_mutator:
             sql = sql_query_mutator(sql, user_name, security_manager, database)
@@ -887,12 +862,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         engine = cls.get_engine(database, schema=schema, source=source)
         costs = []
         with closing(engine.raw_connection()) as conn:
-            cursor = conn.cursor()
-            for statement in statements:
-                processed_statement = cls.process_statement(
-                    statement, database, user_name
-                )
-                costs.append(cls.estimate_statement_cost(processed_statement, cursor))
+            with closing(conn.cursor()) as cursor:
+                for statement in statements:
+                    processed_statement = cls.process_statement(
+                        statement, database, user_name
+                    )
+                    costs.append(
+                        cls.estimate_statement_cost(processed_statement, cursor)
+                    )
         return costs
 
     @classmethod
@@ -909,19 +886,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             url.username = username
 
     @classmethod
-    def update_impersonation_config(
-        cls, connect_args: Dict[str, Any], uri: str, username: Optional[str],
-    ) -> None:
+    def get_configuration_for_impersonation(  # pylint: disable=invalid-name
+        cls, uri: str, impersonate_user: bool, username: Optional[str]
+    ) -> Dict[str, str]:
         """
-        Update a configuration dictionary
+        Return a configuration dictionary that can be merged with other configs
         that can set the correct properties for impersonating users
 
-        :param connect_args: config to be updated
         :param uri: URI
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
-        :return: None
+        :return: Configs required for impersonation
         """
+        return {}
 
     @classmethod
     def execute(cls, cursor: Any, query: str, **kwargs: Any) -> None:
@@ -933,15 +910,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param kwargs: kwargs to be passed to cursor.execute()
         :return:
         """
-        if not cls.allows_sql_comments:
-            query = sql_parse.strip_comments_from_sql(query)
-
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
-        try:
-            cursor.execute(query)
-        except Exception as ex:
-            raise cls.get_dbapi_mapped_exception(ex)
+        cursor.execute(query)
 
     @classmethod
     def make_label_compatible(cls, label: str) -> Union[str, quoted_name]:
@@ -1096,8 +1067,4 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
-        return (
-            parsed_query.is_select()
-            or parsed_query.is_explain()
-            or parsed_query.is_show()
-        )
+        return parsed_query.is_select() or parsed_query.is_explain()

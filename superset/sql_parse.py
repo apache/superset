@@ -44,6 +44,7 @@ def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
     :param statement: SQL statement
     :return: Limit extracted from query, None if no limit present in statement
     """
+
     idx, _ = statement.token_next_by(m=(Keyword, "LIMIT"))
     if idx is not None:
         _, token = statement.token_next(idx=idx)
@@ -57,18 +58,23 @@ def _extract_limit_from_query(statement: TokenList) -> Optional[int]:
                 return int(token.value)
     return None
 
+def _extract_limit_from_query_td(statement: TokenList) -> Optional[int]:
+    td_limit_keywork = set(["TOP", "SAMPLE"])
+    str_statement = str(statement)
+    str_statement = str_statement.replace('\n', ' ').replace('\r','')
+    token = str(str_statement).rstrip().split(' ')
+    token = list(filter(None, token))
+    limit = None
 
-def strip_comments_from_sql(statement: str) -> str:
-    """
-    Strips comments from a SQL statement, does a simple test first
-    to avoid always instantiating the expensive ParsedQuery constructor
-
-    This is useful for engines that don't support comments
-
-    :param statement: A string with the SQL statement
-    :return: SQL statement without comments
-    """
-    return ParsedQuery(statement).strip_comments() if "--" in statement else statement
+    for i in range(len(token)):
+        if any(limitword in token[i].upper() for limitword in td_limit_keywork):
+            if len(token)-1 > i:
+                try:
+                    limit = int(token[i+1])
+                except ValueError:
+                    limit = None
+                break
+    return limit
 
 
 @dataclass(eq=True, frozen=True)
@@ -94,7 +100,7 @@ class Table:  # pylint: disable=too-few-public-methods
 
 
 class ParsedQuery:
-    def __init__(self, sql_statement: str, strip_comments: bool = False):
+    def __init__(self, sql_statement: str, strip_comments: bool = False, uri_type: str = None):
         if strip_comments:
             sql_statement = sqlparse.format(sql_statement, strip_comments=True)
 
@@ -102,11 +108,15 @@ class ParsedQuery:
         self._tables: Set[Table] = set()
         self._alias_names: Set[str] = set()
         self._limit: Optional[int] = None
+        self.uri_type: str = uri_type
 
         logger.debug("Parsing with sqlparse statement: %s", self.sql)
         self._parsed = sqlparse.parse(self.stripped())
         for statement in self._parsed:
-            self._limit = _extract_limit_from_query(statement)
+            if uri_type in ['teradatasql','teradata']:
+                self._limit = _extract_limit_from_query_td(statement)
+            else:
+                self._limit = _extract_limit_from_query(statement)
 
     @property
     def tables(self) -> Set[Table]:
@@ -162,9 +172,6 @@ class ParsedQuery:
 
     def stripped(self) -> str:
         return self.sql.strip(" \t\n;")
-
-    def strip_comments(self) -> str:
-        return sqlparse.format(self.stripped(), strip_comments=True)
 
     def get_statements(self) -> List[str]:
         """Returns a list of SQL statements as strings, stripped"""
@@ -335,3 +342,39 @@ class ParsedQuery:
         for i in statement.tokens:
             str_res += str(i.value)
         return str_res
+
+    def set_or_update_query_limit_td(self, new_limit: int) -> str:
+        td_sel_keywork = set(["SELECT", "SEL"])
+        td_limit_keywork = set(["TOP", "SAMPLE"])
+        statement = self._parsed[0]
+
+        if not self._limit:
+            final_limit = new_limit
+        elif new_limit < self._limit:
+            final_limit = new_limit
+        else:
+            final_limit = self._limit
+
+        str_statement = str(statement)
+        str_statement = str_statement.replace('\n', ' ').replace('\r','')
+        tokens = str(str_statement).rstrip().split(' ')
+        tokens = list(filter(None, tokens))
+
+        next_remove_ind = False
+        new_tokens = []
+        for i in tokens:
+            if any(limitword in i.upper() for limitword in td_limit_keywork):
+                next_remove_ind = True
+            elif next_remove_ind and i.isdigit():
+                next_remove_ind = False
+            else:
+                new_tokens.append(i)
+                next_remove_ind = False
+
+        str_res = ""
+        for i in new_tokens:
+            str_res += i + " "
+            if any(selword in i.upper() for selword in td_sel_keywork):
+                str_res += "TOP " + str(final_limit) + " "
+        return str_res
+
