@@ -57,49 +57,52 @@ const Footer: FC<FooterProps> = ({
   onCreate,
   disabled,
   isApplyDisabled,
-}) =>
-  editMode ? (
-    <ActionButtons>
-      <Button
-        buttonStyle="tertiary"
-        buttonSize="small"
-        onClick={onCancel}
-        data-test="filter-set-cancel-button"
-      >
-        {t('Cancel')}
-      </Button>
-      <Tooltip
-        placement="bottom"
-        title={(isApplyDisabled || disabled) && APPLY_FILTERS}
-      >
+}) => (
+  <>
+    {editMode ? (
+      <ActionButtons>
+        <Button
+          buttonStyle="tertiary"
+          buttonSize="small"
+          onClick={onCancel}
+          data-test="filter-set-cancel-button"
+        >
+          {t('Cancel')}
+        </Button>
+        <Tooltip
+          placement="bottom"
+          title={(isApplyDisabled || disabled) && APPLY_FILTERS}
+        >
+          <ActionButton disabled={disabled}>
+            <Button
+              disabled={isApplyDisabled || disabled}
+              buttonStyle="primary"
+              htmlType="submit"
+              buttonSize="small"
+              onClick={onCreate}
+              data-test="filter-set-create-button"
+            >
+              {t('Create')}
+            </Button>
+          </ActionButton>
+        </Tooltip>
+      </ActionButtons>
+    ) : (
+      <Tooltip placement="bottom" title={disabled && APPLY_FILTERS}>
         <ActionButton disabled={disabled}>
           <Button
-            disabled={isApplyDisabled || disabled}
-            buttonStyle="primary"
-            htmlType="submit"
+            disabled={disabled}
+            buttonStyle="tertiary"
             buttonSize="small"
-            onClick={onCreate}
-            data-test="filter-set-create-button"
+            data-test="filter-set-create-new-button"
+            onClick={onEdit}
           >
-            {t('Create')}
+            {t('Create new filter set')}
           </Button>
         </ActionButton>
       </Tooltip>
-    </ActionButtons>
-  ) : (
-    <Tooltip placement="bottom" title={disabled && APPLY_FILTERS}>
-      <ActionButton disabled={disabled}>
-        <Button
-          disabled={disabled}
-          buttonStyle="tertiary"
-          buttonSize="small"
-          data-test="filter-set-create-new-button"
-          onClick={onEdit}
-        >
-          {t('Create new filter set')}
-        </Button>
-      </ActionButton>
-    </Tooltip>
-  );
+    )}
+  </>
+);
 
 export default Footer;
