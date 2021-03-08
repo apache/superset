@@ -151,7 +151,7 @@ class DatasourceControl extends React.PureComponent {
         datasourceKey: `${datasource.id}__${datasource.type}`,
         sql: datasource.sql,
       };
-      postForm('/superset/sqllab', payload);
+      postForm('/superset/sqllab/', payload);
     }
   }
 
@@ -159,6 +159,9 @@ class DatasourceControl extends React.PureComponent {
     const { showChangeDatasourceModal, showEditDatasourceModal } = this.state;
     const { datasource, onChange } = this.props;
     const isMissingDatasource = datasource.id == null;
+
+    const isSqlSupported = datasource.type === 'table';
+
     const datasourceMenu = (
       <Menu onClick={this.handleMenuItemClick}>
         {this.props.isEditable && (
@@ -167,7 +170,9 @@ class DatasourceControl extends React.PureComponent {
           </Menu.Item>
         )}
         <Menu.Item key={CHANGE_DATASET}>{t('Change dataset')}</Menu.Item>
-        <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
+        {isSqlSupported && (
+          <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
+        )}
       </Menu>
     );
 

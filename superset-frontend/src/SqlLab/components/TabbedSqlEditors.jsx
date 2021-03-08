@@ -81,7 +81,6 @@ class TabbedSqlEditors extends React.PureComponent {
       sqlLabUrl,
       queriesArray: [],
       dataPreviewQueries: [],
-      hideLeftBar: false,
     };
     this.removeQueryEditor = this.removeQueryEditor.bind(this);
     this.renameTab = this.renameTab.bind(this);
@@ -312,8 +311,8 @@ class TabbedSqlEditors extends React.PureComponent {
     this.props.actions.cloneQueryToNewTab(qe, false);
   }
 
-  toggleLeftBar() {
-    this.setState(prevState => ({ hideLeftBar: !prevState.hideLeftBar }));
+  toggleLeftBar(qe) {
+    this.props.actions.toggleLeftBar(qe);
   }
 
   render() {
@@ -347,11 +346,11 @@ class TabbedSqlEditors extends React.PureComponent {
             </div>
             {t('Rename tab')}
           </Menu.Item>
-          <Menu.Item key="3" onClick={this.toggleLeftBar}>
+          <Menu.Item key="3" onClick={() => this.toggleLeftBar(qe)}>
             <div className="icon-container">
               <i className="fa fa-cogs" />
             </div>
-            {this.state.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
+            {qe.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
           </Menu.Item>
           <Menu.Item
             key="4"
@@ -393,7 +392,7 @@ class TabbedSqlEditors extends React.PureComponent {
             latestQuery={latestQuery}
             database={database}
             actions={this.props.actions}
-            hideLeftBar={this.state.hideLeftBar}
+            hideLeftBar={qe.hideLeftBar}
             defaultQueryLimit={this.props.defaultQueryLimit}
             maxRow={this.props.maxRow}
             displayLimit={this.props.displayLimit}

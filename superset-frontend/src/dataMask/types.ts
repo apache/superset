@@ -16,12 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../stylesheets/less/variables.less';
+import { ExtraFormData, DataMaskCurrentState } from '@superset-ui/core';
 
-.BootstrapSliderWrapper .slider-selection {
-  background: @gray-bg;
+export enum DataMaskType {
+  NativeFilters = 'nativeFilters',
+  CrossFilters = 'crossFilters',
+  OwnFilters = 'ownFilters',
 }
 
-.BootstrapSliderWrapper .slider-handle {
-  background: @gray-light;
-}
+export type Mask = {
+  extraFormData?: ExtraFormData;
+  currentState: DataMaskCurrentState;
+};
+export type DataMaskUnit = { [filterId: string]: Mask };
+export type DataMaskState = {
+  [DataMaskType.NativeFilters]: Mask;
+  [DataMaskType.CrossFilters]: Mask;
+  [DataMaskType.OwnFilters]: Mask;
+};
+
+export type MaskWithId = Mask & { id: string };
+export type DataMaskUnitWithId = { [filterId: string]: MaskWithId };
+export type DataMaskStateWithId = {
+  [DataMaskType.NativeFilters]: DataMaskUnitWithId;
+  [DataMaskType.CrossFilters]: DataMaskUnitWithId;
+  [DataMaskType.OwnFilters]: DataMaskUnitWithId;
+};

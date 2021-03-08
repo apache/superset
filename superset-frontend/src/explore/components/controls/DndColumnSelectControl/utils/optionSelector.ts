@@ -19,7 +19,7 @@
 import { ColumnMeta } from '@superset-ui/chart-controls';
 
 export class OptionSelector {
-  groupByOptions: ColumnMeta[];
+  values: ColumnMeta[];
 
   options: { string: ColumnMeta };
 
@@ -27,18 +27,18 @@ export class OptionSelector {
 
   constructor(
     options: { string: ColumnMeta },
-    values: string[] | string | null,
+    initialValues?: string[] | string,
   ) {
     this.options = options;
-    let groupByValues: string[];
-    if (Array.isArray(values)) {
-      groupByValues = values;
+    let values: string[];
+    if (Array.isArray(initialValues)) {
+      values = initialValues;
       this.isArray = true;
     } else {
-      groupByValues = values ? [values] : [];
+      values = initialValues ? [initialValues] : [];
       this.isArray = false;
     }
-    this.groupByOptions = groupByValues
+    this.values = values
       .map(value => {
         if (value in options) {
           return options[value];
@@ -50,37 +50,32 @@ export class OptionSelector {
 
   add(value: string) {
     if (value in this.options) {
-      this.groupByOptions.push(this.options[value]);
+      this.values.push(this.options[value]);
     }
   }
 
   del(idx: number) {
-    this.groupByOptions.splice(idx, 1);
+    this.values.splice(idx, 1);
   }
 
   replace(idx: number, value: string) {
-    if (this.groupByOptions[idx]) {
-      this.groupByOptions[idx] = this.options[value];
+    if (this.values[idx]) {
+      this.values[idx] = this.options[value];
     }
   }
 
   swap(a: number, b: number) {
-    [this.groupByOptions[a], this.groupByOptions[b]] = [
-      this.groupByOptions[b],
-      this.groupByOptions[a],
-    ];
+    [this.values[a], this.values[b]] = [this.values[b], this.values[a]];
   }
 
   has(groupBy: string): boolean {
     return !!this.getValues()?.includes(groupBy);
   }
 
-  getValues(): string[] | string | null {
+  getValues(): string[] | string | undefined {
     if (!this.isArray) {
-      return this.groupByOptions.length > 0
-        ? this.groupByOptions[0].column_name
-        : null;
+      return this.values.length > 0 ? this.values[0].column_name : undefined;
     }
-    return this.groupByOptions.map(option => option.column_name);
+    return this.values.map(option => option.column_name);
   }
 }

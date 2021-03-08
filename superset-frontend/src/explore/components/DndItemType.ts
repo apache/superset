@@ -16,39 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const nativeFiltersInfo = {
-  filters: {
-    DefaultsID: {
-      id: 'DefaultsID',
-      name: 'test',
-      type: 'filter_select',
-      targets: [
-        {
-          datasetId: 0,
-          column: {
-            name: 'test column',
-            displayName: 'test column',
-          },
-        },
-      ],
-      defaultValue: null,
-      scope: {
-        rootPath: [],
-        excluded: [],
-      },
-      isInstant: true,
-      allowsMultipleValues: true,
-      isRequired: false,
-    },
-  },
-  filtersState: {
-    nativeFilters: {
-      DefaultsID: {
-        id: 'DefaultId',
-        currentState: {
-          value: [],
-        },
-      },
-    },
-  },
-};
+
+/**
+ * All possible draggable items for the chart controls.
+ */
+export enum DndItemType {
+  // an existing column in table
+  Column = 'column',
+  // a selected column option in ColumnSelectControl
+  ColumnOption = 'columnOption',
+  // an adhoc column option in ColumnSelectControl
+  AdhocColumnOption = 'adhocColumn',
+
+  // a saved metric
+  Metric = 'metric',
+  // a selected saved metric in MetricsControl
+  MetricOption = 'metricOption',
+  // an adhoc metric option in MetricsControl
+  AdhocMetricOption = 'adhocMetric',
+
+  // an adhoc filter option
+  FilterOption = 'filterOption',
+}

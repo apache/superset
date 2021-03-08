@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import { useTheme } from '@superset-ui/core';
-import { ColumnOption } from '@superset-ui/chart-controls';
 import Icon from 'src/components/Icon';
 import {
   CaretContainer,
@@ -32,7 +31,10 @@ export default function Option(props: OptionProps) {
   const theme = useTheme();
 
   return (
-    <OptionControlContainer data-test="option-label">
+    <OptionControlContainer
+      data-test="option-label"
+      withCaret={props.withCaret}
+    >
       <CloseContainer
         role="button"
         data-test="remove-control-button"
@@ -40,9 +42,7 @@ export default function Option(props: OptionProps) {
       >
         <Icon name="x-small" color={theme.colors.grayscale.light1} />
       </CloseContainer>
-      <Label data-test="control-label">
-        <ColumnOption column={props.column} showType />
-      </Label>
+      <Label data-test="control-label">{props.children}</Label>
       {props.withCaret && (
         <CaretContainer>
           <Icon name="caret-right" color={theme.colors.grayscale.light1} />

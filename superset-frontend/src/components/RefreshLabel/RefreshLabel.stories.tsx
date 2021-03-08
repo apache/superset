@@ -17,14 +17,28 @@
  * under the License.
  */
 import React from 'react';
-import { styled } from '@superset-ui/core';
-import { Switch as BaseSwitch } from 'src/common/components';
-import { SwitchProps } from 'antd/lib/switch';
+import RefreshLabel, { RefreshLabelProps } from '.';
 
-const StyledSwitch = styled(BaseSwitch)`
-  .ant-switch-checked {
-    background-color: ${({ theme }) => theme.colors.primary.base};
-  }
-`;
+export default {
+  title: 'RefreshLabel',
+};
 
-export const Switch = (props: SwitchProps) => <StyledSwitch {...props} />;
+export const InteractiveRefreshLabel = (args: RefreshLabelProps) => (
+  <RefreshLabel {...args} />
+);
+
+InteractiveRefreshLabel.args = {
+  tooltipContent: 'Tooltip',
+};
+
+InteractiveRefreshLabel.argTypes = {
+  onClick: { action: 'onClick' },
+};
+
+InteractiveRefreshLabel.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};
