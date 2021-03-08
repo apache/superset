@@ -19,16 +19,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { styled, t } from '@superset-ui/core';
-import rison from 'rison';
-import SupersetAsyncSelect from '../AsyncSelect';
 import { useFetchSchemas } from './fetchSchemas';
 import { useOnSelectChange } from './onSelectChange';
 import { useDbMutator } from './dbMutator';
 import { useChangeDataBase } from './changeDataBase';
 import { useChangeSchema } from './changeSchema';
-import { DatabaseOption } from './DatabaseOption';
-import { SelectRow } from './SelectRow';
 import { SchemaSelect } from './SchemaSelect';
+import { DatabaseSelect } from './DatabaseSelect';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
@@ -140,64 +137,17 @@ export default function DatabaseSelector({
     }
   }, [currentDbId, fetchSchemas]);
 
-  function renderDatabaseSelect() {
-    const queryParams = rison.encode({
-      order_columns: 'database_name',
-      order_direction: 'asc',
-      page: 0,
-      page_size: -1,
-      ...(formMode || !sqlLabMode
-        ? {}
-        : {
-            filters: [
-              {
-                col: 'expose_in_sqllab',
-                opr: 'eq',
-                value: true,
-              },
-            ],
-          }),
-    });
-
-    const select = (
-      <SupersetAsyncSelect
-        data-test="select-database"
-        dataEndpoint={`/api/v1/database/?q=${queryParams}`}
-        onChange={(db: any) => changeDataBase.current(db)}
-        onAsyncError={() =>
-          handleError(t('Error while fetching database list'))
-        }
-        clearable={false}
-        value={currentDbId}
-        valueKey="id"
-        valueRenderer={(db: any) => (
-          <div>
-            <span className="text-muted m-r-5">{t('Database:')}</span>
-            <DatabaseOption
-              backend={db.backend}
-              database_name={db.database_name}
-            />
-          </div>
-        )}
-        optionRenderer={(db: any) => (
-          <DatabaseOption
-            backend={db.backend}
-            database_name={db.database_name}
-          />
-        )}
-        mutator={dbMutator.current}
-        placeholder={t('Select a database')}
-        autoSelect
-        isDisabled={!isDatabaseSelectEnabled || readOnly}
-      />
-    );
-    return <SelectRow select={select} />;
-  }
-
   return (
     <DatabaseSelectorWrapper>
       {formMode && <FieldTitle>{t('datasource')}</FieldTitle>}
-      {renderDatabaseSelect()}
+      <DatabaseSelect
+        disableFilters={formMode || !sqlLabMode}
+        isDisabled={!isDatabaseSelectEnabled || readOnly}
+        currentDbId={currentDbId}
+        handleError={handleError}
+        mutator={dbMutator}
+        onChange={db => changeDataBase.current(db)}
+      />
       {formMode && <FieldTitle>{t('schema')}</FieldTitle>}
       <SchemaSelect
         schemaOptions={schemaOptions}
