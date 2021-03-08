@@ -524,7 +524,9 @@ class TestImportDatabasesCommand(SupersetTestCase):
 
 class TestTestConnectionDatabaseCommand(SupersetTestCase):
     @mock.patch("superset.databases.dao.DatabaseDAO.build_db_for_connection_test")
-    @mock.patch("superset.databases.commands.test_connection.event_logger")
+    @mock.patch(
+        "superset.databases.commands.test_connection.event_logger.log_with_context"
+    )
     def test_connection_db_exception(
         self, mock_event_logger, mock_build_db_for_connection_test
     ):
@@ -545,7 +547,9 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         mock_event_logger.assert_called()
 
     @mock.patch("superset.databases.dao.DatabaseDAO.build_db_for_connection_test")
-    @mock.patch("superset.databases.commands.test_connection.event_logger")
+    @mock.patch(
+        "superset.databases.commands.test_connection.event_logger.log_with_context"
+    )
     def test_connection_superset_security_connection(
         self, mock_event_logger, mock_build_db_for_connection_test
     ):
@@ -566,7 +570,9 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         mock_event_logger.assert_called()
 
     @mock.patch("superset.databases.dao.DatabaseDAO.build_db_for_connection_test")
-    @mock.patch("superset.databases.commands.test_connection.event_logger")
+    @mock.patch(
+        "superset.databases.commands.test_connection.event_logger.log_with_context"
+    )
     def test_connection_db_api_exc(
         self, mock_event_logger, mock_build_db_for_connection_test
     ):

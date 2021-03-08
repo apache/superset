@@ -69,31 +69,31 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
         except (NoSuchModuleError, ModuleNotFoundError) as ex:
             driver_name = make_url(uri).drivername
-            with event_logger(
+            event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",
                 engine=make_url(uri).drivername,
-            ):
-                raise DatabaseTestConnectionDriverError(
-                    message=_("Could not load database driver: {}").format(driver_name),
-                )
+            )
+            raise DatabaseTestConnectionDriverError(
+                message=_("Could not load database driver: {}").format(driver_name),
+            )
         except DBAPIError as ex:
-            with event_logger(
+            event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",
                 engine=make_url(uri).drivername,
-            ):
-                raise DatabaseTestConnectionFailedError()
+            )
+            raise DatabaseTestConnectionFailedError()
         except SupersetSecurityException as ex:
-            with event_logger(
+            event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",
                 engine=make_url(uri).drivername,
-            ):
-                raise DatabaseSecurityUnsafeError(message=str(ex))
+            )
+            raise DatabaseSecurityUnsafeError(message=str(ex))
         except Exception as ex:  # pylint: disable=broad-except
-            with event_logger(
+            event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",
                 engine=make_url(uri).drivername,
-            ):
-                raise DatabaseTestConnectionUnexpectedError()
+            )
+            raise DatabaseTestConnectionUnexpectedError()
 
     def validate(self) -> None:
         database_name = self._properties.get("database_name")

@@ -50,13 +50,13 @@ class CreateDatabaseCommand(BaseCommand):
 
             try:
                 TestConnectionDatabaseCommand(self._actor, self._properties).run()
-            except Exception:  # pylint: disable=broad-except
-                with event_logger(
-                    action="db_connection_failed",
+            except Exception as ex:  # pylint: disable=broad-except
+                db.session.rollback()
+                event_logger.log_with_context(
+                    action=f"db_creation_failed.{ex.__class__.__name__}",
                     engine=database.db_engine_spec.__name__,
-                ):
-                    db.session.rollback()
-                    raise DatabaseConnectionFailedError()
+                )
+                raise DatabaseConnectionFailedError()
 
             # adding a new database we always want to force refresh schema list
             schemas = database.get_all_schema_names(cache=False)
@@ -67,11 +67,11 @@ class CreateDatabaseCommand(BaseCommand):
             security_manager.add_permission_view_menu("database_access", database.perm)
             db.session.commit()
         except DAOCreateFailedError as ex:
-            with event_logger(
+            event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
                 engine=database.db_engine_spec.__name__,
-            ):
-                raise DatabaseCreateFailedError()
+            )
+            raise DatabaseCreateFailedError()
         return database
 
     def validate(self) -> None:
@@ -91,7 +91,7 @@ class CreateDatabaseCommand(BaseCommand):
         if exceptions:
             exception = DatabaseInvalidError()
             exception.add_list(exceptions)
-            with event_logger(
+            event_logger.log_with_context(
                 action=f"db_connection_failed.{exception.__class__.__name__}"
-            ):
-                raise exception
+            )
+            raise exception
