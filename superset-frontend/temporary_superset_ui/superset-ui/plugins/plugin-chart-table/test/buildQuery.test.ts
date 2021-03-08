@@ -17,7 +17,7 @@
  * under the License.
  */
 import { QueryMode } from '@superset-ui/core';
-import buildQueryCached from '../src/buildQuery';
+import buildQuery from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
 
 const basicFormData: TableChartFormData = {
@@ -27,27 +27,27 @@ const basicFormData: TableChartFormData = {
 
 describe('plugin-chart-table', () => {
   describe('buildQuery', () => {
-    it('should add post-processing in aggregate mode', () => {
-      const query = buildQueryCached()({
+    it('should add post-processing and ignore duplicate metrics', () => {
+      const query = buildQuery({
         ...basicFormData,
         query_mode: QueryMode.aggregate,
-        metrics: ['aaa'],
-        percent_metrics: ['pct_abc'],
+        metrics: ['aaa', 'aaa'],
+        percent_metrics: ['bbb', 'bbb'],
       }).queries[0];
-      expect(query.metrics).toEqual(['aaa', 'pct_abc']);
+      expect(query.metrics).toEqual(['aaa', 'bbb']);
       expect(query.post_processing).toEqual([
         {
           operation: 'contribution',
           options: {
-            columns: ['pct_abc'],
-            rename_columns: ['%pct_abc'],
+            columns: ['bbb'],
+            rename_columns: ['%bbb'],
           },
         },
       ]);
     });
 
-    it('should not add post-processing when there is not percent metric', () => {
-      const query = buildQueryCached()({
+    it('should not add post-processing when there is no percent metric', () => {
+      const query = buildQuery({
         ...basicFormData,
         query_mode: QueryMode.aggregate,
         metrics: ['aaa'],
@@ -58,7 +58,7 @@ describe('plugin-chart-table', () => {
     });
 
     it('should not add post-processing in raw records mode', () => {
-      const query = buildQueryCached()({
+      const query = buildQuery({
         ...basicFormData,
         query_mode: QueryMode.raw,
         metrics: ['aaa'],
