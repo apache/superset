@@ -22,6 +22,7 @@ import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { sankey as d3Sankey } from 'd3-sankey';
 import { getNumberFormatter, NumberFormats, CategoricalColorNamespace } from '@superset-ui/core';
+import { getOverlappingElements } from './utils';
 
 const propTypes = {
   data: PropTypes.arrayOf(
@@ -40,9 +41,8 @@ const formatNumber = getNumberFormatter(NumberFormats.FLOAT);
 
 function Sankey(element, props) {
   const { data, width, height, colorScheme } = props;
-
   const div = d3.select(element);
-  div.classed('superset-legacy-chart-sankey', true);
+  div.classed(`superset-legacy-chart-sankey`, true);
   const margin = {
     top: 5,
     right: 5,
@@ -53,14 +53,13 @@ function Sankey(element, props) {
   const innerHeight = height - margin.top - margin.bottom;
 
   div.selectAll('*').remove();
+  const tooltip = div.append('div').attr('class', 'sankey-tooltip').style('opacity', 0);
   const svg = div
     .append('svg')
     .attr('width', innerWidth + margin.left + margin.right)
     .attr('height', innerHeight + margin.top + margin.bottom)
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
-
-  const tooltip = div.append('div').attr('class', 'sankey-tooltip').style('opacity', 0);
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
@@ -119,6 +118,7 @@ function Sankey(element, props) {
       .duration(200)
       .style('left', `${d3.event.offsetX + 10}px`)
       .style('top', `${d3.event.offsetY + 10}px`)
+      .style('position', 'absolute')
       .style('opacity', 0.95);
   }
 
@@ -148,6 +148,23 @@ function Sankey(element, props) {
     link.attr('d', path);
   }
 
+  function checkVisibility() {
+    const elements = div.selectAll('.node')[0] ?? [];
+    const overlappingElements = getOverlappingElements(elements);
+
+    elements.forEach(el => {
+      const text = el.getElementsByTagName('text')[0];
+
+      if (text) {
+        if (overlappingElements.includes(el)) {
+          text.classList.add('opacity-0');
+        } else {
+          text.classList.remove('opacity-0');
+        }
+      }
+    });
+  }
+
   const node = svg
     .append('g')
     .selectAll('.node')
@@ -163,7 +180,8 @@ function Sankey(element, props) {
         .on('dragstart', function dragStart() {
           this.parentNode.append(this);
         })
-        .on('drag', dragmove),
+        .on('drag', dragmove)
+        .on('dragend', checkVisibility),
     );
   const minRectHeight = 5;
   node
@@ -188,9 +206,12 @@ function Sankey(element, props) {
     .attr('text-anchor', 'end')
     .attr('transform', null)
     .text(d => d.name)
+    .attr('class', 'opacity-0')
     .filter(d => d.x < innerWidth / 2)
     .attr('x', 6 + sankey.nodeWidth())
     .attr('text-anchor', 'start');
+
+  checkVisibility();
 }
 
 Sankey.displayName = 'Sankey';
