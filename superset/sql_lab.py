@@ -215,6 +215,7 @@ def execute_sql_statement(
         if SQL_MAX_ROW and (not query.limit or query.limit > SQL_MAX_ROW):
             query.limit = SQL_MAX_ROW
         if query.limit:
+            #We are fetching one more than the requested limit in order to test whether there are more rows than the limit. 
             sql = database.apply_limit_to_sql(sql, query.limit + 1)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
@@ -245,11 +246,11 @@ def execute_sql_statement(
                 query.id,
                 str(query.to_dict()),
             )
+            # This is a test to see if the query is being limited by either the dropdown or the sql. We are testing to see if more rows exist than the limit. 
             data = db_engine_spec.fetch_data(cursor, query.limit + 1)
             if len(data) <= query.limit:
-                query.was_limited = False
+                query.limiting_factor = LimitingFactor.NOT_LIMITED
             else:
-                query.was_limited = True
                 data = data[:-1]
 
     except SoftTimeLimitExceeded as ex:

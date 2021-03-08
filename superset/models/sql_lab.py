@@ -50,9 +50,11 @@ from superset.models.tags import QueryUpdater
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.utils.core import QueryStatus, user_label
 
-class LimitMethod(str, enum.Enum):
+class LimitingFactor(str, enum.Enum):
     QUERY = "QUERY"
     DROPDOWN = "DROPDOWN"
+    QUERY_AND_DROPDOWN = "QUERY_AND_DROPDOWN"
+    NOT_LIMITED = "NOT_LIMITED"
     UNKNOWN = "UNKNOWN"
 
 class Query(Model, ExtraJSONMixin):
@@ -82,8 +84,7 @@ class Query(Model, ExtraJSONMixin):
     executed_sql = Column(Text)
     # Could be configured in the superset config.
     limit = Column(Integer)
-    limiting_factor = Column(Enum(LimitMethod), server_default=LimitMethod.UNKNOWN)
-    was_limited = Column(Boolean, default=False)
+    limiting_factor = Column(Enum(LimitingFactor), server_default=LimitingFactor.UNKNOWN)
     select_as_cta = Column(Boolean)
     select_as_cta_used = Column(Boolean, default=False)
     ctas_method = Column(String(16), default=CtasMethod.TABLE)

@@ -2561,9 +2561,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if not (config.get("SQLLAB_CTAS_NO_LIMIT") and select_as_cta):
             # set LIMIT after template processing
             limits = [mydb.db_engine_spec.get_limit_from_sql(rendered_query), limit]
-            query.limiting_factor = (
-                QueryLimiter.QUERY if limits[0] > limits[1] else QueryLimiter.DROPDOWN
-            )
+            if limits[0] == limits[1]:
+                query.limiting_factor = LimitingFactor.QUERY_AND_DROPDOWN
+            elif limits[0] > limits[1]:
+                query.limiting_factor = LimitingFactor.DROPDOWN
+            else:
+                query.limiting_factor = LimitingFactor.QUERY
             query.limit = min(lim for lim in limits if lim is not None)
 
         # Flag for whether or not to expand data
