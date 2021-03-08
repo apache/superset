@@ -176,7 +176,7 @@ class BaseReportState:
         user = self._get_screenshot_user()
         try:
             image_data = screenshot.get_screenshot(user=user)
-        except SoftTimeLimitExceeded as ex:
+        except SoftTimeLimitExceeded:
             raise ReportScheduleScreenshotTimeout()
         except Exception as ex:
             raise ReportScheduleScreenshotFailedError(

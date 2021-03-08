@@ -57,12 +57,13 @@ class AlertCommand(BaseCommand):
         with the query result
 
         :return: bool, if the alert triggered or not
-        :raises: AlertQueryError,
-                AlertQueryInvalidTypeError,
-                AlertQueryMultipleColumnsError,
-                AlertQueryMultipleRowsError,
-                AlertQueryTimeout,
-                AlertValidatorConfigError
+        :raises AlertQueryError: SQL query is not valid
+        :raises AlertQueryInvalidTypeError: The output from the SQL query
+        is not an allowed type
+        :raises AlertQueryMultipleColumnsError: The SQL query returned multiple columns
+        :raises AlertQueryMultipleRowsError: The SQL query returned multiple rows
+        :raises AlertQueryTimeout: The SQL query received a celery soft timeout
+        :raises AlertValidatorConfigError: The validator query data is not valid
         """
         self.validate()
 
@@ -133,7 +134,8 @@ class AlertCommand(BaseCommand):
         Executes the actual alert SQL query template
 
         :return: A pandas dataframe
-        :raises: AlertQueryTimeout, AlertQueryError
+        :raises AlertQueryError: SQL query is not valid
+        :raises AlertQueryTimeout: The SQL query received a celery soft timeout
         """
         sql_template = jinja_context.get_template_processor(
             database=self._report_schedule.database
