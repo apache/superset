@@ -79,10 +79,10 @@ class TestDatabaseModel(SupersetTestCase):
             # string
             "CHAR": GenericDataType.STRING,
             "VARCHAR": GenericDataType.STRING,
-            "NVARCHAR": GenericDataType.STRING,
-            "STRING": GenericDataType.STRING,
+            # "NVARCHAR": GenericDataType.STRING,   # MSSQL types; commeented out for now and will address in another PR
+            # "STRING": GenericDataType.STRING,
             "TEXT": GenericDataType.STRING,
-            "NTEXT": GenericDataType.STRING,
+            # "NTEXT": GenericDataType.STRING,
             # numeric
             "INT": GenericDataType.NUMERIC,
             "BIGINT": GenericDataType.NUMERIC,

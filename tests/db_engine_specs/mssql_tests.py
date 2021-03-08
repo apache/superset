@@ -47,9 +47,9 @@ class TestMssqlEngineSpec(TestDbEngineSpec):
         assert_type("CHAR(10)", String, GenericDataType.STRING)
         assert_type("VARCHAR(10)", String, GenericDataType.STRING)
         assert_type("TEXT", String, GenericDataType.STRING)
-        assert_type("NCHAR(10)", UnicodeText, GenericDataType.STRING)
-        assert_type("NVARCHAR(10)", UnicodeText, GenericDataType.STRING)
-        assert_type("NTEXT", UnicodeText, GenericDataType.STRING)
+        # assert_type("NCHAR(10)", UnicodeText, GenericDataType.STRING)
+        # assert_type("NVARCHAR(10)", UnicodeText, GenericDataType.STRING)
+        # assert_type("NTEXT", UnicodeText, GenericDataType.STRING)
 
     def test_where_clause_n_prefix(self):
         dialect = mssql.dialect()
@@ -142,9 +142,9 @@ class TestMssqlEngineSpec(TestDbEngineSpec):
             (DATE(), "DATE"),
             (VARCHAR(length=255), "VARCHAR(255)"),
             (VARCHAR(length=255, collation="utf8_general_ci"), "VARCHAR(255)"),
-            (NVARCHAR(length=128), "NVARCHAR(128)"),
+            # (NVARCHAR(length=128), "NVARCHAR(128)"),
             (TEXT(), "TEXT"),
-            (NTEXT(collation="utf8_general_ci"), "NTEXT"),
+            # (NTEXT(collation="utf8_general_ci"), "NTEXT"),
         )
 
         for original, expected in test_cases:
