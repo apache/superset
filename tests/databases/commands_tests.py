@@ -567,8 +567,9 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             security_manager.find_user("admin"), json_payload
         )
 
-        with self.assertRaises(DatabaseSecurityUnsafeError):
+        with pytest.raises(DatabaseSecurityUnsafeError) as excinfo:
             command_without_db_name.run()
+            assert str(excinfo.value) == ("Stopped an unsafe database connection")
 
         mock_event_logger.assert_called()
 
