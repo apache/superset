@@ -81,7 +81,9 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({
           <div>
             <Typography.Text strong>{name}:&nbsp;</Typography.Text>
             <Typography.Text>
-              {getFilterValueForDisplay(dataMask[id]?.currentState?.value)}
+              {getFilterValueForDisplay(dataMask[id]?.currentState?.value) || (
+                <Typography.Text type="secondary">{t('None')}</Typography.Text>
+              )}
             </Typography.Text>
           </div>
         ))}
