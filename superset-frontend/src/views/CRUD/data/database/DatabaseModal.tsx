@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
 import { styled, t, SupersetClient } from '@superset-ui/core';
 import InfoTooltip from 'src/common/components/InfoTooltip';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -28,8 +29,8 @@ import Tabs from 'src/common/components/Tabs';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
-import { DatabaseObject, RootState } from './types';
-import { useTypedSelector } from './state';
+import { DatabaseObject } from './types';
+import { useCommonConf } from './state';
 
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
@@ -132,7 +133,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [db, setDB] = useState<DatabaseObject | null>(null);
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
-  const conf = useTypedSelector((state: RootState) => state.common.conf);
+  const dispatch = useDispatch();
+  const conf = useCommonConf();
 
   const isEditMode = database !== null;
   const defaultExtra =
@@ -214,7 +216,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
 
       if (db && db.id) {
-        updateResource(db.id, update).then(result => {
+        dispatch(updateResource(db.id, update)).then(result => {
           if (result) {
             if (onDatabaseAdd) {
               onDatabaseAdd();
@@ -225,7 +227,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     } else if (db) {
       // Create
-      createResource(db).then(dbId => {
+      dispatch(createResource(db)).then(dbId => {
         if (dbId) {
           if (onDatabaseAdd) {
             onDatabaseAdd();
@@ -299,7 +301,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const id = database.id || 0;
       setTabKey(DEFAULT_TAB_KEY);
 
-      fetchResource(id)
+      dispatch(fetchResource(id))
         .then(() => {
           setDB(dbFetched);
         })

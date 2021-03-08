@@ -17,8 +17,13 @@
  * under the License.
  */
 
-import { useSelector, TypedUseSelectorHook } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { RootState } from './types';
 
-export const useTypedSelector: TypedUseSelectorHook<RootState> = useSelector;
-// this selector does require you to provide a type, but I think this works?
+const defaultRootStateConfiguration: RootState[] = [];
+
+export function useCommonConf() {
+  return useSelector(
+    (state: RootState) => state.common.conf || defaultRootStateConfiguration,
+  );
+}
