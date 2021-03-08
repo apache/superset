@@ -40,7 +40,7 @@ import { Filter } from '../types';
 import { buildCascadeFiltersTree, mapParentFiltersToChildren } from './utils';
 import CascadePopover from './CascadePopover';
 import FilterSets from './FilterSets/FilterSets';
-import { useFilters, useFilterSets } from './state';
+import { useDataMask, useFilters, useFilterSets } from './state';
 
 const barWidth = `250px`;
 
@@ -185,9 +185,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const filterSetsArray = Object.values(filterSets);
   const filters = useFilters();
   const filtersArray = Object.values(filters);
-  const dataMaskState = useSelector<any, DataMaskUnitWithId>(
-    state => state.dataMask.nativeFilters ?? {},
-  );
+  const dataMaskApplied = useDataMask();
   const canEdit = useSelector<any, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -267,7 +265,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     });
   };
 
-  const isClearAllDisabled = Object.values(dataMaskState).every(
+  const isClearAllDisabled = Object.values(dataMaskApplied).every(
     filter =>
       filterData[filter.id]?.currentState?.value === null ||
       (!filterData[filter.id] && filter.currentState?.value === null),
@@ -354,7 +352,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             >
               <FilterSets
                 disabled={!isApplyDisabled}
-                dataMaskState={dataMaskState}
+                filterData={filterData}
                 onFilterSelectionChange={handleFilterSelectionChange}
               />
             </Tabs.TabPane>

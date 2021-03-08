@@ -74,7 +74,9 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({
       ghost
       expandIconPosition="right"
       defaultActiveKey={expanded && ['filters']}
-      expandIcon={() => <CaretDownOutlined />}
+      expandIcon={({ isActive }: { isActive: boolean }) => (
+        <CaretDownOutlined rotate={isActive ? 0 : 180} />
+      )}
     >
       <Collapse.Panel header={getFiltersHeader()} key="filters">
         {filters.map(({ id, name }) => (

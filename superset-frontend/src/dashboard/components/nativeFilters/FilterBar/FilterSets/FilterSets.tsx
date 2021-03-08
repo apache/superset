@@ -16,30 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Select, Typography } from 'src/common/components';
+import { Select } from 'src/common/components';
 import Button from 'src/components/Button';
-import React, { useState } from 'react';
-import { styled, t, tn } from '@superset-ui/core';
+import React, { useEffect, useMemo, useState } from 'react';
+import { HandlerFunction, styled, t, tn } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import {
   DataMaskState,
+  DataMaskUnit,
   DataMaskUnitWithId,
   MaskWithId,
 } from 'src/dataMask/types';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { FilterSet } from 'src/dashboard/reducers/types';
 import { generateFiltersSetId } from './utils';
 import { Filter } from '../../types';
 import { useFilters, useDataMask, useFilterSets } from '../state';
 import Footer from './Footer';
-import FiltersHeader from './FiltersHeader';
+import FilterSetUnit from './FilterSetUnit';
+import { areObjectsEqual } from '../../../../../reduxUtils';
 
-const FilterSet = styled.div`
+const FilterSetsWrapper = styled.div`
   display: grid;
   align-items: center;
   justify-content: center;
   grid-template-columns: 1fr;
-  grid-gap: ${({ theme }) => theme.gridUnit}px;
   & button.superset-button {
     margin-left: 0;
   }
@@ -52,7 +52,10 @@ const FilterSet = styled.div`
   }
 `;
 
-const FilterSetUnit = styled.div`
+const FilterSetUnitWrapper = styled.div<{
+  onClick?: HandlerFunction;
+  selected?: boolean;
+}>`
   display: grid;
   align-items: center;
   justify-content: center;
@@ -61,12 +64,15 @@ const FilterSetUnit = styled.div`
   ${({ theme }) =>
     `padding: 0 ${theme.gridUnit * 4}px ${theme.gridUnit * 4}px`};
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  padding: ${({ theme }) => `${theme.gridUnit * 3}px ${theme.gridUnit * 2}px`};
+  cursor: ${({ onClick }) => (!onClick ? 'auto' : 'pointer')};
+  background: ${({ theme, selected }) =>
+    (selected ? theme.colors.primary.light5 : 'transparent')};
 `;
 
 type FilterSetsProps = {
   disabled: boolean;
-  dataMaskState: DataMaskUnitWithId;
+  filterData: MaskWithId;
   onFilterSelectionChange: (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
     dataMask: Partial<DataMaskState>,
@@ -76,27 +82,50 @@ type FilterSetsProps = {
 const DEFAULT_FILTER_SET_NAME = t('New filter set');
 
 const FilterSets: React.FC<FilterSetsProps> = ({
+  filterData,
   disabled,
   onFilterSelectionChange,
-  dataMaskState,
 }) => {
   const dispatch = useDispatch();
   const [filterSetName, setFilterSetName] = useState(DEFAULT_FILTER_SET_NAME);
   const [editMode, setEditMode] = useState(false);
+  const dataMaskApplied = useDataMask();
   const filterSets = useFilterSets();
   const filterSetsArray = Object.values(filterSets);
-  const currentDataMask = useDataMask();
   const filters = Object.values(useFilters());
   const [selectedFiltersSetId, setSelectedFiltersSetId] = useState<
     string | null
   >(null);
 
-  const takeFilterSet = (value: string) => {
-    setSelectedFiltersSetId(value);
-    if (!value) {
+  useEffect(() => {
+    const foundFilterSet = filterSetsArray.find(({ dataMask }) => {
+      if (dataMask?.nativeFilters) {
+        return Object.values(dataMask?.nativeFilters).every(
+          filterFromFilterSet => {
+            let currentValueFromFiltersTab =
+              dataMaskApplied[filterFromFilterSet.id]?.currentState ?? {};
+            if (filterData[filterFromFilterSet.id]) {
+              currentValueFromFiltersTab =
+                filterData[filterFromFilterSet.id]?.currentState;
+            }
+            return areObjectsEqual(
+              filterFromFilterSet.currentState ?? {},
+              currentValueFromFiltersTab,
+            );
+          },
+        );
+      }
+      return false;
+    });
+    setSelectedFiltersSetId(foundFilterSet?.id ?? null);
+  }, [dataMaskApplied, filterData, filterSetsArray]);
+
+  const takeFilterSet = (id: string) => {
+    setSelectedFiltersSetId(id);
+    if (!id) {
       return;
     }
-    const filtersSet = filterSets[value];
+    const filtersSet = filterSets[id];
     Object.values(filtersSet.dataMask?.nativeFilters ?? []).forEach(
       dataMask => {
         const { extraFormData, currentState, id } = dataMask as MaskWithId;
@@ -133,7 +162,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
             name: filterSetName.trim(),
             id: generateFiltersSetId(),
             dataMask: {
-              nativeFilters: dataMaskState,
+              nativeFilters: dataMaskApplied,
             },
           },
         ]),
@@ -143,30 +172,16 @@ const FilterSets: React.FC<FilterSetsProps> = ({
     setFilterSetName(DEFAULT_FILTER_SET_NAME);
   };
 
-  const getFilterSetUnit = (filterSet?: FilterSet) => (
-    <>
-      <Typography.Text
-        strong
-        editable={{
-          editing: editMode,
-          icon: <span />,
-          onChange: setFilterSetName,
-        }}
-      >
-        {filterSetName}
-      </Typography.Text>
-      <FiltersHeader
-        expanded={!filterSet}
-        dataMask={filterSet?.dataMask?.nativeFilters ?? currentDataMask}
-        filters={filters}
-      />
-    </>
-  );
-
   return (
-    <FilterSet>
-      <FilterSetUnit>
-        {getFilterSetUnit()}
+    <FilterSetsWrapper>
+      <FilterSetUnitWrapper>
+        <FilterSetUnit
+          filters={filters}
+          editMode={editMode}
+          setFilterSetName={setFilterSetName}
+          filterSetName={filterSetName}
+          currentDataMask={dataMaskApplied}
+        />
         <Footer
           isApplyDisabled={!filterSetName.trim()}
           disabled={disabled}
@@ -175,9 +190,21 @@ const FilterSets: React.FC<FilterSetsProps> = ({
           onEdit={() => setEditMode(true)}
           onCreate={handleCreateFilterSet}
         />
-      </FilterSetUnit>
+      </FilterSetUnitWrapper>
       {filterSetsArray.map(filterSet => (
-        <FilterSetUnit>{getFilterSetUnit(filterSet)}</FilterSetUnit>
+        <FilterSetUnitWrapper
+          selected={filterSet.id === selectedFiltersSetId}
+          onClick={() => takeFilterSet(filterSet.id)}
+        >
+          <FilterSetUnit
+            filters={filters}
+            editMode={editMode}
+            setFilterSetName={setFilterSetName}
+            filterSetName={filterSetName}
+            currentDataMask={dataMaskApplied}
+            filterSet={filterSet}
+          />
+        </FilterSetUnitWrapper>
       ))}
       <Select
         size="small"
@@ -199,7 +226,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
       >
         {t('Delete Filters Set')}
       </Button>
-    </FilterSet>
+    </FilterSetsWrapper>
   );
 };
 
