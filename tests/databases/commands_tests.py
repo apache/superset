@@ -541,9 +541,11 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             security_manager.find_user("admin"), json_payload
         )
 
-        with self.assertRaises(DatabaseTestConnectionUnexpectedError):
+        with pytest.raises(DatabaseTestConnectionUnexpectedError) as excinfo:
             command_without_db_name.run()
-
+            assert str(excinfo.value) == (
+                "Unexpected error occurred, please check your logs for details"
+            )
         mock_event_logger.assert_called()
 
     @mock.patch("superset.databases.dao.DatabaseDAO.build_db_for_connection_test")
@@ -553,7 +555,8 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
     def test_connection_superset_security_connection(
         self, mock_event_logger, mock_build_db_for_connection_test
     ):
-        """Test to make sure event_logger is called when security connection exc is raised"""
+        """Test to make sure event_logger is called when security
+        connection exc is raised"""
         database = get_example_database()
         mock_build_db_for_connection_test.side_effect = SupersetSecurityException(
             SupersetError(error_type=500, message="test", level="info", extra={})
@@ -576,7 +579,8 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
     def test_connection_db_api_exc(
         self, mock_event_logger, mock_build_db_for_connection_test
     ):
-        """Test to make sure event_logger is called when security connection DBAPIError exc is raised"""
+        """Test to make sure event_logger is called when security connection
+         DBAPIError is raised"""
         database = get_example_database()
         mock_build_db_for_connection_test.side_effect = DBAPIError(
             statement="error", params={}, orig={}
