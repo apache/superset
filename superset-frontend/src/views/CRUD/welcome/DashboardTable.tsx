@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps } from 'src/views/CRUD/types';
@@ -56,8 +56,9 @@ function DashboardTable({
     addDangerToast,
     true,
     mine,
+    [],
+    false,
   );
-  console.log('dashboard', dashboards)
   const dashboardIds = useMemo(() => dashboards.map(c => c.id), [dashboards]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
     'dashboard',
@@ -127,7 +128,7 @@ function DashboardTable({
       filters: getFilters(filter),
     });
 
-  // if (loading) return <Loading position="inline" />;
+  if (loading) return <Loading position="inline" />;
   return (
     <>
       <SubMenu

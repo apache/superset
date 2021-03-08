@@ -25,12 +25,7 @@ import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/components/Menu/SubMenu';
 import { Chart } from 'src/types/Chart';
 import { Dashboard, SavedQueryObject } from 'src/views/CRUD/types';
-import {
-  mq,
-  CardStyles,
-  getEditedObjs,
-  getMineObjs,
-} from 'src/views/CRUD/utils';
+import { mq, CardStyles, getEditedObjs } from 'src/views/CRUD/utils';
 
 import { ActivityData } from './Welcome';
 import EmptyState from './EmptyState';
@@ -167,14 +162,12 @@ export default function ActivityTable({
   activityData,
   user,
 }: ActivityProps) {
-  console.log('loading acitivty', loading);
   const [editedObjs, setEditedObjs] = useState<any>();
   const [loadingState, setLoadingState] = useState(false);
 
   const getEditedCards = () => {
     setLoadingState(true);
     getEditedObjs(user.userId).then(r => {
-      console.log('editobjs', r);
       setEditedObjs([...r.editedChart, ...r.editedDash]);
       setLoadingState(false);
     });
@@ -215,39 +208,34 @@ export default function ActivityTable({
     });
   }
 
-  const renderActivity = () => {
-    console.log('editedObjs', editedObjs);
-    return (activeChild !== 'Edited'
-      ? activityData[activeChild]
-      : editedObjs
-    ).map((entity: ActivityObject) => {
-      console.log('entity', entity);
-      const url = getEntityUrl(entity);
-      const lastActionOn = getEntityLastActionOn(entity);
-      return (
-        <CardStyles
-          onClick={() => {
-            window.location.href = url;
-          }}
-          key={url}
-        >
-          <ListViewCard
-            loading={loading}
-            cover={<></>}
-            url={url}
-            title={getEntityTitle(entity)}
-            description={lastActionOn}
-            avatar={getEntityIconName(entity)}
-            actions={null}
-          />
-        </CardStyles>
-      );
-    });
-  };
+  const renderActivity = () =>
+    (activeChild !== 'Edited' ? activityData[activeChild] : editedObjs).map(
+      (entity: ActivityObject) => {
+        const url = getEntityUrl(entity);
+        const lastActionOn = getEntityLastActionOn(entity);
+        return (
+          <CardStyles
+            onClick={() => {
+              window.location.href = url;
+            }}
+            key={url}
+          >
+            <ListViewCard
+              loading={loading}
+              cover={<></>}
+              url={url}
+              title={getEntityTitle(entity)}
+              description={lastActionOn}
+              avatar={getEntityIconName(entity)}
+              actions={null}
+            />
+          </CardStyles>
+        );
+      },
+    );
   if (loading || (loadingState && !editedObjs)) {
     return <Loading position="inline" />;
   }
-  console.log('activityData *&*&*&*&', editedObjs);
   return (
     <>
       <SubMenu
