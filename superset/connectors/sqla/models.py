@@ -53,7 +53,6 @@ from sqlalchemy.types import TypeEngine
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
-from superset.constants import NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
@@ -1091,7 +1090,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                     if eq is None:
                         raise QueryObjectValidationError(
                             _(
-                                "Must specify a value for filters with comparison operators"
+                                "Must specify a value for filters "
+                                "with comparison operators"
                             )
                         )
                     if op == utils.FilterOperator.EQUALS.value:
