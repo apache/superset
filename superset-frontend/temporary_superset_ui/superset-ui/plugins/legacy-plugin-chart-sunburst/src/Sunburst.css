@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 .superset-legacy-chart-sunburst text {
   text-rendering: optimizeLegibility;
 }
@@ -51,21 +50,21 @@
 }
 
 /* dashboard specific */
-/*
-.dashboard .superset-legacy-chart-sunburst text {
-  font-size: 1em;
+.dashboard-chart.sunburst {
+  overflow: visible;
 }
-.dashboard .superset-legacy-chart-sunburst .path-abs-percent {
-  font-size: 2em;
+.superset-legacy-chart-sunburst svg {
+  overflow: visible;
+}
+.superset-legacy-chart-sunburst.m text {
+  font-size: 0.55em;
+}
+.superset-legacy-chart-sunburst.s text {
+  font-size: 0.45em;
+}
+.superset-legacy-chart-sunburst.l text {
+  font-size: 0.75em;
+}
+.superset-legacy-chart-sunburst .path-abs-percent {
   font-weight: 700;
 }
-.dashboard .superset-legacy-chart-sunburst .path-cond-percent {
-  font-size: 1.5em;
-}
-.dashboard .superset-legacy-chart-sunburst .path-metrics {
-  font-size: 1em;
-}
-.dashboard .superset-legacy-chart-sunburst .path-ratio {
-  font-size: 1em;
-}
-*/

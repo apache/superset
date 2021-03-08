@@ -2,6 +2,7 @@
 import React from 'react';
 import { SuperChart } from '@superset-ui/core';
 import SunburstChartPlugin from '@superset-ui/legacy-plugin-chart-sunburst';
+import ResizableChartDemo from '../../../shared/components/ResizableChartDemo';
 import data from './data';
 
 new SunburstChartPlugin().configure({ key: 'sunburst' }).register();
@@ -22,4 +23,22 @@ export const basic = () => (
       secondaryMetric: 'sum__SP_RUR_TOTL',
     }}
   />
+);
+
+export const resizable = () => (
+  <ResizableChartDemo>
+    {({ width, height }) => (
+      <SuperChart
+        chartType="sunburst"
+        width={width}
+        height={height}
+        queriesData={[{ data }]}
+        formData={{
+          colorScheme: 'd3Category10',
+          metric: 'sum__SP_POP_TOTL',
+          secondaryMetric: 'sum__SP_RUR_TOTL',
+        }}
+      />
+    )}
+  </ResizableChartDemo>
 );
