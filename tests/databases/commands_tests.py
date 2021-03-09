@@ -225,7 +225,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "default_endpoint": None,
             "description": "",
             "extra": None,
-            "fetch_values_predicate": None,
+            "fetch_values_predicate": "123 = 123",
             "filter_select_enabled": True,
             "main_dttm_col": "ds",
             "metrics": [

@@ -48,7 +48,6 @@ const ControlItems: FC<ControlItemsProps> = ({
   const controlPanelRegistry = getChartControlPanelRegistry();
   const controlItems =
     getControlItems(controlPanelRegistry.get(filterType)) ?? [];
-
   return (
     <>
       {controlItems

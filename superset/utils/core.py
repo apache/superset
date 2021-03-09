@@ -1042,12 +1042,16 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
     and add applied time extras to the payload.
     """
     time_extras = {
+        "granularity": "__granularity",
+        "granularity_sqla": "__granularity",
         "time_range": "__time_range",
-        "granularity_sqla": "__time_col",
+    }
+    allowed_extra_overrides: Dict[str, Optional[str]] = {
         "time_grain_sqla": "__time_grain",
         "druid_time_origin": "__time_origin",
-        "granularity": "__granularity",
+        "time_range_endpoints": None,
     }
+
     applied_time_extras = form_data.get("applied_time_extras", {})
     form_data["applied_time_extras"] = applied_time_extras
     extra_form_data = form_data.pop("extra_form_data", {})
@@ -1060,12 +1064,20 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
         time_extra = time_extras.get(key)
         if time_extra:
             applied_time_extras[time_extra] = value
+    extras = form_data.get("extras", {})
+    for key, value in allowed_extra_overrides.items():
+        extra = extras.get(key)
+        if value and extra:
+            applied_time_extras[value] = extra
+    form_data.update(extras)
 
     adhoc_filters = form_data.get("adhoc_filters", [])
     form_data["adhoc_filters"] = adhoc_filters
+    append_adhoc_filters = append_form_data.get("adhoc_filters", [])
+    adhoc_filters.extend({"isExtra": True, **fltr} for fltr in append_adhoc_filters)
     if append_filters:
         adhoc_filters.extend(
-            [to_adhoc({"isExtra": True, **fltr}) for fltr in append_filters if fltr]
+            to_adhoc({"isExtra": True, **fltr}) for fltr in append_filters if fltr
         )
 
 

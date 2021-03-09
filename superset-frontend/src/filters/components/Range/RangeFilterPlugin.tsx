@@ -16,17 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t, DataMask, Behavior } from '@superset-ui/core';
+import { t, DataMask, Behavior } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Slider } from 'src/common/components';
 import { PluginFilterRangeProps } from './types';
-import { PluginFilterStylesProps } from '../types';
+import { Styles } from '../common';
 import { getRangeExtraFormData } from '../../utils';
-
-const Styles = styled.div<PluginFilterStylesProps>`
-  height: ${({ height }) => height};
-  width: ${({ width }) => width};
-`;
 
 export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const {

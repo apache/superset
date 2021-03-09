@@ -107,7 +107,7 @@ class TestCore(SupersetTestCase):
         self.login(username="admin")
         slc = self.get_slice("Girls", db.session)
         resp = self.get_resp("/superset/slice/{}/".format(slc.id))
-        assert "Time Column" in resp
+        assert "Original value" in resp
         assert "List Roles" in resp
 
         # Testing overrides
