@@ -18,7 +18,7 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import SupersetResourceSelect from '.';
@@ -52,9 +52,7 @@ test('should render the No options message', async () => {
   render(<SupersetResourceSelect {...mockedProps} />);
   const select = screen.getByText('Select...');
   userEvent.click(select);
-  await waitFor(() => {
-    expect(screen.getByText('No options')).toBeInTheDocument();
-  });
+  expect(await screen.findByText('No options')).toBeInTheDocument();
 });
 
 test('should render the typed text', async () => {
@@ -62,5 +60,5 @@ test('should render the typed text', async () => {
   const select = screen.getByText('Select...');
   userEvent.click(select);
   userEvent.type(select, 'typed text');
-  expect(screen.getByText('typed text')).toBeInTheDocument();
+  expect(await screen.findByText('typed text')).toBeInTheDocument();
 });
