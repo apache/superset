@@ -145,7 +145,7 @@ const TableView = ({
   const isEmpty = !loading && content.length === 0;
 
   return (
-    <TableViewStyles {...props}>
+    <TableViewStyles data-test="TableView" {...props}>
       <TableCollection
         getTableProps={getTableProps}
         getTableBodyProps={getTableBodyProps}

@@ -17,10 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render, screen } from 'spec/helpers/testing-library';
 import QueryTable from 'src/SqlLab/components/QueryTable';
-import TableView from 'src/components/TableView';
-import { TableCollection } from 'src/components/dataViewCommon';
 import { queries } from './fixtures';
 
 describe('QueryTable', () => {
@@ -34,16 +32,30 @@ describe('QueryTable', () => {
   it('is valid with props', () => {
     expect(React.isValidElement(<QueryTable {...mockedProps} />)).toBe(true);
   });
+
   it('renders a proper table', () => {
-    const wrapper = shallow(<QueryTable {...mockedProps} />);
-    const tableWrapper = wrapper
-      .find(TableView)
-      .shallow()
-      .find(TableCollection)
-      .shallow();
-    expect(wrapper.find(TableView)).toExist();
-    expect(tableWrapper.find('table')).toExist();
-    expect(tableWrapper.find('table').find('thead').find('tr')).toHaveLength(1);
-    expect(tableWrapper.find('table').find('tbody').find('tr')).toHaveLength(2);
+    render(<QueryTable {...mockedProps} />);
+
+    expect(screen.getByTestId('TableView')).toBeInTheDocument();
+    expect(screen.getByRole('table')).toBeInTheDocument();
+
+    expect(screen.getByRole('table').getElementsByTagName('tbody').length).toBe(
+      1,
+    );
+    expect(screen.getByRole('table').getElementsByTagName('thead').length).toBe(
+      1,
+    );
+    expect(
+      screen
+        .getByRole('table')
+        .getElementsByTagName('thead')[0]
+        .getElementsByTagName('tr'),
+    ).toHaveLength(1);
+    expect(
+      screen
+        .getByRole('table')
+        .getElementsByTagName('tbody')[0]
+        .getElementsByTagName('tr'),
+    ).toHaveLength(2);
   });
 });

@@ -40,7 +40,7 @@ export const TableCollectionBody: React.FC<TableCollectionBodyProps> = ({
   loading,
   highlightRowId,
 }) => (
-  <tbody {...getTableBodyProps()}>
+  <tbody data-test="tbody" {...getTableBodyProps()}>
     <TableCollectionLoading
       rows={rows.length}
       columns={columns}
