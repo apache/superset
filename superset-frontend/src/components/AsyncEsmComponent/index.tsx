@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { CSSProperties, useEffect, useState, RefObject } from 'react';
-import Loading from './Loading';
+import Loading from '../Loading';
 
 export type PlaceholderProps = {
   showLoadingForImport?: boolean;
