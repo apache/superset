@@ -15,18 +15,30 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=no-self-use, invalid-name
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
 import yaml
+from sqlalchemy.exc import DBAPIError
 
-from superset import db, security_manager
+from superset import db, event_logger, security_manager
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
-from superset.databases.commands.exceptions import DatabaseNotFoundError
+from superset.databases.commands.exceptions import (
+    DatabaseNotFoundError,
+    DatabaseSecurityUnsafeError,
+    DatabaseTestConnectionDriverError,
+    DatabaseTestConnectionFailedError,
+    DatabaseTestConnectionUnexpectedError,
+)
 from superset.databases.commands.export import ExportDatabasesCommand
 from superset.databases.commands.importers.v1 import ImportDatabasesCommand
+from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
+from superset.databases.schemas import DatabaseTestConnectionSchema
+from superset.errors import SupersetError
+from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.utils.core import backend, get_example_database
 from tests.base_tests import SupersetTestCase
@@ -508,3 +520,75 @@ class TestImportDatabasesCommand(SupersetTestCase):
         # verify that the database was not added
         new_num_databases = db.session.query(Database).count()
         assert new_num_databases == num_databases
+
+
+class TestTestConnectionDatabaseCommand(SupersetTestCase):
+    @mock.patch("superset.databases.dao.Database.get_sqla_engine")
+    @mock.patch(
+        "superset.databases.commands.test_connection.event_logger.log_with_context"
+    )
+    def test_connection_db_exception(self, mock_event_logger, mock_get_sqla_engine):
+        """Test to make sure event_logger is called when an exception is raised"""
+        database = get_example_database()
+        mock_get_sqla_engine.side_effect = Exception("An error has occurred!")
+        db_uri = database.sqlalchemy_uri_decrypted
+        json_payload = {"sqlalchemy_uri": db_uri}
+        command_without_db_name = TestConnectionDatabaseCommand(
+            security_manager.find_user("admin"), json_payload
+        )
+
+        with pytest.raises(DatabaseTestConnectionUnexpectedError) as excinfo:
+            command_without_db_name.run()
+            assert str(excinfo.value) == (
+                "Unexpected error occurred, please check your logs for details"
+            )
+        mock_event_logger.assert_called()
+
+    @mock.patch("superset.databases.dao.Database.get_sqla_engine")
+    @mock.patch(
+        "superset.databases.commands.test_connection.event_logger.log_with_context"
+    )
+    def test_connection_superset_security_connection(
+        self, mock_event_logger, mock_get_sqla_engine
+    ):
+        """Test to make sure event_logger is called when security
+        connection exc is raised"""
+        database = get_example_database()
+        mock_get_sqla_engine.side_effect = SupersetSecurityException(
+            SupersetError(error_type=500, message="test", level="info", extra={})
+        )
+        db_uri = database.sqlalchemy_uri_decrypted
+        json_payload = {"sqlalchemy_uri": db_uri}
+        command_without_db_name = TestConnectionDatabaseCommand(
+            security_manager.find_user("admin"), json_payload
+        )
+
+        with pytest.raises(DatabaseSecurityUnsafeError) as excinfo:
+            command_without_db_name.run()
+            assert str(excinfo.value) == ("Stopped an unsafe database connection")
+
+        mock_event_logger.assert_called()
+
+    @mock.patch("superset.databases.dao.Database.get_sqla_engine")
+    @mock.patch(
+        "superset.databases.commands.test_connection.event_logger.log_with_context"
+    )
+    def test_connection_db_api_exc(self, mock_event_logger, mock_get_sqla_engine):
+        """Test to make sure event_logger is called when DBAPIError is raised"""
+        database = get_example_database()
+        mock_get_sqla_engine.side_effect = DBAPIError(
+            statement="error", params={}, orig={}
+        )
+        db_uri = database.sqlalchemy_uri_decrypted
+        json_payload = {"sqlalchemy_uri": db_uri}
+        command_without_db_name = TestConnectionDatabaseCommand(
+            security_manager.find_user("admin"), json_payload
+        )
+
+        with pytest.raises(DatabaseTestConnectionFailedError) as excinfo:
+            command_without_db_name.run()
+            assert str(excinfo.value) == (
+                "Connection failed, please check your connection settings"
+            )
+
+        mock_event_logger.assert_called()
