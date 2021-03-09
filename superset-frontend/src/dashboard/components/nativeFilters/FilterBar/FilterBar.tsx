@@ -46,7 +46,9 @@ const barWidth = `250px`;
 
 const BarWrapper = styled.div`
   width: ${({ theme }) => theme.gridUnit * 8}px;
-
+  & .ant-tabs-top > .ant-tabs-nav {
+    margin: 0;
+  }
   &.open {
     width: ${barWidth}; // arbitrary...
   }
@@ -158,7 +160,7 @@ const ActionButtons = styled.div`
 `;
 
 const FilterControls = styled.div`
-  padding: 0 ${({ theme }) => theme.gridUnit * 4}px;
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
   &:hover {
     cursor: pointer;
   }

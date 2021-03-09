@@ -119,7 +119,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
       return false;
     });
     if (foundFilterSet) {
-      setSelectedFiltersSetId(foundFilterSet.id);
+      setSelectedFiltersSetId(foundFilterSet.id ?? null);
     }
   }, [dataMaskApplied, filterData, filterSetsArray]);
 
