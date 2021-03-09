@@ -39,6 +39,7 @@ little bit helps, and credit will always be given.
     - [Protocol](#protocol)
       - [Authoring](#authoring)
       - [Reviewing](#reviewing)
+      - [Test Environments](#test-environments)
       - [Merging](#merging)
       - [Post-merge Responsibility](#post-merge-responsibility)
   - [Design Guidelines](#design-guidelines)
@@ -247,6 +248,13 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 - If there are changes required, state clearly what needs to be done before the PR can be approved.
 - If you are asked to update your pull request with some changes there's no need to create a new one. Push your changes to the same branch.
 - The committers reserve the right to reject any PR and in some cases may request the author to file an issue.
+
+#### Test Environments
+
+- Members of the Apache GitHub org can launch an ephemeral test environment directly on a pull request by creating a comment containing (only) the command `/testenv up`
+- A comment will be created by the workflow script with the address and login information for the ephemeral environment.
+- Test environments may be created once the Docker build CI workflow for the PR has completed successfully.
+- Running test environments will be shutdown upon closing the pull request.
 
 #### Merging
 
