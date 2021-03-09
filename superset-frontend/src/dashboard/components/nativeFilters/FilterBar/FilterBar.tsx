@@ -225,7 +225,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     if (filtersArray.length === 0 && filtersOpen) {
       toggleFiltersBar(false);
     }
-  }, [filtersArray]);
+  }, [filtersArray.length]);
 
   const cascadeChildren = useMemo(
     () => mapParentFiltersToChildren(filtersArray),
