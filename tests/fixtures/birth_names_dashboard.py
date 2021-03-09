@@ -18,7 +18,7 @@ import json
 import string
 from datetime import date, datetime
 from random import choice, getrandbits, randint, random, uniform
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 import pytest
@@ -31,7 +31,7 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_example_database
-from tests.dashboard_utils import create_dashboard, create_table_for_dashboard
+from tests.dashboard_utils import create_table_for_dashboard
 from tests.test_app import app
 
 
@@ -63,7 +63,13 @@ def _load_data():
             "state": String(10),
             "name": String(255),
         }
-        table = _create_table(df, table_name, database, dtype)
+        table = _create_table(
+            df=df,
+            table_name=table_name,
+            database=database,
+            dtype=dtype,
+            fetch_values_predicate="123 = 123",
+        )
 
         from superset.examples.birth_names import create_slices, create_dashboard
 
@@ -75,9 +81,19 @@ def _load_data():
 
 
 def _create_table(
-    df: DataFrame, table_name: str, database: "Database", dtype: Dict[str, Any]
+    df: DataFrame,
+    table_name: str,
+    database: "Database",
+    dtype: Dict[str, Any],
+    fetch_values_predicate: Optional[str] = None,
 ):
-    table = create_table_for_dashboard(df, table_name, database, dtype)
+    table = create_table_for_dashboard(
+        df=df,
+        table_name=table_name,
+        database=database,
+        dtype=dtype,
+        fetch_values_predicate=fetch_values_predicate,
+    )
     from superset.examples.birth_names import _add_table_metrics, _set_table_metadata
 
     _set_table_metadata(table, database)

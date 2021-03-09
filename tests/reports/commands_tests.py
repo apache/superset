@@ -17,7 +17,7 @@
 import json
 from datetime import datetime, timedelta
 from typing import List, Optional
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 from contextlib2 import contextmanager
@@ -46,6 +46,8 @@ from superset.reports.commands.exceptions import (
     ReportScheduleNotFoundError,
     ReportScheduleNotificationError,
     ReportSchedulePreviousWorkingError,
+    ReportScheduleScreenshotFailedError,
+    ReportScheduleScreenshotTimeout,
     ReportScheduleWorkingTimeoutError,
 )
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
@@ -503,7 +505,7 @@ def create_invalid_sql_alert_email_chart(request):
     "load_birth_names_dashboard_with_slices", "create_report_email_chart"
 )
 @patch("superset.reports.notifications.email.send_email_smtp")
-@patch("superset.utils.screenshots.ChartScreenshot.compute_and_cache")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_email_chart_report_schedule(
     screenshot_mock, email_mock, create_report_email_chart
 ):
@@ -541,7 +543,7 @@ def test_email_chart_report_schedule(
     "load_birth_names_dashboard_with_slices", "create_report_email_dashboard"
 )
 @patch("superset.reports.notifications.email.send_email_smtp")
-@patch("superset.utils.screenshots.DashboardScreenshot.compute_and_cache")
+@patch("superset.utils.screenshots.DashboardScreenshot.get_screenshot")
 def test_email_dashboard_report_schedule(
     screenshot_mock, email_mock, create_report_email_dashboard
 ):
@@ -573,7 +575,7 @@ def test_email_dashboard_report_schedule(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart"
 )
 @patch("superset.reports.notifications.slack.WebClient.files_upload")
-@patch("superset.utils.screenshots.ChartScreenshot.compute_and_cache")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_slack_chart_report_schedule(
     screenshot_mock, file_upload_mock, create_report_slack_chart
 ):
@@ -694,7 +696,7 @@ def test_report_schedule_success_grace_end(create_alert_slack_chart_grace):
 
 @pytest.mark.usefixtures("create_alert_email_chart")
 @patch("superset.reports.notifications.email.send_email_smtp")
-@patch("superset.utils.screenshots.ChartScreenshot.compute_and_cache")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_alert_limit_is_applied(screenshot_mock, email_mock, create_alert_email_chart):
     """
     ExecuteReport Command: Test that all alerts apply a SQL limit to stmts
@@ -718,7 +720,7 @@ def test_alert_limit_is_applied(screenshot_mock, email_mock, create_alert_email_
     "load_birth_names_dashboard_with_slices", "create_report_email_dashboard"
 )
 @patch("superset.reports.notifications.email.send_email_smtp")
-@patch("superset.utils.screenshots.DashboardScreenshot.compute_and_cache")
+@patch("superset.utils.screenshots.DashboardScreenshot.get_screenshot")
 def test_email_dashboard_report_fails(
     screenshot_mock, email_mock, create_report_email_dashboard
 ):
@@ -744,7 +746,7 @@ def test_email_dashboard_report_fails(
     "load_birth_names_dashboard_with_slices", "create_alert_email_chart"
 )
 @patch("superset.reports.notifications.email.send_email_smtp")
-@patch("superset.utils.screenshots.ChartScreenshot.compute_and_cache")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_slack_chart_alert(screenshot_mock, email_mock, create_alert_email_chart):
     """
     ExecuteReport Command: Test chart slack alert
@@ -792,6 +794,89 @@ def test_email_mul_alert(create_mul_alert_email_chart):
             AsyncExecuteReportScheduleCommand(
                 create_mul_alert_email_chart.id, datetime.utcnow()
             ).run()
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_alert_email_chart"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+def test_soft_timeout_alert(email_mock, create_alert_email_chart):
+    """
+    ExecuteReport Command: Test soft timeout on alert queries
+    """
+    from celery.exceptions import SoftTimeLimitExceeded
+    from superset.reports.commands.exceptions import AlertQueryTimeout
+
+    with patch.object(
+        create_alert_email_chart.database.db_engine_spec, "execute", return_value=None
+    ) as execute_mock:
+        execute_mock.side_effect = SoftTimeLimitExceeded()
+        with pytest.raises(AlertQueryTimeout):
+            AsyncExecuteReportScheduleCommand(
+                create_alert_email_chart.id, datetime.utcnow()
+            ).run()
+
+    notification_targets = get_target_from_report_schedule(create_alert_email_chart)
+    # Assert the email smtp address, asserts a notification was sent with the error
+    assert email_mock.call_args[0][0] == notification_targets[0]
+
+    assert_log(
+        ReportState.ERROR, error_message="A timeout occurred while executing the query."
+    )
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_alert_email_chart"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_soft_timeout_screenshot(screenshot_mock, email_mock, create_alert_email_chart):
+    """
+    ExecuteReport Command: Test soft timeout on screenshot
+    """
+    from celery.exceptions import SoftTimeLimitExceeded
+    from superset.reports.commands.exceptions import AlertQueryTimeout
+
+    screenshot_mock.side_effect = SoftTimeLimitExceeded()
+    with pytest.raises(ReportScheduleScreenshotTimeout):
+        AsyncExecuteReportScheduleCommand(
+            create_alert_email_chart.id, datetime.utcnow()
+        ).run()
+
+    notification_targets = get_target_from_report_schedule(create_alert_email_chart)
+    # Assert the email smtp address, asserts a notification was sent with the error
+    assert email_mock.call_args[0][0] == notification_targets[0]
+
+    assert_log(
+        ReportState.ERROR, error_message="A timeout occurred while taking a screenshot."
+    )
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_alert_email_chart"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_fail_screenshot(screenshot_mock, email_mock, create_alert_email_chart):
+    """
+    ExecuteReport Command: Test soft timeout on screenshot
+    """
+    from celery.exceptions import SoftTimeLimitExceeded
+    from superset.reports.commands.exceptions import AlertQueryTimeout
+
+    screenshot_mock.side_effect = Exception("Unexpected error")
+    with pytest.raises(ReportScheduleScreenshotFailedError):
+        AsyncExecuteReportScheduleCommand(
+            create_alert_email_chart.id, datetime.utcnow()
+        ).run()
+
+    notification_targets = get_target_from_report_schedule(create_alert_email_chart)
+    # Assert the email smtp address, asserts a notification was sent with the error
+    assert email_mock.call_args[0][0] == notification_targets[0]
+
+    assert_log(
+        ReportState.ERROR, error_message="Failed taking a screenshot Unexpected error"
+    )
 
 
 @pytest.mark.usefixtures("create_invalid_sql_alert_email_chart")
@@ -860,7 +945,7 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
 
 @pytest.mark.usefixtures("create_invalid_sql_alert_email_chart")
 @patch("superset.reports.notifications.email.send_email_smtp")
-@patch("superset.utils.screenshots.ChartScreenshot.compute_and_cache")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
 def test_grace_period_error_flap(
     screenshot_mock, email_mock, create_invalid_sql_alert_email_chart
 ):

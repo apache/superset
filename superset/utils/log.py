@@ -104,7 +104,7 @@ class AbstractEventLogger(ABC):
     def log_with_context(  # pylint: disable=too-many-locals
         self,
         action: str,
-        duration: timedelta,
+        duration: Optional[timedelta] = None,
         object_ref: Optional[str] = None,
         log_to_statsd: bool = True,
         **payload_override: Optional[Dict[str, Any]],
@@ -112,6 +112,9 @@ class AbstractEventLogger(ABC):
         from superset.views.core import get_form_data
 
         referrer = request.referrer[:1000] if request.referrer else None
+
+        duration_ms = int(duration.total_seconds() * 1000) if duration else None
+
         try:
             user_id = g.user.get_id()
         except Exception as ex:  # pylint: disable=broad-except
@@ -158,7 +161,7 @@ class AbstractEventLogger(ABC):
             records=records,
             dashboard_id=dashboard_id,
             slice_id=slice_id,
-            duration_ms=int(duration.total_seconds() * 1000),
+            duration_ms=duration_ms,
             referrer=referrer,
         )
 

@@ -31,6 +31,7 @@ export const useBackendFormUpdate = (
   filterId: string,
   filterToEdit?: Filter,
   hasDatasource?: boolean,
+  hasColumn?: boolean,
 ) => {
   const forceUpdate = useForceUpdate();
   const formFilter = (form.getFieldValue('filters') || {})[filterId];
@@ -42,11 +43,15 @@ export const useBackendFormUpdate = (
     }
     // No need to check data set change because it cascading update column
     // So check that column exists is enough
-    if (!formFilter?.column) {
+    if (hasColumn && !formFilter?.column) {
       setFilterFieldValues(form, filterId, {
         defaultValueQueriesData: [],
         defaultValue: resolvedDefaultValue,
       });
+      return;
+    }
+    if (!formFilter?.dataset?.value) {
+      // no need to make chart data request if no dataset is defined
       return;
     }
     const formData = getFormData({
@@ -63,7 +68,8 @@ export const useBackendFormUpdate = (
       if (
         filterToEdit?.filterType === formFilter?.filterType &&
         filterToEdit?.targets[0].datasetId === formFilter?.dataset?.value &&
-        formFilter?.column === filterToEdit?.targets[0].column?.name
+        (!hasColumn ||
+          formFilter?.column === filterToEdit?.targets[0].column?.name)
       ) {
         resolvedDefaultValue = filterToEdit?.defaultValue;
       }
