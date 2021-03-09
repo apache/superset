@@ -17,33 +17,56 @@
 """add new columns to query model
 
 Revision ID: b5676c717e8b
-Revises: 070c043f2fdb
+Revises: fc3a3a8ff221
 Create Date: 2021-02-18 14:22:34.727568
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "b5676c717e8b"
-down_revision = "070c043f2fdb"
+down_revision = "fc3a3a8ff221"
 
 from enum import Enum
-from alembic import op
+
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql.base import PGDialect
-from superset.models.sql_lab import LimitingFactor
+
+limiting_factor = postgresql.ENUM(
+    "DROPDOWN",
+    "QUERY",
+    "NOT_LIMITED",
+    "QUERY_AND_DROPDOWN",
+    "UNKNOWN",
+    name="limitingfactor",
+)
+
 
 def upgrade():
     bind = op.get_bind()
     if isinstance(bind.dialect, PGDialect):
-        limiting_factor = postgresql.ENUM("DROPDOWN", "QUERY", "NOT_LIMITED", "QUERY_AND_DROPDOWN", "UNKNOWN", name="limitingfactor")
         limiting_factor.create(bind)
     with op.batch_alter_table("query") as batch_op:
         batch_op.add_column(
-            sa.Column("limiting_factor", sa.Enum("DROPDOWN", "QUERY", "NOT_LIMITED", "QUERY_AND_DROPDOWN", "UNKNOWN", name="limitingfactor"))
-       )
+            sa.Column(
+                "limiting_factor",
+                sa.Enum(
+                    "DROPDOWN",
+                    "QUERY",
+                    "NOT_LIMITED",
+                    "QUERY_AND_DROPDOWN",
+                    "UNKNOWN",
+                    name="limitingfactor",
+                ),
+                server_default="UNKNOWN",
+            )
+        )
 
 
 def downgrade():
     with op.batch_alter_table("query") as batch_op:
         batch_op.drop_column("limiting_factor")
+        bind = op.get_bind()
+    if isinstance(bind.dialect, PGDialect):
+        limiting_factor.drop(bind)

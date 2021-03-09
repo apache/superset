@@ -18,7 +18,6 @@
 import enum
 import re
 from datetime import datetime
-import enum
 from typing import Any, Dict, List
 
 import simplejson as json
@@ -34,6 +33,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Enum,
+    ForeignKey,
     Integer,
     Numeric,
     String,
@@ -52,10 +52,6 @@ from superset.models.tags import QueryUpdater
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.utils.core import QueryStatus, user_label
 
-class LimitMethod(str, enum.Enum):
-    QUERY = "QUERY"
-    DROPDOWN = "DROPDOWN"
-    UNKNOWN = "UNKNOWN"
 
 class LimitingFactor(str, enum.Enum):
     QUERY = "QUERY"
