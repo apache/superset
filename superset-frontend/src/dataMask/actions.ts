@@ -49,7 +49,6 @@ export function updateDataMask(
     ownFilters?: Omit<MaskWithId, 'id'>;
   },
 ): UpdateDataMask {
-  console.log(filterId, dataMask);
   return {
     type: UPDATE_DATA_MASK,
     filterId,
