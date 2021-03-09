@@ -579,10 +579,17 @@ pip3 install -r requirements/integration.txt
 pre-commit install
 ```
 
+A series of checks will now run when you make a git commit.
+
 Alternatively it is possible to run pre-commit via tox:
 
 ```bash
 tox -e pre-commit
+```
+
+Or by running pre-commit manually:
+```bash
+pre-commit run --all-files
 ```
 
 ## Linting
@@ -593,14 +600,16 @@ Lint the project with:
 # for python
 tox -e pylint
 
+Alternatively, you can use pre-commit (mentioned above) for python linting
+
+The Python code is auto-formatted using [Black](https://github.com/python/black) which
+is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html)
+
 # for frontend
 cd superset-frontend
 npm ci
 npm run lint
 ```
-
-The Python code is auto-formatted using [Black](https://github.com/python/black) which
-is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html).
 
 ## Conventions
 
@@ -686,6 +695,14 @@ tox -e <environment> -- tests/test_file.py::TestClassName::test_method_name
 Note that the test environment uses a temporary directory for defining the
 SQLite databases which will be cleared each time before the group of test
 commands are invoked.
+
+There is also a utility script included in the Superset codebase to run python tests. The [readme can be
+found here](https://github.com/apache/superset/tree/master/scripts/tests)
+
+To run all tests for example, run this script from the root directory:
+```bash
+scripts/tests/run.sh
+```
 
 ### Frontend Testing
 
