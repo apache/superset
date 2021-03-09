@@ -67,7 +67,7 @@ const FilterSetUnitWrapper = styled.div<{
 
 type FilterSetsProps = {
   disabled: boolean;
-  filterData: DataMaskUnit;
+  currentDataMask: DataMaskUnit;
   onFilterSelectionChange: (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
     dataMask: Partial<DataMaskState>,
@@ -77,7 +77,7 @@ type FilterSetsProps = {
 const DEFAULT_FILTER_SET_NAME = t('New filter set');
 
 const FilterSets: React.FC<FilterSetsProps> = ({
-  filterData,
+  currentDataMask,
   disabled,
   onFilterSelectionChange,
 }) => {
@@ -86,22 +86,22 @@ const FilterSets: React.FC<FilterSetsProps> = ({
   const [editMode, setEditMode] = useState(false);
   const dataMaskApplied = useDataMask();
   const filterSets = useFilterSets();
-  const filterSetsArray = Object.values(filterSets);
+  const filterSetFilterValues = Object.values(filterSets);
   const filters = Object.values(useFilters());
   const [selectedFiltersSetId, setSelectedFiltersSetId] = useState<
     string | null
   >(null);
 
   useEffect(() => {
-    const foundFilterSet = filterSetsArray.find(({ dataMask }) => {
+    const foundFilterSet = filterSetFilterValues.find(({ dataMask }) => {
       if (dataMask?.nativeFilters) {
         return Object.values(dataMask?.nativeFilters).every(
           filterFromFilterSet => {
             let currentValueFromFiltersTab =
               dataMaskApplied[filterFromFilterSet.id]?.currentState ?? {};
-            if (filterData[filterFromFilterSet.id]) {
+            if (currentDataMask[filterFromFilterSet.id]) {
               currentValueFromFiltersTab =
-                filterData[filterFromFilterSet.id]?.currentState;
+                currentDataMask[filterFromFilterSet.id]?.currentState;
             }
             return areObjectsEqual(
               filterFromFilterSet.currentState ?? {},
@@ -113,7 +113,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
       return false;
     });
     setSelectedFiltersSetId(foundFilterSet?.id ?? null);
-  }, [dataMaskApplied, filterData, filterSetsArray]);
+  }, [dataMaskApplied, currentDataMask, filterSetFilterValues]);
 
   const takeFilterSet = (target: HTMLElement, id: string) => {
     const ignoreSelector = 'ant-collapse-header';
@@ -144,7 +144,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
   const handleDeleteFilterSets = () => {
     dispatch(
       setFilterSetsConfiguration(
-        filterSetsArray.filter(
+        filterSetFilterValues.filter(
           filtersSet => filtersSet.id !== selectedFiltersSetId,
         ),
       ),
@@ -167,7 +167,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
       },
     };
     dispatch(
-      setFilterSetsConfiguration([newFilterSet].concat(filterSetsArray)),
+      setFilterSetsConfiguration([newFilterSet].concat(filterSetFilterValues)),
     );
     setEditMode(false);
     setFilterSetName(DEFAULT_FILTER_SET_NAME);
@@ -194,7 +194,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
           />
         </FilterSetUnitWrapper>
       )}
-      {filterSetsArray.map(filterSet => (
+      {filterSetFilterValues.map(filterSet => (
         <FilterSetUnitWrapper
           selected={filterSet.id === selectedFiltersSetId}
           onClick={(e: MouseEvent<HTMLElement>) =>
