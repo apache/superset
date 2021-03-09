@@ -23,7 +23,19 @@ from collections import defaultdict, deque
 from contextlib import closing
 from datetime import datetime
 from distutils.version import StrictVersion
-from typing import Any, cast, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    Callable,
+    cast,
+    Dict,
+    List,
+    Match,
+    Optional,
+    Pattern,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 from urllib import parse
 
 import pandas as pd
@@ -36,6 +48,7 @@ from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
+from sqlalchemy.types import TypeEngine
 
 from superset import app, cache_manager, is_feature_enabled
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -52,6 +65,7 @@ from superset.models.sql_types.presto_sql_types import (
 from superset.result_set import destringify
 from superset.sql_parse import ParsedQuery
 from superset.utils import core as utils
+from superset.utils.core import ColumnSpec, GenericDataType
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -428,13 +442,13 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             utils.GenericDataType.TEMPORAL,
         ),
         (
-            re.compile(r"^time.*", re.IGNORECASE),
-            types.Time(),
+            re.compile(r"^interval.*", re.IGNORECASE),
+            Interval(),
             utils.GenericDataType.TEMPORAL,
         ),
         (
-            re.compile(r"^interval.*", re.IGNORECASE),
-            Interval(),
+            re.compile(r"^time.*", re.IGNORECASE),
+            types.Time(),
             utils.GenericDataType.TEMPORAL,
         ),
         (re.compile(r"^array.*", re.IGNORECASE), Array(), utils.GenericDataType.STRING),
@@ -1171,3 +1185,26 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
     def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
         """Pessimistic readonly, 100% sure statement won't mutate anything"""
         return super().is_readonly_query(parsed_query) or parsed_query.is_show()
+
+    @classmethod
+    def get_column_spec(  # type: ignore
+        cls,
+        native_type: Optional[str],
+        source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
+        column_type_mappings: Tuple[
+            Tuple[
+                Pattern[str],
+                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
+                GenericDataType,
+            ],
+            ...,
+        ] = column_type_mappings,
+    ) -> Union[ColumnSpec, None]:
+
+        column_spec = super().get_column_spec(native_type)
+        if column_spec:
+            return column_spec
+
+        return super().get_column_spec(
+            native_type, column_type_mappings=column_type_mappings
+        )

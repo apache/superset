@@ -202,7 +202,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         (re.compile(r"^char", re.IGNORECASE), types.CHAR(), GenericDataType.STRING),
         (re.compile(r"^text", re.IGNORECASE), types.Text(), GenericDataType.STRING),
         (re.compile(r"^date", re.IGNORECASE), types.Date(), GenericDataType.TEMPORAL,),
-        (re.compile(r"^time", re.IGNORECASE), types.Time(), GenericDataType.TEMPORAL,),
         (
             re.compile(r"^timestamp", re.IGNORECASE),
             types.TIMESTAMP(),
@@ -218,6 +217,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             types.Interval(),
             GenericDataType.TEMPORAL,
         ),
+        (re.compile(r"^time", re.IGNORECASE), types.Time(), GenericDataType.TEMPORAL,),
         (
             re.compile(r"^boolean", re.IGNORECASE),
             types.Boolean(),
@@ -1050,7 +1050,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 GenericDataType,
             ],
             ...,
-        ],
+        ] = column_type_mappings,
     ) -> Union[Tuple[TypeEngine, GenericDataType], None]:
         """
         Return a sqlalchemy native column type that corresponds to the column type

@@ -537,35 +537,35 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
     def test_get_sqla_column_type(self):
         sqla_type, generic_type = PrestoEngineSpec.get_sqla_column_type("varchar(255)")
         assert isinstance(sqla_type, types.VARCHAR)
-        assert sqla_type.length == 255
-        assert isinstance(generic_type, GenericDataType.STRING)
+        assert sqla_type.length is None
+        self.assertEqual(generic_type, GenericDataType.STRING)
 
         sqla_type, generic_type = PrestoEngineSpec.get_sqla_column_type("varchar")
         assert isinstance(sqla_type, types.String)
         assert sqla_type.length is None
-        assert isinstance(generic_type, GenericDataType.STRING)
+        self.assertEqual(generic_type, GenericDataType.STRING)
 
         sqla_type, generic_type = PrestoEngineSpec.get_sqla_column_type("char(10)")
         assert isinstance(sqla_type, types.CHAR)
-        assert sqla_type.length == 10
-        assert isinstance(generic_type, GenericDataType.STRING)
+        assert sqla_type.length is None
+        self.assertEqual(generic_type, GenericDataType.STRING)
 
         sqla_type, generic_type = PrestoEngineSpec.get_sqla_column_type("char")
         assert isinstance(sqla_type, types.CHAR)
         assert sqla_type.length is None
-        assert isinstance(generic_type, GenericDataType.STRING)
+        self.assertEqual(generic_type, GenericDataType.STRING)
 
         sqla_type, generic_type = PrestoEngineSpec.get_sqla_column_type("integer")
         assert isinstance(sqla_type, types.Integer)
-        assert isinstance(generic_type, GenericDataType.NUMERIC)
+        self.assertEqual(generic_type, GenericDataType.NUMERIC)
 
         sqla_type, generic_type = PrestoEngineSpec.get_sqla_column_type("time")
         assert isinstance(sqla_type, types.Time)
-        assert isinstance(generic_type, GenericDataType.TEMPORAL)
+        self.assertEqual(generic_type, GenericDataType.TEMPORAL)
 
         sqla_type, generic_type = PrestoEngineSpec.get_sqla_column_type("timestamp")
         assert isinstance(sqla_type, types.TIMESTAMP)
-        assert isinstance(generic_type, GenericDataType.TEMPORAL)
+        self.assertEqual(generic_type, GenericDataType.TEMPORAL)
 
         sqla_type = PrestoEngineSpec.get_sqla_column_type(None)
         assert sqla_type is None
