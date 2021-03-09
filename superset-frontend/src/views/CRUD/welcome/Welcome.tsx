@@ -45,9 +45,6 @@ export interface ActivityData {
   Edited?: Array<object>;
   Viewed?: Array<object>;
   Examples?: Array<object>;
-  myChart?: Array<object>;
-  myDash?: Array<object>;
-  myQuery?: Array<object>;
 }
 
 const WelcomeContainer = styled.div`
