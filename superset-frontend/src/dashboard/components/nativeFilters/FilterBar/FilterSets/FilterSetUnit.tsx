@@ -16,20 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Typography } from 'src/common/components';
+import { Typography, Dropdown } from 'src/common/components';
+import { styled } from 'superset-ui/core';
 import React, { FC } from 'react';
 import { FilterSet } from 'src/dashboard/reducers/types';
 import { DataMaskUnitWithId } from 'src/dataMask/types';
 import FiltersHeader from './FiltersHeader';
 import { Filter } from '../../types';
+import { CheckOutlined, EllipsisOutlined } from '@ant-design/icons'
+
+const LineText = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
 
 type FilterSetUnitProps = {
   filters: Filter[];
   editMode?: boolean;
+  isApplied?: boolean;
   filterSet?: FilterSet;
   filterSetName?: string;
   currentDataMask: DataMaskUnitWithId;
-  setFilterSetName?: (name: string) => void;
+  setFilterSetName?: (name:CheckOutlined string) => void;
 };
 
 const FilterSetUnit: FC<FilterSetUnitProps> = ({
@@ -39,18 +48,25 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
   filterSetName,
   currentDataMask,
   filterSet,
+  isApplied,
 }) => (
   <>
-    <Typography.Text
-      strong
-      editable={{
-        editing: editMode,
-        icon: <span />,
-        onChange: setFilterSetName,
-      }}
-    >
-      {filterSet?.name ?? filterSetName}
-    </Typography.Text>
+    <LineText>
+      <Typography.Text
+        strong
+        editable={{
+          editing: editMode,
+          icon: <span />,
+          onChange: setFilterSetName,
+        }}
+      >
+        {filterSet?.name ?? filterSetName}
+      </Typography.Text>
+      {isApplied && <CheckOutlined />}
+      <Dropdown overlay={menu} placement="bottomRight">
+        <EllipsisOutlined />
+      </Dropdown>
+    </LineText>
     <FiltersHeader
       expanded={!filterSet}
       dataMask={filterSet?.dataMask?.nativeFilters ?? currentDataMask}
