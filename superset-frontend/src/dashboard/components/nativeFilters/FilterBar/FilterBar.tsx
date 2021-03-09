@@ -218,7 +218,6 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         filterData[filterConfig.id]?.currentState?.value,
       ),
     );
-
     if (areFiltersInitialized) {
       handleApply();
       setIsInitialized(true);

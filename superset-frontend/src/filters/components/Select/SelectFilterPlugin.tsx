@@ -89,13 +89,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   useEffect(() => {
     handleChange(currentValue ?? []);
-  }, [JSON.stringify(currentValue)]);
+  }, [JSON.stringify(currentValue), multiSelect, enableEmptyFilter, inverseSelection]);
 
   useEffect(() => {
     handleChange(defaultValue ?? []);
-    // I think after Config Modal update some filter it re-creates default value for all other filters
-    // so we can process it like this `JSON.stringify` or start to use `Immer`
-  }, [JSON.stringify(defaultValue)]);
+  }, [JSON.stringify(defaultValue), multiSelect, enableEmptyFilter, inverseSelection]);
 
   const placeholderText =
     (data || []).length === 0

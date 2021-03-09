@@ -66,7 +66,7 @@ export default function PluginFilterTimegrain(
           },
         },
         currentState: {
-          value: selectedValues,
+          value: selectedValues.length ? selectedValues : null,
         },
       },
     });
