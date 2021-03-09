@@ -17,25 +17,33 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import { NativeFiltersState } from 'src/dashboard/reducers/types';
-import { DataMaskStateWithId } from 'src/dataMask/types';
+import {
+  FilterSets as FilterSetsType,
+  NativeFiltersState,
+} from 'src/dashboard/reducers/types';
+import { DataMaskUnitWithId } from 'src/dataMask/types';
 import { mergeExtraFormData } from '../utils';
 import { Filter } from '../types';
 
-export function useFilters() {
-  return useSelector<any, Filter>(state => state.nativeFilters.filters);
-}
+export const useFilterSets = () =>
+  useSelector<any, FilterSetsType>(
+    state => state.nativeFilters.filterSets || {},
+  );
+
+export const useFilters = () =>
+  useSelector<any, Filter>(state => state.nativeFilters.filters);
+
+export const useDataMask = () =>
+  useSelector<any, DataMaskUnitWithId>(state => state.dataMask.nativeFilters);
 
 export function useCascadingFilters(id: string) {
   const { filters } = useSelector<any, NativeFiltersState>(
     state => state.nativeFilters,
   );
-  const { nativeFilters } = useSelector<any, DataMaskStateWithId>(
-    state => state.dataMask,
-  );
   const filter = filters[id];
   const cascadeParentIds: string[] = filter?.cascadeParentIds ?? [];
   let cascadedFilters = {};
+  const nativeFilters = useDataMask();
   cascadeParentIds.forEach(parentId => {
     const parentState = nativeFilters[parentId] || {};
     const { extraFormData: parentExtra = {} } = parentState;

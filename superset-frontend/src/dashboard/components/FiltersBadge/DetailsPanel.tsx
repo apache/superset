@@ -37,6 +37,7 @@ import {
   FilterValue,
 } from './Styles';
 import { Indicator } from './selectors';
+import { getFilterValueForDisplay } from '../nativeFilters/FilterBar/FilterSets/utils';
 
 export interface IndicatorProps {
   indicator: Indicator;
@@ -46,18 +47,21 @@ export interface IndicatorProps {
 const Indicator = ({
   indicator: { column, name, value = [], path },
   onClick,
-}: IndicatorProps) => (
-  <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
-    <Title bold>
-      <ItemIcon>
-        <SearchOutlined />
-      </ItemIcon>
-      {name}
-      {value.length ? ': ' : ''}
-    </Title>
-    <FilterValue>{value.length ? value.join(', ') : ''}</FilterValue>
-  </Item>
-);
+}: IndicatorProps) => {
+  const resultValue = getFilterValueForDisplay(value);
+  return (
+    <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
+      <Title bold>
+        <ItemIcon>
+          <SearchOutlined />
+        </ItemIcon>
+        {name}
+        {resultValue ? ': ' : ''}
+      </Title>
+      <FilterValue>{resultValue}</FilterValue>
+    </Item>
+  );
+};
 
 export interface DetailsPanelProps {
   appliedIndicators: Indicator[];
