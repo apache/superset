@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, MouseEvent } from 'react';
 import { HandlerFunction, styled, t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { DataMaskState, DataMaskUnit, MaskWithId } from 'src/dataMask/types';
@@ -62,7 +62,7 @@ const FilterSetUnitWrapper = styled.div<{
   padding: ${({ theme }) => `${theme.gridUnit * 3}px ${theme.gridUnit * 2}px`};
   cursor: ${({ onClick }) => (!onClick ? 'auto' : 'pointer')};
   background: ${({ theme, selected }) =>
-    (selected ? theme.colors.primary.light5 : 'transparent')};
+    selected ? theme.colors.primary.light5 : 'transparent'};
 `;
 
 type FilterSetsProps = {
@@ -115,7 +115,16 @@ const FilterSets: React.FC<FilterSetsProps> = ({
     setSelectedFiltersSetId(foundFilterSet?.id ?? null);
   }, [dataMaskApplied, filterData, filterSetsArray]);
 
-  const takeFilterSet = (id: string) => {
+  const takeFilterSet = (target: HTMLElement, id: string) => {
+    const ignoreSelector = 'ant-collapse-header';
+    if (
+      target.classList.contains(ignoreSelector) ||
+      target.parentElement?.classList.contains(ignoreSelector) ||
+      target.parentElement?.parentElement?.classList.contains(ignoreSelector)
+    ) {
+      // We don't want select filter set when user expand filters
+      return;
+    }
     setSelectedFiltersSetId(id);
     if (!id) {
       return;
@@ -188,7 +197,9 @@ const FilterSets: React.FC<FilterSetsProps> = ({
       {filterSetsArray.map(filterSet => (
         <FilterSetUnitWrapper
           selected={filterSet.id === selectedFiltersSetId}
-          onClick={() => takeFilterSet(filterSet.id)}
+          onClick={(e: MouseEvent<HTMLElement>) =>
+            takeFilterSet(e.target as HTMLElement, filterSet.id)
+          }
         >
           <FilterSetUnit
             isApplied={filterSet.id === selectedFiltersSetId && !disabled}

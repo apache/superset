@@ -44,6 +44,7 @@ const StyledCollapse = styled(Collapse)`
       align-items: center;
       flex-direction: row-reverse;
       justify-content: flex-end;
+      max-width: max-content;
       & .ant-collapse-arrow {
         position: static;
         padding-left: ${({ theme }) => theme.gridUnit}px;
