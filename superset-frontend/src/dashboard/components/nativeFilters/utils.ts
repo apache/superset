@@ -44,12 +44,12 @@ export const getFormData = ({
   cascadingFilters?: object;
   groupby?: string;
 }): Partial<QueryFormData> => {
-  let otherProps: { datasource?: string; groupby?: string[] } = {};
-  if (datasetId && groupby) {
-    otherProps = {
-      datasource: `${datasetId}__table`,
-      groupby: [groupby],
-    };
+  const otherProps: { datasource?: string; groupby?: string[] } = {};
+  if (datasetId) {
+    otherProps.datasource = `${datasetId}__table`;
+  }
+  if (groupby) {
+    otherProps.groupby = [groupby];
   }
   return {
     ...controlValues,
