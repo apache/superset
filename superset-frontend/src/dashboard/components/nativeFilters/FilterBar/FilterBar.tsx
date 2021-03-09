@@ -212,10 +212,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     if (isInitialized) {
       return;
     }
-    const areFiltersInitialized = filtersArray.every(
-      filterConfig =>
-        filterConfig.defaultValue ===
+    const areFiltersInitialized = filtersArray.every(filterConfig =>
+      areObjectsEqual(
+        filterConfig.defaultValue,
         filterData[filterConfig.id]?.currentState?.value,
+      ),
     );
     if (areFiltersInitialized) {
       handleApply();
