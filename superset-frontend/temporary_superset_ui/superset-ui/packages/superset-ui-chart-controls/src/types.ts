@@ -18,7 +18,7 @@
  * under the License.
  */
 import React, { ReactNode, ReactText, ReactElement } from 'react';
-import { QueryFormData, DatasourceType, Metric } from '@superset-ui/core';
+import { QueryFormData, DatasourceType, Metric, JsonValue } from '@superset-ui/core';
 import sharedControls from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
 
@@ -89,7 +89,9 @@ export interface ControlPanelActionDispatchers {
 /**
  * Additional control props obtained from `mapStateToProps`.
  */
-export type ExtraControlProps = AnyDict;
+export type ExtraControlProps = {
+  value?: JsonValue;
+} & AnyDict;
 
 // Ref:superset-frontend/src/explore/store.js
 export type ControlState<T = ControlType, O extends SelectOption = SelectOption> = ControlConfig<
@@ -179,7 +181,7 @@ export type TabOverride = 'data' | 'customize' | boolean;
 export interface BaseControlConfig<
   T extends ControlType = ControlType,
   O extends SelectOption = SelectOption,
-  V = unknown
+  V = JsonValue
 > extends AnyDict {
   type: T;
   label?: ReactNode;
@@ -205,8 +207,9 @@ export interface ControlValueValidator<
 /** --------------------------------------------
  * Additional Config for specific control Types
  * --------------------------------------------- */
-type SelectOption = AnyDict | string | [ReactText, ReactNode];
-type SelectControlType =
+export type SelectOption = AnyDict | string | [ReactText, ReactNode];
+
+export type SelectControlType =
   | 'SelectControl'
   | 'SelectAsyncControl'
   | 'MetricsControl'
