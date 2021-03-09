@@ -107,9 +107,13 @@ describe('Filter utils', () => {
       expect(getSelectExtraFormData('testCol', ['value'], true, false)).toEqual(
         {
           append_form_data: {
-            extras: {
-              where: '1 = 0',
-            },
+            adhoc_filters: [
+              {
+                clause: 'WHERE',
+                expressionType: 'SQL',
+                sqlExpression: '1 = 0',
+              },
+            ],
           },
         },
       );

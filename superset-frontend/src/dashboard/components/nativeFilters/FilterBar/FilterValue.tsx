@@ -60,7 +60,7 @@ const FilterValue: React.FC<FilterProps> = ({
     column = {},
   }: Partial<{ datasetId: number; column: { name?: string } }> = target;
   const { name: groupby } = column;
-  const hasDataSource = !!(datasetId && groupby);
+  const hasDataSource = !!datasetId;
   const [loading, setLoading] = useState<boolean>(hasDataSource);
   useEffect(() => {
     const newFormData = getFormData({
@@ -137,7 +137,7 @@ const FilterValue: React.FC<FilterProps> = ({
         width={220}
         formData={formData}
         // For charts that don't have datasource we need workaround for empty placeholder
-        queriesData={hasDataSource ? state : [{ data: [null] }]}
+        queriesData={hasDataSource ? state : [{ data: [{}] }]}
         chartType={filterType}
         behaviors={[Behavior.NATIVE_FILTER]}
         hooks={{ setDataMask }}

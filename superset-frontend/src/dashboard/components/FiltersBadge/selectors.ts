@@ -22,6 +22,7 @@ import { NativeFiltersState } from 'src/dashboard/reducers/types';
 import { DataMaskStateWithId } from 'src/dataMask/types';
 import { Layout } from '../../types';
 import { getTreeCheckedItems } from '../nativeFilters/FiltersConfigModal/FiltersConfigForm/FilterScope/utils';
+import { FilterValue } from '../nativeFilters/types';
 
 export enum IndicatorStatus {
   Unset = 'UNSET',
@@ -52,7 +53,7 @@ const selectIndicatorValue = (
   columnKey: string,
   filter: Filter,
   datasource: Datasource,
-): string[] => {
+): FilterValue => {
   const values = filter.columns[columnKey];
   const arrValues = Array.isArray(values) ? values : [values];
 
@@ -132,7 +133,7 @@ const getRejectedColumns = (chart: any): Set<string> =>
 export type Indicator = {
   column?: string;
   name: string;
-  value: string[];
+  value: FilterValue;
   status: IndicatorStatus;
   path: string[];
 };
@@ -185,20 +186,22 @@ export const selectNativeIndicatorsForChart = (
   const rejectedColumns = getRejectedColumns(chart);
 
   const getStatus = (
-    value: string[],
+    value: FilterValue,
     isAffectedByScope: boolean,
     column?: string,
   ): IndicatorStatus => {
+    // a filter is only considered unset if it's value is null
+    const hasValue = value !== null;
     if (!isAffectedByScope) {
       return IndicatorStatus.Unset;
     }
-    if (!column) {
+    if (!column && hasValue) {
       // Filter without datasource
       return IndicatorStatus.Applied;
     }
     if (column && rejectedColumns.has(column))
       return IndicatorStatus.Incompatible;
-    if (column && appliedColumns.has(column) && value.length > 0) {
+    if (column && appliedColumns.has(column) && hasValue) {
       return IndicatorStatus.Applied;
     }
     return IndicatorStatus.Unset;

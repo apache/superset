@@ -40,7 +40,7 @@ from typing import (
 import pandas as pd
 import sqlparse
 from flask import g
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import column, DateTime, select
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Compiled, Dialect
@@ -77,23 +77,23 @@ QueryStatus = utils.QueryStatus
 config = app.config
 
 builtin_time_grains: Dict[Optional[str], str] = {
-    None: "Time Column",
-    "PT1S": "second",
-    "PT1M": "minute",
-    "PT5M": "5 minute",
-    "PT10M": "10 minute",
-    "PT15M": "15 minute",
-    "PT0.5H": "half hour",
-    "PT1H": "hour",
-    "P1D": "day",
-    "P1W": "week",
-    "P1M": "month",
-    "P0.25Y": "quarter",
-    "P1Y": "year",
-    "1969-12-28T00:00:00Z/P1W": "week_start_sunday",
-    "1969-12-29T00:00:00Z/P1W": "week_start_monday",
-    "P1W/1970-01-03T00:00:00Z": "week_ending_saturday",
-    "P1W/1970-01-04T00:00:00Z": "week_ending_sunday",
+    None: __("Original value"),
+    "PT1S": __("Second"),
+    "PT1M": __("Minute"),
+    "PT5M": __("5 minute"),
+    "PT10M": __("10 minute"),
+    "PT15M": __("15 minute"),
+    "PT0.5H": __("Half hour"),
+    "PT1H": __("Hour"),
+    "P1D": __("Day"),
+    "P1W": __("Week"),
+    "P1M": __("Month"),
+    "P0.25Y": __("Quarter"),
+    "P1Y": __("Year"),
+    "1969-12-28T00:00:00Z/P1W": __("Week starting sunday"),
+    "1969-12-29T00:00:00Z/P1W": __("Week starting monday"),
+    "P1W/1970-01-03T00:00:00Z": __("Week ending saturday"),
+    "P1W/1970-01-04T00:00:00Z": __("Week_ending sunday"),
 }
 
 

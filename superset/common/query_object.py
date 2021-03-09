@@ -73,6 +73,7 @@ class QueryObject:
 
     annotation_layers: List[Dict[str, Any]]
     applied_time_extras: Dict[str, str]
+    apply_fetch_values_predicate: bool
     granularity: Optional[str]
     from_dttm: Optional[datetime]
     to_dttm: Optional[datetime]
@@ -100,6 +101,7 @@ class QueryObject:
         result_type: Optional[ChartDataResultType] = None,
         annotation_layers: Optional[List[Dict[str, Any]]] = None,
         applied_time_extras: Optional[Dict[str, str]] = None,
+        apply_fetch_values_predicate: bool = False,
         granularity: Optional[str] = None,
         metrics: Optional[List[Union[Dict[str, Any], str]]] = None,
         groupby: Optional[List[str]] = None,
@@ -127,6 +129,7 @@ class QueryObject:
             )
         self.result_type = result_type
         annotation_layers = annotation_layers or []
+        self.apply_fetch_values_predicate = apply_fetch_values_predicate or False
         metrics = metrics or []
         columns = columns or []
         groupby = groupby or []
@@ -262,6 +265,7 @@ class QueryObject:
 
     def to_dict(self) -> Dict[str, Any]:
         query_object_dict = {
+            "apply_fetch_values_predicate": self.apply_fetch_values_predicate,
             "granularity": self.granularity,
             "groupby": self.groupby,
             "from_dttm": self.from_dttm,
@@ -291,17 +295,23 @@ class QueryObject:
         """
         cache_dict = self.to_dict()
         cache_dict.update(extra)
+
+        # TODO: the below KVs can all be cleaned up and moved to `to_dict()` at some
+        #  predetermined point in time when orgs are aware that the previously
+        #  chached results will be invalidated.
+        if not self.apply_fetch_values_predicate:
+            del cache_dict["apply_fetch_values_predicate"]
         if self.datasource:
             cache_dict["datasource"] = self.datasource.uid
         if self.result_type:
             cache_dict["result_type"] = self.result_type
-
-        for k in ["from_dttm", "to_dttm"]:
-            del cache_dict[k]
         if self.time_range:
             cache_dict["time_range"] = self.time_range
         if self.post_processing:
             cache_dict["post_processing"] = self.post_processing
+
+        for k in ["from_dttm", "to_dttm"]:
+            del cache_dict[k]
 
         annotation_fields = [
             "annotationType",

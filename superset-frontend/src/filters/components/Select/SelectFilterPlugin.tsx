@@ -16,17 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, Behavior, DataMask, t } from '@superset-ui/core';
+import { Behavior, DataMask, t, tn, ensureIsArray } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import { PluginFilterSelectProps } from './types';
-import { PluginFilterStylesProps } from '../types';
+import { Styles, StyledSelect } from '../common';
 import { getSelectExtraFormData } from '../../utils';
-
-const Styles = styled.div<PluginFilterStylesProps>`
-  height: ${({ height }) => height};
-  width: ${({ width }) => width};
-`;
 
 const { Option } = Select;
 
@@ -50,13 +45,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const handleChange = (
     value?: (number | string)[] | number | string | null,
   ) => {
-    let resultValue: (number | string)[];
-    // Works only with arrays even for single select
-    if (!Array.isArray(value)) {
-      resultValue = value ? [value] : [];
-    } else {
-      resultValue = value;
-    }
+    const resultValue: (number | string)[] = ensureIsArray<number | string>(
+      value,
+    );
     setValues(resultValue);
 
     const [col] = groupby;
@@ -89,25 +80,32 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   useEffect(() => {
     handleChange(currentValue ?? []);
-  }, [JSON.stringify(currentValue)]);
+  }, [
+    JSON.stringify(currentValue),
+    multiSelect,
+    enableEmptyFilter,
+    inverseSelection,
+  ]);
 
   useEffect(() => {
     handleChange(defaultValue ?? []);
-    // I think after Config Modal update some filter it re-creates default value for all other filters
-    // so we can process it like this `JSON.stringify` or start to use `Immer`
-  }, [JSON.stringify(defaultValue)]);
+  }, [
+    JSON.stringify(defaultValue),
+    multiSelect,
+    enableEmptyFilter,
+    inverseSelection,
+  ]);
 
   const placeholderText =
     (data || []).length === 0
       ? t('No data')
-      : t(`%d option%s`, data.length, data.length === 1 ? '' : 's');
+      : tn('%s option', '%s options', data.length, data.length);
   return (
     <Styles height={height} width={width}>
-      <Select
+      <StyledSelect
         allowClear
         value={values}
         showSearch={showSearch}
-        style={{ width: '100%' }}
         mode={multiSelect ? 'multiple' : undefined}
         placeholder={placeholderText}
         // @ts-ignore
@@ -122,7 +120,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             </Option>
           );
         })}
-      </Select>
+      </StyledSelect>
     </Styles>
   );
 }
