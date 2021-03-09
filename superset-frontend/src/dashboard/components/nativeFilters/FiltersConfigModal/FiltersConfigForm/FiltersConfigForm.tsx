@@ -78,6 +78,8 @@ export interface FiltersConfigFormProps {
   parentFilters: { id: string; title: string }[];
 }
 
+const FILTERS_WITH_ONLY_DATASOURCE = ['filter_timegrain', 'filter_timecolumn'];
+
 /**
  * The configuration form for a specific filter.
  * Assigns field values to `filters[filterId]` in the form.
@@ -106,7 +108,7 @@ export const FiltersConfigForm: React.FC<FiltersConfigFormProps> = ({
     ?.datasourceCount;
   const hasColumn =
     hasDatasource &&
-    !['filter_timegrain', 'filter_timecolumn'].includes(formFilter?.filterType);
+    !FILTERS_WITH_ONLY_DATASOURCE.includes(formFilter?.filterType);
 
   const hasFilledDatasource =
     !hasDatasource ||

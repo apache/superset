@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, DataMask, styled, t } from '@superset-ui/core';
+import { Behavior, DataMask, styled, t, tn } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import { PluginFilterTimeColumnProps } from './types';
@@ -84,11 +84,7 @@ export default function PluginFilterTimeColumn(
   const placeholderText =
     timeColumns.length === 0
       ? t('No time columns')
-      : t(
-          `%d column%s`,
-          timeColumns.length,
-          timeColumns.length === 1 ? '' : 's',
-        );
+      : tn('%s option', '%s options', timeColumns.length, timeColumns.length);
   return (
     <Styles height={height} width={width}>
       <Select

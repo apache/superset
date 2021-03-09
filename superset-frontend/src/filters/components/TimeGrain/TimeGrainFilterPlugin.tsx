@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObjectExtras, styled, t } from '@superset-ui/core';
+import { QueryObjectExtras, styled, t, tn } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
 import { PluginFilterTimeGrainProps } from './types';
@@ -85,7 +85,7 @@ export default function PluginFilterTimegrain(
   const placeholderText =
     (data || []).length === 0
       ? t('No data')
-      : t(`%d option%s`, data.length, data.length === 1 ? '' : 's');
+      : tn('%s option', '%s options', data.length, data.length);
   return (
     <Styles height={height} width={width}>
       <Select
