@@ -199,6 +199,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
           onClick={() => takeFilterSet(filterSet.id)}
         >
           <FilterSetUnit
+            onDelete={handleDeleteFilterSets}
             filters={filters}
             currentDataMask={dataMaskApplied}
             filterSet={filterSet}

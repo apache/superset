@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Typography, Dropdown } from 'src/common/components';
-import { styled } from 'superset-ui/core';
+import { Typography, Dropdown, Menu } from 'src/common/components';
 import React, { FC } from 'react';
 import { FilterSet } from 'src/dashboard/reducers/types';
 import { DataMaskUnitWithId } from 'src/dataMask/types';
+import { CheckOutlined, EllipsisOutlined } from '@ant-design/icons';
+import { HandlerFunction, styled, t } from '@superset-ui/core';
 import FiltersHeader from './FiltersHeader';
 import { Filter } from '../../types';
-import { CheckOutlined, EllipsisOutlined } from '@ant-design/icons'
 
 const LineText = styled.div`
   display: flex;
@@ -38,41 +38,50 @@ type FilterSetUnitProps = {
   filterSet?: FilterSet;
   filterSetName?: string;
   currentDataMask: DataMaskUnitWithId;
-  setFilterSetName?: (name:CheckOutlined string) => void;
+  setFilterSetName?: (name: string) => void;
+  onDelete: HandlerFunction;
 };
 
 const FilterSetUnit: FC<FilterSetUnitProps> = ({
   filters,
   editMode,
   setFilterSetName,
+  onDelete,
   filterSetName,
   currentDataMask,
   filterSet,
   isApplied,
-}) => (
-  <>
-    <LineText>
-      <Typography.Text
-        strong
-        editable={{
-          editing: editMode,
-          icon: <span />,
-          onChange: setFilterSetName,
-        }}
-      >
-        {filterSet?.name ?? filterSetName}
-      </Typography.Text>
-      {isApplied && <CheckOutlined />}
-      <Dropdown overlay={menu} placement="bottomRight">
-        <EllipsisOutlined />
-      </Dropdown>
-    </LineText>
-    <FiltersHeader
-      expanded={!filterSet}
-      dataMask={filterSet?.dataMask?.nativeFilters ?? currentDataMask}
-      filters={filters}
-    />
-  </>
-);
+}) => {
+  const menu = (
+    <Menu>
+      <Menu.Item onClick={onDelete}>{t('Delete')}</Menu.Item>
+    </Menu>
+  );
+  return (
+    <>
+      <LineText>
+        <Typography.Text
+          strong
+          editable={{
+            editing: editMode,
+            icon: <span />,
+            onChange: setFilterSetName,
+          }}
+        >
+          {filterSet?.name ?? filterSetName}
+        </Typography.Text>
+        {isApplied && <CheckOutlined />}
+        <Dropdown overlay={menu} placement="bottomRight">
+          <EllipsisOutlined />
+        </Dropdown>
+      </LineText>
+      <FiltersHeader
+        expanded={!filterSet}
+        dataMask={filterSet?.dataMask?.nativeFilters ?? currentDataMask}
+        filters={filters}
+      />
+    </>
+  );
+};
 
 export default FilterSetUnit;
