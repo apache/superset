@@ -66,13 +66,13 @@ const StyledPane = styled.div`
   .ant-tabs .ant-tabs-content-holder {
     overflow: visible;
   }
-
   .SouthPaneTabs {
     height: 100%;
     display: flex;
     flex-direction: column;
   }
   .tab-content {
+    overflow: hidden;
     .alert {
       margin-top: ${({ theme }) => theme.gridUnit * 2}px;
     }

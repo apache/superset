@@ -81,7 +81,7 @@ export const AsyncAceEditor = (
 AsyncAceEditor.args = {
   defaultTabSize: 2,
   width: '100%',
-  height: 500,
+  height: '500px',
   value: `{"text": "Simple text"}`,
 };
 
@@ -99,10 +99,10 @@ AsyncAceEditor.argTypes = {
 AsyncAceEditor.story = {
   parameters: {
     actions: {
-      disabled: true,
+      disable: true,
     },
     knobs: {
-      disabled: true,
+      disable: true,
     },
   },
 };

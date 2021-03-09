@@ -20,11 +20,11 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import columnType from 'src/explore/propTypes/columnType';
 import { OptionControlLabel } from 'src/explore/components/OptionControls';
-import { OPTION_TYPES } from 'src/explore/components/optionTypes';
 import AdhocMetricOption from './AdhocMetricOption';
 import AdhocMetric from './AdhocMetric';
 import savedMetricType from './savedMetricType';
 import adhocMetricType from './adhocMetricType';
+import { DndItemType } from '../../DndItemType';
 
 const propTypes = {
   option: PropTypes.oneOfType([savedMetricType, adhocMetricType]).isRequired,
@@ -88,7 +88,7 @@ export default function MetricDefinitionValue({
         onRemove={onRemoveMetric}
         onMoveLabel={onMoveLabel}
         onDropLabel={onDropLabel}
-        type={OPTION_TYPES.metric}
+        type={DndItemType.FilterOption}
         index={index}
         isFunction
       />

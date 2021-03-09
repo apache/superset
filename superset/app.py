@@ -412,6 +412,10 @@ class SupersetAppInitializer:
         # Conditionally setup email views
         #
         if self.config["ENABLE_SCHEDULED_EMAIL_REPORTS"]:
+            logging.warning(
+                "ENABLE_SCHEDULED_EMAIL_REPORTS "
+                "is deprecated and will be removed in version 2.0.0"
+            )
             appbuilder.add_separator("Manage")
             appbuilder.add_view(
                 DashboardEmailScheduleView,
@@ -431,6 +435,9 @@ class SupersetAppInitializer:
             )
 
         if self.config["ENABLE_ALERTS"]:
+            logging.warning(
+                "ENABLE_ALERTS is deprecated and will be removed in version 2.0.0"
+            )
             appbuilder.add_view(
                 AlertModelView,
                 "Alerts",

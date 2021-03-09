@@ -19,14 +19,12 @@
 import { styled, DataMask, Behavior } from '@superset-ui/core';
 import React, { useState, useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
-import { PluginFilterStylesProps } from '../types';
 import { PluginFilterTimeProps } from './types';
+import { Styles } from '../common';
 
 const DEFAULT_VALUE = 'Last week';
 
-const Styles = styled.div<PluginFilterStylesProps>`
-  height: ${({ height }) => height}px;
-  width: ${({ width }) => width}px;
+const TimeFilterStyles = styled(Styles)`
   overflow-x: scroll;
 `;
 
@@ -69,12 +67,12 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
 
   return (
     // @ts-ignore
-    <Styles width={width}>
+    <TimeFilterStyles width={width}>
       <DateFilterControl
         value={value}
         name="time_range"
         onChange={handleTimeRangeChange}
       />
-    </Styles>
+    </TimeFilterStyles>
   );
 }

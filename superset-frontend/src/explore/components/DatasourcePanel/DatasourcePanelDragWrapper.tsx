@@ -42,7 +42,7 @@ export default function DatasourcePanelDragWrapper(
 ) {
   const [, drag] = useDrag({
     item: {
-      metricOrColumnName: props.metricOrColumnName,
+      value: props.value,
       type: props.type,
     },
   });

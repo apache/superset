@@ -41,6 +41,7 @@ import { logEvent } from '../logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
 import { getClientErrorObject } from '../utils/getClientErrorObject';
 import { allowCrossDomain as domainShardingEnabled } from '../utils/hostNamesConfig';
+import { updateDataMask } from '../dataMask/actions';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -163,12 +164,14 @@ const v1ChartDataRequest = async (
   resultType,
   force,
   requestParams,
+  setDataMask,
 ) => {
   const payload = buildV1ChartDataPayload({
     formData,
     resultType,
     resultFormat,
     force,
+    setDataMask,
   });
 
   // The dashboard id is added to query params for tracking purposes
@@ -200,6 +203,7 @@ const v1ChartDataRequest = async (
 
 export async function getChartDataRequest({
   formData,
+  setDataMask = () => {},
   resultFormat = 'json',
   resultType = 'full',
   force = false,
@@ -234,6 +238,7 @@ export async function getChartDataRequest({
     resultType,
     force,
     querySettings,
+    setDataMask,
   );
 }
 
@@ -361,7 +366,11 @@ export function exploreJSON(
     };
     if (dashboardId) requestParams.dashboard_id = dashboardId;
 
+    const setDataMask = dataMask => {
+      dispatch(updateDataMask(formData.slice_id, dataMask));
+    };
     const chartDataRequest = getChartDataRequest({
+      setDataMask,
       formData,
       resultFormat: 'json',
       resultType: 'full',

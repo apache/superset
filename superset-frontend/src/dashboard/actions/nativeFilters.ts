@@ -17,16 +17,16 @@
  * under the License.
  */
 
-import { makeApi, DataMask } from '@superset-ui/core';
+import { makeApi } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import { FilterConfiguration } from 'src/dashboard/components/nativeFilters/types';
-import { dashboardInfoChanged } from './dashboardInfo';
+import { DataMaskType, DataMaskStateWithId } from 'src/dataMask/types';
 import {
-  FiltersState,
-  FilterState,
-  FiltersSet,
-  FilterStateType,
-} from '../reducers/types';
+  SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
+  SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL,
+} from 'src/dataMask/actions';
+import { dashboardInfoChanged } from './dashboardInfo';
+import { FiltersSet } from '../reducers/types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
 export interface SetFilterConfigBegin {
@@ -99,8 +99,13 @@ export const setFilterConfiguration = (
       type: SET_FILTER_CONFIG_COMPLETE,
       filterConfig,
     });
+    dispatch({
+      type: SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
+      filterConfig,
+    });
   } catch (err) {
     dispatch({ type: SET_FILTER_CONFIG_FAIL, filterConfig });
+    dispatch({ type: SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL, filterConfig });
   }
 };
 
@@ -143,62 +148,24 @@ export const setFilterSetsConfiguration = (
   }
 };
 
-export const UPDATE_EXTRA_FORM_DATA = 'UPDATE_EXTRA_FORM_DATA';
-export interface UpdateExtraFormData {
-  type: typeof UPDATE_EXTRA_FORM_DATA;
-  filterId: string;
-  nativeFilters?: Omit<FilterState, 'id'>;
-  crossFilters?: Omit<FilterState, 'id'>;
-  ownFilters?: Omit<FilterState, 'id'>;
-}
-
 export const SAVE_FILTER_SETS = 'SAVE_FILTER_SETS';
 export interface SaveFilterSets {
   type: typeof SAVE_FILTER_SETS;
   name: string;
-  filtersState: Pick<FiltersState, FilterStateType.NativeFilters>;
+  dataMask: Pick<DataMaskStateWithId, DataMaskType.NativeFilters>;
   filtersSetId: string;
-}
-
-export const SET_FILTERS_STATE = 'SET_FILTERS_STATE';
-export interface SetFiltersState {
-  type: typeof SET_FILTERS_STATE;
-  filtersState: FiltersState;
-}
-
-/**
- * Sets the selected option(s) for a given filter
- * @param filterId the id of the nativeFilters filter
- * @param filterState
- */
-export function updateExtraFormData(
-  filterId: string,
-  filterState: DataMask,
-): UpdateExtraFormData {
-  return {
-    type: UPDATE_EXTRA_FORM_DATA,
-    filterId,
-    ...filterState,
-  };
 }
 
 export function saveFilterSets(
   name: string,
   filtersSetId: string,
-  filtersState: Pick<FiltersState, FilterStateType.NativeFilters>,
+  dataMask: Pick<DataMaskStateWithId, DataMaskType.NativeFilters>,
 ): SaveFilterSets {
   return {
     type: SAVE_FILTER_SETS,
     name,
     filtersSetId,
-    filtersState,
-  };
-}
-
-export function setFiltersState(filtersState: FiltersState): SetFiltersState {
-  return {
-    type: SET_FILTERS_STATE,
-    filtersState,
+    dataMask,
   };
 }
 
@@ -209,6 +176,4 @@ export type AnyFilterAction =
   | SetFilterSetsConfigBegin
   | SetFilterSetsConfigComplete
   | SetFilterSetsConfigFail
-  | SetFiltersState
-  | SaveFilterSets
-  | UpdateExtraFormData;
+  | SaveFilterSets;

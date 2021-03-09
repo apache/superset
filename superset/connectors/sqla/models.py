@@ -48,7 +48,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table, text
-from sqlalchemy.sql.expression import Label, Select, TextAsFrom
+from sqlalchemy.sql.expression import Label, Select, TextAsFrom, TextClause
 from sqlalchemy.types import TypeEngine
 
 from superset import app, db, is_feature_enabled, security_manager
@@ -720,6 +720,18 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         except (TypeError, json.JSONDecodeError):
             return {}
 
+    def get_fetch_values_predicate(self) -> TextClause:
+        tp = self.get_template_processor()
+        try:
+            return text(tp.process_template(self.fetch_values_predicate))
+        except TemplateError as ex:
+            raise QueryObjectValidationError(
+                _(
+                    "Error in jinja expression in fetch values predicate: %(msg)s",
+                    msg=ex.message,
+                )
+            )
+
     def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
         """Runs query against sqla to retrieve some
         sample values for the given column.
@@ -737,16 +749,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
             qry = qry.limit(limit)
 
         if self.fetch_values_predicate:
-            tp = self.get_template_processor()
-            try:
-                qry = qry.where(text(tp.process_template(self.fetch_values_predicate)))
-            except TemplateError as ex:
-                raise QueryObjectValidationError(
-                    _(
-                        "Error in jinja expression in fetch values predicate: %(msg)s",
-                        msg=ex.message,
-                    )
-                )
+            qry = qry.where(self.get_fetch_values_predicate())
 
         engine = self.database.get_sqla_engine()
         sql = "{}".format(qry.compile(engine, compile_kwargs={"literal_binds": True}))
@@ -899,6 +902,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         extras: Optional[Dict[str, Any]] = None,
         order_desc: bool = True,
         is_rowcount: bool = False,
+        apply_fetch_values_predicate: bool = False,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         template_kwargs = {
@@ -1133,6 +1137,8 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
                         )
                     )
                 having_clause_and += [sa.text("({})".format(having))]
+        if apply_fetch_values_predicate and self.fetch_values_predicate:
+            qry = qry.where(self.get_fetch_values_predicate())
         if granularity:
             qry = qry.where(and_(*(time_filters + where_clause_and)))
         else:

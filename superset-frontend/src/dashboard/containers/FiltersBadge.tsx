@@ -57,6 +57,7 @@ const mapStateToProps = (
     dashboardFilters,
     nativeFilters,
     charts,
+    dataMask,
     dashboardLayout: { present },
   }: any,
   { chartId }: FiltersBadgeProps,
@@ -70,6 +71,7 @@ const mapStateToProps = (
 
   const nativeIndicators = selectNativeIndicatorsForChart(
     nativeFilters,
+    dataMask,
     chartId,
     charts,
     present,

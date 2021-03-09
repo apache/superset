@@ -42,9 +42,9 @@ describe('FilterBar', () => {
     expect(wrapper.find({ name: 'filter' })).toExist();
     expect(wrapper.find({ name: 'collapse' })).toExist();
   });
-  it('has apply and reset all buttons', () => {
+  it('has apply and clear all buttons', () => {
     expect(wrapper.find(Button).length).toBe(2);
-    expect(wrapper.find(Button).at(0)).toHaveProp('buttonStyle', 'secondary');
+    expect(wrapper.find(Button).at(0)).toHaveProp('buttonStyle', 'tertiary');
     expect(wrapper.find(Button).at(1)).toHaveProp('buttonStyle', 'primary');
   });
 });
