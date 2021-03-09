@@ -23,7 +23,7 @@ export type ColumnTypeLabelProps = {
 };
 
 export function ColumnTypeLabel({ type }: ColumnTypeLabelProps) {
-  let stringIcon = '';
+  let stringIcon;
   if (typeof type !== 'string') {
     stringIcon = '?';
   } else if (type === '' || type === 'expression') {
@@ -38,7 +38,7 @@ export function ColumnTypeLabel({ type }: ColumnTypeLabelProps) {
     stringIcon = 'T/F';
   } else if (type.match(/.*time.*/i)) {
     stringIcon = 'time';
-  } else if (type.match(/unknown/i)) {
+  } else {
     stringIcon = '?';
   }
 
