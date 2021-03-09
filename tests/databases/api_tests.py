@@ -834,7 +834,7 @@ class TestDatabaseApi(SupersetTestCase):
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "message": "Could not load database driver: mssql+pymssql",
+            "message": "Could not load database driver: MssqlEngineSpec",
         }
         self.assertEqual(response, expected_response)
 
