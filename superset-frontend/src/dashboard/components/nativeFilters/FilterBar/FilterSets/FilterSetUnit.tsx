@@ -25,11 +25,11 @@ import { Filter } from '../../types';
 
 type FilterSetUnitProps = {
   filters: Filter[];
-  editMode: boolean;
+  editMode?: boolean;
   filterSet?: FilterSet;
-  filterSetName: string;
+  filterSetName?: string;
   currentDataMask: DataMaskUnitWithId;
-  setFilterSetName: (name: string) => void;
+  setFilterSetName?: (name: string) => void;
 };
 
 const FilterSetUnit: FC<FilterSetUnitProps> = ({

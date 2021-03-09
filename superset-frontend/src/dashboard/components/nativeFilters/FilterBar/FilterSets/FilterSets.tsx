@@ -34,6 +34,7 @@ import { useFilters, useDataMask, useFilterSets } from '../state';
 import Footer from './Footer';
 import FilterSetUnit from './FilterSetUnit';
 import { areObjectsEqual } from '../../../../../reduxUtils';
+import { FilterSet } from '../../../../reducers/types';
 
 const FilterSetsWrapper = styled.div`
   display: grid;
@@ -117,7 +118,9 @@ const FilterSets: React.FC<FilterSetsProps> = ({
       }
       return false;
     });
-    setSelectedFiltersSetId(foundFilterSet?.id ?? null);
+    if (foundFilterSet) {
+      setSelectedFiltersSetId(foundFilterSet.id);
+    }
   }, [dataMaskApplied, filterData, filterSetsArray]);
 
   const takeFilterSet = (id: string) => {
@@ -155,18 +158,15 @@ const FilterSets: React.FC<FilterSetsProps> = ({
   };
 
   const handleCreateFilterSet = () => {
+    const newFilterSet: FilterSet = {
+      name: filterSetName.trim(),
+      id: generateFiltersSetId(),
+      dataMask: {
+        nativeFilters: dataMaskApplied,
+      },
+    };
     dispatch(
-      setFilterSetsConfiguration(
-        filterSetsArray.concat([
-          {
-            name: filterSetName.trim(),
-            id: generateFiltersSetId(),
-            dataMask: {
-              nativeFilters: dataMaskApplied,
-            },
-          },
-        ]),
-      ),
+      setFilterSetsConfiguration([newFilterSet].concat(filterSetsArray)),
     );
     setEditMode(false);
     setFilterSetName(DEFAULT_FILTER_SET_NAME);
@@ -174,23 +174,25 @@ const FilterSets: React.FC<FilterSetsProps> = ({
 
   return (
     <FilterSetsWrapper>
-      <FilterSetUnitWrapper>
-        <FilterSetUnit
-          filters={filters}
-          editMode={editMode}
-          setFilterSetName={setFilterSetName}
-          filterSetName={filterSetName}
-          currentDataMask={dataMaskApplied}
-        />
-        <Footer
-          isApplyDisabled={!filterSetName.trim()}
-          disabled={disabled}
-          onCancel={handleCancel}
-          editMode={editMode}
-          onEdit={() => setEditMode(true)}
-          onCreate={handleCreateFilterSet}
-        />
-      </FilterSetUnitWrapper>
+      {selectedFiltersSetId && (
+        <FilterSetUnitWrapper>
+          <FilterSetUnit
+            filters={filters}
+            editMode={editMode}
+            setFilterSetName={setFilterSetName}
+            filterSetName={filterSetName}
+            currentDataMask={dataMaskApplied}
+          />
+          <Footer
+            isApplyDisabled={!filterSetName.trim()}
+            disabled={disabled}
+            onCancel={handleCancel}
+            editMode={editMode}
+            onEdit={() => setEditMode(true)}
+            onCreate={handleCreateFilterSet}
+          />
+        </FilterSetUnitWrapper>
+      )}
       {filterSetsArray.map(filterSet => (
         <FilterSetUnitWrapper
           selected={filterSet.id === selectedFiltersSetId}
@@ -198,9 +200,6 @@ const FilterSets: React.FC<FilterSetsProps> = ({
         >
           <FilterSetUnit
             filters={filters}
-            editMode={editMode}
-            setFilterSetName={setFilterSetName}
-            filterSetName={filterSetName}
             currentDataMask={dataMaskApplied}
             filterSet={filterSet}
           />
