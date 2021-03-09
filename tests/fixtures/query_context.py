@@ -41,7 +41,7 @@ query_birth_names = {
     "filters": [
         {"col": "gender", "op": "==", "val": "boy"},
         {"col": "num", "op": "IS NOT NULL"},
-        {"col": "name", "op": "NOT IN", "val": "<NULL>;abc"},
+        {"col": "name", "op": "NOT IN", "val": ["<NULL>", "\"abc\""]},
     ],
     "having": "",
     "having_filters": [],
