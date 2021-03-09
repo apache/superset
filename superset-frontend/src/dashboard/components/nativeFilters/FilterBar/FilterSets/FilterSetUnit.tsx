@@ -49,6 +49,7 @@ type FilterSetUnitProps = {
   currentDataMask: DataMaskUnitWithId;
   setFilterSetName?: (name: string) => void;
   onDelete?: HandlerFunction;
+  onEdit?: HandlerFunction;
 };
 
 const FilterSetUnit: FC<FilterSetUnitProps> = ({
@@ -56,6 +57,7 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
   editMode,
   setFilterSetName,
   onDelete,
+  onEdit,
   filterSetName,
   currentDataMask,
   filterSet,
@@ -63,7 +65,10 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
 }) => {
   const menu = (
     <Menu>
-      <Menu.Item onClick={onDelete}>{t('Delete')}</Menu.Item>
+      <Menu.Item onClick={onEdit}>{t('Edit')}</Menu.Item>
+      <Menu.Item onClick={onDelete} danger>
+        {t('Delete')}
+      </Menu.Item>
     </Menu>
   );
   return (

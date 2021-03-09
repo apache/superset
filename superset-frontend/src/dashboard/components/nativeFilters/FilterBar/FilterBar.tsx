@@ -174,6 +174,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   directPathToChild,
 }) => {
   const [currentDataMask, setCurrentDataMask] = useImmer<DataMaskUnit>({});
+  const [editFilterSetMode, setEditFilterSetMode] = useState<boolean>(false);
   const [
     lastAppliedFilterData,
     setLastAppliedFilterData,
@@ -337,7 +338,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           <StyledTabs
             centered
             defaultActiveKey="allFilters"
-            onChange={() => {}}
+            activeKey={editFilterSetMode ? 'filterSets' : undefined}
           >
             <Tabs.TabPane
               tab={t(`All Filters (${filterValues.length})`)}
@@ -346,10 +347,12 @@ const FilterBar: React.FC<FiltersBarProps> = ({
               {getFilterControls()}
             </Tabs.TabPane>
             <Tabs.TabPane
+              disabled={editFilterSetMode}
               tab={t(`Filter Sets (${filterSetFilterValues.length})`)}
               key="filterSets"
             >
               <FilterSets
+                onEditFilterSet={() => setEditFilterSetMode(true)}
                 disabled={!isApplyDisabled}
                 currentDataMask={currentDataMask}
                 onFilterSelectionChange={handleFilterSelectionChange}

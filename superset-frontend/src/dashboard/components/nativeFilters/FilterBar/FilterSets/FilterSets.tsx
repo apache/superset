@@ -68,6 +68,7 @@ const FilterSetUnitWrapper = styled.div<{
 type FilterSetsProps = {
   disabled: boolean;
   currentDataMask: DataMaskUnit;
+  onEditFilterSet: HandlerFunction;
   onFilterSelectionChange: (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
     dataMask: Partial<DataMaskState>,
@@ -78,6 +79,7 @@ const DEFAULT_FILTER_SET_NAME = t('New filter set');
 
 const FilterSets: React.FC<FilterSetsProps> = ({
   currentDataMask,
+  onEditFilterSet,
   disabled,
   onFilterSelectionChange,
 }) => {
@@ -115,12 +117,12 @@ const FilterSets: React.FC<FilterSetsProps> = ({
     setSelectedFiltersSetId(foundFilterSet?.id ?? null);
   }, [dataMaskApplied, currentDataMask, filterSetFilterValues]);
 
-  const takeFilterSet = (target: HTMLElement, id: string) => {
+  const takeFilterSet = (id: string, target?: HTMLElement) => {
     const ignoreSelector = 'ant-collapse-header';
     if (
-      target.classList.contains(ignoreSelector) ||
-      target.parentElement?.classList.contains(ignoreSelector) ||
-      target.parentElement?.parentElement?.classList.contains(ignoreSelector)
+      target?.classList.contains(ignoreSelector) ||
+      target?.parentElement?.classList.contains(ignoreSelector) ||
+      target?.parentElement?.parentElement?.classList.contains(ignoreSelector)
     ) {
       // We don't want select filter set when user expand filters
       return;
@@ -139,6 +141,11 @@ const FilterSets: React.FC<FilterSetsProps> = ({
         );
       },
     );
+  };
+
+  const handleEdit = (id: string) => {
+    takeFilterSet(id);
+    onEditFilterSet();
   };
 
   const handleDeleteFilterSets = () => {
@@ -198,7 +205,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
         <FilterSetUnitWrapper
           selected={filterSet.id === selectedFiltersSetId}
           onClick={(e: MouseEvent<HTMLElement>) =>
-            takeFilterSet(e.target as HTMLElement, filterSet.id)
+            takeFilterSet(filterSet.id, e.target as HTMLElement)
           }
         >
           <FilterSetUnit
