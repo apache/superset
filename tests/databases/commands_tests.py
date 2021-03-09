@@ -523,13 +523,11 @@ class TestImportDatabasesCommand(SupersetTestCase):
 
 
 class TestTestConnectionDatabaseCommand(SupersetTestCase):
-    @mock.patch("superset.databases.dao.DatabaseDAO.build_db_for_connection_test")
+    @mock.patch("superset.databases.dao.Database.get_sqla_engine")
     @mock.patch(
         "superset.databases.commands.test_connection.event_logger.log_with_context"
     )
-    def test_connection_db_exception(
-        self, mock_event_logger, mock_build_db_for_connection_test
-    ):
+    def test_connection_db_exception(self, mock_event_logger, mock_get_sqla_engine):
         """Test to make sure event_logger is called when an exception is raised"""
         database = get_example_database()
         mock_build_db_for_connection_test.side_effect = Exception(
@@ -548,17 +546,17 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             )
         mock_event_logger.assert_called()
 
-    @mock.patch("superset.databases.dao.DatabaseDAO.build_db_for_connection_test")
+    @mock.patch("superset.databases.dao.Database.get_sqla_engine")
     @mock.patch(
         "superset.databases.commands.test_connection.event_logger.log_with_context"
     )
     def test_connection_superset_security_connection(
-        self, mock_event_logger, mock_build_db_for_connection_test
+        self, mock_event_logger, mock_get_sqla_engine
     ):
         """Test to make sure event_logger is called when security
         connection exc is raised"""
         database = get_example_database()
-        mock_build_db_for_connection_test.side_effect = SupersetSecurityException(
+        mock_get_sqla_engine.side_effect = SupersetSecurityException(
             SupersetError(error_type=500, message="test", level="info", extra={})
         )
         db_uri = database.sqlalchemy_uri_decrypted
@@ -573,16 +571,14 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
 
         mock_event_logger.assert_called()
 
-    @mock.patch("superset.databases.dao.DatabaseDAO.build_db_for_connection_test")
+    @mock.patch("superset.databases.dao.Database.get_sqla_engine")
     @mock.patch(
         "superset.databases.commands.test_connection.event_logger.log_with_context"
     )
-    def test_connection_db_api_exc(
-        self, mock_event_logger, mock_build_db_for_connection_test
-    ):
+    def test_connection_db_api_exc(self, mock_event_logger, mock_get_sqla_engine):
         """Test to make sure event_logger is called when DBAPIError is raised"""
         database = get_example_database()
-        mock_build_db_for_connection_test.side_effect = DBAPIError(
+        mock_get_sqla_engine.side_effect = DBAPIError(
             statement="error", params={}, orig={}
         )
         db_uri = database.sqlalchemy_uri_decrypted
