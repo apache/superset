@@ -3,6 +3,8 @@ codecov:
         after_n_builds: 4
 ignore:
   - "superset/migrations/versions/*.py"
+  - "**/*.stories.tsx"
+  - "**/*.stories.jsx"
 coverage:
   status:
     project:
