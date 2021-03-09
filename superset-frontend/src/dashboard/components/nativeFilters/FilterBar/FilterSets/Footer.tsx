@@ -71,7 +71,10 @@ const Footer: FC<FooterProps> = ({
         </Button>
         <Tooltip
           placement="bottom"
-          title={(isApplyDisabled || disabled) && APPLY_FILTERS}
+          title={
+            (isApplyDisabled && t('Please filter set name')) ||
+            (disabled && APPLY_FILTERS)
+          }
         >
           <ActionButton disabled={disabled}>
             <Button
