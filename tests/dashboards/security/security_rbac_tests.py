@@ -359,6 +359,21 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # assert
         self.assert_dashboards_api_response(response, 0)
 
+    def test_get_charts_api__user_without_any_permissions_get_403(self):
+        username = random_str()
+        new_role = f"role_{random_str()}"
+        self.create_user_with_roles(username, [new_role], should_create_roles=True)
+        dashboard = create_dashboard_to_db(published=True)
+        self.login(username)
+
+        # act
+        uri = f"api/v1/dashboard/{dashboard.id}/charts"
+        response = self.get_dashboard_charts_api_response(uri)
+
+        # assert
+        self.assertEqual(response.status_code, 404)
+
+
     def test_get_dashboards_api__user_get_only_published_permitted_dashboards(self):
         (
             new_role,

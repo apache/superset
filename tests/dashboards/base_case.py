@@ -50,6 +50,10 @@ class DashboardTestCase(SupersetTestCase):
         save_dash_url = SAVE_DASHBOARD_URL_FORMAT.format(dashboard_id)
         return self.get_resp(save_dash_url, data=dict(data=json.dumps(dashboard_data)))
 
+    def get_dashboard_charts_api_response(self, id_or_slug: str) -> Response:
+        uri = f"api/v1/dashboard/{id_or_slug}/charts"
+        return self.client.get(uri)
+
     def save_dashboard(
         self, dashboard_id: Union[str, int], dashboard_data: Dict[str, Any]
     ) -> Response:
