@@ -373,7 +373,6 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         # assert
         self.assertEqual(response.status_code, 404)
 
-
     def test_get_dashboards_api__user_get_only_published_permitted_dashboards(self):
         (
             new_role,
