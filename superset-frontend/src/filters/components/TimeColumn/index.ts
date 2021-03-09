@@ -26,7 +26,7 @@ export default class FilterTimeColumnPlugin extends ChartPlugin {
   constructor() {
     const metadata = new ChartMetadata({
       name: t('Time column'),
-      description: 'Time column filter plugin',
+      description: t('Time column filter plugin'),
       behaviors: [Behavior.CROSS_FILTER, Behavior.NATIVE_FILTER],
       thumbnail,
     });

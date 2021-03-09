@@ -16,16 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObjectExtras, styled, t, tn } from '@superset-ui/core';
+import { ensureIsArray, QueryObjectExtras, t, tn } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
+import { Styles, StyledSelect } from '../common';
 import { PluginFilterTimeGrainProps } from './types';
-import { PluginFilterStylesProps } from '../types';
-
-const Styles = styled.div<PluginFilterStylesProps>`
-  height: ${({ height }) => height};
-  width: ${({ width }) => width};
-`;
 
 const { Option } = Select;
 
@@ -38,26 +33,14 @@ export default function PluginFilterTimegrain(
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
 
   const handleChange = (values: string[] | string | undefined | null) => {
-    let selectedValues: string[];
-    let timeGrain: string | null;
-    if (values === null || values === undefined) {
-      selectedValues = [];
-      timeGrain = null;
-    } else if (!Array.isArray(values)) {
-      selectedValues = [values];
-      timeGrain = values;
-    } else if (Array.isArray(values) && values.length > 0) {
-      selectedValues = values;
-      timeGrain = values[0];
-    } else {
-      selectedValues = [];
-      timeGrain = null;
-    }
+    const resultValue: string[] = ensureIsArray<string>(values);
+    const [timeGrain] = resultValue;
+
     const extras: QueryObjectExtras = {};
-    if (timeGrain !== null) {
+    if (timeGrain) {
       extras.time_grain_sqla = timeGrain;
     }
-    setValue(selectedValues);
+    setValue(resultValue);
     setDataMask({
       nativeFilters: {
         extraFormData: {
@@ -66,7 +49,7 @@ export default function PluginFilterTimegrain(
           },
         },
         currentState: {
-          value: selectedValues.length ? selectedValues : null,
+          value: resultValue.length ? resultValue : null,
         },
       },
     });
@@ -88,10 +71,9 @@ export default function PluginFilterTimegrain(
       : tn('%s option', '%s options', data.length, data.length);
   return (
     <Styles height={height} width={width}>
-      <Select
+      <StyledSelect
         allowClear
         value={value}
-        style={{ width: '100%' }}
         placeholder={placeholderText}
         // @ts-ignore
         onChange={handleChange}
@@ -105,7 +87,7 @@ export default function PluginFilterTimegrain(
             </Option>
           );
         })}
-      </Select>
+      </StyledSelect>
     </Styles>
   );
 }

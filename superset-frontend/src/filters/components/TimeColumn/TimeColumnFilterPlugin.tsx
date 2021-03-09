@@ -16,16 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, DataMask, styled, t, tn } from '@superset-ui/core';
+import {
+  Behavior,
+  DataMask,
+  ensureIsArray,
+  GenericDataType,
+  t,
+  tn,
+} from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import { Select } from 'src/common/components';
+import { Styles, StyledSelect } from '../common';
 import { PluginFilterTimeColumnProps } from './types';
-import { PluginFilterStylesProps } from '../types';
-
-const Styles = styled.div<PluginFilterStylesProps>`
-  height: ${({ height }) => height};
-  width: ${({ width }) => width};
-`;
 
 const { Option } = Select;
 
@@ -38,12 +40,7 @@ export default function PluginFilterTimeColumn(
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
 
   const handleChange = (value?: string[] | string | null) => {
-    let resultValue: string[];
-    if (Array.isArray(value)) {
-      resultValue = value;
-    } else {
-      resultValue = value ? [value] : [];
-    }
+    const resultValue: string[] = ensureIsArray<string>(value);
     setValue(resultValue);
 
     const dataMask = {
@@ -79,7 +76,9 @@ export default function PluginFilterTimeColumn(
     // so we can process it like this `JSON.stringify` or start to use `Immer`
   }, [JSON.stringify(defaultValue)]);
 
-  const timeColumns = (data || []).filter(row => row.dtype === 2);
+  const timeColumns = (data || []).filter(
+    row => row.dtype === GenericDataType.TEMPORAL,
+  );
 
   const placeholderText =
     timeColumns.length === 0
@@ -87,10 +86,9 @@ export default function PluginFilterTimeColumn(
       : tn('%s option', '%s options', timeColumns.length, timeColumns.length);
   return (
     <Styles height={height} width={width}>
-      <Select
+      <StyledSelect
         allowClear
         value={value}
-        style={{ width: '100%' }}
         placeholder={placeholderText}
         // @ts-ignore
         onChange={handleChange}
@@ -106,7 +104,7 @@ export default function PluginFilterTimeColumn(
             );
           },
         )}
-      </Select>
+      </StyledSelect>
     </Styles>
   );
 }

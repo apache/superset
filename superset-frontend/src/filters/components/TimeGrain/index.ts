@@ -26,7 +26,7 @@ export default class FilterTimeGrainPlugin extends ChartPlugin {
   constructor() {
     const metadata = new ChartMetadata({
       name: t('Time grain'),
-      description: 'Time grain filter plugin',
+      description: t('Time grain filter plugin'),
       behaviors: [Behavior.CROSS_FILTER, Behavior.NATIVE_FILTER],
       thumbnail,
     });

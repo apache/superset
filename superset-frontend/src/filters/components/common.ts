@@ -16,26 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
-import controlPanel from './controlPanel';
-import transformProps from './transformProps';
-import thumbnail from './images/thumbnail.png';
+import { styled } from '@superset-ui/core';
+import { Select } from 'src/common/components';
+import { PluginFilterStylesProps } from './types';
 
-export default class TimeFilterPlugin extends ChartPlugin {
-  constructor() {
-    const metadata = new ChartMetadata({
-      name: t('Time filter'),
-      description: t('Custom time filter plugin'),
-      behaviors: [Behavior.CROSS_FILTER, Behavior.NATIVE_FILTER],
-      thumbnail,
-      datasourceCount: 0,
-    });
+export const Styles = styled.div<PluginFilterStylesProps>`
+  height: ${({ height }) => height};
+  width: ${({ width }) => width};
+`;
 
-    super({
-      controlPanel,
-      loadChart: () => import('./TimeFilterPlugin'),
-      metadata,
-      transformProps,
-    });
-  }
-}
+export const StyledSelect = styled(Select)`
+  width: 100%;
+`;
