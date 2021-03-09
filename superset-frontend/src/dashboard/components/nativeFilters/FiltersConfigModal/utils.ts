@@ -19,7 +19,7 @@
 import { FormInstance } from 'antd/lib/form';
 import shortid from 'shortid';
 import { FilterRemoval, NativeFiltersForm } from './types';
-import { Filter, FilterConfiguration } from '../types';
+import { Filter, FilterConfiguration, Target } from '../types';
 
 export const REMOVAL_DELAY_SECS = 5;
 
@@ -132,14 +132,12 @@ export const createHandleSave = (
       const formInputs = values.filters[id];
       // if user didn't open a filter, return the original config
       if (!formInputs) return filterConfigMap[id];
-      let target = {};
+      const target: Partial<Target> = {};
+      if (formInputs.dataset) {
+        target.datasetId = formInputs.dataset.value;
+      }
       if (formInputs.dataset && formInputs.column) {
-        target = {
-          datasetId: formInputs.dataset.value,
-          column: {
-            name: formInputs.column,
-          },
-        };
+        target.column = { name: formInputs.column };
       }
       return {
         id,

@@ -61,7 +61,11 @@ describe('getFormDataWithExtraFilters', () => {
           },
         } as unknown) as Filter,
       },
-      filtersState: {
+    },
+    dataMask: {
+      crossFilters: {},
+      ownFilters: {},
+      nativeFilters: {
         [filterId]: {
           id: filterId,
           extraFormData: {},

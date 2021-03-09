@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, getChartMetadataRegistry, t } from '@superset-ui/core';
+import {
+  SupersetClient,
+  getChartMetadataRegistry,
+  t,
+  styled,
+} from '@superset-ui/core';
 import React, { useMemo, useState } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
@@ -34,7 +39,6 @@ import {
 } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
-import Icon from 'src/components/Icon';
 import FaveStar from 'src/components/FaveStar';
 import ListView, {
   ListViewProps,
@@ -47,6 +51,7 @@ import PropertiesModal from 'src/explore/components/PropertiesModal';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Chart from 'src/types/Chart';
 import { Tooltip } from 'src/common/components/Tooltip';
+import Icons from 'src/components/Icons';
 import ChartCard from './ChartCard';
 
 const PAGE_SIZE = 25;
@@ -110,6 +115,10 @@ interface ChartListProps {
     userId: string | number;
   };
 }
+
+const Actions = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
 
 function ChartList(props: ChartListProps) {
   const { addDangerToast, addSuccessToast } = props;
@@ -295,7 +304,7 @@ function ChartList(props: ChartListProps) {
           }
 
           return (
-            <span className="actions">
+            <Actions className="actions">
               {canDelete && (
                 <ConfirmStatusChange
                   title={t('Please confirm')}
@@ -314,12 +323,13 @@ function ChartList(props: ChartListProps) {
                       placement="bottom"
                     >
                       <span
+                        data-test="trash"
                         role="button"
                         tabIndex={0}
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icon name="trash" />
+                        <Icons.Trash />
                       </span>
                     </Tooltip>
                   )}
@@ -337,7 +347,7 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icon name="share" />
+                    <Icons.Share />
                   </span>
                 </Tooltip>
               )}
@@ -353,11 +363,11 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={openEditModal}
                   >
-                    <Icon name="edit-alt" />
+                    <Icons.EditAlt data-test="edit-alt" />
                   </span>
                 </Tooltip>
               )}
-            </span>
+            </Actions>
           );
         },
         Header: t('Actions'),
@@ -535,7 +545,7 @@ function ChartList(props: ChartListProps) {
   }
   if (isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT)) {
     subMenuButtons.push({
-      name: <Icon name="import" />,
+      name: <Icons.Import />,
       buttonStyle: 'link',
       onClick: openChartImportModal,
     });

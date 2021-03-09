@@ -85,7 +85,7 @@ const DEFAULT_ORDER = [
   'partition',
   'event_flow',
   'deck_path',
-  'directed_force',
+  'graph_chart',
   'world_map',
   'paired_ttest',
   'para',

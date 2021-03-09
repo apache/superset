@@ -30,6 +30,7 @@ from superset.utils.core import (
     FilterOperator,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
+    TimeRangeEndpoint,
 )
 
 #
@@ -769,13 +770,7 @@ class ChartDataFilterSchema(Schema):
 
 class ChartDataExtrasSchema(Schema):
 
-    time_range_endpoints = fields.List(
-        fields.String(
-            validate=validate.OneOf(choices=("unknown", "inclusive", "exclusive")),
-            description="A list with two values, stating if start/end should be "
-            "inclusive/exclusive.",
-        )
-    )
+    time_range_endpoints = fields.List(EnumField(TimeRangeEndpoint, by_value=True))
     relative_start = fields.String(
         description="Start time for relative time deltas. "
         'Default: `config["DEFAULT_RELATIVE_START_TIME"]`',
@@ -887,9 +882,21 @@ class AnnotationLayerSchema(Schema):
     )
 
 
+class ChartDataDatasourceSchema(Schema):
+    description = "Chart datasource"
+    id = fields.Integer(description="Datasource id", required=True,)
+    type = fields.String(
+        description="Datasource type",
+        validate=validate.OneOf(choices=("druid", "table")),
+    )
+
+
 class ChartDataQueryObjectSchema(Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
+
+    datasource = fields.Nested(ChartDataDatasourceSchema, allow_none=True)
+    result_type = EnumField(ChartDataResultType, by_value=True, allow_none=True)
 
     annotation_layers = fields.List(
         fields.Nested(AnnotationLayerSchema),
@@ -900,6 +907,11 @@ class ChartDataQueryObjectSchema(Schema):
         description="A mapping of temporal extras that have been applied to the query",
         allow_none=True,
         example={"__time_range": "1 year ago : now"},
+    )
+    apply_fetch_values_predicate = fields.Boolean(
+        description="Add fetch values predicate (where clause) to query "
+        "if defined in datasource",
+        allow_none=True,
     )
     filters = fields.List(fields.Nested(ChartDataFilterSchema), allow_none=True)
     granularity = fields.String(
@@ -971,10 +983,10 @@ class ChartDataQueryObjectSchema(Schema):
         description="Metric used to limit timeseries queries by.", allow_none=True,
     )
     row_limit = fields.Integer(
-        description='Maximum row count. Default: `config["ROW_LIMIT"]`',
+        description='Maximum row count (0=disabled). Default: `config["ROW_LIMIT"]`',
         allow_none=True,
         validate=[
-            Range(min=1, error=_("`row_limit` must be greater than or equal to 1"))
+            Range(min=0, error=_("`row_limit` must be greater than or equal to 0"))
         ],
     )
     row_offset = fields.Integer(
@@ -1038,14 +1050,9 @@ class ChartDataQueryObjectSchema(Schema):
         values=fields.String(description="The value of the query parameter"),
         allow_none=True,
     )
-
-
-class ChartDataDatasourceSchema(Schema):
-    description = "Chart datasource"
-    id = fields.Integer(description="Datasource id", required=True,)
-    type = fields.String(
-        description="Datasource type",
-        validate=validate.OneOf(choices=("druid", "table")),
+    is_rowcount = fields.Boolean(
+        description="Should the rowcount of the actual query be returned",
+        allow_none=True,
     )
 
 

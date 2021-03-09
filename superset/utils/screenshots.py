@@ -195,12 +195,30 @@ class BaseScreenshot:
 class ChartScreenshot(BaseScreenshot):
     thumbnail_type: str = "chart"
     element: str = "chart-container"
-    window_size: WindowSize = (800, 600)
-    thumb_size: WindowSize = (800, 600)
+
+    def __init__(
+        self,
+        url: str,
+        digest: str,
+        window_size: Optional[WindowSize] = None,
+        thumb_size: Optional[WindowSize] = None,
+    ):
+        super().__init__(url, digest)
+        self.window_size = window_size or (800, 600)
+        self.thumb_size = thumb_size or (800, 600)
 
 
 class DashboardScreenshot(BaseScreenshot):
     thumbnail_type: str = "dashboard"
     element: str = "grid-container"
-    window_size: WindowSize = (1600, int(1600 * 0.75))
-    thumb_size: WindowSize = (800, int(800 * 0.75))
+
+    def __init__(
+        self,
+        url: str,
+        digest: str,
+        window_size: Optional[WindowSize] = None,
+        thumb_size: Optional[WindowSize] = None,
+    ):
+        super().__init__(url, digest)
+        self.window_size = window_size or (1600, 1200)
+        self.thumb_size = thumb_size or (800, 600)

@@ -24,7 +24,8 @@ import {
   CheckCircleFilled,
   ExclamationCircleFilled,
 } from '@ant-design/icons';
-import { Collapse, Popover } from 'src/common/components/index';
+import { Popover } from 'src/common/components/index';
+import Collapse from 'src/common/components/Collapse';
 import { Global } from '@emotion/core';
 import {
   Indent,
@@ -36,6 +37,7 @@ import {
   FilterValue,
 } from './Styles';
 import { Indicator } from './selectors';
+import { getFilterValueForDisplay } from '../nativeFilters/FilterBar/FilterSets/utils';
 
 export interface IndicatorProps {
   indicator: Indicator;
@@ -45,18 +47,21 @@ export interface IndicatorProps {
 const Indicator = ({
   indicator: { column, name, value = [], path },
   onClick,
-}: IndicatorProps) => (
-  <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
-    <Title bold>
-      <ItemIcon>
-        <SearchOutlined />
-      </ItemIcon>
-      {name}
-      {value.length ? ': ' : ''}
-    </Title>
-    <FilterValue>{value.length ? value.join(', ') : ''}</FilterValue>
-  </Item>
-);
+}: IndicatorProps) => {
+  const resultValue = getFilterValueForDisplay(value);
+  return (
+    <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
+      <Title bold>
+        <ItemIcon>
+          <SearchOutlined />
+        </ItemIcon>
+        {name}
+        {resultValue ? ': ' : ''}
+      </Title>
+      <FilterValue>{resultValue}</FilterValue>
+    </Item>
+  );
+};
 
 export interface DetailsPanelProps {
   appliedIndicators: Indicator[];
@@ -173,7 +178,7 @@ const DetailsPanelPopover = ({
                 </Title>
               }
             >
-              <Indent>
+              <Indent css={{ paddingBottom: theme.gridUnit * 3 }}>
                 {appliedIndicators.map(indicator => (
                   <Indicator
                     key={indicatorKey(indicator)}
@@ -197,7 +202,7 @@ const DetailsPanelPopover = ({
                 </Title>
               }
             >
-              <Indent>
+              <Indent css={{ paddingBottom: theme.gridUnit * 3 }}>
                 {incompatibleIndicators.map(indicator => (
                   <Indicator
                     key={indicatorKey(indicator)}
@@ -219,7 +224,7 @@ const DetailsPanelPopover = ({
               }
               disabled={!unsetIndicators.length}
             >
-              <Indent>
+              <Indent css={{ paddingBottom: theme.gridUnit * 3 }}>
                 {unsetIndicators.map(indicator => (
                   <Indicator
                     key={indicatorKey(indicator)}

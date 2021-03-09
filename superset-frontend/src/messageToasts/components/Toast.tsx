@@ -93,6 +93,7 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
     <ToastContainer
       className={cx('alert', 'toast', visible && 'toast--visible', className)}
       data-test="toast-container"
+      role="alert"
     >
       <StyledIcon name={iconName} />
       <Interweave content={toast.text} />

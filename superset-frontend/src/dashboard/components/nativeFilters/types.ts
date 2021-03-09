@@ -37,10 +37,12 @@ export interface Target {
   // clarityColumns?: Column[];
 }
 
+export type FilterValue = string | number | (string | number)[] | null;
+
 export interface Filter {
   cascadeParentIds: string[];
-  defaultValue: any;
-  currentValue?: any;
+  defaultValue: FilterValue;
+  currentValue?: FilterValue;
   isInstant: boolean;
   id: string; // randomly generated at filter creation
   name: string;

@@ -21,9 +21,8 @@ import { styled, SupersetClient, t } from '@superset-ui/core';
 import rison from 'rison';
 import { Select } from 'src/components/Select';
 import Label from 'src/components/Label';
-
+import RefreshLabel from 'src/components/RefreshLabel';
 import SupersetAsyncSelect from './AsyncSelect';
-import RefreshLabel from './RefreshLabel';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
@@ -41,6 +40,7 @@ const DatabaseSelectorWrapper = styled.div`
     display: flex;
     align-items: center;
     width: 30px;
+    margin-left: ${({ theme }) => theme.gridUnit}px;
   }
 
   .section {

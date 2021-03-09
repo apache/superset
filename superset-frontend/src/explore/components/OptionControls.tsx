@@ -26,16 +26,17 @@ import {
 import { Tooltip } from 'src/common/components/Tooltip';
 import Icon from 'src/components/Icon';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
+import AdhocMetric from './controls/MetricControl/AdhocMetric';
 
-const DragContainer = styled.div`
+export const DragContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit}px;
   :last-child {
     margin-bottom: 0;
   }
 `;
 
-const OptionControlContainer = styled.div<{
-  isAdhoc?: boolean;
+export const OptionControlContainer = styled.div<{
+  withCaret?: boolean;
 }>`
   display: flex;
   align-items: center;
@@ -44,10 +45,10 @@ const OptionControlContainer = styled.div<{
   height: ${({ theme }) => theme.gridUnit * 6}px;
   background-color: ${({ theme }) => theme.colors.grayscale.light3};
   border-radius: 3px;
-  cursor: ${({ isAdhoc }) => (isAdhoc ? 'pointer' : 'default')};
+  cursor: ${({ withCaret }) => (withCaret ? 'pointer' : 'default')};
 `;
 
-const Label = styled.div`
+export const Label = styled.div`
   display: flex;
   max-width: 100%;
   overflow: hidden;
@@ -63,13 +64,13 @@ const Label = styled.div`
   }
 `;
 
-const CaretContainer = styled.div`
+export const CaretContainer = styled.div`
   height: 100%;
   border-left: solid 1px ${({ theme }) => theme.colors.grayscale.dark2}0C;
   margin-left: auto;
 `;
 
-const CloseContainer = styled.div`
+export const CloseContainer = styled.div`
   height: 100%;
   width: ${({ theme }) => theme.gridUnit * 6}px;
   border-right: solid 1px ${({ theme }) => theme.colors.grayscale.dark2}0C;
@@ -92,7 +93,26 @@ export const LabelsContainer = styled.div`
   border-radius: ${({ theme }) => theme.gridUnit}px;
 `;
 
-export const AddControlLabel = styled.div`
+export const DndLabelsContainer = styled.div<{
+  canDrop?: boolean;
+  isOver?: boolean;
+}>`
+  padding: ${({ theme }) => theme.gridUnit}px;
+  border: ${({ canDrop, isOver, theme }) => {
+    if (isOver && canDrop) {
+      return `dashed 1px ${theme.colors.info.dark1}`;
+    }
+    if (isOver && !canDrop) {
+      return `dashed 1px ${theme.colors.error.dark1}`;
+    }
+    return `solid 1px ${theme.colors.grayscale.light2}`;
+  }};
+  border-radius: ${({ theme }) => theme.gridUnit}px;
+`;
+
+export const AddControlLabel = styled.div<{
+  cancelHover?: boolean;
+}>`
   display: flex;
   align-items: center;
   width: 100%;
@@ -102,14 +122,16 @@ export const AddControlLabel = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.light1};
   border: dashed 1px ${({ theme }) => theme.colors.grayscale.light2};
   border-radius: ${({ theme }) => theme.gridUnit}px;
-  cursor: pointer;
+  cursor: ${({ cancelHover }) => (cancelHover ? 'inherit' : 'pointer')};
 
   :hover {
-    background-color: ${({ theme }) => theme.colors.grayscale.light4};
+    background-color: ${({ cancelHover, theme }) =>
+      cancelHover ? 'inherit' : theme.colors.grayscale.light4};
   }
 
   :active {
-    background-color: ${({ theme }) => theme.colors.grayscale.light3};
+    background-color: ${({ cancelHover, theme }) =>
+      cancelHover ? 'inherit' : theme.colors.grayscale.light3};
   }
 `;
 
@@ -138,10 +160,11 @@ interface DragItem {
 export const OptionControlLabel = ({
   label,
   savedMetric,
+  adhocMetric,
   onRemove,
   onMoveLabel,
   onDropLabel,
-  isAdhoc,
+  withCaret,
   isFunction,
   type,
   index,
@@ -150,10 +173,11 @@ export const OptionControlLabel = ({
 }: {
   label: string | React.ReactNode;
   savedMetric?: savedMetricType;
+  adhocMetric?: AdhocMetric;
   onRemove: () => void;
   onMoveLabel: (dragIndex: number, hoverIndex: number) => void;
   onDropLabel: () => void;
-  isAdhoc?: boolean;
+  withCaret?: boolean;
   isFunction?: boolean;
   isDraggable?: boolean;
   type: string;
@@ -210,7 +234,11 @@ export const OptionControlLabel = ({
     },
   });
   const [, drag] = useDrag({
-    item: { type, index },
+    item: {
+      type,
+      index,
+      value: savedMetric?.metric_name ? savedMetric : adhocMetric,
+    },
     collect: monitor => ({
       isDragging: monitor.isDragging(),
     }),
@@ -225,7 +253,7 @@ export const OptionControlLabel = ({
 
   const getOptionControlContent = () => (
     <OptionControlContainer
-      isAdhoc={isAdhoc}
+      withCaret={withCaret}
       data-test="option-label"
       {...props}
     >
@@ -251,7 +279,7 @@ export const OptionControlLabel = ({
               `)}
         />
       )}
-      {isAdhoc && (
+      {withCaret && (
         <CaretContainer>
           <Icon name="caret-right" color={theme.colors.grayscale.light1} />
         </CaretContainer>

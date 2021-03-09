@@ -263,7 +263,7 @@ class FilterBox extends React.PureComponent {
       return (
         <div className="row space-1">
           <div
-            className="col-lg-12 col-xs-12 filter-container"
+            className="col-lg-12 col-xs-12"
             data-test="date-filter-container"
           >
             <DateFilterControl

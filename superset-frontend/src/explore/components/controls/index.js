@@ -24,7 +24,7 @@ import ColorMapControl from './ColorMapControl';
 import ColorPickerControl from './ColorPickerControl';
 import ColorSchemeControl from './ColorSchemeControl';
 import DatasourceControl from './DatasourceControl';
-import DateFilterControl from './DateFilterControl/DateFilterControl';
+import DateFilterControl from './DateFilterControl';
 import FixedOrMetricControl from './FixedOrMetricControl';
 import HiddenControl from './HiddenControl';
 import SelectAsyncControl from './SelectAsyncControl';
@@ -39,6 +39,10 @@ import VizTypeControl from './VizTypeControl';
 import MetricsControl from './MetricControl/MetricsControl';
 import AdhocFilterControl from './FilterControl/AdhocFilterControl';
 import FilterBoxItemControl from './FilterBoxItemControl';
+import DndColumnSelectControl, {
+  DndColumnSelect,
+  DndFilterSelect,
+} from './DndColumnSelectControl';
 
 const controlMap = {
   AnnotationLayerControl,
@@ -50,6 +54,9 @@ const controlMap = {
   ColorSchemeControl,
   DatasourceControl,
   DateFilterControl,
+  DndColumnSelectControl,
+  DndColumnSelect,
+  DndFilterSelect,
   FixedOrMetricControl,
   HiddenControl,
   SelectAsyncControl,

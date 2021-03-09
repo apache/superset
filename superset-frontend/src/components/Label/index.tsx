@@ -31,7 +31,7 @@ export type Type =
   | 'primary'
   | 'secondary';
 
-export interface LabelProps {
+export interface LabelProps extends React.HTMLAttributes<HTMLSpanElement> {
   key?: string;
   className?: string;
   onClick?: OnClickHandler;

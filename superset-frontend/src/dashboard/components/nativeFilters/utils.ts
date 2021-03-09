@@ -27,7 +27,7 @@ import { Charts } from 'src/dashboard/types';
 import { RefObject } from 'react';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { Filter } from './types';
-import { NativeFiltersState } from '../../reducers/types';
+import { DataMaskStateWithId } from '../../../dataMask/types';
 
 export const getFormData = ({
   datasetId,
@@ -44,12 +44,12 @@ export const getFormData = ({
   cascadingFilters?: object;
   groupby?: string;
 }): Partial<QueryFormData> => {
-  let otherProps: { datasource?: string; groupby?: string[] } = {};
-  if (datasetId && groupby) {
-    otherProps = {
-      datasource: `${datasetId}__table`,
-      groupby: [groupby],
-    };
+  const otherProps: { datasource?: string; groupby?: string[] } = {};
+  if (datasetId) {
+    otherProps.datasource = `${datasetId}__table`;
+  }
+  if (groupby) {
+    otherProps.groupby = [groupby];
   }
   return {
     ...controlValues,
@@ -72,7 +72,7 @@ export const getFormData = ({
 };
 
 export function mergeExtraFormData(
-  originalExtra: ExtraFormData,
+  originalExtra: ExtraFormData = {},
   newExtra: ExtraFormData,
 ): ExtraFormData {
   const {
@@ -82,6 +82,7 @@ export function mergeExtraFormData(
   const {
     override_form_data: newOverride = {},
     append_form_data: newAppend = {},
+    custom_form_data: newCustom = {},
   } = newExtra;
 
   const appendKeys = new Set([
@@ -99,6 +100,7 @@ export function mergeExtraFormData(
   });
 
   return {
+    custom_form_data: newCustom,
     override_form_data: {
       ...originalOverride,
       ...newOverride,
@@ -115,21 +117,21 @@ export function isCrossFilter(vizType: string) {
 }
 
 export function getExtraFormData(
-  nativeFilters: NativeFiltersState,
+  dataMask: DataMaskStateWithId,
   charts: Charts,
   filterIdsAppliedOnChart: string[],
 ): ExtraFormData {
   let extraFormData: ExtraFormData = {};
   filterIdsAppliedOnChart.forEach(key => {
-    const filterState = nativeFilters.filtersState[key] || {};
-    const { extraFormData: newExtra = {} } = filterState;
+    const singleDataMask = dataMask.nativeFilters[key] || {};
+    const { extraFormData: newExtra = {} } = singleDataMask;
     extraFormData = mergeExtraFormData(extraFormData, newExtra);
   });
   if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
     Object.entries(charts).forEach(([key, chart]) => {
       if (isCrossFilter(chart?.formData?.viz_type)) {
-        const filterState = nativeFilters.filtersState[key] || {};
-        const { extraFormData: newExtra = {} } = filterState;
+        const singleDataMask = dataMask.crossFilters[key] || {};
+        const { extraFormData: newExtra = {} } = singleDataMask;
         extraFormData = mergeExtraFormData(extraFormData, newExtra);
       }
     });

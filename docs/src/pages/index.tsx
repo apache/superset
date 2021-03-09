@@ -361,7 +361,7 @@ const Theme = () => {
                     title="Integrates with modern databases"
                     descr={`
                     Superset can connect to any SQL based datasource
-                    through SQL Alchemy, including modern cloud native databases
+                    through SQLAlchemy, including modern cloud native databases
                     and engines at petabyte scale.
                   `}
                   />

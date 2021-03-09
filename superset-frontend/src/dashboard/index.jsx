@@ -35,7 +35,9 @@ initFeatureFlags(bootstrapData.common.feature_flags);
 const asyncEventMiddleware = initAsyncEvents({
   config: bootstrapData.common.conf,
   getPendingComponents: ({ charts }) =>
-    Object.values(charts).filter(c => c.chartStatus === 'loading'),
+    Object.values(charts).filter(
+      c => c.chartStatus === 'loading' && c.asyncJobId !== undefined,
+    ),
   successAction: (componentId, componentData) =>
     actions.chartUpdateSucceeded(componentData, componentId),
   errorAction: (componentId, response) =>

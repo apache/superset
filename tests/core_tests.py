@@ -107,7 +107,7 @@ class TestCore(SupersetTestCase):
         self.login(username="admin")
         slc = self.get_slice("Girls", db.session)
         resp = self.get_resp("/superset/slice/{}/".format(slc.id))
-        assert "Time Column" in resp
+        assert "Original value" in resp
         assert "List Roles" in resp
 
         # Testing overrides
@@ -612,6 +612,7 @@ class TestCore(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_cache_logging(self):
+        self.login("admin")
         store_cache_keys = app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]
         app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = True
         girls_slice = self.get_slice("Girls", db.session)
@@ -632,6 +633,28 @@ class TestCore(SupersetTestCase):
         )
         resp = self.client.post("/r/shortner/", data=dict(data=data))
         assert re.search(r"\/r\/[0-9]+", resp.data.decode("utf-8"))
+
+    def test_shortner_invalid(self):
+        self.login(username="admin")
+        invalid_urls = [
+            "hhttp://invalid.com",
+            "hhttps://invalid.com",
+            "www.invalid.com",
+        ]
+        for invalid_url in invalid_urls:
+            resp = self.client.post("/r/shortner/", data=dict(data=invalid_url))
+            assert resp.status_code == 400
+
+    def test_redirect_invalid(self):
+        model_url = models.Url(url="hhttp://invalid.com")
+        db.session.add(model_url)
+        db.session.commit()
+
+        self.login(username="admin")
+        response = self.client.get(f"/r/{model_url.id}")
+        assert response.headers["Location"] == "http://localhost/"
+        db.session.delete(model_url)
+        db.session.commit()
 
     @skipUnless(
         (is_feature_enabled("KV_STORE")), "skipping as /kv/ endpoints are not enabled"
@@ -785,6 +808,7 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_id_is_always_logged_correctly_on_web_request(self):
         # superset/explore case
+        self.login("admin")
         slc = db.session.query(Slice).filter_by(slice_name="Girls").one()
         qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
         self.get_resp(slc.slice_url, {"form_data": json.dumps(slc.form_data)})

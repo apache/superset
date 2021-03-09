@@ -26,9 +26,13 @@ export const getSelectExtraFormData = (
 ) => ({
   append_form_data: emptyFilter
     ? {
-        extras: {
-          where: '1 = 0',
-        },
+        adhoc_filters: [
+          {
+            expressionType: 'SQL',
+            clause: 'WHERE',
+            sqlExpression: '1 = 0',
+          },
+        ],
       }
     : {
         filters:

@@ -33,6 +33,7 @@ import {
   NATIVE_FILTER_ID,
   layoutForSingleNativeFilter,
   singleNativeFiltersState,
+  dataMaskWith1Filter,
 } from 'spec/fixtures/mockNativeFilters';
 import dashboardInfo from 'spec/fixtures/mockDashboardInfo';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
@@ -53,6 +54,7 @@ describe('Dashboard', () => {
     dashboardInfo,
     charts: chartQueries,
     activeFilters: {},
+    ownDataCharts: {},
     slices: sliceEntities.slices,
     datasources,
     layout: dashboardLayout.present,
@@ -153,7 +155,8 @@ describe('Dashboard', () => {
         activeFilters: {
           ...OVERRIDE_FILTERS,
           ...getActiveNativeFilters({
-            nativeFilters: singleNativeFiltersState,
+            dataMask: dataMaskWith1Filter,
+            filters: singleNativeFiltersState.filters,
             layout: layoutForSingleNativeFilter,
           }),
         },

@@ -56,7 +56,7 @@ export const Select = ({
       metrics: ['SUM(SP_POP_TOTL)'],
     }}
     hooks={{
-      setExtraFormData: action('setExtraFormData'),
+      setDataMask: action('setDataMask'),
     }}
   />
 );

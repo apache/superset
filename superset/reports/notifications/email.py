@@ -19,7 +19,7 @@ import json
 import logging
 from dataclasses import dataclass
 from email.utils import make_msgid, parseaddr
-from typing import Dict
+from typing import Dict, Optional
 
 from flask_babel import gettext as __
 
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class EmailContent:
     body: str
-    images: Dict[str, bytes]
+    images: Optional[Dict[str, bytes]] = None
 
 
 class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-methods
@@ -49,22 +49,35 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_smtp_domain() -> str:
         return parseaddr(app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
 
-    def _get_content(self) -> EmailContent:
-        # Get the domain from the 'From' address ..
-        # and make a message id without the < > in the ends
-        domain = self._get_smtp_domain()
-        msgid = make_msgid(domain)[1:-1]
-
-        image = {msgid: self._content.screenshot.image}
-        body = __(
+    @staticmethod
+    def _error_template(text: str) -> str:
+        return __(
             """
-            <b><a href="%(url)s">Explore in Superset</a></b><p></p>
-            <img src="cid:%(msgid)s">
+            Error: %(text)s
             """,
-            url=self._content.screenshot.url,
-            msgid=msgid,
+            text=text,
         )
-        return EmailContent(body=body, images=image)
+
+    def _get_content(self) -> EmailContent:
+        if self._content.text:
+            return EmailContent(body=self._error_template(self._content.text))
+        # Get the domain from the 'From' address ..
+        # and make a message id without the < > in the end
+        if self._content.screenshot:
+            domain = self._get_smtp_domain()
+            msgid = make_msgid(domain)[1:-1]
+
+            image = {msgid: self._content.screenshot.image}
+            body = __(
+                """
+                <b><a href="%(url)s">Explore in Superset</a></b><p></p>
+                <img src="cid:%(msgid)s">
+                """,
+                url=self._content.screenshot.url,
+                msgid=msgid,
+            )
+            return EmailContent(body=body, images=image)
+        return EmailContent(body=self._error_template("Unexpected missing screenshot"))
 
     def _get_subject(self) -> str:
         return __(

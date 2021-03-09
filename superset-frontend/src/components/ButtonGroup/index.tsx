@@ -20,13 +20,14 @@ import React from 'react';
 
 export interface ButtonGroupProps {
   className?: string;
-  children?: React.ReactNode;
+  children: React.ReactNode;
 }
 
 export default function ButtonGroup(props: ButtonGroupProps) {
   const { className, children } = props;
   return (
     <div
+      role="group"
       className={className}
       css={{
         '& :nth-child(1):not(:nth-last-child(1))': {

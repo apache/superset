@@ -26,7 +26,7 @@ export default class FilterSelectPlugin extends ChartPlugin {
   constructor() {
     const metadata = new ChartMetadata({
       name: t('Select filter'),
-      description: 'Select filter plugin using AntD',
+      description: t('Select filter plugin using AntD'),
       behaviors: [Behavior.CROSS_FILTER, Behavior.NATIVE_FILTER],
       thumbnail,
     });

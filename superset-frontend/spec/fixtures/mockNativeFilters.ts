@@ -17,6 +17,7 @@
  * under the License.
  */
 import { NativeFiltersState } from 'src/dashboard/reducers/types';
+import { DataMaskStateWithId } from '../../src/dataMask/types';
 
 export const nativeFilters: NativeFiltersState = {
   filterSets: {},
@@ -72,12 +73,14 @@ export const nativeFilters: NativeFiltersState = {
       isInstant: true,
     },
   },
-  filtersState: {
+};
+
+export const dataMaskWith2Filters: DataMaskStateWithId = {
+  crossFilters: {},
+  ownFilters: {},
+  nativeFilters: {
     'NATIVE_FILTER-e7Q8zKixx': {
       id: 'NATIVE_FILTER-e7Q8zKixx',
-      currentState: {
-        value: ['East Asia & Pacific'],
-      },
       extraFormData: {
         append_form_data: {
           filters: [
@@ -88,6 +91,9 @@ export const nativeFilters: NativeFiltersState = {
             },
           ],
         },
+      },
+      currentState: {
+        value: ['East Asia & Pacific'],
       },
     },
     'NATIVE_FILTER-x9QPw0so1': {
@@ -128,7 +134,10 @@ export const singleNativeFiltersState = {
       isRequired: false,
     },
   },
-  filtersState: {
+};
+
+export const dataMaskWith1Filter = {
+  nativeFilters: {
     [NATIVE_FILTER_ID]: {
       id: NATIVE_FILTER_ID,
       extraFormData,
