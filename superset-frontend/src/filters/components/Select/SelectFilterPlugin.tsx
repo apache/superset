@@ -89,11 +89,21 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   useEffect(() => {
     handleChange(currentValue ?? []);
-  }, [JSON.stringify(currentValue), multiSelect, enableEmptyFilter, inverseSelection]);
+  }, [
+    JSON.stringify(currentValue),
+    multiSelect,
+    enableEmptyFilter,
+    inverseSelection,
+  ]);
 
   useEffect(() => {
     handleChange(defaultValue ?? []);
-  }, [JSON.stringify(defaultValue), multiSelect, enableEmptyFilter, inverseSelection]);
+  }, [
+    JSON.stringify(defaultValue),
+    multiSelect,
+    enableEmptyFilter,
+    inverseSelection,
+  ]);
 
   const placeholderText =
     (data || []).length === 0
