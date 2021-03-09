@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/chart-controls",
-  "version": "0.17.16",
+  "version": "0.17.17",
   "description": "Superset UI control-utils",
   "sideEffects": false,
   "main": "lib/index.js",
