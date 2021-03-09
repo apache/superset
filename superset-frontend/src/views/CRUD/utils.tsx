@@ -91,14 +91,15 @@ export const getEditedObjs = (userId: string | number) => {
       endpoint: `/api/v1/chart/?q=${getParams(filters.edited)}`,
     }),
   ];
-  return Promise.all(batch).then(([editedCharts, editedDashboards]) => {
-    const res = {
-      editedDash: editedDashboards.json?.result.slice(0, 3),
-      editedChart: editedCharts.json?.result.slice(0, 3),
-    };
-    console.log('res', res);
-    return res;
-  });
+  return Promise.all(batch)
+    .then(([editedCharts, editedDashboards]) => {
+      const res = {
+        editedDash: editedDashboards.json?.result.slice(0, 3),
+        editedChart: editedCharts.json?.result.slice(0, 3),
+      };
+      return res;
+    })
+    .catch(err => err);
 };
 
 export const getMineObjs = (userId: string | number, resource: string) => {
@@ -113,30 +114,15 @@ export const getMineObjs = (userId: string | number, resource: string) => {
   };
   return SupersetClient.get({
     endpoint: `/api/v1/${resource}/?q=${getParams(filters.created)}`,
-  }).then(res => {
-    console.log('res', res);
-    return res.json?.result;
-  });
+  }).then(res => res.json?.result);
 };
 
 export const getRecentAcitivtyObjs = (
   userId: string | number,
   recent: string,
   addDangerToast: (arg1: string, arg2: any) => any,
-) => {
-  const filters = {
-    // chart and dashbaord uses same filters
-    // for edited and created
-    edited: [
-      {
-        col: 'changed_by',
-        opr: 'rel_o_m',
-        value: `${userId}`,
-      },
-    ],
-  };
-  const baseBatch = [];
-  return SupersetClient.get({ endpoint: recent }).then(recentsRes => {
+) =>
+  SupersetClient.get({ endpoint: recent }).then(recentsRes => {
     const res: any = {};
     if (recentsRes.json.length === 0) {
       const newBatch = [
@@ -160,7 +146,6 @@ export const getRecentAcitivtyObjs = (
     res.viewed = recentsRes.json;
     return res;
   });
-};
 
 export const createFetchRelated = createFetchResourceMethod('related');
 export const createFetchDistinct = createFetchResourceMethod('distinct');
