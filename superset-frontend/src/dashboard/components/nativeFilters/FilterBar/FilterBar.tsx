@@ -27,11 +27,7 @@ import Icon from 'src/components/Icon';
 import { Tabs } from 'src/common/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { updateDataMask } from 'src/dataMask/actions';
-import {
-  DataMaskUnitWithId,
-  DataMaskUnit,
-  DataMaskState,
-} from 'src/dataMask/types';
+import { DataMaskUnit, DataMaskState } from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
 import { getInitialMask } from 'src/dataMask/reducer';
 import { areObjectsEqual } from 'src/reduxUtils';

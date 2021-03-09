@@ -73,7 +73,7 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({
     <StyledCollapse
       ghost
       expandIconPosition="right"
-      defaultActiveKey={expanded && ['filters']}
+      defaultActiveKey={expanded ? ['filters'] : undefined}
       expandIcon={({ isActive }: { isActive: boolean }) => (
         <CaretDownOutlined rotate={isActive ? 0 : 180} />
       )}

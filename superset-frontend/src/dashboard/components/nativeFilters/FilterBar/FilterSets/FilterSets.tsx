@@ -16,24 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Select } from 'src/common/components';
-import Button from 'src/components/Button';
-import React, { useEffect, useMemo, useState } from 'react';
-import { HandlerFunction, styled, t, tn } from '@superset-ui/core';
+
+import React, { useEffect, useState } from 'react';
+import { HandlerFunction, styled, t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
-import {
-  DataMaskState,
-  DataMaskUnit,
-  DataMaskUnitWithId,
-  MaskWithId,
-} from 'src/dataMask/types';
+import { DataMaskState, DataMaskUnit, MaskWithId } from 'src/dataMask/types';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
+import { areObjectsEqual } from 'src/reduxUtils';
 import { generateFiltersSetId } from './utils';
 import { Filter } from '../../types';
 import { useFilters, useDataMask, useFilterSets } from '../state';
 import Footer from './Footer';
 import FilterSetUnit from './FilterSetUnit';
-import { areObjectsEqual } from '../../../../../reduxUtils';
 import { FilterSet } from '../../../../reducers/types';
 
 const FilterSetsWrapper = styled.div`
@@ -73,7 +67,7 @@ const FilterSetUnitWrapper = styled.div<{
 
 type FilterSetsProps = {
   disabled: boolean;
-  filterData: MaskWithId;
+  filterData: DataMaskUnit;
   onFilterSelectionChange: (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
     dataMask: Partial<DataMaskState>,
@@ -118,9 +112,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
       }
       return false;
     });
-    if (foundFilterSet) {
-      setSelectedFiltersSetId(foundFilterSet.id ?? null);
-    }
+    setSelectedFiltersSetId(foundFilterSet?.id ?? null);
   }, [dataMaskApplied, filterData, filterSetsArray]);
 
   const takeFilterSet = (id: string) => {
@@ -174,7 +166,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
 
   return (
     <FilterSetsWrapper>
-      {selectedFiltersSetId && (
+      {!selectedFiltersSetId && (
         <FilterSetUnitWrapper>
           <FilterSetUnit
             filters={filters}
@@ -199,6 +191,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
           onClick={() => takeFilterSet(filterSet.id)}
         >
           <FilterSetUnit
+            isApplied={filterSet.id === selectedFiltersSetId && !disabled}
             onDelete={handleDeleteFilterSets}
             filters={filters}
             currentDataMask={dataMaskApplied}
@@ -206,26 +199,6 @@ const FilterSets: React.FC<FilterSetsProps> = ({
           />
         </FilterSetUnitWrapper>
       ))}
-      <Select
-        size="small"
-        allowClear
-        value={selectedFiltersSetId as string}
-        placeholder={tn('Available %d sets', filterSetsArray.length)}
-        onChange={takeFilterSet}
-      >
-        {filterSetsArray.map(({ name, id }) => (
-          <Select.Option value={id}>{name}</Select.Option>
-        ))}
-      </Select>
-      <Button
-        buttonStyle="warning"
-        buttonSize="small"
-        disabled={!selectedFiltersSetId}
-        onClick={handleDeleteFilterSets}
-        data-test="filter-save-filters-set-button"
-      >
-        {t('Delete Filters Set')}
-      </Button>
     </FilterSetsWrapper>
   );
 };

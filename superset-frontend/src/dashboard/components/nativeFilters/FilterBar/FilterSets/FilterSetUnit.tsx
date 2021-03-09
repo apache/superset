@@ -21,14 +21,23 @@ import React, { FC } from 'react';
 import { FilterSet } from 'src/dashboard/reducers/types';
 import { DataMaskUnitWithId } from 'src/dataMask/types';
 import { CheckOutlined, EllipsisOutlined } from '@ant-design/icons';
-import { HandlerFunction, styled, t } from '@superset-ui/core';
+import { HandlerFunction, styled, supersetTheme, t } from '@superset-ui/core';
 import FiltersHeader from './FiltersHeader';
 import { Filter } from '../../types';
 
-const LineText = styled.div`
+const TitleText = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+`;
+
+const IconsBlock = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  & > * {
+    ${({ theme }) => `padding-left: ${theme.gridUnit * 2}px`};
+  }
 `;
 
 type FilterSetUnitProps = {
@@ -39,7 +48,7 @@ type FilterSetUnitProps = {
   filterSetName?: string;
   currentDataMask: DataMaskUnitWithId;
   setFilterSetName?: (name: string) => void;
-  onDelete: HandlerFunction;
+  onDelete?: HandlerFunction;
 };
 
 const FilterSetUnit: FC<FilterSetUnitProps> = ({
@@ -59,7 +68,7 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
   );
   return (
     <>
-      <LineText>
+      <TitleText>
         <Typography.Text
           strong
           editable={{
@@ -70,11 +79,28 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
         >
           {filterSet?.name ?? filterSetName}
         </Typography.Text>
-        {isApplied && <CheckOutlined />}
-        <Dropdown overlay={menu} placement="bottomRight">
-          <EllipsisOutlined />
-        </Dropdown>
-      </LineText>
+        <IconsBlock>
+          {isApplied && (
+            <CheckOutlined
+              style={{ color: supersetTheme.colors.success.base }}
+            />
+          )}
+          {onDelete && (
+            <Dropdown
+              overlay={menu}
+              placement="bottomRight"
+              trigger={['click']}
+            >
+              <EllipsisOutlined
+                onClick={e => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
+              />
+            </Dropdown>
+          )}
+        </IconsBlock>
+      </TitleText>
       <FiltersHeader
         expanded={!filterSet}
         dataMask={filterSet?.dataMask?.nativeFilters ?? currentDataMask}
