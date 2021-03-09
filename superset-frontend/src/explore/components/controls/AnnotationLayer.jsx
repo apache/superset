@@ -455,10 +455,9 @@ export default class AnnotationLayer extends React.PureComponent {
         <div style={{ marginRight: '2rem' }}>
           <PopoverSection
             isSelected
-            onSelect={() => {}}
-            title="Annotation Slice Configuration"
-            info={`This section allows you to configure how to use the slice
-               to generate annotations.`}
+            title={t('Annotation Slice Configuration')}
+            info={t(`This section allows you to configure how to use the slice
+               to generate annotations.`)}
           >
             {(annotationType === ANNOTATION_TYPES.EVENT ||
               annotationType === ANNOTATION_TYPES.INTERVAL) && (
@@ -597,7 +596,6 @@ export default class AnnotationLayer extends React.PureComponent {
     return (
       <PopoverSection
         isSelected
-        onSelect={() => {}}
         title={t('Display configuration')}
         info={t('Configure your how you overlay is displayed here.')}
       >
@@ -697,7 +695,6 @@ export default class AnnotationLayer extends React.PureComponent {
           <div style={{ marginRight: '2rem' }}>
             <PopoverSection
               isSelected
-              onSelect={() => {}}
               title={t('Layer configuration')}
               info={t('Configure the basics of your Annotation Layer.')}
             >
