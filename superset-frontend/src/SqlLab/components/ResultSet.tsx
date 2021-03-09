@@ -19,7 +19,7 @@
 import React, { CSSProperties } from 'react';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
-import ProgressBar from 'src/common/components/ProgressBar';
+import ProgressBar from 'src/components/ProgressBar';
 import moment from 'moment';
 import { RadioChangeEvent } from 'antd/lib/radio';
 import Button from 'src/components/Button';
