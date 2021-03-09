@@ -530,9 +530,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
     def test_connection_db_exception(self, mock_event_logger, mock_get_sqla_engine):
         """Test to make sure event_logger is called when an exception is raised"""
         database = get_example_database()
-        mock_build_db_for_connection_test.side_effect = Exception(
-            "An error has occurred!"
-        )
+        mock_get_sqla_engine.side_effect = Exception("An error has occurred!")
         db_uri = database.sqlalchemy_uri_decrypted
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(
