@@ -66,30 +66,31 @@ class TestConnectionDatabaseCommand(BaseCommand):
                     raise DBAPIError(None, None, None)
 
         except (NoSuchModuleError, ModuleNotFoundError) as ex:
-            driver_name = make_url(uri).drivername
             event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",
-                engine=make_url(uri).drivername,
+                engine=database.db_engine_spec.__name__,
             )
             raise DatabaseTestConnectionDriverError(
-                message=_("Could not load database driver: {}").format(driver_name),
+                message=_("Could not load database driver: {}").format(
+                    database.db_engine_spec.__name__
+                ),
             )
         except DBAPIError as ex:
             event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",
-                engine=make_url(uri).drivername,
+                engine=database.db_engine_spec.__name__,
             )
             raise DatabaseTestConnectionFailedError()
         except SupersetSecurityException as ex:
             event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",
-                engine=make_url(uri).drivername,
+                engine=database.db_engine_spec.__name__,
             )
             raise DatabaseSecurityUnsafeError(message=str(ex))
         except Exception as ex:  # pylint: disable=broad-except
             event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",
-                engine=make_url(uri).drivername,
+                engine=database.db_engine_spec.__name__,
             )
             raise DatabaseTestConnectionUnexpectedError()
 
