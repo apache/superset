@@ -908,6 +908,11 @@ class ChartDataQueryObjectSchema(Schema):
         allow_none=True,
         example={"__time_range": "1 year ago : now"},
     )
+    apply_fetch_values_predicate = fields.Boolean(
+        description="Add fetch values predicate (where clause) to query "
+        "if defined in datasource",
+        allow_none=True,
+    )
     filters = fields.List(fields.Nested(ChartDataFilterSchema), allow_none=True)
     granularity = fields.String(
         description="Name of temporal column used for time filtering. For legacy Druid "

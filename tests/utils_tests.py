@@ -924,15 +924,38 @@ class TestUtils(SupersetTestCase):
             "time_range": "Last 10 days",
             "extra_form_data": {
                 "append_form_data": {
-                    "filters": [{"col": "foo", "op": "IN", "val": "bar"}]
+                    "filters": [{"col": "foo", "op": "IN", "val": ["bar"]}],
+                    "adhoc_filters": [
+                        {
+                            "expressionType": "SQL",
+                            "clause": "WHERE",
+                            "sqlExpression": "1 = 0",
+                        }
+                    ],
                 },
                 "override_form_data": {"time_range": "Last 100 years",},
             },
         }
         merge_extra_form_data(form_data)
         assert form_data["applied_time_extras"] == {"__time_range": "Last 100 years"}
+        adhoc_filters = form_data["adhoc_filters"]
+        assert adhoc_filters[0] == {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "isExtra": True,
+            "sqlExpression": "1 = 0",
+        }
+        converted_filter = adhoc_filters[1]
+        del converted_filter["filterOptionName"]
+        assert converted_filter == {
+            "clause": "WHERE",
+            "comparator": ["bar"],
+            "expressionType": "SIMPLE",
+            "isExtra": True,
+            "operator": "IN",
+            "subject": "foo",
+        }
         assert form_data["time_range"] == "Last 100 years"
-        assert len(form_data["adhoc_filters"]) == 1
 
     def test_ssl_certificate_parse(self):
         parsed_certificate = parse_ssl_cert(ssl_certificate)
