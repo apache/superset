@@ -111,7 +111,7 @@ If you decide to join the [Community Slack](https://join.slack.com/t/apache-supe
 **1. Treat everyone in the community with respect.**
 
 - We strive to make this community a warm place for people from all industries, use cases, geographies, and backgrounds. Harassment of any kind is not acceptable and won’t be tolerated.
-- Please follow the guidelines as outlined in the Superset Community [code of conduct here](https://github.com/apache/superset/blob/master/RESOURCES/CODE_OF_CONDUCT.md).
+- Please follow the guidelines as outlined in the Superset Community [code of conduct here](https://github.com/apache/superset/blob/master/CODE_OF_CONDUCT.md).
 
 **2. Use the right channel.**
 
