@@ -1059,6 +1059,22 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 403
 
     @pytest.mark.usefixtures("create_datasets")
+    @patch("superset.datasets.dao.DatasetDAO.delete")
+    def test_delete_dataset_column_fail(self, mock_dao_delete):
+        """
+        Dataset API: Test delete dataset column
+        """
+        mock_dao_delete.side_effect = DAODeleteFailedError()
+        dataset = self.get_fixture_datasets()[0]
+        column_id = dataset.columns[0].id
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}/column/{column_id}"
+        rv = self.client.delete(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        assert data == {"message": "Dataset column delete failed."}
+
+    @pytest.mark.usefixtures("create_datasets")
     def test_delete_dataset_metric(self):
         """
         Dataset API: Test delete dataset metric
@@ -1109,6 +1125,22 @@ class TestDatasetApi(SupersetTestCase):
         uri = f"api/v1/dataset/{dataset.id}/metric/{metric_id}"
         rv = self.client.delete(uri)
         assert rv.status_code == 403
+
+    @pytest.mark.usefixtures("create_datasets")
+    @patch("superset.datasets.dao.DatasetDAO.delete")
+    def test_delete_dataset_metric_fail(self, mock_dao_delete):
+        """
+        Dataset API: Test delete dataset metric
+        """
+        mock_dao_delete.side_effect = DAODeleteFailedError()
+        dataset = self.get_fixture_datasets()[0]
+        column_id = dataset.metrics[0].id
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}/metric/{column_id}"
+        rv = self.client.delete(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        assert data == {"message": "Dataset metric delete failed."}
 
     @pytest.mark.usefixtures("create_datasets")
     def test_bulk_delete_dataset_items(self):
