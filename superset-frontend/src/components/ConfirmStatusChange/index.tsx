@@ -19,8 +19,9 @@
 import React, { useState } from 'react';
 import DeleteModal from 'src/components/DeleteModal';
 
-type Callback = (...args: any[]) => void;
-interface ConfirmStatusChangeProps {
+export type Callback = (...args: any[]) => void;
+
+export interface ConfirmStatusChangeProps {
   title: React.ReactNode;
   description: React.ReactNode;
   onConfirm: Callback;
