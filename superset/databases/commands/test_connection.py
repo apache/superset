@@ -20,7 +20,6 @@ from typing import Any, Dict, Optional
 
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as _
-from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset.commands.base import BaseCommand
