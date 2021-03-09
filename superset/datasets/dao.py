@@ -31,7 +31,7 @@ from superset.views.base import DatasourceFilter
 logger = logging.getLogger(__name__)
 
 
-class DatasetDAO(BaseDAO):
+class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
     model_cls = SqlaTable
     base_filter = DatasourceFilter
 
@@ -238,6 +238,20 @@ class DatasetDAO(BaseDAO):
         return new_metrics
 
     @classmethod
+    def find_dataset_column(
+        cls, dataset_id: int, column_id: int
+    ) -> Optional[TableColumn]:
+        # We want to apply base dataset filters
+        dataset = DatasetDAO.find_by_id(dataset_id)
+        if not dataset:
+            return None
+        return (
+            db.session.query(TableColumn)
+            .filter(TableColumn.table_id == dataset_id, TableColumn.id == column_id)
+            .one_or_none()
+        )
+
+    @classmethod
     def update_column(
         cls, model: TableColumn, properties: Dict[str, Any], commit: bool = True
     ) -> Optional[TableColumn]:
@@ -260,6 +274,16 @@ class DatasetDAO(BaseDAO):
         Deletes a Dataset column
         """
         return cls.delete(model, commit=commit)
+
+    @classmethod
+    def find_dataset_metric(
+        cls, dataset_id: int, metric_id: int
+    ) -> Optional[SqlMetric]:
+        # We want to apply base dataset filters
+        dataset = DatasetDAO.find_by_id(dataset_id)
+        if not dataset:
+            return None
+        return db.session.query(SqlMetric).get(metric_id)
 
     @classmethod
     def delete_metric(

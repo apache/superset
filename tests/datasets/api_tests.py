@@ -1012,6 +1012,105 @@ class TestDatasetApi(SupersetTestCase):
         db.session.commit()
 
     @pytest.mark.usefixtures("create_datasets")
+    def test_delete_dataset_column(self):
+        """
+        Dataset API: Test delete dataset column
+        """
+        dataset = self.get_fixture_datasets()[0]
+        column_id = dataset.columns[0].id
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}/column/{column_id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 200
+        assert db.session.query(TableColumn).get(column_id) == None
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_delete_dataset_column_not_found(self):
+        """
+        Dataset API: Test delete dataset column not found
+        """
+        dataset = self.get_fixture_datasets()[0]
+        non_id = self.get_nonexistent_numeric_id(TableColumn)
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}/column/{non_id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 404
+
+        non_id = self.get_nonexistent_numeric_id(SqlaTable)
+        column_id = dataset.columns[0].id
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{non_id}/column/{column_id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_delete_dataset_column_not_owned(self):
+        """
+        Dataset API: Test delete dataset column not owned
+        """
+        dataset = self.get_fixture_datasets()[0]
+        column_id = dataset.columns[0].id
+
+        self.login(username="alpha")
+        uri = f"api/v1/dataset/{dataset.id}/column/{column_id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 403
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_delete_dataset_metric(self):
+        """
+        Dataset API: Test delete dataset metric
+        """
+        dataset = self.get_fixture_datasets()[0]
+        test_metric = SqlMetric(
+            metric_name="metric1", expression="COUNT(*)", table=dataset
+        )
+        db.session.add(test_metric)
+        db.session.commit()
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}/metric/{test_metric.id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 200
+        assert db.session.query(SqlMetric).get(test_metric.id) == None
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_delete_dataset_metric_not_found(self):
+        """
+        Dataset API: Test delete dataset metric not found
+        """
+        dataset = self.get_fixture_datasets()[0]
+        non_id = self.get_nonexistent_numeric_id(SqlMetric)
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{dataset.id}/metric/{non_id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 404
+
+        non_id = self.get_nonexistent_numeric_id(SqlaTable)
+        metric_id = dataset.metrics[0].id
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/{non_id}/metric/{metric_id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_delete_dataset_metric_not_owned(self):
+        """
+        Dataset API: Test delete dataset metric not owned
+        """
+        dataset = self.get_fixture_datasets()[0]
+        metric_id = dataset.metrics[0].id
+
+        self.login(username="alpha")
+        uri = f"api/v1/dataset/{dataset.id}/metric/{metric_id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 403
+
+    @pytest.mark.usefixtures("create_datasets")
     def test_bulk_delete_dataset_items(self):
         """
         Dataset API: Test bulk delete dataset items
