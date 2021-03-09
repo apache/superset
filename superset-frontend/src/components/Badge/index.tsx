@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import { styled } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
 import { Badge as AntdBadge } from 'antd';
 import { BadgeProps as AntdBadgeProps } from 'antd/lib/badge';
 
