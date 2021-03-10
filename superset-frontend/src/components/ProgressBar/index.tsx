@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import { styled } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
 import { Progress as AntdProgress } from 'antd';
 import { ProgressProps } from 'antd/lib/progress/progress';
 
