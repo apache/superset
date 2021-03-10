@@ -211,6 +211,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
           <FilterSetUnit
             isApplied={filterSet.id === selectedFiltersSetId && !disabled}
             onDelete={handleDeleteFilterSets}
+            onEdit={handleEdit}
             filters={filters}
             currentDataMask={dataMaskApplied}
             filterSet={filterSet}
