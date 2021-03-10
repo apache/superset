@@ -3,12 +3,11 @@ import * as net from 'net';
 import WebSocket from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 
-const config = require('./config.json');
 const jwt = require('jsonwebtoken');
 const cookie = require('cookie');
 const Redis = require('ioredis');
 
-type StreamResult = [recordId: string, record: [label: 'data', data: string]];
+export type StreamResult = [recordId: string, record: [label: 'data', data: string]];
 type ListenerFunction = (results: StreamResult[]) => void;
 interface EventValue {
   id: string,
@@ -21,13 +20,14 @@ interface EventValue {
 }
 interface JwtPayload { channel: string };
 interface FetchRangeFromStreamParams { sessionId: string, startId: string, endId: string, listener: ListenerFunction }
-interface SocketInstance { ws: WebSocket, channel: string, pongTs: number };
+export interface SocketInstance { ws: WebSocket, channel: string, pongTs: number };
 
 interface ChannelValue {
   sockets: Array<string>,
 }
 
-const opts = {
+const environment = process.env.NODE_ENV;
+export const opts = {
   port: 8080,
   redis: {
     port: 6379,
@@ -40,30 +40,59 @@ const opts = {
   jwtCookieName: "async-token",
   redisStreamReadCount: 100,
   redisStreamReadBlockMs: 5000,
-  socketResponseTimeoutMs: 30 * 1000,
-  debug: false,
+  socketResponseTimeoutMs: 60 * 1000,
+  gcSocketsIntervalMs: 90 * 1000,
+  gcChannelsIntervalMs: 120 * 1000,
+}
+
+const startServer = process.argv[2] === 'start';
+const configFile = environment === 'test' ? './config.test.json' : './config.json';
+let config = {};
+try {
+  config = require(configFile);
+} catch(err) {
+  console.warn('config.json not found, using defaults');
 }
 
 Object.assign(opts, config);
 
-if(opts.jwtSecret.length < 32)
+if(startServer && opts.jwtSecret.length < 32)
   throw('Please provide a JWT secret at least 32 bytes long')
 
 const redis = new Redis(opts.redis);
 const httpServer = http.createServer();
-const wss = new WebSocket.Server({ noServer: true, clientTracking: false });
+export const wss = new WebSocket.Server({ noServer: true, clientTracking: false });
 
-const socketActiveStates = [WebSocket.OPEN, WebSocket.CONNECTING];
-const globalEventStreamName: string = `${opts.streamPrefix}full`;
-let channels: Record<string, ChannelValue> = {};
-let sockets: Record<string, SocketInstance> = {};
-let lastFirehoseId: string = '$';
-let redisRequestCount: number = 0;
+const SOCKET_ACTIVE_STATES = [WebSocket.OPEN, WebSocket.CONNECTING];
+const GLOBAL_EVENT_STREAM_NAME: string = `${opts.streamPrefix}full`;
+const DEFAULT_STREAM_LAST_ID = '$';
 
-function sendToChannel(channel: string, value: EventValue): void {
+export let channels: Record<string, ChannelValue> = {};
+export let sockets: Record<string, SocketInstance> = {};
+let lastFirehoseId: string = DEFAULT_STREAM_LAST_ID;
+
+
+export const setLastFirehostId = (id: string): void => {
+  lastFirehoseId = id;
+}
+
+export const trackClient = (channel: string, socketInstance: SocketInstance): string => {
+  const socketId = uuidv4();
+  sockets[socketId] = socketInstance;
+
+  if(channel in channels) {
+    channels[channel].sockets.push(socketId)
+  } else {
+    channels[channel] = {sockets: [socketId]};
+  }
+
+  return socketId;
+}
+
+export const sendToChannel = (channel: string, value: EventValue): void => {
   const strData = JSON.stringify(value);
   if(!channels[channel]) {
-    console.log(`channel ${channel} is unknown, skipping`);
+    console.debug(`channel ${channel} is unknown, skipping`);
     return;
   }
   channels[channel].sockets.forEach(socketId => {
@@ -71,13 +100,13 @@ function sendToChannel(channel: string, value: EventValue): void {
     try {
       socketInstance.ws.send(strData);
     } catch(err) {
-      console.log('Error sending to socket', err);
+      console.debug('Error sending to socket', err);
       cleanChannel(channel);
     }
   });
 }
 
-async function fetchRangeFromStream({sessionId, startId, endId, listener}: FetchRangeFromStreamParams) {
+export const fetchRangeFromStream = async ({sessionId, startId, endId, listener}: FetchRangeFromStreamParams) => {
   const streamName = `${opts.streamPrefix}${sessionId}`;
   try {
     const reply = await redis.xrange(streamName, startId, endId);
@@ -88,7 +117,7 @@ async function fetchRangeFromStream({sessionId, startId, endId, listener}: Fetch
   }
 }
 
-async function subscribeToGlobalStream(stream: string, listener: ListenerFunction) {
+export const subscribeToGlobalStream = async (stream: string, listener: ListenerFunction) => {
   while (true) {
     try {
       const reply = await redis.xread(
@@ -109,7 +138,7 @@ async function subscribeToGlobalStream(stream: string, listener: ListenerFunctio
         continue
       }
       listener(results)
-      lastFirehoseId = results[length - 1][0]
+      setLastFirehostId(results[length - 1][0])
     } catch(e) {
       console.error(e);
       continue
@@ -117,20 +146,19 @@ async function subscribeToGlobalStream(stream: string, listener: ListenerFunctio
   }
 }
 
-function processStreamResults(results: StreamResult[]): void {
+export const processStreamResults = (results: StreamResult[]): void => {
   results.forEach((item) => {
     try {
       const id = item[0];
       const data = JSON.parse(item[1][1]);
-      console.log('data', data);
       sendToChannel(data.channel_id, {id, ...data});
     } catch(err) {
-      console.log(err);
+      console.error(err);
     }
   });
 }
 
-function getJwtPayload(request: http.IncomingMessage): JwtPayload {
+const getJwtPayload = (request: http.IncomingMessage): JwtPayload => {
   const cookies = cookie.parse(request.headers.cookie);
   const token = cookies[opts.jwtCookieName];
 
@@ -138,29 +166,22 @@ function getJwtPayload(request: http.IncomingMessage): JwtPayload {
   return jwt.verify(token, opts.jwtSecret);
 }
 
-function getLastId(request: http.IncomingMessage): string | null {
+const getLastId = (request: http.IncomingMessage): string | null => {
   const url = new URL(String(request.url), 'http://0.0.0.0');
   const queryParams = url.searchParams;
   return queryParams.get('last_id');
 }
 
-wss.on('connection', function connection(ws: WebSocket, request: http.IncomingMessage) {
+export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
   const jwtPayload: JwtPayload = getJwtPayload(request);
   const channel: string = jwtPayload.channel;
-  const instance: SocketInstance = { ws, channel, pongTs: Date.now() }
+  const socketInstance: SocketInstance = { ws, channel, pongTs: Date.now() }
 
-  const socketId = uuidv4();
-  sockets[socketId] = instance;
-
-  if(channel in channels) {
-    channels[channel].sockets.push(socketId)
-  } else {
-    channels[channel] = {sockets: [socketId]};
-  }
+  trackClient(channel, socketInstance);
 
   const lastId = getLastId(request);
   if(lastId) {
-    const endId = (lastFirehoseId === '$' ? '+' : lastFirehoseId);
+    const endId = (lastFirehoseId === DEFAULT_STREAM_LAST_ID ? '+' : lastFirehoseId);
     fetchRangeFromStream({
       sessionId: channel,
       startId: lastId,   // TODO: inclusive?
@@ -171,7 +192,7 @@ wss.on('connection', function connection(ws: WebSocket, request: http.IncomingMe
 
   ws.on('pong', function pong(data: Buffer) {
     const socketId = data.toString();
-    console.log('pong', socketId);
+    console.debug('pong', socketId);
     const socketInstance = sockets[socketId];
     if (!socketInstance) {
       console.warn(`pong received for nonexistent socket ${socketId}`);
@@ -179,15 +200,14 @@ wss.on('connection', function connection(ws: WebSocket, request: http.IncomingMe
       socketInstance.pongTs = Date.now();
     }
   });
-});
+}
 
-httpServer.on('upgrade', function upgrade(request: http.IncomingMessage, socket: net.Socket, head: Buffer) {
+export const httpUpgrade = (request: http.IncomingMessage, socket: net.Socket, head: Buffer) => {
   try {
     const jwtPayload: JwtPayload = getJwtPayload(request);
     if(!jwtPayload.channel) throw new Error('Channel ID not present');
   } catch(err) {
-    console.log(err);
-    socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+    console.error(err);
     socket.destroy();
     return;
   }
@@ -195,37 +215,40 @@ httpServer.on('upgrade', function upgrade(request: http.IncomingMessage, socket:
   wss.handleUpgrade(request, socket, head, function cb(ws: WebSocket, request: http.IncomingMessage) {
     wss.emit('connection', ws, request);
   });
-});
+}
 
-httpServer.listen(opts.port);
-console.log(`Server started on port ${opts.port}`);
-
-subscribeToGlobalStream(globalEventStreamName, processStreamResults);
 
 // Connection cleanup and garbage collection
 
-const checkSockets = () => {
-  console.log('*** checkSockets', Object.keys(sockets).length);
+export const checkSockets = () => {
   for (const socketId in sockets) {
     const socketInstance = sockets[socketId];
     const timeout = Date.now() - socketInstance.pongTs;
-    if(timeout > opts.socketResponseTimeoutMs) {
-      console.log(`terminating socket ${socketId} for channel ${socketInstance.channel}`);
+    let isActive = true;
+
+    if(timeout >= opts.socketResponseTimeoutMs) {
+      console.debug(`terminating unresponsive socket: ${socketId}, channel: ${socketInstance.channel}`);
       socketInstance.ws.terminate();
-      delete sockets[socketId];
-    } else {
+      isActive = false;
+    } else if (!SOCKET_ACTIVE_STATES.includes(socketInstance.ws.readyState)) {
+      isActive = false;
+    }
+
+    if(isActive) {
       socketInstance.ws.ping(socketId);
+    } else {
+      delete sockets[socketId];
     }
   }
 }
 
-const cleanChannel = (channel: string) => {
-  const activeSockets: string[] = channels[channel].sockets.filter(socketId => {
+export const cleanChannel = (channel: string) => {
+  const activeSockets: string[] = channels[channel]?.sockets.filter(socketId => {
     const socketInstance = sockets[socketId];
     if (!socketInstance) return false;
-    if (socketActiveStates.includes(socketInstance.ws.readyState)) return true;
+    if (SOCKET_ACTIVE_STATES.includes(socketInstance.ws.readyState)) return true;
     return false;
-  });
+  }) || [];
 
   if(activeSockets.length === 0) {
     delete channels[channel];
@@ -234,16 +257,32 @@ const cleanChannel = (channel: string) => {
   }
 }
 
-const checkSocketsInterval = setInterval(checkSockets, 5000);
-const cleanChannelInterval = setInterval(function gc() {
-  for (const channel in channels) {
-    cleanChannel(channel);
-  }
-}, 60000);
 
-// if(opts.debug) {
-//   setInterval(() => {
-//     console.log('total connected sockets', wss.clients.size);
-//     console.log('redis request count', redisRequestCount);
-//   }, 2000)
-// }
+// server startup
+
+if(startServer) {
+  wss.on('connection', wsConnection);
+  httpServer.on('upgrade', httpUpgrade);
+  httpServer.listen(opts.port);
+  console.info(`Server started on port ${opts.port}`);
+
+  // start reading from event stream
+  subscribeToGlobalStream(GLOBAL_EVENT_STREAM_NAME, processStreamResults);
+
+  // init garbage collection
+  const checkSocketsInterval = setInterval(checkSockets, opts.gcSocketsIntervalMs);
+  const cleanChannelInterval = setInterval(function gc() {
+    for (const channel in channels) {
+      cleanChannel(channel);
+    }
+  }, opts.gcChannelsIntervalMs);
+}
+
+
+// test utilities
+
+export const resetState = () => {
+  channels = {};
+  sockets = {};
+  lastFirehoseId = DEFAULT_STREAM_LAST_ID;
+}
