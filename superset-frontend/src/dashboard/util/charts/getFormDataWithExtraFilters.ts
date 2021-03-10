@@ -27,6 +27,7 @@ import {
   getExtraFormData,
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
+import { DataMaskStateWithId } from 'src/dataMask/types';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getActiveNativeFilters } from '../activeDashboardNativeFilters';
 import { NativeFiltersState } from '../../reducers/types';
@@ -44,6 +45,7 @@ export interface GetFormDataWithExtraFiltersArguments {
   colorScheme?: string;
   colorNamespace?: string;
   sliceId: number;
+  dataMask: DataMaskStateWithId;
   nativeFilters: NativeFiltersState;
 }
 
@@ -54,11 +56,12 @@ export default function getFormDataWithExtraFilters({
   chart,
   charts,
   filters,
+  nativeFilters,
   colorScheme,
   colorNamespace,
   sliceId,
   layout,
-  nativeFilters,
+  dataMask,
 }: GetFormDataWithExtraFiltersArguments) {
   // Propagate color mapping to chart
   const scale = CategoricalColorNamespace.getScale(colorScheme, colorNamespace);
@@ -72,20 +75,24 @@ export default function getFormDataWithExtraFilters({
     cachedFormdataByChart[sliceId].color_namespace === colorNamespace &&
     isEqual(cachedFormdataByChart[sliceId].label_colors, labelColors) &&
     !!cachedFormdataByChart[sliceId] &&
-    nativeFilters === undefined
+    dataMask === undefined
   ) {
     return cachedFormdataByChart[sliceId];
   }
 
   let extraData: { extra_form_data?: JsonObject } = {};
-  const activeNativeFilters = getActiveNativeFilters({ nativeFilters, layout });
+  const activeNativeFilters = getActiveNativeFilters({
+    dataMask,
+    layout,
+    filters: nativeFilters.filters,
+  });
   const filterIdsAppliedOnChart = Object.entries(activeNativeFilters)
     .filter(([, { scope }]) => scope.includes(chart.id))
     .map(([filterId]) => filterId);
   if (filterIdsAppliedOnChart.length) {
     extraData = {
       extra_form_data: getExtraFormData(
-        nativeFilters,
+        dataMask,
         charts,
         filterIdsAppliedOnChart,
       ),
@@ -93,7 +100,7 @@ export default function getFormDataWithExtraFilters({
   }
 
   const { extraFormData: newExtra = {} } =
-    nativeFilters.filtersState?.ownFilters?.[chart.id] ?? {};
+    dataMask?.ownFilters?.[chart.id] ?? {};
   extraData.extra_form_data = mergeExtraFormData(
     extraData?.extra_form_data,
     newExtra,

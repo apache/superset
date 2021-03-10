@@ -75,11 +75,8 @@ class ChartRenderer extends React.Component {
       setControlValue: this.handleSetControlValue,
       onFilterMenuOpen: this.props.onFilterMenuOpen,
       onFilterMenuClose: this.props.onFilterMenuClose,
-      setDataMask: filtersState => {
-        this.props.actions?.updateExtraFormData(
-          this.props.chartId,
-          filtersState,
-        );
+      setDataMask: dataMask => {
+        this.props.actions?.updateDataMask(this.props.chartId, dataMask);
       },
     };
   }
@@ -97,6 +94,7 @@ class ChartRenderer extends React.Component {
       return (
         this.hasQueryResponseChange ||
         nextProps.annotationData !== this.props.annotationData ||
+        nextProps.ownCurrentState !== this.props.ownCurrentState ||
         nextProps.height !== this.props.height ||
         nextProps.width !== this.props.width ||
         nextProps.triggerRender ||

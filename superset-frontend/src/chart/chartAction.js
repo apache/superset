@@ -41,7 +41,7 @@ import { logEvent } from '../logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from '../logger/LogUtils';
 import { getClientErrorObject } from '../utils/getClientErrorObject';
 import { allowCrossDomain as domainShardingEnabled } from '../utils/hostNamesConfig';
-import { updateExtraFormData } from '../dashboard/actions/nativeFilters';
+import { updateDataMask } from '../dataMask/actions';
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -366,8 +366,8 @@ export function exploreJSON(
     };
     if (dashboardId) requestParams.dashboard_id = dashboardId;
 
-    const setDataMask = filtersState => {
-      dispatch(updateExtraFormData(formData.slice_id, filtersState));
+    const setDataMask = dataMask => {
+      dispatch(updateDataMask(formData.slice_id, dataMask));
     };
     const chartDataRequest = getChartDataRequest({
       setDataMask,
