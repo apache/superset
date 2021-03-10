@@ -173,7 +173,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   toggleFiltersBar,
   directPathToChild,
 }) => {
-  const [currentDataMask, setCurrentDataMask] = useImmer<DataMaskUnit>({});
+  const [dataMaskSelected, setDataMaskSelected] = useImmer<DataMaskUnit>({});
   const [
     lastAppliedFilterData,
     setLastAppliedFilterData,
@@ -191,17 +191,17 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
   const handleApply = () => {
-    const filterIds = Object.keys(currentDataMask);
+    const filterIds = Object.keys(dataMaskSelected);
     filterIds.forEach(filterId => {
-      if (currentDataMask[filterId]) {
+      if (dataMaskSelected[filterId]) {
         dispatch(
           updateDataMask(filterId, {
-            nativeFilters: currentDataMask[filterId],
+            nativeFilters: dataMaskSelected[filterId],
           }),
         );
       }
     });
-    setLastAppliedFilterData(() => currentDataMask);
+    setLastAppliedFilterData(() => dataMaskSelected);
   };
 
   useEffect(() => {
@@ -211,14 +211,14 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     const areFiltersInitialized = filterValues.every(filterValue =>
       areObjectsEqual(
         filterValue.defaultValue,
-        currentDataMask[filterValue.id]?.currentState?.value,
+        dataMaskSelected[filterValue.id]?.currentState?.value,
       ),
     );
     if (areFiltersInitialized) {
       handleApply();
       setIsInitialized(true);
     }
-  }, [filterValues, currentDataMask, isInitialized]);
+  }, [filterValues, dataMaskSelected, isInitialized]);
 
   useEffect(() => {
     if (filterValues.length === 0 && filtersOpen) {
@@ -234,16 +234,16 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const cascadeFilters = useMemo(() => {
     const filtersWithValue = filterValues.map(filter => ({
       ...filter,
-      currentValue: currentDataMask[filter.id]?.currentState?.value,
+      currentValue: dataMaskSelected[filter.id]?.currentState?.value,
     }));
     return buildCascadeFiltersTree(filtersWithValue);
-  }, [filterValues, currentDataMask]);
+  }, [filterValues, dataMaskSelected]);
 
   const handleFilterSelectionChange = (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
     dataMask: Partial<DataMaskState>,
   ) => {
-    setCurrentDataMask(draft => {
+    setDataMaskSelected(draft => {
       const children = cascadeChildren[filter.id] || [];
       // force instant updating on initialization or for parent filters
       if (filter.isInstant || children.length > 0) {
@@ -258,7 +258,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const handleClearAll = () => {
     filterValues.forEach(filter => {
-      setCurrentDataMask(draft => {
+      setDataMaskSelected(draft => {
         draft[filter.id] = getInitialMask(filter.id);
       });
     });
@@ -266,8 +266,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
 
   const isClearAllDisabled = Object.values(dataMaskApplied).every(
     filter =>
-      currentDataMask[filter.id]?.currentState?.value === null ||
-      (!currentDataMask[filter.id] && filter.currentState?.value === null),
+      dataMaskSelected[filter.id]?.currentState?.value === null ||
+      (!dataMaskSelected[filter.id] && filter.currentState?.value === null),
   );
 
   const getFilterControls = () => (
@@ -289,7 +289,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   );
 
   const isApplyDisabled =
-    !isInitialized || areObjectsEqual(currentDataMask, lastAppliedFilterData);
+    !isInitialized || areObjectsEqual(dataMaskSelected, lastAppliedFilterData);
 
   return (
     <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>
@@ -351,7 +351,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             >
               <FilterSets
                 disabled={!isApplyDisabled}
-                currentDataMask={currentDataMask}
+                dataMaskSelected={dataMaskSelected}
                 onFilterSelectionChange={handleFilterSelectionChange}
               />
             </Tabs.TabPane>

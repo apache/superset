@@ -67,7 +67,7 @@ const FilterSetUnitWrapper = styled.div<{
 
 type FilterSetsProps = {
   disabled: boolean;
-  currentDataMask: DataMaskUnit;
+  dataMaskSelected: DataMaskUnit;
   onFilterSelectionChange: (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
     dataMask: Partial<DataMaskState>,
@@ -77,7 +77,7 @@ type FilterSetsProps = {
 const DEFAULT_FILTER_SET_NAME = t('New filter set');
 
 const FilterSets: React.FC<FilterSetsProps> = ({
-  currentDataMask,
+  dataMaskSelected,
   disabled,
   onFilterSelectionChange,
 }) => {
@@ -99,9 +99,9 @@ const FilterSets: React.FC<FilterSetsProps> = ({
           filterFromFilterSet => {
             let currentValueFromFiltersTab =
               dataMaskApplied[filterFromFilterSet.id]?.currentState ?? {};
-            if (currentDataMask[filterFromFilterSet.id]) {
+            if (dataMaskSelected[filterFromFilterSet.id]) {
               currentValueFromFiltersTab =
-                currentDataMask[filterFromFilterSet.id]?.currentState;
+                dataMaskSelected[filterFromFilterSet.id]?.currentState;
             }
             return areObjectsEqual(
               filterFromFilterSet.currentState ?? {},
@@ -113,7 +113,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
       return false;
     });
     setSelectedFiltersSetId(foundFilterSet?.id ?? null);
-  }, [dataMaskApplied, currentDataMask, filterSetFilterValues]);
+  }, [dataMaskApplied, dataMaskSelected, filterSetFilterValues]);
 
   const takeFilterSet = (target: HTMLElement, id: string) => {
     const ignoreSelector = 'ant-collapse-header';
@@ -182,7 +182,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
             editMode={editMode}
             setFilterSetName={setFilterSetName}
             filterSetName={filterSetName}
-            currentDataMask={dataMaskApplied}
+            dataMaskApplied={dataMaskApplied}
           />
           <Footer
             isApplyDisabled={!filterSetName.trim()}
@@ -205,7 +205,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
             isApplied={filterSet.id === selectedFiltersSetId && !disabled}
             onDelete={handleDeleteFilterSets}
             filters={filters}
-            currentDataMask={dataMaskApplied}
+            dataMaskApplied={dataMaskApplied}
             filterSet={filterSet}
           />
         </FilterSetUnitWrapper>

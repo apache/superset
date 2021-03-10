@@ -46,7 +46,7 @@ type FilterSetUnitProps = {
   isApplied?: boolean;
   filterSet?: FilterSet;
   filterSetName?: string;
-  currentDataMask: DataMaskUnitWithId;
+  dataMaskApplied: DataMaskUnitWithId;
   setFilterSetName?: (name: string) => void;
   onDelete?: HandlerFunction;
 };
@@ -57,7 +57,7 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
   setFilterSetName,
   onDelete,
   filterSetName,
-  currentDataMask,
+  dataMaskApplied,
   filterSet,
   isApplied,
 }) => {
@@ -103,7 +103,7 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
       </TitleText>
       <FiltersHeader
         expanded={!filterSet}
-        dataMask={filterSet?.dataMask?.nativeFilters ?? currentDataMask}
+        dataMask={filterSet?.dataMask?.nativeFilters ?? dataMaskApplied}
         filters={filters}
       />
     </>
