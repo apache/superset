@@ -28,10 +28,6 @@ import { Switch as AntdSwitch } from './Switch';
 import { Menu, Input, Divider } from '.';
 import { Dropdown } from './Dropdown';
 import InfoTooltip from './InfoTooltip';
-import {
-  DatePicker as AntdDatePicker,
-  RangePicker as AntdRangePicker,
-} from './DatePicker';
 import Badge from './Badge';
 import ProgressBar from './ProgressBar';
 import { CronPicker, CronError } from './CronPicker';
@@ -232,15 +228,6 @@ StyledInfoTooltip.argTypes = {
     },
   },
 };
-
-export const DatePicker = () => <AntdDatePicker showTime />;
-export const DateRangePicker = () => (
-  <AntdRangePicker
-    format="YYYY-MM-DD hh:mm a"
-    showTime={{ format: 'hh:mm a' }}
-    use12Hours
-  />
-);
 
 export const Progress = () => <ProgressBar percent={90} />;
 export const ProgressStriped = () => <ProgressBar percent={90} striped />;
