@@ -38,10 +38,13 @@ import {
 const getKnownControlConfig = (controlKey: string, vizType: string) =>
   getControlConfig(controlKey, vizType) as ControlConfig;
 
+const getKnownControlState = (...args: Parameters<typeof getControlState>) =>
+  getControlState(...args) as Exclude<ReturnType<typeof getControlState>, null>;
+
 describe('controlUtils', () => {
   const state: ControlPanelState = {
     datasource: ({
-      columns: [],
+      columns: [{ column_name: 'a' }],
       metrics: [{ metric_name: 'first' }, { metric_name: 'second' }],
     } as unknown) as DatasourceMeta,
     controls: {},
@@ -112,19 +115,19 @@ describe('controlUtils', () => {
     it('applies state to props as expected', () => {
       let control = getKnownControlConfig('all_columns', 'table');
       control = applyMapStateToPropsToControl(control, state);
-      expect(control.options).toEqual(['a', 'b', 'c']);
+      expect(control.options).toEqual([{ column_name: 'a' }]);
     });
   });
 
   describe('getControlState', () => {
     it('to still have the functions', () => {
-      const control = getKnownControlConfig('metrics', 'table');
+      const control = getKnownControlState('metrics', 'table', state, 'a');
       expect(typeof control.mapStateToProps).toBe('function');
       expect(typeof control.validators?.[0]).toBe('function');
     });
 
-    it('to fix multi with non-array values', () => {
-      const control = getKnownControlConfig('all_columns', 'table');
+    it('to make sure value is array', () => {
+      const control = getKnownControlState('all_columns', 'table', state, 'a');
       expect(control.value).toEqual(['a']);
     });
 
