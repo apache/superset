@@ -17,10 +17,21 @@
  * under the License.
  */
 
-import { SupersetClient, JsonResponse } from '@superset-ui/core';
 import rison from 'rison';
+import { useApiUpdate, useApiFetchWithStore } from './apiResources';
 
-export const getByUser = async (userId: number) => {
+interface PutProps {
+  datasetId: number;
+  overrideColumns: boolean;
+}
+
+interface DatasetPutJson {
+  dbId: number;
+  sql: string;
+  columns: Array<Record<string, any>>;
+}
+
+export const getByUserEndpoint = async (userId: number) => {
   const queryParams = rison.encode({
     filters: [
       {
@@ -32,32 +43,16 @@ export const getByUser = async (userId: number) => {
     order_column: 'changed_on_delta_humanized',
     order_direction: 'desc',
   });
-  const endpoint = `/api/v1/dataset?q=${queryParams}`;
-  const data: JsonResponse = await SupersetClient.get({
-    endpoint,
-  });
-  return data.json.result;
+  return `/api/v1/dataset?q=${queryParams}`;
 };
 
-export const put = async (
-  datasetId: number,
-  dbId: number,
-  sql: string,
-  columns: Array<Record<string, any>>,
-  overrideColumns: boolean,
-) => {
-  const endpoint = `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
-  const headers = { 'Content-Type': 'application/json' };
-  const body = JSON.stringify({
-    sql,
-    columns,
-    database_id: dbId,
-  });
+export const putEndpoint = ({ datasetId, overrideColumns }: PutProps) =>
+  `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
 
-  const data: JsonResponse = await SupersetClient.put({
-    endpoint,
-    headers,
-    body,
-  });
-  return data.json.result;
-};
+export function useDatasetPut(props: PutProps) {
+  return useApiUpdate<DatasetPutJson>(putEndpoint(props));
+}
+
+export function useDatasetGetByUser(userId: number) {
+  return useApiFetchWithStore(getByUserEndpoint(userId));
+}

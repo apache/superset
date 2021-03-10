@@ -17,8 +17,11 @@
  * under the License.
  */
 
-import { makeApi } from '@superset-ui/core';
+import { makeApi, JsonObject } from '@superset-ui/core';
+import { Dispatch } from 'redux';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { v1 as uuidv1 } from 'uuid';
 
 export enum ResourceStatus {
   LOADING = 'loading',
@@ -31,6 +34,8 @@ export enum ResourceStatus {
  * as well as loading and error info
  */
 export type Resource<T> = LoadingState | CompleteState<T> | ErrorState;
+export type ResourcesState = Record<string, Resource<any>>;
+export const initialResourcesState: ResourcesState = {};
 
 // Trying out something a little different: a separate type per status.
 // This should let Typescript know whether a Resource has a result or error.
@@ -66,6 +71,163 @@ const initialState: LoadingState = {
   result: null,
   error: null,
 };
+
+const RESOURCE_START = 'RESOURCE_START';
+const RESOURCE_SUCCESS = 'RESOURCE_SUCCESS';
+const RESOURCE_ERROR = 'RESOURCE_FETCH_ERROR';
+
+type FetchStart = {
+  type: typeof RESOURCE_START;
+  clientId: string;
+};
+
+type FetchSuccess<T = any> = {
+  type: typeof RESOURCE_SUCCESS;
+  clientId: string;
+  result: T;
+};
+
+type FetchError = {
+  type: typeof RESOURCE_ERROR;
+  clientId: string;
+  error: Error;
+};
+
+type ResourceAction = FetchStart | FetchSuccess | FetchError;
+
+export function resourcesReducer(
+  state: ResourcesState = initialResourcesState,
+  action: ResourceAction,
+): ResourcesState {
+  switch (action.type) {
+    case RESOURCE_START: {
+      return {
+        ...state,
+        [action.clientId]: {
+          status: ResourceStatus.LOADING,
+          result: null,
+          error: null,
+        },
+      };
+    }
+    case RESOURCE_SUCCESS: {
+      const { clientId, result } = action;
+      return {
+        ...state,
+        [clientId]: {
+          status: ResourceStatus.COMPLETE,
+          result,
+          error: null,
+        },
+      };
+    }
+    case RESOURCE_ERROR: {
+      const { clientId, error } = action as FetchError;
+      return {
+        ...state,
+        [clientId]: {
+          status: ResourceStatus.ERROR,
+          result: null,
+          error,
+        },
+      };
+    }
+    default:
+      return state;
+  }
+}
+
+type ReduxRootState = { apiResources: ResourcesState };
+const selectResource = <RESULT>(clientId: string) => (
+  state: ReduxRootState,
+): Resource<RESULT> | null => state.apiResources[clientId] ?? null;
+
+async function fetchData<RESULT>(
+  dispatch: Dispatch<ResourceAction>,
+  endpoint: string,
+) {
+  const clientId = uuidv1();
+
+  dispatch({
+    type: RESOURCE_START,
+    clientId,
+  });
+
+  const fetchResource = makeApi<{}, RESULT>({
+    method: 'GET',
+    endpoint,
+  });
+
+  try {
+    const result = await fetchResource({});
+    dispatch({
+      type: RESOURCE_SUCCESS,
+      clientId,
+      result,
+    });
+  } catch (error) {
+    dispatch({
+      type: RESOURCE_ERROR,
+      clientId,
+      error,
+    });
+  }
+}
+
+export function useApiFetch<RESULT>(endpoint: string): void {
+  const dispatch = useDispatch<Dispatch<ResourceAction>>();
+  const resource = useSelector(selectResource(endpoint));
+
+  useEffect(() => {
+    if (resource != null) {
+      // fetching already underway/complete, don't duplicate work.
+      return;
+    }
+
+    fetchData<RESULT>(dispatch, endpoint);
+  }, [endpoint, resource, dispatch]);
+}
+
+export function useApiFetchWithStore(endpoint: string) {
+  const dispatch = useDispatch<Dispatch<ResourceAction>>();
+  return async function callResource() {
+    const response = await fetchData(dispatch, endpoint);
+  };
+}
+
+export function useApiUpdate<APIPayload>(
+  endpoint: string,
+): (data: JsonObject) => Promise<any> {
+  const dispatch = useDispatch<Dispatch<ResourceAction>>();
+
+  return async function callResource(data: APIPayload) {
+    const clientId = uuidv1();
+    dispatch({
+      type: RESOURCE_START,
+      clientId,
+    });
+
+    const updateResource = makeApi<JsonObject, {}>({
+      method: 'PUT',
+      endpoint,
+    });
+
+    try {
+      const result = await updateResource(data);
+      dispatch({
+        type: RESOURCE_SUCCESS,
+        clientId,
+        result,
+      });
+    } catch (error) {
+      dispatch({
+        type: RESOURCE_ERROR,
+        clientId,
+        error,
+      });
+    }
+  };
+}
 
 /**
  * A general-purpose hook to fetch the response from an endpoint.

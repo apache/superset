@@ -30,7 +30,7 @@ interface SaveDatasetModalProps {
   visible: boolean;
   onOk: () => void;
   onHide: () => void;
-  handleDatasetNameChange: (e: React.FormEvent<HTMLInputElement>) => void;
+  handleDatasetNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSaveDatasetModalSearch: (searchText: string) => Promise<void>;
   filterAutocompleteOption: (
     inputValue: string,

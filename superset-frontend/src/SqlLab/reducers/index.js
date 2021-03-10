@@ -18,6 +18,7 @@
  */
 import { combineReducers } from 'redux';
 
+import { resourcesReducer } from 'src/common/hooks/apiResources';
 import sqlLab from './sqlLab';
 import localStorageUsageInKilobytes from './localStorageUsage';
 import messageToasts from '../../messageToasts/reducers/index';
@@ -28,4 +29,5 @@ export default combineReducers({
   localStorageUsageInKilobytes,
   messageToasts,
   common,
+  resourcesReducer,
 });
