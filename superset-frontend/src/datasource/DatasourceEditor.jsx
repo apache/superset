@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { Col, Well } from 'react-bootstrap';
 import { Radio } from 'src/common/components/Radio';
 import Alert from 'src/components/Alert';
-import Badge from 'src/common/components/Badge';
+import Badge from 'src/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, supersetTheme } from '@superset-ui/core';
 import Button from 'src/components/Button';

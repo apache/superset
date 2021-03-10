@@ -17,25 +17,34 @@
  * under the License.
  */
 import React from 'react';
-import { styled } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
-import { Badge as AntdBadge } from 'antd';
-import { BadgeProps as AntdBadgeProps } from 'antd/lib/badge';
+import { render, screen } from 'spec/helpers/testing-library';
+import Badge from '.';
 
-interface BadgeProps extends AntdBadgeProps {
-  textColor?: string;
-}
+const mockedProps = {
+  count: 9,
+  text: 'Text',
+  textColor: 'orange',
+};
 
-const Badge = styled((
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  { textColor, ...props }: BadgeProps,
-) => <AntdBadge {...props} />)`
-  & > sup {
-    padding: 0 0.35px 0 0;
-    background: ${({ theme, color }) => color || theme.colors.primary.base};
-    color: ${({ theme, textColor }) =>
-      textColor || theme.colors.grayscale.light5};
-  }
-`;
+test('should render', () => {
+  const { container } = render(<Badge {...mockedProps} />);
+  expect(container).toBeInTheDocument();
+});
 
-export default Badge;
+test('should render the count', () => {
+  render(<Badge {...mockedProps} />);
+  expect(screen.getAllByText('9')[0]).toBeInTheDocument();
+});
+
+test('should render the text', () => {
+  render(<Badge {...mockedProps} />);
+  expect(screen.getByText('Text')).toBeInTheDocument();
+});
+
+test('should render with the chosen textColor', () => {
+  render(<Badge {...mockedProps} />);
+  const badge = screen.getAllByText('9')[0];
+  expect(badge).toHaveStyle(`
+    color: 'orange';
+  `);
+});
