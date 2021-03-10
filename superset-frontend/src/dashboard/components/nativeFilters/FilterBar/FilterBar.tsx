@@ -37,6 +37,7 @@ import { buildCascadeFiltersTree, mapParentFiltersToChildren } from './utils';
 import CascadePopover from './CascadePopover';
 import FilterSets from './FilterSets/FilterSets';
 import { useDataMask, useFilters, useFilterSets } from './state';
+import EditSection from './FilterSets/EditSection';
 
 const barWidth = `250px`;
 
@@ -173,6 +174,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   toggleFiltersBar,
   directPathToChild,
 }) => {
+  const [editFilterSetId, setEditFilterSetId] = useState<string | null>(null);
   const [dataMaskSelected, setDataMaskSelected] = useImmer<DataMaskUnit>({});
   const [
     lastAppliedFilterData,
@@ -337,19 +339,29 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           <StyledTabs
             centered
             defaultActiveKey="allFilters"
-            onChange={() => {}}
+            activeKey={editFilterSetId ? 'allFilters' : undefined}
           >
             <Tabs.TabPane
               tab={t(`All Filters (${filterValues.length})`)}
               key="allFilters"
             >
+              {editFilterSetId && (
+                <EditSection
+                  dataMaskSelected={dataMaskSelected}
+                  disabled={!isApplyDisabled}
+                  onCancel={() => setEditFilterSetId(null)}
+                  filterSetId={editFilterSetId}
+                />
+              )}
               {getFilterControls()}
             </Tabs.TabPane>
             <Tabs.TabPane
+              disabled={!!editFilterSetId}
               tab={t(`Filter Sets (${filterSetFilterValues.length})`)}
               key="filterSets"
             >
               <FilterSets
+                onEditFilterSet={setEditFilterSetId}
                 disabled={!isApplyDisabled}
                 dataMaskSelected={dataMaskSelected}
                 onFilterSelectionChange={handleFilterSelectionChange}
