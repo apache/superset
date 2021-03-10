@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
+import { ColumnMeta } from './types';
 
 // eslint-disable-next-line import/prefer-default-export
 export const TIME_FILTER_LABELS = {
@@ -25,4 +26,10 @@ export const TIME_FILTER_LABELS = {
   time_grain_sqla: t('Time Grain'),
   druid_time_origin: t('Origin'),
   granularity: t('Time Granularity'),
+};
+
+export const TIME_COLUMN_OPTION: ColumnMeta = {
+  verbose_name: t('Time'),
+  column_name: '__timestamp',
+  description: t('A reference to the [Time] configuration, taking granularity into account'),
 };

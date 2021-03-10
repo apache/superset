@@ -20,7 +20,7 @@ import { buildQueryContext, getMetricLabel, QueryFormData } from '@superset-ui/c
 
 export default function buildQuery(formData: QueryFormData) {
   return buildQueryContext(formData, baseQueryObject => {
-    const metricLabels = baseQueryObject.metrics.map(getMetricLabel);
+    const metricLabels = (baseQueryObject.metrics || []).map(getMetricLabel);
     return [
       {
         ...baseQueryObject,
