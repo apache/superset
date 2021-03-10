@@ -73,20 +73,6 @@ export default function nativeFilterReducer(
     case LOAD_DASHBOARD_BOOTSTRAPDATA:
       return {
         filters: action.data.nativeFilters.filters,
-        filtersState: action.data.nativeFilters.filtersState,
-      };
-    case SET_EXTRA_FORM_DATA:
-      return {
-        ...state,
-        filters,
-        filtersState: {
-          ...filtersState,
-          [action.filterId]: {
-            ...filtersState[action.filterId],
-            extraFormData: action.extraFormData,
-            currentState: action.currentState,
-          },
-        },
       };
     case SAVE_FILTER_SETS:
       return {

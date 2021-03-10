@@ -19,13 +19,16 @@
 
 import { makeApi } from '@superset-ui/core';
 import { Dispatch } from 'redux';
-import { LOAD_DASHBOARD_BOOTSTRAPDATA } from './bootstrapData';
-import { FilterConfiguration } from 'src/dashboard/components/nativeFilters/types';
+import {
+  Filter,
+  FilterConfiguration,
+} from 'src/dashboard/components/nativeFilters/types';
 import { DataMaskType, DataMaskStateWithId } from 'src/dataMask/types';
 import {
   SET_DATA_MASK_FOR_FILTER_CONFIG_COMPLETE,
   SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL,
 } from 'src/dataMask/actions';
+import { LOAD_DASHBOARD_BOOTSTRAPDATA } from './bootstrapData';
 import { dashboardInfoChanged } from './dashboardInfo';
 import { FiltersSet } from '../reducers/types';
 
@@ -189,4 +192,5 @@ export type AnyFilterAction =
   | SetFilterSetsConfigBegin
   | SetFilterSetsConfigComplete
   | SetFilterSetsConfigFail
-  | SaveFilterSets;
+  | SaveFilterSets
+  | SetBooststapData;
