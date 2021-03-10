@@ -22,9 +22,8 @@ import { HandlerFunction, styled, t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { DataMaskState, DataMaskUnit, MaskWithId } from 'src/dataMask/types';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { areObjectsEqual } from 'src/reduxUtils';
 import { FilterSet } from 'src/dashboard/reducers/types';
-import { generateFiltersSetId } from './utils';
+import { findExistingFilterSet, generateFiltersSetId } from './utils';
 import { Filter } from '../../types';
 import { useFilters, useDataMask, useFilterSets } from '../state';
 import Footer from './Footer';
@@ -68,6 +67,7 @@ const FilterSetUnitWrapper = styled.div<{
 type FilterSetsProps = {
   disabled: boolean;
   dataMaskSelected: DataMaskUnit;
+  onEditFilterSet: (id: string) => void;
   onFilterSelectionChange: (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
     dataMask: Partial<DataMaskState>,
@@ -78,6 +78,7 @@ const DEFAULT_FILTER_SET_NAME = t('New filter set');
 
 const FilterSets: React.FC<FilterSetsProps> = ({
   dataMaskSelected,
+  onEditFilterSet,
   disabled,
   onFilterSelectionChange,
 }) => {
@@ -93,34 +94,25 @@ const FilterSets: React.FC<FilterSetsProps> = ({
   >(null);
 
   useEffect(() => {
-    const foundFilterSet = filterSetFilterValues.find(({ dataMask }) => {
-      if (dataMask?.nativeFilters) {
-        return Object.values(dataMask?.nativeFilters).every(
-          filterFromFilterSet => {
-            let currentValueFromFiltersTab =
-              dataMaskApplied[filterFromFilterSet.id]?.currentState ?? {};
-            if (dataMaskSelected[filterFromFilterSet.id]) {
-              currentValueFromFiltersTab =
-                dataMaskSelected[filterFromFilterSet.id]?.currentState;
-            }
-            return areObjectsEqual(
-              filterFromFilterSet.currentState ?? {},
-              currentValueFromFiltersTab,
-            );
-          },
-        );
-      }
-      return false;
+    const foundFilterSet = findExistingFilterSet({
+      dataMaskApplied,
+      dataMaskSelected,
+      filterSetFilterValues,
     });
     setSelectedFiltersSetId(foundFilterSet?.id ?? null);
   }, [dataMaskApplied, dataMaskSelected, filterSetFilterValues]);
 
-  const takeFilterSet = (target: HTMLElement, id: string) => {
+  const takeFilterSet = (id: string, target?: HTMLElement) => {
     const ignoreSelector = 'ant-collapse-header';
     if (
-      target.classList.contains(ignoreSelector) ||
-      target.parentElement?.classList.contains(ignoreSelector) ||
-      target.parentElement?.parentElement?.classList.contains(ignoreSelector)
+      target?.classList.contains(ignoreSelector) ||
+      target?.parentElement?.classList.contains(ignoreSelector) ||
+      target?.parentElement?.parentElement?.classList.contains(
+        ignoreSelector,
+      ) ||
+      target?.parentElement?.parentElement?.parentElement?.classList.contains(
+        ignoreSelector,
+      )
     ) {
       // We don't want select filter set when user expand filters
       return;
@@ -139,6 +131,11 @@ const FilterSets: React.FC<FilterSetsProps> = ({
         );
       },
     );
+  };
+
+  const handleEdit = (id: string) => {
+    takeFilterSet(id);
+    onEditFilterSet(id);
   };
 
   const handleDeleteFilterSets = () => {
@@ -198,14 +195,14 @@ const FilterSets: React.FC<FilterSetsProps> = ({
         <FilterSetUnitWrapper
           selected={filterSet.id === selectedFiltersSetId}
           onClick={(e: MouseEvent<HTMLElement>) =>
-            takeFilterSet(e.target as HTMLElement, filterSet.id)
+            takeFilterSet(filterSet.id, e.target as HTMLElement)
           }
         >
           <FilterSetUnit
             isApplied={filterSet.id === selectedFiltersSetId && !disabled}
             onDelete={handleDeleteFilterSets}
+            onEdit={() => handleEdit(filterSet.id)}
             filters={filters}
-            dataMaskApplied={dataMaskApplied}
             filterSet={filterSet}
           />
         </FilterSetUnitWrapper>
