@@ -1039,7 +1039,7 @@ class TestRowLevelSecurity(SupersetTestCase):
     rls_entry = None
     query_obj = dict(
         groupby=[],
-        metrics=[],
+        metrics=None,
         filter=[],
         is_timeseries=False,
         columns=["value"],

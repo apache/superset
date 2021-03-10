@@ -16,7 +16,7 @@
 # under the License.
 import copy
 import math
-from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING
 
 from flask_babel import _
 
@@ -80,17 +80,12 @@ def _get_query(
     query_context: "QueryContext", query_obj: "QueryObject", _: bool,
 ) -> Dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
-    error: Union[str, None] = None
-    query: Union[str, None] = None
+    result = {"language": datasource.query_language}
     try:
-        query = datasource.get_query_str(query_obj.to_dict())
+        result["query"] = datasource.get_query_str(query_obj.to_dict())
     except QueryObjectValidationError as err:
-        error = err.message
-    return {
-        "query": query,
-        "error": error,
-        "language": datasource.query_language,
-    }
+        result["error"] = err.message
+    return result
 
 
 def _get_full(
