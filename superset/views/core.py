@@ -2793,7 +2793,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             .scalar()
         )
         if welcome_dashboard_id:
-            return self.dashboard(str(welcome_dashboard_id))
+            return self.dashboard(dashboard_id_or_slug=str(welcome_dashboard_id))
 
         payload = {
             "user": bootstrap_user_data(g.user),
