@@ -26,7 +26,7 @@ import {
   SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL,
 } from 'src/dataMask/actions';
 import { dashboardInfoChanged } from './dashboardInfo';
-import { FiltersSet } from '../reducers/types';
+import { FilterSet } from '../reducers/types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
 export interface SetFilterConfigBegin {
@@ -46,18 +46,18 @@ export interface SetFilterConfigFail {
 export const SET_FILTER_SETS_CONFIG_BEGIN = 'SET_FILTER_SETS_CONFIG_BEGIN';
 export interface SetFilterSetsConfigBegin {
   type: typeof SET_FILTER_SETS_CONFIG_BEGIN;
-  filterSetsConfig: FiltersSet[];
+  filterSetsConfig: FilterSet[];
 }
 export const SET_FILTER_SETS_CONFIG_COMPLETE =
   'SET_FILTER_SETS_CONFIG_COMPLETE';
 export interface SetFilterSetsConfigComplete {
   type: typeof SET_FILTER_SETS_CONFIG_COMPLETE;
-  filterSetsConfig: FiltersSet[];
+  filterSetsConfig: FilterSet[];
 }
 export const SET_FILTER_SETS_CONFIG_FAIL = 'SET_FILTER_SETS_CONFIG_FAIL';
 export interface SetFilterSetsConfigFail {
   type: typeof SET_FILTER_SETS_CONFIG_FAIL;
-  filterSetsConfig: FiltersSet[];
+  filterSetsConfig: FilterSet[];
 }
 
 interface DashboardInfo {
@@ -110,7 +110,7 @@ export const setFilterConfiguration = (
 };
 
 export const setFilterSetsConfiguration = (
-  filterSetsConfig: FiltersSet[],
+  filterSetsConfig: FilterSet[],
 ) => async (dispatch: Dispatch, getState: () => any) => {
   dispatch({
     type: SET_FILTER_SETS_CONFIG_BEGIN,

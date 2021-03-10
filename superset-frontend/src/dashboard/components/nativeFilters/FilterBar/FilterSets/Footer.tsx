@@ -38,6 +38,7 @@ const ActionButton = styled.div<{ disabled: boolean }>`
     flex: 1;
   }
 `;
+
 const ActionButtons = styled.div`
   display: grid;
   flex-direction: row;
@@ -70,7 +71,10 @@ const Footer: FC<FooterProps> = ({
         </Button>
         <Tooltip
           placement="bottom"
-          title={(isApplyDisabled || disabled) && APPLY_FILTERS}
+          title={
+            (isApplyDisabled && t('Please filter set name')) ||
+            (disabled && APPLY_FILTERS)
+          }
         >
           <ActionButton disabled={disabled}>
             <Button

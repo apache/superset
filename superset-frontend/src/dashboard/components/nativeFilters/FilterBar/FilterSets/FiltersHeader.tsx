@@ -20,6 +20,7 @@ import React, { FC } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { Collapse, Typography } from 'src/common/components';
 import { DataMaskUnitWithId } from 'src/dataMask/types';
+import { CaretDownOutlined } from '@ant-design/icons';
 import { getFilterValueForDisplay } from './utils';
 import { Filter } from '../../types';
 
@@ -43,6 +44,7 @@ const StyledCollapse = styled(Collapse)`
       align-items: center;
       flex-direction: row-reverse;
       justify-content: flex-end;
+      max-width: max-content;
       & .ant-collapse-arrow {
         position: static;
         padding-left: ${({ theme }) => theme.gridUnit}px;
@@ -53,9 +55,14 @@ const StyledCollapse = styled(Collapse)`
 type FiltersHeaderProps = {
   filters: Filter[];
   dataMask: DataMaskUnitWithId;
+  expanded: boolean;
 };
 
-const FiltersHeader: FC<FiltersHeaderProps> = ({ filters, dataMask }) => {
+const FiltersHeader: FC<FiltersHeaderProps> = ({
+  filters,
+  dataMask,
+  expanded,
+}) => {
   const getFiltersHeader = () => (
     <FilterHeader>
       <Typography.Text type="secondary">
@@ -67,7 +74,10 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ filters, dataMask }) => {
     <StyledCollapse
       ghost
       expandIconPosition="right"
-      defaultActiveKey={['filters']}
+      defaultActiveKey={expanded ? ['filters'] : undefined}
+      expandIcon={({ isActive }: { isActive: boolean }) => (
+        <CaretDownOutlined rotate={isActive ? 0 : 180} />
+      )}
     >
       <Collapse.Panel header={getFiltersHeader()} key="filters">
         {filters.map(({ id, name }) => (
