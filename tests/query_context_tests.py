@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
+
 import pytest
 
 from superset import db
@@ -308,9 +310,10 @@ class TestQueryContext(SupersetTestCase):
         sql_text = response["query"]
         assert response["language"] == "sql"
         assert "SELECT" in sql_text
-        assert "num IS NOT NULL" in sql_text
-        assert "NOT (name IS NULL" in sql_text
-        assert "OR name IN ('abc'))" in sql_text
+        assert re.search(r'"?num"? IS NOT NULL', sql_text)
+        assert re.search(
+            r"""NOT \("?name"? IS NULL[\s\n]* OR "?name"? IN \('abc'\)\)""", sql_text
+        )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_fetch_values_predicate_in_query(self):
