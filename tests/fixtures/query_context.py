@@ -38,7 +38,11 @@ query_birth_names = {
     "time_range": "100 years ago : now",
     "timeseries_limit": 0,
     "timeseries_limit_metric": None,
-    "filters": [{"col": "gender", "op": "==", "val": "boy"}],
+    "filters": [
+        {"col": "gender", "op": "==", "val": "boy"},
+        {"col": "num", "op": "IS NOT NULL"},
+        {"col": "name", "op": "NOT IN", "val": ["<NULL>", '"abc"']},
+    ],
     "having": "",
     "having_filters": [],
     "where": "",
