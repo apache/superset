@@ -100,7 +100,8 @@ class AthenaEngineSpec(BaseEngineSpec):
                 to_sql(
                     df,
                     conn=pyathena_conn,
-                    location=pyathena_conn.s3_staging_dir.rstrip("/") + "/pyathena/",
+                    location=pyathena_conn.s3_staging_dir.rstrip("/")
+                    + "/{}/{}/".format(table.schema, table.name),
                     **df_to_sql_kwargs,
                 )
         else:
