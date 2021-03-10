@@ -383,7 +383,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         ),
         (
             re.compile(r"^smallint.*", re.IGNORECASE),
-            types.SMALLINT,
+            types.SMALLINT(),
             utils.GenericDataType.NUMERIC,
         ),
         (
@@ -393,22 +393,22 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         ),
         (
             re.compile(r"^bigint.*", re.IGNORECASE),
-            types.BIGINT,
+            types.BIGINT(),
             utils.GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^real.*", re.IGNORECASE),
-            types.FLOAT,
+            types.FLOAT(),
             utils.GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^double.*", re.IGNORECASE),
-            types.FLOAT,
+            types.FLOAT(),
             utils.GenericDataType.NUMERIC,
         ),
         (
             re.compile(r"^decimal.*", re.IGNORECASE),
-            types.DECIMAL,
+            types.DECIMAL(),
             utils.GenericDataType.NUMERIC,
         ),
         (

@@ -15,17 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-import re
 from datetime import datetime
-from typing import Any, List, Optional, Tuple, TYPE_CHECKING
-
-from sqlalchemy.types import String, UnicodeText
+from typing import Any, List, Optional, Tuple
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
 from superset.utils import core as utils
-
-if TYPE_CHECKING:
-    from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
 
