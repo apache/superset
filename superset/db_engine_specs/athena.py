@@ -74,7 +74,6 @@ class AthenaEngineSpec(BaseEngineSpec):
         """
         return label.lower()
 
-
     @classmethod
     def create_table_from_csv(  # pylint: disable=too-many-arguments
         cls,
