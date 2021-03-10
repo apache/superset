@@ -22,7 +22,7 @@ import {
   SET_FILTER_CONFIG_COMPLETE,
   SET_FILTER_SETS_CONFIG_COMPLETE,
 } from 'src/dashboard/actions/nativeFilters';
-import { FiltersSet, NativeFiltersState } from './types';
+import { FilterSet, NativeFiltersState } from './types';
 import { FilterConfiguration } from '../components/nativeFilters/types';
 
 export function getInitialState({
@@ -30,7 +30,7 @@ export function getInitialState({
   filterConfig,
   state: prevState,
 }: {
-  filterSetsConfig?: FiltersSet[];
+  filterSetsConfig?: FilterSet[];
   filterConfig?: FilterConfiguration;
   state?: NativeFiltersState;
 }): NativeFiltersState {
