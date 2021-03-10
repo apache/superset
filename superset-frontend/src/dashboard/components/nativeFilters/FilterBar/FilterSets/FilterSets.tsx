@@ -23,12 +23,12 @@ import { useDispatch } from 'react-redux';
 import { DataMaskState, DataMaskUnit, MaskWithId } from 'src/dataMask/types';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
 import { areObjectsEqual } from 'src/reduxUtils';
+import { FilterSet } from 'src/dashboard/reducers/types';
 import { generateFiltersSetId } from './utils';
 import { Filter } from '../../types';
 import { useFilters, useDataMask, useFilterSets } from '../state';
 import Footer from './Footer';
 import FilterSetUnit from './FilterSetUnit';
-import { FilterSet } from '../../../../reducers/types';
 
 const FilterSetsWrapper = styled.div`
   display: grid;
@@ -61,8 +61,8 @@ const FilterSetUnitWrapper = styled.div<{
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   padding: ${({ theme }) => `${theme.gridUnit * 3}px ${theme.gridUnit * 2}px`};
   cursor: ${({ onClick }) => (!onClick ? 'auto' : 'pointer')};
-  background: ${({ theme, selected }) =>
-    selected ? theme.colors.primary.light5 : 'transparent'};
+  ${({ theme, selected }) =>
+    `background: ${selected ? theme.colors.primary.light5 : 'transparent'}`};
 `;
 
 type FilterSetsProps = {
