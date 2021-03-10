@@ -134,14 +134,15 @@ export const setFilterSetsConfiguration = (
         filter_sets_configuration: filterSetsConfig,
       }),
     });
+    const newMetadata = JSON.parse(response.result.json_metadata);
     dispatch(
       dashboardInfoChanged({
-        metadata: JSON.parse(response.result.json_metadata),
+        metadata: newMetadata,
       }),
     );
     dispatch({
       type: SET_FILTER_SETS_CONFIG_COMPLETE,
-      filterSetsConfig,
+      filterSetsConfig: newMetadata?.filter_sets_configuration,
     });
   } catch (err) {
     dispatch({ type: SET_FILTER_SETS_CONFIG_FAIL, filterSetsConfig });
