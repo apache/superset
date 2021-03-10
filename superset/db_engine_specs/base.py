@@ -50,7 +50,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import ColumnClause, ColumnElement, Select, TextAsFrom
-from sqlalchemy.types import TypeEngine
+from sqlalchemy.types import String, TypeEngine, UnicodeText
 
 from superset import app, security_manager, sql_parse
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -160,7 +160,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ),
         (
             re.compile(r"^integer", re.IGNORECASE),
-            types.Integer(),
+            types.Integer,
             GenericDataType.NUMERIC,
         ),
         (
@@ -195,12 +195,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             GenericDataType.NUMERIC,
         ),
         (
-            re.compile(r"^varchar", re.IGNORECASE),
-            types.VARCHAR(),
-            GenericDataType.STRING,
+            re.compile(r"^N((VAR)?CHAR|TEXT)", re.IGNORECASE),
+            UnicodeText(),
+            utils.GenericDataType.STRING,
         ),
-        (re.compile(r"^char", re.IGNORECASE), types.CHAR(), GenericDataType.STRING),
-        (re.compile(r"^text", re.IGNORECASE), types.Text(), GenericDataType.STRING),
+        (
+            re.compile(r"^((VAR)?CHAR|TEXT|STRING)", re.IGNORECASE),
+            String(),
+            utils.GenericDataType.STRING,
+        ),
         (re.compile(r"^date", re.IGNORECASE), types.Date(), GenericDataType.TEMPORAL,),
         (
             re.compile(r"^timestamp", re.IGNORECASE),

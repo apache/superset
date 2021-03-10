@@ -92,7 +92,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                 "allow_csv_upload": True,
                 "allow_ctas": True,
                 "allow_cvas": True,
-                "allow_run_async": False,
+                "allow_run_async": True,
                 "cache_timeout": None,
                 "database_name": "examples",
                 "expose_in_sqllab": True,
@@ -247,7 +247,8 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "version": "1.0.0",
         }
         expected_metadata["columns"].sort(key=lambda x: x["column_name"])
-        assert metadata == expected_metadata
+        self.maxDiff = None
+        self.assertEquals(metadata, expected_metadata)
 
     @patch("superset.security.manager.g")
     def test_export_database_command_no_access(self, mock_g):

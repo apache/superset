@@ -388,7 +388,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         ),
         (
             re.compile(r"^integer.*", re.IGNORECASE),
-            types.INTEGER,
+            types.INTEGER(),
             utils.GenericDataType.NUMERIC,
         ),
         (
@@ -1201,10 +1201,11 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         ] = column_type_mappings,
     ) -> Union[ColumnSpec, None]:
 
-        column_spec = super().get_column_spec(native_type)
+        column_spec = super().get_column_spec(
+            native_type, column_type_mappings=column_type_mappings
+        )
+
         if column_spec:
             return column_spec
 
-        return super().get_column_spec(
-            native_type, column_type_mappings=column_type_mappings
-        )
+        return super().get_column_spec(native_type)
