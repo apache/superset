@@ -15,11 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Optional
+from typing import (
+    Any,
+    Dict,
+    Optional,
+    TYPE_CHECKING
+)
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
+from superset.sql_parse import Table
 
+if TYPE_CHECKING:
+    # prevent circular imports
+    from superset.models.core import Database
 
 class AthenaEngineSpec(BaseEngineSpec):
     engine = "awsathena"
@@ -64,3 +73,38 @@ class AthenaEngineSpec(BaseEngineSpec):
         :return: Conditionally mutated label
         """
         return label.lower()
+
+
+    @classmethod
+    def create_table_from_csv(  # pylint: disable=too-many-arguments
+        cls,
+        filename: str,
+        table: Table,
+        database: "Database",
+        csv_to_df_kwargs: Dict[str, Any],
+        df_to_sql_kwargs: Dict[str, Any],
+    ) -> None:
+        """
+        Create table from contents of a csv. Note: this method does not create
+        metadata for the table.
+        """
+        df = cls.csv_to_df(filepath_or_buffer=filename, **csv_to_df_kwargs)
+        engine = cls.get_engine(database)
+        if table.schema:
+            # only add schema when it is preset and non empty
+            df_to_sql_kwargs["schema"] = table.schema
+        if engine.dialect.dbapi.__name__ == "pyathena":
+            from pyathena.pandas.util import to_sql
+
+            with engine.connect() as conn:
+                pyathena_conn = conn.connection.connection
+                to_sql(
+                    df,
+                    conn=pyathena_conn,
+                    location=pyathena_conn.s3_staging_dir.rstrip("/") + "/pyathena/",
+                    **df_to_sql_kwargs,
+                )
+        else:
+            if engine.dialect.supports_multivalues_insert:
+                df_to_sql_kwargs["method"] = "multi"
+            cls.df_to_sql(df=df, con=engine, **df_to_sql_kwargs)
