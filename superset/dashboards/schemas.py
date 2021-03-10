@@ -158,6 +158,38 @@ class DashboardGetResponseSchema(Schema):
     table_names = fields.String()  # legacy nonsense
 
 
+class DatabaseSchema(Schema):
+    id = fields.Int()
+    name = fields.String()
+    backend = fields.String()
+    allow_multi_schema_metadata_fetch = fields.Bool()
+    allows_subquery = fields.Bool()
+    allows_cost_estimate = fields.Bool()
+    allows_virtual_table_explore = fields.Bool()
+    explore_database_id = fields.Int()
+
+
+class DashboardDatasetSchema(Schema):
+    id = fields.Int()
+    uid = fields.Str()
+    column_formats = fields.Dict()
+    database = fields.Nested(DatabaseSchema)
+    default_endpoint = fields.String()
+    filter_select = fields.Bool()
+    filter_select_enabled = fields.Bool()
+    name = fields.Str()
+    datasource_name = fields.Str()
+    table_name = fields.Str()
+    type = fields.Str()
+    schema = fields.Str()
+    offset = fields.Int()
+    cache_timeout = fields.Int()
+    params = fields.Str()
+    perm = fields.Str()
+    edit_url = fields.Str()
+    sql = fields.Str()
+
+
 class BaseDashboardSchema(Schema):
     # pylint: disable=no-self-use,unused-argument
     @post_load
