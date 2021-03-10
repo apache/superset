@@ -59,7 +59,7 @@ class DashboardDAO(BaseDAO):
         return dashboard
 
     @staticmethod
-    def get_datasets_for_dashboard(id_or_slug: str) -> Dict[str, Any]:
+    def get_datasets_for_dashboard(id_or_slug: str) -> List[Any]:
         query = (
             db.session.query(Dashboard)
             .filter(id_or_slug_filter(id_or_slug))
@@ -74,11 +74,11 @@ class DashboardDAO(BaseDAO):
         if not dashboard:
             raise DashboardNotFoundError()
         datasource_slices = core.indexed(dashboard.slices, "datasource")
-        data = {
-            datasource.uid: datasource.data_for_slices(slices)
+        data = [
+            datasource.data_for_slices(slices)
             for datasource, slices in datasource_slices.items()
             if datasource
-        }
+        ]
         return data
 
     @staticmethod
