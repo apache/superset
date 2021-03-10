@@ -18,7 +18,7 @@
  * under the License.
  */
 import React, { ReactNode, ReactText, ReactElement } from 'react';
-import { QueryFormData, DatasourceType, Metric, JsonValue } from '@superset-ui/core';
+import { QueryFormData, DatasourceType, Metric, JsonValue, Column } from '@superset-ui/core';
 import sharedControls from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
 
@@ -38,16 +38,10 @@ export type SharedControlComponents = typeof sharedControlComponents;
 /** ----------------------------------------------
  * Input data/props while rendering
  * ---------------------------------------------*/
-export interface ColumnMeta extends AnyDict {
-  column_name: string;
-  groupby?: string;
-  verbose_name?: string;
-  description?: string;
-  expression?: string;
-  is_dttm?: boolean;
+export type ColumnMeta = Omit<Column, 'id' | 'type'> & {
+  id?: number;
   type?: string;
-  filterable?: boolean;
-}
+} & AnyDict;
 
 export interface DatasourceMeta {
   id: number;

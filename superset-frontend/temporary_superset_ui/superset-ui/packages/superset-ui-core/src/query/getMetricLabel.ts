@@ -8,7 +8,7 @@ export default function getMetricLabel(metric: QueryFormMetric) {
     return metric.label;
   }
   if (metric.expressionType === 'SIMPLE') {
-    return `${metric.aggregate}(${metric.column.columnName})`;
+    return `${metric.aggregate}(${metric.column.columnName || metric.column.column_name})`;
   }
   return metric.sqlExpression;
 }

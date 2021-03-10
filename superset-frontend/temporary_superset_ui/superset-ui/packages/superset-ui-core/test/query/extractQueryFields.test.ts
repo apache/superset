@@ -20,6 +20,7 @@ import extractQueryFields from '@superset-ui/core/src/query/extractQueryFields';
 import { configure } from '../../src/translation';
 import { QueryMode } from '../../src';
 import { DTTM_ALIAS } from '../../src/query/buildQueryObject';
+import { NUM_METRIC } from '../fixtures';
 
 configure();
 
@@ -28,7 +29,7 @@ describe('extractQueryFields', () => {
     expect(extractQueryFields({})).toEqual({
       columns: [],
       metrics: [],
-      orderby: [],
+      orderby: undefined,
     });
   });
 
@@ -55,25 +56,35 @@ describe('extractQueryFields', () => {
     expect(extractQueryFields({ columns: 'col_1' })).toEqual({
       columns: ['col_1'],
       metrics: [],
-      orderby: [],
+      orderby: undefined,
     });
   });
 
-  it('should extract groupby', () => {
+  it('should extract groupby as columns and set empty metrics', () => {
     expect(extractQueryFields({ groupby: 'col_1' })).toEqual({
       columns: ['col_1'],
       metrics: [],
-      orderby: [],
+      orderby: undefined,
     });
   });
 
-  it('should extract custom columns', () => {
+  it('should remove duplicate metrics', () => {
+    expect(
+      extractQueryFields({ metrics: ['col_1', { ...NUM_METRIC }, { ...NUM_METRIC }] }),
+    ).toEqual({
+      columns: [],
+      metrics: ['col_1', NUM_METRIC],
+      orderby: undefined,
+    });
+  });
+
+  it('should extract custom columns fields', () => {
     expect(
       extractQueryFields({ series: 'col_1', metric: 'metric_1' }, { series: 'groupby' }),
     ).toEqual({
       columns: ['col_1'],
       metrics: ['metric_1'],
-      orderby: [],
+      orderby: undefined,
     });
   });
 
@@ -86,7 +97,7 @@ describe('extractQueryFields', () => {
     ).toEqual({
       columns: ['col_1', 'col_2'],
       metrics: ['metric_1'],
-      orderby: [],
+      orderby: undefined,
     });
   });
 
@@ -113,13 +124,25 @@ describe('extractQueryFields', () => {
         query_mode: QueryMode.raw,
       }),
     ).toEqual({
-      metrics: [],
       columns: ['a'],
-      orderby: [],
+      metrics: undefined,
+      orderby: undefined,
     });
   });
 
   it('should ignore columns when in aggregate QueryMode', () => {
+    expect(
+      extractQueryFields({
+        columns: ['a'],
+        groupby: [],
+        metric: ['m'],
+        query_mode: QueryMode.aggregate,
+      }),
+    ).toEqual({
+      metrics: ['m'],
+      columns: [],
+      orderby: undefined,
+    });
     expect(
       extractQueryFields({
         columns: ['a'],
@@ -130,7 +153,7 @@ describe('extractQueryFields', () => {
     ).toEqual({
       metrics: ['m'],
       columns: ['b'],
-      orderby: [],
+      orderby: undefined,
     });
   });
 
@@ -151,6 +174,7 @@ describe('extractQueryFields', () => {
       ],
     });
   });
+
   it('should throw error if parse orderby failed', () => {
     expect(() => {
       extractQueryFields({

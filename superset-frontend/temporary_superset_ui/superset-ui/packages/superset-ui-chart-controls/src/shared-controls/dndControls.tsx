@@ -19,12 +19,7 @@
  */
 import { t, validateNonEmpty } from '@superset-ui/core';
 import { ExtraControlProps, SharedControlConfig } from '../types';
-
-const timeColumnOption = {
-  verbose_name: t('Time'),
-  column_name: '__timestamp',
-  description: t('A reference to the [Time] configuration, taking granularity into account'),
-};
+import { TIME_COLUMN_OPTION } from '../constants';
 
 export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
   type: 'DndColumnSelect',
@@ -36,7 +31,7 @@ export const dndGroupByControl: SharedControlConfig<'DndColumnSelect'> = {
     if (state.datasource) {
       const options = state.datasource.columns.filter(c => c.groupby);
       if (includeTime) {
-        options.unshift(timeColumnOption);
+        options.unshift(TIME_COLUMN_OPTION);
       }
       newState.options = Object.fromEntries(options.map(option => [option.column_name, option]));
     }

@@ -47,7 +47,7 @@ import {
 } from '@superset-ui/core';
 
 import { mainMetric, formatSelectOptions } from '../utils';
-import { TIME_FILTER_LABELS } from '../constants';
+import { TIME_FILTER_LABELS, TIME_COLUMN_OPTION } from '../constants';
 import {
   Metric,
   SharedControlConfig,
@@ -103,12 +103,6 @@ export const D3_TIME_FORMAT_OPTIONS = [
 
 export const D3_TIME_FORMAT_DOCS = t('D3 time format syntax: https://github.com/d3/d3-time-format');
 
-const timeColumnOption = {
-  verbose_name: t('Time'),
-  column_name: '__timestamp',
-  description: t('A reference to the [Time] configuration, taking granularity into account'),
-};
-
 type Control = {
   savedMetrics?: Metric[] | null;
   default?: unknown;
@@ -137,7 +131,7 @@ const groupByControl: SharedControlConfig<'SelectControl', ColumnMeta> = {
     if (state.datasource) {
       const options = state.datasource.columns.filter(c => c.groupby);
       if (includeTime) {
-        options.unshift(timeColumnOption);
+        options.unshift(TIME_COLUMN_OPTION);
       }
       newState.options = options;
     }

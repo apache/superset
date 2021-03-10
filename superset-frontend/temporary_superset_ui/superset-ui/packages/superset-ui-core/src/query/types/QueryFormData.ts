@@ -61,8 +61,8 @@ export enum QueryMode {
  */
 export interface QueryFields {
   columns: QueryFormColumn[];
-  metrics: QueryFormMetric[];
-  orderby: QueryFormOrderBy[];
+  metrics?: QueryFormMetric[];
+  orderby?: QueryFormOrderBy[];
 }
 
 /**

@@ -29,9 +29,23 @@ describe('getMetricLabel', () => {
         expressionType: 'SIMPLE',
         aggregate: 'AVG',
         column: {
-          columnName: 'sum_girls',
           id: 5,
           type: ColumnType.BIGINT,
+          columnName: 'sum_girls',
+        },
+      }),
+    ).toEqual('AVG(sum_girls)');
+  });
+
+  it('should handle column_name in alternative field', () => {
+    expect(
+      getMetricLabel({
+        expressionType: 'SIMPLE',
+        aggregate: 'AVG',
+        column: {
+          id: 5,
+          type: ColumnType.BIGINT,
+          column_name: 'sum_girls',
         },
       }),
     ).toEqual('AVG(sum_girls)');

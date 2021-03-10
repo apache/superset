@@ -20,7 +20,15 @@ import { t } from '../translation';
 import { removeDuplicates } from '../utils';
 import { DTTM_ALIAS } from './buildQueryObject';
 import getMetricLabel from './getMetricLabel';
-import { QueryFields, QueryFieldAliases, FormDataResidual, QueryMode } from './types/QueryFormData';
+import {
+  QueryFields,
+  QueryFormColumn,
+  QueryFormMetric,
+  QueryFormOrderBy,
+  QueryFieldAliases,
+  FormDataResidual,
+  QueryMode,
+} from './types/QueryFormData';
 
 /**
  * Extra SQL query related fields from chart form data.
@@ -47,12 +55,11 @@ export default function extractQueryFields(
     order_by_cols: 'orderby',
     ...aliases,
   };
-  const finalQueryFields: QueryFields = {
-    columns: [],
-    metrics: [],
-    orderby: [],
-  };
   const { query_mode: queryMode, include_time: includeTime, ...restFormData } = formData;
+
+  let columns: QueryFormColumn[] = [];
+  let metrics: QueryFormMetric[] = [];
+  let orderby: QueryFormOrderBy[] = [];
 
   Object.entries(restFormData).forEach(([key, value]) => {
     // ignore `null` or `undefined` value
@@ -62,14 +69,6 @@ export default function extractQueryFields(
 
     let normalizedKey: string = queryFieldAliases[key] || key;
 
-    // ignore groupby and metrics when in raw records mode
-    if (
-      queryMode === QueryMode.raw &&
-      (normalizedKey === 'groupby' || normalizedKey === 'metrics')
-    ) {
-      return;
-    }
-
     // ignore columns when (specifically) in aggregate mode.
     // For charts that support both aggregate and raw records mode,
     // we store both `groupby` and `columns` in `formData`, so users can
@@ -78,42 +77,50 @@ export default function extractQueryFields(
       return;
     }
 
+    // for the same reason, ignore groupby and metrics in raw records mode
+    if (
+      queryMode === QueryMode.raw &&
+      (normalizedKey === 'groupby' || normalizedKey === 'metrics')
+    ) {
+      return;
+    }
+
     // groupby has been deprecated in QueryObject: https://github.com/apache/superset/pull/9366
-    // We translate all `groupby` to `columns`.
     if (normalizedKey === 'groupby') {
       normalizedKey = 'columns';
     }
 
     if (normalizedKey === 'metrics') {
-      finalQueryFields[normalizedKey] = finalQueryFields[normalizedKey].concat(value);
+      metrics = metrics.concat(value);
     } else if (normalizedKey === 'columns') {
       // currently the columns field only accept pre-defined columns (string shortcut)
-      finalQueryFields[normalizedKey] = finalQueryFields[normalizedKey]
-        .concat(value)
-        .filter(x => typeof x === 'string' && x);
+      columns = columns.concat(value);
     } else if (normalizedKey === 'orderby') {
-      finalQueryFields[normalizedKey] = finalQueryFields[normalizedKey].concat(value).map(item => {
-        // value can be in the format of `['["col1", true]', '["col2", false]'],
-        // where the option strings come directly from `order_by_choices`.
-        if (typeof item === 'string') {
-          try {
-            return JSON.parse(item);
-          } catch (error) {
-            throw new Error(t('Found invalid orderby options'));
-          }
-        }
-        return item;
-      });
+      orderby = orderby.concat(value);
     }
   });
 
-  if (includeTime && !finalQueryFields.columns.includes(DTTM_ALIAS)) {
-    finalQueryFields.columns.unshift(DTTM_ALIAS);
+  if (includeTime && !columns.includes(DTTM_ALIAS)) {
+    columns.unshift(DTTM_ALIAS);
   }
 
-  // remove duplicate columns and metrics
-  finalQueryFields.columns = removeDuplicates(finalQueryFields.columns);
-  finalQueryFields.metrics = removeDuplicates(finalQueryFields.metrics, getMetricLabel);
-
-  return finalQueryFields;
+  return {
+    columns: removeDuplicates(columns.filter(x => typeof x === 'string' && x)),
+    metrics: queryMode === QueryMode.raw ? undefined : removeDuplicates(metrics, getMetricLabel),
+    orderby:
+      orderby.length > 0
+        ? orderby.map(item => {
+            // value can be in the format of `['["col1", true]', '["col2", false]'],
+            // where the option strings come directly from `order_by_choices`.
+            if (typeof item === 'string') {
+              try {
+                return JSON.parse(item);
+              } catch (error) {
+                throw new Error(t('Found invalid orderby options'));
+              }
+            }
+            return item;
+          })
+        : undefined,
+  };
 }
