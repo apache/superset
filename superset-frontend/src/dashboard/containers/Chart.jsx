@@ -66,7 +66,7 @@ function mapStateToProps(
     colorScheme,
     colorNamespace,
     sliceId: id,
-    nativeFilters: nativeFilters.filters,
+    nativeFilters,
     dataMask,
   });
 
