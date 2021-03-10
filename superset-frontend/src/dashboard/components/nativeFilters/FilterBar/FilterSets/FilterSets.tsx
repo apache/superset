@@ -22,6 +22,8 @@ import { HandlerFunction, styled, t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { DataMaskState, DataMaskUnit, MaskWithId } from 'src/dataMask/types';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
+import { areObjectsEqual } from 'src/reduxUtils';
+import { FilterSet } from 'src/dashboard/reducers/types';
 import { FilterSet } from 'src/dashboard/reducers/types';
 import { findExistingFilterSet, generateFiltersSetId } from './utils';
 import { Filter } from '../../types';
@@ -66,7 +68,7 @@ const FilterSetUnitWrapper = styled.div<{
 
 type FilterSetsProps = {
   disabled: boolean;
-  currentDataMask: DataMaskUnit;
+  dataMaskSelected: DataMaskUnit;
   onEditFilterSet: (id: string) => void;
   onFilterSelectionChange: (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
@@ -77,7 +79,7 @@ type FilterSetsProps = {
 const DEFAULT_FILTER_SET_NAME = t('New filter set');
 
 const FilterSets: React.FC<FilterSetsProps> = ({
-  currentDataMask,
+  dataMaskSelected,
   onEditFilterSet,
   disabled,
   onFilterSelectionChange,
@@ -96,11 +98,11 @@ const FilterSets: React.FC<FilterSetsProps> = ({
   useEffect(() => {
     const foundFilterSet = findExistingFilterSet({
       dataMaskApplied,
-      currentDataMask,
+      dataMaskSelected,
       filterSetFilterValues,
     });
     setSelectedFiltersSetId(foundFilterSet?.id ?? null);
-  }, [dataMaskApplied, currentDataMask, filterSetFilterValues]);
+  }, [dataMaskApplied, dataMaskSelected, filterSetFilterValues]);
 
   const takeFilterSet = (id: string, target?: HTMLElement) => {
     const ignoreSelector = 'ant-collapse-header';
