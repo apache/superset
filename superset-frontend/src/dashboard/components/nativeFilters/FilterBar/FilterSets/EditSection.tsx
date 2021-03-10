@@ -23,6 +23,7 @@ import { useDispatch } from 'react-redux';
 import Button from 'src/components/Button';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
 import { DataMaskUnit } from 'src/dataMask/types';
+import { WarningOutlined } from '@ant-design/icons';
 import { ActionButtons } from './Footer';
 import { useDataMask, useFilterSets } from '../state';
 import { APPLY_FILTERS_HINT, findExistingFilterSet } from './utils';
@@ -43,6 +44,9 @@ const Title = styled(Typography.Text)`
 
 const Warning = styled(Typography.Text)`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  & .anticon {
+    padding: ${({ theme }) => theme.gridUnit}px;
+  }
 `;
 
 const ActionButton = styled.div<{ disabled?: boolean }>`
@@ -135,6 +139,7 @@ const EditSection: FC<EditSectionProps> = ({
       </ActionButtons>
       {hasSimilarFilterSet && (
         <Warning mark>
+          <WarningOutlined />
           {t('This filter set similar to: "%s"', foundFilterSet?.name)}
         </Warning>
       )}
