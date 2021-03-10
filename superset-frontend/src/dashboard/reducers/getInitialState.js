@@ -117,7 +117,7 @@ export default function getInitialState(
   let newSlicesContainer;
   let newSlicesContainerWidth = 0;
 
-  const filterScopes = metadata.filter_scopes || {};
+  const filterScopes = (metadata && metadata.filter_scopes) || {};
 
   const chartQueries = {};
   const dashboardFilters = {};
@@ -310,14 +310,14 @@ export default function getInitialState(
       directPathToChild,
       directPathLastUpdated: Date.now(),
       focusedFilterField: null,
-      expandedSlices: metadata.expanded_slices || {},
-      refreshFrequency: metadata.refresh_frequency || 0,
+      expandedSlices: (metadata && metadata.expanded_slices) || {},
+      refreshFrequency: (metadata && metadata.refresh_frequency) || 0,
       // dashboard viewers can set refresh frequency for the current visit,
       // only persistent refreshFrequency will be saved to backend
       shouldPersistRefreshFrequency: false,
       css: dashboardData.css || '',
-      colorNamespace: metadata.color_namespace,
-      colorScheme: metadata.color_scheme,
+      colorNamespace: metadata?.color_namespace || null,
+      colorScheme: metadata?.color_scheme || null,
       editMode: getPermissions('can_write', 'Dashboard', roles) && editMode,
       isPublished: dashboardData.published,
       hasUnsavedChanges: false,
