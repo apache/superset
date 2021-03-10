@@ -39,6 +39,7 @@ little bit helps, and credit will always be given.
     - [Protocol](#protocol)
       - [Authoring](#authoring)
       - [Reviewing](#reviewing)
+      - [Test Environments](#test-environments)
       - [Merging](#merging)
       - [Post-merge Responsibility](#post-merge-responsibility)
   - [Design Guidelines](#design-guidelines)
@@ -247,6 +248,13 @@ Finally, never submit a PR that will put master branch in broken state. If the P
 - If there are changes required, state clearly what needs to be done before the PR can be approved.
 - If you are asked to update your pull request with some changes there's no need to create a new one. Push your changes to the same branch.
 - The committers reserve the right to reject any PR and in some cases may request the author to file an issue.
+
+#### Test Environments
+
+- Members of the Apache GitHub org can launch an ephemeral test environment directly on a pull request by creating a comment containing (only) the command `/testenv up`
+- A comment will be created by the workflow script with the address and login information for the ephemeral environment.
+- Test environments may be created once the Docker build CI workflow for the PR has completed successfully.
+- Running test environments will be shutdown upon closing the pull request.
 
 #### Merging
 
@@ -579,10 +587,17 @@ pip3 install -r requirements/integration.txt
 pre-commit install
 ```
 
+A series of checks will now run when you make a git commit.
+
 Alternatively it is possible to run pre-commit via tox:
 
 ```bash
 tox -e pre-commit
+```
+
+Or by running pre-commit manually:
+```bash
+pre-commit run --all-files
 ```
 
 ## Linting
@@ -593,14 +608,16 @@ Lint the project with:
 # for python
 tox -e pylint
 
+Alternatively, you can use pre-commit (mentioned above) for python linting
+
+The Python code is auto-formatted using [Black](https://github.com/python/black) which
+is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html)
+
 # for frontend
 cd superset-frontend
 npm ci
 npm run lint
 ```
-
-The Python code is auto-formatted using [Black](https://github.com/python/black) which
-is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/editor_integration.html).
 
 ## Conventions
 
@@ -686,6 +703,14 @@ tox -e <environment> -- tests/test_file.py::TestClassName::test_method_name
 Note that the test environment uses a temporary directory for defining the
 SQLite databases which will be cleared each time before the group of test
 commands are invoked.
+
+There is also a utility script included in the Superset codebase to run python tests. The [readme can be
+found here](https://github.com/apache/superset/tree/master/scripts/tests)
+
+To run all tests for example, run this script from the root directory:
+```bash
+scripts/tests/run.sh
+```
 
 ### Frontend Testing
 
