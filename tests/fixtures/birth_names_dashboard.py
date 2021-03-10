@@ -30,8 +30,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
-from tests.dashboard_utils import create_table_for_dashboard
+from tests.fixtures.utils import create_table_from_df, get_test_database
 from tests.test_app import app
 
 
@@ -55,19 +54,12 @@ def _load_data():
     table_name = "birth_names"
 
     with app.app_context():
-        database = get_example_database()
+        database = get_test_database()
         df = _get_dataframe(database)
-        dtype = {
-            "ds": DateTime if database.backend != "presto" else String(255),
-            "gender": String(16),
-            "state": String(10),
-            "name": String(255),
-        }
         table = _create_table(
             df=df,
             table_name=table_name,
             database=database,
-            dtype=dtype,
             fetch_values_predicate="123 = 123",
         )
 
@@ -84,11 +76,16 @@ def _create_table(
     df: DataFrame,
     table_name: str,
     database: "Database",
-    dtype: Dict[str, Any],
     fetch_values_predicate: Optional[str] = None,
 ):
-    table = create_table_for_dashboard(
-        df=df,
+    dtype = {
+        "ds": DateTime if database.backend != "presto" else String(255),
+        "gender": String(16),
+        "state": String(10),
+        "name": String(255),
+    }
+    table = create_table_from_df(
+        df,
         table_name=table_name,
         database=database,
         dtype=dtype,
@@ -108,7 +105,7 @@ def _cleanup(dash_id: int, slices_ids: List[int]) -> None:
     columns = [column for column in datasource.columns]
     metrics = [metric for metric in datasource.metrics]
 
-    engine = get_example_database().get_sqla_engine()
+    engine = get_test_database().get_sqla_engine()
     engine.execute("DROP TABLE IF EXISTS birth_names")
     for column in columns:
         db.session.delete(column)

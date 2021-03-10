@@ -41,12 +41,7 @@ from superset.models.slice import Slice
 from superset.sql_parse import Table
 from superset.utils.core import get_example_database
 
-from .base_tests import SupersetTestCase
-from .dashboard_utils import (
-    create_table_for_dashboard,
-    create_slice,
-    create_dashboard,
-)
+from tests.base_tests import SupersetTestCase
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 from tests.fixtures.energy_dashboard import load_energy_table_with_slice
 from tests.fixtures.public_role import (

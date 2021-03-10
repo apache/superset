@@ -30,7 +30,8 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_example_database
-from tests.dashboard_utils import create_dashboard, create_table_for_dashboard
+from tests.dashboard_utils import create_dashboard
+from tests.fixtures.utils import create_table_from_df
 from tests.test_app import app
 
 
@@ -62,7 +63,7 @@ def _load_data():
             "country_name": String(255),
             "region": String(255),
         }
-        table = create_table_for_dashboard(df, table_name, database, dtype)
+        table = create_table_from_df(df, table_name, database, dtype)
         slices = _create_world_bank_slices(table)
         dash = _create_world_bank_dashboard(table, slices)
         slices_ids_to_delete = [slice.id for slice in slices]

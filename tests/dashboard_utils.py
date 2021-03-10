@@ -17,49 +17,12 @@
 """Utils to provide dashboards for tests"""
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Dict, List
 
-from pandas import DataFrame
-
-from superset import ConnectorRegistry, db
+from superset import db
 from superset.connectors.sqla.models import SqlaTable
-from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-
-
-def create_table_for_dashboard(
-    df: DataFrame,
-    table_name: str,
-    database: Database,
-    dtype: Dict[str, Any],
-    table_description: str = "",
-    fetch_values_predicate: Optional[str] = None,
-) -> SqlaTable:
-    df.to_sql(
-        table_name,
-        database.get_sqla_engine(),
-        if_exists="replace",
-        chunksize=500,
-        dtype=dtype,
-        index=False,
-        method="multi",
-    )
-
-    table_source = ConnectorRegistry.sources["table"]
-    table = (
-        db.session.query(table_source).filter_by(table_name=table_name).one_or_none()
-    )
-    if not table:
-        table = table_source(table_name=table_name)
-    if fetch_values_predicate:
-        table.fetch_values_predicate = fetch_values_predicate
-    table.database = database
-    table.description = table_description
-    db.session.merge(table)
-    db.session.commit()
-
-    return table
 
 
 def create_slice(

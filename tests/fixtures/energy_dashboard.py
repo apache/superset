@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import random
-import textwrap
 from typing import Dict, Set
 
 import pandas as pd
@@ -25,10 +24,10 @@ from sqlalchemy import column, Float, String
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable, SqlMetric
-from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_example_database
-from tests.dashboard_utils import create_slice, create_table_for_dashboard
+from tests.dashboard_utils import create_slice
+from tests.fixtures.utils import create_table_from_df
 from tests.test_app import app
 
 misc_dash_slices: Set[str] = set()
@@ -54,8 +53,12 @@ def _create_energy_table(df: DataFrame, table_name: str):
 
     table_description = "Energy consumption"
     schema = {"source": String(255), "target": String(255), "value": Float()}
-    table = create_table_for_dashboard(
-        df, table_name, database, schema, table_description
+    table = create_table_from_df(
+        df,
+        table_name,
+        database=database,
+        dtype=schema,
+        table_description=table_description,
     )
     table.fetch_metadata()
 

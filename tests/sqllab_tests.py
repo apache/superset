@@ -139,7 +139,6 @@ class TestSqlLab(SupersetTestCase):
             self.run_sql(
                 "SELECT * FROM birth_names",
                 "1",
-                database_name="examples",
                 tmp_table_name=tmp_table_name,
                 select_as_cta=True,
                 ctas_method=ctas_method,

@@ -40,9 +40,9 @@ from superset.tasks.schedules import (
     evaluate_alert,
     validate_observations,
 )
-from superset.utils import core as utils
 from tests.test_app import app
 from tests.utils import read_fixture
+from tests.fixtures.utils import get_test_database
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 @pytest.yield_fixture(scope="module")
 def setup_database():
     with app.app_context():
-        example_database = utils.get_example_database()
+        example_database = get_test_database()
         example_database.get_sqla_engine().execute(
             "CREATE TABLE test_table AS SELECT 1 as first, 2 as second"
         )
@@ -83,7 +83,7 @@ def create_alert(
         recipients="recipient1@superset.com",
         slack_channel="#test_channel",
         sql=sql,
-        database_id=utils.get_example_database().id,
+        database_id=get_test_database().id,
         validator_type=validator_type,
         validator_config=validator_config,
     )

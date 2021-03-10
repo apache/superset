@@ -24,11 +24,8 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_example_database
-from tests.dashboard_utils import (
-    create_dashboard,
-    create_slice,
-    create_table_for_dashboard,
-)
+from tests.dashboard_utils import create_dashboard, create_slice
+from tests.fixtures.utils import create_table_from_df
 from tests.test_app import app
 
 
@@ -81,7 +78,7 @@ def _create_unicode_dashboard(
     dtype = {
         "phrase": String(500),
     }
-    table = create_table_for_dashboard(df, table_name, database, dtype)
+    table = create_table_from_df(df, table_name, database, dtype)
     table.fetch_metadata()
 
     if slice_title:

@@ -39,9 +39,8 @@ from superset.tasks.cache import (
     TopNDashboardsStrategy,
 )
 
-from .base_tests import SupersetTestCase
-from .dashboard_utils import create_dashboard, create_slice, create_table_for_dashboard
-from .fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
+from tests.base_tests import SupersetTestCase
+from tests.fixtures.unicode_dashboard import load_unicode_dashboard_with_slice
 
 URL_PREFIX = "http://0.0.0.0:8081"
 

@@ -26,8 +26,8 @@ from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.utils.core import get_example_database
 from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
 
-from .base_tests import db_insert_temp_object, SupersetTestCase
-from .fixtures.datasource import datasource_post
+from tests.fixtures.utils import db_insert_temp_object, SupersetTestCase
+from tests.fixtures.datasource import datasource_post
 
 
 class TestDatasource(SupersetTestCase):
