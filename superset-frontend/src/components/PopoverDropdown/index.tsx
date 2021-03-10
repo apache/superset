@@ -31,14 +31,18 @@ export interface OptionProps {
 export type OnChangeHandler = (key: React.Key) => void;
 export type RenderElementHandler = (option: OptionProps) => JSX.Element;
 
-interface PopoverDropdownProps {
+export interface PopoverDropdownProps {
   id: string;
   options: OptionProps[];
   onChange: OnChangeHandler;
   value: string;
   theme: SupersetThemeProps['theme'];
-  renderButton: RenderElementHandler;
-  renderOption: RenderElementHandler;
+  renderButton?: RenderElementHandler;
+  renderOption?: RenderElementHandler;
+}
+
+interface HandleSelectProps {
+  key: React.Key;
 }
 
 const MenuItem = styled(Menu.Item)`
@@ -71,58 +75,44 @@ const MenuItem = styled(Menu.Item)`
   }
 `;
 
-interface HandleSelectProps {
-  key: React.Key;
-}
-
-class PopoverDropdown extends React.PureComponent<PopoverDropdownProps> {
-  constructor(props: PopoverDropdownProps) {
-    super(props);
-
-    this.handleSelect = this.handleSelect.bind(this);
-  }
-
-  handleSelect({ key }: HandleSelectProps) {
-    this.props.onChange(key);
-  }
-
-  static defaultProps = {
-    renderButton: (option: OptionProps) => option.label,
-    renderOption: (option: OptionProps) => (
+const PopoverDropdown = (props: PopoverDropdownProps) => {
+  const {
+    value,
+    options,
+    theme,
+    onChange,
+    renderButton = (option: OptionProps) => option.label,
+    renderOption = (option: OptionProps) => (
       <div className={option.className}>{option.label}</div>
     ),
-  };
-
-  render() {
-    const { value, options, renderButton, renderOption, theme } = this.props;
-    const selected = options.find(opt => opt.value === value);
-    return (
-      <Dropdown
-        trigger={['click']}
-        overlayStyle={{ zIndex: theme.zIndex.max }}
-        overlay={
-          <Menu onClick={this.handleSelect}>
-            {options.map(option => (
-              <MenuItem
-                id="menu-item"
-                key={option.value}
-                className={cx('dropdown-item', {
-                  active: option.value === value,
-                })}
-              >
-                {renderOption(option)}
-              </MenuItem>
-            ))}
-          </Menu>
-        }
-      >
-        <div role="button" css={{ display: 'flex', alignItems: 'center' }}>
-          {selected && renderButton(selected)}
-          <Icon name="caret-down" css={{ marginTop: 4 }} />
-        </div>
-      </Dropdown>
-    );
-  }
-}
+  } = props;
+  const selected = options.find(opt => opt.value === value);
+  return (
+    <Dropdown
+      trigger={['click']}
+      overlayStyle={{ zIndex: theme.zIndex.max }}
+      overlay={
+        <Menu onClick={({ key }: HandleSelectProps) => onChange(key)}>
+          {options.map(option => (
+            <MenuItem
+              id="menu-item"
+              key={option.value}
+              className={cx('dropdown-item', {
+                active: option.value === value,
+              })}
+            >
+              {renderOption(option)}
+            </MenuItem>
+          ))}
+        </Menu>
+      }
+    >
+      <div role="button" css={{ display: 'flex', alignItems: 'center' }}>
+        {selected && renderButton(selected)}
+        <Icon name="caret-down" css={{ marginTop: 4 }} />
+      </div>
+    </Dropdown>
+  );
+};
 
 export default withTheme(PopoverDropdown);
