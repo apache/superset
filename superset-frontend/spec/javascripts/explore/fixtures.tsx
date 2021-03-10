@@ -20,7 +20,9 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 import {
+  ColumnMeta,
   ColumnOption,
+  ControlConfig,
   ControlPanelSectionConfig,
 } from '@superset-ui/chart-controls';
 
@@ -99,7 +101,7 @@ export const controlPanelSectionsChartOptionsTable: ControlPanelSectionConfig[] 
             }),
             commaChoosesOption: false,
             freeForm: true,
-          },
+          } as ControlConfig<'SelectControl', ColumnMeta>,
         },
       ],
     ],
