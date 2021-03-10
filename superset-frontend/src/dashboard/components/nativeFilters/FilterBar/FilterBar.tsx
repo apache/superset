@@ -338,7 +338,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           <StyledTabs
             centered
             defaultActiveKey="allFilters"
-            activeKey={editFilterSetMode ? 'filterSets' : undefined}
+            activeKey={editFilterSetMode ? 'allFilters' : undefined}
           >
             <Tabs.TabPane
               tab={t(`All Filters (${filterValues.length})`)}
