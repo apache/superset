@@ -104,7 +104,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                 "allow_csv_upload": True,
                 "allow_ctas": True,
                 "allow_cvas": True,
-                "allow_run_async": True,
+                "allow_run_async": False,
                 "cache_timeout": None,
                 "database_name": "examples",
                 "expose_in_sqllab": True,
