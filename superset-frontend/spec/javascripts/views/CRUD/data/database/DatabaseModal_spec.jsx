@@ -81,8 +81,8 @@ describe('DatabaseModal', () => {
       const sqlLabSettingsTab = screen.getByRole('tab', { name: /sql lab settings/i });
       userEvent.click(sqlLabSettingsTab);
       
-      // Grab all SQL Lab Settings checkboxes
-      const sqlLabSettings = screen.getAllByRole('checkbox', { name: "" });
+      // Grab all SQL Lab Settings and checkboxes
+      const sqlLabSettings = screen.getAllByRole('checkbox', { name: '' });
       const exposeInSqlLab = sqlLabSettings[0];
       const allowCTAS = sqlLabSettings[1];
       const allowCVAS = sqlLabSettings[2];
@@ -107,6 +107,36 @@ describe('DatabaseModal', () => {
       expect(allowCVAS).not.toBeVisible();
       expect(allowDML).not.toBeVisible();
       expect(allowMSMF).not.toBeVisible();
+    });
+    it('only renders the CTAS/CVAS schema field when one or both options are selected', () => {
+      render(
+        <ThemeProvider theme={supersetTheme}>
+          <Provider store={store}>
+            <DatabaseModal {...dbProps} />
+          </Provider>
+        </ThemeProvider>,
+      );
+
+      // Select SQL Lab settings tab
+      const sqlLabSettingsTab = screen.getByRole('tab', { name: /sql lab settings/i });
+      userEvent.click(sqlLabSettingsTab);
+      
+      // Grab all SQL Lab Settings, checkboxes && schema field
+      const sqlLabSettings = screen.getAllByRole('checkbox', { name: '' });
+      const allowCTAS = sqlLabSettings[1];
+      const allowCVAS = sqlLabSettings[2];
+      const schemaField = screen.getByText('CTAS & CVAS SCHEMA');
+
+      // While CTAS & CVAS are unchecked, schema field is not visible
+      expect(schemaField).not.toBeVisible();
+
+      // Check "Allow CTAS" to reveal schema field
+      userEvent.click(allowCTAS);
+      userEvent.click(allowCTAS);   // This needs to be clicked 2x for some reason? Investigate!!!
+      expect(schemaField).toBeVisible();
+      // Uncheck "Allow CTAS" to hide schema field again
+      userEvent.click(allowCTAS);
+      expect(schemaField).not.toBeVisible();
     });
   });
 });
