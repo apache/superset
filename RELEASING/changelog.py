@@ -65,7 +65,11 @@ class GitChangeLog:
     """
 
     def __init__(
-        self, version: str, logs: List[GitLog], access_token: Optional[str] = None
+        self,
+        version: str,
+        logs: List[GitLog],
+        access_token: Optional[str] = None,
+        risk: Optional[bool] = False,
     ) -> None:
         self._version = version
         self._logs = logs
@@ -75,6 +79,7 @@ class GitChangeLog:
         self._wait = 10
         github_token = access_token or os.environ.get("GITHUB_TOKEN")
         self._github = Github(github_token)
+        self._show_risk = risk
         self._superset_repo = ""
 
     def _fetch_github_pr(self, pr_number: int) -> PullRequest:
@@ -137,21 +142,49 @@ class GitChangeLog:
         else:
             pr_type = ""
 
-        labels = (", ").join([label.name for label in pr_info.labels])
+        labels = (" | ").join([label.name for label in pr_info.labels])
+        is_risky = self._is_risk_pull_request(pr_info.labels)
         detail = {
             "id": pr_number,
             "has_migrations": has_migrations,
             "labels": labels,
             "title": title,
             "type": pr_type,
+            "is_risky": is_risky or has_migrations,
         }
 
         self._pr_logs_with_details[pr_number] = detail
 
         return detail
 
+    def _is_risk_pull_request(self, labels: [str]) -> bool:
+        for label in labels:
+            risk_label = re.match(
+                r"^(blocking|risk|hold|revert|security vulnerability)", label.name
+            )
+            if risk_label is not None:
+                return True
+        return False
+
     def _get_changelog_version_head(self) -> str:
         return f"### {self._version} ({self._logs[0].time})"
+
+    def _parse_change_log(
+        self, changelog: Dict[str, str], pr_info: Dict[str, str], github_login: str,
+    ) -> Dict[str, str]:
+        formatted_pr = (
+            f"- [#{pr_info.get('id')}]"
+            f"(https://github.com/{SUPERSET_REPO}/pull/{pr_info.get('id')}) "
+            f"{pr_info.get('title')} (@{github_login})\n"
+        )
+        if pr_info.get("has_migrations"):
+            changelog["Database Migrations"] += formatted_pr
+        elif pr_info.get("type") == "fix":
+            changelog["Fixes"] += formatted_pr
+        elif pr_info.get("type") == "feat":
+            changelog["Features"] += formatted_pr
+        else:
+            changelog["Others"] += formatted_pr
 
     def __repr__(self) -> str:
         result = f"\n{self._get_changelog_version_head()}\n"
@@ -163,26 +196,26 @@ class GitChangeLog:
         }
         for i, log in enumerate(self._logs):
             github_login = self._get_github_login(log)
+            pr_info = self._get_pull_request_details(log)
 
             if not github_login:
                 github_login = log.author
 
-            pr_info = self._get_pull_request_details(log)
-            commit_type = pr_info.get("type")
-            formatted_pr = (
-                f"- [#{log.pr_number}]"
-                f"(https://github.com/{SUPERSET_REPO}/pull/{log.pr_number}) "
-                f"{pr_info.get('title')} (@{github_login}) {pr_info.get('labels')} \n"
-            )
-            if pr_info["has_migrations"]:
-                changelog["Database Migrations"] += formatted_pr
-            elif commit_type == "fix":
-                changelog["Fixes"] += formatted_pr
-            elif commit_type == "feat":
-                changelog["Features"] += formatted_pr
+            if self._show_risk:
+                if pr_info.get("is_risky"):
+                    result += (
+                        f"- [#{log.pr_number}]"
+                        f"(https://github.com/{SUPERSET_REPO}/pull/{log.pr_number}) "
+                        f"{pr_info.get('title')} (@{github_login})  "
+                        f"{pr_info.get('labels')} \n"
+                    )
             else:
-                changelog["Others"] += formatted_pr
+                self._parse_change_log(changelog, pr_info, github_login)
+
             print(f"\r {i}/{len(self._logs)}", end="", flush=True)
+
+        if self._show_risk:
+            return result
 
         for key in changelog:
             result += f"**{key}** {changelog[key]}\n"
@@ -332,14 +365,20 @@ def compare(base_parameters: BaseParameters) -> None:
     help="The github access token,"
     " if not provided will try to fetch from GITHUB_TOKEN env var",
 )
+@click.option("--risk", is_flag=True, help="show all pull request with risky labels")
 @click.pass_obj
-def change_log(base_parameters: BaseParameters, csv: str, access_token: str) -> None:
+def change_log(
+    base_parameters: BaseParameters, csv: str, access_token: str, risk: bool
+) -> None:
     """ Outputs a changelog (by PR) """
     previous_logs = base_parameters.previous_logs
     current_logs = base_parameters.current_logs
     previous_diff_logs = previous_logs.diff(current_logs)
     logs = GitChangeLog(
-        current_logs.git_ref, previous_diff_logs[::-1], access_token=access_token
+        current_logs.git_ref,
+        previous_diff_logs[::-1],
+        access_token=access_token,
+        risk=risk,
     )
     if csv:
         with open(csv, "w") as csv_file:
