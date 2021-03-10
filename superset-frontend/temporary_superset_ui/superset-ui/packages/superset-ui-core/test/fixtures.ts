@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,39 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export enum ColumnType {
-  DOUBLE = 'DOUBLE',
-  FLOAT = 'FLOAT',
-  INT = 'INT',
-  BIGINT = 'BIGINT',
-  LONG = 'LONG',
-  REAL = 'REAL',
-  NUMERIC = 'NUMERIC',
-  DECIMAL = 'DECIMAL',
-  MONEY = 'MONEY',
-  DATE = 'DATE',
-  TIME = 'TIME',
-  DATETIME = 'DATETIME',
-  VARCHAR = 'VARCHAR',
-  STRING = 'STRING',
-  CHAR = 'CHAR',
-}
+import { AdhocMetric, ColumnType } from '../src';
 
-/**
- * Column information defined in datasource.
- */
-export interface Column {
-  id: number;
-  type: ColumnType;
-  column_name: string;
-  groupby?: boolean;
-  is_dttm?: boolean;
-  filterable?: boolean;
-  verbose_name?: string | null;
-  description?: string | null;
-  expression?: string | null;
-  database_expression?: string | null;
-  python_date_format?: string | null;
-}
-
-export default {};
+export const NUM_METRIC: AdhocMetric = {
+  expressionType: 'SIMPLE',
+  label: 'Sum(num)',
+  column: {
+    id: 336,
+    type: ColumnType.BIGINT,
+    column_name: 'num',
+    verbose_name: null,
+    description: null,
+    expression: '',
+    filterable: false,
+    groupby: false,
+    is_dttm: false,
+    database_expression: null,
+    python_date_format: null,
+  },
+  aggregate: 'SUM',
+};

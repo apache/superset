@@ -59,7 +59,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (formData: TableChartFormData
   }
 
   return buildQueryContext(formDataCopy, baseQueryObject => {
-    let { metrics, orderby } = baseQueryObject;
+    let { metrics = [], orderby = [] } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
 
     if (queryMode === QueryMode.aggregate) {
