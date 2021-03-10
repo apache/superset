@@ -520,14 +520,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             </div>
           </StyledInputContainer>
         </Tabs.TabPane>
-        <Tabs.TabPane
-          tab={
-            <span data-test-id="expose_in_sqllab_test">
-              {t('SQL Lab settings')}
-            </span>
-          }
-          key="3"
-        >
+        <Tabs.TabPane tab={<span>{t('SQL Lab settings')}</span>} key="3">
           <StyledInputContainer>
             <StyledInputContainer>
               <div className="input-container">
