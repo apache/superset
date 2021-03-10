@@ -347,6 +347,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             >
               {editFilterSetId && (
                 <EditSection
+                  dataMaskSelected={dataMaskSelected}
                   disabled={!isApplyDisabled}
                   onCancel={() => setEditFilterSetId(null)}
                   filterSetId={editFilterSetId}

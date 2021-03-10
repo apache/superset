@@ -18,13 +18,14 @@
  */
 import React, { FC, useMemo } from 'react';
 import { HandlerFunction, styled, t } from '@superset-ui/core';
-import { Typography } from 'src/common/components';
+import { Typography, Tooltip } from 'src/common/components';
 import { useDispatch } from 'react-redux';
 import Button from 'src/components/Button';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
+import { DataMaskUnit } from 'src/dataMask/types';
 import { ActionButtons } from './Footer';
 import { useDataMask, useFilterSets } from '../state';
-import { findExistingFilterSet } from './utils';
+import { APPLY_FILTERS_HINT, findExistingFilterSet } from './utils';
 
 const Wrapper = styled.div`
   display: grid;
@@ -34,14 +35,27 @@ const Wrapper = styled.div`
   grid-gap: ${({ theme }) => theme.gridUnit}px;
   background: ${({ theme }) => theme.colors.primary.light4};
   padding: ${({ theme }) => theme.gridUnit * 2}px;
-  & .ant-typography {
-    font-size: ${({ theme }) => theme.typography.sizes.m}px;
-    color: ${({ theme }) => theme.colors.primary.dark2};
+`;
+
+const Title = styled(Typography.Text)`
+  color: ${({ theme }) => theme.colors.primary.dark2};
+`;
+
+const Warning = styled(Typography.Text)`
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+`;
+
+const ActionButton = styled.div<{ disabled?: boolean }>`
+  display: flex;
+  & button {
+    ${({ disabled }) => `pointer-events: ${disabled ? 'none' : 'all'}`};
+    flex: 1;
   }
 `;
 
 type EditSectionProps = {
   filterSetId: string;
+  dataMaskSelected: DataMaskUnit;
   onCancel: HandlerFunction;
   disabled: boolean;
 };
@@ -49,6 +63,7 @@ type EditSectionProps = {
 const EditSection: FC<EditSectionProps> = ({
   filterSetId,
   onCancel,
+  dataMaskSelected,
   disabled,
 }) => {
   const dataMaskApplied = useDataMask();
@@ -74,16 +89,19 @@ const EditSection: FC<EditSectionProps> = ({
     () =>
       findExistingFilterSet({
         dataMaskApplied,
-        currentDataMask,
+        dataMaskSelected,
         filterSetFilterValues,
       }),
-    [dataMaskApplied, currentDataMask, filterSetFilterValues],
+    [dataMaskApplied, dataMaskSelected, filterSetFilterValues],
   );
+
+  const hasSimilarFilterSet =
+    foundFilterSet && foundFilterSet.id !== filterSetId;
 
   return (
     <Wrapper>
-      <Typography.Text strong>{t('Editing filter set:')}</Typography.Text>
-      <Typography.Text>{filterSets[filterSetId].name}</Typography.Text>
+      <Title strong>{t('Editing filter set:')}</Title>
+      <Title>{filterSets[filterSetId].name}</Title>
       <ActionButtons>
         <Button
           ghost
@@ -94,17 +112,32 @@ const EditSection: FC<EditSectionProps> = ({
         >
           {t('Cancel')}
         </Button>
-        <Button
-          disabled={disabled}
-          buttonStyle="primary"
-          htmlType="submit"
-          buttonSize="small"
-          onClick={handleSave}
-          data-test="filter-set-edit-save"
+        <Tooltip
+          placement="top"
+          title={
+            (hasSimilarFilterSet && t('Filter set already exists')) ||
+            (disabled && APPLY_FILTERS_HINT)
+          }
         >
-          {t('Save')}
-        </Button>
+          <ActionButton disabled={disabled || hasSimilarFilterSet}>
+            <Button
+              disabled={disabled || hasSimilarFilterSet}
+              buttonStyle="primary"
+              htmlType="submit"
+              buttonSize="small"
+              onClick={handleSave}
+              data-test="filter-set-edit-save"
+            >
+              {t('Save')}
+            </Button>
+          </ActionButton>
+        </Tooltip>
       </ActionButtons>
+      {hasSimilarFilterSet && (
+        <Warning mark>
+          {t('This filter set similar to: "%s"', foundFilterSet?.name)}
+        </Warning>
+      )}
     </Wrapper>
   );
 };

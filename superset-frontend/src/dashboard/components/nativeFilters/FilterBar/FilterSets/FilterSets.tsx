@@ -22,8 +22,6 @@ import { HandlerFunction, styled, t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { DataMaskState, DataMaskUnit, MaskWithId } from 'src/dataMask/types';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { areObjectsEqual } from 'src/reduxUtils';
-import { FilterSet } from 'src/dashboard/reducers/types';
 import { FilterSet } from 'src/dashboard/reducers/types';
 import { findExistingFilterSet, generateFiltersSetId } from './utils';
 import { Filter } from '../../types';
@@ -109,7 +107,12 @@ const FilterSets: React.FC<FilterSetsProps> = ({
     if (
       target?.classList.contains(ignoreSelector) ||
       target?.parentElement?.classList.contains(ignoreSelector) ||
-      target?.parentElement?.parentElement?.classList.contains(ignoreSelector)
+      target?.parentElement?.parentElement?.classList.contains(
+        ignoreSelector,
+      ) ||
+      target?.parentElement?.parentElement?.parentElement?.classList.contains(
+        ignoreSelector,
+      )
     ) {
       // We don't want select filter set when user expand filters
       return;
@@ -176,7 +179,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
             editMode={editMode}
             setFilterSetName={setFilterSetName}
             filterSetName={filterSetName}
-            currentDataMask={dataMaskApplied}
+            dataMaskApplied={dataMaskApplied}
           />
           <Footer
             isApplyDisabled={!filterSetName.trim()}
@@ -200,7 +203,6 @@ const FilterSets: React.FC<FilterSetsProps> = ({
             onDelete={handleDeleteFilterSets}
             onEdit={() => handleEdit(filterSet.id)}
             filters={filters}
-            currentDataMask={dataMaskApplied}
             filterSet={filterSet}
           />
         </FilterSetUnitWrapper>

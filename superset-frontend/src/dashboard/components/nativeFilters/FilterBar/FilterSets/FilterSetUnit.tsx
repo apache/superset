@@ -19,7 +19,7 @@
 import { Typography, Dropdown, Menu } from 'src/common/components';
 import React, { FC } from 'react';
 import { FilterSet } from 'src/dashboard/reducers/types';
-import { DataMaskUnitWithId } from 'src/dataMask/types';
+import { DataMaskUnit } from 'src/dataMask/types';
 import { CheckOutlined, EllipsisOutlined } from '@ant-design/icons';
 import { HandlerFunction, styled, supersetTheme, t } from '@superset-ui/core';
 import FiltersHeader from './FiltersHeader';
@@ -46,7 +46,7 @@ type FilterSetUnitProps = {
   isApplied?: boolean;
   filterSet?: FilterSet;
   filterSetName?: string;
-  dataMaskSelected: DataMaskUnitWithId;
+  dataMaskApplied?: DataMaskUnit;
   setFilterSetName?: (name: string) => void;
   onDelete?: HandlerFunction;
   onEdit?: HandlerFunction;
@@ -59,7 +59,7 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
   onDelete,
   onEdit,
   filterSetName,
-  dataMaskSelected,
+  dataMaskApplied,
   filterSet,
   isApplied,
 }) => {
@@ -108,7 +108,7 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
       </TitleText>
       <FiltersHeader
         expanded={!filterSet}
-        dataMask={filterSet?.dataMask?.nativeFilters ?? dataMaskSelected}
+        dataMask={filterSet?.dataMask?.nativeFilters ?? dataMaskApplied}
         filters={filters}
       />
     </>

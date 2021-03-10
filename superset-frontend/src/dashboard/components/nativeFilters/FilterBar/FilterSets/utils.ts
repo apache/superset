@@ -25,6 +25,8 @@ import { FilterSet } from 'src/dashboard/reducers/types';
 
 export const generateFiltersSetId = () => `FILTERS_SET-${shortid.generate()}`;
 
+export const APPLY_FILTERS_HINT = t('Please apply filter changes');
+
 export const getFilterValueForDisplay = (
   value?: string[] | null | string | number | object,
 ): string => {
@@ -46,11 +48,11 @@ export const getFilterValueForDisplay = (
 export const findExistingFilterSet = ({
   filterSetFilterValues,
   dataMaskApplied,
-  currentDataMask,
+  dataMaskSelected,
 }: {
   filterSetFilterValues: FilterSet[];
   dataMaskApplied: DataMaskUnit;
-  currentDataMask: DataMaskUnit;
+  dataMaskSelected: DataMaskUnit;
 }) =>
   filterSetFilterValues.find(({ dataMask }) => {
     if (dataMask?.nativeFilters) {
@@ -58,9 +60,9 @@ export const findExistingFilterSet = ({
         filterFromFilterSet => {
           let currentValueFromFiltersTab =
             dataMaskApplied[filterFromFilterSet.id]?.currentState ?? {};
-          if (currentDataMask[filterFromFilterSet.id]) {
+          if (dataMaskSelected[filterFromFilterSet.id]) {
             currentValueFromFiltersTab =
-              currentDataMask[filterFromFilterSet.id]?.currentState;
+              dataMaskSelected[filterFromFilterSet.id]?.currentState;
           }
           return areObjectsEqual(
             filterFromFilterSet.currentState ?? {},
