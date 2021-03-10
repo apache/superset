@@ -252,7 +252,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         except DashboardNotFoundError:
             return self.response_404()
 
-    @expose("/<pk>/charts", methods=["GET"])
+    @expose("/<id_or_slug>/charts", methods=["GET"])
     @protect()
     @safe
     @statsd_metrics
