@@ -39,7 +39,7 @@ const ActionButton = styled.div<{ disabled: boolean }>`
   }
 `;
 
-const ActionButtons = styled.div`
+export const ActionButtons = styled.div`
   display: grid;
   flex-direction: row;
   justify-content: center;

@@ -37,6 +37,7 @@ import { buildCascadeFiltersTree, mapParentFiltersToChildren } from './utils';
 import CascadePopover from './CascadePopover';
 import FilterSets from './FilterSets/FilterSets';
 import { useDataMask, useFilters, useFilterSets } from './state';
+import EditSection from './FilterSets/EditSection';
 
 const barWidth = `250px`;
 
@@ -174,7 +175,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   directPathToChild,
 }) => {
   const [currentDataMask, setCurrentDataMask] = useImmer<DataMaskUnit>({});
-  const [editFilterSetMode, setEditFilterSetMode] = useState<boolean>(false);
+  const [editFilterSetId, setEditFilterSetId] = useState<string | null>(null);
   const [
     lastAppliedFilterData,
     setLastAppliedFilterData,
@@ -338,21 +339,28 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           <StyledTabs
             centered
             defaultActiveKey="allFilters"
-            activeKey={editFilterSetMode ? 'allFilters' : undefined}
+            activeKey={editFilterSetId ? 'allFilters' : undefined}
           >
             <Tabs.TabPane
               tab={t(`All Filters (${filterValues.length})`)}
               key="allFilters"
             >
+              {editFilterSetId && (
+                <EditSection
+                  disabled={!isApplyDisabled}
+                  onCancel={() => setEditFilterSetId(null)}
+                  filterSetId={editFilterSetId}
+                />
+              )}
               {getFilterControls()}
             </Tabs.TabPane>
             <Tabs.TabPane
-              disabled={editFilterSetMode}
+              disabled={!!editFilterSetId}
               tab={t(`Filter Sets (${filterSetFilterValues.length})`)}
               key="filterSets"
             >
               <FilterSets
-                onEditFilterSet={() => setEditFilterSetMode(true)}
+                onEditFilterSet={setEditFilterSetId}
                 disabled={!isApplyDisabled}
                 currentDataMask={currentDataMask}
                 onFilterSelectionChange={handleFilterSelectionChange}

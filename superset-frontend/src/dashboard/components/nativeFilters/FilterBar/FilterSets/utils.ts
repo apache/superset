@@ -19,6 +19,9 @@
 
 import shortid from 'shortid';
 import { t } from '@superset-ui/core';
+import { areObjectsEqual } from 'src/reduxUtils';
+import { DataMaskUnit } from 'src/dataMask/types';
+import { FilterSet } from 'src/dashboard/reducers/types';
 
 export const generateFiltersSetId = () => `FILTERS_SET-${shortid.generate()}`;
 
@@ -39,3 +42,32 @@ export const getFilterValueForDisplay = (
   }
   return t('Unknown value');
 };
+
+export const findExistingFilterSet = ({
+  filterSetFilterValues,
+  dataMaskApplied,
+  currentDataMask,
+}: {
+  filterSetFilterValues: FilterSet[];
+  dataMaskApplied: DataMaskUnit;
+  currentDataMask: DataMaskUnit;
+}) =>
+  filterSetFilterValues.find(({ dataMask }) => {
+    if (dataMask?.nativeFilters) {
+      return Object.values(dataMask?.nativeFilters).every(
+        filterFromFilterSet => {
+          let currentValueFromFiltersTab =
+            dataMaskApplied[filterFromFilterSet.id]?.currentState ?? {};
+          if (currentDataMask[filterFromFilterSet.id]) {
+            currentValueFromFiltersTab =
+              currentDataMask[filterFromFilterSet.id]?.currentState;
+          }
+          return areObjectsEqual(
+            filterFromFilterSet.currentState ?? {},
+            currentValueFromFiltersTab,
+          );
+        },
+      );
+    }
+    return false;
+  });

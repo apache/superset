@@ -22,9 +22,8 @@ import { HandlerFunction, styled, t } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
 import { DataMaskState, DataMaskUnit, MaskWithId } from 'src/dataMask/types';
 import { setFilterSetsConfiguration } from 'src/dashboard/actions/nativeFilters';
-import { areObjectsEqual } from 'src/reduxUtils';
 import { FilterSet } from 'src/dashboard/reducers/types';
-import { generateFiltersSetId } from './utils';
+import { findExistingFilterSet, generateFiltersSetId } from './utils';
 import { Filter } from '../../types';
 import { useFilters, useDataMask, useFilterSets } from '../state';
 import Footer from './Footer';
@@ -68,7 +67,7 @@ const FilterSetUnitWrapper = styled.div<{
 type FilterSetsProps = {
   disabled: boolean;
   currentDataMask: DataMaskUnit;
-  onEditFilterSet: HandlerFunction;
+  onEditFilterSet: (id: string) => void;
   onFilterSelectionChange: (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
     dataMask: Partial<DataMaskState>,
@@ -95,24 +94,10 @@ const FilterSets: React.FC<FilterSetsProps> = ({
   >(null);
 
   useEffect(() => {
-    const foundFilterSet = filterSetFilterValues.find(({ dataMask }) => {
-      if (dataMask?.nativeFilters) {
-        return Object.values(dataMask?.nativeFilters).every(
-          filterFromFilterSet => {
-            let currentValueFromFiltersTab =
-              dataMaskApplied[filterFromFilterSet.id]?.currentState ?? {};
-            if (currentDataMask[filterFromFilterSet.id]) {
-              currentValueFromFiltersTab =
-                currentDataMask[filterFromFilterSet.id]?.currentState;
-            }
-            return areObjectsEqual(
-              filterFromFilterSet.currentState ?? {},
-              currentValueFromFiltersTab,
-            );
-          },
-        );
-      }
-      return false;
+    const foundFilterSet = findExistingFilterSet({
+      dataMaskApplied,
+      currentDataMask,
+      filterSetFilterValues,
     });
     setSelectedFiltersSetId(foundFilterSet?.id ?? null);
   }, [dataMaskApplied, currentDataMask, filterSetFilterValues]);
@@ -145,7 +130,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
 
   const handleEdit = (id: string) => {
     takeFilterSet(id);
-    onEditFilterSet();
+    onEditFilterSet(id);
   };
 
   const handleDeleteFilterSets = () => {
