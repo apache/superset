@@ -140,7 +140,7 @@ const EditSection: FC<EditSectionProps> = ({
       {hasSimilarFilterSet && (
         <Warning mark>
           <WarningOutlined />
-          {t('This filter set similar to: "%s"', foundFilterSet?.name)}
+          {t('This filter set is identical to: "%s"', foundFilterSet?.name)}
         </Warning>
       )}
     </Wrapper>
