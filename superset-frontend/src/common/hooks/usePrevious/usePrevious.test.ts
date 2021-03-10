@@ -19,12 +19,12 @@
 import { renderHook } from '@testing-library/react-hooks';
 import { usePrevious } from './usePrevious';
 
-test('get undefined on frist render when initalValue is not defined', () => {
+test('get undefined on the first render when initialValue is not defined', () => {
   const hook = renderHook(() => usePrevious('state'));
   expect(hook.result.current).toBeUndefined();
 });
 
-test('get initail value on frist render when initalValue is defined', () => {
+test('get initial value on the first render when initialValue is defined', () => {
   const hook = renderHook(() => usePrevious('state', 'initial'));
   expect(hook.result.current).toBe('initial');
 });
