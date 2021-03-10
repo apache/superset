@@ -27,11 +27,7 @@ import Icon from 'src/components/Icon';
 import { Tabs } from 'src/common/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { updateDataMask } from 'src/dataMask/actions';
-import {
-  DataMaskUnitWithId,
-  DataMaskUnit,
-  DataMaskState,
-} from 'src/dataMask/types';
+import { DataMaskUnit, DataMaskState } from 'src/dataMask/types';
 import { useImmer } from 'use-immer';
 import { getInitialMask } from 'src/dataMask/reducer';
 import { areObjectsEqual } from 'src/reduxUtils';
@@ -40,13 +36,15 @@ import { Filter } from '../types';
 import { buildCascadeFiltersTree, mapParentFiltersToChildren } from './utils';
 import CascadePopover from './CascadePopover';
 import FilterSets from './FilterSets/FilterSets';
-import { useFilters, useFilterSets } from './state';
+import { useDataMask, useFilters, useFilterSets } from './state';
 
 const barWidth = `250px`;
 
 const BarWrapper = styled.div`
   width: ${({ theme }) => theme.gridUnit * 8}px;
-
+  & .ant-tabs-top > .ant-tabs-nav {
+    margin: 0;
+  }
   &.open {
     width: ${barWidth}; // arbitrary...
   }
@@ -158,7 +156,7 @@ const ActionButtons = styled.div`
 `;
 
 const FilterControls = styled.div`
-  padding: 0 ${({ theme }) => theme.gridUnit * 4}px;
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
   &:hover {
     cursor: pointer;
   }
@@ -175,19 +173,17 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   toggleFiltersBar,
   directPathToChild,
 }) => {
-  const [filterData, setFilterData] = useImmer<DataMaskUnit>({});
+  const [dataMaskSelected, setDataMaskSelected] = useImmer<DataMaskUnit>({});
   const [
     lastAppliedFilterData,
     setLastAppliedFilterData,
   ] = useImmer<DataMaskUnit>({});
   const dispatch = useDispatch();
   const filterSets = useFilterSets();
-  const filterSetsArray = Object.values(filterSets);
+  const filterSetFilterValues = Object.values(filterSets);
   const filters = useFilters();
-  const filtersArray = Object.values(filters);
-  const dataMaskState = useSelector<any, DataMaskUnitWithId>(
-    state => state.dataMask.nativeFilters ?? {},
-  );
+  const filterValues = Object.values(filters);
+  const dataMaskApplied = useDataMask();
   const canEdit = useSelector<any, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -195,59 +191,59 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
   const handleApply = () => {
-    const filterIds = Object.keys(filterData);
+    const filterIds = Object.keys(dataMaskSelected);
     filterIds.forEach(filterId => {
-      if (filterData[filterId]) {
+      if (dataMaskSelected[filterId]) {
         dispatch(
           updateDataMask(filterId, {
-            nativeFilters: filterData[filterId],
+            nativeFilters: dataMaskSelected[filterId],
           }),
         );
       }
     });
-    setLastAppliedFilterData(() => filterData);
+    setLastAppliedFilterData(() => dataMaskSelected);
   };
 
   useEffect(() => {
     if (isInitialized) {
       return;
     }
-    const areFiltersInitialized = filtersArray.every(filterConfig =>
+    const areFiltersInitialized = filterValues.every(filterValue =>
       areObjectsEqual(
-        filterConfig.defaultValue,
-        filterData[filterConfig.id]?.currentState?.value,
+        filterValue.defaultValue,
+        dataMaskSelected[filterValue.id]?.currentState?.value,
       ),
     );
     if (areFiltersInitialized) {
       handleApply();
       setIsInitialized(true);
     }
-  }, [filtersArray, filterData, isInitialized]);
+  }, [filterValues, dataMaskSelected, isInitialized]);
 
   useEffect(() => {
-    if (filtersArray.length === 0 && filtersOpen) {
+    if (filterValues.length === 0 && filtersOpen) {
       toggleFiltersBar(false);
     }
-  }, [filtersArray.length]);
+  }, [filterValues.length]);
 
   const cascadeChildren = useMemo(
-    () => mapParentFiltersToChildren(filtersArray),
-    [filtersArray],
+    () => mapParentFiltersToChildren(filterValues),
+    [filterValues],
   );
 
   const cascadeFilters = useMemo(() => {
-    const filtersWithValue = filtersArray.map(filter => ({
+    const filtersWithValue = filterValues.map(filter => ({
       ...filter,
-      currentValue: filterData[filter.id]?.currentState?.value,
+      currentValue: dataMaskSelected[filter.id]?.currentState?.value,
     }));
     return buildCascadeFiltersTree(filtersWithValue);
-  }, [filtersArray, filterData]);
+  }, [filterValues, dataMaskSelected]);
 
   const handleFilterSelectionChange = (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
     dataMask: Partial<DataMaskState>,
   ) => {
-    setFilterData(draft => {
+    setDataMaskSelected(draft => {
       const children = cascadeChildren[filter.id] || [];
       // force instant updating on initialization or for parent filters
       if (filter.isInstant || children.length > 0) {
@@ -261,17 +257,17 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   };
 
   const handleClearAll = () => {
-    filtersArray.forEach(filter => {
-      setFilterData(draft => {
+    filterValues.forEach(filter => {
+      setDataMaskSelected(draft => {
         draft[filter.id] = getInitialMask(filter.id);
       });
     });
   };
 
-  const isClearAllDisabled = Object.values(dataMaskState).every(
+  const isClearAllDisabled = Object.values(dataMaskApplied).every(
     filter =>
-      filterData[filter.id]?.currentState?.value === null ||
-      (!filterData[filter.id] && filter.currentState?.value === null),
+      dataMaskSelected[filter.id]?.currentState?.value === null ||
+      (!dataMaskSelected[filter.id] && filter.currentState?.value === null),
   );
 
   const getFilterControls = () => (
@@ -293,7 +289,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   );
 
   const isApplyDisabled =
-    !isInitialized || areObjectsEqual(filterData, lastAppliedFilterData);
+    !isInitialized || areObjectsEqual(dataMaskSelected, lastAppliedFilterData);
 
   return (
     <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>
@@ -309,7 +305,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
           <span>{t('Filters')}</span>
           {canEdit && (
             <FilterConfigurationLink
-              createNewOnOpen={filtersArray.length === 0}
+              createNewOnOpen={filterValues.length === 0}
             >
               <Icon name="edit" data-test="create-filter" />
             </FilterConfigurationLink>
@@ -344,18 +340,18 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             onChange={() => {}}
           >
             <Tabs.TabPane
-              tab={t(`All Filters (${filtersArray.length})`)}
+              tab={t(`All Filters (${filterValues.length})`)}
               key="allFilters"
             >
               {getFilterControls()}
             </Tabs.TabPane>
             <Tabs.TabPane
-              tab={t(`Filter Sets (${filterSetsArray.length})`)}
+              tab={t(`Filter Sets (${filterSetFilterValues.length})`)}
               key="filterSets"
             >
               <FilterSets
                 disabled={!isApplyDisabled}
-                dataMaskState={dataMaskState}
+                dataMaskSelected={dataMaskSelected}
                 onFilterSelectionChange={handleFilterSelectionChange}
               />
             </Tabs.TabPane>
