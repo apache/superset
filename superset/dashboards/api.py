@@ -268,9 +268,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 ---
                 get:
                   description: >-
-                    Returns a map of a dashboard's datasets, keyed by dataset Uid.
-                    Each dataset includes only the information necessary to render
-                    the dashboard's charts.
+                    Returns a list of a dashboard's datasets. Each dataset includes only
+                    the information necessary to render the dashboard's charts.
                   parameters:
                   - in: path
                     schema:
