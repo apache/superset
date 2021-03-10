@@ -58,6 +58,7 @@ from superset.dashboards.filters import (
     FilterRelatedRoles,
 )
 from superset.dashboards.schemas import (
+    DashboardDatasetSchema,
     DashboardGetResponseSchema,
     DashboardPostSchema,
     DashboardPutSchema,
@@ -170,6 +171,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     edit_model_schema = DashboardPutSchema()
     chart_entity_response_schema = ChartEntityResponseSchema()
     dashboard_get_response_schema = DashboardGetResponseSchema()
+    dashboard_dataset_schema = DashboardDatasetSchema()
 
     base_filters = [["slice", DashboardFilter, lambda: []]]
 
@@ -284,7 +286,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                             type: object
                             properties:
                               result:
-                                type: object
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/DashboardDatasetSchema'
                     302:
                       description: Redirects to the current digest
                     400:
@@ -295,9 +299,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                       $ref: '#/components/responses/404'
                 """
         try:
-            dash = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
-            # result = self.datasets_response_schema.dump(dash)
-            return self.response(200, result=dash)
+            datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
+            result = [
+                self.dashboard_dataset_schema.dump(dataset) for dataset in datasets
+            ]
+            return self.response(200, result=result)
         except DashboardNotFoundError:
             return self.response_404()
 

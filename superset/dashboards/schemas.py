@@ -177,6 +177,7 @@ class DashboardDatasetSchema(Schema):
     default_endpoint = fields.String()
     filter_select = fields.Bool()
     filter_select_enabled = fields.Bool()
+    is_sqllab_view = fields.Bool()
     name = fields.Str()
     datasource_name = fields.Str()
     table_name = fields.Str()
@@ -188,6 +189,18 @@ class DashboardDatasetSchema(Schema):
     perm = fields.Str()
     edit_url = fields.Str()
     sql = fields.Str()
+    select_star = fields.Str()
+    main_dttm_col = fields.Str()
+    health_check_message = fields.Str()
+    fetch_values_predicate = fields.Str()
+    template_params = fields.Str()
+    owners = fields.List(fields.Int())
+    columns = fields.List(fields.Dict())
+    metrics = fields.List(fields.Dict())
+    order_by_choices = fields.List(fields.List(fields.Str()))
+    verbose_map = fields.Dict(fields.Str(), fields.Str())
+    time_grain_sqla = fields.List(fields.List(fields.Str()))
+    granularity_sqla = fields.List(fields.List(fields.Str()))
 
 
 class BaseDashboardSchema(Schema):
