@@ -310,9 +310,11 @@ class TestQueryContext(SupersetTestCase):
         sql_text = response["query"]
         assert response["language"] == "sql"
         assert "SELECT" in sql_text
-        assert re.search(r'"?num"? IS NOT NULL', sql_text)
+        assert re.search(r'[`"\[]?num[`"\]]? IS NOT NULL', sql_text)
         assert re.search(
-            r"""NOT \("?name"? IS NULL[\s\n]* OR "?name"? IN \('abc'\)\)""", sql_text
+            r"""NOT \([`"\[]?name[`"\]]? IS NULL[\s\n]* """
+            r"""OR [`"\[]?name[`"\]]? IN \('abc'\)\)""",
+            sql_text,
         )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
