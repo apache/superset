@@ -99,7 +99,7 @@ const EditSection: FC<EditSectionProps> = ({
     [dataMaskApplied, dataMaskSelected, filterSetFilterValues],
   );
 
-  const hasSimilarFilterSet =
+  const isDuplicateFilterSet =
     foundFilterSet && foundFilterSet.id !== filterSetId;
 
   return (
@@ -119,13 +119,13 @@ const EditSection: FC<EditSectionProps> = ({
         <Tooltip
           placement="top"
           title={
-            (hasSimilarFilterSet && t('Filter set already exists')) ||
+            (isDuplicateFilterSet && t('Filter set already exists')) ||
             (disabled && APPLY_FILTERS_HINT)
           }
         >
-          <ActionButton disabled={disabled || hasSimilarFilterSet}>
+          <ActionButton disabled={disabled || isDuplicateFilterSet}>
             <Button
-              disabled={disabled || hasSimilarFilterSet}
+              disabled={disabled || isDuplicateFilterSet}
               buttonStyle="primary"
               htmlType="submit"
               buttonSize="small"
@@ -137,7 +137,7 @@ const EditSection: FC<EditSectionProps> = ({
           </ActionButton>
         </Tooltip>
       </ActionButtons>
-      {hasSimilarFilterSet && (
+      {isDuplicateFilterSet && (
         <Warning mark>
           <WarningOutlined />
           {t('This filter set is identical to: "%s"', foundFilterSet?.name)}
