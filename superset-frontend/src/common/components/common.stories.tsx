@@ -32,7 +32,6 @@ import {
   DatePicker as AntdDatePicker,
   RangePicker as AntdRangePicker,
 } from './DatePicker';
-import Badge from './Badge';
 import ProgressBar from './ProgressBar';
 import { CronPicker, CronError } from './CronPicker';
 
@@ -253,15 +252,6 @@ export const Switch = () => (
     <AntdSwitch size="small" defaultChecked />
   </>
 );
-
-export const BadgeDefault = () => <Badge count={100} />;
-export const BadgeColored = () => <Badge color="blue" text="Blue" />;
-export const BadgeTextColored = () => (
-  <Badge textColor="yellow" color="red" text="yellow" />
-);
-export const BadgeSuccess = () => <Badge status="success" text="Success" />;
-export const BadgeError = () => <Badge status="error" text="Error" />;
-export const BadgeSmall = () => <Badge count={100} size="small" />;
 
 export function StyledCronPicker() {
   // @ts-ignore
