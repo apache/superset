@@ -35,7 +35,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     currentValue,
     inverseSelection,
     inputRef,
-    sortAscending,
   } = formData;
 
   const [values, setValues] = useState<(string | number)[]>(defaultValue ?? []);
@@ -83,7 +82,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     handleChange(currentValue ?? []);
   }, [
     JSON.stringify(currentValue),
-    sortAscending,
     multiSelect,
     enableEmptyFilter,
     inverseSelection,
@@ -93,7 +91,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     handleChange(defaultValue ?? []);
   }, [
     JSON.stringify(defaultValue),
-    sortAscending,
     multiSelect,
     enableEmptyFilter,
     inverseSelection,

@@ -18,9 +18,7 @@
  */
 import {
   Behavior,
-  ChartDataResponseResult,
-  ChartProps,
-  DataRecord, GenericDataType,
+  DataRecord,
   QueryFormData,
   SetDataMaskHook,
 } from '@superset-ui/core';
@@ -41,17 +39,11 @@ export type PluginFilterSelectQueryFormData = QueryFormData &
   PluginFilterStylesProps &
   PluginFilterSelectCustomizeProps;
 
-export interface PluginFilterSelectChartProps extends ChartProps {
-  queriesData: ChartDataResponseResult[];
-}
-
 export type PluginFilterSelectProps = PluginFilterStylesProps & {
-  coltypeMap: Record<string, GenericDataType>;
   data: DataRecord[];
   setDataMask: SetDataMaskHook;
   behaviors: Behavior[];
   formData: PluginFilterSelectQueryFormData;
-  queriesData: ChartDataResponseResult[];
 };
 
 export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
@@ -59,6 +51,6 @@ export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
   currentValue: null,
   enableEmptyFilter: false,
   inverseSelection: false,
-  multiSelect: false,
+  multiSelect: true,
   sortAscending: true,
 };
