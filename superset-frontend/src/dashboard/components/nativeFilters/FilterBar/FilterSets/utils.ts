@@ -62,7 +62,7 @@ export const findExistingFilterSet = ({
             dataMaskFromFilterSet?.nativeFilters[id]?.currentState ?? {},
           ) &&
           dataMaskSelectedEntries.length ===
-            Object.keys(dataMaskFromFilterSet?.nativeFilters).length,
+            Object.keys(dataMaskFromFilterSet?.nativeFilters ?? {}).length,
       );
     }
     return false;

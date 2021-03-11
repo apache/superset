@@ -56,7 +56,7 @@ const StyledCollapse = styled(Collapse)`
 
 type FiltersHeaderProps = {
   dataMask?: DataMaskUnit;
-  filterSet: FilterSet;
+  filterSet?: FilterSet;
 };
 
 const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
@@ -76,11 +76,12 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
     </FilterHeader>
   );
 
-  const getFilterRow = ({ id, name }) => {
+  const getFilterRow = ({ id, name }: { id: string; name: string }) => {
     const changedFilter =
       filterSet &&
-      !areObjectsEqual(filters[id], filterSet?.nativeFilters?.[id]);
+      !areObjectsEqual(filters[id] ?? {}, filterSet?.nativeFilters?.[id] ?? {});
     const nonExistedFilter = !Object.keys(filters).includes(id);
+
     return (
       <Tooltip
         title={

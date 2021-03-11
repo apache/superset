@@ -224,8 +224,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     }
     const areFiltersInitialized = filterValues.every(filterValue =>
       areObjectsEqual(
-        filterValue.defaultValue,
-        dataMaskSelected[filterValue.id]?.currentState?.value,
+        filterValue.defaultValue ?? {},
+        dataMaskSelected[filterValue.id]?.currentState?.value ?? {},
       ),
     );
     if (areFiltersInitialized) {
@@ -304,7 +304,8 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   );
 
   const isApplyDisabled =
-    !isInitialized || areObjectsEqual(dataMaskSelected, lastAppliedFilterData);
+    !isInitialized ||
+    areObjectsEqual(dataMaskSelected ?? {}, lastAppliedFilterData ?? {});
 
   return (
     <BarWrapper data-test="filter-bar" className={cx({ open: filtersOpen })}>

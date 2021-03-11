@@ -132,14 +132,16 @@ const FilterSets: React.FC<FilterSetsProps> = ({
         // if we have extra filters in filter set don't add them to selected data mask || if we have filters with changed metadata not apply them
         if (
           !filterValues.find(filter => filter.id === id) ||
-          !areObjectsEqual(filters[id] ?? {}, filtersSet.nativeFilters?.[id])
+          !areObjectsEqual(
+            filters[id] ?? {},
+            filtersSet.nativeFilters?.[id] ?? {},
+          )
         ) {
           return;
         }
         onFilterSelectionChange(
           { id },
           { nativeFilters: { extraFormData, currentState } },
-          true,
         );
       },
     );
@@ -154,7 +156,10 @@ const FilterSets: React.FC<FilterSetsProps> = ({
         // if we have extra filters in filter set don't add them to selected data mask || if we have filters with changed metadata not apply them
         return !(
           !filterValues.find(filter => filter.id === id) ||
-          !areObjectsEqual(filters[id] ?? {}, filtersSet.nativeFilters?.[id])
+          !areObjectsEqual(
+            filters[id] ?? {},
+            filtersSet.nativeFilters?.[id] ?? {},
+          )
         );
       })
       .reduce((prev, next) => ({ ...prev, [next.id]: filters[next.id] }), {});
@@ -166,7 +171,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
         nativeFilters: Object.keys(newFilters).reduce(
           (prev, nextFilterId) => ({
             ...prev,
-            [nextFilterId]: filtersSet.dataMask.nativeFilters[nextFilterId],
+            [nextFilterId]: filtersSet.dataMask?.nativeFilters?.[nextFilterId],
           }),
           {},
         ),
@@ -174,11 +179,10 @@ const FilterSets: React.FC<FilterSetsProps> = ({
     };
     dispatch(
       setFilterSetsConfiguration(
-        filterSetFilterValues.map(filterSetIt =>
-          (filterSetIt.id === updatedFilterSet.id
-            ? updatedFilterSet
-            : filterSetIt),
-        ),
+        filterSetFilterValues.map(filterSetIt => {
+          const isEquals = filterSetIt.id === updatedFilterSet.id;
+          return isEquals ? updatedFilterSet : filterSetIt;
+        }),
       ),
     );
   };
@@ -188,7 +192,7 @@ const FilterSets: React.FC<FilterSetsProps> = ({
     onEditFilterSet(id);
   };
 
-  const handleDeleteFilterSet = filterSetId => {
+  const handleDeleteFilterSet = (filterSetId: string) => {
     dispatch(
       setFilterSetsConfiguration(
         filterSetFilterValues.filter(
