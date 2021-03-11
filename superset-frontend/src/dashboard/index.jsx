@@ -32,6 +32,12 @@ const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
 initFeatureFlags(bootstrapData.common.feature_flags);
 
+const initialState = {
+  user: bootstrapData.user,
+  common: bootstrapData.common,
+  datasources: bootstrapData.datasources,
+};
+
 const asyncEventMiddleware = initAsyncEvents({
   config: bootstrapData.common.conf,
   getPendingComponents: ({ charts }) =>
@@ -46,6 +52,7 @@ const asyncEventMiddleware = initAsyncEvents({
 
 const store = createStore(
   rootReducer,
+  initialState,
   compose(
     applyMiddleware(thunk, logger, asyncEventMiddleware),
     initEnhancer(false),

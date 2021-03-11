@@ -20,14 +20,13 @@ import React, { useEffect, useState, FC } from 'react';
 import { connect } from 'react-redux';
 import { AnyAction, bindActionCreators, Dispatch } from 'redux';
 import { SupersetClient } from '@superset-ui/core';
-import setInitialState from 'src/dashboard/actions/bootstrapData';
 import Loading from 'src/components/Loading';
 import ErrorBoundary from 'src/components/ErrorBoundary';
-import getInitialState from '../reducers/getInitialState';
+import { bootstrapDashboardState } from '../actions/bootstrapData';
 
 interface DashboardRouteProps {
   actions: {
-    setInitialState: (arg0: object) => void;
+    bootstrapDashboardState: typeof bootstrapDashboardState;
   };
   dashboardIdOrSlug: string;
 }
@@ -55,15 +54,15 @@ const DashboardRoute: FC<DashboardRouteProps> = ({
   const handleError = (error: unknown) => ({ error, info: null });
 
   useEffect(() => {
+    setLoaded(false);
     getData(dashboardIdOrSlug)
       .then(data => {
         if (data) {
-          const initState = getInitialState(
-            bootstrapDataJson,
+          actions.bootstrapDashboardState(
+            bootstrapDataJson.datasources,
             data.chartRes,
             data.dashboardRes,
           );
-          actions.setInitialState(initState);
           setLoaded(true);
         }
       })
@@ -71,7 +70,7 @@ const DashboardRoute: FC<DashboardRouteProps> = ({
         setLoaded(true);
         handleError(err);
       });
-  }, [dashboardIdOrSlug]);
+  }, [dashboardIdOrSlug, actions]);
 
   if (!loaded) return <Loading />;
   return <ErrorBoundary onError={handleError}>{children} </ErrorBoundary>;
@@ -81,7 +80,7 @@ function mapDispatchToProps(dispatch: Dispatch<AnyAction>) {
   return {
     actions: bindActionCreators(
       {
-        setInitialState,
+        bootstrapDashboardState,
       },
       dispatch,
     ),
