@@ -259,8 +259,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "version": "1.0.0",
         }
         expected_metadata["columns"].sort(key=lambda x: x["column_name"])
-        self.maxDiff = None
-        self.assertEquals(metadata, expected_metadata)
+        assert metadata == expected_metadata
 
     @patch("superset.security.manager.g")
     def test_export_database_command_no_access(self, mock_g):

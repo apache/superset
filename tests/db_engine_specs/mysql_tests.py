@@ -70,7 +70,7 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
             ("TINYINT", GenericDataType.NUMERIC),
             ("SMALLINT", GenericDataType.NUMERIC),
             ("MEDIUMINT", GenericDataType.NUMERIC),
-            ("INT", GenericDataType.NUMERIC),
+            ("INTEGER", GenericDataType.NUMERIC),
             ("BIGINT", GenericDataType.NUMERIC),
             ("DECIMAL", GenericDataType.NUMERIC),
             ("FLOAT", GenericDataType.NUMERIC),
@@ -89,18 +89,10 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
             ("TIME", GenericDataType.TEMPORAL),
         )
 
-        for type_expectation in type_expectations:
-            type_str = type_expectation[0]
-            col_type = type_expectation[1]
-            assert MySQLEngineSpec.is_db_column_type_match(
-                type_str, GenericDataType.NUMERIC
-            ) is (col_type == GenericDataType.NUMERIC)
-            assert MySQLEngineSpec.is_db_column_type_match(
-                type_str, GenericDataType.STRING
-            ) is (col_type == GenericDataType.STRING)
-            assert MySQLEngineSpec.is_db_column_type_match(
-                type_str, GenericDataType.TEMPORAL
-            ) is (col_type == GenericDataType.TEMPORAL)
+        for type_str, col_type in type_expectations:
+            print(">>> ", type_str)
+            column_spec = MySQLEngineSpec.get_column_spec(type_str)
+            assert column_spec.generic_type == col_type
 
     def test_extract_error_message(self):
         from MySQLdb._exceptions import OperationalError

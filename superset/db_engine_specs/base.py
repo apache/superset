@@ -195,6 +195,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             GenericDataType.NUMERIC,
         ),
         (
+            re.compile(r"^string", re.IGNORECASE),
+            types.String(),
+            utils.GenericDataType.STRING,
+        ),
+        (
             re.compile(r"^N((VAR)?CHAR|TEXT)", re.IGNORECASE),
             UnicodeText(),
             utils.GenericDataType.STRING,
@@ -208,11 +213,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         (
             re.compile(r"^timestamp", re.IGNORECASE),
             types.TIMESTAMP(),
-            GenericDataType.TEMPORAL,
-        ),
-        (
-            re.compile(r"^timestamptz", re.IGNORECASE),
-            types.TIMESTAMP(timezone=True),
             GenericDataType.TEMPORAL,
         ),
         (
@@ -239,21 +239,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     max_column_name_length = 0
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
-
-    # default matching patterns to convert database specific column types to
-    # more generic types
-    db_column_types: Dict[GenericDataType, Tuple[Pattern[str], ...]] = {
-        GenericDataType.NUMERIC: (
-            re.compile(r"BIT", re.IGNORECASE),
-            re.compile(
-                r".*(DOUBLE|FLOAT|INT|NUMBER|REAL|NUMERIC|DECIMAL|MONEY).*",
-                re.IGNORECASE,
-            ),
-            re.compile(r".*LONG$", re.IGNORECASE),
-        ),
-        GenericDataType.STRING: (re.compile(r".*(CHAR|STRING|TEXT).*", re.IGNORECASE),),
-        GenericDataType.TEMPORAL: (re.compile(r".*(DATE|TIME).*", re.IGNORECASE),),
-    }
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
@@ -283,25 +268,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if not new_exception:
             return exception
         return new_exception(str(exception))
-
-    @classmethod
-    def is_db_column_type_match(
-        cls, db_column_type: Optional[str], target_column_type: GenericDataType
-    ) -> bool:
-        """
-        Check if a column type satisfies a pattern in a collection of regexes found in
-        `db_column_types`. For example, if `db_column_type == "NVARCHAR"`,
-        it would be a match for "STRING" due to being a match for the regex ".*CHAR.*".
-
-        :param db_column_type: Column type to evaluate
-        :param target_column_type: The target type to evaluate for
-        :return: `True` if a `db_column_type` matches any pattern corresponding to
-        `target_column_type`
-        """
-        if not db_column_type:
-            return False
-        patterns = cls.db_column_types[target_column_type]
-        return any(pattern.match(db_column_type) for pattern in patterns)
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: Dict[str, Any]) -> bool:
