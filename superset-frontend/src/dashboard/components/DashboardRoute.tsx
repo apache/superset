@@ -22,6 +22,7 @@ import { AnyAction, bindActionCreators, Dispatch } from 'redux';
 import { SupersetClient } from '@superset-ui/core';
 import setInitialState from 'src/dashboard/actions/bootstrapData';
 import Loading from 'src/components/Loading';
+import ErrorBoundary from 'src/components/ErrorBoundary';
 import getInitialState from '../reducers/getInitialState';
 
 interface DashboardRouteProps {
@@ -35,14 +36,10 @@ const getData = (id: string) => {
     SupersetClient.get({ endpoint: `/api/v1/dashboard/${id}/charts` }),
     SupersetClient.get({ endpoint: `/api/v1/dashboard/${id}` }),
   ];
-  return Promise.all(batch)
-    .then(([chartRes, dashboardRes]) => ({
-      chartRes: chartRes.json.result,
-      dashboardRes: dashboardRes.json.result,
-    }))
-    .catch(err => {
-      console.log('err', err);
-    });
+  return Promise.all(batch).then(([chartRes, dashboardRes]) => ({
+    chartRes: chartRes.json.result,
+    dashboardRes: dashboardRes.json.result,
+  }));
 };
 
 const DashboardRoute: FC<DashboardRouteProps> = ({
@@ -55,22 +52,29 @@ const DashboardRoute: FC<DashboardRouteProps> = ({
   const bootstrapDataJson = JSON.parse(bootstrapData || '');
   const [loaded, setLoaded] = useState(false);
 
+  const handleError = (error: unknown) => ({ error, info: null });
+
   useEffect(() => {
-    getData(dashboardId).then(data => {
-      if (data) {
-        const initState = getInitialState(
-          bootstrapDataJson,
-          data.chartRes,
-          data.dashboardRes,
-        );
-        actions.setInitialState(initState);
+    getData(dashboardId)
+      .then(data => {
+        if (data) {
+          const initState = getInitialState(
+            bootstrapDataJson,
+            data.chartRes,
+            data.dashboardRes,
+          );
+          actions.setInitialState(initState);
+          setLoaded(true);
+        }
+      })
+      .catch(err => {
         setLoaded(true);
-      }
-    });
+        handleError(err);
+      });
   }, []);
 
   if (!loaded) return <Loading />;
-  return <>{children} </>;
+  return <ErrorBoundary onError={handleError}>{children} </ErrorBoundary>;
 };
 
 function mapDispatchToProps(dispatch: Dispatch<AnyAction>) {
