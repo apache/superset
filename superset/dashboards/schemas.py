@@ -162,7 +162,7 @@ class DatabaseSchema(Schema):
     id = fields.Int()
     name = fields.String()
     backend = fields.String()
-    allow_multi_schema_metadata_fetch = fields.Bool()
+    allow_multi_schema_metadata_fetch = fields.Bool()  # pylint: disable=invalid-name
     allows_subquery = fields.Bool()
     allows_cost_estimate = fields.Bool()
     allows_virtual_table_explore = fields.Bool()
