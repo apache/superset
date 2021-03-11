@@ -22,7 +22,7 @@ import rison from 'rison';
 import { Select } from 'src/components/Select';
 import Label from 'src/components/Label';
 import RefreshLabel from 'src/components/RefreshLabel';
-import SupersetAsyncSelect from './AsyncSelect';
+import SupersetAsyncSelect from 'src/components/AsyncSelect';
 
 const FieldTitle = styled.p`
   color: ${({ theme }) => theme.colors.secondary.light2};
