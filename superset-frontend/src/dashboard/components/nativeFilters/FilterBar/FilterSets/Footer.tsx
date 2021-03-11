@@ -20,6 +20,7 @@ import { t, styled } from '@superset-ui/core';
 import React, { FC } from 'react';
 import Button from 'src/components/Button';
 import { Tooltip } from 'src/common/components/Tooltip';
+import { APPLY_FILTERS_HINT } from './utils';
 
 type FooterProps = {
   isApplyDisabled: boolean;
@@ -32,13 +33,13 @@ type FooterProps = {
 
 const ActionButton = styled.div<{ disabled: boolean }>`
   display: flex;
-  padding: 1px;
   & button {
     ${({ disabled }) => `pointer-events: ${disabled ? 'none' : 'all'}`};
     flex: 1;
   }
 `;
-const ActionButtons = styled.div`
+
+export const ActionButtons = styled.div`
   display: grid;
   flex-direction: row;
   justify-content: center;
@@ -46,8 +47,6 @@ const ActionButtons = styled.div`
   grid-gap: 10px;
   grid-template-columns: 1fr 1fr;
 `;
-
-const APPLY_FILTERS = t('Please apply filter changes');
 
 const Footer: FC<FooterProps> = ({
   onCancel,
@@ -70,7 +69,10 @@ const Footer: FC<FooterProps> = ({
         </Button>
         <Tooltip
           placement="bottom"
-          title={(isApplyDisabled || disabled) && APPLY_FILTERS}
+          title={
+            (isApplyDisabled && t('Please filter set name')) ||
+            (disabled && APPLY_FILTERS_HINT)
+          }
         >
           <ActionButton disabled={disabled}>
             <Button
@@ -87,7 +89,7 @@ const Footer: FC<FooterProps> = ({
         </Tooltip>
       </ActionButtons>
     ) : (
-      <Tooltip placement="bottom" title={disabled && APPLY_FILTERS}>
+      <Tooltip placement="bottom" title={disabled && APPLY_FILTERS_HINT}>
         <ActionButton disabled={disabled}>
           <Button
             disabled={disabled}

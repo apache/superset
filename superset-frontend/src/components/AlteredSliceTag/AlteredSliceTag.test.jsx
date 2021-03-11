@@ -31,7 +31,7 @@ import {
   expectedDiffs,
   expectedRows,
   fakePluginControls,
-} from './fixtures/AlteredSliceTag';
+} from './AlteredSliceTagMocks';
 
 const getTableWrapperFromModalBody = modalBody =>
   modalBody.find(TableView).find(TableCollection);

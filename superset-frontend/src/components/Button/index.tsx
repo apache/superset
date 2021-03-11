@@ -30,6 +30,7 @@ export interface ButtonProps {
   id?: string;
   className?: string;
   tooltip?: string;
+  ghost?: boolean;
   placement?:
     | 'bottom'
     | 'left'
