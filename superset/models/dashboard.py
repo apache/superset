@@ -241,18 +241,22 @@ class Dashboard(  # pylint: disable=too-many-instance-attributes
         """Bootstrap data for rendering the dashboard page."""
         slices = self.slices
         datasource_slices = utils.indexed(slices, "datasource")
+        try:
+            datasources = {
+                # Filter out unneeded fields from the datasource payload
+                datasource.uid: datasource.data_for_slices(slices)
+                for datasource, slices in datasource_slices.items()
+                if datasource
+            }
+        except Exception:
+            datasources = {}
         return {
             # dashboard metadata
             "dashboard": self.data,
             # slices metadata
             "slices": [slc.data for slc in slices],
             # datasource metadata
-            "datasources": {
-                # Filter out unneeded fields from the datasource payload
-                datasource.uid: datasource.data_for_slices(slices)
-                for datasource, slices in datasource_slices.items()
-                if datasource
-            },
+            "datasources": datasources,
         }
 
     @property  # type: ignore
