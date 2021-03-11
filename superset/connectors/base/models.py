@@ -359,10 +359,7 @@ class BaseDatasource(
         if is_list_target and not isinstance(values, (tuple, list)):
             values = [values]  # type: ignore
         elif not is_list_target and isinstance(values, (tuple, list)):
-            if values:
-                values = values[0]
-            else:
-                values = None
+            values = values[0] if values else None
         return values
 
     def external_metadata(self) -> List[Dict[str, str]]:
