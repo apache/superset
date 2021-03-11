@@ -290,8 +290,8 @@ export default function getInitialState(
   }
 
   const nativeFilters = getInitialNativeFilterState({
-    filterConfig: dashboard.metadata.filter_configuration || [],
-    filterSetsConfig: dashboard.metadata.filter_sets_configuration || [],
+    filterConfig: metadata.filter_configuration || [],
+    filterSetsConfig: metadata.filter_sets_configuration || [],
   });
 
   const roles = user.roles.Admin;
