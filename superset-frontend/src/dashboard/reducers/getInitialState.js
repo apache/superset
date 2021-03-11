@@ -20,6 +20,7 @@
 import { isString } from 'lodash';
 import shortid from 'shortid';
 import { CategoricalColorNamespace } from '@superset-ui/core';
+import querystring from 'query-string';
 
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
@@ -49,21 +50,34 @@ import getLocationHash from '../util/getLocationHash';
 import newComponentFactory from '../util/newComponentFactory';
 import { TIME_RANGE } from '../../visualizations/FilterBox/FilterBox';
 
+const reservedQueryParams = new Set(['standalone', 'edit']);
+
+// returns the url params that are used to customize queries
+// in datasets built using sql lab
+const extractUrlParams = queryParams =>
+  Object.entries(queryParams).reduce((acc, [key, value]) => {
+    if (reservedQueryParams.has(key)) return acc;
+    if (Array.isArray(value)) {
+      return {
+        ...acc,
+        [key]: value[0],
+      };
+    }
+    return { ...acc, [key]: value };
+  }, {});
+
 export default function getInitialState(
   bootstrapData,
   chartData,
   dashboardData,
 ) {
-  const {
-    user_id,
-    datasources,
-    common,
-    editMode,
-    urlParams,
-    user,
-  } = bootstrapData;
+  const { datasources, common, user } = bootstrapData;
   const dashboard = { ...bootstrapData.dashboard_data };
   const metadata = JSON.parse(dashboardData.json_metadata);
+  const queryParams = querystring.parse(window.location.search);
+  const urlParams = extractUrlParams(queryParams);
+  const editMode = queryParams.edit === 'true';
+
   let preselectFilters = {};
 
   chartData.forEach(chart => {
@@ -291,7 +305,7 @@ export default function getInitialState(
       id: dashboardData.id,
       slug: dashboardData.slug,
       metadata,
-      userId: user_id,
+      userId: user.id,
       dash_edit_perm: getPermissions('can_write', 'Dashboard', roles),
       dash_save_perm: getPermissions('can_save_dash', 'Superset', roles),
       superset_can_explore: getPermissions('can_explore', 'Superset', roles),
