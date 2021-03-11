@@ -50,6 +50,7 @@ export interface DndColumnSelectProps<
   canDrop: (item: DatasourcePanelDndItem) => boolean;
   valuesRenderer: () => ReactNode;
   accept: DndItemType | DndItemType[];
+  placeholderText?: string;
 }
 
 export type OptionValueType = Record<string, any>;

@@ -55,7 +55,7 @@ export default function DndSelectLabel<T, O>(
     return (
       <AddControlLabel cancelHover>
         <Icon name="plus-small" color={theme.colors.grayscale.light1} />
-        {t('Drop Columns')}
+        {t(props.placeholderText || 'Drop columns')}
       </AddControlLabel>
     );
   }

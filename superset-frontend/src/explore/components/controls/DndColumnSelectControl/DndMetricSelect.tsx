@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ensureIsArray, Metric } from '@superset-ui/core';
+import { ensureIsArray, Metric, t } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { isEqual } from 'lodash';
 import { usePrevious } from 'src/common/hooks/usePrevious';
@@ -275,6 +275,7 @@ export const DndMetricSelect = (props: any) => {
         canDrop={canDrop}
         valuesRenderer={valuesRenderer}
         accept={[DndItemType.Column, DndItemType.Metric]}
+        placeholderText={t('Drop columns or metrics')}
         {...props}
       />
       <AdhocMetricPopoverTrigger

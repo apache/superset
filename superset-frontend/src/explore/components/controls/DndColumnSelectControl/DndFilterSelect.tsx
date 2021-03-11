@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { logging, SupersetClient } from '@superset-ui/core';
+import { logging, SupersetClient, t } from '@superset-ui/core';
 import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/common/components/Tooltip';
 import { OPERATORS } from 'src/explore/constants';
@@ -313,6 +313,7 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
           DndItemType.MetricOption,
           DndItemType.AdhocMetricOption,
         ]}
+        placeholderText={t('Drop columns or metrics')}
         {...props}
       />
       <AdhocFilterPopoverTrigger
