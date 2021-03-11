@@ -1046,7 +1046,12 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
             data["result"][0]["applied_filters"],
-            [{"column": "gender"}, {"column": "__time_range"},],
+            [
+                {"column": "gender"},
+                {"column": "num"},
+                {"column": "name"},
+                {"column": "__time_range"},
+            ],
         )
         self.assertEqual(
             data["result"][0]["rejected_filters"],
