@@ -26,7 +26,7 @@ class TestCrateDbEngineSpec(TestDbEngineSpec):
         DB Eng Specs (crate): Test conversion to date time
         """
         dttm = self.get_dttm()
-        assert CrateEngineSpec.convert_dttm("TIMESTAMP", dttm) == "1546391045678.9"
+        assert CrateEngineSpec.convert_dttm("TIMESTAMP", dttm) == "1546398245678.9"
 
     def test_epoch_to_dttm(self):
         """
