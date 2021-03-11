@@ -579,6 +579,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                       <input
                         type="text"
                         name="force_ctas_schema"
+                        data-test-id="schema_field_test_id"
                         value={db ? db.force_ctas_schema || '' : ''}
                         placeholder={t('Search or select schema')}
                         onChange={onInputChange}

@@ -67,6 +67,7 @@ describe('DatabaseModal', () => {
       expect(wrapper.find('input[name="sqlalchemy_uri"]')).toExist();
     });
   });
+
   describe('RTL', () => {
     it('renders solely "Expose in SQL Lab" option when unchecked', () => {
       render(
@@ -108,7 +109,8 @@ describe('DatabaseModal', () => {
       expect(allowDML).not.toBeVisible();
       expect(allowMSMF).not.toBeVisible();
     });
-    it('only renders the CTAS/CVAS schema field when one or both options are selected', () => {
+
+    it('renders the schema field when allowCTAS is checked', () => {
       render(
         <ThemeProvider theme={supersetTheme}>
           <Provider store={store}>
@@ -121,21 +123,110 @@ describe('DatabaseModal', () => {
       const sqlLabSettingsTab = screen.getByRole('tab', { name: /sql lab settings/i });
       userEvent.click(sqlLabSettingsTab);
       
-      // Grab all SQL Lab Settings, checkboxes && schema field
+      // Grab all SQL Lab Settings, CTAS checkbox, & schema field
       const sqlLabSettings = screen.getAllByRole('checkbox', { name: '' });
       const allowCTAS = sqlLabSettings[1];
       const allowCVAS = sqlLabSettings[2];
       const schemaField = screen.getByText('CTAS & CVAS SCHEMA');
 
       // While CTAS & CVAS are unchecked, schema field is not visible
+      expect(allowCTAS.checked).toBeFalsy();
+      expect(allowCVAS.checked).toBeFalsy();
       expect(schemaField).not.toBeVisible();
 
       // Check "Allow CTAS" to reveal schema field
       userEvent.click(allowCTAS);
-      userEvent.click(allowCTAS);   // This needs to be clicked 2x for some reason? Investigate!!!
+      expect(allowCTAS.checked).toBeTruthy();
+      // This needs to be clicked 2x for some reason? Investigate!!!
+      userEvent.click(allowCTAS);
       expect(schemaField).toBeVisible();
+      expect(allowCTAS.checked).toBeFalsy();
+      
       // Uncheck "Allow CTAS" to hide schema field again
       userEvent.click(allowCTAS);
+      expect(allowCTAS.checked).toBeTruthy();
+      expect(schemaField).not.toBeVisible();
+    });
+
+    it('renders the schema field when allowCVAS is checked', () => {
+      render(
+        <ThemeProvider theme={supersetTheme}>
+          <Provider store={store}>
+            <DatabaseModal {...dbProps} />
+          </Provider>
+        </ThemeProvider>,
+      );
+
+      // Select SQL Lab settings tab
+      const sqlLabSettingsTab = screen.getByRole('tab', { name: /sql lab settings/i });
+      userEvent.click(sqlLabSettingsTab);
+      
+      // Grab all SQL Lab Settings, CVAS checkbox, & schema field
+      const sqlLabSettings = screen.getAllByRole('checkbox', { name: '' });
+      const allowCTAS = sqlLabSettings[1];
+      const allowCVAS = sqlLabSettings[2];
+      const schemaField = screen.getByText('CTAS & CVAS SCHEMA');
+
+      // While CTAS & CVAS are unchecked, schema field is not visible
+      expect(allowCTAS.checked).toBeFalsy();
+      expect(allowCVAS.checked).toBeFalsy();
+      expect(schemaField).not.toBeVisible();
+
+      // Check "Allow CVAS" to reveal schema field
+      userEvent.click(allowCVAS);
+      expect(allowCVAS.checked).toBeTruthy();
+      // This needs to be clicked 2x for some reason? Investigate!!!
+      userEvent.click(allowCVAS);
+      expect(allowCVAS.checked).toBeFalsy();
+      expect(schemaField).toBeVisible();
+
+      // Uncheck "Allow CVAS" to hide schema field again
+      userEvent.click(allowCVAS);
+      expect(allowCVAS.checked).toBeTruthy();
+      expect(schemaField).not.toBeVisible();
+    });
+
+    it('renders the schema field when both allowCTAS and allowCVAS are checked', () => {
+      render(
+        <ThemeProvider theme={supersetTheme}>
+          <Provider store={store}>
+            <DatabaseModal {...dbProps} />
+          </Provider>
+        </ThemeProvider>,
+      );
+
+      // Select SQL Lab settings tab
+      const sqlLabSettingsTab = screen.getByRole('tab', { name: /sql lab settings/i });
+      userEvent.click(sqlLabSettingsTab);
+      
+      // Grab all SQL Lab Settings, CTAS/CVAS checkboxes, & schema field
+      const sqlLabSettings = screen.getAllByRole('checkbox', { name: '' });
+      const allowCTAS = sqlLabSettings[1];
+      const allowCVAS = sqlLabSettings[2];
+      const schemaField = screen.getByTestId('schema_field_test_id');
+
+      // While CTAS & CVAS are unchecked, schema field is not visible
+      expect(allowCTAS.checked).toBeFalsy();
+      expect(allowCVAS.checked).toBeFalsy();
+      expect(schemaField).not.toBeVisible();
+
+      // Check both "Allow CTAS" and "Allow CVAS" to reveal schema field
+      userEvent.click(allowCTAS);
+      expect(allowCTAS.checked).toBeTruthy();
+      userEvent.click(allowCVAS);
+      expect(allowCVAS.checked).toBeTruthy();
+      expect(schemaField).toBeVisible();
+      
+      // Uncheck both "Allow CTAS" and "Allow CVAS" to hide schema field again
+      userEvent.click(allowCTAS);
+      expect(allowCTAS.checked).toBeFalsy();
+      userEvent.click(allowCVAS);
+      expect(allowCVAS.checked).toBeFalsy();
+      // ----- This extra click should not be happening to make the field invisible -----
+      // Both checkboxes go unchecked, so the field should no longer render
+      // But the field requires one more click in order to lose visibility, as seen below
+      userEvent.click(allowCVAS);
+      expect(allowCVAS.checked).toBeTruthy();
       expect(schemaField).not.toBeVisible();
     });
   });
