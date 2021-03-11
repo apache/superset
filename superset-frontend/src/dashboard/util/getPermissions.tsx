@@ -19,9 +19,19 @@
 export default function getPermissions(
   perm: string,
   view: string,
-  roles: Array<string>,
+  roles: object,
 ) {
-  if (!roles.length) return false;
+  const roleList = Object.entries(roles);
+  if (roleList.length === 0) return false;
+  let bool;
 
-  return Boolean(roles.find(role => role[0] === perm && role[1] === view));
+  roleList.forEach(([role, permissions]) => {
+    bool = Boolean(
+      permissions.find(
+        (permission: Array<string>) =>
+          permission[0] === perm && permission[1] === view,
+      ),
+    );
+  });
+  return bool;
 }

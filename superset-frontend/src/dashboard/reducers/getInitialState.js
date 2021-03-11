@@ -294,8 +294,7 @@ export default function getInitialState(
     filterSetsConfig: metadata.filter_sets_configuration || [],
   });
 
-  const roles = user.roles.Admin;
-
+  const { roles } = user;
   return {
     datasources,
     sliceEntities: { ...initSliceEntities, slices, isLoading: false },
