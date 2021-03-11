@@ -62,7 +62,7 @@ def _load_data():
             "country_name": String(255),
             "region": String(255),
         }
-        table = create_table_from_df(df, table_name, database, dtype)
+        table = create_table_from_df(df, table_name, dtype=dtype, database=database)
         slices = _create_world_bank_slices(table)
         dash = _create_world_bank_dashboard(table, slices)
         slices_ids_to_delete = [slice.id for slice in slices]

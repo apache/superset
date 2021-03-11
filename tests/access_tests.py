@@ -18,22 +18,23 @@
 """Unit tests for Superset"""
 import json
 import unittest
-from unittest import mock
-from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
-
 import pytest
-from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
 
-from tests.fixtures.energy_dashboard import load_energy_table_with_slice
-from tests.test_app import app  # isort:skip
+from unittest import mock
+
 from superset import db, security_manager
+from superset.connectors.base.models import BaseDatasource
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.druid.models import DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.datasource_access_request import DatasourceAccessRequest
 
-from .base_tests import SupersetTestCase
+from tests.base_tests import SupersetTestCase
+from tests.fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
+from tests.fixtures.world_bank_dashboard import load_world_bank_dashboard_with_slices
+from tests.fixtures.energy_dashboard import load_energy_table_with_slice
+from tests.test_app import app
 
 ROLE_TABLES_PERM_DATA = {
     "role_name": "override_me",
@@ -77,11 +78,13 @@ SCHEMA_ACCESS_ROLE = "schema_access_role"
 
 
 def create_access_request(session, ds_type, ds_name, role_name, user_name):
-    ds_class = ConnectorRegistry.sources[ds_type]
+    ds_class: BaseDatasource = ConnectorRegistry.sources[ds_type]
     # TODO: generalize datasource names
     if ds_type == "table":
+        assert isinstance(ds_class, SqlaTable)
         ds = session.query(ds_class).filter(ds_class.table_name == ds_name).first()
     else:
+        assert isinstance(ds_class, DruidDatasource)
         ds = session.query(ds_class).filter(ds_class.datasource_name == ds_name).first()
     ds_perm_view = security_manager.find_permission_view_menu(
         "datasource_access", ds.perm
