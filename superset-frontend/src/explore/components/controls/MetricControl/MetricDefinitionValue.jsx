@@ -18,16 +18,20 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { Metric } from '@superset-ui/chart-controls/lib/types';
 import columnType from 'src/explore/propTypes/columnType';
-import { OptionControlLabel } from 'src/explore/components/OptionControls';
 import AdhocMetricOption from './AdhocMetricOption';
 import AdhocMetric from './AdhocMetric';
 import savedMetricType from './savedMetricType';
 import adhocMetricType from './adhocMetricType';
-import { DndItemType } from '../../DndItemType';
 
 const propTypes = {
-  option: PropTypes.oneOfType([savedMetricType, adhocMetricType]).isRequired,
+  option: PropTypes.oneOfType([
+    savedMetricType,
+    adhocMetricType,
+    Metric,
+    PropTypes.string,
+  ]).isRequired,
   index: PropTypes.number.isRequired,
   onMetricEdit: PropTypes.func,
   onRemoveMetric: PropTypes.func,
@@ -80,19 +84,6 @@ export default function MetricDefinitionValue({
     };
 
     return <AdhocMetricOption {...metricOptionProps} />;
-  }
-  if (typeof option === 'string') {
-    return (
-      <OptionControlLabel
-        label={option}
-        onRemove={onRemoveMetric}
-        onMoveLabel={onMoveLabel}
-        onDropLabel={onDropLabel}
-        type={DndItemType.FilterOption}
-        index={index}
-        isFunction
-      />
-    );
   }
   return null;
 }
