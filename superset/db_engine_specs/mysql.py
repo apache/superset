@@ -24,7 +24,6 @@ from sqlalchemy.dialects.mysql import (
     DECIMAL,
     DOUBLE,
     FLOAT,
-    INTEGER,
     LONGTEXT,
     MEDIUMINT,
     MEDIUMTEXT,
