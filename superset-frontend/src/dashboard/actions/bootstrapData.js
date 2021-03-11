@@ -301,7 +301,7 @@ export const bootstrapDashboardState = (
     filterSetsConfig: metadata.filter_sets_configuration || [],
   });
 
-  const roles = getState().user.roles.Admin;
+  const { roles } = getState().user;
 
   dispatch(
     setDashboardBootstrapState({
