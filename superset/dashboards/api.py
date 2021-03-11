@@ -192,6 +192,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     openapi_spec_component_schemas = (
         ChartEntityResponseSchema,
         DashboardGetResponseSchema,
+        DashboardDatasetSchema,
         GetFavStarIdsSchema,
     )
     apispec_parameter_schemas = {
