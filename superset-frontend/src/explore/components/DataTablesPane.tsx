@@ -271,7 +271,7 @@ export const DataTablesPane = ({
               height: 100%;
 
               .ant-collapse-content {
-                height: calc(100% - 34px);
+                height: calc(100% - 33px);
 
                 .ant-collapse-content-box {
                   height: 100%;
