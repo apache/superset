@@ -68,7 +68,7 @@ from superset.models.core import Database
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import ParsedQuery
-from superset.typing import Metric, OrderBy, QueryObjectDict
+from superset.typing import AdhocMetric, Metric, OrderBy, QueryObjectDict
 from superset.utils import core as utils
 from superset.utils.core import GenericDataType
 
@@ -843,7 +843,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
         return sql
 
     def adhoc_metric_to_sqla(
-        self, metric: Dict[str, Any], columns_by_name: Dict[str, Any]
+        self, metric: AdhocMetric, columns_by_name: Dict[str, TableColumn]
     ) -> Column:
         """
         Turn an adhoc metric into a sqlalchemy column.
@@ -858,7 +858,7 @@ class SqlaTable(  # pylint: disable=too-many-public-methods,too-many-instance-at
 
         if expression_type == utils.AdhocMetricExpressionType.SIMPLE:
             column_name = metric["column"].get("column_name")
-            table_column = columns_by_name.get(column_name)
+            table_column: Optional[TableColumn] = columns_by_name.get(column_name)
             if table_column:
                 sqla_column = table_column.get_sqla_col()
             else:
