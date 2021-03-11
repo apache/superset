@@ -1026,7 +1026,7 @@ Submissions will be considered for submission (or removal) on a case-by-case bas
 
 When two DB migrations collide, you'll get an error message like this one:
 
-```
+```text
 alembic.util.exc.CommandError: Multiple head revisions are present for
 given argument 'head'; please specify a specific target
 revision, '<branchname>@head' to narrow to a specific head,
@@ -1041,15 +1041,46 @@ To fix it:
    superset db heads
    ```
 
-   This should list two or more migration hashes.
+   This should list two or more migration hashes. E.g.
 
-1. Create a new merge migration
+   ```bash
+   1412ec1e5a7b (head)
+   67da9ef1ef9c (head)
+   ```
+
+2. Pick one of them as the parent revision, open the script for the other revision
+   and update `Revises` and `down_revision` to the new parent revision. E.g.:
+
+   ```diff
+   --- a/67da9ef1ef9c_add_hide_left_bar_to_tabstate.py
+   +++ b/67da9ef1ef9c_add_hide_left_bar_to_tabstate.py
+   @@ -17,14 +17,14 @@
+   """add hide_left_bar to tabstate
+
+   Revision ID: 67da9ef1ef9c
+   -Revises: c501b7c653a3
+   +Revises: 1412ec1e5a7b
+   Create Date: 2021-02-22 11:22:10.156942
+
+   """
+
+   # revision identifiers, used by Alembic.
+   revision = "67da9ef1ef9c"
+   -down_revision = "c501b7c653a3"
+   +down_revision = "1412ec1e5a7b"
+
+   import sqlalchemy as sa
+   from alembic import op
+   ```
+
+   Alternatively you may also run `superset db merge` to create a migration script
+   just for merging the heads.
 
    ```bash
    superset db merge {HASH1} {HASH2}
    ```
 
-1. Upgrade the DB to the new checkpoint
+3. Upgrade the DB to the new checkpoint
 
    ```bash
    superset db upgrade
