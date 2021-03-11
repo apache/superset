@@ -1,0 +1,225 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import React from 'react';
+import { render, act, screen } from 'spec/helpers/testing-library';
+import { SupersetClient } from '@superset-ui/core';
+import userEvent from '@testing-library/user-event';
+import DatabaseSelector from '.';
+
+const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
+
+let defaultProps: any = {
+  dbId: 123,
+  formMode: true,
+  isDatabaseSelectEnabled: false,
+  readOnly: false,
+  sqlLabMode: false,
+  schema: 'schema',
+  getDbList: jest.fn(),
+  getTableList: jest.fn(),
+  handleError: jest.fn(),
+  onDbChange: jest.fn(),
+  onSchemaChange: jest.fn(),
+  onSchemasLoad: jest.fn(),
+  onChange: jest.fn(),
+};
+
+beforeEach(() => {
+  jest.resetAllMocks();
+  SupersetClientGet.mockImplementation(
+    async ({ endpoint }: { endpoint: string }) => {
+      if (endpoint.includes('schemas')) {
+        return {
+          json: { result: ['information_schema', 'public'] },
+        } as any;
+      }
+      if (endpoint.includes('/function_names')) {
+        return {
+          json: { function_names: [] },
+        } as any;
+      }
+      return {
+        json: {
+          count: 1,
+          description_columns: {},
+          ids: [1],
+          label_columns: {
+            allow_csv_upload: 'Allow Csv Upload',
+            allow_ctas: 'Allow Ctas',
+            allow_cvas: 'Allow Cvas',
+            allow_dml: 'Allow Dml',
+            allow_multi_schema_metadata_fetch:
+              'Allow Multi Schema Metadata Fetch',
+            allow_run_async: 'Allow Run Async',
+            allows_cost_estimate: 'Allows Cost Estimate',
+            allows_subquery: 'Allows Subquery',
+            allows_virtual_table_explore: 'Allows Virtual Table Explore',
+            backend: 'Backend',
+            changed_on: 'Changed On',
+            changed_on_delta_humanized: 'Changed On Delta Humanized',
+            'created_by.first_name': 'Created By First Name',
+            'created_by.last_name': 'Created By Last Name',
+            database_name: 'Database Name',
+            explore_database_id: 'Explore Database Id',
+            expose_in_sqllab: 'Expose In Sqllab',
+            force_ctas_schema: 'Force Ctas Schema',
+            id: 'Id',
+          },
+          list_columns: [
+            'allow_csv_upload',
+            'allow_ctas',
+            'allow_cvas',
+            'allow_dml',
+            'allow_multi_schema_metadata_fetch',
+            'allow_run_async',
+            'allows_cost_estimate',
+            'allows_subquery',
+            'allows_virtual_table_explore',
+            'backend',
+            'changed_on',
+            'changed_on_delta_humanized',
+            'created_by.first_name',
+            'created_by.last_name',
+            'database_name',
+            'explore_database_id',
+            'expose_in_sqllab',
+            'force_ctas_schema',
+            'id',
+          ],
+          list_title: 'List Database',
+          order_columns: [
+            'allow_csv_upload',
+            'allow_dml',
+            'allow_run_async',
+            'changed_on',
+            'changed_on_delta_humanized',
+            'created_by.first_name',
+            'database_name',
+            'expose_in_sqllab',
+          ],
+          result: [
+            {
+              allow_csv_upload: false,
+              allow_ctas: false,
+              allow_cvas: false,
+              allow_dml: false,
+              allow_multi_schema_metadata_fetch: false,
+              allow_run_async: false,
+              allows_cost_estimate: null,
+              allows_subquery: true,
+              allows_virtual_table_explore: true,
+              backend: 'postgresql',
+              changed_on: '2021-03-09T19:02:07.141095',
+              changed_on_delta_humanized: 'a day ago',
+              created_by: null,
+              database_name: 'examples',
+              explore_database_id: 1,
+              expose_in_sqllab: true,
+              force_ctas_schema: null,
+              id: 1,
+            },
+          ],
+        },
+      } as any;
+    },
+  );
+
+  defaultProps = {
+    dbId: 1,
+    formMode: false,
+    isDatabaseSelectEnabled: true,
+    readOnly: false,
+    schema: 'public',
+    sqlLabMode: true,
+    getDbList: jest.fn(),
+    getTableList: jest.fn(),
+    handleError: jest.fn(),
+    onDbChange: jest.fn(),
+    onSchemaChange: jest.fn(),
+    onSchemasLoad: jest.fn(),
+    onChange: jest.fn(),
+  };
+});
+
+test('Should render', async () => {
+  const props = { ...defaultProps };
+  await act(async () => {
+    render(<DatabaseSelector {...props} />);
+  });
+  expect(screen.getByTestId('DatabaseSelector')).toBeInTheDocument();
+});
+
+test('Refresh should works', async () => {
+  const props = { ...defaultProps };
+  await act(async () => {
+    render(<DatabaseSelector {...props} />);
+  });
+
+  expect(SupersetClientGet).toBeCalledTimes(2);
+  expect(props.getDbList).toBeCalledTimes(1);
+  expect(props.getTableList).toBeCalledTimes(0);
+  expect(props.handleError).toBeCalledTimes(0);
+  expect(props.onDbChange).toBeCalledTimes(0);
+  expect(props.onSchemaChange).toBeCalledTimes(0);
+  expect(props.onSchemasLoad).toBeCalledTimes(1);
+  expect(props.onChange).toBeCalledTimes(0);
+
+  await act(async () => {
+    userEvent.click(screen.getByRole('button'));
+  });
+
+  expect(SupersetClientGet).toBeCalledTimes(3);
+  expect(props.getDbList).toBeCalledTimes(1);
+  expect(props.getTableList).toBeCalledTimes(0);
+  expect(props.handleError).toBeCalledTimes(0);
+  expect(props.onDbChange).toBeCalledTimes(1);
+  expect(props.onSchemaChange).toBeCalledTimes(1);
+  expect(props.onSchemasLoad).toBeCalledTimes(2);
+  expect(props.onChange).toBeCalledTimes(1);
+});
+
+test('Should database select display options', async () => {
+  const props = { ...defaultProps };
+  await act(async () => {
+    render(<DatabaseSelector {...props} />);
+  });
+
+  const selector = screen.getByText('Database:').parentElement;
+
+  expect(selector).toBeInTheDocument();
+  expect(selector?.textContent).toBe('Database:postgresql examples');
+});
+
+test('Should schema select display options', async () => {
+  const props = { ...defaultProps };
+  await act(async () => {
+    render(<DatabaseSelector {...props} />);
+  });
+
+  const selector = screen.getByText('Schema:');
+  expect(selector).toBeInTheDocument();
+  expect(selector.parentElement?.textContent).toBe('Schema: public');
+
+  await act(async () => {
+    userEvent.click(screen.getByRole('button'));
+  });
+
+  expect(screen.getByText('Select a schema (2)')).toBeInTheDocument();
+});

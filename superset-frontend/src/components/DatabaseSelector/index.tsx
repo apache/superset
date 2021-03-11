@@ -280,7 +280,7 @@ export default function DatabaseSelector({
   }
 
   return (
-    <DatabaseSelectorWrapper>
+    <DatabaseSelectorWrapper data-test="DatabaseSelector">
       {formMode && <FieldTitle>{t('datasource')}</FieldTitle>}
       {renderDatabaseSelect()}
       {formMode && <FieldTitle>{t('schema')}</FieldTitle>}
