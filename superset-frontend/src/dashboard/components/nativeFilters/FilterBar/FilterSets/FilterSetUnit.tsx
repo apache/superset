@@ -23,7 +23,6 @@ import { DataMaskUnit } from 'src/dataMask/types';
 import { CheckOutlined, EllipsisOutlined } from '@ant-design/icons';
 import { HandlerFunction, styled, supersetTheme, t } from '@superset-ui/core';
 import FiltersHeader from './FiltersHeader';
-import { Filter } from '../../types';
 
 const TitleText = styled.div`
   display: flex;
@@ -41,36 +40,38 @@ const IconsBlock = styled.div`
 `;
 
 type FilterSetUnitProps = {
-  filters: Filter[];
   editMode?: boolean;
   isApplied?: boolean;
   filterSet?: FilterSet;
   filterSetName?: string;
-  dataMaskApplied?: DataMaskUnit;
+  dataMaskSelected?: DataMaskUnit;
   setFilterSetName?: (name: string) => void;
   onDelete?: HandlerFunction;
   onEdit?: HandlerFunction;
+  onInvalidate?: HandlerFunction;
 };
 
 const FilterSetUnit: FC<FilterSetUnitProps> = ({
-  filters,
   editMode,
   setFilterSetName,
   onDelete,
   onEdit,
   filterSetName,
-  dataMaskApplied,
+  dataMaskSelected,
   filterSet,
   isApplied,
+  onInvalidate,
 }) => {
   const menu = (
     <Menu>
       <Menu.Item onClick={onEdit}>{t('Edit')}</Menu.Item>
+      <Menu.Item onClick={onInvalidate}>{t('Invalidate')}</Menu.Item>
       <Menu.Item onClick={onDelete} danger>
         {t('Delete')}
       </Menu.Item>
     </Menu>
   );
+
   return (
     <>
       <TitleText>
@@ -107,9 +108,8 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
         </IconsBlock>
       </TitleText>
       <FiltersHeader
-        expanded={!filterSet}
-        dataMask={filterSet?.dataMask?.nativeFilters ?? dataMaskApplied}
-        filters={filters}
+        filterSet={filterSet}
+        dataMask={filterSet?.dataMask?.nativeFilters ?? dataMaskSelected}
       />
     </>
   );

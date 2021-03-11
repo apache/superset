@@ -43,7 +43,6 @@ const setUnitDataMask = (
 ) => {
   if (action[unitName]) {
     dataMaskState[unitName][action.filterId] = {
-      ...dataMaskState[unitName][action.filterId],
       ...action[unitName],
       id: action.filterId,
     };
