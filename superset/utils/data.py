@@ -66,6 +66,8 @@ def get_type_generator(sqltype: sqlalchemy.sql.sqltypes) -> Callable[[], Any]:
 
     if isinstance(sqltype, sqlalchemy.sql.sqltypes.TEXT):
         length = random.randrange(65535)
+        # "practicality beats purity"
+        length = max(length, 2048)
         return lambda: "".join(random.choices(string.printable, k=length))
 
     if isinstance(sqltype, sqlalchemy.sql.sqltypes.BOOLEAN):

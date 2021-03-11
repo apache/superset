@@ -109,8 +109,8 @@ def version(verbose: bool) -> None:
 
 
 def load_examples_run(
-    load_test_data: bool,
-    load_big_data: bool,
+    load_test_data: bool = False,
+    load_big_data: bool = False,
     only_metadata: bool = False,
     force: bool = False,
 ) -> None:
@@ -171,6 +171,7 @@ def load_examples_run(
         examples.load_deck_dash()
 
     if load_big_data:
+        print("Loading big synthetic data for tests")
         examples.load_big_data()
 
     # load examples that are stored as YAML config files
