@@ -33,13 +33,13 @@ setupApp();
 setupPlugins();
 
 const App = ({ store }) => {
-  const dashboardId = window.location.pathname.split('/')[3];
+  const dashboardIdOrSlug = window.location.pathname.split('/')[3];
   return (
     <Provider store={store}>
       <DndProvider backend={HTML5Backend}>
         <ThemeProvider theme={theme}>
           <DynamicPluginProvider>
-            <DashboardRoute store={store} dashboardId={dashboardId}>
+            <DashboardRoute store={store} dashboardIdOrSlug={dashboardIdOrSlug}>
               <DashboardContainer />
             </DashboardRoute>
           </DynamicPluginProvider>

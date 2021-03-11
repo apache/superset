@@ -29,12 +29,12 @@ interface DashboardRouteProps {
   actions: {
     setInitialState: (arg0: object) => void;
   };
-  dashboardId: string;
+  dashboardIdOrSlug: string;
 }
-const getData = (id: string) => {
+const getData = (idOrSlug: string) => {
   const batch = [
-    SupersetClient.get({ endpoint: `/api/v1/dashboard/${id}/charts` }),
-    SupersetClient.get({ endpoint: `/api/v1/dashboard/${id}` }),
+    SupersetClient.get({ endpoint: `/api/v1/dashboard/${idOrSlug}/charts` }),
+    SupersetClient.get({ endpoint: `/api/v1/dashboard/${idOrSlug}` }),
   ];
   return Promise.all(batch).then(([chartRes, dashboardRes]) => ({
     chartRes: chartRes.json.result,
@@ -45,7 +45,7 @@ const getData = (id: string) => {
 const DashboardRoute: FC<DashboardRouteProps> = ({
   children,
   actions,
-  dashboardId, // eventually get from react router
+  dashboardIdOrSlug, // eventually get from react router
 }) => {
   const appContainer = document.getElementById('app');
   const bootstrapData = appContainer?.getAttribute('data-bootstrap');
@@ -55,7 +55,7 @@ const DashboardRoute: FC<DashboardRouteProps> = ({
   const handleError = (error: unknown) => ({ error, info: null });
 
   useEffect(() => {
-    getData(dashboardId)
+    getData(dashboardIdOrSlug)
       .then(data => {
         if (data) {
           const initState = getInitialState(
@@ -71,7 +71,7 @@ const DashboardRoute: FC<DashboardRouteProps> = ({
         setLoaded(true);
         handleError(err);
       });
-  }, []);
+  }, [dashboardIdOrSlug]);
 
   if (!loaded) return <Loading />;
   return <ErrorBoundary onError={handleError}>{children} </ErrorBoundary>;
