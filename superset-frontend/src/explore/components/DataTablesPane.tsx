@@ -271,7 +271,7 @@ export const DataTablesPane = ({
               height: 100%;
 
               .ant-collapse-content {
-                height: 100%;
+                height: calc(100% - 34px);
 
                 .ant-collapse-content-box {
                   height: 100%;
@@ -283,7 +283,6 @@ export const DataTablesPane = ({
           <Collapse.Panel
             header={t('Data')}
             key={DATAPANEL_KEY}
-            css={{ paddingBottom: 12 }}
           >
             <Tabs
               fullWidth={false}
