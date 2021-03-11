@@ -1868,20 +1868,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         }
 
         bootstrap_data = {
-            "user_id": g.user.get_id(),
             "user": bootstrap_user_data(g.user, include_perms=True),
             "common": common_bootstrap_payload(),
-            "editMode": edit_mode,
-            "urlParams": url_params,
-            "dashboard_data": {
-                **data["dashboard"],
-                "standalone_mode": standalone_mode,
-                "dash_save_perm": dash_save_perm,
-                "dash_edit_perm": dash_edit_perm,
-                "superset_can_explore": superset_can_explore,
-                "superset_can_csv": superset_can_csv,
-                "slice_can_edit": slice_can_edit,
-            },
             "datasources": data["datasources"],
         }
 
