@@ -21,6 +21,7 @@ import PopoverDropdown, { PopoverDropdownProps, OptionProps } from '.';
 
 export default {
   title: 'PopoverDropdown',
+  includeStories: ['InteractivePopoverDropdown'],
 };
 
 export const OPTIONS: OptionProps[] = [

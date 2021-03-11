@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import { supersetTheme } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import PopoverDropdown, {
@@ -35,7 +34,6 @@ const defaultProps: PopoverDropdownProps = {
   renderButton: (option: OptionProps) => <span>{option.label}</span>,
   renderOption: (option: OptionProps) => <div>{option.label}</div>,
   onChange: jest.fn(),
-  theme: supersetTheme,
 };
 
 test('renders with default props', () => {

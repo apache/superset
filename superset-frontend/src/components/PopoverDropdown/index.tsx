@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import cx from 'classnames';
-import { styled, withTheme, SupersetThemeProps } from '@superset-ui/core';
+import { styled, useTheme } from '@superset-ui/core';
 import { Dropdown, Menu } from 'src/common/components';
 import Icon from 'src/components/Icon';
 
@@ -36,7 +36,6 @@ export interface PopoverDropdownProps {
   options: OptionProps[];
   onChange: OnChangeHandler;
   value: string;
-  theme: SupersetThemeProps['theme'];
   renderButton?: RenderElementHandler;
   renderOption?: RenderElementHandler;
 }
@@ -79,13 +78,14 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
   const {
     value,
     options,
-    theme,
     onChange,
     renderButton = (option: OptionProps) => option.label,
     renderOption = (option: OptionProps) => (
       <div className={option.className}>{option.label}</div>
     ),
   } = props;
+
+  const theme = useTheme();
   const selected = options.find(opt => opt.value === value);
   return (
     <Dropdown
@@ -109,10 +109,10 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
     >
       <div role="button" css={{ display: 'flex', alignItems: 'center' }}>
         {selected && renderButton(selected)}
-        <Icon name="caret-down" css={{ marginTop: 4 }} />
+        <Icon name="caret-down" css={{ marginTop: theme.gridUnit }} />
       </div>
     </Dropdown>
   );
 };
 
-export default withTheme(PopoverDropdown);
+export default PopoverDropdown;
